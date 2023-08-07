@@ -32,6 +32,18 @@ interface InitialRowStateProp<RowState> {
     initialRowState: RowState
 }
 
+/** `selectedKeys` and `setSelectedKeys` when they are present. */
+interface InternalSelectedKeysProps<Key> {
+    selectedKeys: Set<Key>
+    setSelectedKeys: React.Dispatch<React.SetStateAction<Set<Key>>>
+}
+
+/** The absence of `selectedKeys` and `setSelectedKeys`. */
+interface InternalNoSelectedKeysProps {
+    selectedKeys?: never
+    setSelectedKeys?: never
+}
+
 // =============
 // === Table ===
 // =============
@@ -43,6 +55,8 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
+    selectedKeys?: Set<Key>
+    setSelectedKeys?: React.Dispatch<React.SetStateAction<Set<Key>>>
     columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     isLoading: boolean
     placeholder?: JSX.Element
@@ -62,7 +76,8 @@ export type TableProps<
     Key extends string = string
 > = InternalTableProps<T, State, RowState, Key> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
-    ([State] extends [never] ? unknown : StateProp<State>)
+    ([State] extends [never] ? unknown : StateProp<State>) &
+    (InternalNoSelectedKeysProps | InternalSelectedKeysProps<Key>)
 
 /** Table that projects an object into each column. */
 export default function Table<T, State = never, RowState = never, Key extends string = string>(
@@ -72,6 +87,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
         rowComponent: RowComponent = TableRow,
         items,
         getKey,
+        selectedKeys: rawSelectedKeys,
+        setSelectedKeys: rawSetSelectedKeys,
         columns,
         isLoading,
         placeholder,
@@ -83,7 +100,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
     // This should not be made mutable for the sake of optimization, otherwise its value may
     // be different after `await`ing an I/O operation. Also, a change in its value should trigger
     // a re-render.
-    const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
+    const [fallbackSelectedKeys, fallbackSetSelectedKeys] = React.useState(() => new Set<Key>())
+    const [selectedKeys, setSelectedKeys] =
+        rawSelectedKeys != null
+            ? [rawSelectedKeys, rawSetSelectedKeys]
+            : [fallbackSelectedKeys, fallbackSetSelectedKeys]
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
 
     React.useEffect(() => {
@@ -106,7 +127,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         return () => {
             document.removeEventListener('click', onDocumentClick)
         }
-    }, [selectedKeys, shortcuts])
+    }, [selectedKeys, /* should never change */ setSelectedKeys, shortcuts])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -170,7 +191,13 @@ export default function Table<T, State = never, RowState = never, Key extends st
             }
             setPreviouslySelectedKey(key)
         },
-        [items, previouslySelectedKey, shortcuts, /* should never change */ getKey]
+        [
+            items,
+            previouslySelectedKey,
+            shortcuts,
+            /* should never change */ setSelectedKeys,
+            /* should never change */ getKey,
+        ]
     )
 
     const headerRow = (

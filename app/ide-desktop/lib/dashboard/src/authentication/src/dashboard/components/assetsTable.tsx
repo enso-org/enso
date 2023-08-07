@@ -344,6 +344,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
     )
+    const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
 
@@ -692,6 +693,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}
                     getKey={backendModule.getAssetId}
+                    selectedKeys={selectedKeys}
+                    setSelectedKeys={setSelectedKeys}
                     placeholder={PLACEHOLDER}
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
@@ -699,21 +702,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                         heading: columnModule.COLUMN_HEADING[column],
                         render: columnModule.COLUMN_RENDERER[column],
                     }))}
-                    onContextMenu={(selectedKeys, event, setSelectedKeys) => {
+                    onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        const pluralized = pluralize(selectedKeys.size)
+                        const pluralized = pluralize(innerSelectedKeys.size)
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const doDeleteAll = () => {
                             setModal(
                                 <ConfirmDeleteModal
-                                    description={`${selectedKeys.size} selected ${pluralized}`}
+                                    description={`${innerSelectedKeys.size} selected ${pluralized}`}
                                     doDelete={() => {
-                                        setSelectedKeys(new Set())
+                                        innerSetSelectedKeys(new Set())
                                         dispatchAssetEvent({
                                             type: assetEventModule.AssetEventType.deleteMultiple,
-                                            ids: selectedKeys,
+                                            ids: innerSelectedKeys,
                                         })
                                         return Promise.resolve()
                                     }}
@@ -722,12 +725,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                         }
                         setModal(
                             <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                <ContextMenu>
-                                    <ContextMenuEntry
-                                        action={shortcuts.KeyboardAction.moveAllToTrash}
-                                        doAction={doDeleteAll}
-                                    />
-                                </ContextMenu>
+                                {innerSelectedKeys.size !== 0 && (
+                                    <ContextMenu>
+                                        <ContextMenuEntry
+                                            action={shortcuts.KeyboardAction.moveAllToTrash}
+                                            doAction={doDeleteAll}
+                                        />
+                                    </ContextMenu>
+                                )}
                                 <GlobalContextMenu
                                     directoryId={backend.rootDirectoryId(organization)}
                                     dispatchAssetListEvent={dispatchAssetListEvent}
