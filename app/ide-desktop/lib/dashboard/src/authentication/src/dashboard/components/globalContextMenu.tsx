@@ -37,15 +37,15 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                                 dispatchAssetListEvent({
                                     type: assetListEventModule.AssetListEventType.uploadFiles,
                                     parentId: directoryId,
-                                    files: event.currentTarget.files,
+                                    files: Array.from(event.currentTarget.files),
                                 })
+                                unsetModal()
                             }
                         }}
                     ></input>
                     <ContextMenuEntry
                         action={shortcuts.KeyboardAction.uploadFiles}
                         doAction={() => {
-                            unsetModal()
                             filesInputRef.current?.click()
                         }}
                     />

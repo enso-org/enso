@@ -172,7 +172,7 @@ export default function DriveView(props: DriveViewProps) {
     )
 
     const doUploadFiles = React.useCallback(
-        (files: FileList) => {
+        (files: File[]) => {
             if (backend.type === backendModule.BackendType.local) {
                 // TODO[sb]: Allow uploading `.enso-project`s
                 // https://github.com/enso-org/cloud-v2/issues/510
@@ -253,7 +253,7 @@ export default function DriveView(props: DriveViewProps) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
                             parentId: backend.rootDirectoryId(organization),
-                            files: event.dataTransfer.files,
+                            files: Array.from(event.dataTransfer.files),
                         })
                     }}
                 >

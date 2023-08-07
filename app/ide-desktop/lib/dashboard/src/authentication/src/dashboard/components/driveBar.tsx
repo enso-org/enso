@@ -19,7 +19,7 @@ import Button from './button'
 export interface DriveBarProps {
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
-    doUploadFiles: (files: FileList) => void
+    doUploadFiles: (files: File[]) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
@@ -32,7 +32,11 @@ export default function DriveBar(props: DriveBarProps) {
     const doUploadFiles = React.useCallback(
         (event: React.FormEvent<HTMLInputElement>) => {
             if (event.currentTarget.files != null) {
-                doUploadFilesRaw(event.currentTarget.files)
+                doUploadFilesRaw(Array.from(event.currentTarget.files))
+                // Clear the file input.
+                if (uploadFilesRef.current != null) {
+                    uploadFilesRef.current.value = ''
+                }
             }
         },
         [/* should never change */ doUploadFilesRaw]
