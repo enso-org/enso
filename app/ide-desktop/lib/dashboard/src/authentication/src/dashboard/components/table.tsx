@@ -50,6 +50,7 @@ interface InternalNoSelectedKeysProps {
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
+    footer?: JSX.Element
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
     items: T[]
     state?: State
@@ -84,6 +85,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     props: TableProps<T, State, RowState, Key>
 ) {
     const {
+        footer,
         rowComponent: RowComponent = TableRow,
         items,
         getKey,
@@ -264,7 +266,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <table
-            className="rounded-rows self-start table-fixed border-collapse mt-2"
+            className="grow rounded-rows self-start table-fixed border-collapse mt-2"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
@@ -280,6 +282,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     </tr>
                 )}
             </tbody>
+            {footer}
         </table>
     )
 }

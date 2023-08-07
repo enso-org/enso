@@ -658,7 +658,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     return (
         <div className="flex-1 overflow-auto">
-            <div className="flex flex-col w-min min-w-full">
+            <div className="flex flex-col w-min min-w-full h-full">
                 <div className="h-0">
                     <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
                         <div className="inline-flex gap-3">
@@ -687,6 +687,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     AssetRowState,
                     backendModule.AssetId
                 >
+                    footer={<tfoot className="h-full"></tfoot>}
                     rowComponent={AssetRow}
                     items={visibleItems}
                     isLoading={isLoading}
