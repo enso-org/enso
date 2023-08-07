@@ -132,6 +132,10 @@ export default function Dashboard(props: DashboardProps) {
     }, [project, /* should never change */ localStorage])
 
     React.useEffect(() => {
+        localStorage.set(localStorageModule.LocalStorageKey.page, page)
+    }, [page, /* should never change */ localStorage])
+
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
