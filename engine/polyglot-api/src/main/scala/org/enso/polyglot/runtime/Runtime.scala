@@ -153,6 +153,14 @@ object Runtime {
         name  = "projectRenamed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.RenameSymbol],
+        name  = "renameSymbol"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SymbolRenamed],
+        name  = "symbolRenamed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
       ),
