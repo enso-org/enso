@@ -10,7 +10,12 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   ReleaseCapability
 }
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
-import org.enso.languageserver.filemanager.{FileEvent, FileEventKind, Path}
+import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  FileEvent,
+  FileEventKind,
+  Path
+}
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.BufferRegistry.{
@@ -43,6 +48,7 @@ import org.enso.languageserver.vcsmanager.VcsProtocol.{
   RestoreRepoResponse,
   SaveRepo
 }
+import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.ContentBasedVersioning
 
@@ -82,13 +88,14 @@ import java.util.UUID
   * @param fileManager a file manager
   * @param vcsManager a VCS manager
   * @param runtimeConnector a gateway to the runtime
-  * @param versionCalculator a content based version calculator
+  * @param contentRootManager the content root manager
   * @param timingsConfig a config with timeout/delay values
   */
 class BufferRegistry(
   fileManager: ActorRef,
   vcsManager: ActorRef,
   runtimeConnector: ActorRef,
+  contentRootManager: ContentRootManager,
   timingsConfig: TimingsConfig
 )(implicit
   versionCalculator: ContentBasedVersioning
@@ -214,6 +221,30 @@ class BufferRegistry(
           buffer ! msg
         }
       }
+
+    case msg: Api.FileEdit =>
+      contentRootManager
+        .findRelativePath(msg.path)
+        .foreach {
+          case Some(path) =>
+            registry.get(path).foreach { buffer =>
+              buffer ! ApplyEdit(
+                None,
+                FileEdit(
+                  path,
+                  msg.edits.toList,
+                  msg.oldVersion,
+                  msg.newVersion
+                ),
+                execute = true
+              )
+            }
+          case None =>
+            logger.error(
+              "Failed to resolve path [{}].",
+              MaskedPath(msg.path.toPath)
+            )
+        }
   }
 
   private def forwardMessageToVCS(
@@ -477,7 +508,7 @@ object BufferRegistry {
     * @param fileManager a file manager actor
     * @param vcsManager a VCS manager actor
     * @param runtimeConnector a gateway to the runtime
-    * @param versionCalculator a content based version calculator
+    * @param contentRootManager the content root manager
     * @param timingsConfig a config with timout/delay values
     * @return a configuration object
     */
@@ -485,6 +516,7 @@ object BufferRegistry {
     fileManager: ActorRef,
     vcsManager: ActorRef,
     runtimeConnector: ActorRef,
+    contentRootManager: ContentRootManager,
     timingsConfig: TimingsConfig
   )(implicit
     versionCalculator: ContentBasedVersioning
@@ -494,6 +526,7 @@ object BufferRegistry {
         fileManager,
         vcsManager,
         runtimeConnector,
+        contentRootManager,
         timingsConfig
       )
     )

@@ -1647,8 +1647,8 @@ object Runtime {
     /** A request for symbol renaming.
       *
       * @param module the qualified module name
-      * @param expressionId the namespace the renamed project belongs to
-      * @param newName the new name
+      * @param expressionId the symbol to rename
+      * @param newName the new name of the symbol
       */
     final case class RenameSymbol(
       module: String,

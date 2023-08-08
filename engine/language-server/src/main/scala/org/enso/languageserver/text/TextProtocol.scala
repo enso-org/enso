@@ -69,7 +69,11 @@ object TextProtocol {
     * @param edit a diff describing changes made to a file
     * @param execute whether to execute the program after applying the edits
     */
-  case class ApplyEdit(clientId: ClientId, edit: FileEdit, execute: Boolean)
+  case class ApplyEdit(
+    clientId: Option[ClientId],
+    edit: FileEdit,
+    execute: Boolean
+  )
 
   /** Signals the result of applying a series of edits.
     */

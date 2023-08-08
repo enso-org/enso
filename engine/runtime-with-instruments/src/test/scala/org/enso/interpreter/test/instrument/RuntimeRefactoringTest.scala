@@ -110,12 +110,14 @@ class RuntimeRefactoringTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val idOperator1 = metadata.addItem(11, 9)
+    val idOperator1 = metadata.addItem(42, 9)
     val code =
-      """main =
+      """from Standard.Base import all
+        |
+        |main =
         |    operator1 = 41
         |    operator2 = operator1 + 1
-        |    operator2
+        |    IO.println operator2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -152,23 +154,23 @@ class RuntimeRefactoringTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List()
+    context.consumeOut shouldEqual List("42")
 
     // rename operator1
-    val newName = "foobar"
-    val edits = Vector(
+    val newName = "foobarbaz"
+    val expectedEdits = Vector(
       TextEdit(
-        model.Range(model.Position(1, 4), model.Position(1, 13)),
+        model.Range(model.Position(3, 4), model.Position(3, 13)),
         newName
       ),
       TextEdit(
-        model.Range(model.Position(2, 16), model.Position(2, 25)),
+        model.Range(model.Position(4, 16), model.Position(4, 25)),
         newName
       )
     )
-    val fileEdit = Api.FileEdit(
+    val expectedFileEdit = Api.FileEdit(
       context.pkg.mainFile,
-      edits,
+      expectedEdits,
       versionCalculator.evalVersion(contents).toHexString,
       versionCalculator
         .evalVersion(contents.replaceAll("operator1", newName))
@@ -177,11 +179,13 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
-      Api.Response(None, fileEdit),
+      Api.Response(None, expectedFileEdit),
+      TestMessages.pending(contextId, idOperator1),
       context.executionComplete(contextId)
     )
+    context.consumeOut shouldEqual List("42")
   }
 
   it should "edit file after renaming" in {
@@ -190,14 +194,16 @@ class RuntimeRefactoringTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata        = new Metadata
-    val symbolOperator1 = metadata.addItem(11, 9)
-    val exprOperator1   = metadata.addItem(23, 2)
-    val exprOperator2   = metadata.addItem(42, 13)
+    val symbolOperator1 = metadata.addItem(42, 9, "aa")
+    val exprOperator1   = metadata.addItem(54, 2, "ab")
+    val exprOperator2   = metadata.addItem(73, 13, "ac")
     val code =
-      """main =
+      """from Standard.Base import all
+        |
+        |main =
         |    operator1 = 41
         |    operator2 = operator1 + 1
-        |    operator2
+        |    IO.println operator2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -232,29 +238,27 @@ class RuntimeRefactoringTest
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages
-        .update(contextId, exprOperator1, ConstantsGen.INTEGER_BUILTIN),
-      TestMessages
-        .update(contextId, exprOperator2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, exprOperator2, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List()
+    context.consumeOut shouldEqual List("42")
 
     // rename operator1
-    val newName = "foobar"
-    val edits = Vector(
+    val newName = "foobarbaz"
+    val expectedEdits = Vector(
       TextEdit(
-        model.Range(model.Position(1, 4), model.Position(1, 13)),
+        model.Range(model.Position(3, 4), model.Position(3, 13)),
         newName
       ),
       TextEdit(
-        model.Range(model.Position(2, 16), model.Position(2, 25)),
+        model.Range(model.Position(4, 16), model.Position(4, 25)),
         newName
       )
     )
-    val fileEdit = Api.FileEdit(
+    val expectedFileEdit = Api.FileEdit(
       context.pkg.mainFile,
-      edits,
+      expectedEdits,
       versionCalculator.evalVersion(contents).toHexString,
       versionCalculator
         .evalVersion(contents.replaceAll("operator1", newName))
@@ -266,11 +270,19 @@ class RuntimeRefactoringTest
         Api.RenameSymbol(moduleName, symbolOperator1, newName)
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
-      Api.Response(None, fileEdit),
+      Api.Response(None, expectedFileEdit),
+      TestMessages.pending(contextId, symbolOperator1, exprOperator2),
+      TestMessages.update(
+        contextId,
+        exprOperator2,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
+    context.consumeOut shouldEqual List("42")
 
     // modify main
     context.send(
@@ -279,7 +291,7 @@ class RuntimeRefactoringTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 16), model.Position(1, 18)),
+              model.Range(model.Position(3, 16), model.Position(3, 18)),
               "42"
             )
           ),
@@ -293,19 +305,19 @@ class RuntimeRefactoringTest
         .update(
           contextId,
           exprOperator1,
-          ConstantsGen.INTEGER_BUILTIN,
+          ConstantsGen.INTEGER,
           typeChanged = false
         ),
       TestMessages
         .update(
           contextId,
           exprOperator2,
-          ConstantsGen.INTEGER_BUILTIN,
+          ConstantsGen.INTEGER,
           typeChanged = false
         ),
       context.executionComplete(contextId)
     )
-
+    context.consumeOut shouldEqual List("43")
   }
 
 }

@@ -22,9 +22,10 @@ final class PendingFileEdits(
     pending.remove(file).getOrElse(Seq())
 
   /** @inheritdoc */
-  override def dequeueAll: Map[File, Seq[PendingEdit]] = {
-    val result = pending.toMap
-    pending.clear()
-    result
-  }
+  override def get(file: File): Seq[PendingEdit] =
+    pending.getOrElse(file, Seq())
+
+  /** @inheritdoc */
+  override def files: Iterable[File] =
+    pending.keys
 }

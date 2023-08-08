@@ -34,9 +34,16 @@ import scala.jdk.OptionConverters._
 /** A job that ensures that specified files are compiled.
   *
   * @param files a files to compile
+  * @param isCancellable a flag indicating if the job is cancellable
   */
-final class EnsureCompiledJob(protected val files: Iterable[File])
-    extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
+final class EnsureCompiledJob(
+  protected val files: Iterable[File],
+  isCancellable: Boolean = true
+) extends Job[EnsureCompiledJob.CompilationStatus](
+      List.empty,
+      isCancellable,
+      false
+    ) {
 
   import EnsureCompiledJob.CompilationStatus
 
@@ -517,7 +524,7 @@ object EnsureCompiledJob {
 
   /** The outcome of a compilation. */
   sealed trait CompilationStatus
-  case object CompilationStatus {
+  private case object CompilationStatus {
 
     /** Compilation completed. */
     case object Success extends CompilationStatus

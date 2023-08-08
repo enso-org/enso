@@ -20,9 +20,16 @@ trait PendingEdits {
     */
   def dequeue(file: File): Seq[PendingEdit]
 
-  /** Dequeue all pending edits.
+  /** Get pending file edits without dequeing them.
     *
-    * @return all of the pending edits
+    * @param file the edited file
+    * @return the list of pending edits
     */
-  def dequeueAll: Map[File, Seq[PendingEdit]]
+  def get(file: File): Seq[PendingEdit]
+
+  /** List files with pending edits.
+    *
+    * @return the list of files with pending edits
+    */
+  def files: Iterable[File]
 }
