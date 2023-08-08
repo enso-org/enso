@@ -94,9 +94,9 @@ const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: `rounded-rows-skip-level min-w-60 p-0 ${COLUMN_CSS_CLASSES}`,
-    [Column.modified]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
-    [Column.sharedWith]: `min-w-36 ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 ${COLUMN_CSS_CLASSES}`,
+    [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.tags]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
