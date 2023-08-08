@@ -74,6 +74,12 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        if (query !== '') {
+            setPage(pageSwitcher.Page.drive)
+        }
+    }, [query])
+
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
