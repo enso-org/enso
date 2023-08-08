@@ -94,7 +94,7 @@ export default function UserMenu(props: UserMenuProps) {
                         onClick={() => {
                             onSignOut()
                             // Wait until React has switched back to drive view, before signing out.
-                            setTimeout(() => {
+                            window.setTimeout(() => {
                                 void signOut()
                             }, 0)
                         }}
