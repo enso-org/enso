@@ -309,43 +309,6 @@ impl Model {
 
 
 
-mod js {
-    // use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(inline_js = "
-    export function close(windowAppScopeConfigName) {
-        try { window[windowAppScopeConfigName].close(); }
-        catch(e) {
-            console.error(`Exception thrown from window.${windowAppScopeConfigName}.close:`,e)
-        }
-    }")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn close(window_app_scope_name: &str);
-    }
-
-
-    #[wasm_bindgen(inline_js = "
-    export function fullscreen() {
-        try {
-            if(document.fullscreenElement === null)
-                document.documentElement.requestFullscreen()
-            else
-                document.exitFullscreen()
-        } catch (e) {
-            console.error('Exception thrown when toggling fullscreen display mode:',e)
-        }
-    }
-    ")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn fullscreen();
-    }
-}
-
-
-
 // ============
 // === View ===
 // ============
