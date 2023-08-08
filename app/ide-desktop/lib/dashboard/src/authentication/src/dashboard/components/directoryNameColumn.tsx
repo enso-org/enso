@@ -96,7 +96,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap gap-1 ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap gap-1 min-w-max ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {

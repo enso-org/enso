@@ -90,7 +90,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap gap-1 ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap gap-1 min-w-max ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {
