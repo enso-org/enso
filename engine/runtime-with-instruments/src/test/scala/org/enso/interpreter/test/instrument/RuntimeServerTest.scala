@@ -4256,7 +4256,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -4264,8 +4264,7 @@ class RuntimeServerTest
           contextId,
           Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
         )
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 
@@ -4305,7 +4304,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -4316,8 +4315,7 @@ class RuntimeServerTest
             Some(mainFile)
           )
         )
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 
@@ -4357,7 +4355,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -4368,8 +4366,7 @@ class RuntimeServerTest
             Some(mainFile)
           )
         )
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 
@@ -4479,7 +4476,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -4502,8 +4499,7 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 
@@ -4621,7 +4617,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
@@ -4652,8 +4648,7 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 
