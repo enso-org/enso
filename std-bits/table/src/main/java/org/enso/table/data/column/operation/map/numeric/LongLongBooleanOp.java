@@ -31,16 +31,10 @@ public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, Abstra
             return LongStorage.makeEmpty(storage.size());
         }
 
-        long longArg;
-        if (arg0 instanceof Long) {
-            longArg = (Long) arg0;
-        } else {
+        if (!(arg0 instanceof Long arg0AsLong)) {
             throw new UnexpectedTypeException("a long.");
         }
-        boolean booleanArg;
-        if (arg1 instanceof Boolean) {
-            booleanArg = (Boolean) arg1;
-        } else {
+        if (!(arg1 instanceof Boolean arg1AsBoolean)) {
             throw new UnexpectedTypeException("a boolean.");
         }
 
@@ -53,7 +47,7 @@ public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, Abstra
                 long item = storage.getItem(i);
                 boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
                 if (!outOfRange) {
-                    out[i] = doLongBoolean(item, longArg, booleanArg, i, problemBuilder);
+                    out[i] = doLongBoolean(item, arg0AsLong, arg1AsBoolean, i, problemBuilder);
                 } else {
                     String msg =
                             "Error: `round` can only accept values between "

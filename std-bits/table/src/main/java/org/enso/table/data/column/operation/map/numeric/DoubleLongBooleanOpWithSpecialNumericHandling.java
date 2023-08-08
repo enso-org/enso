@@ -24,16 +24,10 @@ public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends Tern
             return DoubleStorage.makeEmpty(storage.size());
         }
 
-        long longArg;
-        if (arg0 instanceof Long) {
-            longArg = (Long) arg0;
-        } else {
+        if (!(arg0 instanceof Long arg0AsLong)) {
             throw new UnexpectedTypeException("a long.");
         }
-        boolean booleanArg;
-        if (arg1 instanceof Boolean) {
-            booleanArg = (Boolean) arg1;
-        } else {
+        if (!(arg1 instanceof Boolean arg1AsBoolean)) {
             throw new UnexpectedTypeException("a boolean.");
         }
 
@@ -46,7 +40,7 @@ public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends Tern
                 double item = storage.getItem(i);
                 boolean special = Double.isNaN(item) || Double.isInfinite(item);
                 if (!special) {
-                    out[i] = Double.doubleToRawLongBits(doLongBoolean(item, longArg, booleanArg, i, problemBuilder));
+                    out[i] = Double.doubleToRawLongBits(doLongBoolean(item, arg0AsLong, arg1AsBoolean, i, problemBuilder));
                 } else {
                     String msg = "Value is " + item;
                     problemBuilder.reportArithmeticError(msg, i);
