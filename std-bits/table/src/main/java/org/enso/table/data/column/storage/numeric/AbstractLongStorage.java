@@ -14,6 +14,8 @@ import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
@@ -63,8 +65,11 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    return NumericBuilder.createLongBuilder(capacity);
+    return NumericBuilder.createLongBuilder(capacity, getType());
   }
+
+  @Override
+  public abstract IntegerType getType();
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();

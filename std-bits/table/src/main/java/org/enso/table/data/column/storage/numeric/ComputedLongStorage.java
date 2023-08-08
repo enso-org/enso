@@ -35,7 +35,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public StorageType getType() {
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
@@ -76,7 +76,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing);
+    return new LongStorage(newData, cardinality, newMissing, getType());
   }
 
   @Override
@@ -94,7 +94,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing);
+    return new LongStorage(newData, positions.length, newMissing, getType());
   }
 
   @Override
@@ -111,7 +111,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, total, newMissing);
+    return new LongStorage(newData, total, newMissing, getType());
   }
 
   @Override
@@ -124,7 +124,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       context.safepoint();
     }
     BitSet newMask = new BitSet();
-    return new LongStorage(newData, newSize, newMask);
+    return new LongStorage(newData, newSize, newMask, getType());
   }
 
   @Override
@@ -144,7 +144,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       offset += length;
     }
 
-    return new LongStorage(newData, newSize, newMissing);
+    return new LongStorage(newData, newSize, newMissing, getType());
   }
 
   private static final BitSet EMPTY = new BitSet();

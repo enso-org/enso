@@ -1,5 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.type.IntegerType;
+
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -19,8 +21,8 @@ public abstract class NumericBuilder extends TypedBuilder {
     return new DoubleBuilder(new BitSet(size), new long[size], 0);
   }
 
-  public static LongBuilder createLongBuilder(int size) {
-    return new LongBuilder(new BitSet(size), new long[size], 0);
+  public static LongBuilder createLongBuilder(int size, IntegerType type) {
+    return new LongBuilder(new BitSet(size), new long[size], 0, type);
   }
 
   @Override

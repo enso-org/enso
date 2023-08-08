@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public class MapHelpers {
@@ -45,7 +46,7 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static BoolStorage textEndsWith(StringStorage storage, String suffix) {
@@ -75,7 +76,7 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static LongStorage getYear(DateStorage storage) {
@@ -89,7 +90,7 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static Storage<?> mapCallback(

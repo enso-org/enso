@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.numeric.NumericStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
@@ -39,7 +40,8 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
       } else {
-        return LongStorage.makeEmpty(storage.size());
+        // TODO inherit type
+        return LongStorage.makeEmpty(storage.size(), IntegerType.INT_64);
       }
     } else if (!alwaysCastToDouble && arg instanceof Long x) {
       BitSet newMissing = BitSets.makeDuplicate(storage.getIsMissing());
@@ -56,7 +58,9 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
 
         context.safepoint();
       }
-      return new LongStorage(newVals, newVals.length, newMissing);
+
+      // TODO use a combined type
+      return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
     } else if (arg instanceof Double || arg instanceof Long) {
       double x = (arg instanceof Double) ? (Double) arg : (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -96,7 +100,8 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
 
         context.safepoint();
       }
-      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing);
+      // TODO inherit type or not?
+      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing, IntegerType.INT_64);
     } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();

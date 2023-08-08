@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 /** An operation that takes a single double argument and returns a long. */
@@ -32,6 +33,7 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
       context.safepoint();
     }
 
-    return new LongStorage(newVals, newVals.length, newMissing);
+    // TODO is inheriting type ok? it may not be enough!
+    return new LongStorage(newVals, newVals.length, newMissing, storage.getType());
   }
 }

@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -18,8 +19,10 @@ import java.util.Objects;
  * A builder for integer columns.
  */
 public class LongBuilder extends NumericBuilder {
-  LongBuilder(BitSet isMissing, long[] data, int currentSize) {
+  private final IntegerType type;
+  LongBuilder(BitSet isMissing, long[] data, int currentSize, IntegerType type) {
     super(isMissing, data, currentSize);
+    this.type = type;
   }
 
   @Override
@@ -68,16 +71,27 @@ public class LongBuilder extends NumericBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
-      if (storage instanceof LongStorage longStorage) {
+    if (Objects.equals(storage.getType(), type) && storage instanceof LongStorage longStorage) {
+      // A fast path for the same type - no conversions/checks needed.
+      int n = longStorage.size();
+      ensureFreeSpaceFor(n);
+      System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
+      BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+      currentSize += n;
+    } else if (storage.getType() instanceof IntegerType) {
+      if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         ensureFreeSpaceFor(n);
-        System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
-        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
-        currentSize += n;
+        for (int i = 0; i < n; i++) {
+          if (longStorage.isNa(i)) {
+            isMissing.set(currentSize++);
+          } else {
+            appendLongNoGrow(longStorage.getItem(i));
+          }
+        }
       } else {
         throw new IllegalStateException(
-            "Unexpected storage implementation for type DOUBLE: "
+            "Unexpected storage implementation for type INTEGER: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
@@ -113,11 +127,20 @@ public class LongBuilder extends NumericBuilder {
     }
 
     assert currentSize < this.data.length;
-    appendRawNoGrow(data);
+    appendLongNoGrow(data);
+  }
+
+  public void appendLongNoGrow(long data) {
+    if (type.fits(data)) {
+      appendRawNoGrow(data);
+    } else {
+      // TODO: Handle overflow
+      throw new IllegalStateException("TODO");
+    }
   }
 
   @Override
   public Storage<Long> seal() {
-    return new LongStorage(data, currentSize, isMissing);
+    return new LongStorage(data, currentSize, isMissing, type);
   }
 }

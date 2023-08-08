@@ -97,7 +97,8 @@ public class InferredBuilder extends Builder {
     if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      currentBuilder = NumericBuilder.createLongBuilder(initialCapacity);
+      // In inferred builder, we always default to 64-bits.
+      currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
     } else if (NumericConverter.isCoercibleToDouble(o)) {
       currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {

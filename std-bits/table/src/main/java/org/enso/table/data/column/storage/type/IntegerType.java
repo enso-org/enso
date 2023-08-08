@@ -20,4 +20,15 @@ public record IntegerType(Bits bits) implements StorageType {
       case BITS_64 -> Long.MIN_VALUE;
     };
   }
+
+  public boolean fits(long value) {
+    if (this.bits == Bits.BITS_64) return true;
+    return value >= getMinValue() && value <= getMaxValue();
+  }
+
+  public boolean fits(double value) {
+    double min = getMinValue();
+    double max = getMaxValue();
+    return value >= min && value <= max;
+  }
 }

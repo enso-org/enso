@@ -13,16 +13,10 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
-  private final double min;
-  private final double max;
+  private final IntegerType targetType;
 
   public ToIntegerStorageConverter(IntegerType targetType) {
-    this.min = (double) targetType.getMinValue();
-    this.max = (double) targetType.getMaxValue();
-
-    if (targetType.bits() != Bits.BITS_64) {
-      throw new IllegalStateException("Internal error: Only 64-bit integers are currently supported. To support other sizes, this class will need a few adaptations.");
-    }
+    this.targetType = targetType;
   }
 
   public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
@@ -41,7 +35,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
+    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -53,10 +47,12 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         builder.appendLong(x);
       } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
-        if (fitsInTargetRange(x)) {
+        // TODO is this ok or do we need it to be more efficient?
+        if (targetType.fits(x)) {
           long converted = (long) x;
           builder.appendLong(converted);
         } else {
+          // TODO maybe more precise Out_Of_Range conversion here?
           problemBuilder.reportConversionFailure(o);
           builder.appendNulls(1);
         }
@@ -72,14 +68,10 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return builder.seal();
   }
 
-  private boolean fitsInTargetRange(double value) {
-    return value >= min && value <= max;
-  }
-
   private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -98,13 +90,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItem(i);
-        if (fitsInTargetRange(value)) {
+        if (targetType.fits(value)) {
           long converted = (long) value;
           builder.appendLong(converted);
         } else {
