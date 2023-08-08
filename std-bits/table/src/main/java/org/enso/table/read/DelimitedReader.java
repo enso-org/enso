@@ -228,8 +228,8 @@ public class DelimitedReader {
   }
 
   /** Returns a list of currently reported problems encountered when parsing the input. */
-  private List<Problem> getReportedProblems(List<Problem> nameProblems) {
-    List<Problem> result = new ArrayList<>(nameProblems.size() + warnings.size() + 1);
+  private AggregatedProblems getReportedProblems(List<Problem> nameProblems) {
+    AggregatedProblems result = new AggregatedProblems(nameProblems.size() + warnings.size() + 1);
     result.addAll(nameProblems);
     result.addAll(warnings);
     if (invalidRowsCount > invalidRowsLimit) {
@@ -504,7 +504,7 @@ public class DelimitedReader {
       context.safepoint();
     }
 
-    problems[builders.length] = AggregatedProblems.of(getReportedProblems(headerProblems));
+    problems[builders.length] = getReportedProblems(headerProblems);
     return new WithAggregatedProblems<>(new Table(columns), AggregatedProblems.merge(problems));
   }
 
