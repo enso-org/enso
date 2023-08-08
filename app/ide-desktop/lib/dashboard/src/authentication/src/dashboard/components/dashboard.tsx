@@ -207,7 +207,7 @@ export default function Dashboard(props: DashboardProps) {
         <>
             <div
                 className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                    page === pageSwitcher.Page.editor ? 'cursor-none' : ''
+                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
                 }`}
                 onContextMenu={event => {
                     event.preventDefault()

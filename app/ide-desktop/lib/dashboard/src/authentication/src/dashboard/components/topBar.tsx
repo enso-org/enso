@@ -51,11 +51,11 @@ export default function TopBar(props: TopBarProps) {
     return (
         <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-10">
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-            {supportsLocalBackend && page === pageSwitcher.Page.drive && (
+            {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
                 <BackendSwitcher setBackendType={setBackendType} />
             )}
             <div className="grow" />
-            {page === pageSwitcher.Page.drive && (
+            {page !== pageSwitcher.Page.editor && (
                 <>
                     <div className="search-bar absolute flex items-center text-primary bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
                         <label htmlFor="search">
