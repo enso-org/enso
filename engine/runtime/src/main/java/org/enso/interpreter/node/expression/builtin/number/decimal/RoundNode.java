@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.number.decimal;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
 import com.oracle.truffle.api.profiles.ValueProfile;
@@ -43,11 +44,12 @@ public class RoundNode extends Node {
         long decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
         boolean useBankers = constantPlacesUseBankers.profile(ub);
 
-        if (Double.isNaN(n) || Double.isInfinite(n)) {
-            Builtins builtins = EnsoContext.get(this).getBuiltins();
-            throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
-        }
-        if (n < ROUND_MIN_DOUBLE || n > ROUND_MAX_DOUBLE) {
+        boolean inRange = n >= ROUND_MIN_DOUBLE && n <= ROUND_MAX_DOUBLE;
+        if (!inRange) {
+            if (Double.isNaN(n) || Double.isInfinite(n)) {
+                Builtins builtins = EnsoContext.get(this).getBuiltins();
+                throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
+            }
             throw argumentOutOfRangePanic(n);
         }
 
