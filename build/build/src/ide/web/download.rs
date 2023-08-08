@@ -15,8 +15,10 @@ use std::fs::File;
 
 /// Check whether the specified URL has been downloaded and cached. If not, download it using the
 /// specified downloader, and store it in the cache. Opens the file in the cache and returns it.
-/// The `filename` parameter may be any path-safe string; it will only be seen when inspecting the
-/// cache.
+///
+/// The `filename` parameter will be used to name the file within its directory in the cache; the
+/// name does not matter to application operation, but only serves to inform anyone inspecting the
+/// cache directory.
 pub async fn get_file_from_cache_or_download(
     filename: impl AsRef<Path>,
     cache: &Cache,

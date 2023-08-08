@@ -22,10 +22,9 @@ use ttf::AsFaceRef;
 pub mod glyph;
 pub mod glyph_render_info;
 
-pub use ensogl_text_font_family as family;
+pub use enso_font as family;
 pub use family::Name;
 pub use family::NonVariableFaceHeader;
-pub use family::NonVariableFaceHeaderMatch;
 pub use glyph_render_info::GlyphRenderInfo;
 pub use ttf::GlyphId;
 pub use ttf::Style;
@@ -292,9 +291,9 @@ impl NonVariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
     fn load_all_faces(&self, embedded: &Embedded) {
-        for (header, file_name) in &self.definition.map {
-            if let Some(face) = embedded.load_face(file_name) {
-                self.faces.borrow_mut().insert(*header, face);
+        for variation in self.definition.variations() {
+            if let Some(face) = embedded.load_face(variation.file) {
+                self.faces.borrow_mut().insert(variation.header, face);
             }
         }
     }
@@ -310,7 +309,7 @@ impl NonVariableFamily {
             let mut closest = None;
             let mut closest_distance = usize::MAX;
             for known_header in faces.keys() {
-                let distance = known_header.similarity_distance(variation);
+                let distance = similarity_distance(known_header, &variation);
                 if distance < closest_distance {
                     closest_distance = distance;
                     closest = Some(NonVariableFaceHeaderMatch::closest(*known_header));
@@ -421,6 +420,79 @@ impl From<&family::NonVariableDefinition> for NonVariableFamily {
     fn from(definition: &family::NonVariableDefinition) -> Self {
         let definition = definition.clone();
         Self { definition, faces: default() }
+    }
+}
+
+
+
+// ========================================
+// === NonVariableFaceHeader comparison ===
+// ========================================
+
+/// Distance between two font variations. It is used to find the closest variations if the
+/// provided is not available.
+fn similarity_distance(this: &NonVariableFaceHeader, other: &NonVariableFaceHeader) -> usize {
+    let width_weight = 10;
+    let weight_weight = 100;
+    let style_weight = 1;
+
+    let self_width = this.width.to_number() as usize;
+    let self_weight = this.weight.to_number() as usize;
+    let self_style: usize = match this.style {
+        Style::Normal => 0,
+        Style::Italic => 1,
+        Style::Oblique => 2,
+    };
+
+    let other_width = other.width.to_number() as usize;
+    let other_weight = other.weight.to_number() as usize;
+    let other_style: usize = match other.style {
+        Style::Normal => 0,
+        Style::Italic => 1,
+        Style::Oblique => 2,
+    };
+
+    let width = self_width.abs_diff(other_width) * width_weight;
+    let weight = self_weight.abs_diff(other_weight) * weight_weight;
+    let style = self_style.abs_diff(other_style) * style_weight;
+    width + weight + style
+}
+
+/// Indicates whether the provided variation was an exact match or a closest match was found.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum NonVariableFaceHeaderMatchType {
+    Exact,
+    Closest,
+}
+
+/// Result of finding a closest font variation for a non-variable font family.
+#[derive(Debug, Copy, Clone)]
+#[allow(missing_docs)]
+pub struct NonVariableFaceHeaderMatch {
+    pub variations: NonVariableFaceHeader,
+    pub match_type: NonVariableFaceHeaderMatchType,
+}
+
+impl NonVariableFaceHeaderMatch {
+    /// Constructor.
+    pub fn exact(variations: NonVariableFaceHeader) -> Self {
+        Self { variations, match_type: NonVariableFaceHeaderMatchType::Exact }
+    }
+
+    /// Constructor.
+    pub fn closest(variations: NonVariableFaceHeader) -> Self {
+        Self { variations, match_type: NonVariableFaceHeaderMatchType::Closest }
+    }
+
+    /// Checks whether the match was exact.
+    pub fn was_exact(&self) -> bool {
+        self.match_type == NonVariableFaceHeaderMatchType::Exact
+    }
+
+    /// Checks whether the match was closest.
+    pub fn was_closest(&self) -> bool {
+        self.match_type == NonVariableFaceHeaderMatchType::Closest
     }
 }
 
@@ -1029,7 +1101,7 @@ impl Default for Hinting {
 /// A registry of font data built-in to the application.
 #[derive(Debug, Default)]
 pub struct Embedded {
-    definitions: HashMap<Name, family::Definition>,
+    definitions: HashMap<Name, family::FontFamily>,
     data:        HashMap<&'static str, &'static [u8]>,
 }
 
@@ -1044,7 +1116,7 @@ impl Embedded {
     /// Load a font from the registry.
     pub fn load_font(&self, name: Name) -> Option<Font> {
         self.definitions.get(&name).map(|definition| match definition {
-            family::Definition::NonVariable(definition) => {
+            family::FontFamily::NonVariable(definition) => {
                 let family = NonVariableFamily::from(definition);
                 family.load_all_faces(self);
                 let cache = PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.get(&name).cloned());
@@ -1055,7 +1127,7 @@ impl Embedded {
                 }
                 font.into()
             }
-            family::Definition::Variable(definition) => {
+            family::FontFamily::Variable(definition) => {
                 let family = VariableFamily::from(definition);
                 family.load_all_faces(self);
                 VariableFont::new(name, family).into()

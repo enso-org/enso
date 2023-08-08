@@ -23,6 +23,7 @@ use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
 
+use enso_font::NonVariableFaceHeader;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use enso_frp::stream::ValueProvider;
@@ -35,7 +36,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
-use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
 
 

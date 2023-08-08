@@ -5,6 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+enso-font = { path = "../font" }
 ide-ci = { path = "../../../build/ci_utils" }
 owned_ttf_parser = { workspace = true }
 flate2 = { version = "1.0" }

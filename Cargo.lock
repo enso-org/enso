@@ -1884,6 +1884,7 @@ dependencies = [
  "enso-build-base",
  "enso-build-macros-lib",
  "enso-enso-font",
+ "enso-font",
  "ensogl-pack",
  "filetime",
  "flate2",
@@ -2114,6 +2115,7 @@ dependencies = [
 name = "enso-enso-font"
 version = "0.1.0"
 dependencies = [
+ "enso-font",
  "flate2",
  "ide-ci",
  "owned_ttf_parser",
@@ -2128,6 +2130,14 @@ dependencies = [
  "enso-profiler",
  "ensogl-core",
  "futures",
+]
+
+[[package]]
+name = "enso-font"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "owned_ttf_parser",
 ]
 
 [[package]]
@@ -3287,6 +3297,7 @@ dependencies = [
  "bincode 2.0.0-rc.2",
  "const_format",
  "enso-bitmap",
+ "enso-font",
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
@@ -3294,7 +3305,6 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
- "ensogl-text-font-family",
  "ensogl-text-msdf",
  "ordered-float",
  "owned_ttf_parser",
@@ -3313,19 +3323,11 @@ version = "0.1.0"
 dependencies = [
  "enso-build",
  "enso-enso-font",
+ "enso-font",
  "enso-prelude",
- "ensogl-text-font-family",
  "ide-ci",
  "owned_ttf_parser",
  "tokio",
-]
-
-[[package]]
-name = "ensogl-text-font-family"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "owned_ttf_parser",
 ]
 
 [[package]]
@@ -3334,12 +3336,12 @@ version = "0.1.0"
 dependencies = [
  "enso-bitmap",
  "enso-build-utilities",
+ "enso-font",
  "enso-prelude",
  "enso-profiler",
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",
- "ensogl-text-font-family",
  "failure",
  "futures",
  "ide-ci",

@@ -9,10 +9,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-prelude = { path = "../../../../../../prelude" }
-ensogl-text-font-family = { path = "../../font/family" }
+enso-font = { path = "../../../../../../font" }
 
 [build-dependencies]
 enso-enso-font = { path = "../../../../../../enso-font" }
+enso-font = { path = "../../../../../../font" }
 ide-ci = { path = "../../../../../../../../build/ci_utils" }
 enso-build = { path = "../../../../../../../../build/build" }
 tokio = { workspace = true }

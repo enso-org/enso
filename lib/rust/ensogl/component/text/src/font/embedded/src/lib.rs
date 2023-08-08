@@ -20,7 +20,7 @@
 
 use enso_prelude::*;
 
-use ensogl_text_font_family as family;
+use enso_font as family;
 
 
 
@@ -45,7 +45,7 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 #[allow(missing_docs)]
 #[derive(Clone)]
 pub struct Embedded {
-    pub definitions: HashMap<family::Name, family::Definition>,
+    pub definitions: HashMap<family::Name, family::FontFamily>,
     pub data:        HashMap<&'static str, &'static [u8]>,
 }
 

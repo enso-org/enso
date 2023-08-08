@@ -6,8 +6,9 @@
 
 use ide_ci::prelude::*;
 
+use enso_font::NonVariableDefinition;
+use enso_font::NonVariableFaceHeader;
 use ide_ci::log::setup_logging;
-use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
 use owned_ttf_parser::OwnedFace;
 use std::fmt::Write as FmtWrite;
@@ -36,55 +37,6 @@ macro_rules! ln {
 
 
 
-// ====================================
-// === Non variable font definition ===
-// ====================================
-
-struct NonVariableFontDefinition {
-    variations: Vec<NonVariableVariation>,
-}
-
-impl NonVariableFontDefinition {
-    fn files(&self) -> impl Iterator<Item = &str> {
-        self.variations.iter().map(|v| v.file.as_str())
-    }
-}
-
-struct NonVariableVariation {
-    file:   String,
-    header: NonVariableFaceHeader,
-}
-
-#[derive(Default)]
-struct NonVariableFaceHeader {
-    width:  ttf::Width,
-    weight: ttf::Weight,
-    style:  ttf::Style,
-}
-
-impl Display for NonVariableFontDefinition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let fam_def = "family::Definition::NonVariable";
-        ln!(1, f, "{}(family::NonVariableDefinition::from_iter([", fam_def);
-        for variation in &self.variations {
-            let file_name = &variation.file;
-            let header = &variation.header;
-            ln!(2, f, "(");
-            ln!(3, f, "family::NonVariableFaceHeader::new(");
-            ln!(4, f, "family::Width::{:?},", &header.width);
-            ln!(4, f, "family::Weight::{:?},", &header.weight);
-            ln!(4, f, "family::Style::{:?},", &header.style);
-            ln!(3, f, "),");
-            ln!(3, f, "\"{file_name}\".to_string(),");
-            ln!(2, f, "),");
-        }
-        ln!(1, f, "]))");
-        Ok(())
-    }
-}
-
-
-
 // =====================
 // === CodeGenerator ===
 // =====================
@@ -104,12 +56,28 @@ impl CodeGenerator {
     fn add_variable_font_definition(&mut self, family: &str, file: &str) {
         let key = format!("\"{family}\".into()");
         let family_def = format!("family::VariableDefinition::new(\"{file}\")");
-        let value = format!("family::Definition::Variable({family_def})");
+        let value = format!("family::FontFamily::Variable({family_def})");
         ln!(1, &mut self.definitions, "map.insert({key},{value});");
     }
 
-    fn add_non_variable_font_definition(&mut self, family_name: &str, def: &str) {
-        ln!(1, &mut self.definitions, "map.insert(\"{family_name}\".into(), {def});");
+    fn add_non_variable_font_definition(&mut self, family_name: &str, def: &NonVariableDefinition) {
+        ln!(1, &mut self.definitions, "map.insert(\"{family_name}\".into(),");
+        let fam_def = "family::FontFamily::NonVariable";
+        ln!(2, &mut self.definitions, "{}(family::NonVariableDefinition::from_iter([", fam_def);
+        for variation in def.variations() {
+            let file_name = &variation.file;
+            let header = &variation.header;
+            ln!(3, &mut self.definitions, "(");
+            ln!(4, &mut self.definitions, "family::NonVariableFaceHeader::new(");
+            ln!(5, &mut self.definitions, "family::Width::{:?},", &header.width);
+            ln!(5, &mut self.definitions, "family::Weight::{:?},", &header.weight);
+            ln!(5, &mut self.definitions, "family::Style::{:?},", &header.style);
+            ln!(4, &mut self.definitions, "),");
+            ln!(4, &mut self.definitions, "\"{file_name}\".to_string(),");
+            ln!(3, &mut self.definitions, "),");
+        }
+        ln!(2, &mut self.definitions, "]))");
+        ln!(1, &mut self.definitions, ");");
     }
 
     fn body(&self) -> String {
@@ -123,7 +91,7 @@ impl CodeGenerator {
         ln!(0, body, "");
         ln!(0, body, "/// Definitions of embedded font families.");
         ln!(0, body, "pub fn embedded_family_definitions()");
-        ln!(0, body, "-> HashMap<family::Name, family::Definition> {{");
+        ln!(0, body, "-> HashMap<family::Name, family::FontFamily> {{");
         ln!(1, body, "let mut map = HashMap::new();");
         write!(body, "{}", self.definitions).ok();
         ln!(1, body, "map");
@@ -138,40 +106,27 @@ impl CodeGenerator {
 // === Enso Font ===
 // =================
 
-mod enso_font {
+mod the_enso_font {
     use super::*;
     use crate::CodeGenerator;
 
     use enso_build::ide::web::fonts::get_enso_font_package;
 
     pub async fn load(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
-        let font_family = enso_enso_font::FontFamily::enso();
+        let font_family = enso_enso_font::enso_font();
         let archive = get_enso_font_package().await?;
-        font_family.extract_fonts(archive, &out_dir).await?;
-        add_entries_to_fill_map_rs(&font_family, code_gen);
+        enso_enso_font::extract_fonts(&font_family, archive, &out_dir).await?;
+        add_entries_to_fill_map_rs(&font_family, enso_enso_font::ENSO_FONT_FAMILY_NAME, code_gen);
         Ok(())
     }
 
     fn add_entries_to_fill_map_rs(
-        family: &enso_enso_font::FontFamily,
+        family: &NonVariableDefinition,
+        family_name: &str,
         code_gen: &mut CodeGenerator,
     ) {
-        let variations: Vec<NonVariableVariation> = family
-            .fonts()
-            .map(|variant| {
-                let file = variant.filename();
-                let header = NonVariableFaceHeader {
-                    width:  variant.width(),
-                    weight: variant.weight(),
-                    style:  variant.style(),
-                };
-                NonVariableVariation { file, header }
-            })
-            .collect();
-        let definition = NonVariableFontDefinition { variations };
-        let def_code = definition.to_string();
-        code_gen.add_non_variable_font_definition(family.name(), &def_code);
-        for file in definition.files() {
+        code_gen.add_non_variable_font_definition(family_name, family);
+        for file in family.files() {
             code_gen.add_font_data(file);
         }
     }
@@ -195,16 +150,13 @@ mod google_fonts {
         face:      OwnedFace,
     }
 
-    impl From<FaceDefinition> for NonVariableVariation {
-        fn from(def: FaceDefinition) -> Self {
-            let face = def.face.as_face_ref();
-            Self {
-                file:   def.file_name,
-                header: NonVariableFaceHeader {
-                    width:  face.width(),
-                    weight: face.weight(),
-                    style:  face.style(),
-                },
+    impl FaceDefinition {
+        fn header(&self) -> NonVariableFaceHeader {
+            let face = self.face.as_face_ref();
+            NonVariableFaceHeader {
+                width:  face.width(),
+                weight: face.weight(),
+                style:  face.style(),
             }
         }
     }
@@ -257,9 +209,8 @@ mod google_fonts {
                 let err4 = "see: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face";
                 bail!("Family {} {} {} {} {}", family_name, err1, err2, err3, err4);
             }
-            let variations = font_faces.into_iter().map(|def| def.into()).collect();
-            let code = NonVariableFontDefinition { variations }.to_string();
-            buffer.add_non_variable_font_definition(family_name, &code);
+            let variations = font_faces.into_iter().map(|def| (def.header(), def.file_name));
+            buffer.add_non_variable_font_definition(family_name, &variations.collect());
         };
         Ok(())
     }
@@ -279,7 +230,7 @@ async fn main() -> Result {
 
     google_fonts::load(&out_dir, &mut code_gen, "mplus1p").await?;
 
-    enso_font::load(&out_dir, &mut code_gen).await?;
+    the_enso_font::load(&out_dir, &mut code_gen).await?;
 
     let body = code_gen.body();
     let out_path = out_dir.join(GENERATED_SOURCE_FILE_NAME);

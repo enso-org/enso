@@ -9,10 +9,10 @@ use crate::buffer::formatting::Formatting;
 use crate::buffer::rope::formatted::FormattedRope;
 use crate::buffer::selection::Selection;
 
+use enso_font::NonVariableFaceHeader;
 use enso_frp as frp;
 use enso_text::text;
 use enso_text::text::BoundsError;
-use ensogl_text_font_family::NonVariableFaceHeader;
 
 
 // ==============

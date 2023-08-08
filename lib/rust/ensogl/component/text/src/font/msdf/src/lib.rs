@@ -335,31 +335,31 @@ mod tests {
 
     #[derive(Debug, PartialEq)]
     struct OutputValueChecks {
-        word0: f32,
-        word10: f32,
-        last_word: f32,
+        word0:       f32,
+        word10:      f32,
+        last_word:   f32,
         translation: Vector2<f64>,
-        scale: Vector2<f64>,
-        advance: f64,
+        scale:       Vector2<f64>,
+        advance:     f64,
     }
 
     /// Check some values to test Rust-JS interface.
     fn check_outputs(msdf: &Msdf, data: &[f32]) {
         let computed = OutputValueChecks {
-            word0: data[0],
-            word10: data[10],
-            last_word: data[data.len()-1],
+            word0:       data[0],
+            word10:      data[10],
+            last_word:   data[data.len() - 1],
             translation: msdf.translation,
-            scale: msdf.scale,
-            advance: msdf.advance,
+            scale:       msdf.scale,
+            advance:     msdf.advance,
         };
         let expected = OutputValueChecks {
-            word0: 0.053712357,
-            word10: 0.125,
-            last_word: -3.9244988,
+            word0:       0.053712357,
+            word10:      0.125,
+            last_word:   -3.9244988,
             translation: Vector2::new(1.2421875, 1.0),
-            scale: Vector2::new(2.0, 2.0),
-            advance: 10.921875,
+            scale:       Vector2::new(2.0, 2.0),
+            advance:     10.921875,
         };
         assert_eq!(computed, expected);
     }
