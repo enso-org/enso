@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -10,24 +11,22 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends TernaryMapOperation<Double, DoubleStorage> {
+public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
-    public DoubleLongBooleanOpWithSpecialNumericHandling(String name) {
+    public DoubleRoundOp(String name) {
         super(name);
     }
 
-    protected abstract double doLongBoolean(double a, long b, boolean c, int ix, MapOperationProblemBuilder problemBuilder);
-
     @Override
-    public Storage<Double> runTernaryMap(DoubleStorage storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
-        if (arg0 == null || arg1 == null) {
+    public Storage<Double> runTernaryMap(DoubleStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
+        if (decimalPlacesObject == null || useBankersObject == null) {
             return DoubleStorage.makeEmpty(storage.size());
         }
 
-        if (!(arg0 instanceof Long arg0AsLong)) {
+        if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
-        if (!(arg1 instanceof Boolean arg1AsBoolean)) {
+        if (!(useBankersObject instanceof Boolean useBankers)) {
             throw new UnexpectedTypeException("a boolean.");
         }
 
@@ -40,7 +39,7 @@ public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends Tern
                 double item = storage.getItem(i);
                 boolean special = Double.isNaN(item) || Double.isInfinite(item);
                 if (!special) {
-                    out[i] = Double.doubleToRawLongBits(doLongBoolean(item, arg0AsLong, arg1AsBoolean, i, problemBuilder));
+                    out[i] = Double.doubleToRawLongBits(Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
                 } else {
                     String msg = "Value is " + item;
                     problemBuilder.reportArithmeticError(msg, i);

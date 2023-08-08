@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -11,7 +12,7 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, AbstractLongStorage> {
+public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> {
 
     /** Minimum value for the `n` parameter to `roundDouble`. */
     private static final long ROUND_MIN_LONG = -99999999999999L;
@@ -19,22 +20,20 @@ public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, Abstra
     /** Minimum value for the `n` parameter to `roundDouble`. */
     private static final long ROUND_MAX_LONG = 99999999999999L;
 
-    public LongLongBooleanOp(String name) {
+    public LongRoundOp(String name) {
         super(name);
     }
 
-    protected abstract long doLongBoolean(long a, long b, boolean c, int ix, MapOperationProblemBuilder problemBuilder);
-
     @Override
-    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
-        if (arg0 == null || arg1 == null) {
+    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
+        if (decimalPlacesObject == null || useBankersObject == null) {
             return LongStorage.makeEmpty(storage.size());
         }
 
-        if (!(arg0 instanceof Long arg0AsLong)) {
+        if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
-        if (!(arg1 instanceof Boolean arg1AsBoolean)) {
+        if (!(useBankersObject instanceof Boolean useBankers)) {
             throw new UnexpectedTypeException("a boolean.");
         }
 
@@ -47,7 +46,7 @@ public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, Abstra
                 long item = storage.getItem(i);
                 boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
                 if (!outOfRange) {
-                    out[i] = doLongBoolean(item, arg0AsLong, arg1AsBoolean, i, problemBuilder);
+                    out[i] = Core_Math_Utils.roundLong(item, decimalPlaces, useBankers);
                 } else {
                     String msg =
                             "Error: `round` can only accept values between "

@@ -10,8 +10,8 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
-import org.enso.table.data.column.operation.map.numeric.LongLongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -174,13 +174,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                 return a;
               }
             })
-        .add(
-                new LongLongBooleanOp(Maps.ROUND) {
-                  @Override
-                  protected long doLongBoolean(long n, long decimalPlaces, boolean useBankers, int ix, MapOperationProblemBuilder problemBuilder) {
-                    return Core_Math_Utils.roundLong(n, decimalPlaces, useBankers);
-                  }
-                })
+        .add(new LongRoundOp(Maps.ROUND))
         .add(
             new LongNumericOp(Storage.Maps.DIV, true) {
               @Override

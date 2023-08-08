@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -12,8 +11,8 @@ import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
-import org.enso.table.data.column.operation.map.numeric.DoubleLongBooleanOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -302,13 +301,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 return (long) Math.floor(a);
               }
             })
-        .add(
-            new DoubleLongBooleanOpWithSpecialNumericHandling(Maps.ROUND) {
-              @Override
-              protected double doLongBoolean(double n, long decimalPlaces, boolean useBankers, int ix, MapOperationProblemBuilder problemBuilder) {
-                return Core_Math_Utils.roundDouble(n, decimalPlaces, useBankers);
-              }
-            })
+        .add(new DoubleRoundOp(Maps.ROUND))
         .add(
             new DoubleComparison(Maps.LT) {
               @Override
