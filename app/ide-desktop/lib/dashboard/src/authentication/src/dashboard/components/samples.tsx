@@ -1,8 +1,8 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import GeoImage from 'enso-assets/geo.png'
-import SpreadsheetsImage from 'enso-assets/spreadsheets.png'
+import GeoImage from 'enso-assets/geo.svg'
+import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
 import HeartIcon from 'enso-assets/heart.svg'
@@ -21,6 +21,8 @@ import SvgMask from '../../authentication/components/svgMask'
 const SPINNER_SIZE = 64
 /** The duration of the "spinner done" animation. */
 const SPINNER_DONE_DURATION_MS = 1000
+/** A placeholder author for a sample, for use until the backend implements an endpoint. */
+const DUMMY_AUTHOR = 'Enso Team'
 /** A placeholder number of times a sample has been opened, for use until the backend implements
  * an endpoint. */
 const DUMMY_OPEN_COUNT = 10
@@ -60,13 +62,13 @@ export const SAMPLES: Sample[] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: `url("${SpreadsheetsImage}") 50% 11% / 50% no-repeat, rgba(255, 255, 255, 0.70)`,
+        background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.70)`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: `url("${GeoImage}") 50% 0% / 186.7768% no-repeat, rgba(255, 255, 255, 0.70)`,
+        background: `url("${GeoImage}") 50% 20% / 100% no-repeat, rgba(255, 255, 255, 0.70)`,
     },
     {
         title: 'Analyze GitHub stars',
@@ -144,6 +146,7 @@ interface InternalProjectTileProps {
 function ProjectTile(props: InternalProjectTileProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+    const author = DUMMY_AUTHOR
     const opens = DUMMY_OPEN_COUNT
     const likes = DUMMY_LIKE_COUNT
 
@@ -163,21 +166,24 @@ function ProjectTile(props: InternalProjectTileProps) {
         <div className="flex flex-col gap-1.5 h-51">
             <button
                 key={template.title}
-                className="grow cursor-pointer"
+                className="grow cursor-pointer text-left"
                 onClick={() => {
                     setSpinnerState(spinner.SpinnerState.initial)
                     onTemplateClick(template.id, onSpinnerStateChange)
                 }}
             >
-                <div
-                    style={{
-                        background: template.background,
-                    }}
-                    className="relative flex flex-col bg-frame-selected justify-end h-full w-full rounded-2xl overflow-hidden text-left"
-                >
-                    <div className="backdrop-blur px-4 pt-1.75 pb-3.5">
-                        <h2 className="text-sm font-bold leading-144.5 py-2">{template.title}</h2>
-                        <div className="text-xs h-16 text-ellipsis leading-144.5 pb-px">
+                <div className="relative flex flex-col">
+                    <div
+                        style={{
+                            background: template.background,
+                        }}
+                        className={`h-25 rounded-t-2xl ${
+                            template.background != null ? '' : 'bg-frame-selected'
+                        }`}
+                    />
+                    <div className="grow bg-frame-selected backdrop-blur rounded-b-2xl px-4 pt-1.75 pb-3.5">
+                        <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
+                        <div className="text-xs text-ellipsis leading-144.5 pb-px">
                             {template.description}
                         </div>
                     </div>
@@ -191,18 +197,18 @@ function ProjectTile(props: InternalProjectTileProps) {
             <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
                 <div className="flex gap-1.5">
                     <SvgMask src={Logo} />
-                    Enso Team
+                    <span className="font-bold leading-144.5 pb-px">{author}</span>
                 </div>
                 <div className="flex gap-3">
                     {/* Opens */}
                     <div className="flex gap-1.5">
                         <SvgMask src={OpenCountIcon} />
-                        {opens}
+                        <span className="font-bold leading-144.5 pb-px">{opens}</span>
                     </div>
                     {/* Likes */}
                     <div className="flex gap-1.5">
                         <SvgMask src={HeartIcon} />
-                        {likes}
+                        <span className="font-bold leading-144.5 pb-px">{likes}</span>
                     </div>
                 </div>
             </div>
