@@ -19,8 +19,8 @@ use enso_prelude::*;
 use ensogl_core::prelude::*;
 
 use enso_shapely::before_main;
-use ensogl_text::font::DEFAULT_FONT;
 use ensogl_text::font::DEFAULT_CODE_FONT;
+use ensogl_text::font::DEFAULT_FONT;
 
 
 
