@@ -47,7 +47,7 @@ const TTF_FONT_FACE_INDEX: u32 = 0;
 pub const DEFAULT_FONT: &str = "mplus1p";
 
 /// The name of the default font family for code.
-pub const DEFAULT_FONT_CODE: &str = "enso";
+pub const DEFAULT_CODE_FONT: &str = "enso";
 
 
 

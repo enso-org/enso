@@ -50,7 +50,7 @@ const PRELOAD_VARIATIONS: &[font::NonVariableFaceHeader] = &[
 ];
 
 /// The typefaces for which atlases should be pre-built.
-const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_FONT_CODE, font::DEFAULT_FONT];
+const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_CODE_FONT, font::DEFAULT_FONT];
 
 /// Path within the asset directory to store the glyph atlas image.
 const ATLAS_FILE: &str = "atlas.ppm";
