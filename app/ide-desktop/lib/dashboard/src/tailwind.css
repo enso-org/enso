@@ -111,20 +111,25 @@ body {
       display: none; /* Safari and Chrome */
     }
 
-    .rounded-rows > tbody > tr:nth-child(odd) {
-      > td {
-        background-color: rgba(0, 0, 0, 0.03);
-      }
-
-      > td.bg-transparent {
-        background-color: transparent;
-      }
+    :where(
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td:not(.rounded-rows-skip-level),
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td.rounded-rows-skip-level
+          > *
+      ) {
+      background-color: rgba(0, 0, 0, 0.03);
     }
 
-    .rounded-rows > tbody > tr.selected {
-      > td {
-        background-color: rgba(255, 255, 255, 0.4);
-      }
+    :where(
+        .rounded-rows > tbody > tr.selected > td:not(.rounded-rows-skip-level),
+        .rounded-rows > tbody > tr.selected > td.rounded-rows-skip-level > *
+      ) {
+      background-color: rgba(255, 255, 255, 0.4);
     }
 
     .h-templates-custom {
