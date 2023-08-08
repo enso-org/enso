@@ -40,12 +40,15 @@ public class RoundNode extends Node {
 
     private final PrimitiveValueProfile constantPlacesUseBankers = PrimitiveValueProfile.create();
 
+    private final BranchProfile outOfRangeProfile = BranchProfile.create();
+
     Object execute(double n, long dp, boolean ub) {
         long decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
         boolean useBankers = constantPlacesUseBankers.profile(ub);
 
         boolean inRange = n >= ROUND_MIN_DOUBLE && n <= ROUND_MAX_DOUBLE;
         if (!inRange) {
+            outOfRangeProfile.enter();
             if (Double.isNaN(n) || Double.isInfinite(n)) {
                 Builtins builtins = EnsoContext.get(this).getBuiltins();
                 throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
