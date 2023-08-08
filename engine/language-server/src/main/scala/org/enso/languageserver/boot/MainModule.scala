@@ -226,6 +226,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         fileManager,
         vcsManager,
         runtimeConnector,
+        contentRootManagerWrapper,
         TimingsConfig.default().withAutoSave(6.seconds)
       ),
       "buffer-registry"

@@ -54,4 +54,10 @@ object RefactoringApi {
   case class FailedToApplyEdits(module: String)
       extends Error(9002, s"Failed to apply edits to module [$module]")
 
+  case class RefactoringNotSupported(expressionId: UUID)
+      extends Error(
+        9003,
+        s"Refactoring not supported for expression [$expressionId]"
+      )
+
 }

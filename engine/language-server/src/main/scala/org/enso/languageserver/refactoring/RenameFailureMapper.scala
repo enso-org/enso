@@ -17,6 +17,9 @@ object RenameFailureMapper {
 
       case error: Api.SymbolRenameFailed.FailedToApplyEdits =>
         RefactoringApi.FailedToApplyEdits(error.module)
+
+      case error: Api.SymbolRenameFailed.OperationNotSupported =>
+        RefactoringApi.RefactoringNotSupported(error.expressionId)
     }
 
 }

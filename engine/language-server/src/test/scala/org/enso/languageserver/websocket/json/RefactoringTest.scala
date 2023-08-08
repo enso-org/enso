@@ -187,6 +187,52 @@ class RefactoringTest extends BaseServerTest {
                   }
                   """)
     }
+
+    "reply with RefactoringNotSupported error when renaming unsupported expression" in {
+      val client = getInitialisedWsClient()
+
+      val moduleName   = "local.Unnamed.Main"
+      val expressionId = new UUID(0, 1)
+      val newName      = "bar"
+
+      client.send(json"""
+                      { "jsonrpc": "2.0",
+                        "method": "refactoring/renameSymbol",
+                        "id": 1,
+                        "params": {
+                          "module": $moduleName,
+                          "expressionId": $expressionId,
+                          "newName": $newName
+                        }
+                      }
+                      """)
+
+      val requestId = runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, payload: Api.RenameSymbol) =>
+          payload.module shouldEqual moduleName
+          payload.expressionId shouldEqual expressionId
+          payload.newName shouldEqual newName
+          requestId
+        case msg =>
+          fail(s"Runtime connector received unexpected message: $msg")
+      }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.SymbolRenameFailed(
+          Api.SymbolRenameFailed.OperationNotSupported(expressionId)
+        )
+      )
+
+      client.expectJson(json"""
+                      { "jsonrpc": "2.0",
+                        "id": 1,
+                        "error": {
+                          "code": 9003,
+                          "message": ${s"Refactoring not supported for expression [$expressionId]"}
+                        }
+                      }
+                      """)
+    }
   }
 
 }
