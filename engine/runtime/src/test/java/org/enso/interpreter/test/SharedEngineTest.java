@@ -31,10 +31,7 @@ public class SharedEngineTest extends TestBase {
 
   @Before
   public void initializeContext() {
-    this.ctx = Context.newBuilder().
-      allowAllAccess(true).
-      engine(sharedEngine).
-      build();
+    this.ctx = defaultContextBuilder().engine(sharedEngine).build();
   }
 
   private final Source typeCase = Source.newBuilder("enso", """
