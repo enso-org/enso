@@ -1,8 +1,9 @@
 // === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-use crate::event::Type;
 use crate::prelude::*;
+
+use crate::event::Type;
 
 
 

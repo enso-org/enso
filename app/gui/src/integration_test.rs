@@ -3,13 +3,13 @@
 
 use crate::prelude::*;
 use enso_web::traits::*;
-use enso_web::CleanupHandle;
 
 use crate::config::InitialView;
 use crate::executor::setup_global_executor;
 use crate::executor::web::EventLoopExecutor;
 use crate::Ide;
 
+use enso_web::CleanupHandle;
 use enso_web::HtmlDivElement;
 use ensogl::application::test_utils::ApplicationExt;
 use std::pin::Pin;

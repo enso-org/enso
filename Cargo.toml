@@ -33,7 +33,6 @@ members = [
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 
-
 [profile.dev]
 opt-level = 0
 lto = false

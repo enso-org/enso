@@ -1,8 +1,8 @@
 //! Binding to the https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver.
 
 use crate::prelude::*;
-use crate::CleanupHandle;
 
+use crate::CleanupHandle;
 use crate::Closure;
 use crate::JsValue;
 

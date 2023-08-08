@@ -146,11 +146,13 @@ export default function App(props: AppProps) {
                 enableMultiContainer={true}
                 theme="light"
                 position="top-center"
-                style={{
-                    // Allow the toast to fill the screen almost completely, leaving a small margin.
-                    '--toastify-toast-width': 'calc(min(100vw - 2rem, 1200px))',
-                    '--toastify-toast-max-height': 'calc(100vh - 4rem)',
-                }}
+                style={
+                    {
+                        // Allow the toast to fill the screen almost completely, leaving a small margin.
+                        '--toastify-toast-width': 'calc(min(100vw - 2rem, 1200px))',
+                        '--toastify-toast-max-height': 'calc(100vh - 4rem)',
+                    } as React.CSSProperties
+                }
                 bodyStyle={{
                     alignItems: 'flex-start',
                     overflow: 'hidden',

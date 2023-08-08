@@ -7586,7 +7586,6 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

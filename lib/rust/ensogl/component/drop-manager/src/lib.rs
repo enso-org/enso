@@ -32,13 +32,6 @@ use enso_web::JsCast;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::system::web::dom::WithKnownShape;
 
-#[cfg(target_arch = "wasm32")]
-use enso_web::JsCast;
-#[cfg(target_arch = "wasm32")]
-use js_sys::Uint8Array;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_futures::JsFuture;
-
 
 
 // ============
@@ -83,13 +76,13 @@ impl File {
     /// https://github.com/w3c/FileAPI/issues/144#issuecomment-570982732.
     pub async fn read_chunk(&self) -> Result<Option<Vec<u8>>, web::JsValue> {
         if let Some(reader) = &*self.reader {
-            let js_result = JsFuture::from(reader.read()).await?;
+            let js_result = wasm_bindgen_futures::JsFuture::from(reader.read()).await?;
             let is_done = js_sys::Reflect::get(&js_result, &"done".into())?.as_bool().unwrap();
             if is_done {
                 Ok(None)
             } else {
                 let chunk = js_sys::Reflect::get(&js_result, &"value".into())?;
-                let data = chunk.dyn_into::<Uint8Array>()?.to_vec();
+                let data = chunk.dyn_into::<js_sys::Uint8Array>()?.to_vec();
                 Ok(Some(data))
             }
         } else {

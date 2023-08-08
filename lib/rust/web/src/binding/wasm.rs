@@ -1,6 +1,7 @@
-#![allow(missing_docs)]
-
 //! Native bindings to the web-api.
+
+// === Non-Standard Linter Configuration ===
+#![allow(missing_docs)]
 
 use crate::prelude::*;
 
@@ -24,22 +25,33 @@ pub use wasm_bindgen::JsCast;
 pub use wasm_bindgen::JsValue;
 pub use web_sys::console;
 pub use web_sys::AddEventListenerOptions;
+pub use web_sys::BinaryType;
+pub use web_sys::Blob;
 pub use web_sys::CanvasRenderingContext2d;
+pub use web_sys::CloseEvent;
+pub use web_sys::DataTransfer;
 pub use web_sys::Document;
+pub use web_sys::DragEvent;
 pub use web_sys::Element;
 pub use web_sys::Event;
 pub use web_sys::EventListenerOptions;
 pub use web_sys::EventTarget;
+pub use web_sys::File;
+pub use web_sys::FileList;
 pub use web_sys::HtmlCanvasElement;
 pub use web_sys::HtmlCollection;
 pub use web_sys::HtmlDivElement;
 pub use web_sys::HtmlElement;
 pub use web_sys::KeyboardEvent;
+pub use web_sys::MessageEvent;
 pub use web_sys::MouseEvent;
 pub use web_sys::Node;
 pub use web_sys::Performance;
+pub use web_sys::ReadableStream;
+pub use web_sys::ReadableStreamDefaultReader;
 pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::WebGlQuery;
+pub use web_sys::WebSocket;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
 
