@@ -78,6 +78,18 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        const onClick = () => {
+            if (getSelection()?.type !== 'Range') {
+                unsetModal()
+            }
+        }
+        document.addEventListener('click', onClick)
+        return () => {
+            document.removeEventListener('click', onClick)
+        }
+    }, [/* should never change */ unsetModal])
+
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
@@ -196,12 +208,6 @@ export default function Dashboard(props: DashboardProps) {
         setProject(null)
     }, [])
 
-    const closeModalIfExists = React.useCallback(() => {
-        if (getSelection()?.type !== 'Range') {
-            unsetModal()
-        }
-    }, [/* should never change */ unsetModal])
-
     const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
         <>
@@ -213,7 +219,6 @@ export default function Dashboard(props: DashboardProps) {
                     event.preventDefault()
                     unsetModal()
                 }}
-                onClick={closeModalIfExists}
             >
                 <TopBar
                     supportsLocalBackend={supportsLocalBackend}
