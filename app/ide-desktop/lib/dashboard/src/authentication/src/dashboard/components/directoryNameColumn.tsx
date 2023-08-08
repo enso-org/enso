@@ -116,7 +116,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     if (!rowState.isEditingName) {
                         // This must be processed on the next tick, otherwise it will be overridden
                         // by the default click handler.
-                        setTimeout(() => {
+                        window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
                         doToggleDirectoryExpansion(item, key)

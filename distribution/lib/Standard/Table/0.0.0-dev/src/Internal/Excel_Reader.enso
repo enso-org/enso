@@ -6,7 +6,7 @@ import Standard.Base.System.File.Input_Stream
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
-from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Location, Invalid_Output_Column_Names
+from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Location, Invalid_Column_Names
 
 polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
@@ -21,7 +21,7 @@ prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
         if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.duplicatedNames) else
-              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.invalidNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Column_Names.Error (Vector.from_polyglot_array java_problem.invalidNames) else
                 java_problem
     parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
     on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

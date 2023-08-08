@@ -5,6 +5,7 @@ import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.Normalizer2.Mode;
 import com.ibm.icu.text.StringSearch;
 import java.util.ArrayList;
 import java.util.List;
@@ -609,6 +610,19 @@ public class Text_Utils {
    */
   public static String normalize(String str) {
     return Normalizer2.getNFDInstance().normalize(str);
+  }
+
+  /**
+   * Normalizes the string to its canonical Unicode form using the specified name and mode.
+   *
+   * @see https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.html
+   * @see https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.Mode.html
+   *
+   * @param name the normalization name, must be "nfc", "nfkc", or "nfkc_cf"
+   * @param mode the normalization mode
+   */
+  public static String normalizeWithMode(String str, String name, Mode mode) {
+    return Normalizer2.getInstance(null, name, mode).normalize(str);
   }
 
   /**

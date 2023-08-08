@@ -88,7 +88,6 @@ impl Initializer {
         if enso_config::ARGS.groups.profile.options.emit_user_timing_measurements.value {
             ensogl_app.display.connect_profiler_to_user_timing();
         }
-        let status_bar = view.status_bar().clone_ref();
         ensogl_app.display.add_child(&view);
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
         //      issues to user, such information should be properly passed
@@ -102,7 +101,7 @@ impl Initializer {
             }
             Err(error) => {
                 let message = format!("Failed to initialize application: {error}");
-                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                ide_view::notification::logged::error(message, &None);
                 Err(FailedIde { view })
             }
         }

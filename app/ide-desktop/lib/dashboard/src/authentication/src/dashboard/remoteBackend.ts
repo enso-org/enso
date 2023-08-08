@@ -275,11 +275,19 @@ export class RemoteBackend extends backend.Backend {
                 return this.throw('Unable to list root directory.')
             }
         } else {
-            return (await response.json()).assets.map(
-                // This type assertion is safe; it is only needed to convert `type` to a newtype.
-                // eslint-disable-next-line no-restricted-syntax
-                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
-            )
+            return (await response.json()).assets
+                .map(
+                    asset =>
+                        // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                        // eslint-disable-next-line no-restricted-syntax
+                        ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
+                )
+                .map(asset =>
+                    asset.type === backend.AssetType.project &&
+                    asset.projectState.type === backend.ProjectState.opened
+                        ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
+                        : asset
+                )
         }
     }
 
