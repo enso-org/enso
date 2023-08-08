@@ -409,7 +409,7 @@ class RuntimeRefactoringTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata      = new Metadata
+    val metadata = new Metadata
     val code =
       """from Standard.Base import all
         |
@@ -457,7 +457,7 @@ class RuntimeRefactoringTest
 
     // rename operator1
     val randomExpressionId = UUID.randomUUID()
-    val newName = "foobarbaz"
+    val newName            = "foobarbaz"
     context.send(
       Api.Request(
         requestId,

@@ -1,7 +1,8 @@
 package org.enso.refactoring
 
 import org.enso.syntax.text.Location
-import org.enso.text.editing.{IndexedSource, TextEditor, model}
+import org.enso.text.editing.model
+import org.enso.text.editing.{IndexedSource, TextEditor}
 import org.enso.text.editing.model.TextEdit
 
 object RenameUtils {
