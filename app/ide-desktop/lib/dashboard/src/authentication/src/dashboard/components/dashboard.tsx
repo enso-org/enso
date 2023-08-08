@@ -61,8 +61,6 @@ export default function Dashboard(props: DashboardProps) {
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(pageSwitcher.Page.drive)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
-    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        React.useState(initialProjectName)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -274,8 +272,6 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
-                            nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
-                            setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                             directoryId={directoryId}
                             setDirectoryId={setDirectoryId}
                             assetListEvents={assetListEvents}

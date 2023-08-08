@@ -48,6 +48,9 @@ run_tests prefix connection upload =
             original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
             table.read.row_count . should_equal n
+        Test.specify "should not allow to set a column coming from another table" <|
+            t2 = upload "T2" (Table.new [["d", [100, 200]]])
+            t1.set (t2.at "d") . should_fail_with Integrity_Error
 
     Test.group prefix+"Table.query" <|
         name = t1.name
