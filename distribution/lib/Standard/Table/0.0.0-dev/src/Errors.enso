@@ -562,6 +562,9 @@ type Conversion_Failure
        the target text type.
     Text_Too_Long (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
 
+    ## Indicates that some values are out of the range of the target type.
+    Out_Of_Bounds (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Integer)
+
     ## PRIVATE
 
        Create a human-readable version of the error.
