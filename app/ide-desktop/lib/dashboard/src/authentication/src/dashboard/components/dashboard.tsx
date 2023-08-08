@@ -12,27 +12,21 @@ import * as localBackend from '../localBackend'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
-import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as app from '../../components/app'
+import * as pageSwitcher from './pageSwitcher'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
-import DirectoryView from './driveView'
-import Ide from './ide'
+import DriveView from './driveView'
+import Editor from './editor'
 import Templates from './templates'
 import TheModal from './theModal'
 import TopBar from './topBar'
-
-// =================
-// === Constants ===
-// =================
-
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
 
 // =================
 // === Dashboard ===
@@ -49,6 +43,7 @@ export interface DashboardProps {
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
+    const navigate = hooks.useNavigate()
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -64,10 +59,8 @@ export default function Dashboard(props: DashboardProps) {
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
-    const [tab, setTab] = React.useState(tabModule.Tab.dashboard)
+    const [page, setPage] = React.useState(pageSwitcher.Page.drive)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
-    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        React.useState(initialProjectName)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -80,37 +73,21 @@ export default function Dashboard(props: DashboardProps) {
         session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
 
-    const switchToIdeTab = React.useCallback(() => {
-        setTab(tabModule.Tab.ide)
+    React.useEffect(() => {
         unsetModal()
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = ''
-            ideElement.style.display = 'absolute'
+    }, [page, /* should never change */ unsetModal])
+
+    React.useEffect(() => {
+        const onClick = () => {
+            if (getSelection()?.type !== 'Range') {
+                unsetModal()
+            }
+        }
+        document.addEventListener('click', onClick)
+        return () => {
+            document.removeEventListener('click', onClick)
         }
     }, [/* should never change */ unsetModal])
-
-    const switchToDashboardTab = React.useCallback(() => {
-        setTab(tabModule.Tab.dashboard)
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
-        }
-    }, [])
-
-    const toggleTab = React.useCallback(() => {
-        if (project != null && tab === tabModule.Tab.dashboard) {
-            switchToIdeTab()
-        } else {
-            switchToDashboardTab()
-        }
-    }, [
-        project,
-        tab,
-        /* should never change */ switchToDashboardTab,
-        /* should never change */ switchToIdeTab,
-    ])
 
     React.useEffect(() => {
         if (
@@ -125,13 +102,6 @@ export default function Dashboard(props: DashboardProps) {
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-
-    React.useEffect(() => {
-        document.addEventListener('show-dashboard', switchToDashboardTab)
-        return () => {
-            document.removeEventListener('show-dashboard', switchToDashboardTab)
-        }
-    }, [switchToDashboardTab])
 
     React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
@@ -224,104 +194,127 @@ export default function Dashboard(props: DashboardProps) {
         [directoryId, /* should never change */ dispatchAssetListEvent]
     )
 
-    const doOpenIde = React.useCallback(
+    const openEditor = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
-            switchToIdeTab()
+            setPage(pageSwitcher.Page.editor)
             if (project?.projectId !== newProject.id) {
                 setProject(await backend.getProjectDetails(newProject.id, newProject.title))
             }
         },
-        [backend, project?.projectId, switchToIdeTab]
+        [backend, project?.projectId, setPage]
     )
 
-    const doCloseIde = React.useCallback(() => {
+    const closeEditor = React.useCallback(() => {
         setProject(null)
     }, [])
 
-    const closeModalIfExists = React.useCallback(() => {
-        if (getSelection()?.type !== 'Range') {
-            unsetModal()
-        }
-    }, [/* should never change */ unsetModal])
-
+    const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
-        <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
-                tab === tabModule.Tab.dashboard ? '' : 'hidden'
-            }`}
-            onContextMenu={event => {
-                event.preventDefault()
-                unsetModal()
-            }}
-            onClick={closeModalIfExists}
-        >
-            <TopBar
-                supportsLocalBackend={supportsLocalBackend}
-                projectName={project?.name ?? null}
-                tab={tab}
-                isHelpChatOpen={isHelpChatOpen}
-                setIsHelpChatOpen={setIsHelpChatOpen}
-                toggleTab={toggleTab}
-                setBackendType={setBackendType}
-                query={query}
-                setQuery={setQuery}
-            />
-            {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        You are offline. Please connect to the internet and refresh to access the
-                        cloud backend.
-                    </div>
-                </div>
-            ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
-                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
-                    </div>
-                </div>
-            ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        We will review your user details and enable the cloud experience for you
-                        shortly.
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <Templates onTemplateClick={doCreateProject} />
-                    <DirectoryView
-                        tab={tab}
-                        initialProjectName={initialProjectName}
-                        nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
-                        setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
-                        directoryId={directoryId}
-                        setDirectoryId={setDirectoryId}
-                        assetListEvents={assetListEvents}
-                        dispatchAssetListEvent={dispatchAssetListEvent}
-                        query={query}
-                        doCreateProject={doCreateProject}
-                        doOpenIde={doOpenIde}
-                        doCloseIde={doCloseIde}
-                        appRunner={appRunner}
-                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                    />
-                </>
-            )}
-            <TheModal />
-            {project && <Ide project={project} appRunner={appRunner} />}
-            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-            {isHelpChatVisible && session.accessToken != null && (
-                <Chat
-                    isOpen={isHelpChatOpen}
-                    doClose={() => {
-                        setIsHelpChatOpen(false)
+        <>
+            <div
+                className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
+                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                }`}
+                onContextMenu={event => {
+                    event.preventDefault()
+                    unsetModal()
+                }}
+            >
+                <TopBar
+                    supportsLocalBackend={supportsLocalBackend}
+                    projectName={project?.name ?? null}
+                    page={page}
+                    setPage={setPage}
+                    asset={null}
+                    isEditorDisabled={project == null}
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    setBackendType={setBackendType}
+                    query={query}
+                    setQuery={setQuery}
+                    onSignOut={() => {
+                        if (page === pageSwitcher.Page.editor) {
+                            setPage(pageSwitcher.Page.drive)
+                        }
+                        setProject(null)
                     }}
                 />
-            )}
-        </div>
+                {isListingRemoteDirectoryWhileOffline ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="flex flex-col gap-4">
+                            <div className="text-base text-center">You are not signed in.</div>
+                            <button
+                                className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                                onClick={() => {
+                                    navigate(app.LOGIN_PATH)
+                                }}
+                            >
+                                Login
+                            </button>
+                        </div>
+                    </div>
+                ) : isListingLocalDirectoryAndWillFail ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="text-base text-center">
+                            Could not connect to the Project Manager. Please try restarting{' '}
+                            {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                        </div>
+                    </div>
+                ) : isListingRemoteDirectoryAndWillFail ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="text-base text-center">
+                            We will review your user details and enable the cloud experience for you
+                            shortly.
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <Templates
+                            hidden={page !== pageSwitcher.Page.drive}
+                            onTemplateClick={doCreateProject}
+                        />
+                        <DriveView
+                            hidden={page !== pageSwitcher.Page.drive}
+                            page={page}
+                            initialProjectName={initialProjectName}
+                            directoryId={directoryId}
+                            setDirectoryId={setDirectoryId}
+                            assetListEvents={assetListEvents}
+                            dispatchAssetListEvent={dispatchAssetListEvent}
+                            query={query}
+                            doCreateProject={doCreateProject}
+                            doOpenEditor={openEditor}
+                            doCloseEditor={closeEditor}
+                            appRunner={appRunner}
+                            loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                            isListingRemoteDirectoryWhileOffline={
+                                isListingRemoteDirectoryWhileOffline
+                            }
+                            isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                            isListingRemoteDirectoryAndWillFail={
+                                isListingRemoteDirectoryAndWillFail
+                            }
+                        />
+                    </>
+                )}
+                <Editor
+                    visible={page === pageSwitcher.Page.editor}
+                    project={project}
+                    appRunner={appRunner}
+                />
+                {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+                {isHelpChatVisible && session.accessToken != null && (
+                    <Chat
+                        isOpen={isHelpChatOpen}
+                        doClose={() => {
+                            setIsHelpChatOpen(false)
+                        }}
+                    />
+                )}
+            </div>
+            <div className="text-xs text-primary select-none">
+                <TheModal />
+            </div>
+        </>
     )
 }

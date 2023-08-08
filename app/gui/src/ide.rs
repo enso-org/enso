@@ -24,6 +24,8 @@ pub use initializer::Initializer;
 // === Constants ===
 // =================
 
+/// Constant notification ID, so we can reuse the same notification.
+pub const BACKEND_DISCONNECTED_NOTIFICATION_ID: &str = "backend-disconnected-toast";
 /// Text that shows up in the statusbar when any of the backend connections is lost.
 pub const BACKEND_DISCONNECTED_MESSAGE: &str =
     "Connection to the backend has been lost. Please try restarting IDE.";

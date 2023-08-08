@@ -40,7 +40,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       if (stringStorage.getType().equals(targetType)) {
         return stringStorage;
       } else {
-        return adaptStringStorage(stringStorage);
+        return adaptStringStorage(stringStorage, problemBuilder);
       }
     }
     if (storage instanceof LongStorage longStorage) {
@@ -79,6 +79,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -116,6 +117,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -132,6 +135,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -148,6 +153,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -165,6 +172,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -195,7 +204,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     }
   }
 
-  private Storage<String> adaptStringStorage(StringStorage stringStorage) {
+  private Storage<String> adaptStringStorage(StringStorage stringStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(stringStorage.size());
     for (int i = 0; i < stringStorage.size(); i++) {
@@ -209,6 +218,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

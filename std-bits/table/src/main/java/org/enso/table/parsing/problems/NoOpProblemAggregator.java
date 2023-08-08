@@ -1,7 +1,6 @@
 package org.enso.table.parsing.problems;
 
-import java.util.List;
-import org.enso.table.problems.Problem;
+import org.enso.table.problems.AggregatedProblems;
 
 /** A problem aggregator which ignores problems. */
 public class NoOpProblemAggregator implements ProblemAggregator {
@@ -18,7 +17,7 @@ public class NoOpProblemAggregator implements ProblemAggregator {
   }
 
   @Override
-  public List<Problem> getAggregatedProblems() {
+  public AggregatedProblems getAggregatedProblems() {
     throw new IllegalStateException("This implementation does not provide problem information.");
   }
 }

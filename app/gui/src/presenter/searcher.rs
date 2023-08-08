@@ -219,6 +219,10 @@ fn create_input_node(
     let created_node = graph_controller.add_node(new_node)?;
 
     graph.assign_node_view_explicitly(input, created_node);
+    // Display searcher preview. It needs to be done _after_ assigning AST node to view, because
+    // otherwise Visualization Manager would not know to what node the visualization should be
+    // attached.
+    graph_editor.show_node_editing_preview(input);
 
     let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
 

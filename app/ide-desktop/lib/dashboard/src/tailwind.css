@@ -8,6 +8,16 @@ body {
   background-blend-mode: lighten;
 }
 
+.Toastify--animate {
+  animation-duration: 0.2s;
+}
+
+.enso-dashboard {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
 .enso-dashboard,
@@ -128,8 +138,16 @@ body {
     .h-templates-custom {
       height: 21.5rem;
 
-      @media screen and (min-width: 1771px) {
+      @media screen and (min-width: 110.6875rem) {
         height: 11rem;
+      }
+    }
+
+    .search-bar.search-bar {
+      @media screen and (max-width: 59rem) {
+        position: unset;
+        transform: unset;
+        left: unset;
       }
     }
   }
@@ -137,5 +155,11 @@ body {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
+  }
+
+  /* The class is repeated to make this take precedence over most Tailwind classes. */
+  .cursor-none-recursive.cursor-none-recursive,
+  .cursor-none-recursive.cursor-none-recursive * {
+    cursor: none;
   }
 }

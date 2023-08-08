@@ -11,8 +11,9 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as tabModule from '../tab'
+import * as string from '../../string'
 
+import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
 
@@ -23,33 +24,23 @@ import DriveBar from './driveBar'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
-// ========================
-// === Helper functions ===
-// ========================
+// =================
+// === DriveView ===
+// =================
 
-/** Sanitizes a string for use as a regex. */
-function regexEscape(string: string) {
-    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
-}
-
-// =====================
-// === DirectoryView ===
-// =====================
-
-/** Props for a {@link DirectoryView}. */
-export interface DirectoryViewProps {
-    tab: tabModule.Tab
+/** Props for a {@link DriveView}. */
+export interface DriveViewProps {
+    page: pageSwitcher.Page
+    hidden: boolean
     initialProjectName: string | null
-    nameOfProjectToImmediatelyOpen: string | null
-    setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
     doCreateProject: (templateId: string | null) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    doOpenEditor: (project: backendModule.ProjectAsset) => void
+    doCloseEditor: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -58,20 +49,19 @@ export interface DirectoryViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export default function DirectoryView(props: DirectoryViewProps) {
+export default function DriveView(props: DriveViewProps) {
     const {
-        tab,
+        page,
+        hidden,
         initialProjectName,
-        nameOfProjectToImmediatelyOpen,
-        setNameOfProjectToImmediatelyOpen,
         directoryId,
         setDirectoryId,
         query,
         assetListEvents,
         dispatchAssetListEvent,
         doCreateProject,
-        doOpenIde,
-        doCloseIde,
+        doOpenEditor,
+        doCloseEditor,
         appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
@@ -88,12 +78,14 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
             return null
         } else {
-            const regex = new RegExp(regexEscape(query), 'i')
+            const regex = new RegExp(string.regexEscape(query), 'i')
             return (asset: backendModule.AnyAsset) => regex.test(asset.title)
         }
     }, [query])
@@ -178,6 +170,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
         ]
     )
 
+    React.useEffect(() => {
+        setAssets([])
+        // `setAssets` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [backend])
+
     hooks.useAsyncEffect(
         null,
         async signal => {
@@ -246,7 +244,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
-                tab === tabModule.Tab.dashboard &&
+                page === pageSwitcher.Page.drive &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -256,10 +254,14 @@ export default function DirectoryView(props: DirectoryViewProps) {
         return () => {
             document.body.removeEventListener('dragenter', onDragEnter)
         }
-    }, [tab])
+    }, [page])
 
     return (
-        <div className="flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25">
+        <div
+            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
+                hidden ? 'hidden' : ''
+            }`}
+        >
             <div className="flex flex-col self-start gap-3">
                 <h1 className="text-xl font-bold h-9.5 pl-1.5">
                     {backend.type === backendModule.BackendType.remote
@@ -281,8 +283,8 @@ export default function DirectoryView(props: DirectoryViewProps) {
                 dispatchAssetEvent={dispatchAssetEvent}
                 assetListEvents={assetListEvents}
                 dispatchAssetListEvent={dispatchAssetListEvent}
-                doOpenIde={doOpenIde}
-                doCloseIde={doCloseIde}
+                doOpenIde={doOpenEditor}
+                doCloseIde={doCloseEditor}
             />
             {isFileBeingDragged &&
             directoryId != null &&
