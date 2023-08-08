@@ -1,7 +1,7 @@
 package org.enso.refactoring
 
 import org.enso.syntax.text.Location
-import org.enso.text.editing.{model, IndexedSource}
+import org.enso.text.editing.{IndexedSource, TextEditor, model}
 import org.enso.text.editing.model.TextEdit
 
 object RenameUtils {
@@ -15,26 +15,27 @@ object RenameUtils {
     * @return a list of text edits that should be applied to the original source
     * in order to replace the provided text occurrences with the new text.
     */
-  def buildEdits[A: IndexedSource](
+  def buildEdits[A: IndexedSource: TextEditor](
     source: A,
     occurrences: Seq[Location],
     newText: String
   ): Seq[TextEdit] = {
-    val (_, builder) = occurrences
+    val (_, _, builder) = occurrences
       .sortBy(_.start)
-      .foldLeft((0, Vector.newBuilder[TextEdit])) {
-        case ((offset, builder), location) =>
+      .foldLeft((0, source, Vector.newBuilder[TextEdit])) {
+        case ((offset, source, builder), location) =>
           val start =
             implicitly[IndexedSource[A]]
-              .toPosition(location.start, source)
+              .toPosition(location.start + offset, source)
           val end =
             implicitly[IndexedSource[A]]
-              .toPosition(location.end, source)
+              .toPosition(location.end + offset, source)
           val range = model.Range(start, end)
 
           val newOffset = offset - location.length + newText.length
           val textEdit  = TextEdit(range, newText)
-          (newOffset, builder += textEdit)
+          val newSource = implicitly[TextEditor[A]].edit(source, textEdit)
+          (newOffset, newSource, builder += textEdit)
       }
 
     builder.result()
