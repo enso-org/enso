@@ -411,7 +411,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 projectState: null,
                             },
                         ],
-                        item => item.id === directory.id
+                        item => item.id === key
                     )
                 )
                 void (async () => {

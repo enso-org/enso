@@ -46,7 +46,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 await backend.updateDirectory(item.id, { title: newName }, item.title)
                 return
             } catch (error) {
-                toastAndLog('Error renaming folder', error)
+                toastAndLog('Could not rename folder', error)
                 throw error
             }
         }
@@ -66,7 +66,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.createDirectory: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Folders cannot be created on the local backend')
+                        toastAndLog('Cannot create folders on the local drive')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -85,7 +85,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 id: key,
                             })
-                            toastAndLog('Error creating new folder', error)
+                            toastAndLog('Could not create new folder', error)
                         }
                     }
                 }
