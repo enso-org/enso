@@ -586,6 +586,25 @@ type Conversion_Failure
             Conversion_Failure.Text_Too_Long _ _ _ _ ->
                 rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
 
+type Loss_Of_Integer_Precision
+    ## PRIVATE
+       Indicates that an automatic conversion of an integer column to a decimal
+       column is losing precision because some of the large integers cannot be
+       exactly represented by the `double` type.
+    Warning (affected_rows_count : Integer) (example_value : Integer) (example_value_converted : Decimal)
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        self.affected_rows_count.to_text+" rows contained integers that are too large to represent exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Integer_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
+
+
 type Invalid_Value_For_Type
     ## PRIVATE
        Indicates that a column construction/transformation failed because the

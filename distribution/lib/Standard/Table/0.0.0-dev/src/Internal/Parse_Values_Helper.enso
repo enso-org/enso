@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import project.Internal.Java_Problems
 from project.Errors import Invalid_Format
 
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
@@ -12,7 +13,7 @@ translate_parsing_problem expected_value_type problem = case problem of
     java_problem : InvalidFormat ->
         Invalid_Format.Error java_problem.column expected_value_type (Vector.from_polyglot_array java_problem.cells)
     _ ->
-        Panic.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)
+        Java_Problems.translate_problem problem
 
 ## PRIVATE
 valid_parse_targets =
