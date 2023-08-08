@@ -141,25 +141,6 @@ export default function App(props: AppProps) {
                 toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
                 transition={toastify.Zoom}
             />
-            <toastify.ToastContainer
-                containerId="panic"
-                enableMultiContainer={true}
-                theme="light"
-                position="top-center"
-                style={
-                    {
-                        // Allow the toast to fill the screen almost completely, leaving a small margin.
-                        '--toastify-toast-width': 'calc(min(100vw - 2rem, 1200px))',
-                        '--toastify-toast-max-height': 'calc(100vh - 4rem)',
-                    } as React.CSSProperties
-                }
-                bodyStyle={{
-                    alignItems: 'flex-start',
-                    overflow: 'hidden',
-                }}
-                closeOnClick={false}
-                limit={1}
-            />
             <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>

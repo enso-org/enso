@@ -17,7 +17,7 @@ import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
-import { PanicMessage } from './panic'
+import { displayPanicMessageToast } from './panic'
 
 // =================
 // === Constants ===
@@ -207,21 +207,8 @@ class Main implements AppRunner {
                 logger.log(logMessage)
             }
         }
-        newApp.printPanicMessage = (message: string) => {
-            return new Promise((resolve, reject) => {
-                const restart = () => {
-                    resolve()
-                    this.toast.dismiss(toastId)
-                }
-                const element = React.createElement(PanicMessage, { message, restart })
-                const toastId = this.toast.error(element, {
-                    containerId: 'panic',
-                    closeButton: false,
-                    autoClose: false,
-                    draggable: false,
-                })
-            })
-        }
+        newApp.printPanicMessage = m => new Promise(resolve => displayPanicMessageToast(m, resolve))
+
         this.app = newApp
 
         if (!this.app.initialized) {
