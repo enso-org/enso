@@ -25,29 +25,29 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-    visible: boolean
+    hidden: boolean
     project: backendModule.Project | null
     appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-    const { visible, project, appRunner } = props
+    const { hidden, project, appRunner } = props
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
 
     React.useEffect(() => {
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            if (visible) {
-                ideElement.style.top = ''
-                ideElement.style.display = 'absolute'
-            } else {
+        if (ideElement != null) {
+            if (hidden) {
                 ideElement.style.top = '-100vh'
                 ideElement.style.display = 'fixed'
+            } else {
+                ideElement.style.top = ''
+                ideElement.style.display = 'absolute'
             }
         }
-    }, [visible])
+    }, [hidden])
 
     let hasEffectRun = false
 

@@ -65,7 +65,7 @@ export default function Input(props: InputProps) {
                               setHasReportedValidity(false)
                           } else {
                               const currentTarget = event.currentTarget
-                              setTimeout(() => {
+                              window.setTimeout(() => {
                                   currentTarget.reportValidity()
                               }, 0)
                               setWasJustBlurred(true)

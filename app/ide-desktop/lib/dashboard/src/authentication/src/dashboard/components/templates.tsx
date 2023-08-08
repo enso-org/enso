@@ -121,7 +121,7 @@ function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
                 onTemplateClick(null, newSpinnerState => {
                     setSpinnerState(newSpinnerState)
                     if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
+                        window.setTimeout(() => {
                             setSpinnerState(null)
                         }, SPINNER_DONE_DURATION_MS)
                     }
@@ -167,7 +167,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
         (newSpinnerState: spinner.SpinnerState | null) => {
             setSpinnerState(newSpinnerState)
             if (newSpinnerState === spinner.SpinnerState.done) {
-                setTimeout(() => {
+                window.setTimeout(() => {
                     setSpinnerState(null)
                 }, SPINNER_DONE_DURATION_MS)
             }

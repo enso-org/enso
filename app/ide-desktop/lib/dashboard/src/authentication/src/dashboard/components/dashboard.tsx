@@ -290,7 +290,7 @@ export default function Dashboard(props: DashboardProps) {
             )}
             <TheModal />
             <Editor
-                visible={page === pageSwitcher.Page.editor}
+                hidden={page !== pageSwitcher.Page.editor}
                 project={project}
                 appRunner={appRunner}
             />
