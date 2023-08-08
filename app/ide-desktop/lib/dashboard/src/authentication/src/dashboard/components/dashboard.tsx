@@ -255,7 +255,7 @@ export default function Dashboard(props: DashboardProps) {
             ) : isListingLocalDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
+                        Could not connect to the Project Manager. Please try restarting
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>

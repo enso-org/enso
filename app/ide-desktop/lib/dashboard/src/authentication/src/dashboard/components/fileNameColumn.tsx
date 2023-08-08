@@ -93,7 +93,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center align-middle whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center align-middle whitespace-nowrap gap-1 ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {
@@ -112,7 +112,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <img src={fileInfo.fileIcon()} />
+            <img src={fileInfo.fileIcon()} className="p-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
@@ -136,7 +136,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="bg-transparent grow px-2"
+                className="bg-transparent grow leading-170 h-6 py-px"
             >
                 {item.title}
             </EditableSpan>

@@ -49,7 +49,11 @@ export const theme = {
         },
         fontSize: {
             xs: '0.71875rem',
-            vs: '0.8125rem',
+            sm: '0.8125rem',
+        },
+        lineHeight: {
+            '144.5': '144.5%',
+            '170': '170%',
         },
         spacing: {
             '0.75': '0.1875rem',

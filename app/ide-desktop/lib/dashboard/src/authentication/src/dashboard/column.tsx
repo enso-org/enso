@@ -90,7 +90,7 @@ export const COLUMN_NAME: Record<Column, string> = {
 
 const COLUMN_CSS_CLASSES =
     'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-4 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
@@ -356,32 +356,40 @@ export const COLUMN_HEADING: Record<
     [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
     [Column.modified]: () => (
         <div className="flex gap-2">
-            <img src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
+            <img src={TimeIcon} />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
         </div>
     ),
     [Column.sharedWith]: () => (
         <div className="flex gap-2">
-            <img src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}
+            <img src={PeopleIcon} />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
         <div className="flex gap-2">
-            <img src={TagIcon} /> {COLUMN_NAME[Column.tags]}
+            <img src={TagIcon} />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
         <div className="flex gap-2">
-            <img src={AccessedByProjectsIcon} /> {COLUMN_NAME[Column.accessedByProjects]}
+            <img src={AccessedByProjectsIcon} />
+            <span className="leading-144.5 h-6 py-0.5">
+                {COLUMN_NAME[Column.accessedByProjects]}
+            </span>
         </div>
     ),
     [Column.accessedData]: () => (
         <div className="flex gap-2">
-            <img src={AccessedDataIcon} /> {COLUMN_NAME[Column.accessedData]}
+            <img src={AccessedDataIcon} />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
         <div className="flex gap-2">
-            <img src={DocsIcon} /> {COLUMN_NAME[Column.docs]}
+            <img src={DocsIcon} />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
         </div>
     ),
 }

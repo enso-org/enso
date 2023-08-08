@@ -90,7 +90,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap gap-1 ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {
@@ -109,7 +109,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <img src={SecretIcon} />{' '}
+            <img src={SecretIcon} />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
@@ -133,7 +133,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="bg-transparent grow px-2"
+                className="bg-transparent grow leading-170 h-6 py-px"
             >
                 {item.title}
             </EditableSpan>

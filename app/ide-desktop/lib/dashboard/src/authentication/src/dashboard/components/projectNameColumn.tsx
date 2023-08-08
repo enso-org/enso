@@ -114,7 +114,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap gap-1 ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {
@@ -180,7 +180,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow px-2 ${
+                className={`bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
                 }`}
             >

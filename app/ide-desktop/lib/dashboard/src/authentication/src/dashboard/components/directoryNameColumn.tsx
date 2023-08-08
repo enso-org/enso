@@ -96,7 +96,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap gap-1 ${indent.indentClass(
                 getDepth(key)
             )}`}
             onClick={event => {
@@ -148,7 +148,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="cursor-pointer bg-transparent grow px-2"
+                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
             >
                 {item.title}
             </EditableSpan>
