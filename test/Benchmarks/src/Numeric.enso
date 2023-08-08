@@ -38,23 +38,19 @@ collect_benches group_builder =
 
     [True, False].map use_bankers->
         [0, -2, 2].map decimal_places->
-            name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
+            name = "round decimal_places=" + (decimal_places.to_text.replace '-' '_') + " use_bankers=" + use_bankers.to_text
             fun = _.round_old decimal_places use_bankers
             new_fun = _.round decimal_places use_bankers
-            IO.println <| "Benchmarking decimal " + name
             bench_measure (decimals.map fun) "decimal old "+name
             bench_measure (decimals.map new_fun) "decimal new "+name
-            IO.println <| "Benchmarking integer " + name
             bench_measure (integers.map fun) "integer old "+name
             bench_measure (integers.map new_fun) "integer new "+name
 
 bench =
     options = Bench.options . size iter_size . iter num_iterations
 
-    all = Bench.build builder->
+    Bench.build builder->
         builder.group "Numbers" options group_builder->
             collect_benches group_builder
 
-    all . run_main
-
-main = bench
+main = bench . run_main
