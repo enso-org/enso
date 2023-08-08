@@ -57,6 +57,7 @@ interface InternalBaseTableRowProps<
     state?: State
     initialRowState?: TableRowState
     columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
+    hidden: boolean
     selected: boolean
     setSelected: (selected: boolean) => void
     allowContextMenu: boolean
@@ -88,6 +89,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         state,
         initialRowState,
         columns,
+        hidden,
         selected,
         setSelected,
         allowContextMenu,
@@ -122,7 +124,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         setRowState,
     }
 
-    return (
+    return hidden ? null : (
         <tr
             tabIndex={-1}
             onClick={event => {
