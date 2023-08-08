@@ -188,6 +188,90 @@ class RuntimeRefactoringTest
     context.consumeOut shouldEqual List("42")
   }
 
+  it should "rename operator in lambda expression" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val idOperator1 = metadata.addItem(42, 9)
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = x-> operator1 + x
+        |    IO.println (operator2 1)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val newName = "foobarbaz"
+    val expectedEdits = Vector(
+      TextEdit(
+        model.Range(model.Position(3, 4), model.Position(3, 13)),
+        newName
+      ),
+      TextEdit(
+        model.Range(model.Position(4, 20), model.Position(4, 29)),
+        newName
+      )
+    )
+    val expectedFileEdit = Api.FileEdit(
+      context.pkg.mainFile,
+      expectedEdits,
+      versionCalculator.evalVersion(contents).toHexString,
+      versionCalculator
+        .evalVersion(contents.replaceAll("operator1", newName))
+        .toHexString
+    )
+    context.send(
+      Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(newName)),
+      Api.Response(None, expectedFileEdit),
+      TestMessages.pending(contextId, idOperator1),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+  }
+
   it should "edit file after renaming" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -320,4 +404,146 @@ class RuntimeRefactoringTest
     context.consumeOut shouldEqual List("43")
   }
 
+  it should "fail with ExpressionNotFound when renaming non-existent symbol" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata      = new Metadata
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = operator1 + 1
+        |    IO.println operator2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val randomExpressionId = UUID.randomUUID()
+    val newName = "foobarbaz"
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RenameSymbol(moduleName, randomExpressionId, newName)
+      )
+    )
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.SymbolRenameFailed(
+          Api.SymbolRenameFailed.ExpressionNotFound(randomExpressionId)
+        )
+      )
+    )
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "fail with OperationNotSupported when renaming an expression" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata      = new Metadata
+    val exprOperator1 = metadata.addItem(54, 2)
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = operator1 + 1
+        |    IO.println operator2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val newName = "foobarbaz"
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RenameSymbol(moduleName, exprOperator1, newName)
+      )
+    )
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.SymbolRenameFailed(
+          Api.SymbolRenameFailed.OperationNotSupported(exprOperator1)
+        )
+      )
+    )
+    context.consumeOut shouldEqual List()
+  }
 }

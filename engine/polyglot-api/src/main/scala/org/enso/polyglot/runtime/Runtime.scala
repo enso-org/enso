@@ -1681,6 +1681,10 @@ object Runtime {
           new JsonSubTypes.Type(
             value = classOf[SymbolRenameFailed.FailedToApplyEdits],
             name  = "symbolRenameFailedFailedToApplyEdits"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.OperationNotSupported],
+            name  = "symbolRenameFailedOperationNotSupported"
           )
         )
       ) sealed trait Error
@@ -1697,6 +1701,13 @@ object Runtime {
         * @param module the module name
         */
       final case class FailedToApplyEdits(module: String)
+          extends SymbolRenameFailed.Error
+
+      /** Signals that it was unable to apply edits to the current module contents.
+        *
+        * @param expressionId the id of expression
+        */
+      final case class OperationNotSupported(expressionId: ExpressionId)
           extends SymbolRenameFailed.Error
     }
 

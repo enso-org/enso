@@ -8,6 +8,8 @@ import org.enso.interpreter.instrument.job.{
 }
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.io.File
+
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that orchestrates renaming of a symbol.
@@ -40,25 +42,26 @@ class RenameSymbolCmd(
       )
     )
     for {
-      _ <- ensureCompiledJob
-      _ <- refactoringRenameJob
-      _ <- reExecute
+      _               <- ensureCompiledJob
+      refactoredFiles <- refactoringRenameJob
+      _ <-
+        if (refactoredFiles.isEmpty) Future.successful(())
+        else reExecute(refactoredFiles)
     } yield ()
   }
 
-  private def reExecute(implicit
+  private def reExecute(files: Seq[File])(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     for {
+      _ <- ctx.jobProcessor.run(new EnsureCompiledJob(files))
       _ <- Future.sequence {
-        ctx.contextManager.getAllContexts.toVector.map {
-          case (contextId, stack) =>
-            for {
-              _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
-              _ <- ctx.jobProcessor.run(ExecuteJob(contextId, stack.toList))
-            } yield ()
-        }
+        ctx.contextManager.getAllContexts
+          .collect {
+            case (contextId, stack) if stack.nonEmpty =>
+              ctx.jobProcessor.run(ExecuteJob(contextId, stack.toList))
+          }
       }
     } yield ()
 }

@@ -4,7 +4,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
-import org.enso.interpreter.instrument.job
 import org.enso.interpreter.service.error.ModuleNotFoundException
 import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification, ApiResponse}
 import org.enso.refactoring.RenameUtils
@@ -27,14 +26,14 @@ final class RefactoringRenameJob(
   moduleName: String,
   expressionId: UUID,
   newName: String
-) extends Job[Unit](
+) extends Job[Seq[File]](
       List(),
       isCancellable         = false,
       mayInterruptIfRunning = false
     ) {
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
+  override def run(implicit ctx: RuntimeContext): Seq[File] = {
     val logger                   = ctx.executionService.getLogger
     val compilationLockTimestamp = ctx.locking.acquireReadCompilationLock()
     try {
@@ -43,22 +42,33 @@ final class RefactoringRenameJob(
         s"Renaming symbol [{0}]...",
         expressionId
       )
-      applyRefactoringEdits()
+      val refactoredFile = applyRefactoringEdits()
+      Seq(refactoredFile)
     } catch {
       case _: ModuleNotFoundException =>
         reply(Api.ModuleNotFound(moduleName))
+        Seq()
       case ex: RefactoringRenameJob.ExpressionNotFound =>
         reply(
           Api.SymbolRenameFailed(
             Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
           )
         )
-      case ex: job.RefactoringRenameJob.FailedToApplyEdits =>
+        Seq()
+      case ex: RefactoringRenameJob.FailedToApplyEdits =>
         reply(
           Api.SymbolRenameFailed(
             Api.SymbolRenameFailed.FailedToApplyEdits(ex.module)
           )
         )
+        Seq()
+      case ex: RefactoringRenameJob.OperationNotSupported =>
+        reply(
+          Api.SymbolRenameFailed(
+            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId)
+          )
+        )
+        Seq()
     } finally {
       ctx.locking.releaseReadCompilationLock()
       logger.log(
@@ -72,16 +82,20 @@ final class RefactoringRenameJob(
     }
   }
 
-  private def applyRefactoringEdits()(implicit ctx: RuntimeContext): Unit = {
+  private def applyRefactoringEdits()(implicit ctx: RuntimeContext): File = {
     val module = ctx.executionService.getContext
       .findModule(moduleName)
       .orElseThrow(() => new ModuleNotFoundException(moduleName))
     val newSymbolName = MethodNameValidation.normalize(newName)
-    val literal = IRUtils
+
+    val expression = IRUtils
       .findByExternalId(module.getIr, expressionId)
-      .flatMap(getLiteral)
       .getOrElse(
         throw new RefactoringRenameJob.ExpressionNotFound(expressionId)
+      )
+    val literal = getLiteral(expression)
+      .getOrElse(
+        throw new RefactoringRenameJob.OperationNotSupported(expressionId)
       )
     val usages = IRUtils
       .findUsages(module.getIr, literal)
@@ -112,6 +126,8 @@ final class RefactoringRenameJob(
     enqueuePendingEdits(fileEdit)
     notify(fileEdit)
     reply(Api.SymbolRenamed(newSymbolName))
+
+    fileEdit.path
   }
 
   private def enqueuePendingEdits(fileEdit: Api.FileEdit)(implicit
@@ -162,4 +178,9 @@ object RefactoringRenameJob {
 
   final private class FailedToApplyEdits(val module: String)
       extends Exception(s"Failed to apply edits to module [$module]")
+
+  final private class OperationNotSupported(val expressionId: IR.ExternalId)
+      extends Exception(
+        s"Operation not supported for expression [$expressionId]"
+      )
 }
