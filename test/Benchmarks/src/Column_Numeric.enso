@@ -5,7 +5,7 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 10000
+vector_size = 1000000
 iter_size = 10
 num_iterations = 10
 
@@ -36,10 +36,9 @@ bench =
         IO.println <| ".floor floats"
         Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
 
-    ##
-        IO.println <| ".round ints"
-        Bench.measure ints.old_round "old Column.round ints" iter_size num_iterations
-        Bench.measure ints.round "new Column.round ints" iter_size num_iterations
+    IO.println <| ".round ints"
+    Bench.measure ints.old_round "old Column.round ints" iter_size num_iterations
+    Bench.measure ints.round "new Column.round ints" iter_size num_iterations
 
     ##
         IO.println <| ".truncate ints"
