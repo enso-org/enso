@@ -58,6 +58,6 @@ public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends Tern
 
             context.safepoint();
         }
-        return new DoubleStorage(out, storage.size(), storage.getIsMissing());
+        return new DoubleStorage(out, storage.size(), isMissing);
     }
 }

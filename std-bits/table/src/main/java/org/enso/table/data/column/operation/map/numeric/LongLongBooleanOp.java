@@ -13,6 +13,12 @@ import java.util.BitSet;
 /** An operation expecting a numeric argument and returning a number. */
 public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, AbstractLongStorage> {
 
+    /** Minimum value for the `n` parameter to `roundDouble`. */
+    private static final long ROUND_MIN_LONG = -99999999999999L;
+
+    /** Minimum value for the `n` parameter to `roundDouble`. */
+    private static final long ROUND_MAX_LONG = 99999999999999L;
+
     public LongLongBooleanOp(String name) {
         super(name);
     }
@@ -45,13 +51,28 @@ public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, Abstra
         for (int i = 0; i < storage.size(); i++) {
             if (!storage.isNa(i)) {
                 long item = storage.getItem(i);
-                out[i] = doLongBoolean(item, longArg, booleanArg, i, problemBuilder);
+                boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
+                if (!outOfRange) {
+                    out[i] = doLongBoolean(item, longArg, booleanArg, i, problemBuilder);
+                } else {
+                    String msg =
+                            "Error: `round` can only accept values between "
+                                    + ROUND_MIN_LONG
+                                    + " and "
+                                    + ROUND_MAX_LONG
+                                    + " (inclusive), but was "
+                                    + item;
+                    problemBuilder.reportIllegalArgumentError(msg, i);
+                    isMissing.set(i);
+                }
+
             } else {
                 isMissing.set(i);
             }
 
             context.safepoint();
         }
-        return new LongStorage(out, storage.size(), storage.getIsMissing());
+
+        return new LongStorage(out, storage.size(), isMissing);
     }
 }
