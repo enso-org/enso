@@ -1507,13 +1507,10 @@ type Column
 
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
-            new_storage_and_problems = parser.parseColumn self.name storage
 
-            new_storage = new_storage_and_problems.value
-            problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
-
-            output = Column.Value (Java_Column.new self.name new_storage)
-            on_problems.attach_problems_after output problems
+            new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
+                parser.parseColumn self.name storage
+            Column.Value (Java_Column.new self.name new_storage)
 
     ## Format a `Column` using a format string (or `Column` of format strings).
 

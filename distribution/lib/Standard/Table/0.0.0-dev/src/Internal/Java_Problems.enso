@@ -48,11 +48,11 @@ translate_problem p = case p of
 
 ## PRIVATE
    Convert Java aggregated problems to Enso Vector of equivalents.
-parse_aggregated_problems : AggregatedProblems -> Vector
-parse_aggregated_problems problems =
+parse_aggregated_problems : AggregatedProblems -> (Any -> Any) -> Vector
+parse_aggregated_problems problems (problem_mapping = translate_problem) =
     if problems.is_nothing then [] else
         problems_array = problems.getProblems
-        parsed = Vector.from_polyglot_array problems_array . map translate_problem
+        parsed = Vector.from_polyglot_array problems_array . map problem_mapping
 
         if problems.getCount == problems_array.length then parsed else
             parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
@@ -60,8 +60,11 @@ parse_aggregated_problems problems =
 ## PRIVATE
    Unpacks a `WithAggregatedProblems` instance, extracting the value and
    attaching any associated problems according to the provided behavior.
-unpack_value_with_aggregated_problems : Problem_Behavior -> WithAggregatedProblems -> Any
-unpack_value_with_aggregated_problems on_problems with_problems =
-    problems = parse_aggregated_problems with_problems.problems
+
+   The `problem_mapping` argument may be used to add custom problem mapping
+   logic that depends on a particular context.
+unpack_value_with_aggregated_problems : Problem_Behavior -> WithAggregatedProblems -> (Any -> Any) -> Any
+unpack_value_with_aggregated_problems on_problems with_problems (problem_mapping = translate_problem) =
+    problems = parse_aggregated_problems with_problems.problems problem_mapping
     on_problems.attach_problems_before problems <|
         with_problems.value
