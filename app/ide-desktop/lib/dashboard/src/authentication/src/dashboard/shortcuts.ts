@@ -56,11 +56,30 @@ export interface MouseShortcut extends Modifiers {
 /** All possible modifier keys. */
 export type ModifierKey = 'Alt' | 'Ctrl' | 'Meta' | 'Shift'
 
+// ========================
+// === isTextInputEvent ===
+// ========================
+
+/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
+ * keys. */
+const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
+
+/** Whether the modifiers match the event's modifier key states. */
+export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+    // Allow `alt` key to be pressed in case it is being used to enter special characters.
+    return (
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.metaKey &&
+        !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key)
+    )
+}
+
 // ===========================
 // === modifiersMatchEvent ===
 // ===========================
 
-/** Return `true` if and only if the modifiers match the evenet's modifier key states. */
+/** Whether the modifiers match the event's modifier key states. */
 function modifiersMatchEvent(
     modifiers: Modifiers,
     event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent

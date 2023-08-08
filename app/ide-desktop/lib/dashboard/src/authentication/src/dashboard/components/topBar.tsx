@@ -4,19 +4,12 @@ import * as React from 'react'
 import FindIcon from 'enso-assets/find.svg'
 
 import * as backendModule from '../backend'
+import * as shortcuts from '../shortcuts'
 
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
-
-// =================
-// === Constants ===
-// =================
-
-/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
- * keys. */
-const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
 
 // ==============
 // === TopBar ===
@@ -57,20 +50,19 @@ export default function TopBar(props: TopBarProps) {
     const searchRef = React.useRef<HTMLInputElement>(null)
 
     React.useEffect(() => {
-        const onKeyPress = (event: KeyboardEvent) => {
+        const onKeyDown = (event: KeyboardEvent) => {
             // Allow `alt` key to be pressed in case it is being used to enter special characters.
             if (
-                !event.ctrlKey &&
-                !event.shiftKey &&
-                !event.metaKey &&
-                !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key)
+                !(event.target instanceof HTMLInputElement) &&
+                (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
+                shortcuts.isTextInputEvent(event)
             ) {
                 searchRef.current?.focus()
             }
         }
-        document.addEventListener('keypress', onKeyPress)
+        document.addEventListener('keydown', onKeyDown)
         return () => {
-            document.removeEventListener('keypress', onKeyPress)
+            document.removeEventListener('keydown', onKeyDown)
         }
     }, [])
 

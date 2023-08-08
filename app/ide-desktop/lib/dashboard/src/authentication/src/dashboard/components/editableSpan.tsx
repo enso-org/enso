@@ -55,7 +55,7 @@ export default function EditableSpan(props: EditableSpanProps) {
                     size={1}
                     defaultValue={children}
                     onBlur={event => event.currentTarget.form?.requestSubmit()}
-                    onKeyUp={event => {
+                    onKeyDown={event => {
                         if (
                             shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
                                 shortcuts.KeyboardAction.cancelEditName,
