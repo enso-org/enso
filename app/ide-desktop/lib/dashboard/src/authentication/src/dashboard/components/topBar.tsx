@@ -10,6 +10,14 @@ import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
 
+// =================
+// === Constants ===
+// =================
+
+/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
+ * keys. */
+const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
+
 // ==============
 // === TopBar ===
 // ==============
@@ -46,6 +54,25 @@ export default function TopBar(props: TopBarProps) {
         query,
         setQuery,
     } = props
+    const searchRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        const onKeyPress = (event: KeyboardEvent) => {
+            // Allow `alt` key to be pressed in case it is being used to enter special characters.
+            if (
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.metaKey &&
+                !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key)
+            ) {
+                searchRef.current?.focus()
+            }
+        }
+        document.addEventListener('keypress', onKeyPress)
+        return () => {
+            document.removeEventListener('keypress', onKeyPress)
+        }
+    }, [])
 
     return (
         <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6">
@@ -57,6 +84,7 @@ export default function TopBar(props: TopBarProps) {
                     <img src={FindIcon} className="opacity-80" />
                 </label>
                 <input
+                    ref={searchRef}
                     type="text"
                     size={1}
                     id="search"
