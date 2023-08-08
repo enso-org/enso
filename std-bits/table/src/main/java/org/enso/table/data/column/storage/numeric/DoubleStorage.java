@@ -118,7 +118,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
     return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 

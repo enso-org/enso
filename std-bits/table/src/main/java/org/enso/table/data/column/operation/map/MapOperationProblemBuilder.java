@@ -1,8 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
 import org.enso.table.data.table.problems.ArithmeticError;
-import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.AggregatedProblems;
 
 public class MapOperationProblemBuilder {

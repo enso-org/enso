@@ -90,10 +90,10 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public Storage<?> runTernaryMap(
-          String n, S storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
     if (!isSupportedTernary(n)) {
       throw new IllegalStateException(
-              "Requested vectorized ternary operation " + n + ", but no such operation is known.");
+          "Requested vectorized ternary operation " + n + ", but no such operation is known.");
     }
     return ternaryOps.get(n).runTernaryMap(storage, arg0, arg1, problemBuilder);
   }

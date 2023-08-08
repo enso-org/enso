@@ -219,9 +219,11 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
-    if (resolveTernaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    if (resolveTernaryOp(name)
+        == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
+      return getInferredStorage()
+          .runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
       return super.runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);

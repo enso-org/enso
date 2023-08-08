@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -57,7 +56,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
     return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 

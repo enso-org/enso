@@ -118,7 +118,7 @@ public abstract class Storage<T> {
 
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
   public abstract Storage<?> runVectorizedBinaryMap(
-          String name, Object argument, MapOperationProblemBuilder problemBuilder);
+      String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
   /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
   public boolean isTernaryOpVectorized(String name) {
@@ -127,7 +127,7 @@ public abstract class Storage<T> {
 
   /** Runs a vectorized operation on this storage, taking two scalar arguments. */
   public Storage<?> runVectorizedTernaryMap(
-          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
     throw new IllegalArgumentException("Unsupported ternary operation: " + name);
   }
 
@@ -309,12 +309,12 @@ public abstract class Storage<T> {
    * @return the result of running the operation on each row
    */
   public final Storage<?> vectorizedTernaryMap(
-          String name,
-          MapOperationProblemBuilder problemBuilder,
-          Object argument0,
-          Object argument1,
-          boolean skipNulls,
-          StorageType expectedResultType) {
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      Object argument0,
+      Object argument1,
+      boolean skipNulls,
+      StorageType expectedResultType) {
     if (isTernaryOpVectorized(name)) {
       return runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
     } else {
