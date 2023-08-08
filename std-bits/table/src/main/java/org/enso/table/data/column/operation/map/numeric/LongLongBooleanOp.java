@@ -2,7 +2,8 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -10,18 +11,18 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends TernaryMapOperation<Double, DoubleStorage> {
+public abstract class LongLongBooleanOp extends TernaryMapOperation<Long, AbstractLongStorage> {
 
-    public DoubleLongBooleanOpWithSpecialNumericHandling(String name) {
+    public LongLongBooleanOp(String name) {
         super(name);
     }
 
-    protected abstract double doLongBoolean(double a, long b, boolean c, int ix, MapOperationProblemBuilder problemBuilder);
+    protected abstract long doLongBoolean(long a, long b, boolean c, int ix, MapOperationProblemBuilder problemBuilder);
 
     @Override
-    public Storage<Double> runTernaryMap(DoubleStorage storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
+    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
         if (arg0 == null || arg1 == null) {
-            return DoubleStorage.makeEmpty(storage.size());
+            return LongStorage.makeEmpty(storage.size());
         }
 
         long longArg;
@@ -43,21 +44,14 @@ public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends Tern
 
         for (int i = 0; i < storage.size(); i++) {
             if (!storage.isNa(i)) {
-                double item = storage.getItem(i);
-                boolean special = Double.isNaN(item) || Double.isInfinite(item);
-                if (!special) {
-                    out[i] = Double.doubleToRawLongBits(doLongBoolean(item, longArg, booleanArg, i, problemBuilder));
-                } else {
-                    String msg = "Value is " + item;
-                    problemBuilder.reportArithmeticError(msg, i);
-                    isMissing.set(i);
-                }
+                long item = storage.getItem(i);
+                out[i] = doLongBoolean(item, longArg, booleanArg, i, problemBuilder);
             } else {
                 isMissing.set(i);
             }
 
             context.safepoint();
         }
-        return new DoubleStorage(out, storage.size(), storage.getIsMissing());
+        return new LongStorage(out, storage.size(), storage.getIsMissing());
     }
 }

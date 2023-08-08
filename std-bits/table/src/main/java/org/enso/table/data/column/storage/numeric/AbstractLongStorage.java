@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -9,6 +10,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
+import org.enso.table.data.column.operation.map.numeric.LongLongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -46,6 +48,17 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runBinaryMap(name, this, argument, problemBuilder);
+  }
+
+  @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 
   @Override
@@ -161,6 +174,13 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                 return a;
               }
             })
+        .add(
+                new LongLongBooleanOp(Maps.ROUND) {
+                  @Override
+                  protected long doLongBoolean(long n, long decimalPlaces, boolean useBankers, int ix, MapOperationProblemBuilder problemBuilder) {
+                    return Core_Math_Utils.roundLong(n, decimalPlaces, useBankers);
+                  }
+                })
         .add(
             new LongNumericOp(Storage.Maps.DIV, true) {
               @Override
