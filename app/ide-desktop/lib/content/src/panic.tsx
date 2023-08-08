@@ -1,11 +1,11 @@
 /** @file This file defines a component that is responsible for displaying a user-facing message
- *  about an application crash (panic). The component is used as a body of a Toastify toast. */
+ * about an application crash (panic). The component is used as a body of a Toastify toast. */
 
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
 /** Props for `PanicMessage` component. */
-interface PanicMessageProps {
+export interface PanicMessageProps {
     /** The panic message with stack trace. Usually big multiline text. */
     message: string
     /** A callback to trigger application restart. */
@@ -14,7 +14,7 @@ interface PanicMessageProps {
 
 /** A component displaying panic message inside a toast. */
 export function PanicMessage(props: PanicMessageProps) {
-    let reportUrl =
+    const reportUrl =
         'https://github.com/enso-org/enso/issues/new' +
         '?labels=--bug%2Ctriage' +
         '&template=bug-report.yml'
@@ -63,27 +63,25 @@ export function PanicMessage(props: PanicMessageProps) {
 }
 
 /** Display a toast with panic message. */
-export async function displayPanicMessageToast(message: string, restartApp: () => void) {
-    return new Promise(resolve => {
-        const restart = () => {
-            restartApp()
-            toastify.toast.dismiss(toastId)
-        }
-        const element = <PanicMessage message={message} restart={restart} />
-        const toastId = toastify.toast.error(element, {
-            closeButton: false,
-            autoClose: false,
-            style: {
-                // Allow the toast to fill the screen almost completely, leaving a small margin.
-                width: 'calc(min(100vw - 2rem, 1200px))',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                maxHeight: 'calc(100vh - 4rem)',
-            },
-            bodyStyle: {
-                alignItems: 'flex-start',
-                overflow: 'hidden',
-            },
-        })
+export function displayPanicMessageToast(message: string, restartApp: () => void) {
+    const restart = () => {
+        restartApp()
+        toastify.toast.dismiss(toastId)
+    }
+    const element = <PanicMessage message={message} restart={restart} />
+    const toastId = toastify.toast.error(element, {
+        closeButton: false,
+        autoClose: false,
+        style: {
+            // Allow the toast to fill the screen almost completely, leaving a small margin.
+            width: 'calc(min(100vw - 2rem, 1200px))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            maxHeight: 'calc(100vh - 4rem)',
+        },
+        bodyStyle: {
+            alignItems: 'flex-start',
+            overflow: 'hidden',
+        },
     })
 }

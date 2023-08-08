@@ -4,7 +4,6 @@
 
 import * as semver from 'semver'
 import * as toastify from 'react-toastify'
-import * as React from 'react'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -12,12 +11,11 @@ import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
+import * as panic from './panic'
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
-
-import { displayPanicMessageToast } from './panic'
 
 // =================
 // === Constants ===
@@ -207,7 +205,10 @@ class Main implements AppRunner {
                 logger.log(logMessage)
             }
         }
-        newApp.printPanicMessage = m => new Promise(resolve => displayPanicMessageToast(m, resolve))
+        newApp.printPanicMessage = (message: string) =>
+            new Promise(resolve => {
+                panic.displayPanicMessageToast(message, resolve)
+            })
 
         this.app = newApp
 
