@@ -803,11 +803,7 @@ type Column
             new_name = naming_helper.function_name "round" [self]
             is_integer = self.inferred_precise_value_type.is_integer
             if is_integer && decimal_places >= 0 then self.rename new_name else
-                should_cast_to_integer = decimal_places <= 0 || is_integer
-                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
-                result_float = run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
-                result = cast_if_needed result_float target_value_type
-                result #result.rename new_name
+                run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
 
     ## ALIAS int
 
