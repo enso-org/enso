@@ -1,18 +1,33 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
+## Configuration for a measurement phase or a warmup phase of a benchmark.
+type Phase_Conf
+    ## The minimal number of seconds for which the phase should run.
+    Secs (secs:Integer)
+    ## Number of iterations of the phase.
+    Iters (iters:Integer)
 
+    to_text self = case self of
+        Phase_Conf.Secs secs -> secs.to_text + " seconds"
+        Phase_Conf.Iters iters -> iters.to_text + " iterations"
+
+## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
+   defined in the JMH benchmarking library. See the JMH documentation for more details:
+   https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
 type Bench_Options
     ## PRIVATE
-    Impl iter_size num_iters
+    Impl (warmup:Phase_Conf) (measure:Phase_Conf)
 
-    size : Integer -> Bench_Options
-    size self v = Bench_Options.Impl v self.num_iters
+    ## Sets the warmup phase.
+    set_warmup : Phase_Conf -> Bench_Options
+    set_warmup self (warm:Phase_Conf) = Bench_Options.Impl warm self.measure
 
-    iter : Integer -> Bench_Options
-    iter self v = Bench_Options.Impl self.iter_size v
+    ## Sets the measurement phase.
+    set_measure : Phase_Conf -> Bench_Options
+    set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
-    to_text self = "[iter_size=" + self.iter_size.to_text + ", num_iters=" + self.num_iters.to_text + "]"
+    to_text self = "[warmup=" + self.warmup.to_text + ", measurement=" + self.measure.to_text + "]"
 
 type Bench_Builder
     ## PRIVATE
@@ -45,7 +60,7 @@ type Bench
         Bench.All b.to_vector
 
     options : Bench_Options
-    options = Bench_Options.Impl -1 -1
+    options = Bench_Options.Impl (Phase_Conf.Secs 3) (Phase_Conf.Secs 3)
 
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
@@ -60,16 +75,16 @@ type Bench
         self.fold Nothing _-> g-> s->
             c = g.configuration
             IO.println <| "Benchmarking  " + s.name + " configuration: " + c.to_text
-            Bench.measure (s.code 0) s.name c.iter_size c.num_iters
+            Bench.measure s.name c.warmup c.measure (s.code 0)
             IO.println <| "Benchmarking of " + s.name + " finished"
 
     ## Measure the amount of time it takes to execute a given computation.
 
        Arguments:
        - act: The action to perform.
-       - label: A name for the measurement.
-       - iter_size: The number of runs per iteration.
-       - num_iters: The number of iterations per measurement.
+       - label: A name for the benchmark.
+       - warmup_iters: The number of warmup iterations.
+       - measurement_iters: The number of measurement iterations.
        - run_gc_between_iterations: Whether to try running the garbage collector
          between iterations. Defaults to False. This is helpful when testing
          memory intensive operations, to ensure that GC runs between iterations
@@ -88,33 +103,53 @@ type Bench
              from Standard.Test import Bench
 
              example_measure =
-                 Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
-    measure : Any -> Text -> Integer -> Integer -> Boolean -> Nothing
-    measure ~act label iter_size num_iters run_gc_between_iterations=False =
+                 Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
+    measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
+    measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
-        result = Ref.new 0.0
+        measure_start = System.nano_time
+
         single_call = _ ->
             x1 = System.nano_time
             Runtime.no_inline act
             x2 = System.nano_time
             x2 - x1
-        iteration = it_size -> it_num ->
-            if run_gc_between_iterations then
-                Runtime.gc
-            act_it_num = num_iters - it_num
-            res = times it_size single_call
-            avg = avg_list res
+
+        run_phase (phase_name:Text) (conf:Phase_Conf) =
+            phase_start = System.nano_time
+            durations = case conf of
+                Phase_Conf.Secs secs ->
+                    stop_ns = phase_start + secs * 1000000000
+                    go = durations -> cur_ns ->
+                        if cur_ns  > stop_ns then durations else
+                            dur = single_call Nothing
+                            @Tail_Call go (durations + [dur]) (cur_ns + dur)
+                    go [] phase_start
+                Phase_Conf.Iters iters ->
+                    go = durations -> cur_iter ->
+                        if cur_iter >= iters then durations else
+                            dur = single_call Nothing
+                            @Tail_Call go (durations + [dur]) (cur_iter + 1)
+                    go [] 0
+            sum = durations.reduce (_ + _)
+            run_iters = durations.length
+            avg = sum / run_iters
             fmt = (avg / 1000000).format "#.##"
-            result.put (result.get + avg)
-            case dry_run of
-                False ->
-                    IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
-                True ->
-                    IO.println (label + "/dry-run: " + fmt)
-        if dry_run then times 1 (iteration 1) else
-            times num_iters (iteration iter_size)
-            fmt_avg = (result.get / (1000000*num_iters)).format "#.##"
-            IO.println (label + " average: " + fmt_avg + "ms")
+            phase_end = System.nano_time
+            phase_duration_ms = (phase_end - phase_start) / 1000000
+            IO.println <| phase_name + " duration: " + phase_duration_ms.to_text + " ms"
+            IO.println <| phase_name + " iterations: " + run_iters.to_text
+            IO.println <| phase_name + " avg time: " + fmt + " ms"
+
+        empty_conf = Phase_Conf.Iters 0
+        if dry_run then run_phase "dummy" empty_conf else
+            warmup_durations = run_phase "Warmup" warmup_conf
+            measure_durations = run_phase "Measurement" measure_conf
+            # TODO: Print some stats at the end of the phase
+            measure_end = System.nano_time
+            measure_duration_ms = (measure_end - measure_start) / 1000000
+            fmt_duration_ms = measure_duration_ms.format "#.##"
+            IO.println <| "Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
 
 ## PRIVATE
 
