@@ -43,14 +43,12 @@ public class RoundNode extends Node {
         long decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
         boolean useBankers = constantPlacesUseBankers.profile(ub);
 
-        if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
-            decimalPlacesOutOfRangePanic(decimalPlaces);
-        }
         if (Double.isNaN(n) || Double.isInfinite(n)) {
-            specialValuePanic(n);
+            Builtins builtins = EnsoContext.get(this).getBuiltins();
+            throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
         }
         if (n < ROUND_MIN_DOUBLE || n > ROUND_MAX_DOUBLE) {
-            argumentOutOfRangePanic(n);
+            throw argumentOutOfRangePanic(n);
         }
 
         // Algorithm taken from https://stackoverflow.com/a/7211688.
@@ -92,7 +90,7 @@ public class RoundNode extends Node {
     }
 
     @TruffleBoundary
-    private void argumentOutOfRangePanic(double n) throws PanicException {
+    private PanicException argumentOutOfRangePanic(double n) throws PanicException {
         String msg =
                 "Error: `round` can only accept values between "
                         + ROUND_MIN_DOUBLE
@@ -102,11 +100,5 @@ public class RoundNode extends Node {
                         + n;
         Builtins builtins = EnsoContext.get(this).getBuiltins();
         throw new PanicException(builtins.error().makeUnsupportedArgumentsError(new Object[] { n }, msg), this);
-    }
-
-    @TruffleBoundary
-    private void specialValuePanic(double n) throws PanicException {
-        Builtins builtins = EnsoContext.get(this).getBuiltins();
-        throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
     }
 }
