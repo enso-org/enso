@@ -18,7 +18,7 @@ import SvgMask from '../../authentication/components/svgMask'
 // =================
 
 /** The size (both width and height) of the spinner, in pixels. */
-const SPINNER_SIZE = 64
+const SPINNER_SIZE_PX = 50
 /** The duration of the "spinner done" animation. */
 const SPINNER_DONE_DURATION_MS = 1000
 /** A placeholder author for a sample, for use until the backend implements an endpoint. */
@@ -62,19 +62,19 @@ export const SAMPLES: Sample[] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.70)`,
+        background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: `url("${GeoImage}") 50% 20% / 100% no-repeat, rgba(255, 255, 255, 0.70)`,
+        background: `url("${GeoImage}") 50% 20% / 100% no-repeat`,
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: `url("${VisualizeImage}") center / cover, rgba(255, 255, 255, 0.70)`,
+        background: `url("${VisualizeImage}") center / cover`,
     },
 ]
 
@@ -98,7 +98,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
     return (
         <div className="flex flex-col gap-1.5 h-51">
             <button
-                className="grow cursor-pointer"
+                className="relative grow cursor-pointer"
                 onClick={() => {
                     setSpinnerState(spinner.SpinnerState.initial)
                     onTemplateClick(null, newSpinnerState => {
@@ -111,11 +111,12 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
                     })
                 }}
             >
-                <div className="flex bg-frame rounded-2xl w-full h-full">
+                <div className="absolute bg-frame rounded-2xl w-full h-full opacity-60" />
+                <div className="relative flex rounded-2xl w-full h-full">
                     <div className="flex flex-col text-center items-center gap-3 m-auto">
                         {spinnerState != null ? (
                             <div className="p-2">
-                                <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                                <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
                             </div>
                         ) : (
                             <img src={ProjectIcon} />
@@ -166,33 +167,31 @@ function ProjectTile(props: InternalProjectTileProps) {
         <div className="flex flex-col gap-1.5 h-51">
             <button
                 key={template.title}
-                className="grow cursor-pointer text-left"
+                className="relative flex flex-col grow cursor-pointer text-left"
                 onClick={() => {
                     setSpinnerState(spinner.SpinnerState.initial)
                     onTemplateClick(template.id, onSpinnerStateChange)
                 }}
             >
-                <div className="relative flex flex-col">
-                    <div
-                        style={{
-                            background: template.background,
-                        }}
-                        className={`h-25 rounded-t-2xl ${
-                            template.background != null ? '' : 'bg-frame-selected'
-                        }`}
-                    />
-                    <div className="grow bg-frame-selected backdrop-blur rounded-b-2xl px-4 pt-1.75 pb-3.5">
-                        <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
-                        <div className="text-xs text-ellipsis leading-144.5 pb-px">
-                            {template.description}
-                        </div>
+                <div
+                    style={{
+                        background: template.background,
+                    }}
+                    className={`rounded-t-2xl w-full h-25 ${
+                        template.background != null ? '' : 'bg-frame'
+                    }`}
+                />
+                <div className="grow bg-frame backdrop-blur rounded-b-2xl px-4 pt-1.75 pb-3.5">
+                    <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
+                    <div className="text-xs text-ellipsis leading-144.5 pb-px">
+                        {template.description}
                     </div>
-                    {spinnerState != null && (
-                        <div className="absolute grid w-full h-full place-items-center">
-                            <Spinner size={SPINNER_SIZE} state={spinnerState} />
-                        </div>
-                    )}
                 </div>
+                {spinnerState != null && (
+                    <div className="absolute grid w-full h-25 place-items-center">
+                        <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
+                    </div>
+                )}
             </button>
             <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
                 <div className="flex gap-1.5">
