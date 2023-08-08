@@ -306,7 +306,14 @@ public class NumberParser extends IncrementalDatatypeParser {
                 // For example, we can get the exact value instead of a rounded one for big values. We can then round
                 // later, but first handle any warnings.
                 if (decimalPrepared.equals("")) {
-                    return sign_value * Long.parseLong(integer);
+                    long integer_part = Long.parseLong(integer);
+
+                    // Special handling for values like `-0` - if we treat them as integers, they will lose the `-` sign.
+                    if (integer_part == 0 && sign_value < 0) {
+                        return -0.0;
+                    }
+
+                    return sign_value * integer_part;
                 }
 
                 return sign_value * Double.parseDouble(integer + decimalPrepared);
