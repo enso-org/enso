@@ -60,16 +60,16 @@ class RefactoringTest extends BaseServerTest {
       val newName      = "bar"
 
       client.send(json"""
-              { "jsonrpc": "2.0",
-                "method": "refactoring/renameSymbol",
-                "id": 1,
-                "params": {
-                  "module": $moduleName,
-                  "expressionId": $expressionId,
-                  "newName": $newName
-                }
-              }
-              """)
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameSymbol",
+            "id": 1,
+            "params": {
+              "module": $moduleName,
+              "expressionId": $expressionId,
+              "newName": $newName
+            }
+          }
+          """)
 
       val requestId = runtimeConnectorProbe.receiveN(1).head match {
         case Api.Request(requestId, payload: Api.RenameSymbol) =>
@@ -86,14 +86,14 @@ class RefactoringTest extends BaseServerTest {
       )
 
       client.expectJson(json"""
-              { "jsonrpc": "2.0",
-                "id": 1,
-                "error": {
-                  "code": 2005,
-                  "message": ${s"Module not found [$moduleName]"}
-                }
-              }
-              """)
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 2005,
+              "message": ${s"Module not found [$moduleName]"}
+            }
+          }
+          """)
     }
 
     "reply with ExpressionNotFound error when the requested expression not found" in {
@@ -104,16 +104,16 @@ class RefactoringTest extends BaseServerTest {
       val newName      = "bar"
 
       client.send(json"""
-                  { "jsonrpc": "2.0",
-                    "method": "refactoring/renameSymbol",
-                    "id": 1,
-                    "params": {
-                      "module": $moduleName,
-                      "expressionId": $expressionId,
-                      "newName": $newName
-                    }
-                  }
-                  """)
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameSymbol",
+            "id": 1,
+            "params": {
+              "module": $moduleName,
+              "expressionId": $expressionId,
+              "newName": $newName
+            }
+          }
+          """)
 
       val requestId = runtimeConnectorProbe.receiveN(1).head match {
         case Api.Request(requestId, payload: Api.RenameSymbol) =>
@@ -132,14 +132,14 @@ class RefactoringTest extends BaseServerTest {
       )
 
       client.expectJson(json"""
-                  { "jsonrpc": "2.0",
-                    "id": 1,
-                    "error": {
-                      "code": 9001,
-                      "message": ${s"Expression not found by id [$expressionId]"}
-                    }
-                  }
-                  """)
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 9001,
+              "message": ${s"Expression not found by id [$expressionId]"}
+            }
+          }
+          """)
     }
 
     "reply with FailedToApplyEdits error when failed to apply edits" in {
@@ -150,16 +150,16 @@ class RefactoringTest extends BaseServerTest {
       val newName      = "bar"
 
       client.send(json"""
-                  { "jsonrpc": "2.0",
-                    "method": "refactoring/renameSymbol",
-                    "id": 1,
-                    "params": {
-                      "module": $moduleName,
-                      "expressionId": $expressionId,
-                      "newName": $newName
-                    }
-                  }
-                  """)
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameSymbol",
+            "id": 1,
+            "params": {
+              "module": $moduleName,
+              "expressionId": $expressionId,
+              "newName": $newName
+            }
+          }
+          """)
 
       val requestId = runtimeConnectorProbe.receiveN(1).head match {
         case Api.Request(requestId, payload: Api.RenameSymbol) =>
@@ -178,14 +178,14 @@ class RefactoringTest extends BaseServerTest {
       )
 
       client.expectJson(json"""
-                  { "jsonrpc": "2.0",
-                    "id": 1,
-                    "error": {
-                      "code": 9002,
-                      "message": ${s"Failed to apply edits to module [$moduleName]"}
-                    }
-                  }
-                  """)
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 9002,
+              "message": ${s"Failed to apply edits to module [$moduleName]"}
+            }
+          }
+          """)
     }
 
     "reply with RefactoringNotSupported error when renaming unsupported expression" in {
@@ -196,16 +196,16 @@ class RefactoringTest extends BaseServerTest {
       val newName      = "bar"
 
       client.send(json"""
-                      { "jsonrpc": "2.0",
-                        "method": "refactoring/renameSymbol",
-                        "id": 1,
-                        "params": {
-                          "module": $moduleName,
-                          "expressionId": $expressionId,
-                          "newName": $newName
-                        }
-                      }
-                      """)
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameSymbol",
+            "id": 1,
+            "params": {
+              "module": $moduleName,
+              "expressionId": $expressionId,
+              "newName": $newName
+            }
+          }
+          """)
 
       val requestId = runtimeConnectorProbe.receiveN(1).head match {
         case Api.Request(requestId, payload: Api.RenameSymbol) =>
@@ -224,14 +224,14 @@ class RefactoringTest extends BaseServerTest {
       )
 
       client.expectJson(json"""
-                      { "jsonrpc": "2.0",
-                        "id": 1,
-                        "error": {
-                          "code": 9003,
-                          "message": ${s"Refactoring not supported for expression [$expressionId]"}
-                        }
-                      }
-                      """)
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 9003,
+              "message": ${s"Refactoring not supported for expression [$expressionId]"}
+            }
+          }
+          """)
     }
   }
 
