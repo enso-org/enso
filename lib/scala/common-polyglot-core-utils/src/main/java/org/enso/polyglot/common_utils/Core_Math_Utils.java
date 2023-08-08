@@ -88,6 +88,7 @@ public class Core_Math_Utils {
    *     in rounding to positive integer powers of 10. Must be between -15 and 15 (inclusive).
    * @param useBankers: Rounds mid-point to nearest even number.
    * @return the rounded number.
+   * @throws IllegalArgumentException if `n` is outside the allowed range.
    * @throws IllegalArgumentException if `decimalPlaces` is outside the allowed range.
    */
   public static long roundLong(long n, long decimalPlaces, boolean useBankers) {

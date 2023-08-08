@@ -2121,6 +2121,21 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
+## PRIVATE
+
+   Executes a vectorized ternary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - operand0: The first operand to apply to the function after `column`.
+   - operand1: The second operand to apply to the function after `column`.
+   - new_name: The name of the column created as the result of this operation.
+   - expected_result_type: The expected result type of the operation.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
 run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Value_Type -> Boolean -> Column
 run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|

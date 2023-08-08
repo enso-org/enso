@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
-/** An operation expecting a numeric argument and returning a number. */
+/** An operation rounding floating-point numbers. */
 public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     public DoubleRoundOp(String name) {
@@ -34,6 +34,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
         Context context = Context.getCurrent();
 
         if (decimalPlaces <= 0) {
+            // Return Long storage
             long[] out = new long[storage.size()];
             BitSet isMissing = new BitSet();
 
@@ -56,6 +57,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
             }
             return new LongStorage(out, storage.size(), isMissing);
         } else {
+            // Return double storage.
             long[] out = new long[storage.size()];
             BitSet isMissing = new BitSet();
 

@@ -70,7 +70,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
   }
 
   /**
-   * Checks if a binary operation is supported by this set.
+   * Checks if a ternary operation is supported by this set.
    *
    * @param n the operation name
    * @return whether the operation is supported
@@ -84,7 +84,8 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    *
    * @param n the operation name
    * @param storage the storage to run operation on
-   * @param arg the argument to pass to the operation
+   * @param arg0 the first argument to pass to the operation
+   * @param arg1 the second argument to pass to the operation
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */

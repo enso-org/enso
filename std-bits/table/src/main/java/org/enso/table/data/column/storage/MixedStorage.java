@@ -161,6 +161,7 @@ public final class MixedStorage extends ObjectStorage {
     }
   }
 
+  /** {@see resolveUnaryOp} for explanations. */
   private VectorizedOperationAvailability resolveTernaryOp(String name) {
     // Shortcut - if the storage is already specialized - we prefer it.
     if (cachedInferredStorage != null && cachedInferredStorage.isTernaryOpVectorized(name)) {

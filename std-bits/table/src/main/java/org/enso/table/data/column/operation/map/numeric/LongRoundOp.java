@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
-/** An operation expecting a numeric argument and returning a number. */
+/** An operation rounding integers. */
 public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> {
 
     /** Minimum value for the `n` parameter to `roundDouble`. */
