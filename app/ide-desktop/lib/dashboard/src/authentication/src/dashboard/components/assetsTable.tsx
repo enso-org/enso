@@ -18,6 +18,7 @@ import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
+import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
@@ -223,6 +224,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     appRunner: AppRunner | null
+    sortColumn: columnModule.Column | null
+    setSortColumn: (column: columnModule.Column | null) => void
+    sortDirection: sorting.SortDirection
+    setSortDirection: (sortDirection: sorting.SortDirection) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -287,8 +292,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
     )
+    const [sortColumn, setSortColumn] = React.useState<columnModule.Column | null>(null)
+    const [sortDirection, setSortDirection] = React.useState(sorting.SortDirection.ascending)
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
+
+    React.useEffect(() => {
+        setSortDirection(sorting.SortDirection.ascending)
+    }, [sortColumn])
 
     React.useEffect(() => {
         setInitialized(true)
@@ -571,6 +582,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             appRunner,
+            sortColumn,
+            setSortColumn,
+            sortDirection,
+            setSortDirection,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -582,12 +597,16 @@ export default function AssetsTable(props: AssetsTableProps) {
         }),
         [
             appRunner,
+            sortColumn,
+            sortDirection,
             assetEvents,
             doOpenManually,
             doOpenIde,
             doCloseIde,
             getDepth,
             doToggleDirectoryExpansion,
+            /* should never change */ setSortColumn,
+            /* should never change */ setSortDirection,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
         ]
