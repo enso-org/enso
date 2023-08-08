@@ -217,7 +217,9 @@ impl<'a> ApplicationBase<'a> {
         }
 
         let invocation_info = context.call_info(self.call_id?)?;
+        console_log!("1: {invocation_info:?}");
         let invocation_info = invocation_info.with_call_id(self.call_id);
+        console_log!("2: {invocation_info:?}");
 
         let self_in_access = || {
             !invocation_info.is_constructor
@@ -381,6 +383,7 @@ impl SpanTreeGenerator for GeneralizedInfix {
         let chain = self.flatten();
         let kind = kind.into();
         let mut app_base = ApplicationBase::from_infix(self);
+        console_log!("APP BASE {app_base:#?}");
         let mut application = app_base.resolve(context);
         let node_application =
             application.as_ref().map_or_else(|| app_base.raw_node_data(), |r| r.node_data());
@@ -475,7 +478,8 @@ fn generate_node_for_opr_chain(
             }
         }
 
-        let infix_right_argument_info = if !app_base.uses_method_notation {
+        let mut infix_right_argument_info = if !app_base.uses_method_notation {
+            console_log!("Setting call id {:?}", elem.infix_id);
             app_base.set_call_id(elem.infix_id);
             app_base.resolve(context).and_then(|mut resolved| {
                 // For resolved infix arguments, the arity should always be 2. First always
@@ -513,14 +517,18 @@ fn generate_node_for_opr_chain(
             };
             let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
 
-            if let Some((index, info)) = infix_right_argument_info {
+            if let Some((index, info)) = infix_right_argument_info.take() {
                 argument.node.set_argument_info(info);
                 argument.node.set_definition_index(index);
             }
         }
 
         if is_last && !app_base.uses_method_notation {
-            gen.generate_empty_node(InsertionPointType::Append);
+            let argument = gen.generate_empty_node(InsertionPointType::Append);
+            if let Some((index, info)) = infix_right_argument_info.take() {
+                argument.node.set_argument_info(info);
+                argument.node.set_definition_index(index);
+            }
         }
 
         if this.operator.right_assoc {
@@ -1291,6 +1299,75 @@ mod test {
             .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()
             .add_empty_child(8, InsertionPoint::expected_named_argument_erased(1))
+            .build();
+        clear_expression_ids(&mut tree.root);
+        clear_parameter_infos(&mut tree.root);
+        assert_eq!(tree, expected)
+    }
+
+    #[test]
+    fn generate_span_tree_for_unfinished_infix() {
+        let parser = Parser::new();
+        let this_param = |call_id| ArgumentInfo {
+            name: Some("self".to_owned()),
+            tp: Some("Any".to_owned()),
+            call_id,
+            ..default()
+        };
+        let param1 = |call_id| ArgumentInfo {
+            name: Some("arg1".to_owned()),
+            tp: Some("Number".to_owned()),
+            call_id,
+            ..default()
+        };
+
+
+        // === SectionLeft ===
+        let mut id_map = IdMap::default();
+        let call_id = id_map.generate(0..2);
+        let ast = parser.parse_line_ast_with_id_map("2+", id_map).unwrap();
+        let invocation_info =
+            CalledMethodInfo { parameters: vec![this_param(ast.id), param1(ast.id)], ..default() };
+        let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
+        match tree.root_ref().leaf_iter().collect_vec().as_slice() {
+            [_before, arg0, _opr, arg1] => {
+                assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id))));
+                assert_eq!(arg1.argument_info(), Some(&param1(Some(call_id))));
+            }
+            sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
+        }
+        let expected = TreeBuilder::new(2)
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::argument().indexed(0), SectionLeftCrumb::Arg)
+            .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
+            .add_empty_child(2, Append)
+            .build();
+        clear_expression_ids(&mut tree.root);
+        clear_parameter_infos(&mut tree.root);
+        assert_eq!(tree, expected);
+
+
+        // === SectionRight ===
+        let mut id_map = IdMap::default();
+        let call_id = id_map.generate(0..2);
+        let ast = parser.parse_line_ast_with_id_map("+2", id_map).unwrap();
+        let invocation_info =
+            CalledMethodInfo { parameters: vec![this_param(ast.id), param1(ast.id)], ..default() };
+        let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
+        match tree.root_ref().leaf_iter().collect_vec().as_slice() {
+            [arg0, _opr, arg1, _append] => {
+                assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id))));
+                assert_eq!(arg1.argument_info(), Some(&param1(Some(call_id))));
+            }
+            sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
+        }
+        let expected = TreeBuilder::new(2)
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::Operation, SectionRightCrumb::Opr)
+            .add_leaf(1, 1, node::Kind::argument().indexed(1), SectionRightCrumb::Arg)
+            .add_empty_child(2, Append)
             .build();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
