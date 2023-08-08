@@ -87,6 +87,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         keyProp: key,
         item: rawItem,
         initialRowState,
+        hidden,
         columns,
         state: { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, getDepth },
     } = props
@@ -155,12 +156,11 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         case backendModule.AssetType.project:
         case backendModule.AssetType.file:
         case backendModule.AssetType.secret: {
-            return presence === presenceModule.Presence.deleting ? (
-                <></>
-            ) : (
+            return (
                 <TableRow
                     className={presenceModule.CLASS_NAME[presence]}
                     {...props}
+                    hidden={hidden || presence === presenceModule.Presence.deleting}
                     onContextMenu={(innerProps, event) => {
                         event.preventDefault()
                         event.stopPropagation()
@@ -180,7 +180,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             )
         }
         case backendModule.AssetType.specialLoading: {
-            return (
+            return hidden ? null : (
                 <tr>
                     <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
@@ -198,7 +198,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             )
         }
         case backendModule.AssetType.specialEmpty: {
-            return (
+            return hidden ? null : (
                 <tr>
                     <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
@@ -318,11 +318,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     React.useEffect(() => {
         setItems(rawItems)
     }, [rawItems])
-
-    const visibleItems = React.useMemo(
-        () => (filter != null ? items.filter(filter) : items),
-        [items, filter]
-    )
 
     React.useEffect(() => {
         // Remove unused keys.
@@ -630,7 +625,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     backendModule.AssetId
                 >
                     rowComponent={AssetRow}
-                    items={visibleItems}
+                    items={items}
+                    filter={filter}
                     isLoading={isLoading}
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}

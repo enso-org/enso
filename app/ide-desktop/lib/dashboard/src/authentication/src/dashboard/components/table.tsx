@@ -37,8 +37,9 @@ interface InitialRowStateProp<RowState> {
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
-    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
     items: T[]
+    filter?: ((item: T) => boolean) | null
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
@@ -70,6 +71,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     const {
         rowComponent: RowComponent = TableRow,
         items,
+        filter,
         getKey,
         columns,
         isLoading,
@@ -223,6 +225,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     key={key}
                     keyProp={key}
                     item={item}
+                    hidden={filter != null ? !filter(item) : false}
                     selected={selectedKeys.has(key)}
                     setSelected={selected => {
                         setSelectedKeys(oldSelectedKeys =>
