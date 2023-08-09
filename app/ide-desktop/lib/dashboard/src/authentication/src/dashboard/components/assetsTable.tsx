@@ -39,6 +39,9 @@ import Table from './table'
 const EXTRA_COLUMNS_KEY =
     common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
+/** A value that represents that the first argument is less than the second argument, in a
+ * sorting function. */
+const COMPARE_LESS_THAN = -1
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'item'
 /** The user-facing plural name of this asset type. */
@@ -224,10 +227,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     appRunner: AppRunner | null
-    sortColumn: columnModule.Column | null
-    setSortColumn: (column: columnModule.Column | null) => void
-    sortDirection: sorting.SortDirection
-    setSortDirection: (sortDirection: sorting.SortDirection) => void
+    sortColumn: columnModule.SortableColumn | null
+    setSortColumn: (column: columnModule.SortableColumn | null) => void
+    sortDirection: sorting.SortDirection | null
+    setSortDirection: (sortDirection: sorting.SortDirection | null) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -292,14 +295,41 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
     )
-    const [sortColumn, setSortColumn] = React.useState<columnModule.Column | null>(null)
-    const [sortDirection, setSortDirection] = React.useState(sorting.SortDirection.ascending)
+    const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
+    const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
-
-    React.useEffect(() => {
-        setSortDirection(sorting.SortDirection.ascending)
-    }, [sortColumn])
+    const sortedItems = React.useMemo(() => {
+        if (sortColumn == null || sortDirection == null) {
+            return items
+        } else {
+            let sort: (a: backendModule.AnyAsset, b: backendModule.AnyAsset) => number
+            switch (sortColumn) {
+                case columnModule.Column.name: {
+                    sort = (a, b) =>
+                        a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+                    break
+                }
+                case columnModule.Column.modified: {
+                    sort = (a, b) => Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
+                    break
+                }
+            }
+            if (sortDirection === sorting.SortDirection.ascending) {
+                return items.sort((a, b) =>
+                    a.parentId === b.parentId && a.type === b.type
+                        ? sort(a, b)
+                        : items.indexOf(a) - items.indexOf(b)
+                )
+            } else {
+                return items.sort((a, b) =>
+                    a.parentId === b.parentId && a.type === b.type
+                        ? sort(b, a)
+                        : items.indexOf(b) - items.indexOf(a)
+                )
+            }
+        }
+    }, [items, sortColumn, sortDirection])
 
     React.useEffect(() => {
         setInitialized(true)
@@ -644,7 +674,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     backendModule.AssetId
                 >
                     rowComponent={AssetRow}
-                    items={items}
+                    items={sortedItems}
                     filter={filter}
                     isLoading={isLoading}
                     state={state}

@@ -6,6 +6,8 @@ import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import PlusIcon from 'enso-assets/plus.svg'
+import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
+import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
@@ -13,6 +15,7 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
+import * as sorting from './sorting'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
@@ -52,6 +55,9 @@ export enum Column {
 
 /** Columns that can be toggled between visible and hidden. */
 export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
+
+/** Columns that can be used as a sort column. */
+export type SortableColumn = Column.modified | Column.name
 
 // =================
 // === Constants ===
@@ -138,7 +144,7 @@ export function getColumnList(backendType: backend.BackendType, extraColumns: Se
 
 /** A column displaying the time at which the asset was last modified. */
 function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    return <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
+    return <>{dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
 }
 
 /** Props for a {@link UserPermissionDisplay}. */
@@ -349,16 +355,80 @@ function PlaceholderColumn() {
     return <></>
 }
 
+// =================
+// === Constants ===
+// =================
+
+/** The corresponding icon URL for each {@link sorting.SortDirection}. */
+const SORT_ICON: Record<sorting.SortDirection, string> = {
+    [sorting.SortDirection.ascending]: SortAscendingIcon,
+    [sorting.SortDirection.descending]: SortDescendingIcon,
+}
+
 export const COLUMN_HEADING: Record<
     Column,
     (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
 > = {
-    [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
-    [Column.modified]: () => (
-        <div className="flex gap-2">
-            <img src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
-        </div>
-    ),
+    [Column.name]: ({ state: { sortColumn, setSortColumn, sortDirection, setSortDirection } }) => {
+        const [isHovered, setIsHovered] = React.useState(false)
+        const isSortActive = sortColumn === Column.name && sortDirection != null
+        return (
+            <div
+                className="flex cursor-pointer gap-2"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
+                onClick={() => {
+                    if (sortColumn === Column.name) {
+                        setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    } else {
+                        setSortColumn(Column.name)
+                        setSortDirection(sorting.SortDirection.ascending)
+                    }
+                }}
+            >
+                {COLUMN_NAME[Column.name]}
+                <img
+                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                />
+            </div>
+        )
+    },
+    [Column.modified]: ({
+        state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
+    }) => {
+        const [isHovered, setIsHovered] = React.useState(false)
+        const isSortActive = sortColumn === Column.modified && sortDirection != null
+        return (
+            <div
+                className="flex cursor-pointer gap-2"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
+                onClick={() => {
+                    if (sortColumn === Column.modified) {
+                        setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    } else {
+                        setSortColumn(Column.modified)
+                        setSortDirection(sorting.SortDirection.ascending)
+                    }
+                }}
+            >
+                <img src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
+                <img
+                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                />
+            </div>
+        )
+    },
     [Column.sharedWith]: () => (
         <div className="flex gap-2">
             <img src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}

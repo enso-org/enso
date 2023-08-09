@@ -16,13 +16,13 @@ export function includesPredicate<T>(array: Iterable<T>) {
 // ======================
 
 /** The value returned when {@link Array.findIndex} fails. */
-const FIND_INDEX_FAILURE = -1
+const NOT_FOUND = -1
 
 /** Insert items before the first index `i` for which `predicate(array[i])` is `true`.
  * Insert the items at the end if the `predicate` never returns `true`. */
 export function spliceBefore<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     const index = array.findIndex(predicate)
-    array.splice(index === FIND_INDEX_FAILURE ? array.length : index, 0, ...items)
+    array.splice(index === NOT_FOUND ? array.length : index, 0, ...items)
     return array
 }
 
@@ -37,7 +37,7 @@ export function splicedBefore<T>(array: T[], items: T[], predicate: (value: T) =
  * Insert the items at the end if the `predicate` never returns `true`. */
 export function spliceAfter<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     const index = array.findIndex(predicate)
-    array.splice(index === FIND_INDEX_FAILURE ? array.length : index + 1, 0, ...items)
+    array.splice(index === NOT_FOUND ? array.length : index + 1, 0, ...items)
     return array
 }
 
@@ -52,7 +52,7 @@ export function splicedAfter<T>(array: T[], items: T[], predicate: (value: T) =>
  * Do not insert items if the `predicate` never returns `true`. */
 export function spliceReplacing<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     const index = array.findIndex(predicate)
-    if (index !== FIND_INDEX_FAILURE) {
+    if (index !== NOT_FOUND) {
         array.splice(index, 1, ...items)
     }
     return array
