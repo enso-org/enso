@@ -75,26 +75,18 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 function splicedAssets(
     oldAssets: backendModule.AnyAsset[],
     assetsToInsert: backendModule.AnyAsset[],
-    parentKey: backendModule.DirectoryId | null,
     predicate: (asset: backendModule.AnyAsset) => boolean
 ) {
     const newAssets = Array.from(oldAssets)
     const insertIndex = oldAssets.findIndex(predicate)
-    if (insertIndex === NOT_FOUND) {
-        const parentIndex = oldAssets.findIndex(asset => asset.id === parentKey)
-        newAssets.splice(
-            parentIndex === NOT_FOUND ? oldAssets.length : parentIndex + 1,
-            0,
-            ...assetsToInsert
-        )
-        return newAssets
-    } else {
-        const firstChild = oldAssets[insertIndex]
-        const numberOfItemsToRemove =
-            firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
-        newAssets.splice(insertIndex, numberOfItemsToRemove, ...assetsToInsert)
-        return newAssets
-    }
+    const firstChild = oldAssets[insertIndex]
+    const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
+    newAssets.splice(
+        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex + 1,
+        numberOfItemsToRemove,
+        ...assetsToInsert
+    )
+    return newAssets
 }
 
 // ================
@@ -439,6 +431,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [items, backend, organization])
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
+    const directoryListAbortControllersRef = React.useRef(
+        new Map<backendModule.DirectoryId, AbortController>()
+    )
     const doToggleDirectoryExpansion = React.useCallback(
         (
             directoryId: backendModule.DirectoryId,
@@ -447,6 +442,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         ) => {
             const set = expandedDirectoriesRef.current
             if (set.has(directoryId)) {
+                const abortController = directoryListAbortControllersRef.current.get(directoryId)
+                if (abortController != null) {
+                    abortController.abort()
+                    directoryListAbortControllersRef.current.delete(directoryId)
+                }
                 set.delete(directoryId)
                 const foldersToCollapse = new Set([directoryId])
                 setItems(
@@ -481,52 +481,66 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
                 void (async () => {
+                    const abortController = new AbortController()
                     const returnedItems = await backend.listDirectory(
                         { parentId: directoryId },
                         title ?? null
                     )
-                    const childItems: backendModule.AnyAsset[] =
-                        returnedItems.length !== 0
-                            ? returnedItems
-                            : [
-                                  {
-                                      type: backendModule.AssetType.specialEmpty,
-                                      title: '',
-                                      id: backendModule.EmptyAssetId(uniqueString.uniqueString()),
-                                      modifiedAt: dateTime.toRfc3339(new Date()),
-                                      parentId: directoryId,
-                                      permissions: [],
-                                      projectState: null,
-                                  },
-                              ]
-                    for (const childItem of childItems) {
-                        itemDepthsRef.current.set(childItem.id, childDepth)
-                    }
-                    setItems(oldItems => {
-                        const firstChildIndex = oldItems.findIndex(
-                            item => item.parentId === directoryId
-                        )
-                        let numberOfChildren = 1
-                        while (
-                            oldItems[firstChildIndex + numberOfChildren]?.parentId === directoryId
-                        ) {
-                            numberOfChildren += 1
+                    if (!abortController.signal.aborted) {
+                        const childItems: backendModule.AnyAsset[] =
+                            returnedItems.length !== 0
+                                ? returnedItems
+                                : [
+                                      {
+                                          type: backendModule.AssetType.specialEmpty,
+                                          title: '',
+                                          id: backendModule.EmptyAssetId(
+                                              uniqueString.uniqueString()
+                                          ),
+                                          modifiedAt: dateTime.toRfc3339(new Date()),
+                                          parentId: directoryId,
+                                          permissions: [],
+                                          projectState: null,
+                                      },
+                                  ]
+                        for (const childItem of childItems) {
+                            itemDepthsRef.current.set(childItem.id, childDepth)
                         }
-                        const oldChildren = oldItems.slice(
-                            firstChildIndex,
-                            // Subtract one extra, to exclude the placeholder "loading" asset.
-                            firstChildIndex + numberOfChildren - 2
-                        )
-                        const newChildren =
-                            oldChildren.length === 0
-                                ? childItems
-                                : [...oldChildren, ...returnedItems].sort(
-                                      backendModule.compareAssets
-                                  )
-                        const newItems = Array.from(oldItems)
-                        newItems.splice(firstChildIndex, numberOfChildren, ...newChildren)
-                        return newItems
-                    })
+                        setItems(oldItems => {
+                            if (!expandedDirectoriesRef.current.has(directoryId)) {
+                                return oldItems
+                            } else {
+                                let firstChildIndex = oldItems.findIndex(
+                                    item => item.parentId === directoryId
+                                )
+                                if (firstChildIndex === NOT_FOUND) {
+                                    firstChildIndex =
+                                        oldItems.findIndex(item => item.id === directoryId) + 1
+                                }
+                                let numberOfChildren = 1
+                                while (
+                                    oldItems[firstChildIndex + numberOfChildren]?.parentId ===
+                                    directoryId
+                                ) {
+                                    numberOfChildren += 1
+                                }
+                                const oldChildren = oldItems.slice(
+                                    firstChildIndex,
+                                    // Subtract one extra, to exclude the placeholder "loading" asset.
+                                    firstChildIndex + numberOfChildren - 2
+                                )
+                                const newChildren =
+                                    oldChildren.length === 0
+                                        ? childItems
+                                        : [...oldChildren, ...returnedItems].sort(
+                                              backendModule.compareAssets
+                                          )
+                                const newItems = Array.from(oldItems)
+                                newItems.splice(firstChildIndex, numberOfChildren, ...newChildren)
+                                return newItems
+                            }
+                        })
+                    }
                 })()
             }
         },
@@ -550,7 +564,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
                 const directoryIndices = items
-                    .filter(item => item.parentId === event.parentKey)
+                    .filter(item => item.parentId === event.parentId)
                     .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
@@ -578,7 +592,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -595,7 +608,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.newProject: {
-                const projectName = getNewProjectName(event.templateId, event.parentKey)
+                const projectName = getNewProjectName(event.templateId, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
                     id: dummyId,
@@ -618,7 +631,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -678,7 +690,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                         splicedAssets(
                             oldItems,
                             placeholderFiles,
-                            event.parentKey,
                             item =>
                                 item.parentId === parentId &&
                                 backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
@@ -735,7 +746,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
