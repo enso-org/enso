@@ -2,6 +2,7 @@
 import * as path from 'node:path'
 
 import * as esbuild from 'esbuild'
+import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as paths from './paths'
 
@@ -41,6 +42,7 @@ export function bundlerOptions(
         outbase: 'src',
         format: 'cjs',
         platform: 'node',
+        plugins: [esbuildPluginYaml.yamlPlugin({})],
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
         outExtension: { '.js': '.cjs' },

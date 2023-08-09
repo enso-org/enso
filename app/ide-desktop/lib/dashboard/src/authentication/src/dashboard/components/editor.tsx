@@ -11,6 +11,8 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
+/** The horizontal offset of the editor's top bar from the left edge of the window. */
+const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://cdn.enso.org/ide'
@@ -125,6 +127,9 @@ export default function Editor(props: EditorProps) {
                                 startup: {
                                     project: project.packageName,
                                 },
+                                window: {
+                                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                                },
                             },
                             // Here we actually need explicit undefined.
                             // eslint-disable-next-line no-restricted-syntax
@@ -163,9 +168,6 @@ export default function Editor(props: EditorProps) {
             return () => {
                 appRunner.stopApp()
             }
-            // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
-            // project is opened, and a local project does not exist on the cloud and vice versa.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }
     }, [project, /* should never change */ appRunner])
 

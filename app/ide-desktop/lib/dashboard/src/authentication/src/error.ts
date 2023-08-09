@@ -22,15 +22,26 @@ export type MustNotBeKnown<T> =
     // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
     MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
 
-export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
-export function tryGetMessage(error: unknown): string | null {
-    return error != null &&
-        typeof error === 'object' &&
-        'message' in error &&
-        typeof error.message === 'string'
-        ? error.message
+export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
+    const unknownError: unknown = error
+    return unknownError != null &&
+        typeof unknownError === 'object' &&
+        'message' in unknownError &&
+        typeof unknownError.message === 'string'
+        ? unknownError.message
+        : null
+}
+
+/** Extracts the `error` property of a value if it is a string. */
+export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
+    const unknownError: unknown = error
+    return unknownError != null &&
+        typeof unknownError === 'object' &&
+        'error' in unknownError &&
+        typeof unknownError.error === 'string'
+        ? unknownError.error
         : null
 }
 

@@ -37,6 +37,7 @@ declare module '*/gui/config.yaml' {
         windowAppScopeConfigName: string
         windowAppScopeThemeName: string
         projectManagerEndpoint: string
+        projectManagerHttpEndpoint: string
         minimumSupportedVersion: string
         engineVersionSupported: string
         languageEditionSupported: string

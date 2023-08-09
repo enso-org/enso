@@ -39,7 +39,7 @@ public abstract class TestBase {
     return context;
   }
 
-  private static Context.Builder defaultContextBuilder() {
+  protected static Context.Builder defaultContextBuilder() {
     return Context.newBuilder()
         .allowExperimentalOptions(true)
         .allowIO(IOAccess.ALL)
