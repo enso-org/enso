@@ -53,6 +53,7 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.openjdk.jmh.annotations.Setup;",
           "import org.openjdk.jmh.annotations.State;",
           "import org.openjdk.jmh.annotations.Scope;",
+          "import org.openjdk.jmh.annotations.Warmup;",
           "import org.openjdk.jmh.infra.BenchmarkParams;",
           "import org.openjdk.jmh.infra.Blackhole;",
           "import org.graalvm.polyglot.Context;",
@@ -212,6 +213,8 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("@BenchmarkMode(Mode.AverageTime)");
     out.println("@OutputTimeUnit(TimeUnit.MILLISECONDS)");
     out.println("@Fork(1)");
+    out.println(getWarmupAnnotationForGroup(group));
+    out.println(getMeasureAnnotationForGroup(group));
     out.println("@State(Scope.Benchmark)");
     out.println("public class " + className + " {");
     out.println("  private Value groupInputArg;");
@@ -287,6 +290,28 @@ public class BenchProcessor extends AbstractProcessor {
     }
 
     out.println("}"); // end of class className
+  }
+
+  private String getWarmupAnnotationForGroup(BenchGroup group) {
+    var warmupConf = group.configuration().warmup();
+    if (warmupConf.iterations() != null) {
+      return "@Warmup(iterations = " + warmupConf.iterations() + ")";
+    }
+    if (warmupConf.seconds() != null) {
+      return "@Warmup(time = " + warmupConf.seconds() + ", timeUnit = TimeUnit.SECONDS)";
+    }
+    throw new IllegalArgumentException("Invalid warmup configuration: " + warmupConf);
+  }
+
+  private String getMeasureAnnotationForGroup(BenchGroup group) {
+    var measureConf = group.configuration().measure();
+    if (measureConf.iterations() != null) {
+      return "@Measurement(iterations = " + measureConf.iterations() + ")";
+    }
+    if (measureConf.seconds() != null) {
+      return "@Measurement(time = " + measureConf.seconds() + ", timeUnit = TimeUnit.SECONDS)";
+    }
+    throw new IllegalArgumentException("Invalid measurement configuration: " + measureConf);
   }
 
   /**
