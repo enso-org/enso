@@ -351,6 +351,8 @@ macro_rules! mock_suggestion_database_entries {
 /// Each statement may be preceded by one or more attributes looking like in Rust. The attribute
 /// content is just a call to the [`Entry`] modifier - a method of [`Entry`] taking and returning
 /// modified `self`.
+///
+/// See also [`doc_section!`] macro for defining documentation sections for entries.
 #[macro_export]
 macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
