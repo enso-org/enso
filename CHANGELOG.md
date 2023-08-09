@@ -215,6 +215,8 @@
   the selected entry in the component browser. Clear separating lines between
   method arguments were added. The node selection was made easier with
   additional thick interactive selection border.
+- [The shortcut for opening Component Browser was changed to
+  <kbd>enter</kbd>][7527]
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -239,6 +241,7 @@
 [7372]: https://github.com/enso-org/enso/pull/7372
 [7337]: https://github.com/enso-org/enso/pull/7337
 [7311]: https://github.com/enso-org/enso/pull/7311
+[7527]: https://github.com/enso-org/enso/pull/7527
 
 #### EnsoGL (rendering engine)
 

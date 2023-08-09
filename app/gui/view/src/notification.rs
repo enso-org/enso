@@ -10,7 +10,6 @@ use crate::notification::logged::UpdateOptions;
 use ensogl::application::Application;
 
 
-
 // ==============
 // === Export ===
 // ==============
