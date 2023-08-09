@@ -87,6 +87,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                     const projectResponse = await fetch(
                                         `./api/project-manager/projects/${item.id}/enso-project`
                                     )
+                                    // This DOES NOT update the cloud assets list when it completes,
+                                    // as the current backend is not the remote (cloud) backend.
+                                    // The user may change to the cloud backend while this request
+                                    // is in progress, however this is uncommon enough that it is
+                                    // not worth the added complexity.
                                     await remoteBackend.uploadFile(
                                         {
                                             fileName: `${item.title}.enso-project`,
