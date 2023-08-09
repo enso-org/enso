@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Bench
-from Standard.Test.Bench import Phase_Conf
+from Standard.Test import Bench, Phase_Conf
 
 import project.Vector.Utils
 
@@ -25,4 +24,4 @@ collect_benches = Bench.build builder->
             uniform_text_vec.distinct
 
 
-main = all_benches . run_main
+main = collect_benches . run_main
