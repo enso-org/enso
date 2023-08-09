@@ -120,7 +120,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
-                        doToggleDirectoryExpansion(item, key)
+                        doToggleDirectoryExpansion(item.id, key, item.title)
                     }
                 }
             }}
