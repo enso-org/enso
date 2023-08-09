@@ -238,7 +238,7 @@ export default function Autocomplete(
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
-                    className={`absolute bg-white z-10 w-full rounded-lg shadow-soft max-h-10lh ${
+                    className={`absolute bg-white z-1 w-full rounded-lg shadow-soft max-h-10lh ${
                         isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
                     }`}
                 >

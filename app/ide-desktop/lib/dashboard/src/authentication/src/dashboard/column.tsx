@@ -179,7 +179,7 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
         <PermissionDisplay
             key={user.user.pk}
             permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
-            className={ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''}
+            className={ownsThisAsset ? 'cursor-pointer' : ''}
             onClick={event => {
                 event.stopPropagation()
                 if (ownsThisAsset) {

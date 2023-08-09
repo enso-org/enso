@@ -264,7 +264,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         )
 
         return (
-            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-10">
+            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-1">
                 <form
                     style={{
                         left: position.left + window.scrollX,
