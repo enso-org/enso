@@ -388,6 +388,15 @@ type Column
        Returns a column with results of adding `other` from each element of
        `self`.
 
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
+
        > Example
          Add two columns to each other.
 
@@ -417,6 +426,15 @@ type Column
 
        Returns a column with results of subtracting `other` from each element of
        `self`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Subtract one column from another.
@@ -461,6 +479,15 @@ type Column
        Returns a column containing the result of multiplying each element of
        `self` by `other`.
 
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
+
        > Example
          Multiply the elements of two columns together.
 
@@ -494,6 +521,15 @@ type Column
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Divide the elements of one column by the elements of another.
@@ -559,6 +595,15 @@ type Column
 
        Returns a column containing the result of raising each element of `self`
        by `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Squares the elements of one column.
