@@ -13,14 +13,14 @@ random_text_vec = random_vec.map .to_text
 uniform_text_vec = random_vec.map .to_text
 
 collect_benches = Bench.build builder->
-    builder.group "Vector Distinct" options group_builder->
-        group_builder.specify "Random Integer Vector Distinct" <|
+    builder.group "Vector_Distinct" options group_builder->
+        group_builder.specify "Random_Integer_Vector_Distinct" <|
             random_vec.distinct
-        group_builder.specify "Uniform Integer Vector Distinct" <|
+        group_builder.specify "Uniform_Integer_Vector_Distinct" <|
             uniform_vec.distinct
-        group_builder.specify "Random Text Vector Distinct" <|
+        group_builder.specify "Random_Text_Vector_Distinct" <|
             random_text_vec.distinct
-        group_builder.specify "Uniform Text Vector Distinct" <|
+        group_builder.specify "Uniform_Text_Vector_Distinct" <|
             uniform_text_vec.distinct
 
 

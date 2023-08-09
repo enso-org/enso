@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
@@ -45,6 +45,7 @@ type Bench_Builder
 
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
+        validate_name name
         b = Vector.new_builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
@@ -55,6 +56,7 @@ type Group_Builder
 
     specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
+        validate_name name
         self.builder.append <| Bench.Spec name (_ -> benchmark)
 
 
@@ -84,7 +86,8 @@ type Bench
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
-            IO.println <| "Benchmarking '" + s.name + "' from group '" + g.name + "' configuration: " + c.to_text
+            bench_name = g.name + "." + s.name
+            IO.println <| "Benchmarking '" + bench_name + "' configuration: " + c.to_text
             Bench.measure s.name c.warmup c.measure (s.code 0)
 
     ## Measure the amount of time it takes to execute a given computation.
@@ -162,65 +165,12 @@ type Bench
 
 ## PRIVATE
 
-   Reverses the provided list.
-
-   Arguments:
-   - list: The list to reverse.
-reverse_list : List -> List
-reverse_list list =
-    go = list -> acc -> case list of
-        List.Cons h t -> @Tail_Call go t (List.Cons h acc)
-        List.Nil -> acc
-    res = go list List.Nil
-    res
-
-## PRIVATE
-
-   Sums the elements of the list.
-
-   Arguments:
-   - list: The list of numbers to sum.
-sum_list : List -> Number
-sum_list list =
-    go = list -> acc -> case list of
-        List.Cons a b -> @Tail_Call go b (acc + a)
-        List.Nil -> acc
-
-    res = go list 0
-    res
-
-## PRIVATE
-
-   Calculate the average of the elements of a numeric list.
-
-   Arguments:
-   - list: The list of numbers to calculate the average of.
-avg_list : List -> Number
-avg_list list = sum_list list / len_list list
-
-## PRIVATE
-
-   Calculates the length of the provided list.
-
-   Arguments:
-   - list: The list to calculate the length of.
-len_list : List -> Integer
-len_list list =
-    go = list -> acc -> case list of
-        List.Cons _ b -> @Tail_Call go b (acc + 1)
-        List.Nil -> acc
-    res = go list 0
-    res
-
-## PRIVATE
-
-   Perform an action a number of times.
-
-   Arguments:
-   - act: The action to perform `count` number of times.
-times : Integer -> (Integer -> Any) -> List Any
-times count act =
-    go = results -> number -> if number == 0 then results else
-        @Tail_Call go (List.Cons (act number) results) number-1
-    res = reverse_list (go List.Nil count)
-    res
+   Checks whether the given name is a valid benchmark name - either group name
+   or a spec name. The name should be a valid Java identifier.
+   Throw a Panic error if the validation fails.
+validate_name : Text -> Nothing
+validate_name name =
+    # Cannot start with a digit
+    valid_java_identifier_regex = Regex.compile "[A-Za-z_$][a-zA-Z0-9_$]*"
+    if valid_java_identifier_regex.matches name then Nothing else
+        Panic.throw (Illegal_Argument.Error ("Invalid benchmark name: '" + name + "'"))
