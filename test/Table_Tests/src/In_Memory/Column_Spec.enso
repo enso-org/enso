@@ -159,6 +159,10 @@ spec =
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
             col.round decimal_places=-1200 . should_fail_with Illegal_Argument
 
+        Test.specify "should handle type errors" <|
+            Test.expect_panic_with (column.round use_bankers="string") Type_Error
+            Test.expect_panic_with (column.round decimal_places="string") Type_Error
+
     Test.group "truncate" <|
         Test.specify "should be able to truncate a column of floats" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . should_equal <| Column.from_vector "truncate([foo])" [1, 2, 3]

@@ -767,7 +767,7 @@ type Column
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False = Value_Type.expect_numeric self <|
+    round self round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
             is_integer = self.inferred_precise_value_type.is_integer

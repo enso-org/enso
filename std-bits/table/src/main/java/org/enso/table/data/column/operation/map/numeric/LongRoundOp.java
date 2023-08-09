@@ -26,8 +26,12 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
 
     @Override
     public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
-        if (decimalPlacesObject == null || useBankersObject == null) {
-            return LongStorage.makeEmpty(storage.size());
+        if (decimalPlacesObject == null) {
+            throw new IllegalArgumentException("decimalPlacesObject must not be null");
+        }
+
+        if (useBankersObject == null) {
+            throw new IllegalArgumentException("useBankersObject must not be null");
         }
 
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
