@@ -66,27 +66,35 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
-// ====================
-// === insertAssets ===
-// ====================
+// =====================
+// === splicedAssets ===
+// =====================
 
-/** Splice assets into the assets list, removing a "This folder is empty" placeholder asset,
- * if one exists. */
+/** Insert assets into the assets list at the correct position, removing a "This folder is empty"
+ * placeholder asset, if one exists. */
 function splicedAssets(
     oldAssets: backendModule.AnyAsset[],
     assetsToInsert: backendModule.AnyAsset[],
+    parentId: backendModule.DirectoryId,
     predicate: (asset: backendModule.AnyAsset) => boolean
 ) {
-    const insertIndex = oldAssets.findIndex(predicate)
-    const firstChild = oldAssets[insertIndex]
-    const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
     const newAssets = Array.from(oldAssets)
-    newAssets.splice(
-        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex,
-        numberOfItemsToRemove,
-        ...assetsToInsert
-    )
-    return newAssets
+    const insertIndex = oldAssets.findIndex(predicate)
+    if (insertIndex === NOT_FOUND) {
+        const parentIndex = oldAssets.findIndex(asset => asset.id === parentId)
+        newAssets.splice(
+            parentIndex === NOT_FOUND ? oldAssets.length : parentIndex + 1,
+            0,
+            ...assetsToInsert
+        )
+        return newAssets
+    } else {
+        const firstChild = oldAssets[insertIndex]
+        const numberOfItemsToRemove =
+            firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
+        newAssets.splice(insertIndex, numberOfItemsToRemove, ...assetsToInsert)
+        return newAssets
+    }
 }
 
 // ================
@@ -533,8 +541,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        placeholderItem.parentId,
                         item =>
-                            item.parentId === event.parentId &&
+                            item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
@@ -565,8 +574,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        placeholderItem.parentId,
                         item =>
-                            item.parentId === event.parentId &&
+                            item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
@@ -584,13 +594,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
+                const parentId = event.parentId ?? backendModule.DirectoryId('')
                 const placeholderFiles: backendModule.FileAsset[] = reversedFiles
                     .filter(backendModule.fileIsNotProject)
                     .map(file => ({
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
-                        parentId: event.parentId ?? backendModule.DirectoryId(''),
+                        parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
@@ -601,7 +612,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
                         title: file.name,
-                        parentId: event.parentId ?? backendModule.DirectoryId(''),
+                        parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: {
@@ -616,8 +627,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                         splicedAssets(
                             oldItems,
                             placeholderFiles,
+                            parentId,
                             item =>
-                                item.parentId === event.parentId &&
+                                item.parentId === parentId &&
                                 backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
                         ),
                         placeholderProjects,
@@ -665,8 +677,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        placeholderItem.parentId,
                         item =>
-                            item.parentId === event.parentId &&
+                            item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
