@@ -18,21 +18,6 @@ enum HttpMethod {
 // === Client ===
 // ==============
 
-/** A helper function to convert a `Blob` to a base64-encoded string. */
-function blobToBase64(blob: Blob) {
-    return new Promise<string>(resolve => {
-        const reader = new FileReader()
-        reader.onload = () => {
-            resolve(
-                // This cast is always safe because we read as data URL (a string).
-                // eslint-disable-next-line no-restricted-syntax
-                (reader.result as string).replace(/^data:application\/octet-stream;base64,/, '')
-            )
-        }
-        reader.readAsDataURL(blob)
-    })
-}
-
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class Client {
     /** Create a new HTTP client with the specified headers to be sent on every request. */
@@ -55,13 +40,8 @@ export class Client {
     }
 
     /** Send a base64-encoded binary HTTP POST request to the specified URL. */
-    async postBase64<T = void>(url: string, payload: Blob) {
-        return await this.request<T>(
-            HttpMethod.post,
-            url,
-            await blobToBase64(payload),
-            'application/octet-stream'
-        )
+    async postBinary<T = void>(url: string, payload: Blob) {
+        return await this.request<T>(HttpMethod.post, url, payload, 'application/octet-stream')
     }
 
     /** Send a JSON HTTP PUT request to the specified URL. */
@@ -78,7 +58,7 @@ export class Client {
     private request<T = void>(
         method: HttpMethod,
         url: string,
-        payload?: string,
+        payload?: BodyInit,
         mimetype?: string
     ) {
         const headers = new Headers(this.defaultHeaders)

@@ -14,6 +14,9 @@ const TRUSTED_HOSTS = [
     'github.com',
     'production-enso-domain.auth.eu-west-1.amazoncognito.com',
     'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+    // This (`localhost`) is required to access Project Manager HTTP endpoints.
+    // This should be changed appropriately if the Project Manager's port number becomes dynamic.
+    '127.0.0.1:30535',
 ]
 
 /** The list of hosts that the app can open external links to. */

@@ -25,6 +25,7 @@ export enum AssetEventType {
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
 }
 
@@ -42,6 +43,7 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
 }
 
@@ -69,7 +71,7 @@ export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId, File>
+    files: Map<backendModule.FileId | backendModule.ProjectId, File>
 }
 
 /** A signal to create a secret. */
@@ -91,6 +93,10 @@ export interface AssetCancelOpeningAllProjectsEvent
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
     ids: Set<backendModule.AssetId>
 }
+
+/** A signal to download the currently selected assets. */
+export interface AssetDownloadSelectedEvent
+    extends AssetBaseEvent<AssetEventType.downloadSelected> {}
 
 /** A signal to remove the current user's permissions for an asset.. */
 export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {

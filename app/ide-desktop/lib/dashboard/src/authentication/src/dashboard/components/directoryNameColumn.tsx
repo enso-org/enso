@@ -60,8 +60,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to directories.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createDirectory: {

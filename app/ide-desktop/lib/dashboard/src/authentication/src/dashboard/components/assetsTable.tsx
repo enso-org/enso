@@ -13,6 +13,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
+import * as download from '../../download'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
@@ -88,6 +89,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         item: rawItem,
         initialRowState,
         columns,
+        selected,
         state: { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, getDepth },
     } = props
     const { backend } = backendProvider.useBackend()
@@ -148,6 +150,15 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.downloadSelected: {
+                if (selected) {
+                    download.download(
+                        './api/project-manager/' + `projects/${item.id}/enso-project`,
+                        `${item.title}.enso-project`
+                    )
+                }
+                break
+            }
             case assetEventModule.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === item.id && user != null) {
@@ -167,6 +178,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         toastAndLog('Unable to delete project', error)
                     }
                 }
+                break
             }
         }
     })
@@ -507,8 +519,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
-                const placeholderItems: backendModule.FileAsset[] = Array.from(event.files)
-                    .reverse()
+                const reversedFiles = Array.from(event.files).reverse()
+                const placeholderFiles: backendModule.FileAsset[] = reversedFiles
+                    .filter(backendModule.fileIsNotProject)
                     .map(file => ({
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
@@ -518,20 +531,42 @@ export default function AssetsTable(props: AssetsTableProps) {
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                     }))
+                const placeholderProjects: backendModule.ProjectAsset[] = reversedFiles
+                    .filter(backendModule.fileIsProject)
+                    .map(file => ({
+                        type: backendModule.AssetType.project,
+                        id: backendModule.ProjectId(uniqueString.uniqueString()),
+                        title: file.name,
+                        parentId: event.parentId ?? backendModule.DirectoryId(''),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        projectState: {
+                            type: backendModule.ProjectState.new,
+                        },
+                    }))
                 const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
-                setItems(oldItems =>
-                    array.splicedBefore(
-                        oldItems,
-                        placeholderItems,
+                const projectTypeOrder =
+                    backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
+                setItems(oldItems => {
+                    const ret = array.spliceBefore(
+                        array.splicedBefore(
+                            oldItems,
+                            placeholderFiles,
+                            item =>
+                                item.parentId === event.parentId &&
+                                backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
+                        ),
+                        placeholderProjects,
                         item =>
                             item.parentId === event.parentId &&
-                            backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
                     )
-                )
+                    return ret
+                })
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.uploadFiles,
                     files: new Map(
-                        placeholderItems.map((placeholderItem, i) => [
+                        [...placeholderFiles, ...placeholderProjects].map((placeholderItem, i) => [
                             placeholderItem.id,
                             // This is SAFE, as `placeholderItems` is created using a map on
                             // `event.files`.
