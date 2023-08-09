@@ -22,5 +22,7 @@ up as follows:
 - [**Upgrading GraalVM:**](upgrading-graalvm.md) Description of steps that have
   to be performed by each developer when the project is upgraded to a new
   version of GraalVM.
+- [**Benchmarks:**](benchmarks.md) Description of the benchmarking
+  infrastructure used for measuring performance of the runtime.
 - [**Logging**:](logging.md) Description of an unified and centralized logging
   infrastructure that should be used by all components.

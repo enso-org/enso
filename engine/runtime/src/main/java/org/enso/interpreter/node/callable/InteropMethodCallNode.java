@@ -19,7 +19,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
 
-/** A helper node to handle method application for the interop library. */
 @GenerateUncached
 @NodeInfo(description = "Helper node to handle method application through the interop library.")
 public abstract class InteropMethodCallNode extends Node {
@@ -60,7 +59,8 @@ public abstract class InteropMethodCallNode extends Node {
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-        0);
+        0,
+        true);
   }
 
   @NonIdempotent

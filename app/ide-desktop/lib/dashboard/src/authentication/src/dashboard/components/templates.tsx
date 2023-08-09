@@ -242,6 +242,7 @@ function TemplatesRender(props: InternalTemplatesRenderProps) {
 
 /** Props for a {@link Templates}. */
 export interface TemplatesProps {
+    hidden: boolean
     onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
@@ -250,7 +251,7 @@ export interface TemplatesProps {
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 export default function Templates(props: TemplatesProps) {
-    const { onTemplateClick } = props
+    const { hidden, onTemplateClick } = props
 
     const [shadowClass, setShadowClass] = React.useState(
         window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
@@ -316,7 +317,7 @@ export default function Templates(props: TemplatesProps) {
     }, [isOpen])
 
     return (
-        <div className="mx-2">
+        <div className={`mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex items-center my-2">
                 <div className="w-4">
                     <div

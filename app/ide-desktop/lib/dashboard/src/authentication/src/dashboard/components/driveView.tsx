@@ -31,6 +31,7 @@ const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-dire
 /** Props for a {@link DriveView}. */
 export interface DriveViewProps {
     page: pageSwitcher.Page
+    hidden: boolean
     initialProjectName: string | null
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId) => void
@@ -51,6 +52,7 @@ export interface DriveViewProps {
 export default function DriveView(props: DriveViewProps) {
     const {
         page,
+        hidden,
         initialProjectName,
         directoryId,
         setDirectoryId,
@@ -255,7 +257,11 @@ export default function DriveView(props: DriveViewProps) {
     }, [page])
 
     return (
-        <div className="flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25">
+        <div
+            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
+                hidden ? 'hidden' : ''
+            }`}
+        >
             <div className="flex flex-col self-start gap-3">
                 <h1 className="text-xl font-bold h-9.5 pl-1.5">
                     {backend.type === backendModule.BackendType.remote

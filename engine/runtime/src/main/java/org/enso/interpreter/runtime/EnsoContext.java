@@ -1,27 +1,19 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.PackageRepositoryUtils;
@@ -32,6 +24,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -45,6 +38,22 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionKey;
+
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
+
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -179,7 +188,35 @@ public class EnsoContext {
    *     com.oracle.truffle.api.TruffleContext}.
    */
   public static EnsoContext get(Node node) {
-    return REFERENCE.get(node);
+    var ctx = REFERENCE.get(node);
+    if (checkNodes.isValid() && !CompilerDirectives.isPartialEvaluationConstant(ctx)) {
+      reportSlowContextAccess(node);
+    }
+    return ctx;
+  }
+
+  private static final Assumption checkNodes = Truffle.getRuntime().createAssumption("context check");
+  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static long checkUntil = Long.MAX_VALUE;
+
+  @TruffleBoundary
+  private static void reportSlowContextAccess(Node n) {
+    if (System.currentTimeMillis() > checkUntil) {
+      checkNodes.invalidate();
+    }
+    if (reportedNulllRootNodes.add(n)) {
+      var ex = new Exception("""
+        no root node for {n}
+        with section: {s}
+        with root nodes: {r}
+        """
+          .replace("{n}", "" + n)
+          .replace("{s}", "" + n.getEncapsulatingSourceSection())
+          .replace("{r}", "" + n.getRootNode())
+      );
+      ex.printStackTrace();
+      checkUntil = System.currentTimeMillis() + 10000;
+    }
   }
 
   public static TruffleLanguage.ContextReference<EnsoContext> getReference() {

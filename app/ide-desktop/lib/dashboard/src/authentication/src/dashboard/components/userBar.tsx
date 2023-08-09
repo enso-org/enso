@@ -23,11 +23,12 @@ export interface UserBarProps {
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     projectAsset: backendModule.ProjectAsset | null
+    onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-    const { page, isHelpChatOpen, setIsHelpChatOpen, projectAsset } = props
+    const { page, isHelpChatOpen, setIsHelpChatOpen, projectAsset, onSignOut } = props
     const { updateModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -36,7 +37,7 @@ export default function UserBar(props: UserBarProps) {
         page === pageSwitcher.Page.editor &&
         projectAsset != null
     return (
-        <div className="flex shrink-0 items-center bg-frame-bg rounded-full gap-3 h-8 pl-2 pr-0.75">
+        <div className="flex shrink-0 items-center bg-frame-bg rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
             <Button
                 active={isHelpChatOpen}
                 image={ChatIcon}
@@ -68,7 +69,9 @@ export default function UserBar(props: UserBarProps) {
             <button
                 onClick={event => {
                     event.stopPropagation()
-                    updateModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
+                    updateModal(oldModal =>
+                        oldModal?.type === UserMenu ? null : <UserMenu onSignOut={onSignOut} />
+                    )
                 }}
             >
                 <img src={DefaultUserIcon} height={28} width={28} />
