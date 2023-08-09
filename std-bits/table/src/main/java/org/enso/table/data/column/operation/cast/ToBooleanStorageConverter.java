@@ -34,6 +34,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

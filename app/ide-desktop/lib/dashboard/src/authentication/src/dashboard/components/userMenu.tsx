@@ -37,8 +37,14 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
     )
 }
 
+/** Props for a {@link UserMenu}. */
+export interface UserMenuProps {
+    onSignOut: () => void
+}
+
 /** Handling the UserMenuItem click event logic and displaying its content. */
-export default function UserMenu() {
+export default function UserMenu(props: UserMenuProps) {
+    const { onSignOut } = props
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
     const navigate = hooks.useNavigate()
@@ -84,7 +90,17 @@ export default function UserMenu() {
                             Change your password
                         </UserMenuItem>
                     )}
-                    <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
+                    <UserMenuItem
+                        onClick={() => {
+                            onSignOut()
+                            // Wait until React has switched back to drive view, before signing out.
+                            window.setTimeout(() => {
+                                void signOut()
+                            }, 0)
+                        }}
+                    >
+                        Sign out
+                    </UserMenuItem>
                 </>
             ) : (
                 <>

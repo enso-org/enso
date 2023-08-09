@@ -11,7 +11,7 @@ import WhatsNew from './whatsNew'
 
 /** Props for a {@link Home}. */
 export interface HomeProps {
-    visible: boolean
+    hidden: boolean
     onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
@@ -20,11 +20,11 @@ export interface HomeProps {
 
 /** Home screen. */
 export default function Home(props: HomeProps) {
-    const { visible, onTemplateClick } = props
+    const { hidden, onTemplateClick } = props
     return (
         <div
             className={`flex flex-col flex-1 overflow-auto scroll-hidden gap-12 ${
-                visible ? '' : 'hidden'
+                hidden ? 'hidden' : ''
             }`}
         >
             {/* For spacing */}

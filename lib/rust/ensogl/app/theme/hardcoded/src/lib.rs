@@ -194,6 +194,7 @@ define_themes! { [light:0, dark:1]
 
         top_bar {
             padding_left = 19.0, 19.0;
+            padding_top = 9.0, 9.0;
             gap = 16.0, 16.0;
             background {
                 color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);

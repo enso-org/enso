@@ -31,8 +31,8 @@ const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-dire
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-    visible: boolean
     page: pageSwitcher.Page
+    hidden: boolean
     initialProjectName: string | null
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId) => void
@@ -52,8 +52,8 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
     const {
-        visible,
         page,
+        hidden,
         initialProjectName,
         directoryId,
         setDirectoryId,
@@ -259,7 +259,7 @@ export default function Drive(props: DriveProps) {
     }, [page])
 
     return isListingRemoteDirectoryWhileOffline ? (
-        <div className={`grow grid place-items-center mx-2 ${visible ? '' : 'hidden'}`}>
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
                 <div className="text-base text-center">You are not signed in.</div>
                 <button
@@ -273,14 +273,14 @@ export default function Drive(props: DriveProps) {
             </div>
         </div>
     ) : isListingLocalDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${visible ? '' : 'hidden'}`}>
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="text-base text-center">
                 Could not connect to the Project Manager. Please try restarting{' '}
                 {common.PRODUCT_NAME}, or manually launching the Project Manager.
             </div>
         </div>
     ) : isListingRemoteDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${visible ? '' : 'hidden'}`}>
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="text-base text-center">
                 We will review your user details and enable the cloud experience for you shortly.
             </div>
@@ -288,7 +288,7 @@ export default function Drive(props: DriveProps) {
     ) : (
         <div
             className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
-                visible ? '' : 'hidden'
+                hidden ? 'hidden' : ''
             }`}
         >
             <div className="flex flex-col self-start gap-3">
