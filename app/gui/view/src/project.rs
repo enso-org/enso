@@ -716,7 +716,11 @@ impl View {
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
         frp::extend! { network
-            // Searcher type to use for node creation
+            // Searcher type to use for node creation.
+            // Debounces are needed, because there are shortcut conflits with Component Browser's
+            // internals, causing CB being closed immediately after opening.
+            // TODO[ao] This is a hotfix, and the proper fix is tracked by
+            //          https://github.com/enso-org/enso/issues/7528
             ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion).debounce();
             component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser).debounce();
             searcher_type <- any(&ai_searcher, &component_browser_searcher);
