@@ -131,16 +131,8 @@ impl Component {
         id: entry::Id,
         entry: Rc<Entry>,
         group_id: Option<usize>,
+        label: ImString,
     ) -> Self {
-        let label = match entry.kind {
-            entry::Kind::Module
-                if entry.defined_in.is_main_module() || entry.defined_in.is_top_element() =>
-                format!("{}", entry.defined_in).into(),
-            _ => match entry.self_type.as_ref() {
-                Some(self_type) => format!("{}.{}", self_type.alias_name(), entry.name).into(),
-                None => entry.name.to_im_string(),
-            },
-        };
         let aliases =
             entry.aliases().map(|alias| format!("{alias} ({label})").into()).collect_vec().into();
         let data = Suggestion::FromDatabase { id, entry };
