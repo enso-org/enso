@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
 import * as assetContextMenu from './assetContextMenu'
@@ -29,15 +28,13 @@ export interface ProjectContextMenuProps
 /** The context menu for a {@link backendModule.ProjectAsset}. */
 export default function ProjectContextMenu(props: ProjectContextMenuProps) {
     const {
-        innerProps: { item, rowState, setRowState },
+        innerProps: { item, setRowState },
         event,
         dispatchAssetEvent,
         doDelete,
     } = props
-    const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const isDeleteDisabled = backend.type === backendModule.BackendType.local && rowState.isRunning
     const doOpenForEditing = () => {
         unsetModal()
         dispatchAssetEvent({
@@ -57,12 +54,6 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
             <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
             <ContextMenuEntry
-                disabled={isDeleteDisabled}
-                {...(isDeleteDisabled
-                    ? {
-                          title: 'A running local project cannot be removed.',
-                      }
-                    : {})}
                 onClick={() => {
                     setModal(
                         <ConfirmDeleteModal

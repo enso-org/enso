@@ -402,7 +402,7 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If any of the new names are invalid, an `Invalid_Output_Column_Names`
+         - If any of the new names are invalid, an `Invalid_Column_Names`
            error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
@@ -442,7 +442,7 @@ type Table
 
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
@@ -457,7 +457,7 @@ type Table
 
          The following problems can occur:
          - If any of the new names are invalid, an
-           `Invalid_Output_Column_Names`.
+           `Invalid_Column_Names`.
          - If any of the new names clash either with existing names or each
            other, a Duplicate_Output_Column_Names.
 
@@ -768,7 +768,9 @@ type Table
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
-            _ : Column -> column
+            _ : Column ->
+                if Helpers.check_integrity self column then column else
+                    Error.throw (Integrity_Error.Error "Column "+column.name)
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
@@ -778,13 +780,13 @@ type Table
            Nothing -> resolved
            _ : Text -> resolved.rename new_name
 
-        renamed.if_not_error <|
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
-            to_add = case set_mode of
+            check_add = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
                 Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
-            if to_add then
+            check_add.if_not_error <|
                 new_col = renamed.as_internal
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
                     Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
@@ -1470,7 +1472,7 @@ type Table
          - The following additional problems may be reported according to the
            `on_problems` settings:
            - If there are invalid column names in the output table,
-             a `Invalid_Output_Column_Names`.
+             a `Invalid_Column_Names`.
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
@@ -1485,7 +1487,7 @@ type Table
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
         key_columns = validated.key_columns
@@ -1613,7 +1615,7 @@ type Table
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
          - If a column name generated from the input data is invalid,
-           `Invalid_Output_Column_Names` error is raised.
+           `Invalid_Column_Names` error is raised.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
            raised.
          - Additionally, the following problems may be reported according to the
@@ -1642,7 +1644,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -2200,14 +2202,24 @@ type Table
    - columns: List of columns to fetch. Each column is represented by a pair of
      column name and its expected SQL Type.
    - ctx: The context to use for the table.
-make_table : Connection -> Text -> Vector -> Context -> Table
-make_table connection table_name columns ctx =
+   - on_problems: The behavior to use when problems are encountered.
+make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> Table
+make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
+        problem_builder = Problem_Builder.new
+        column_names_validator = connection.base_connection.column_naming_helper.create_unique_name_strategy
         cols = columns.map p->
-            name = p.first
+            raw_name = p.first
             sql_type = p.second
-            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name)
-        Table.Value table_name connection cols ctx
+            # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
+            enso_name = column_names_validator.make_unique raw_name
+            # The expression keeps the original 'raw' name coming from the database.
+            expression = SQL_Expression.Column table_name raw_name
+            Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
+        problem_builder.report_unique_name_strategy column_names_validator
+        # We do not want to stop the table from being fetched, so we report the issues as warnings.
+        problem_builder.attach_problems_before on_problems <|
+            Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

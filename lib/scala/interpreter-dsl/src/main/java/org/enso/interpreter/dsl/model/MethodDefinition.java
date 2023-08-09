@@ -171,6 +171,16 @@ public class MethodDefinition {
       return false;
     }
 
+    if (!executeMethod.getThrownTypes().isEmpty()) {
+      processingEnvironment
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Builtin methods cannot throw exceptions",
+              executeMethod);
+      return false;
+    }
+
     boolean argsValid = arguments.stream().allMatch(arg -> arg.validate(processingEnvironment));
 
     return argsValid;

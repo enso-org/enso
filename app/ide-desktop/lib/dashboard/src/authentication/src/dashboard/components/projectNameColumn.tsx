@@ -90,20 +90,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             projectTemplateName: event.templateId,
                         })
                         rowState.setPresence(presence.Presence.present)
-                        const newItem: backendModule.ProjectAsset = {
+                        setItem({
                             ...item,
                             id: createdProject.projectId,
-                            projectState: createdProject.state,
-                        }
-                        setItem(newItem)
-                        // This MUST be delayed, otherwise the `ProjectActionButton` does not yet
-                        // have the correct `Project`.
-                        setTimeout(() => {
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.openProject,
-                                id: createdProject.projectId,
-                            })
-                        }, 0)
+                            projectState: { type: backendModule.ProjectState.placeholder },
+                        })
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.openProject,
+                            id: createdProject.projectId,
+                        })
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
@@ -146,9 +141,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         >
             <ProjectIcon
                 keyProp={key}
-                project={item}
-                rowState={rowState}
-                setRowState={setRowState}
+                item={item}
+                setItem={setItem}
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}

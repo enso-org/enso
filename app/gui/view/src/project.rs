@@ -7,13 +7,10 @@ use ensogl::system::web::traits::*;
 use crate::code_editor;
 use crate::component_browser;
 use crate::component_browser::component_list_panel;
-use crate::debug_mode_popup;
-use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
-use crate::popup;
 use crate::project_list::ProjectList;
 
 use enso_config::ARGS;
@@ -29,7 +26,6 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use ide_view_project_view_top_bar::window_control_buttons;
 use ide_view_project_view_top_bar::ProjectViewTopBar;
 
 
@@ -49,6 +45,18 @@ use ide_view_project_view_top_bar::ProjectViewTopBar;
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
+
+/// Mitigate limitations of constant strings concatenation.
+macro_rules! define_debug_mode_shortcut {
+    ($shortcut:literal) => {
+        /// A keyboard shortcut used to enable/disable Debug Mode.
+        pub const DEBUG_MODE_SHORTCUT: &str = $shortcut;
+        const DEBUG_MODE_ENABLED: &str =
+            concat!("Debug Mode enabled. To disable, press `", $shortcut, "`.");
+    };
+}
+
+define_debug_mode_shortcut!("ctrl shift d");
 
 
 // ===========
@@ -191,8 +199,7 @@ struct Model {
     code_editor:      code_editor::View,
     fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:     Rc<ProjectList>,
-    debug_mode_popup: debug_mode_popup::View,
-    popup:            popup::View,
+    debug_mode_popup: Rc<crate::notification::View>,
 }
 
 impl Model {
@@ -202,16 +209,13 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let debug_mode_popup = debug_mode_popup::View::new(app);
-        let popup = popup::View::new(app);
+        let debug_mode_popup = Rc::new(crate::notification::View::new(app));
         let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&debug_mode_popup);
-        display_object.add_child(&popup);
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
@@ -225,7 +229,6 @@ impl Model {
             fullscreen_vis,
             project_list,
             debug_mode_popup,
-            popup,
         }
     }
 
@@ -281,18 +284,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-        let y = buttons_y - project_view_top_bar_size.y / 2.0;
-        let project_view_top_bar_origin = Vector2(0.0, y);
+        let y = -project_view_top_bar_size.y;
+        let x = ARGS.groups.window.options.top_bar_offset.value;
+        let project_view_top_bar_origin = Vector2(x as f32, y);
         self.top_bar.set_xy(top_left + project_view_top_bar_origin);
-    }
-
-    fn on_close_clicked(&self) {
-        js::close(enso_config::window_app_scope_name);
-    }
-
-    fn on_fullscreen_clicked(&self) {
-        js::fullscreen();
     }
 
     fn show_project_list(&self) {
@@ -309,43 +304,6 @@ impl Model {
 
     fn hide_graph_editor(&self) {
         self.display_object.remove_child(&*self.graph_editor);
-    }
-}
-
-
-
-mod js {
-    // use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(inline_js = "
-    export function close(windowAppScopeConfigName) {
-        try { window[windowAppScopeConfigName].close(); }
-        catch(e) {
-            console.error(`Exception thrown from window.${windowAppScopeConfigName}.close:`,e)
-        }
-    }")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn close(window_app_scope_name: &str);
-    }
-
-
-    #[wasm_bindgen(inline_js = "
-    export function fullscreen() {
-        try {
-            if(document.fullscreenElement === null)
-                document.documentElement.requestFullscreen()
-            else
-                document.exitFullscreen()
-        } catch (e) {
-            console.error('Exception thrown when toggling fullscreen display mode:',e)
-        }
-    }
-    ")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn fullscreen();
     }
 }
 
@@ -420,12 +378,6 @@ impl View {
         let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
-            let window_control_buttons = &project_view_top_bar.window_control_buttons;
-            eval_ window_control_buttons.close (model.on_close_clicked());
-            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
-            frp.source.go_to_dashboard_button_pressed <+
-                go_to_dashboard_button.is_pressed.on_true();
 
             let project_view_top_bar_display_object = project_view_top_bar.display_object();
             _eval <- all_with3(
@@ -465,7 +417,6 @@ impl View {
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -745,11 +696,17 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let popup = &self.model.debug_mode_popup;
-        frp::extend! { network
-            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
 
-            popup.enabled <+ frp.enable_debug_mode;
-            popup.disabled <+ frp.disable_debug_mode;
+        let mut options = crate::notification::api::UpdateOptions::default();
+        options.set_always_present();
+        options.set_raw_text_content(DEBUG_MODE_ENABLED);
+        options.position = Some(crate::notification::api::Position::BottomRight);
+        popup.set_options(options);
+
+        frp::extend! { network
+            debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            frp.source.debug_mode <+ debug_mode;
+            popup.is_enabled <+ debug_mode;
         }
         self
     }
@@ -806,16 +763,6 @@ impl View {
     /// Open Project Dialog
     pub fn project_list(&self) -> &ProjectList {
         &self.model.project_list
-    }
-
-    /// Debug Mode Popup
-    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
-        &self.model.debug_mode_popup
-    }
-
-    /// Pop-up
-    pub fn popup(&self) -> &popup::View {
-        &self.model.popup
     }
 }
 
