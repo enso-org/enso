@@ -21,12 +21,12 @@ import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
 import * as detect from 'detect'
-// eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
+import * as projectManagement from 'project-management'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
@@ -238,6 +238,9 @@ class App {
                 const serverCfg = new server.Config({
                     dir: paths.ASSETS_PATH,
                     port: this.args.groups.server.options.port.value,
+                    externalFunctions: {
+                        uploadProjectBundle: projectManagement.uploadBundle,
+                    },
                 })
                 this.server = await server.Server.create(serverCfg)
             })
@@ -344,6 +347,10 @@ class App {
         })
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
+        })
+        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
+            const info = projectManagement.importProjectFromPath(path)
+            event.reply(ipc.Channel.importProjectFromPath, path, info)
         })
     }
 
