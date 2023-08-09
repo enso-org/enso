@@ -39,7 +39,7 @@
         },
         "displayedProjectName": {
           "value": "",
-          "description": "The name of the project to be displayed to the user",
+          "description": "The name of the project to be displayed to the user.",
           "primary": false
         },
         "platform": {
