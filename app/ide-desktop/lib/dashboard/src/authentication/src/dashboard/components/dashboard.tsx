@@ -78,6 +78,18 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        const onClick = () => {
+            if (getSelection()?.type !== 'Range') {
+                unsetModal()
+            }
+        }
+        document.addEventListener('click', onClick)
+        return () => {
+            document.removeEventListener('click', onClick)
+        }
+    }, [/* should never change */ unsetModal])
+
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
@@ -89,16 +101,6 @@ export default function Dashboard(props: DashboardProps) {
         }
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    React.useEffect(() => {
-        const goToDrive = () => {
-            setPage(pageSwitcher.Page.drive)
-        }
-        document.addEventListener('show-dashboard', goToDrive)
-        return () => {
-            document.removeEventListener('show-dashboard', goToDrive)
-        }
     }, [])
 
     React.useEffect(() => {
@@ -206,101 +208,113 @@ export default function Dashboard(props: DashboardProps) {
         setProject(null)
     }, [])
 
-    const closeModalIfExists = React.useCallback(() => {
-        if (getSelection()?.type !== 'Range') {
-            unsetModal()
-        }
-    }, [/* should never change */ unsetModal])
-
+    const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
-        <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                page === pageSwitcher.Page.drive ? '' : 'hidden'
-            }`}
-            onContextMenu={event => {
-                event.preventDefault()
-                unsetModal()
-            }}
-            onClick={closeModalIfExists}
-        >
-            <TopBar
-                supportsLocalBackend={supportsLocalBackend}
-                projectName={project?.name ?? null}
-                page={page}
-                setPage={setPage}
-                asset={null}
-                isEditorDisabled={project == null}
-                isHelpChatOpen={isHelpChatOpen}
-                setIsHelpChatOpen={setIsHelpChatOpen}
-                setBackendType={setBackendType}
-                query={query}
-                setQuery={setQuery}
-            />
-            {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="flex flex-col gap-4">
-                        <div className="text-base text-center">You are not signed in.</div>
-                        <button
-                            className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
-                            onClick={() => {
-                                navigate(app.LOGIN_PATH)
-                            }}
-                        >
-                            Login
-                        </button>
-                    </div>
-                </div>
-            ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
-                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
-                    </div>
-                </div>
-            ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        We will review your user details and enable the cloud experience for you
-                        shortly.
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <Templates onTemplateClick={doCreateProject} />
-                    <DriveView
-                        page={page}
-                        initialProjectName={initialProjectName}
-                        directoryId={directoryId}
-                        setDirectoryId={setDirectoryId}
-                        assetListEvents={assetListEvents}
-                        dispatchAssetListEvent={dispatchAssetListEvent}
-                        query={query}
-                        doCreateProject={doCreateProject}
-                        doOpenEditor={openEditor}
-                        doCloseEditor={closeEditor}
-                        appRunner={appRunner}
-                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                    />
-                </>
-            )}
-            <TheModal />
-            <Editor
-                visible={page === pageSwitcher.Page.editor}
-                project={project}
-                appRunner={appRunner}
-            />
-            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-            {isHelpChatVisible && session.accessToken != null && (
-                <Chat
-                    isOpen={isHelpChatOpen}
-                    doClose={() => {
-                        setIsHelpChatOpen(false)
+        <>
+            <div
+                className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
+                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                }`}
+                onContextMenu={event => {
+                    event.preventDefault()
+                    unsetModal()
+                }}
+            >
+                <TopBar
+                    supportsLocalBackend={supportsLocalBackend}
+                    projectName={project?.name ?? null}
+                    page={page}
+                    setPage={setPage}
+                    asset={null}
+                    isEditorDisabled={project == null}
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    setBackendType={setBackendType}
+                    query={query}
+                    setQuery={setQuery}
+                    onSignOut={() => {
+                        if (page === pageSwitcher.Page.editor) {
+                            setPage(pageSwitcher.Page.drive)
+                        }
+                        setProject(null)
                     }}
                 />
-            )}
-        </div>
+                {isListingRemoteDirectoryWhileOffline ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="flex flex-col gap-4">
+                            <div className="text-base text-center">You are not signed in.</div>
+                            <button
+                                className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                                onClick={() => {
+                                    navigate(app.LOGIN_PATH)
+                                }}
+                            >
+                                Login
+                            </button>
+                        </div>
+                    </div>
+                ) : isListingLocalDirectoryAndWillFail ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="text-base text-center">
+                            Could not connect to the Project Manager. Please try restarting{' '}
+                            {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                        </div>
+                    </div>
+                ) : isListingRemoteDirectoryAndWillFail ? (
+                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
+                        <div className="text-base text-center">
+                            We will review your user details and enable the cloud experience for you
+                            shortly.
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <Templates
+                            hidden={page !== pageSwitcher.Page.drive}
+                            onTemplateClick={doCreateProject}
+                        />
+                        <DriveView
+                            hidden={page !== pageSwitcher.Page.drive}
+                            page={page}
+                            initialProjectName={initialProjectName}
+                            directoryId={directoryId}
+                            setDirectoryId={setDirectoryId}
+                            assetListEvents={assetListEvents}
+                            dispatchAssetListEvent={dispatchAssetListEvent}
+                            query={query}
+                            doCreateProject={doCreateProject}
+                            doOpenEditor={openEditor}
+                            doCloseEditor={closeEditor}
+                            appRunner={appRunner}
+                            loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                            isListingRemoteDirectoryWhileOffline={
+                                isListingRemoteDirectoryWhileOffline
+                            }
+                            isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                            isListingRemoteDirectoryAndWillFail={
+                                isListingRemoteDirectoryAndWillFail
+                            }
+                        />
+                    </>
+                )}
+                <Editor
+                    visible={page === pageSwitcher.Page.editor}
+                    project={project}
+                    appRunner={appRunner}
+                />
+                {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+                {isHelpChatVisible && session.accessToken != null && (
+                    <Chat
+                        isOpen={isHelpChatOpen}
+                        doClose={() => {
+                            setIsHelpChatOpen(false)
+                        }}
+                    />
+                )}
+            </div>
+            <div className="text-xs text-primary select-none">
+                <TheModal />
+            </div>
+        </>
     )
 }

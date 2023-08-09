@@ -3,7 +3,7 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.problems.WithProblems;
+import org.enso.table.problems.WithAggregatedProblems;
 
 /** A base type for a parser capable of parsing a column of text values into some other type. */
 public abstract class DatatypeParser {
@@ -24,16 +24,16 @@ public abstract class DatatypeParser {
    *
    * <p>Any reported problems will contain {@code null} as the related column reference.
    */
-  public WithProblems<Object> parseIndependentValue(String text) {
+  public WithAggregatedProblems<Object> parseIndependentValue(String text) {
     ProblemAggregator problemAggregator = new ProblemAggregatorImpl(null);
     Object result = parseSingleValue(text, problemAggregator);
-    return new WithProblems<>(result, problemAggregator.getAggregatedProblems());
+    return new WithAggregatedProblems<>(result, problemAggregator.getAggregatedProblems());
   }
 
   /**
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public abstract WithProblems<Storage<?>> parseColumn(
+  public abstract WithAggregatedProblems<Storage<?>> parseColumn(
       String columnName, Storage<String> sourceStorage);
 }

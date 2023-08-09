@@ -268,10 +268,6 @@ pub fn register_views(app: &Application) {
     // ListView we use below.
     type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
-
-    if enso_config::ARGS.groups.startup.options.platform.value == "web" {
-        app.views.register::<ide_view::project_view_top_bar::window_control_buttons::View>();
-    }
 }
 
 

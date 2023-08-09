@@ -26,6 +26,7 @@ spec =
             t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]]]
             t4 = t3.parse type=Value_Type.Float
             t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
+            t4.at "floats" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "0.0", "10.0", "12345.0"]
 
             t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
             t6 = t5.parse type=Value_Type.Float
@@ -459,6 +460,7 @@ spec =
             c4 = c3.parse Value_Type.Float
             c4.to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
             c4.value_type.is_floating_point.should_be_true
+            c4.to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "0.0", "10.0", "12345.0"]
             Problems.assume_no_problems c4
 
             c5 = Column.from_vector "floats" [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]
