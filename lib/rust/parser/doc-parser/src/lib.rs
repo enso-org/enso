@@ -715,6 +715,8 @@ mod tests {
         - text: The text to parse into a integer.
         - radix: The number base to use for parsing (defaults to 10). `radix`
             must be between 2 and 36 (inclusive)
+        - arg argument without colon
+        - argument_without_description
 
         - List item 1
         - List item 2
@@ -738,6 +740,14 @@ mod tests {
                     name: "radix".into(),
                     description: "The number base to use for parsing (defaults to 10). <code>radix</code> \
                     must be between 2 and 36 (inclusive)".into()
+                },
+                Argument {
+                    name: "arg".into(),
+                    description: "argument without colon".into()
+                },
+                Argument {
+                    name: "argument_without_description".into(),
+                    description: default(),
                 }].to_vec()
             },
             List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },

@@ -75,7 +75,11 @@ pub struct Argument {
 impl Argument {
     /// Convert the given string to the argument description.
     pub fn new(text: &str) -> Self {
-        let (name, description) = text.splitn(2, ':').collect_tuple().unwrap_or_default();
+        // We split by the first colon or space, whatever comes first.
+        // Typically a colon must be used as a separator, but in some documentation snippets we
+        // have there is no colon and the name of the argument is simply the first word.
+        let split = text.splitn(2, |c| c == ':' || c == ' ');
+        let (name, description) = split.collect_tuple().unwrap_or((text, ""));
         let name = name.trim().to_string();
         let description = description.trim().to_string();
         Self { name, description }
