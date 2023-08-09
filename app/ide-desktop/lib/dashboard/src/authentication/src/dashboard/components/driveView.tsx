@@ -171,7 +171,9 @@ export default function DriveView(props: DriveViewProps) {
     )
 
     React.useEffect(() => {
-        setAssets([])
+        if (initialized) {
+            setAssets([])
+        }
         // `setAssets` is a callback, not a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend])
