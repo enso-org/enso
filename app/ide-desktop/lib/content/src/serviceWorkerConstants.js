@@ -59,7 +59,7 @@ export const DEPENDENCIES = [
     // Loaded by https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap
     ...M_PLUS_1_SECTIONS.map(
         number =>
-            `https://fonts.gstatic.com/s/mplus1/v6/` +
+            'https://fonts.gstatic.com/s/mplus1/v6/' +
             `R70ZjygA28ymD4HgBVu92j6eR1mYP_TX-Bb-rTg93gHfHe9F4Q.${number}.woff2`
     ),
 ]
