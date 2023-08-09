@@ -256,14 +256,11 @@ class Main implements AppRunner {
                 configOptions.groups.startup.options.entry.value ===
                 configOptions.groups.startup.options.entry.default
             const initialProjectName = configOptions.groups.startup.options.project.value || null
+            // This does not need to be removed from the URL, but only because local projects
+            // also use the Project Manager URL, and remote (cloud) projects remove the URL
+            // completely.
             const projectManagerUrl =
-                contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value || null
-            // The option must be removed from the URL as well.
-            if (projectManagerUrl != null) {
-                const parsedLocation = new URL(location.href)
-                parsedLocation.searchParams.delete(PROJECT_MANAGER_URL_PARAMETER_NAME)
-                history.replaceState(null, '', parsedLocation.toString())
-            }
+                configOptions.groups.engine.options.projectManagerUrl.value || null
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
