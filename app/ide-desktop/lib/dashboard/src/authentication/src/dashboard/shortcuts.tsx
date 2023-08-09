@@ -6,6 +6,7 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
 import CameraIcon from 'enso-assets/camera.svg'
+import CloudToIcon from 'enso-assets/cloud_to.svg'
 import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
@@ -36,6 +37,7 @@ export enum MouseAction {
 /** All possible keyboard actions for which shortcuts can be registered. */
 export enum KeyboardAction {
     open = 'open',
+    uploadToCloud = 'upload-to-cloud',
     rename = 'rename',
     snapshot = 'snapshot',
     moveToTrash = 'move-to-trash',
@@ -108,6 +110,7 @@ export const MODIFIERS =
 function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
     return {
         [KeyboardAction.open]: make(),
+        [KeyboardAction.uploadToCloud]: make(),
         [KeyboardAction.rename]: make(),
         [KeyboardAction.snapshot]: make(),
         [KeyboardAction.moveToTrash]: make(),
@@ -353,6 +356,7 @@ const CTRL = (detect.platform() === detect.Platform.macOS ? 'Meta' : 'Ctrl') sat
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
     [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], 'Delete')],
@@ -376,6 +380,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
+    [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
     [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
     [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
     [KeyboardAction.moveToTrash]: {

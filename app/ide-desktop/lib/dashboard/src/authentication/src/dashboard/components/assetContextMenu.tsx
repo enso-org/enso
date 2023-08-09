@@ -1,10 +1,17 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
+import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
-import * as modalProvider from '../../providers/modal'
+import * as hooks from '../../hooks'
+import * as http from '../../http'
+import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import * as assetsTable from './assetsTable'
 import * as tableRow from './tableRow'
@@ -41,7 +48,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
         eventTarget,
         doDelete,
     } = props
+    const logger = loggerProvider.useLogger()
+    const { accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
     return (
         <ContextMenus key={props.innerProps.item.id} event={event}>
             <ContextMenu>
@@ -54,6 +64,44 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                 type: assetEventModule.AssetEventType.openProject,
                                 id: item.id,
                             })
+                        }}
+                    />
+                )}
+                {item.type === backendModule.AssetType.project && (
+                    <ContextMenuEntry
+                        action={shortcuts.KeyboardAction.uploadToCloud}
+                        doAction={async () => {
+                            unsetModal()
+                            if (accessToken == null) {
+                                toastAndLog('Cannot upload to cloud in offline mode')
+                            } else {
+                                try {
+                                    const headers = new Headers([
+                                        ['Authorization', `Bearer ${accessToken}`],
+                                    ])
+                                    const client = new http.Client(headers)
+                                    const remoteBackend = new remoteBackendModule.RemoteBackend(
+                                        client,
+                                        logger
+                                    )
+                                    const projectResponse = await fetch(
+                                        `./api/project-manager/projects/${item.id}/enso-project`
+                                    )
+                                    await remoteBackend.uploadFile(
+                                        {
+                                            fileName: `${item.title}.enso-project`,
+                                            fileId: null,
+                                            parentDirectoryId: null,
+                                        },
+                                        await projectResponse.blob()
+                                    )
+                                    toast.toast.success(
+                                        'Successfully uploaded local project to cloud!'
+                                    )
+                                } catch (error) {
+                                    toastAndLog('Could not upload local project to cloud', error)
+                                }
+                            }
                         }}
                     />
                 )}

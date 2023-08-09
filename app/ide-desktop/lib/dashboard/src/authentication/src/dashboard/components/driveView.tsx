@@ -175,10 +175,9 @@ export default function DriveView(props: DriveViewProps) {
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                toastAndLog('Files cannot be uploaded to the local backend')
+            if (backend.type !== backendModule.BackendType.local && organization == null) {
+                // This should never happen, however display a nice error message in case it does.
+                toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
@@ -228,6 +227,7 @@ export default function DriveView(props: DriveViewProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
+                    dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
             <AssetsTable
