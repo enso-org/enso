@@ -776,7 +776,7 @@ class CollaborativeBuffer(
     clientId: Option[ClientId]
   ): Either[ApplyEditFailure, Unit] = {
     val hasLock =
-      lockHolder.exists(session => clientId.contains(session.clientId))
+      lockHolder.exists(session => clientId.forall(_ == session.clientId))
     if (hasLock) {
       Right(())
     } else {

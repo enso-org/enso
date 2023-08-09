@@ -3342,7 +3342,7 @@ Expression id should point to the left hand side symbol of the assignment.
 ```typescript
 {
   /**
-   * The qualified moeule name.
+   * The qualified module name.
    */
   module: string;
 

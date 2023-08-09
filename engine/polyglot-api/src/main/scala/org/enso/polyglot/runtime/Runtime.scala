@@ -1703,7 +1703,8 @@ object Runtime {
       final case class FailedToApplyEdits(module: String)
           extends SymbolRenameFailed.Error
 
-      /** Signals that it was unable to apply edits to the current module contents.
+      /** Signals that the renaming operation is not supported for the
+        * provided expression.
         *
         * @param expressionId the id of expression
         */
