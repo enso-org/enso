@@ -7,32 +7,44 @@ import org.enso.table.data.column.storage.type.TextType;
 
 /** A builder for string columns. */
 public class StringBuilder extends TypedBuilderImpl<String> {
+  private final TextType type;
   @Override
   protected String[] newArray(int size) {
     return new String[size];
   }
 
-  public StringBuilder(int size) {
+  public StringBuilder(int size, TextType type) {
     super(size);
+    this.type = type;
   }
 
   @Override
   public StorageType getType() {
-    return TextType.VARIABLE_LENGTH;
+    return type;
   }
 
   @Override
   public void appendNoGrow(Object o) {
-    data[currentSize++] = (String) o;
+    String str = (String) o;
+    if (!type.fits(str)) {
+      // TODO
+      throw new IllegalArgumentException("String does not fit the type");
+    }
+
+    data[currentSize++] = str;
   }
 
   @Override
   public boolean accepts(Object o) {
-    return o instanceof String;
+    if (o instanceof String s) {
+      return type.fits(s);
+    } else {
+      return false;
+    }
   }
 
   @Override
   protected Storage<String> doSeal() {
-    return new StringStorage(data, currentSize);
+    return new StringStorage(data, currentSize, type);
   }
 }

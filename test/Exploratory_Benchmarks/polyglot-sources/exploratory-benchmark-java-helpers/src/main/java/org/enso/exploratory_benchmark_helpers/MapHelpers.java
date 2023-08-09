@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
 
 public class MapHelpers {
   public static StringStorage stringConcatBimap(StringStorage storage1, StringStorage storage2) {
@@ -28,7 +29,7 @@ public class MapHelpers {
         result[i] = null;
       }
     }
-    return new StringStorage(result, n);
+    return new StringStorage(result, n, TextType.VARIABLE_LENGTH);
   }
 
   public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {

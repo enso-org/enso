@@ -108,7 +108,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof ZonedDateTime) {
       currentBuilder = new DateTimeBuilder(initialCapacity);
     } else if (o instanceof String) {
-      currentBuilder = new StringBuilder(initialCapacity);
+      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }

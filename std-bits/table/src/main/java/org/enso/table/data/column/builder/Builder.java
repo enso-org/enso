@@ -6,9 +6,6 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.Problem;
-
-import java.util.List;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
@@ -28,16 +25,7 @@ public abstract class Builder {
         default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
       };
       case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType);
-      case TextType textType -> {
-        if (textType.fixedLength()) {
-          throw new IllegalArgumentException("Fixed-length text builders are not yet supported yet.");
-        }
-        if (textType.maxLength() >= 0) {
-          throw new IllegalArgumentException("Text builders with a maximum length are not yet supported yet.");
-        }
-
-        yield new StringBuilder(size);
-      }
+      case TextType textType -> new StringBuilder(size, textType);
       case null -> new InferredBuilder(size);
     };
     assert builder.getType().equals(type);
