@@ -10,9 +10,9 @@ use span_tree::node::Kind;
 
 
 
-/// =============
-/// === Style ===
-/// =============
+// =============
+// === Style ===
+// =============
 
 #[derive(Clone, Debug, Default, PartialEq, FromTheme)]
 #[base_path = "theme::widget::label"]
@@ -25,6 +25,7 @@ struct Style {
     disabled_weight:    f32,
     placeholder_color:  color::Rgba,
     placeholder_weight: f32,
+    pending_alpha:      f32,
 }
 
 // ==============
@@ -39,6 +40,7 @@ ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(ColorState),
+        text_alpha(AlphaState),
         text_weight(Option<text::Weight>),
         text_sdf_weight(f32),
     }
@@ -90,9 +92,10 @@ impl SpanWidget for Widget {
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             parent_port_hovered <- parent_port_hovered.on_change();
             text_color <- frp.text_color.on_change();
-            label_color <- all_with3(
-                &style, &text_color, &parent_port_hovered,
-                |style, state, hovered| state.to_color(*hovered, style)
+            text_alpha <- frp.text_alpha.on_change();
+            label_color <- all_with4(
+                &style, &text_color, &parent_port_hovered, &text_alpha,
+                |style, state, hovered, alpha_factor| state.to_color(*hovered, style, alpha_factor.to_alpha(style))
             ).debounce().on_change();
             color_anim.target <+ label_color;
             eval color_anim.value((color) label.set_property_default(color));
@@ -141,14 +144,19 @@ impl SpanWidget for Widget {
             _ if is_placeholder => ColorState::Placeholder,
             _ => ColorState::Base,
         };
+        let text_alpha = match ctx.info.pending {
+            true => AlphaState::Pending,
+            false => AlphaState::Normal,
+        };
 
         let ext = ctx.get_extension_or_default::<Extension>();
         let bold = ext.bold || is_placeholder;
         let text_weight = bold.then_some(text::Weight::Bold);
 
         let input = &self.frp.public.input;
-        input.content.emit(content);
-        input.text_color.emit(color_state);
+        input.content(content);
+        input.text_color(color_state);
+        input.text_alpha(text_alpha);
         input.text_weight(text_weight);
     }
 }
@@ -201,14 +209,40 @@ impl ColorState {
             text::Weight::from(weight_num as u16)
         })
     }
-    fn to_color(self, is_hovered: bool, style: &Style) -> color::Lcha {
-        match self {
+
+    fn to_color(self, is_hovered: bool, style: &Style, alpha_factor: f32) -> color::Lcha {
+        let base_color = color::Lcha::from(match self {
             _ if is_hovered => style.connected_color,
             ColorState::Base => style.base_color,
             ColorState::Connected => style.connected_color,
             ColorState::Disabled => style.disabled_color,
             ColorState::Placeholder => style.placeholder_color,
+        });
+        base_color.opaque.with_alpha(base_color.alpha * alpha_factor)
+    }
+}
+
+
+
+// ==================
+// === AlphaState ===
+// ==================
+
+/// The state of the text's opacity.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum AlphaState {
+    /// The normal state.
+    #[default]
+    Normal,
+    /// The state when awaiting a pending computation.
+    Pending,
+}
+
+impl AlphaState {
+    fn to_alpha(self, style: &Style) -> f32 {
+        match self {
+            AlphaState::Normal => 1.0,
+            AlphaState::Pending => style.pending_alpha,
         }
-        .into()
     }
 }
