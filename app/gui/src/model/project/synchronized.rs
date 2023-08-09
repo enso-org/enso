@@ -262,7 +262,7 @@ pub struct UnsupportedEngineVersion {
 impl UnsupportedEngineVersion {
     fn error_wrapper(properties: &Properties) -> impl Fn(failure::Error) -> failure::Error {
         let engine_version = properties.engine_version.clone();
-        let project_name = properties.internal_name.project.as_str().to_owned();
+        let project_name = properties.project_name.project.as_str().to_owned();
         move |root_cause| {
             if let Err(version_mismatch) = enso_config::check_engine_version(&engine_version) {
                 UnsupportedEngineVersion {
@@ -302,7 +302,9 @@ pub struct Properties {
     pub id:             Uuid,
     /// Qualified name of the project's main module, it is used primarily in communication with the
     /// language server.
-    pub internal_name:  project::QualifiedName,
+    pub project_name:   project::QualifiedName,
+    /// A project name as displayed to the user, it can be different from the `project_name`.
+    pub displayed_name: ProjectName,
     pub engine_version: semver::Version,
 }
 
@@ -340,7 +342,7 @@ impl Project {
         properties: Properties,
     ) -> FallibleResult<Self> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
-        info!("Creating a model of project {}", properties.internal_name);
+        info!("Creating a model of project {}", properties.project_name);
         let binary_protocol_events = language_server_bin.event_stream();
         let json_rpc_events = language_server_rpc.events();
         let embedded_visualizations = default();
@@ -424,13 +426,15 @@ impl Project {
         let action = MissingComponentAction::Install;
         let opened = project_manager.open_project(&id, &action).await?;
         let namespace = opened.project_namespace;
+        let displayed_name = opened.project_name;
         let normalized_name = opened.project_normalized_name;
         let project_manager = Some(project_manager);
         let json_endpoint = opened.language_server_json_address.to_string();
         let binary_endpoint = opened.language_server_binary_address.to_string();
         let properties = Properties {
             id,
-            internal_name: project::QualifiedName::new(namespace, normalized_name),
+            project_name: project::QualifiedName::new(namespace, normalized_name),
+            displayed_name,
             engine_version: semver::Version::parse(&opened.engine_version)?,
         };
         Self::new_connected(project_manager, json_endpoint, binary_endpoint, properties).await
@@ -678,11 +682,11 @@ impl Project {
 
 impl model::project::API for Project {
     fn name(&self) -> ImString {
-        self.properties.borrow().internal_name.project.clone_ref()
+        self.properties.borrow().displayed_name.clone().into()
     }
 
     fn qualified_name(&self) -> project::QualifiedName {
-        self.properties.borrow().internal_name.clone_ref()
+        self.properties.borrow().project_name.clone_ref()
     }
 
     fn json_rpc(&self) -> Rc<language_server::Connection> {
@@ -751,7 +755,7 @@ impl model::project::API for Project {
             std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
         } else {
             async move {
-                let old_name = self.properties.borrow_mut().internal_name.project.clone_ref();
+                let old_name = self.properties.borrow_mut().project_name.project.clone_ref();
                 let referent_name = name.to_im_string();
                 let project_manager =
                     self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
@@ -765,7 +769,7 @@ impl model::project::API for Project {
                         error => error.into(),
                     },
                 )?;
-                self.properties.borrow_mut().internal_name.project = referent_name.clone_ref();
+                self.properties.borrow_mut().project_name.project = referent_name.clone_ref();
                 self.execution_contexts.rename_project(old_name, referent_name);
                 Ok(())
             }
@@ -855,7 +859,8 @@ mod test {
             let project_manager = Rc::new(project_manager);
             let properties = Properties {
                 id:             Uuid::new_v4(),
-                internal_name:  crate::test::mock::data::project_qualified_name(),
+                project_name:   crate::test::mock::data::project_qualified_name(),
+                displayed_name: ProjectName::new_unchecked("Test Project"),
                 engine_version: semver::Version::new(0, 2, 1),
             };
             let project_fut =
