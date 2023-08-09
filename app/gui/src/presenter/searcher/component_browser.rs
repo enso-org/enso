@@ -108,8 +108,13 @@ impl Model {
         let breadcrumbs = self.controller.update_breadcrumbs(target_entry);
         if let Some(breadcrumbs) = breadcrumbs {
             let browser = &self.view;
-            let breadcrumbs = breadcrumbs.into_iter().map(|entry| entry.into()).collect_vec();
-            browser.model().documentation.breadcrumbs.set_entries(breadcrumbs);
+            let breadcrumbs_count = breadcrumbs.len();
+            let without_icon =
+                breadcrumbs[0..breadcrumbs_count - 1].iter().map(|crumb| crumb.view_without_icon());
+            let with_icon =
+                breadcrumbs[breadcrumbs_count - 1..].iter().map(|crumb| crumb.view_with_icon());
+            let all = without_icon.chain(with_icon).collect_vec();
+            browser.model().documentation.breadcrumbs.set_entries(all);
         }
     }
 

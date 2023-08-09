@@ -113,6 +113,8 @@ pub struct Style {
     pub text_y_offset:            f32,
     pub text_padding_left:        f32,
     pub text_size:                f32,
+    pub icon_x_offset:            f32,
+    pub icon_y_offset:            f32,
     pub selected_color:           color::Rgba,
     pub highlight_corners_radius: f32,
     pub greyed_out_color:         color::Rgba,
@@ -186,7 +188,6 @@ impl EntryData {
         let separator = separator::View::new();
         let state = default();
         let icon: any_icon::View = default();
-        ellipsis.set_size((ICON_WIDTH, ICON_WIDTH));
         ellipsis.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
         icon.set_size((ICON_WIDTH, ICON_WIDTH));
         display_object.add_child(&icon);
@@ -256,15 +257,22 @@ impl EntryData {
         }
     }
 
-    fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
+    fn update_layout(
+        &self,
+        contour: Contour,
+        text_padding: f32,
+        text_y_offset: f32,
+        icon_x_offset: f32,
+        icon_y_offset: f32,
+    ) {
         let size = contour.size;
         let icon_offset = if self.has_icon() { ICON_WIDTH } else { 0.0 };
         self.text.set_xy(Vector2(icon_offset + text_padding - size.x / 2.0, text_y_offset));
         self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
-        self.icon.set_x(-size.x / 2.0 - 2.0);
-        self.icon.set_y(-ICON_WIDTH * 1.25 - 2.0);
+        self.icon.set_x(-size.x / 2.0 - icon_x_offset);
+        self.icon.set_y(-ICON_WIDTH - icon_y_offset);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
@@ -372,6 +380,8 @@ impl ensogl_grid_view::Entry for Entry {
             text_color <- input.set_params.map(|p| p.style.selected_color).cloned_into().on_change();
             text_y_offset <- input.set_params.map(|p| p.style.text_y_offset).on_change();
             text_size <- input.set_params.map(|p| p.style.text_size).on_change();
+            icon_x_offset <- input.set_params.map(|p| p.style.icon_x_offset).on_change();
+            icon_y_offset <- input.set_params.map(|p| p.style.icon_y_offset).on_change();
             greyed_out_color <- input.set_params.map(|p| p.style.greyed_out_color).cloned_into().on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.style.highlight_corners_radius).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
@@ -428,8 +438,14 @@ impl ensogl_grid_view::Entry for Entry {
                 })
             );
 
-            layout <- all(contour, text_padding, text_y_offset, new_model);
-            eval layout ((&(c, to, tyo, _)) data.update_layout(c, to, tyo));
+            layout <- all6(
+                &contour,
+                &text_padding,
+                &text_y_offset,
+                &new_model,
+                &icon_x_offset,
+                &icon_y_offset);
+            eval layout ((&(c, to, tyo, _, ix, iy)) data.update_layout(c, to, tyo, ix, iy));
 
             // === Override column width ===
 

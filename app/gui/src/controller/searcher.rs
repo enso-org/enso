@@ -16,14 +16,11 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::entry::Id as EntryId;
-use enso_suggestion_database::NoSuchEntry;
 use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use ide_view::component_browser::breadcrumbs::Breadcrumb;
 
 
 // ==============
@@ -394,26 +391,14 @@ impl Searcher {
                 None
             }
         } else {
-            warn!("Update readcrumbs called with invalid index: {}", index);
+            warn!("Update breadcrumbs called with invalid index: {}", index);
             None
         }
-    }
-
-    /// Return the full breadcrumb for the entry.
-    pub fn breadcrumbs_for_entry(&self, id: EntryId) -> Result<Vec<Breadcrumb>, NoSuchEntry> {
-        let component = self.database.lookup(id)?;
-        let name = &component.name;
-        let icon = Some(component.icon());
-        let module = &component.defined_in;
-        let breadcrumbs_base = module.path().iter().map(|name| Breadcrumb::new_without_icon(name));
-        let breadcrumbs = breadcrumbs_base.chain(iter::once(Breadcrumb::new(name, icon)));
-        Ok(breadcrumbs.collect())
     }
 
     /// Return the documentation for the breadcrumb.
     pub fn documentation_for_selected_breadcrumb(&self) -> Option<EntryDocumentation> {
         let selected = self.breadcrumbs.selected();
-        console_log!("documentation_for_selected_breadcrumb -> selected: {:?}", selected);
         let component = selected?;
         assert!(self.database.lookup(component).is_ok());
         let docs = self.database.documentation_for_entry(component);

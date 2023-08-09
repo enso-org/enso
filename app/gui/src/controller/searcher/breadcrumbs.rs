@@ -66,11 +66,6 @@ impl Breadcrumbs {
         let index = self.selected.get();
         self.list.borrow().get(index).map(BreadcrumbEntry::id)
     }
-
-    /// Return a list of breadcrumbs to be displayed in the panel.
-    pub fn items(&self) -> impl Iterator<Item = BreadcrumbEntry> + '_ {
-        self.list.borrow().iter().cloned().collect_vec().into_iter()
-    }
 }
 
 
@@ -108,6 +103,16 @@ impl BreadcrumbEntry {
     pub fn icon(&self) -> Option<icon::Id> {
         self.icon
     }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name and icon.
+    pub fn view_without_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), None)
+    }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name but no icon.
+    pub fn view_with_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), self.icon())
+    }
 }
 
 impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
@@ -118,13 +123,6 @@ impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
         BreadcrumbEntry { displayed_name, component_id, qualified_name, icon }
     }
 }
-
-impl From<BreadcrumbEntry> for ensogl_breadcrumbs::Breadcrumb {
-    fn from(val: BreadcrumbEntry) -> Self {
-        ensogl_breadcrumbs::Breadcrumb::new(val.name().as_str(), val.icon())
-    }
-}
-
 
 
 // ===============
