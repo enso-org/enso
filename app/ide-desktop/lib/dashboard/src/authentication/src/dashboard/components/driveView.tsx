@@ -24,6 +24,10 @@ import DriveBar from './driveBar'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
+/** The `toastId` of the toast that is displayed when the project that was to be initially opened
+ * is not found. */
+const ERROR_TOAST_ID = 'project-not-found'
+
 // =================
 // === DriveView ===
 // =================
@@ -134,13 +138,23 @@ export default function DriveView(props: DriveViewProps) {
         }
     }, [directoryStack, directoryId, organization])
 
+    hooks.useEventHandler(assetEvents, event => {
+        // We might initially fail to find the initial project and display error. However, as
+        // the data is loaded, we might find the project and should remove the error.
+        if (event.type === assetEventModule.AssetEventType.openProject) {
+            toastify.toast.dismiss(ERROR_TOAST_ID)
+        }
+    })
+
     const setAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
             rawSetAssets(newAssets)
+            // The project name here might also be a string with project id, e.g. when opening
+            // a project file from explorer on Windows.
+            const isInitialProject = (asset: backendModule.AnyAsset) =>
+                asset.title === initialProjectName || asset.id === initialProjectName
             if (nameOfProjectToImmediatelyOpen != null) {
-                const projectToLoad = newAssets.find(
-                    projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-                )
+                const projectToLoad = newAssets.find(isInitialProject)
                 if (projectToLoad != null) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -151,9 +165,9 @@ export default function DriveView(props: DriveViewProps) {
             }
             if (!initialized && initialProjectName != null) {
                 setInitialized(true)
-                if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                if (!newAssets.some(isInitialProject)) {
                     const errorMessage = `No project named '${initialProjectName}' was found.`
-                    toastify.toast.error(errorMessage)
+                    toastify.toast.error(errorMessage, { toastId: ERROR_TOAST_ID })
                     logger.error(`Error opening project on startup: ${errorMessage}`)
                 }
             }

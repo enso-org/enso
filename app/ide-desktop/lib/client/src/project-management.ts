@@ -67,8 +67,20 @@ export function importProjectFromPath(openedPath: string): string {
 export function importBundle(bundlePath: string): string {
     logger.log(`Importing project from bundle: '${bundlePath}'.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
-    const bundleRoot = directoryWithinBundle(bundlePath)
-    const targetDirectory = generateDirectoryName(bundleRoot ?? bundlePath)
+    const bundlePrefix = prefixInBundle(bundlePath)
+    // We care about spurious '.' and '..' when stripping paths but not when generating name.
+    const normalizedBundlePrefix =
+        bundlePrefix != null
+            ? pathModule.normalize(bundlePrefix).replace(/[\\/]+$/, '') // Also strip trailing slash.
+            : null
+    const dirNameBase =
+        normalizedBundlePrefix != null &&
+        normalizedBundlePrefix !== '.' &&
+        normalizedBundlePrefix !== '..'
+            ? normalizedBundlePrefix
+            : bundlePath
+    logger.log(`Bundle normalzied prefix: '${String(normalizedBundlePrefix)}'.`)
+    const targetDirectory = generateDirectoryName(dirNameBase)
     fss.mkdirSync(targetDirectory, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle,
     // we try to support both archives that:
@@ -79,11 +91,28 @@ export function importBundle(bundlePath: string): string {
     // We try to tell apart these two cases by looking at the common prefix of the paths
     // of the files in the archive. If there is any, everything is under a single directory,
     // and we need to strip it.
+    //
+    // Additionally, we need to take into account that paths might be prefixed with `./` or not.
+    // Thus, we need to adjust the number of path components to strip accordingly.
+
+    logger.log(`Extracting bundle: '${bundlePath}' -> '${targetDirectory}'.`)
+    // logger.log(`Bundle root: '${bundlePrefix}'.`)
+
+    // Strip trailing separator and split the path into pieces.
+    const rootPieces = bundlePrefix != null ? bundlePrefix.split(/[\\/]/) : []
+
+    // If the last element is empty string (i.e. we had trailing separator), drop it.
+    if (rootPieces.length > 0 && rootPieces[rootPieces.length - 1] === '') {
+        rootPieces.pop()
+    }
+
+    // logger.log(`Bundle root pieces: '${rootPieces}'.`)
+
     tar.x({
         file: bundlePath,
         cwd: targetDirectory,
         sync: true,
-        strip: bundleRoot != null ? 1 : 0,
+        strip: rootPieces.length,
     })
     return updateId(targetDirectory)
 }
@@ -200,22 +229,23 @@ export function isProjectRoot(candidatePath: string): boolean {
 }
 
 /** Check if this bundle is a compressed directory (rather than directly containing the project
- * files). If it is, we return the name of the directory. Otherwise, we return `null`. */
-export function directoryWithinBundle(bundlePath: string): string | null {
+ * files). If it is, we return the path to the directory. Otherwise, we return `null`. */
+export function prefixInBundle(bundlePath: string): string | null {
     // We need to look up the root directory among the tarball entries.
     let commonPrefix: string | null = null
     tar.list({
         file: bundlePath,
         sync: true,
         onentry: entry => {
-            // We normalize to get rid of leading `.` (if any).
-            const path = entry.path.normalize()
+            const path = entry.path
             commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
         },
     })
+
+    // We never want to return an empty string, so we return `null` if there is no common prefix.
     // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return commonPrefix != null ? pathModule.basename(commonPrefix) : null
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
+    return commonPrefix ? commonPrefix : null
 }
 
 /** Generate a name for a project using given base string. A suffix is added if there is a
