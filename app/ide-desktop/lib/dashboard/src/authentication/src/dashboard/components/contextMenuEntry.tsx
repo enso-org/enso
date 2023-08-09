@@ -13,6 +13,7 @@ import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps {
+    hidden?: boolean
     action: shortcutsModule.KeyboardAction
     disabled?: boolean
     title?: string
@@ -21,7 +22,7 @@ export interface ContextMenuEntryProps {
 
 /** An item in a `ContextMenu`. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
-    const { action, disabled = false, title, doAction } = props
+    const { hidden = false, action, disabled = false, title, doAction } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const info = shortcuts.keyboardShortcutInfo[action]
     React.useEffect(() => {
@@ -34,7 +35,7 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
             return
         }
     }, [disabled, shortcuts, action, doAction])
-    return (
+    return hidden ? null : (
         <button
             disabled={disabled}
             title={title}

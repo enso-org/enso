@@ -12,6 +12,7 @@ import ContextMenuEntry from './contextMenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
+    hidden?: boolean
     directoryKey: backendModule.DirectoryId | null
     directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -19,33 +20,36 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { directoryKey, directoryId, dispatchAssetListEvent } = props
+    const { hidden = false, directoryKey, directoryId, dispatchAssetListEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     return (
-        <ContextMenu>
+        <ContextMenu hidden={hidden}>
             {backend.type !== backendModule.BackendType.local && (
                 <>
-                    <input
-                        ref={filesInputRef}
-                        multiple
-                        type="file"
-                        id="context_menu_file_input"
-                        className="hidden"
-                        onInput={event => {
-                            if (event.currentTarget.files != null) {
-                                dispatchAssetListEvent({
-                                    type: assetListEventModule.AssetListEventType.uploadFiles,
-                                    parentKey: directoryKey,
-                                    parentId: directoryId,
-                                    files: Array.from(event.currentTarget.files),
-                                })
-                                unsetModal()
-                            }
-                        }}
-                    ></input>
+                    {!hidden && (
+                        <input
+                            ref={filesInputRef}
+                            multiple
+                            type="file"
+                            id="context_menu_file_input"
+                            className="hidden"
+                            onInput={event => {
+                                if (event.currentTarget.files != null) {
+                                    dispatchAssetListEvent({
+                                        type: assetListEventModule.AssetListEventType.uploadFiles,
+                                        parentKey: directoryKey,
+                                        parentId: directoryId,
+                                        files: Array.from(event.currentTarget.files),
+                                    })
+                                    unsetModal()
+                                }
+                            }}
+                        ></input>
+                    )}
                     <ContextMenuEntry
+                        hidden={hidden}
                         action={shortcuts.KeyboardAction.uploadFiles}
                         doAction={() => {
                             filesInputRef.current?.click()
@@ -54,6 +58,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 </>
             )}
             <ContextMenuEntry
+                hidden={hidden}
                 action={shortcuts.KeyboardAction.newProject}
                 doAction={() => {
                     unsetModal()
@@ -68,6 +73,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             />
             {backend.type !== backendModule.BackendType.local && (
                 <ContextMenuEntry
+                    hidden={hidden}
                     action={shortcuts.KeyboardAction.newFolder}
                     doAction={() => {
                         unsetModal()
@@ -81,6 +87,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             )}
             {backend.type !== backendModule.BackendType.local && (
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.newDataConnector}
                     doAction={() => {

@@ -110,7 +110,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, getDepth } = state
+    const { assetEvents, dispatchAssetListEvent, getDepth } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
@@ -120,7 +120,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         ...initialRowState,
         setPresence,
     }))
-    const [isContextMenuVisible, setIsContextMenuVisible] = React.useState(false)
 
     React.useEffect(() => {
         setItem(rawItem)
@@ -155,44 +154,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             toastAndLog('Unable to delete project', error)
         }
     }, [backend, dispatchAssetListEvent, item, key, toastAndLog])
-
-    const tableRowRef = React.useRef<HTMLTableRowElement>(null)
-    React.useEffect(() => {
-        if (selected && allowContextMenu && !isContextMenuVisible) {
-            // This is a copy of the context menu, since the context menu registers keyboard
-            // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
-            // the entire context menu (once for the keyboard actions, once for the JSX).
-            setModal(
-                <div className="hidden">
-                    <AssetContextMenu
-                        innerProps={{
-                            key,
-                            item,
-                            setItem,
-                            state,
-                            rowState,
-                            setRowState,
-                        }}
-                        event={{ pageX: 0, pageY: 0 }}
-                        eventTarget={tableRowRef.current}
-                        doDelete={doDelete}
-                    />
-                </div>
-            )
-        }
-    }, [
-        selected,
-        allowContextMenu,
-        isContextMenuVisible,
-        key,
-        item,
-        state,
-        rowState,
-        setRowState,
-        dispatchAssetEvent,
-        doDelete,
-        /* should never change */ setModal,
-    ])
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
@@ -233,7 +194,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             ) : (
                 <>
                     <TableRow
-                        tableRowRef={tableRowRef}
                         className={presenceModule.CLASS_NAME[presence]}
                         {...props}
                         onContextMenu={(innerProps, event) => {
@@ -241,17 +201,13 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                                 event.preventDefault()
                                 event.stopPropagation()
                                 onContextMenu?.(innerProps, event)
-                                setIsContextMenuVisible(true)
                                 setModal(
                                     <AssetContextMenu
                                         innerProps={innerProps}
                                         event={event}
                                         eventTarget={event.currentTarget}
                                         doDelete={doDelete}
-                                    />,
-                                    () => {
-                                        setIsContextMenuVisible(false)
-                                    }
+                                    />
                                 )
                             } else {
                                 onContextMenu?.(innerProps, event)
@@ -262,6 +218,25 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         initialRowState={rowState}
                         setRowState={setRowState}
                     />
+                    {selected && allowContextMenu && (
+                        // This is a copy of the context menu, since the context menu registers keyboard
+                        // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
+                        // the entire context menu (once for the keyboard actions, once for the JSX).
+                        <AssetContextMenu
+                            hidden
+                            innerProps={{
+                                key,
+                                item,
+                                setItem,
+                                state,
+                                rowState,
+                                setRowState,
+                            }}
+                            event={{ pageX: 0, pageY: 0 }}
+                            eventTarget={null}
+                            doDelete={doDelete}
+                        />
+                    )}
                 </>
             )
         }

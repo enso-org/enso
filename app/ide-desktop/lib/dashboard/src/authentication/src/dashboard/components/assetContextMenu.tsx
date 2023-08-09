@@ -25,6 +25,7 @@ import ManagePermissionsModal from './managePermissionsModal'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
+    hidden?: boolean
     innerProps: tableRow.TableRowInnerProps<
         T,
         assetsTable.AssetsTableState,
@@ -39,6 +40,7 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps<backendModule.AnyAsset>) {
     const {
+        hidden = false,
         innerProps: {
             key,
             item,
@@ -54,10 +56,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     return (
-        <ContextMenus key={props.innerProps.item.id} event={event}>
-            <ContextMenu>
+        <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
+            <ContextMenu hidden={hidden}>
                 {item.type === backendModule.AssetType.project && (
                     <ContextMenuEntry
+                        hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
                         doAction={() => {
                             unsetModal()
@@ -70,6 +73,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 )}
                 {item.type === backendModule.AssetType.project && (
                     <ContextMenuEntry
+                        hidden={hidden}
                         action={shortcuts.KeyboardAction.uploadToCloud}
                         doAction={async () => {
                             unsetModal()
@@ -112,6 +116,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     />
                 )}
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled={
                         item.type !== backendModule.AssetType.project &&
                         item.type !== backendModule.AssetType.directory
@@ -126,6 +131,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.snapshot}
                     doAction={() => {
@@ -133,6 +139,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     action={shortcuts.KeyboardAction.moveToTrash}
                     doAction={() => {
                         setModal(
@@ -143,8 +150,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         )
                     }}
                 />
-                <ContextMenuSeparator />
+                <ContextMenuSeparator hidden={hidden} />
                 <ContextMenuEntry
+                    hidden={hidden}
                     action={shortcuts.KeyboardAction.share}
                     doAction={() => {
                         setModal(
@@ -167,14 +175,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.label}
                     doAction={() => {
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuSeparator />
+                <ContextMenuSeparator hidden={hidden} />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
                     doAction={() => {
@@ -182,6 +192,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.copy}
                     doAction={() => {
@@ -189,6 +200,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.cut}
                     doAction={() => {
@@ -196,6 +208,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuEntry
+                    hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
@@ -205,6 +218,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
             </ContextMenu>
             {item.type === backendModule.AssetType.directory ? (
                 <GlobalContextMenu
+                    hidden={hidden}
                     // This is SAFE, as this only exists when the item is a directory.
                     // eslint-disable-next-line no-restricted-syntax
                     directoryKey={key as backendModule.DirectoryId}

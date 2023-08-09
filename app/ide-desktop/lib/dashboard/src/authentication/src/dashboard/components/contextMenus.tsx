@@ -16,13 +16,14 @@ const SCROLL_MARGIN = 12
 
 /** Props for a {@link ContextMenus}. */
 export interface ContextMenusProps extends React.PropsWithChildren {
+    hidden?: boolean
     key: string
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A context menu that opens at the current mouse position. */
 export default function ContextMenus(props: ContextMenusProps) {
-    const { children, event } = props
+    const { hidden = false, children, event } = props
     const contextMenuRef = React.useRef<HTMLDivElement>(null)
     const [left, setLeft] = React.useState(event.pageX)
     const [top, setTop] = React.useState(event.pageY)
@@ -41,7 +42,9 @@ export default function ContextMenus(props: ContextMenusProps) {
         }
     }, [bodyHeight, children, top, event.pageX])
 
-    return (
+    return hidden ? (
+        <>{children}</>
+    ) : (
         <Modal className="absolute overflow-hidden bg-dim w-full h-full z-10">
             <div
                 ref={contextMenuRef}
