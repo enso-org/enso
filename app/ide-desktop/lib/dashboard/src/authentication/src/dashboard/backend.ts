@@ -531,6 +531,23 @@ export function detectVersionLifecycle(version: string) {
     }
 }
 
+// =====================
+// === compareAssets ===
+// =====================
+
+/** A number to be returned from a comparison function, indicating that the first argument is less
+ * than the second argument. */
+const COMPARE_LESS_THAN = -1
+
+/** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
+export function compareAssets(a: AnyAsset, b: AnyAsset) {
+    const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+    if (relativeTypeOrder !== 0) {
+        return relativeTypeOrder
+    }
+    return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+}
+
 // ==================
 // === getAssetId ===
 // ==================

@@ -491,14 +491,29 @@ export default function AssetsTable(props: AssetsTableProps) {
                     for (const childItem of childItems) {
                         itemDepthsRef.current.set(childItem.id, childDepth)
                     }
-                    // FIXME: sort assets inserted before this assset
-                    setItems(oldItems =>
-                        array.splicedReplacing(
-                            oldItems,
-                            childItems,
-                            item => item.id === loadingAssetId
+                    setItems(oldItems => {
+                        const firstChildIndex = oldItems.findIndex(
+                            item => item.parentId === directory.id
                         )
-                    )
+                        let numberOfChildren = 1
+                        while (
+                            oldItems[firstChildIndex + numberOfChildren]?.parentId === directory.id
+                        ) {
+                            numberOfChildren += 1
+                        }
+                        const oldChildren = oldItems.slice(
+                            firstChildIndex,
+                            // Subtract one extra, to exclude the placeholder "loading" asset.
+                            firstChildIndex + numberOfChildren - 2
+                        )
+                        const newChildren =
+                            oldChildren.length === 0
+                                ? childItems
+                                : [...oldChildren, ...childItems].sort(backendModule.compareAssets)
+                        const newItems = Array.from(oldItems)
+                        newItems.splice(firstChildIndex, numberOfChildren, ...newChildren)
+                        return newItems
+                    })
                 })()
             }
         },
