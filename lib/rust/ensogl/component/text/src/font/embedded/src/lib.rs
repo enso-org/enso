@@ -49,9 +49,8 @@ pub struct Embedded {
     pub data:        HashMap<&'static str, &'static [u8]>,
 }
 
-impl Embedded {
-    /// Construct and load all the embedded fonts to memory.
-    pub fn init_and_load_embedded_fonts() -> Self {
+impl Default for Embedded {
+    fn default() -> Self {
         let data = embedded_fonts_data();
         let definitions = embedded_family_definitions();
         Self { data, definitions }
@@ -76,7 +75,7 @@ mod test {
 
     #[test]
     fn loading_embedded_fonts() {
-        let fonts = Embedded::init_and_load_embedded_fonts();
+        let fonts = Embedded::default();
         let example_font = fonts.data.get("Enso-Regular.ttf").unwrap();
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);

@@ -368,7 +368,7 @@ mod tests {
     async fn generate_msdf_for_capital_a() {
         initialized().await;
         // given
-        let font_base = Embedded::init_and_load_embedded_fonts();
+        let font_base = Embedded::default();
         let font_name = "Enso-Regular.ttf";
         let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = TEST_PARAMETERS;
@@ -383,7 +383,7 @@ mod tests {
     async fn generate_msdf_for_capital_a_by_index() {
         initialized().await;
         // given
-        let font_base = Embedded::init_and_load_embedded_fonts();
+        let font_base = Embedded::default();
         let font_name = "Enso-Regular.ttf";
         let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = TEST_PARAMETERS;

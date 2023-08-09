@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::system::gpu;
 #[cfg(target_arch = "wasm32")]
@@ -965,6 +964,67 @@ impl FontWithGpuData {
 // === Registry ===
 // ================
 
+/// Stores all loaded fonts.
+#[derive(Debug, Clone, Default)]
+#[derive(CloneRef)]
+pub struct Registry {
+    rc: Rc<RefCell<RegistryData>>,
+}
+
+#[derive(Debug, Default)]
+struct RegistryData {
+    embedded: Embedded,
+    fonts:    HashMap<Name, FontWithGpuData>,
+}
+
+impl Registry {
+    /// Load the default font. See the docs of [`load`] to learn more.
+    pub fn load_default(&self) -> FontWithGpuData {
+        self.load(DEFAULT_FONT)
+    }
+
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
+    /// registry if not used before. Returns the default font if the name is missing in both cache
+    /// and embedded font list.
+    pub fn load(&self, name: impl Into<Name>) -> FontWithGpuData {
+        let name = name.into();
+        self.try_load(&name).unwrap_or_else(|| {
+            warn!("Font '{name}' not found. Loading the default font.");
+            self.try_load(DEFAULT_FONT).expect("Default font not found.")
+        })
+    }
+
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
+    /// registry if not used before. Returns [`None`] if the name is missing in both cache and
+    /// embedded font list.
+    pub fn try_load(&self, name: impl Into<Name>) -> Option<FontWithGpuData> {
+        let mut data = self.rc.borrow_mut();
+        let data = &mut *data;
+        let name = name.into();
+        match data.fonts.entry(name.clone()) {
+            Entry::Occupied(entry) => Some(entry.get().clone_ref()),
+            Entry::Vacant(entry) => {
+                debug!("Loading font: {:?}", name);
+                let scene = scene();
+                let hinting = Hinting::for_font(&name, scene.shape().value());
+                let font = data.embedded.load_font(name)?;
+                let font = FontWithGpuData::new(font, hinting, &get_context(&scene));
+                entry.insert(font.clone_ref());
+                Some(font)
+            }
+        }
+    }
+}
+
+impl scene::Extension for Registry {
+    fn init(_scene: &scene::Scene) -> Self {
+        Self::default()
+    }
+}
+
+
+// === Context helpers ===
+
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy, CloneRef, Debug, Default)]
 /// Mocked version of WebGL context.
@@ -991,69 +1051,6 @@ fn get_context(scene: &scene::Scene) -> Context {
 #[cfg(target_arch = "wasm32")]
 fn get_texture(context: &Context) -> AtlasTexture {
     gpu::Texture::new(context, (0, 0))
-}
-
-
-shared! { Registry
-/// Structure keeping all fonts loaded from different sources.
-#[derive(Debug)]
-pub struct RegistryData {
-    embedded: Embedded,
-    fonts: HashMap<Name, FontWithGpuData>,
-}
-
-impl {
-    /// Load the default font. See the docs of [`load`] to learn more.
-    pub fn load_default(&mut self) -> FontWithGpuData {
-        self.load(DEFAULT_FONT)
-    }
-
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns the default font if the name is missing in both cache
-    /// and embedded font list.
-    pub fn load(&mut self, name:impl Into<Name>) -> FontWithGpuData {
-        let name = name.into();
-        self.try_load(&name).unwrap_or_else(|| {
-            warn!("Font '{name}' not found. Loading the default font.");
-            self.try_load(DEFAULT_FONT).expect("Default font not found.")
-        })
-    }
-
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns [`None`] if the name is missing in both cache and
-    /// embedded font list.
-    pub fn try_load(&mut self, name: impl Into<Name>) -> Option<FontWithGpuData> {
-        let name = name.into();
-        match self.fonts.entry(name.clone()) {
-            Entry::Occupied(entry) => Some(entry.get().clone_ref()),
-            Entry::Vacant(entry) => {
-                debug!("Loading font: {:?}", name);
-                let scene = scene();
-                let hinting = Hinting::for_font(&name, scene.shape().value());
-                let font = self.embedded.load_font(name)?;
-                let font = FontWithGpuData::new(font, hinting, &get_context(&scene));
-                entry.insert(font.clone_ref());
-                Some(font)
-            }
-        }
-    }
-}}
-
-impl Registry {
-    /// Constructor.
-    pub fn init_and_load_embedded_fonts() -> Registry {
-        let embedded = Embedded::new();
-        let fonts = HashMap::new();
-        let data = RegistryData { embedded, fonts };
-        let rc = Rc::new(RefCell::new(data));
-        Self { rc }
-    }
-}
-
-impl scene::Extension for Registry {
-    fn init(_scene: &scene::Scene) -> Self {
-        Self::init_and_load_embedded_fonts()
-    }
 }
 
 
@@ -1106,13 +1103,6 @@ pub struct Embedded {
 }
 
 impl Embedded {
-    /// Load the registry.
-    pub fn new() -> Self {
-        let fonts = ensogl_text_embedded_fonts::Embedded::init_and_load_embedded_fonts();
-        let ensogl_text_embedded_fonts::Embedded { definitions, data } = fonts;
-        Self { definitions, data }
-    }
-
     /// Load a font from the registry.
     pub fn load_font(&self, name: Name) -> Option<Font> {
         self.definitions.get(&name).map(|definition| match definition {
