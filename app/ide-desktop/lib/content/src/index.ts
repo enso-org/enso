@@ -35,10 +35,6 @@ const SERVICE_WORKER_PATH = './serviceWorker.js'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
-/** The URL parameter name of the "Project Manager URL" parameter.
- * This MUST be changed if the corresponding option in
- * `content-config/src/config.json` is changed. */
-const PROJECT_MANAGER_URL_PARAMETER_NAME = 'engine.projectManagerUrl'
 
 // ===================
 // === Live reload ===
