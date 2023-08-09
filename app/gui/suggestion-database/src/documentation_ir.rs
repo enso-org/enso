@@ -29,7 +29,17 @@ use crate::SuggestionDatabase;
 use double_representation::name::QualifiedName;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Mark;
+use enso_doc_parser::Tag as DocSectionTag;
 use std::cmp::Ordering;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// A list of tags which are not included into generated documentation.
+const IGNORED_TAGS: &[DocSectionTag] = &[DocSectionTag::Icon];
 
 
 
@@ -698,6 +708,8 @@ impl<'a, T: Clone + PartialOrd + Ord> From<&'a [T]> for SortedVec<T> {
 
 /// Helper structure for splitting entry's [`DocSection`]s into [`Tags`], [`Synopsis`], and
 /// [`Examples`].
+///
+/// Skips [`Tags`] from the [`IGNORED_TAGS`] list.
 struct FilteredDocSections {
     tags:     Tags,
     synopsis: Synopsis,
@@ -712,7 +724,10 @@ impl FilteredDocSections {
         let mut examples = Vec::new();
         for section in doc_sections {
             match section {
-                DocSection::Tag { tag, body } => tags.push(Tag::new(tag.to_str(), body)),
+                DocSection::Tag { tag, body } =>
+                    if !IGNORED_TAGS.contains(tag) {
+                        tags.push(Tag::new(tag.to_str(), body));
+                    },
                 DocSection::Marked { mark: Mark::Example, .. } => examples.push(section.clone()),
                 section => synopsis.push(section.clone()),
             }
