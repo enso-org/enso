@@ -28,8 +28,10 @@ make_long_builder initial_size bits=Bits.Bits_64 =
     NumericBuilder.createLongBuilder initial_size integer_type
 
 ## PRIVATE
-make_string_builder : Integer -> StringBuilder
-make_string_builder initial_size = StringBuilder.new initial_size
+make_string_builder : Integer -> Value_Type -> StringBuilder
+make_string_builder initial_size value_type=Value_Type.Char =
+    storage_type = Storage.from_value_type_strict value_type
+    StringBuilder.new initial_size storage_type
 
 ## PRIVATE
 make_time_of_day_builder : Integer -> TimeOfDayBuilder

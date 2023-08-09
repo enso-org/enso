@@ -84,13 +84,13 @@ long_fetcher bits =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
-text_fetcher : Column_Fetcher
-text_fetcher =
+text_fetcher : Value_Type -> Column_Fetcher
+text_fetcher value_type =
     fetch_value rs i =
         t = rs.getString i
         if rs.wasNull then Nothing else t
     make_builder initial_size =
-        java_builder = Java_Exports.make_string_builder initial_size
+        java_builder = Java_Exports.make_string_builder initial_size value_type=value_type
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -140,9 +140,7 @@ default_fetcher_for_value_type value_type =
     case value_type of
         Value_Type.Integer bits -> long_fetcher bits
         Value_Type.Float _ -> double_fetcher
-        ## TODO [RW] once we support fixed length in storages, we should specify it
-           Revisit in #5159.
-        Value_Type.Char _ _ -> text_fetcher
+        Value_Type.Char _ _ -> text_fetcher value_type
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
