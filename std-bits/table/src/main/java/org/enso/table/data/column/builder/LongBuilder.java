@@ -78,7 +78,7 @@ public class LongBuilder extends NumericBuilder {
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
       currentSize += n;
-    } else if (storage.getType() instanceof IntegerType) {
+    } else if (storage.getType() instanceof IntegerType otherType && type.fits(otherType)) {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         ensureFreeSpaceFor(n);

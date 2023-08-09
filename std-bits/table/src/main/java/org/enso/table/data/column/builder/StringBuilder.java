@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -41,6 +42,24 @@ public class StringBuilder extends TypedBuilderImpl<String> {
     } else {
       return false;
     }
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (storage.getType() instanceof TextType gotType) {
+      if (type.fitsExactly(gotType)) {
+        if (storage instanceof SpecializedStorage<?>) {
+          // This cast is safe, because storage.getType() == this.getType() == TextType iff storage.T == String
+          @SuppressWarnings("unchecked")
+          SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
+          System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
+          currentSize += storage.size();
+          return;
+        }
+      }
+    }
+
+    super.appendBulkStorage(storage);
   }
 
   @Override

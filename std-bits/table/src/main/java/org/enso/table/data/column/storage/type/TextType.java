@@ -27,6 +27,24 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     }
   }
 
+  /**
+   * Checks if values of otherType can be transferred to this type without any conversions.
+   * <p>
+   * For example, values of type TextType(3, false) will fit TextType(3, true), but they need to be padded to fit the
+   * target type. So this function will return false for such a case.
+   */
+  public boolean fitsExactly(TextType otherType) {
+    if (fixedLength) {
+      if (otherType.fixedLength) {
+        return maxLength == otherType.maxLength;
+      } else {
+        return false;
+      }
+    } else {
+      return maxLength == -1 || (otherType.maxLength != -1 && maxLength >= otherType.maxLength);
+    }
+  }
+
   public static TextType preciseTypeForValue(String value) {
     return fixedLength(Text_Utils.grapheme_length(value));
   }

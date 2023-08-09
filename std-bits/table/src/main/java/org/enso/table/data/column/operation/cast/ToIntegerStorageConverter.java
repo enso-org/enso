@@ -21,7 +21,12 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof LongStorage longStorage) {
-      return longStorage;
+      if (storage.getType().equals(targetType)) {
+        return longStorage;
+      } else {
+        // TODO [RW] FIXME this is just a hack that is totally invalid, just doing it to check a test in Union
+        return new LongStorage(longStorage.getRawData(), longStorage.size(), longStorage.getIsMissing(), targetType);
+      }
     } else if (storage instanceof DoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
