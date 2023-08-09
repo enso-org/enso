@@ -70,8 +70,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         computeExecutionContext
       )
     for {
-      binding <- bindServer(mainModule, processConfig)
-      _       <- logServerStartup(processConfig)
+      binding <- bindServer(mainModule)
+      _       <- logServerStartup()
       _       <- tryReadLine
       _       <- ZIO.succeed { logger.info("Stopping server...") }
       _       <- ZIO.succeed { binding.unbind() }
@@ -205,37 +205,14 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         ZIO.fail(err)
       }
 
-    val parseServerHost = ZIO
-      .attempt {
-        Option(options.getOptionValue(Cli.SERVER_HOST))
-      }
-      .catchAll { err =>
-        printLineError(s"Invalid ${Cli.SERVER_HOST} argument.") *>
-        ZIO.fail(err)
-      }
-
-    val parseServerPort = ZIO
-      .attempt {
-        Option(options.getOptionValue(Cli.SERVER_PORT))
-          .map(_.toInt)
-      }
-      .catchAll { err =>
-        printLineError(s"Invalid ${Cli.SERVER_PORT} argument.") *>
-        ZIO.fail(err)
-      }
-
     for {
       profilingEventsLogPath <- parseProfilingEventsLogPath
       profilingPath          <- parseProfilingPath
       profilingTime          <- parseProfilingTime
-      serverHost             <- parseServerHost
-      serverPort             <- parseServerPort
     } yield ProjectManagerOptions(
       profilingEventsLogPath,
       profilingPath,
-      profilingTime,
-      serverHost,
-      serverPort
+      profilingTime
     )
   }
 
@@ -260,9 +237,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           logLevel,
           opts.profilingRuntimeEventsLog,
           opts.profilingPath,
-          opts.profilingTime,
-          opts.serverHost,
-          opts.serverPort
+          opts.profilingTime
         )
         exitCode <- mainProcess(procConf).fold(
           th => {
@@ -312,25 +287,21 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     ZIO.succeed(SuccessExitCode)
   }
 
-  private def logServerStartup(processConfig: MainProcessConfig): UIO[Unit] =
+  private def logServerStartup(): UIO[Unit] =
     ZIO.succeed {
       logger.info(
         "Started server at {}:{}, press enter to kill server",
-        processConfig.serverHost.getOrElse(config.server.host),
-        processConfig.serverPort.getOrElse(config.server.port)
+        config.server.host,
+        config.server.port
       )
     }
 
   private def bindServer(
-    module: MainModule[ZIO[ZAny, +*, +*]],
-    processConfig: MainProcessConfig
+    module: MainModule[ZIO[ZAny, +*, +*]]
   ): UIO[Http.ServerBinding] =
     ZIO.succeed {
       Await.result(
-        module.server.bind(
-          processConfig.serverHost.getOrElse(config.server.host),
-          processConfig.serverPort.getOrElse(config.server.port)
-        ),
+        module.server.bind(config.server.host, config.server.port),
         3.seconds
       )
     }

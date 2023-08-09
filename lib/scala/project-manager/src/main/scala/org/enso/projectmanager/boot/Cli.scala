@@ -15,8 +15,6 @@ object Cli {
   val PROFILING_PATH            = "profiling-path"
   val PROFILING_TIME            = "profiling-time"
   val PROFILING_EVENTS_LOG_PATH = "profiling-events-log-path"
-  val SERVER_HOST               = "server-host"
-  val SERVER_PORT               = "server-port"
 
   object option {
 
@@ -76,22 +74,6 @@ object Cli {
         "The path to the runtime events log file. Enables the runtime events logging."
       )
       .build()
-
-    val serverHost: cli.Option = cli.Option.builder
-      .hasArg(true)
-      .numberOfArgs(1)
-      .argName("host")
-      .longOpt(SERVER_HOST)
-      .desc("The host name of the server.")
-      .build()
-
-    val serverPort: cli.Option = cli.Option.builder
-      .hasArg(true)
-      .numberOfArgs(1)
-      .argName("port")
-      .longOpt(SERVER_PORT)
-      .desc("The port number of the server.")
-      .build()
   }
 
   val options: cli.Options =
@@ -104,8 +86,6 @@ object Cli {
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
       .addOption(option.profilingEventsLogPath)
-      .addOption(option.serverHost)
-      .addOption(option.serverPort)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {
