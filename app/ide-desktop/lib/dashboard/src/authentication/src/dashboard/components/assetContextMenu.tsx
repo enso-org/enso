@@ -203,7 +203,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 />
             </ContextMenu>
             <GlobalContextMenu
-                directoryId={item.parentId}
+                directoryId={
+                    item.type === backendModule.AssetType.directory ? item.id : item.parentId
+                }
                 dispatchAssetListEvent={dispatchAssetListEvent}
             />
         </ContextMenus>
