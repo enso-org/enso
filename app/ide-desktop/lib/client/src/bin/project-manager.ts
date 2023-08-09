@@ -49,18 +49,18 @@ export function spawn(
         `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
         () => {
             const binPath = pathOrPanic(args)
-            const pmProcess = childProcess.spawn(binPath, processArgs, {
+            const process = childProcess.spawn(binPath, processArgs, {
                 stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
                 env,
                 // The Project Manager should never spawn any windows. On Windows OS this needs
                 // to be manually prevented, as the default is to spawn a console window.
                 windowsHide: true,
             })
-            logger.log(`Backend has been spawned (pid = ${String(pmProcess.pid)}).`)
-            pmProcess.on('exit', code => {
+            logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
+            process.on('exit', code => {
                 logger.log(`Backend exited with code ${String(code)}.`)
             })
-            return pmProcess
+            return process
         }
     )
 }
