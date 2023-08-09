@@ -15,7 +15,9 @@ use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_doc_parser::doc_sections::HtmlString;
 use enso_doc_parser::DocSection;
+use enso_doc_parser::Tag;
 use enso_text::Location;
 use language_server::types::FieldAction;
 
@@ -27,16 +29,6 @@ use language_server::types::FieldAction;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// Key of the keyed [`language_server::types::DocSection`] containing a name of an icon in its
-/// body.
-const ICON_DOC_SECTION_KEY: &str = "Icon";
 
 
 
@@ -91,23 +83,21 @@ pub struct ModuleSpan {
 // ================
 
 /// Name of an icon. The name is composed of words with unspecified casing.
+///
+/// In order to make icon definitions more readable for non-programmer users, the builtin icon name
+/// is allowed to be formatted in arbitrary casing. Either `SNAKE_case`,`camelCase`, `Pascal_Case`
+/// etc. is allowed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IconName {
-    /// Internally the name is kept in PascalCase to optimize converting into
-    /// [`component_group_view::icon::Id`].
+    /// The name is kept in `PascalCase` to allow easy conversion into builtin icon ID.
     pascal_cased: ImString,
 }
 
 impl IconName {
-    /// Construct from a name formatted in snake_case.
-    pub fn from_snake_case(s: impl AsRef<str>) -> Self {
-        let pascal_cased = s.as_ref().from_case(Case::Snake).to_case(Case::Pascal).into();
+    /// Parse arbitrary tag body with any casing into an `PascalCase` icon name.
+    pub fn from_tag_body(s: &str) -> Self {
+        let pascal_cased = s.to_case(Case::Pascal).into();
         Self { pascal_cased }
-    }
-
-    /// Convert to a name formatted in snake_case.
-    pub fn to_snake_case(&self) -> ImString {
-        self.pascal_cased.from_case(Case::Pascal).to_case(Case::Snake).into()
     }
 
     /// Convert to a name formatted in PascalCase.
@@ -230,7 +220,7 @@ pub struct Entry {
     /// A module where the suggested object is defined.
     pub defined_in:    QualifiedName,
     /// A name of suggested object.
-    pub name:          String,
+    pub name:          ImString,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments:     Vec<Argument>,
@@ -248,6 +238,8 @@ pub struct Entry {
     pub scope:         Scope,
     /// A name of a custom icon to use when displaying the entry.
     pub icon_name:     Option<IconName>,
+    /// A name of a group this entry belongs to.
+    pub group_name:    Option<String>,
 }
 
 
@@ -261,7 +253,7 @@ impl Entry {
     pub fn new(
         kind: Kind,
         defined_in: impl Into<QualifiedName>,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: impl Into<QualifiedName>,
     ) -> Self {
         Self {
@@ -276,6 +268,7 @@ impl Entry {
             self_type: None,
             scope: Scope::Everywhere,
             icon_name: None,
+            group_name: None,
         }
     }
 
@@ -285,7 +278,7 @@ impl Entry {
     /// `on_type`.
     pub fn new_nonextension_method(
         on_type: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
@@ -302,7 +295,7 @@ impl Entry {
     /// The module method has self_type equal to module where it's defined, and is always static.
     pub fn new_module_method(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
     ) -> Self {
         Self {
@@ -316,7 +309,7 @@ impl Entry {
     pub fn new_method(
         defined_in: QualifiedName,
         on_type: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
@@ -328,14 +321,14 @@ impl Entry {
     }
 
     /// Create new type entry.
-    pub fn new_type(defined_in: QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_type(defined_in: QualifiedName, name: impl Into<ImString>) -> Self {
         let name = name.into();
         let return_type = defined_in.clone().new_child(&name);
         Self::new(Kind::Type, defined_in, name, return_type)
     }
 
     /// Create new constructor entry.
-    pub fn new_constructor(of_type: QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_constructor(of_type: QualifiedName, name: impl Into<ImString>) -> Self {
         let defined_in_module = of_type.parent().unwrap_or(of_type.as_ref()).to_owned();
         Self {
             self_type: Some(of_type.clone()),
@@ -347,7 +340,7 @@ impl Entry {
     /// Create new local function entry.
     pub fn new_function(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
@@ -360,7 +353,7 @@ impl Entry {
     /// Create new local variable entry.
     pub fn new_local(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
@@ -372,7 +365,7 @@ impl Entry {
 
     /// Create new module entry.
     pub fn new_module(full_name: QualifiedName) -> Self {
-        let name = full_name.name().to_owned();
+        let name = full_name.name().to_im_string();
         let return_type = full_name.clone();
         Self::new(Kind::Module, full_name, name, return_type)
     }
@@ -406,6 +399,12 @@ impl Entry {
         self.icon_name = Some(icon_name);
         self
     }
+
+    /// Takes self and returns it with new `group_name` value.
+    pub fn in_group(mut self, group_name: impl Into<String>) -> Self {
+        self.group_name = Some(group_name.into());
+        self
+    }
 }
 
 
@@ -427,7 +426,8 @@ impl Entry {
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
             Kind::Constructor => self.code_with_static_this(in_module).into(),
             Kind::Module => self.defined_in.alias_name().as_str().into(),
-            Kind::Method | Kind::Type | Kind::Local | Kind::Function => Cow::from(&self.name),
+            Kind::Method | Kind::Type | Kind::Local | Kind::Function =>
+                Cow::from(self.name.as_str()),
         }
     }
 
@@ -494,10 +494,7 @@ impl Entry {
                 .collect(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
-                    Import::Unqualified {
-                        module: reexport.clone(),
-                        name:   self.name.as_str().into(),
-                    }
+                    Import::Unqualified { module: reexport.clone(), name: self.name.clone() }
                 } else {
                     Import::Qualified { module: self.defined_in.clone() }
                 };
@@ -508,7 +505,7 @@ impl Entry {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
                 iter::once(Import::Unqualified {
                     module: imported_from.clone(),
-                    name:   self.name.as_str().into(),
+                    name:   self.name.clone(),
                 })
                 .collect()
             }
@@ -518,12 +515,12 @@ impl Entry {
 
     fn self_type_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
         let self_type_ref = self.self_type.as_ref();
-        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp));
+        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp).ok());
         lookup.map(|(_, entry)| entry)
     }
 
     fn defined_in_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
-        let lookup = db.lookup_by_qualified_name(&self.defined_in);
+        let lookup = db.lookup_by_qualified_name(&self.defined_in).ok();
         lookup.map(|(_, entry)| entry)
     }
 }
@@ -542,7 +539,7 @@ impl Entry {
             self.self_type.as_ref().map(|self_type| MethodId {
                 module:          self.defined_in.clone(),
                 defined_on_type: self_type.clone(),
-                name:            self.name.clone(),
+                name:            self.name.to_string(),
             })
         }
     }
@@ -558,7 +555,7 @@ impl Entry {
 
     /// Checks if entry name matches the given name. The matching is case-insensitive.
     pub fn matches_name(&self, name: impl Str) -> bool {
-        self.name.to_lowercase() == name.as_ref().to_lowercase()
+        self.name.eq_ignore_ascii_case(name.as_ref())
     }
 
     /// Generate information about invoking this entity for span tree context.
@@ -612,6 +609,18 @@ impl Entry {
             _ => false,
         }
     }
+
+    /// Return an iterator over the aliases from the "ALIAS" tags in the documentation.
+    pub fn aliases(&self) -> impl Iterator<Item = &str> {
+        self.documentation
+            .iter()
+            .filter_map(|doc| match doc {
+                DocSection::Tag { tag: Tag::Alias, body } =>
+                    Some(body.as_str().split(',').map(|s| s.trim())),
+                _ => None,
+            })
+            .flatten()
+    }
 }
 
 
@@ -644,6 +653,7 @@ impl Entry {
         };
         let doc_sections = enso_doc_parser::parse(documentation);
         let icon_name = find_icon_name_in_doc_sections(&doc_sections);
+        let group_name = find_group_name_in_doc_sections(&doc_sections);
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }
@@ -683,6 +693,7 @@ impl Entry {
         };
         this.documentation = doc_sections;
         this.icon_name = icon_name;
+        this.group_name = group_name;
         this.reexported_in = reexported_in;
         this
     }
@@ -721,7 +732,7 @@ impl Entry {
     ) -> Vec<failure::Error> {
         use language_server::types::SuggestionArgumentUpdate as Update;
         let error = |index| {
-            let name = self.name.clone();
+            let name = self.name.to_string();
             vec![failure::Error::from(InvalidArgumentIndex { name, index })]
         };
         match update {
@@ -832,13 +843,13 @@ impl TryFrom<&Entry> for language_server::MethodPointer {
     type Error = failure::Error;
     fn try_from(entry: &Entry) -> FallibleResult<Self> {
         let is_method_or_constructor = matches!(entry.kind, Kind::Method | Kind::Constructor);
-        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.clone()))?;
-        let missing_this_err = || MissingSelfOnMethod(entry.name.clone());
+        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.to_string()))?;
+        let missing_this_err = || MissingSelfOnMethod(entry.name.to_string());
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
             defined_on_type: defined_on_type.into(),
             module:          entry.defined_in.to_string(),
-            name:            entry.name.clone(),
+            name:            entry.name.to_string(),
         })
     }
 }
@@ -891,7 +902,7 @@ fn resolve_tag_value<'a>(
     let stripped_expr = raw_expression.trim_start_matches(['(', ' ']).trim_end_matches([')', ' ']);
     let qualified_name = QualifiedName::from_text(stripped_expr).ok();
     if let Some(qualified_name) = qualified_name {
-        let entry = db.lookup_by_qualified_name(&qualified_name);
+        let entry = db.lookup_by_qualified_name(&qualified_name).ok();
 
         // If a lookup of a fully qualified name have failed, the name is likely not actually fully
         // qualified. Try to resolve it as partially qualified, ignoring potential ambiguity. Only
@@ -976,20 +987,18 @@ where
 
 fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
 where I: IntoIterator<Item = &'a DocSection> {
+    find_tag_in_doc_sections(Tag::Icon, doc_sections).map(|body| IconName::from_tag_body(body))
+}
+
+fn find_group_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<String>
+where I: IntoIterator<Item = &'a DocSection> {
+    find_tag_in_doc_sections(Tag::Group, doc_sections).cloned()
+}
+
+fn find_tag_in_doc_sections<'a, I>(tag: Tag, doc_sections: I) -> Option<&'a HtmlString>
+where I: IntoIterator<Item = &'a DocSection> {
     doc_sections.into_iter().find_map(|section| match section {
-        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
-            let icon_name = IconName::from_snake_case(body);
-            let as_snake_case = icon_name.to_snake_case();
-            if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
-                let msg = format!(
-                    "The icon name {body} used in the {ICON_DOC_SECTION_KEY} section of the \
-                    documentation of a component is not a valid, losslessly-convertible snake_case \
-                    identifier. The component may be displayed with a different icon than expected."
-                );
-                warn!("{msg}");
-            }
-            Some(icon_name)
-        }
+        DocSection::Tag { tag: current_tag, body } if *current_tag == tag => Some(body),
         _ => None,
     })
 }
@@ -1274,8 +1283,8 @@ mod test {
         use enso_doc_parser::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
-            DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
-            DocSection::Keyed { key: "Icon".into(), body: "example_icon_name".into() },
+            DocSection::Tag { tag: Tag::Advanced, body: "example_not_icon_body".into() },
+            DocSection::Tag { tag: Tag::Icon, body: "ExampleIconName".into() },
             DocSection::Paragraph { body: "Another paragraph.".into() },
         ];
         let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
@@ -1286,8 +1295,8 @@ mod test {
     /// converting [`IconName`] values to PascalCase.
     #[test]
     fn icon_name_case_insensitiveness() {
-        let name_from_small_snake_case = IconName::from_snake_case("an_example_name");
-        let name_from_mixed_snake_case = IconName::from_snake_case("aN_EXAMPLE_name");
+        let name_from_small_snake_case = IconName::from_tag_body("an_example_name");
+        let name_from_mixed_snake_case = IconName::from_tag_body("An_EXAMPLE_name");
         const PASCAL_CASE_NAME: &str = "AnExampleName";
         assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
         assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);

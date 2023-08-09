@@ -69,6 +69,8 @@ case class VcsManagerConfig(
     Path.of(ProjectDirectoriesConfig.DataDirectory)
 }
 
+case class AICompletionConfig(apiKey: String)
+
 object VcsManagerConfig {
   def apply(asyncInit: Boolean = true): VcsManagerConfig =
     VcsManagerConfig(initTimeout = 5.seconds, 5.seconds, asyncInit)
@@ -153,7 +155,8 @@ case class Config(
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig,
   profiling: ProfilingConfig,
-  startup: StartupConfig
+  startup: StartupConfig,
+  aiCompletionConfig: Option[AICompletionConfig]
 ) extends ToLogString {
 
   /** @inheritdoc */

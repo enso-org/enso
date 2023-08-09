@@ -1,10 +1,9 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -64,10 +63,6 @@ case object TypeSignatures extends IRPass {
   ): IR.Expression = resolveExpression(ir)
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 
@@ -305,7 +300,7 @@ case object TypeSignatures extends IRPass {
     *
     * @param signature the expression for the type signature
     */
-  case class Signature(signature: IR.Expression) extends IRPass.Metadata {
+  case class Signature(signature: IR.Expression) extends IRPass.IRMetadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
     /** @inheritdoc */
@@ -327,7 +322,7 @@ case object TypeSignatures extends IRPass {
     }
 
     /** @inheritdoc */
-    override def duplicate(): Option[IRPass.Metadata] =
+    override def duplicate(): Option[IRPass.IRMetadata] =
       Some(this.copy(signature = signature.duplicate()))
   }
 }

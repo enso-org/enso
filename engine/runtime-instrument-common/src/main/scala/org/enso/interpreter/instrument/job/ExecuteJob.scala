@@ -5,6 +5,9 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ExecutionResult
+
+import java.util.logging.Level
 
 /** A job responsible for executing a call stack for the provided context.
   *
@@ -26,9 +29,10 @@ class ExecuteJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.acquireReadCompilationLock()
-    ctx.locking.acquireContextLock(contextId)
-    val context = ctx.executionService.getContext
+    val logger            = ctx.executionService.getLogger
+    val acquiredLock      = ctx.locking.acquireContextLock(contextId)
+    val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
+    val context           = ctx.executionService.getContext
     val originalExecutionEnvironment =
       executionEnvironment.map(_ => context.getExecutionEnvironment)
     try {
@@ -36,23 +40,58 @@ class ExecuteJob(
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
       val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
-      outcome.foreach {
-        case diagnostic: Api.ExecutionResult.Diagnostic =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
-          )
-        case failure: Api.ExecutionResult.Failure =>
+      outcome match {
+        case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+          if (diagnostic.isError) {
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+            )
+          } else {
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
+            )
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionComplete(contextId))
+            )
+          }
+        case Some(failure: Api.ExecutionResult.Failure) =>
           ctx.endpoint.sendToClient(
             Api.Response(Api.ExecutionFailed(contextId, failure))
           )
+        case None =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ExecutionComplete(contextId))
+          )
       }
+    } catch {
+      case t: Throwable =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExecutionFailed(
+              contextId,
+              ExecutionResult.Failure(t.getMessage, None)
+            )
+          )
+        )
     } finally {
       originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
-      ctx.locking.releaseContextLock(contextId)
       ctx.locking.releaseReadCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept read compilation lock [ExecuteJob] for ${System.currentTimeMillis() - readLockTimestamp} milliseconds"
+      )
+      ctx.locking.releaseContextLock(contextId)
+      logger.log(
+        Level.FINEST,
+        s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock}"
+      )
+
     }
-    ctx.endpoint.sendToClient(Api.Response(Api.ExecutionComplete(contextId)))
     StartBackgroundProcessingJob.startBackgroundJobs()
+  }
+
+  override def toString(): String = {
+    s"ExecuteJob(contextId=$contextId)"
   }
 
 }

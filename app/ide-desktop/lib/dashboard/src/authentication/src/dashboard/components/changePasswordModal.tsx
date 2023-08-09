@@ -1,39 +1,32 @@
 /** @file Managing the logic and displaying the UI for the password change function. */
-import * as react from 'react'
+import * as React from 'react'
 
-import toast from 'react-hot-toast'
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import LockIcon from 'enso-assets/lock.svg'
 
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
+import * as string from '../../string'
 import * as validation from '../validation'
 
 import Input from './input'
 import Modal from './modal'
+import SvgIcon from './svgIcon'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ==========================
 // === ResetPasswordModal ===
 // ==========================
 
 /** A modal for changing the user's password. */
-function ChangePasswordModal() {
+export default function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [oldPassword, setOldPassword] = react.useState('')
-    const [newPassword, setNewPassword] = react.useState('')
-    const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
-
-    const onSubmit = async () => {
-        if (newPassword !== confirmNewPassword) {
-            toast.error('Passwords do not match.')
-        } else {
-            const success = await changePassword(oldPassword, newPassword)
-            if (success) {
-                unsetModal()
-            }
-        }
-    }
+    const [oldPassword, setOldPassword] = React.useState('')
+    const [newPassword, setNewPassword] = React.useState('')
+    const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
 
     return (
         <Modal centered className="bg-opacity-30">
@@ -50,7 +43,12 @@ function ChangePasswordModal() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
-                            await onSubmit()
+                            setIsSubmitting(true)
+                            const success = await changePassword(oldPassword, newPassword)
+                            setIsSubmitting(false)
+                            if (success) {
+                                unsetModal()
+                            }
                         }}
                     >
                         <div className="flex flex-col mb-6">
@@ -61,19 +59,19 @@ function ChangePasswordModal() {
                                 Old Password:
                             </label>
                             <div className="relative">
-                                <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    {svg.LOCK}
-                                </div>
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     autoFocus
                                     required
+                                    validate
                                     id="old_password"
                                     type="password"
                                     name="old_password"
                                     placeholder="Old Password"
                                     pattern={validation.PREVIOUS_PASSWORD_PATTERN}
-                                    title={validation.PREVIOUS_PASSWORD_TITLE}
+                                    error={validation.PREVIOUS_PASSWORD_ERROR}
                                     value={oldPassword}
                                     setValue={setOldPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
@@ -88,18 +86,18 @@ function ChangePasswordModal() {
                                 New Password:
                             </label>
                             <div className="relative">
-                                <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    {svg.LOCK}
-                                </div>
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     required
+                                    validate
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_TITLE}
+                                    error={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
@@ -114,16 +112,18 @@ function ChangePasswordModal() {
                                 Confirm New Password:
                             </label>
                             <div className="relative">
-                                <div className="inline-flex items-center justify-center absolute left-0 top-0 h-full w-10 text-gray-400">
-                                    {svg.LOCK}
-                                </div>
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     required
+                                    validate
                                     id="confirm_new_password"
                                     type="password"
                                     name="confirm_new_password"
                                     placeholder="Confirm New Password"
+                                    pattern={string.regexEscape(newPassword)}
+                                    error={validation.CONFIRM_PASSWORD_ERROR}
                                     value={confirmNewPassword}
                                     setValue={setConfirmNewPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
@@ -132,11 +132,14 @@ function ChangePasswordModal() {
                         </div>
                         <div className="flex w-full">
                             <button
+                                disabled={isSubmitting}
                                 type="submit"
-                                className="flex items-center justify-center focus:outline-none text-white text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
+                                className="flex items-center justify-center focus:outline-none text-white text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in disabled:opacity-50"
                             >
                                 <span className="mr-2 uppercase">Reset</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <SvgMask src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -145,5 +148,3 @@ function ChangePasswordModal() {
         </Modal>
     )
 }
-
-export default ChangePasswordModal

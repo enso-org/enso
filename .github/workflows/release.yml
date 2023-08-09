@@ -25,7 +25,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -71,7 +71,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -131,7 +131,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -170,6 +170,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          ENSO_ADMIN_TOKEN: ${{ secrets.ENSO_ADMIN_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -194,7 +195,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -261,7 +262,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -322,7 +323,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -385,7 +386,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -453,7 +454,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -521,7 +522,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -584,7 +585,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -654,7 +655,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge

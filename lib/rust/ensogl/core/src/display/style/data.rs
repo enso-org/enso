@@ -16,6 +16,7 @@ use crate::data::color;
 pub enum Data {
     Invalid(String),
     Number(f32),
+    Vector(Vector2),
     Color(color::Rgba),
     Text(String),
 }
@@ -35,12 +36,14 @@ impl Data {
     ///  - other strings result in `None`.
     /// See below for some examples:
     /// ```
+    /// # use ensogl_core::prelude::*;
     /// # use ensogl_core::data::color;
     /// # use ensogl_core::display::style::data::*;
     /// assert_eq!(Data::parse("123.4"), Some(Data::Number(123.4)));
     /// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
     /// assert_eq!(Data::parse("rgba(1.0,0.0,0.0,1.0)"), Some(Data::Color(red)));
     /// assert_eq!(Data::parse("\"some string\""), Some(Data::Text("some string".to_string())));
+    /// assert_eq!(Data::parse("(1.0, 2.0)"), Some(Data::Vector(Vector2(1.0, 2.0))));
     /// assert_eq!(Data::parse("bad-format"), None);
     /// ```
     pub fn parse(s: &str) -> Option<Data> {
@@ -52,6 +55,15 @@ impl Data {
         }
         if s.starts_with('"') && s.ends_with('"') {
             return Some(Data::Text(s[1..s.len() - 1].to_string()));
+        }
+        if s.starts_with('(') && s.ends_with(')') {
+            if let Some((x, y)) = s[1..s.len() - 1].split_once(',').and_then(|(l, r)| {
+                let l = l.trim().parse::<f32>();
+                let r = r.trim().parse::<f32>();
+                l.ok().zip(r.ok())
+            }) {
+                return Some(Data::Vector(Vector2(x, y)));
+            }
         }
         None
     }
@@ -65,6 +77,12 @@ pub fn data<T: Into<Data>>(t: T) -> Data {
 impl From<f32> for Data {
     fn from(t: f32) -> Data {
         Data::Number(t)
+    }
+}
+
+impl From<Vector2> for Data {
+    fn from(v: Vector2) -> Data {
+        Data::Vector(v)
     }
 }
 
@@ -98,6 +116,7 @@ impl Display for Data {
         match self {
             Self::Invalid(s) => write!(f, "{s}"),
             Self::Number(t) => write!(f, "Number({t})"),
+            Self::Vector(v) => write!(f, "Vector({}, {})", v.x(), v.y()),
             Self::Color(t) => write!(f, "Color({t:?})"),
             Self::Text(t) => write!(f, "Text({t:?})"),
         }
@@ -193,6 +212,7 @@ define_binary_number_operator!(Sub::sub, |lhs, rhs| format!("Cannot subtract {rh
 pub trait DataMatch {
     fn invalid(&self) -> Option<&String>;
     fn number(&self) -> Option<f32>;
+    fn vector(&self) -> Option<Vector2>;
     fn color(&self) -> Option<color::Rgba>;
     fn string(&self) -> Option<String>;
     fn im_string(&self) -> Option<ImString> {
@@ -231,6 +251,13 @@ impl DataMatch for Data {
         }
     }
 
+    fn vector(&self) -> Option<Vector2> {
+        match self {
+            Self::Vector(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     fn color(&self) -> Option<color::Rgba> {
         match self {
             Self::Color(t) => Some(*t),
@@ -253,6 +280,10 @@ impl DataMatch for Option<Data> {
 
     fn number(&self) -> Option<f32> {
         self.as_ref().and_then(|t| t.number())
+    }
+
+    fn vector(&self) -> Option<Vector2> {
+        self.as_ref().and_then(|t| t.vector())
     }
 
     fn color(&self) -> Option<color::Rgba> {

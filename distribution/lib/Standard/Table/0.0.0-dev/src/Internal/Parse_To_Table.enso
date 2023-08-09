@@ -1,13 +1,13 @@
 from Standard.Base import all
-
-import project.Data.Column.Column
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Table.Table
-import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Data.Column.Column
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Table.Table
+import project.Internal.Naming_Properties.Unlimited_Naming_Properties
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project import Value_Type
 from project.Errors import Duplicate_Output_Column_Names
 
@@ -15,11 +15,13 @@ from project.Errors import Duplicate_Output_Column_Names
 
    Converts a Text into a Table using a regular expression pattern.
 
-   See Table.parse_text_to_table.
-parse_text_to_table : Text -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
-parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+   See Text.parse_to_table.
+parse_text_to_table : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
+parse_text_to_table text regex_or_pattern_string="." case_sensitivity=Case_Sensitivity.Default parse_values=True on_problems=Report_Warning =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    pattern = Regex.compile pattern_string case_insensitive=case_insensitive
+    pattern = case regex_or_pattern_string of
+        _ : Regex -> regex_or_pattern_string.recompile case_sensitivity
+        _ : Text -> Regex.compile regex_or_pattern_string case_insensitive=case_insensitive
     matches = pattern.match_all text
 
     columns = case pattern.group_count == 1 of
@@ -30,7 +32,7 @@ parse_text_to_table text pattern_string="." case_sensitivity=Case_Sensitivity.Se
             column_values = matches.map (match-> match.text 0)
             [Column.from_vector column_name column_values]
         False ->
-            unique = Unique_Name_Strategy.new
+            unique = Unique_Name_Strategy.new Unlimited_Naming_Properties.Instance
             ## Mark named groups used so they take precedence over
                auto-generated names.
             unique.mark_used pattern.named_groups

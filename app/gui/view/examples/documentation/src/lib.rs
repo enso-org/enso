@@ -12,6 +12,7 @@ use ensogl::prelude::*;
 
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Mark;
+use enso_doc_parser::Tag;
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -94,8 +95,8 @@ fn database() -> SuggestionDatabase {
         #[with_doc_section(doc_section!(? "Info", "Info sections provide some insights."))]
         Standard.Base {
             #[with_doc_section(doc_section!("Maybe type."))]
-            #[with_doc_section(doc_section!(@ "Annotated", ""))]
-            type Maybe (a) {
+            #[with_doc_section(doc_section!(@ Advanced, ""))]
+            type Delimited_Format (a) {
                 #[with_doc_section(doc_section!("Some constructor."))]
                 #[with_doc_section(doc_section!(> "Example", "Some 1"))]
                 #[with_doc_section(doc_section!("Documentation for the Some(a) constructor."))]
@@ -109,7 +110,7 @@ fn database() -> SuggestionDatabase {
                 fn is_some(self) -> Standard.Base.Boolean;
 
                 #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
-                fn map (f) -> Standard.Base.Maybe;
+                fn comment_all_characters (self) -> Standard.Base.Maybe;
             }
 
             #[with_doc_section(doc_section!("Documentation for the foo method."))]
@@ -135,7 +136,7 @@ fn database() -> SuggestionDatabase {
     builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the bar function.".into() },
-            DocSection::Tag { name: "DEPRECATED", body: default() },
+            DocSection::Tag { tag: Tag::Deprecated, body: default() },
             DocSection::Marked {
                 mark:   Mark::Example,
                 header: None,
@@ -147,7 +148,7 @@ fn database() -> SuggestionDatabase {
     builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
-            DocSection::Tag { name: "SOMETAG", body: default() },
+            DocSection::Tag { tag: Tag::Advanced, body: default() },
         ])
     });
 
@@ -180,7 +181,7 @@ mod button {
     }
 }
 
-mod button_toggle_caption {
+mod button_show_hide {
     use super::*;
     shape! {
         alignment = center;
@@ -189,13 +190,12 @@ mod button_toggle_caption {
             let background = background.corners_radius(10.0.px());
             let background = background.fill(BUTTON_BACKGROUND_COLOR);
             let icon = Circle(5.0.px());
-            let icon = icon.fill(color::Rgba::blue());
+            let icon = icon.fill(color::Rgba::red());
             let shape = background + icon;
             shape.into()
         }
     }
 }
-
 
 
 // ===================
@@ -216,6 +216,9 @@ pub fn main() {
         let scene = &world.default_scene;
         let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = documentation::View::new(&app);
+        panel.set_xy(Vector2(-200.0, -200.0));
+        panel.frp.set_visible(true);
+        panel.frp.skip_animation();
         scene.add_child(&panel);
         scene.layers.node_searcher.add(&panel);
 
@@ -234,10 +237,10 @@ pub fn main() {
         buttons.add_child(&next);
         next.set_x(BUTTON_SIZE);
 
-        let toggle_caption = button_toggle_caption::View::new();
-        toggle_caption.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
-        buttons.add_child(&toggle_caption);
-        toggle_caption.set_y(-BUTTON_SIZE * 2.0);
+        let show_hide = button_show_hide::View::new();
+        show_hide.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
+        buttons.add_child(&show_hide);
+        show_hide.set_y(-BUTTON_SIZE * 2.0);
 
         let network = frp::Network::new("documentation");
         frp::extend! { network
@@ -265,13 +268,12 @@ pub fn main() {
             panel.frp.display_documentation <+ update_docs.map(f_!(wrapper.documentation()));
 
 
-            // === Toggle caption ===
+            // === Show/hide ===
 
-            caption_visible <- any(...);
-            caption_visible <+ init.constant(false);
-            current_state <- caption_visible.sample(&toggle_caption.events_deprecated.mouse_down);
-            caption_visible <+ current_state.not();
-            panel.frp.show_hovered_item_preview_caption <+ caption_visible.on_change();
+            panel_visible <- any(...);
+            panel_visible <+ init.constant(true);
+            current_state <- panel_visible.sample(&show_hide.events_deprecated.mouse_down);
+            panel.frp.set_visible <+ current_state.not();
 
             // === Disable navigator on hover ===
 
@@ -287,7 +289,7 @@ pub fn main() {
         mem::forget(navigator);
         mem::forget(network);
         mem::forget(previous);
-        mem::forget(toggle_caption);
+        mem::forget(show_hide);
         mem::forget(next);
         mem::forget(buttons);
     })

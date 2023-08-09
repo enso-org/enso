@@ -1,9 +1,12 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as react from 'react'
-import toast from 'react-hot-toast'
+import * as React from 'react'
+import * as toastify from 'react-toastify'
 
+import CloseIcon from 'enso-assets/close.svg'
+
+import * as errorModule from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
@@ -13,33 +16,25 @@ import Modal from './modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
-    assetType: string
-    name: string
-    doDelete: () => Promise<void>
-    onSuccess: () => void
+    /** Must fit in the sentence "Are you sure you want to delete <description>"? */
+    description: string
+    doDelete: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
-function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, name, doDelete, onSuccess } = props
+export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
+    const { description, doDelete } = props
+    const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = react.useState(false)
-
-    const onSubmit = async () => {
-        if (!isSubmitting) {
-            try {
-                setIsSubmitting(true)
-                await toast.promise(doDelete(), {
-                    loading: `Deleting ${assetType}...`,
-                    success: `Deleted ${assetType}.`,
-                    error: `Could not delete ${assetType}.`,
-                })
-                unsetModal()
-                onSuccess()
-            } finally {
-                setIsSubmitting(false)
-            }
+    const onSubmit = () => {
+        unsetModal()
+        try {
+            doDelete()
+        } catch (error) {
+            const message = errorModule.getMessageOrToString(error)
+            toastify.toast.error(message)
+            logger.error(message)
         }
     }
 
@@ -49,34 +44,36 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                onSubmit={async event => {
+                onSubmit={event => {
                     event.preventDefault()
                     // Consider not calling `onSubmit()` here to make it harder to accidentally
                     // delete an important asset.
-                    await onSubmit()
+                    onSubmit()
                 }}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
-                    {svg.CLOSE_ICON}
-                </button>
-                Are you sure you want to delete the {assetType} '{name}'?
+                <div className="flex">
+                    {/* Padding. */}
+                    <div className="grow" />
+                    <button
+                        type="button"
+                        className="absolute right-0 top-0 m-2"
+                        onClick={unsetModal}
+                    >
+                        <img src={CloseIcon} />
+                    </button>
+                </div>
+                <div className="m-2">Are you sure you want to delete {description}?</div>
                 <div className="m-1">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
                     >
                         Delete
                     </button>
                     <button
                         type="button"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel
@@ -86,5 +83,3 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         </Modal>
     )
 }
-
-export default ConfirmDeleteModal

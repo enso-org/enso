@@ -1,0 +1,66 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import project.Data.Column.Column
+import project.Data.Type.Value_Type.Value_Type
+
+## PRIVATE
+check_period_aligned_with_value_type value_type period ~action = case value_type of
+    Value_Type.Date ->
+        ## We don't 'officially' allow `Time_Period` for Date, but since
+           `Time_Period.Day` and `Date_Period.Day` in this context can be
+           interchangeable, we allow it as an exception.
+        if (period.is_a Date_Period) || (period == Time_Period.Day) then action else
+            Error.throw (Illegal_Argument.Error "`Time_Period` is not allowed for Date columns. Use `Date_Period`.")
+    Value_Type.Time ->
+        case period of
+            _ : Date_Period ->
+                Error.throw (Illegal_Argument.Error "`Date_Period` is not allowed for Time columns. Use `Time_Period`.")
+            Time_Period.Day ->
+                Error.throw (Illegal_Argument.Error "`Time_Period.Day` does not make sense for Time columns.")
+            _ -> action
+    Value_Type.Date_Time _ ->
+        ## Both kinds are allowed for `Date_Time` columns.
+        action
+
+## PRIVATE
+   Common logic for `Column.date_part`.
+make_date_part_function column period make_unary_op naming_helper =
+    Value_Type.expect_type column .is_date_or_time "date/time" <|
+        my_type = column.inferred_precise_value_type
+        check_period_aligned_with_value_type my_type period <|
+            new_name = naming_helper.function_name "date_part" [column, period]
+            result = case period of
+                Date_Period.Year -> make_unary_op column "year"
+                Date_Period.Quarter -> make_unary_op column "quarter"
+                Date_Period.Month -> make_unary_op column "month"
+                Date_Period.Week _ -> make_unary_op column "week"
+                Date_Period.Day -> make_unary_op column "day"
+                Time_Period.Day -> make_unary_op column "day"
+                Time_Period.Hour -> make_unary_op column "hour"
+                Time_Period.Minute -> make_unary_op column "minute"
+                Time_Period.Second -> make_unary_op column "second"
+                Time_Period.Millisecond -> make_unary_op column "millisecond"
+                Time_Period.Microsecond -> make_unary_op column "microsecond"
+                Time_Period.Nanosecond -> make_unary_op column "nanosecond"
+            result.rename new_name
+
+## PRIVATE
+make_period_selector_for_column : Column -> Widget
+make_period_selector_for_column column =
+    column_type = column.inferred_precise_value_type
+    date_periods = ["Year", "Quarter", "Month", "Week", "Day"].map name->
+        Option name "Date_Period."+name
+    time_periods = ["Hour", "Minute", "Second", "Millisecond", "Microsecond", "Nanosecond"].map name->
+        Option name "Time_Period."+name
+    values = case column_type of
+        Value_Type.Date -> date_periods
+        Value_Type.Date_Time _ -> date_periods + time_periods
+        Value_Type.Time -> time_periods
+        # Some fallback is needed for the type mismatch case. Throwing an error will not work as expected as just the widget code will fail. (TODO right?)
+        _ -> [Option ("Expected a date/time column but got "+column_type.to_display_text+".") "Date_Period.Day"]
+    Single_Choice display=Display.Always values=values

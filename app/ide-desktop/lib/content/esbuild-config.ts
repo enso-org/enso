@@ -97,7 +97,7 @@ export function bundlerOptions(args: Arguments) {
         supportsDeepLinks,
     } = args
     const buildOptions = {
-        // Disabling naming convention because these are third-party options.
+        // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -106,8 +106,9 @@ export function bundlerOptions(args: Arguments) {
             '.css': 'copy',
             '.map': 'copy',
             '.wasm': 'copy',
-            '.svg': 'copy',
-            '.png': 'copy',
+            // The `file` loader copies the file, and replaces the import with the path to the file.
+            '.svg': 'file',
+            '.png': 'file',
             '.ttf': 'copy',
         },
         entryPoints: [
@@ -126,16 +127,29 @@ export function bundlerOptions(args: Arguments) {
         outbase: 'src',
         plugins: [
             {
-                // This file MUST be in CommonJS format because it is loaded using `Function()`
-                // in `ensogl/pack/js/src/runner/index.ts`.
-                // All other files are ESM because of `"type": "module"` in `package.json`.
-                name: 'pkg-js-is-cjs',
+                name: 'override-loaders',
                 setup: build => {
-                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async info => {
+                    // This file MUST be in CommonJS format because it is loaded using `Function()`
+                    // in `ensogl/pack/js/src/runner/index.ts`.
+                    // All other files are ESM because of `"type": "module"` in `package.json`.
+                    build.onLoad({ filter: /[/\\]pkg\.js$/ }, async info => {
                         const { path } = info
                         return {
                             contents: await fs.readFile(path),
                             loader: 'copy',
+                        }
+                    })
+                    // `.png` and `.svg` files not in the `assets` module should not use the `file`
+                    // loader.
+                    build.onLoad({ filter: /(?:\.png|\.svg)$/ }, async info => {
+                        const { path } = info
+                        if (!/[/\\]assets[/\\][^/\\]*(?:\.png|\.svg)$/.test(path)) {
+                            return {
+                                contents: await fs.readFile(path),
+                                loader: 'copy',
+                            }
+                        } else {
+                            return
                         }
                     })
                 },
@@ -160,8 +174,9 @@ export function bundlerOptions(args: Arguments) {
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },
+        pure: ['assert'],
         sourcemap: true,
-        minify: true,
+        minify: !devMode,
         metafile: true,
         format: 'esm',
         platform: 'browser',

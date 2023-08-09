@@ -32,9 +32,6 @@
 
 use crate::prelude::*;
 
-use crate::entry::icon;
-use crate::layout::Layout;
-
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
@@ -43,13 +40,14 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
+use ensogl_icons::icon;
 use ensogl_text as text;
 
 
@@ -59,13 +57,6 @@ use ensogl_text as text;
 
 pub mod content;
 pub mod entry;
-pub mod layout;
-pub mod layouting;
-
-pub use content::ElementId;
-pub use content::GroupEntryId;
-pub use content::GroupId;
-pub use content::SectionId;
 
 
 
@@ -79,35 +70,21 @@ pub mod prelude {
     pub use ensogl_text as text;
 }
 
+pub use content::EntryId;
+pub use content::GroupId;
 
 
 // =================
 // === Constants ===
 // =================
 
-/// A set of constants related to grid columns.
-pub mod column {
-    use ensogl_grid_view::Col;
-
-    /// The priority telling which column will be selected first when switching to section having
-    /// many lowest elements (with maximum row index).
-    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
-
-    // The constants below plays informative role, and should not be easily changed, as the
-    // layouter algorithm rely strongly on assumption that there are 3 columns.
-
-    /// Number of columns in Component List Panel Grid.
-    pub const COUNT: usize = 3;
-    /// The index of left column.
-    pub const LEFT: Col = 0;
-    /// The index of center column.
-    pub const CENTER: Col = 1;
-    /// The index of right column.
-    pub const RIGHT: Col = 2;
-}
 /// The number of color variants taken from the style sheet, used to coloring group without color
 /// specified by library author.
 pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
+/// The index of the column in the grid view where entries will be displayed.
+pub const COLUMN: usize = 0;
+/// The number of columns in components grid.
+pub const COLUMN_COUNT: usize = 1;
 
 
 
@@ -117,14 +94,6 @@ pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
 
 // === Models ===
 
-/// The model for group's headers.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default)]
-pub struct HeaderModel {
-    pub caption:        ImString,
-    pub can_be_entered: bool,
-}
-
 /// The model for entries.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
@@ -133,6 +102,7 @@ pub struct EntryModel {
     pub highlighted:    Rc<Vec<text::Range<text::Byte>>>,
     pub icon:           icon::Id,
     pub can_be_entered: bool,
+    pub group:          Option<GroupId>,
 }
 
 
@@ -140,30 +110,25 @@ pub struct EntryModel {
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set top margin inside scroll area. We need to leave some margin so the button panel
+        /// will not cover the topmost entry when maximally scrolled up.
+        set_top_margin(f32),
         reset(content::Info),
         select_first_entry(),
-        model_for_header(GroupId, HeaderModel),
-        model_for_entry(GroupEntryId, EntryModel),
-        switch_section(SectionId),
-        switch_section_no_animation(SectionId),
+        model_for_entry(EntryId, EntryModel),
         /// Accept suggestion and continue editing.
         accept_suggestion(),
         /// Accept current input as expression, ignoring any active suggestion.
         accept_current_input_expression(),
-        jump_group_up(),
-        jump_group_down(),
-        unhover_element(),
+        focus(),
     }
     Output {
-        active(Option<ElementId>),
+        active(Option<EntryId>),
         is_active(bool),
-        active_section(Option<SectionId>),
-        hovered(Option<ElementId>),
-        model_for_header_needed(GroupId),
-        model_for_entry_needed(GroupEntryId),
-        suggestion_accepted(GroupEntryId),
-        expression_accepted(Option<GroupEntryId>),
-        module_entered(ElementId),
+        model_for_entry_needed(EntryId),
+        suggestion_accepted(EntryId),
+        expression_accepted(Option<EntryId>),
+        module_entered(EntryId),
     }
 }
 
@@ -174,7 +139,7 @@ ensogl_core::define_endpoints_2! {
 // ============
 
 /// A variant of the [component's](View) underlying [EnsoGL grid component](grid_view).
-pub type Grid = grid_view::scrollable::SelectableGridViewWithHeaders<entry::View, entry::View>;
+pub type Grid = grid_view::scrollable::SelectableGridView<entry::View>;
 
 
 
@@ -184,14 +149,45 @@ pub type Grid = grid_view::scrollable::SelectableGridViewWithHeaders<entry::View
 
 // === GroupColors ===
 
+/// The grid's style structure.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
+#[base_path = "theme::group_colors"]
+struct GroupColorsTheme {
+    group_0:           color::Lcha,
+    group_1:           color::Lcha,
+    group_2:           color::Lcha,
+    group_3:           color::Lcha,
+    group_4:           color::Lcha,
+    group_5:           color::Lcha,
+    local_scope_group: color::Lcha,
+}
+
 /// Default groups colors.
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct GroupColors {
     /// Variants to be used in groups in column layout.
-    variants:          [color::Lcha; GROUP_COLOR_VARIANT_COUNT],
-    /// The color of the group in Local Scope section.
-    local_scope_group: color::Lcha,
+    variants:      [color::Lcha; GROUP_COLOR_VARIANT_COUNT],
+    /// The color of the group outside any defined component group.
+    outside_group: color::Lcha,
 }
+
+impl From<GroupColorsTheme> for GroupColors {
+    fn from(theme: GroupColorsTheme) -> Self {
+        Self {
+            variants:      [
+                theme.group_0,
+                theme.group_1,
+                theme.group_2,
+                theme.group_3,
+                theme.group_4,
+                theme.group_5,
+            ],
+            outside_group: theme.local_scope_group,
+        }
+    }
+}
+
 
 
 // === Style ===
@@ -201,36 +197,27 @@ pub struct GroupColors {
 #[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:        f32,
-    pub height:       f32,
-    pub padding:      f32,
-    pub column_gap:   f32,
-    pub entry_height: f32,
+    pub width:          f32,
+    pub height:         f32,
+    pub padding_x:      f32,
+    pub padding_y:      f32,
+    pub column_gap:     f32,
+    pub entry_height:   f32,
+    #[theme_path = "panel_theme::corners_radius"]
+    pub corners_radius: f32,
 }
 
 impl Style {
     /// Compute the size of grid without external paddings.
     pub fn content_size(&self) -> Vector2 {
         let size = Vector2(self.width, self.height);
-        let padding = Vector2(self.padding, self.padding) * 2.0;
+        let padding = Vector2(self.padding_x, self.padding_y) * 2.0;
         size - padding
-    }
-
-    /// Compute the single column width.
-    pub fn column_width(&self) -> f32 {
-        let column_gaps = self.column_gap * ((column::COUNT - 1) as f32);
-        (self.content_size().x - column_gaps) / (column::COUNT as f32)
-    }
-
-    /// Compute the middle column width to be set in underlying [Grid component](Grid). It includes
-    /// the gaps between columns.
-    pub fn middle_column_width(&self) -> f32 {
-        self.column_width() + self.column_gap * 2.0
     }
 
     /// Get the single entry size.
     pub fn entry_size(&self) -> Vector2 {
-        Vector2(self.column_width(), self.entry_height)
+        Vector2(self.content_size().x, self.entry_height)
     }
 }
 
@@ -243,16 +230,16 @@ impl Style {
 // === Model ===
 
 /// A [Model](component::Model) of [Component List Panel Grid View](View).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
-    display_object:         display::object::Instance,
-    grid:                   Grid,
-    grid_layer:             Layer,
-    selection_layer:        Layer,
-    layout:                 Rc<RefCell<Layout>>,
-    enterable_elements:     Rc<RefCell<HashSet<ElementId>>>,
-    colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
-    requested_section_info: Rc<RefCell<[Row; column::COUNT]>>,
+    display_object:     display::object::Instance,
+    #[focus_receiver]
+    grid:               Grid,
+    grid_layer:         Layer,
+    selection_layer:    Layer,
+    scroll_bars_layer:  Layer,
+    enterable_elements: Rc<RefCell<HashSet<EntryId>>>,
+    colors:             Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
 }
 
 
@@ -266,25 +253,24 @@ impl component::Model for Model {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let grid = Grid::new(app);
-        let layout = default();
         let enterable_elements = default();
         let colors = default();
-        let requested_section_info = default();
         let base_layer = &app.display.default_scene.layers.node_searcher;
         let grid_layer = base_layer.create_sublayer("grid_layer");
         let selection_layer = base_layer.create_sublayer("selection_layer");
+        let scroll_bars_layer = base_layer.create_sublayer("scrollbars_layer");
         display_object.add_child(&grid);
         grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+        grid.set_scrollbars_layer(&scroll_bars_layer);
         Self {
             display_object,
             grid,
-            layout,
             enterable_elements,
             colors,
             grid_layer,
             selection_layer,
-            requested_section_info,
+            scroll_bars_layer,
         }
     }
 }
@@ -295,26 +281,19 @@ impl component::Model for Model {
 impl Model {
     /// The grid is resetting: remove all data regarding existing entries and return new grid size.
     fn reset(&self, content: &content::Info) -> (Row, Col) {
-        let layouter = layouting::Layouter::new(content.groups.iter().copied());
-        let layout = layouter.create_layout(content.local_scope_entry_count);
-        let rows_and_cols = (layout.row_count(), layout.column_count());
-        *self.layout.borrow_mut() = layout;
         *self.colors.borrow_mut() = Self::collect_colors(content);
         self.enterable_elements.borrow_mut().clear();
-        rows_and_cols
+        (content.entry_count, COLUMN_COUNT)
     }
 
     fn collect_colors(content: &content::Info) -> HashMap<GroupId, entry::MainColor> {
         let variants = (0..).map(|i| i % GROUP_COLOR_VARIANT_COUNT);
-        content
-            .groups
-            .iter()
-            .zip(variants)
+        let groups_with_variants = content.groups.iter().zip(variants);
+        groups_with_variants
             .map(|(group, variant)| {
-                let color = match (group.color, group.id.section) {
-                    (Some(color), _) => entry::MainColor::Custom(color.into()),
-                    (None, SectionId::LocalScope) => entry::MainColor::LocalScope,
-                    _ => entry::MainColor::Predefined { variant_index: variant },
+                let color = match group.color {
+                    Some(color) => entry::MainColor::Custom(color.into()),
+                    None => entry::MainColor::Predefined { variant_index: variant },
                 };
                 (group.id, color)
             })
@@ -328,8 +307,8 @@ impl Model {
 /// The action after selecting the entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Action {
-    EnterModule(ElementId),
-    Accept(GroupEntryId),
+    EnterModule(EntryId),
+    Accept(EntryId),
 }
 
 impl Default for Action {
@@ -339,7 +318,7 @@ impl Default for Action {
 }
 
 impl Action {
-    fn enter_module(self) -> Option<ElementId> {
+    fn enter_module(self) -> Option<EntryId> {
         if let Self::EnterModule(element) = self {
             Some(element)
         } else {
@@ -347,7 +326,7 @@ impl Action {
         }
     }
 
-    fn accept(self) -> Option<GroupEntryId> {
+    fn accept(self) -> Option<EntryId> {
         if let Self::Accept(entry) = self {
             Some(entry)
         } else {
@@ -357,16 +336,20 @@ impl Action {
 }
 
 impl Model {
-    fn can_be_entered(&self, element_id: ElementId) -> bool {
-        self.enterable_elements.borrow().contains(&element_id)
+    fn can_be_entered(&self, entry: EntryId) -> bool {
+        self.enterable_elements.borrow().contains(&entry)
     }
 
-    fn action_after_accepting_entry(&self, loc: &(Row, Col)) -> Option<Action> {
-        let element_id = self.location_to_element_id(loc)?;
-        if self.can_be_entered(element_id) {
-            Some(Action::EnterModule(element_id))
+    fn action_after_accepting_entry(
+        &self,
+        loc: &(Row, Col),
+        content: &content::Info,
+    ) -> Option<Action> {
+        let entry_id = self.location_to_entry_id(loc, content)?;
+        if self.can_be_entered(entry_id) {
+            Some(Action::EnterModule(entry_id))
         } else {
-            Some(Action::Accept(self.location_to_entry_id(loc)?))
+            Some(Action::Accept(entry_id))
         }
     }
 }
@@ -375,26 +358,20 @@ impl Model {
 // === Conversion From and To Grid's Location ===
 
 impl Model {
-    fn location_to_element_id(&self, &(row, col): &(Row, Col)) -> Option<ElementId> {
-        self.layout.borrow().element_at_location(row, col)
-    }
-
-    fn location_to_headers_group_id(&self, location: &(Row, Col)) -> Option<GroupId> {
-        let element = self.location_to_element_id(location)?;
-        element.as_header()
-    }
-
-    fn location_to_entry_id(&self, location: &(Row, Col)) -> Option<GroupEntryId> {
-        let element = self.location_to_element_id(location)?;
-        element.as_entry_id()
+    fn location_to_entry_id(
+        &self,
+        &(row, _): &(Row, Col),
+        content: &content::Info,
+    ) -> Option<EntryId> {
+        content.entry_count.checked_sub(row + 1)
     }
 
     fn entry_id_to_location(
         &self,
-        GroupEntryId { group, entry }: GroupEntryId,
+        entry_id: EntryId,
+        content: &content::Info,
     ) -> Option<(Row, Col)> {
-        let element = content::ElementInGroup::Entry(entry);
-        self.layout.borrow().location_of_element(ElementId { group, element })
+        content.entry_count.checked_sub(entry_id + 1).map(|row| (row, COLUMN))
     }
 }
 
@@ -402,58 +379,27 @@ impl Model {
 // === Entries' Models ===
 
 impl Model {
-    fn section_info_requested(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
-        *self.requested_section_info.borrow_mut().get_mut(col)? = row;
-        Some(self.layout.borrow().group_at_location(row, col)?.group.id)
-    }
-
-    fn is_requested_section(&self, (rows, col, _): &(Range<Row>, Col, entry::Model)) -> bool {
-        self.requested_section_info.borrow().get(*col).map_or(false, |r| rows.contains(r))
-    }
-
-    fn make_section_info(
-        &self,
-        (group, model): &(GroupId, HeaderModel),
-    ) -> Option<(Range<Row>, Col, entry::Model)> {
-        if model.can_be_entered {
-            self.enterable_elements.borrow_mut().insert(ElementId::from(*group));
-        }
-        let (rows, col) = self.layout.borrow().location_of_group(*group)?;
-        let entry_model = entry::Model {
-            kind:        entry::Kind::Header,
-            color:       self.colors.borrow().get(group).copied().unwrap_or_default(),
-            caption:     model.caption.clone_ref(),
-            highlighted: default(),
-            icon:        None,
-            group_id:    *group,
-        };
-        Some((rows, col, entry_model))
-    }
-
     fn model_for_entry(
         &self,
-        (entry, model): &(GroupEntryId, EntryModel),
+        (entry, model): &(EntryId, EntryModel),
+        content: &content::Info,
     ) -> Option<(Row, Col, entry::Model)> {
         if model.can_be_entered {
-            let element_id = ElementId::from(*entry);
-            self.enterable_elements.borrow_mut().insert(element_id);
+            self.enterable_elements.borrow_mut().insert(*entry);
         }
-        let (row, col) = self.entry_id_to_location(*entry)?;
-        let kind = if entry.group.section == SectionId::LocalScope {
-            let first_line = row == self.layout.borrow().local_scope_rows().start;
-            entry::Kind::LocalScopeEntry { first_line }
-        } else {
-            entry::Kind::Entry
-        };
+        let (row, col) = self.entry_id_to_location(*entry, content)?;
         let entry_model = entry::Model {
-            kind,
-            color: self.colors.borrow().get(&entry.group).copied().unwrap_or_default(),
-            caption: model.caption.clone_ref(),
+            color:       self.color_of_entry(model),
+            caption:     model.caption.clone_ref(),
             highlighted: model.highlighted.clone_ref(),
-            icon: Some(model.icon),
-            group_id: entry.group,
+            icon:        Some(model.icon),
         };
         Some((row, col, entry_model))
+    }
+
+    fn color_of_entry(&self, model: &EntryModel) -> entry::MainColor {
+        let group_color = model.group.and_then(|group| self.colors.borrow().get(&group).copied());
+        group_color.unwrap_or(entry::MainColor::OutsideGroup)
     }
 }
 
@@ -461,69 +407,8 @@ impl Model {
 // === Navigation ===
 
 impl Model {
-    fn entry_to_select_when_switching_to_section(&self, section: SectionId) -> Option<(Row, Col)> {
-        let layout = self.layout.borrow();
-        let pick = |row, col| layout.element_at_location(row, col).map(|_| (row, col));
-        if section == SectionId::LocalScope {
-            let row = layout.local_scope_rows().start;
-            column::SECTION_SELECTION_PRIORITY.iter().filter_map(|col| pick(row, *col)).next()
-        } else {
-            let column_priority = column::SECTION_SELECTION_PRIORITY.iter();
-            let bottommost_per_column = column_priority.filter_map(|&col| {
-                let section_rows = layout.section_rows_at_column(section, col)?;
-                let last_row = section_rows.last()?;
-                pick(last_row, col)
-            });
-            bottommost_per_column.rev().max_by_key(|(row, _)| *row)
-        }
-    }
-
     fn first_entry_to_select(&self, info: &content::Info) -> Option<(Row, Col)> {
-        match info.best_match {
-            Some(id) => self.layout.borrow().location_of_element(id.into()),
-            None => {
-                let top_module_sections =
-                    (0..info.namespace_section_count).map(SectionId::Namespace);
-                let sections = if info.displaying_module_content {
-                    iter::once(SectionId::LocalScope)
-                        .chain(top_module_sections)
-                        .chain(iter::once(SectionId::Popular))
-                } else {
-                    iter::once(SectionId::Popular)
-                        .chain(top_module_sections)
-                        .chain(iter::once(SectionId::LocalScope))
-                };
-                let pick_location =
-                    |s: SectionId| self.entry_to_select_when_switching_to_section(s);
-                sections.filter_map(pick_location).next()
-            }
-        }
-    }
-
-    fn selection_after_jump_group_up(
-        &self,
-        &(current_row, col): &(Row, Col),
-    ) -> Option<(Row, Col)> {
-        let layout = self.layout.borrow();
-        if let Some(group_above) = layout.group_above_location(current_row, col) {
-            Some((group_above.rows().last()?, col))
-        } else {
-            let current_group = layout.group_at_location(current_row, col)?;
-            Some((current_group.rows().next()?, col))
-        }
-    }
-
-    fn selection_after_jump_group_down(
-        &self,
-        &(current_row, col): &(Row, Col),
-    ) -> Option<(Row, Col)> {
-        let layout = self.layout.borrow();
-        if let Some(group_below) = layout.group_below_location(current_row, col) {
-            Some((group_below.rows().last()?, col))
-        } else {
-            let current_group = layout.group_at_location(current_row, col)?;
-            Some((current_group.rows().last()?, col))
-        }
+        info.entry_count.checked_sub(1).map(|row| (row, COLUMN))
     }
 }
 
@@ -531,16 +416,16 @@ impl Model {
 // === Updating Style ===
 
 impl Model {
-    fn grid_size((style, content_size): &(Style, Vector2)) -> Vector2 {
+    fn grid_size((style, content_size, top_margin): &(Style, Vector2, f32)) -> Vector2 {
         let x = min(style.content_size().x, content_size.x);
-        let y = min(style.content_size().y, content_size.y);
+        let y = min(style.content_size().y, content_size.y + top_margin);
         Vector2(x, y)
     }
 
-    fn grid_position(input: &(Style, Vector2)) -> Vector2 {
-        let (style, _) = input;
+    fn grid_position(input: &(Style, Vector2, f32)) -> Vector2 {
+        let (style, _, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
-        Vector2(0.0, y)
+        Vector2(style.padding_x, y)
     }
 
     fn entries_params(
@@ -551,14 +436,12 @@ impl Model {
             entry::style::Colors,
             GroupColors,
         ),
-        dimmed_groups: entry::DimmedGroups,
     ) -> entry::Params {
         entry::Params {
-            style: entry_style.clone(),
-            grid_style: *style,
+            style:        entry_style.clone(),
+            grid_style:   *style,
             group_colors: *group_colors,
-            colors: *colors,
-            dimmed_groups,
+            colors:       *colors,
         }
     }
 
@@ -569,30 +452,9 @@ impl Model {
         entry::Params { colors: (*colors).into(), ..base_params.clone() }
     }
 
-    fn navigation_scroll_margins(
-        &self,
-        active_section: Option<SectionId>,
-        style: &Style,
-    ) -> grid_view::Margins {
+    fn navigation_scroll_margins(&self, style: &Style) -> grid_view::Margins {
         let vertical_margin = style.content_size().y - style.entry_height;
-        if active_section == Some(SectionId::LocalScope) {
-            grid_view::Margins {
-                bottom: vertical_margin + style.column_gap,
-                top: -style.column_gap,
-                ..default()
-            }
-        } else {
-            grid_view::Margins { top: vertical_margin, ..default() }
-        }
-    }
-}
-
-
-// === display::Object Implementation ===
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        grid_view::Margins { top: vertical_margin, ..default() }
     }
 }
 
@@ -616,95 +478,66 @@ impl component::Frp<Model> for Frp {
         let grid_scroll_frp = grid.scroll_frp();
         let grid_extra_scroll_frp = grid.extra_scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
-        let grid_header_frp = grid.header_frp();
-        let corners_radius = style_frp.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style_frp);
         let entry_style = entry::Style::from_theme(network, style_frp);
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
         frp::extend! { network
+
             // === Active and Hovered Entry ===
 
-            out.active <+ grid.entry_selected.map(f!((loc)
-                model.location_to_element_id(loc.as_ref()?)
+            grid.select_entry <+ grid.entry_hovered;
+            out.active <+ grid.entry_selected.map2(&input.reset, f!((loc, content)
+                model.location_to_entry_id(loc.as_ref()?, content)
             ));
             out.is_active <+ out.active.is_some();
-            out.active_section <+ out.active.map(|&e| Some(e?.group.section)).on_change();
-            out.hovered <+ grid.entry_hovered.map(f!((loc)
-                model.location_to_element_id(loc.as_ref()?)
-            ));
-            grid.hover_entry <+ input.unhover_element.constant(None);
 
 
             // === Accepting Suggestion and Expression ===
 
-            action <- grid.entry_accepted.filter_map(f!((loc) model.action_after_accepting_entry(loc)));
+            action <- grid.entry_accepted.map2(&input.reset, f!((loc, content) model.action_after_accepting_entry(loc, content))).unwrap();
             out.module_entered <+ action.filter_map(|m| m.enter_module());
             out.expression_accepted <+ action.filter_map(|e| e.accept()).some();
             out.expression_accepted <+ input.accept_current_input_expression.constant(None);
             element_on_suggestion_accept <- out.active.sample(&input.accept_suggestion);
-            out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|&e| e?.as_entry_id());
+            out.suggestion_accepted <+ element_on_suggestion_accept.unwrap();
 
 
             // === Groups colors ===
 
-            let group0 = style_frp.get_color(theme::group_colors::group_0);
-            let group1 = style_frp.get_color(theme::group_colors::group_1);
-            let group2 = style_frp.get_color(theme::group_colors::group_2);
-            let group3 = style_frp.get_color(theme::group_colors::group_3);
-            let group4 = style_frp.get_color(theme::group_colors::group_4);
-            let group5 = style_frp.get_color(theme::group_colors::group_5);
-            groups <- all7(&style.init, &group0, &group1, &group2, &group3, &group4, &group5);
-            let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
-            group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
-                GroupColors {
-                    variants: [g0, g1, g2, g3, g4, g5].map(color::Lcha::from),
-                    local_scope_group: ls.into(),
-                }
-            });
+            let group_colors_theme = GroupColorsTheme::from_theme(network, style_frp);
+            group_colors <- group_colors_theme.map(|t| GroupColors::from(*t));
 
 
             // === Style and Entries Params ===
 
-            style_and_content_size <- all(&style.update, &grid.content_size);
-            dimmed_groups <- out.active_section.map(|opt_section| match opt_section {
-                Some(section) => entry::DimmedGroups::AllExceptSection(*section),
-                None => entry::DimmedGroups::None,
-            });
+            size_and_position_factors <- all(style, grid.content_size, input.set_top_margin);
             entries_style <-
-                all4(&style.update, &entry_style.update, &colors.update, &group_colors);
-            entries_params <-
-                all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
-            selection_entries_style <- all(entries_params, selection_colors.update);
+                all4(&style, &entry_style, &colors, &group_colors);
+            entries_params <- entries_style.map(f!((s) model.entries_params(s)));
+            selection_entries_style <- all(entries_params, selection_colors);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
-            grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
-            grid_position <- style_and_content_size.map(Model::grid_position);
+            grid_scroll_frp.resize <+ size_and_position_factors.map(Model::grid_size);
+            grid_position <- size_and_position_factors.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
-            grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
-            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
-            grid.set_column_width <+ style.update.map(|s| (column::CENTER, s.middle_column_width()));
+            corners_radius <- style.map(|s| s.corners_radius);
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
+            grid.set_entries_size <+ style.map(|s| s.entry_size());
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
+            grid_extra_scroll_frp.set_margins <+
+                input.set_top_margin.map(|&top| grid_view::Margins { top, ..default() });
 
 
             // === Header and Entries Models ===
 
             grid.reset_entries <+ input.reset.map(f!((content) model.reset(content)));
-            section_info <- input.model_for_header.filter_map(f!((m) model.make_section_info(m)));
-            grid.model_for_entry <+ section_info.map(|(rs, c, m)| (rs.start, *c, m.clone()));
             grid.model_for_entry <+
-                input.model_for_entry.filter_map(f!((input) model.model_for_entry(input)));
-            grid_header_frp.section_info <+
-                section_info.filter(f!((input) model.is_requested_section(input)));
-            out.model_for_header_needed <+ grid_header_frp.section_info_needed.filter_map(
-                f!((loc) model.section_info_requested(loc))
-            );
-            out.model_for_header_needed <+ grid.model_for_entry_needed.filter_map(
-                f!((loc) model.location_to_headers_group_id(loc))
-            );
+                input.model_for_entry.map2(&input.reset, f!((input, content) model.model_for_entry(input, content))).unwrap();
             out.model_for_entry_needed <+
-                grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
+                grid.model_for_entry_needed.map2(&input.reset, f!((loc, content) model.location_to_entry_id(loc, content))).unwrap();
 
 
             // === Initial Selection ===
@@ -718,51 +551,22 @@ impl component::Frp<Model> for Frp {
             grid_selection_frp.skip_animations <+ input.reset.constant(());
 
 
-            // === Scrolling and Jumping to Section ===
+            // === Scrolling ===
 
-            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(
-                &out.active_section,
-                &style.update,
-                f!((section, style) model.navigation_scroll_margins(*section, style))
-            );
-
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
-                f!((section) model.entry_to_select_when_switching_to_section(*section))
-            );
-            grid_extra_scroll_frp.select_and_jump_to_entry <+
-                input.switch_section_no_animation.filter_map(
-                    f!((section) model.entry_to_select_when_switching_to_section(*section))
-                );
-            // The content area is higher than just height of all entries, because there is a gap
-            // between all groups and local scope section.
-            grid_scroll_frp.set_content_height <+
-                style_and_content_size.map(|(s, c)| c.y + s.column_gap);
-
-
-            // === Jumping by Groups ===
-
-            entry_on_jump_down <- grid.entry_selected.sample(&input.jump_group_up);
-            entry_on_jump_up <- grid.entry_selected.sample(&input.jump_group_down);
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_down.filter_map(
-                f!((loc) model.selection_after_jump_group_up(loc.as_ref()?))
-            );
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_up.filter_map(
-                f!((loc) model.selection_after_jump_group_down(loc.as_ref()?))
+            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.map(
+                f!((style) model.navigation_scroll_margins(style))
             );
 
 
-            // === Focus propagation ===
+            // === Focus ===
 
-            // The underlying grid should handle keyboard events only when any element is active.
-            grid.deprecated_set_focus <+ out.focused && out.is_active;
+            eval_ input.focus (model.focus());
+            let focused = model.on_event::<ensogl_core::event::FocusIn>();
+            let defocused = model.on_event::<ensogl_core::event::FocusOut>();
+            grid.disable_selection <+ bool(&focused, &defocused);
         }
 
-        // Set the proper number of columns so we can set column widths.
-        grid.resize_grid(0, column::COUNT);
-        style.init.emit(());
-        entry_style.init.emit(());
-        colors.init.emit(());
-        selection_colors.init.emit(());
+        grid.resize_grid(0, COLUMN_COUNT);
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
@@ -773,9 +577,8 @@ impl component::Frp<Model> for Frp {
             // underlying Grid View.
             (Press, "!is_active", "enter", "accept_current_input_expression"),
             (Press, "", "cmd enter", "accept_current_input_expression"),
-            (Press, "", "cmd up", "jump_group_up"),
-            (Press, "", "cmd down", "jump_group_down"),
             (Press, "!is_active", "up", "select_first_entry"),
+            (Press, "!is_active", "up", "focus"),
         ]
         .iter()
         .map(|(a, b, c, d)| View::self_shortcut_when(*a, *c, *d, *b))

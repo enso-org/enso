@@ -209,13 +209,13 @@ export function directoryWithinBundle(bundlePath: string): string | null {
         sync: true,
         onentry: entry => {
             // We normalize to get rid of leading `.` (if any).
-            let path = entry.path.normalize()
+            const path = entry.path.normalize()
             commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
         },
     })
     // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return commonPrefix ? pathModule.basename(commonPrefix) : null
+    return commonPrefix != null ? pathModule.basename(commonPrefix) : null
 }
 
 /** Generate a name for a project using given base string. A suffix is added if there is a
@@ -231,7 +231,8 @@ export function generateDirectoryName(name: string): string {
 
     // If the name already consists a suffix, reuse it.
     const matches = name.match(/^(.*)_(\d+)$/)
-    let suffix = 0
+    const initialSuffix = -1
+    let suffix = initialSuffix
     // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
     const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
     if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
@@ -240,8 +241,9 @@ export function generateDirectoryName(name: string): string {
     }
 
     const projectsDirectory = getProjectsDirectory()
-    for (; ; suffix++) {
-        let candidatePath = pathModule.join(
+    while (true) {
+        suffix++
+        const candidatePath = pathModule.join(
             projectsDirectory,
             `${name}${suffix === 0 ? '' : `_${suffix}`}`
         )

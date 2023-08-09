@@ -1,14 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
+from Standard.Base.Widget_Helpers import make_delimiter_selector
 
-import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
-
-from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
@@ -75,7 +74,8 @@ type Delimited_Format
        ADVANCED
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
-    for_web content_type _ =
+    for_web content_type uri =
+        _ = [uri]
         parts = content_type.split ";" . map .trim
 
         charset_part = parts.find if_missing=Nothing (x-> x.starts_with "charset=")

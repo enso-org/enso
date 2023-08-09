@@ -2,7 +2,8 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -13,6 +14,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -21,6 +23,7 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -42,19 +45,20 @@ public final class Vector implements TruffleObject {
       name = "new",
       description = "Creates new Vector with given length and provided elements.",
       autoRegister = false)
-  @Builtin.Specialize
-  public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
+  @Builtin.Specialize()
+  public static Object newFromFunction(
+      VirtualFrame frame,
+      long length,
+      Function fun,
+      State state,
+      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode) {
     Object[] target = new Object[Math.toIntExact(length)];
     for (int i = 0; i < target.length; i++) {
-      try {
-        final Object value = interop.execute(fun, (long) i);
-        if (value instanceof DataflowError) {
-          return value;
-        }
-        target[i] = value;
-      } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
-        throw raise(RuntimeException.class, e);
+      var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
+      if (value instanceof DataflowError) {
+        return value;
       }
+      target[i] = value;
     }
     return new Vector(new Array(target));
   }
@@ -88,7 +92,7 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
-  long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
+  long getArraySize(@Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }
@@ -103,7 +107,7 @@ public final class Vector implements TruffleObject {
   @ExportMessage
   public Object readArrayElement(
       long index,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
@@ -129,7 +133,8 @@ public final class Vector implements TruffleObject {
    * @return {@code true} if the index is valid, {@code false} otherwise.
    */
   @ExportMessage
-  boolean isArrayElementReadable(long index, @CachedLibrary(limit = "3") InteropLibrary interop) {
+  boolean isArrayElementReadable(
+      long index, @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       var size = interop.getArraySize(storage);
       return index < size && index >= 0;
@@ -191,29 +196,30 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 
   @ExportMessage
-  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.hasWarnings(this.storage);
   }
 
   @ExportMessage
-  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Warning[] getWarnings(
+      Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
   }
 
   @ExportMessage
-  Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Vector removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return new Vector(warnings.removeWarnings(this.storage));
   }
 
   @ExportMessage
-  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.isLimitReached(this.storage);
   }
 

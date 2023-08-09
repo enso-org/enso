@@ -47,4 +47,8 @@ type SQL_Expression
          dialect.
        - expressions: a list of expressions which are arguments to the operation
          different operations support different amounts of arguments.
-    Operation (kind : Text) (expressions : Vector SQL_Expression)
+       - metadata: additional metadata tied to the operation. This will be
+         `Nothing` for most operations, but some operations that need to be
+         parametrized by additional settings can use this field to pass that
+         information to the code generator.
+    Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)

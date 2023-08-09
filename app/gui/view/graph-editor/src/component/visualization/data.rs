@@ -51,7 +51,7 @@ impl Json {
 // === Data Format ===
 // ====================
 
-/// Data formats that can be used in a visualisation.
+/// Data formats that can be used in a visualization.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[allow(missing_docs)]
 pub enum Format {

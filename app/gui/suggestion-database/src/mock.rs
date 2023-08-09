@@ -52,16 +52,15 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 ///
 /// let mut builder = Builder::new();
 /// builder.add_and_enter_module("local.Project", |e| e);
-/// builder
-///     .add_and_enter_type("Type", vec![], |e| e.with_icon(IconName::from_snake_case("an_icon")));
+/// builder.add_and_enter_type("Type", vec![], |e| e.with_icon(IconName::from_tag_body("an_icon")));
 /// builder.add_constructor("Constructor", vec![], |e| e);
 /// builder.leave();
 /// builder.add_method("module_method", vec![], "local.Project.Type", true, |e| e);
 /// builder.leave();
 /// let db = builder.result;
 ///
-/// assert!(db.lookup_by_qualified_name_str("local.Project.Type.Constructor").is_some());
-/// assert!(db.lookup_by_qualified_name_str("local.Project.module_method").is_some());
+/// assert!(db.lookup_by_qualified_name_str("local.Project.Type.Constructor").is_ok());
+/// assert!(db.lookup_by_qualified_name_str("local.Project.module_method").is_ok());
 /// ```
 #[derive(Debug, Default)]
 pub struct Builder {
@@ -155,7 +154,7 @@ impl Builder {
     /// The method self type will be taken from the context.
     pub fn add_method(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         is_static: bool,
@@ -176,7 +175,7 @@ impl Builder {
     /// Context should be inside a type, otherwise this function will panic.
     pub fn add_constructor(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
@@ -192,7 +191,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_function(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
@@ -210,7 +209,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_local(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
         modifier: impl FnOnce(Entry) -> Entry,
@@ -320,7 +319,7 @@ macro_rules! mock_suggestion_database_entries {
 ///                static fn static_method(x) -> Standard.Base.Number;
 ///            }
 ///
-///            #[with_icon(entry::IconName::from_snake_case("TestIcon"))]
+///            #[with_icon(entry::IconName::from_tag_body("TestIcon"))]
 ///            static fn module_method() -> local.Project.Submodule.TestType;
 ///        }
 ///    }
@@ -405,7 +404,7 @@ macro_rules! doc_section_mark {
 /// ### [`DocSection::Tag`]
 /// ```
 /// # use enso_suggestion_database::doc_section;
-/// doc_section!(@ "Tag name", "Tag body.");
+/// doc_section!(@ Deprecated, "Tag body.");
 /// ```
 ///
 /// ### [`DocSection::Keyed`]
@@ -426,8 +425,11 @@ macro_rules! doc_section_mark {
 /// ```
 #[macro_export]
 macro_rules! doc_section {
-    (@ $tag:expr, $body:expr) => {
-        $crate::mock::enso_doc_parser::DocSection::Tag { name: $tag.into(), body: $body.into() }
+    (@ $tag:ident, $body:expr) => {
+        $crate::mock::enso_doc_parser::DocSection::Tag {
+            tag:  $crate::mock::enso_doc_parser::Tag::$tag,
+            body: $body.into(),
+        }
     };
     ($mark:tt $body:expr) => {
         $crate::mock::enso_doc_parser::DocSection::Marked {
@@ -478,7 +480,7 @@ pub fn standard_db_mock() -> SuggestionDatabase {
                     static fn static_method(x) -> Standard.Base.Number;
                 }
 
-                #[with_icon(entry::IconName::from_snake_case("TestIcon"))]
+                #[with_icon(entry::IconName::from_tag_body("TestIcon"))]
                 static fn module_method() -> local.Project.Submodule.TestType;
             }
         }

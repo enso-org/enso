@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -28,21 +28,21 @@ public abstract class InstantiateNode extends ExpressionNode {
   final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
   private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
-  private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
-  private @CompilationFinal(dimensions = 1) ConditionProfile[] warningProfiles;
+  private @CompilationFinal(dimensions = 1) CountingConditionProfile[] profiles;
+  private @CompilationFinal(dimensions = 1) CountingConditionProfile[] warningProfiles;
   private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
-  private final ConditionProfile anyWarningsProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile anyWarningsProfile = CountingConditionProfile.create();
 
   InstantiateNode(AtomConstructor constructor, ExpressionNode[] arguments) {
     this.constructor = constructor;
     this.arguments = arguments;
-    this.profiles = new ConditionProfile[arguments.length];
+    this.profiles = new CountingConditionProfile[arguments.length];
     this.sentinelProfiles = new BranchProfile[arguments.length];
-    this.warningProfiles = new ConditionProfile[arguments.length];
+    this.warningProfiles = new CountingConditionProfile[arguments.length];
     for (int i = 0; i < arguments.length; ++i) {
-      this.profiles[i] = ConditionProfile.createCountingProfile();
+      this.profiles[i] = CountingConditionProfile.create();
       this.sentinelProfiles[i] = BranchProfile.create();
-      this.warningProfiles[i] = ConditionProfile.createCountingProfile();
+      this.warningProfiles[i] = CountingConditionProfile.create();
     }
   }
 
@@ -73,8 +73,8 @@ public abstract class InstantiateNode extends ExpressionNode {
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < arguments.length; i++) {
-      ConditionProfile profile = profiles[i];
-      ConditionProfile warningProfile = warningProfiles[i];
+      CountingConditionProfile profile = profiles[i];
+      CountingConditionProfile warningProfile = warningProfiles[i];
       BranchProfile sentinelProfile = sentinelProfiles[i];
       Object argument = arguments[i].executeGeneric(frame);
       if (profile.profile(TypesGen.isDataflowError(argument))) {
@@ -104,6 +104,7 @@ public abstract class InstantiateNode extends ExpressionNode {
 
   @ReportPolymorphism
   public abstract static class CreateInstanceNode extends Node {
+    @NeverDefault
     static CreateInstanceNode create(AtomConstructor constructor) {
       if (Layout.isAritySupported(constructor.getArity())) {
         return Layout.CreateUnboxedInstanceNode.create(constructor);

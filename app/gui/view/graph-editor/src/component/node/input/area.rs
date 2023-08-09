@@ -5,13 +5,13 @@ use enso_text::index::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
-use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::widget;
 use crate::node::input::widget::OverrideKey;
 use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
+use crate::GraphLayers;
 use crate::Type;
 
 use enso_frp as frp;
@@ -19,9 +19,7 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::world::with_context;
 use ensogl::gui::cursor;
-use ensogl::Animation;
 use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::text::FromInContextSnapped;
@@ -40,7 +38,7 @@ pub const TEXT_OFFSET: f32 = 10.0;
 pub const NODE_HEIGHT: f32 = 18.0;
 
 /// Text size used for input area text.
-pub const TEXT_SIZE: f32 = 12.0;
+pub const TEXT_SIZE: f32 = 11.5;
 
 
 
@@ -50,6 +48,7 @@ pub const TEXT_SIZE: f32 = 12.0;
 
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
+pub use span_tree::PortId;
 pub use span_tree::SpanTree;
 
 
@@ -62,8 +61,12 @@ pub use span_tree::SpanTree;
 #[derive(Clone, Default)]
 #[allow(missing_docs)]
 pub struct Expression {
-    pub code:      ImString,
-    pub span_tree: SpanTree,
+    pub code:       ImString,
+    pub span_tree:  SpanTree,
+    /// The map containing either first or "this" argument for each unique `call_id` in the tree.
+    pub target_map: HashMap<ast::Id, ast::Id>,
+    /// Map from Port ID to its span-tree node crumbs.
+    pub ports_map:  HashMap<PortId, Crumbs>,
 }
 
 impl Deref for Expression {
@@ -82,6 +85,13 @@ impl DerefMut for Expression {
 impl Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Expression({})", self.code)
+    }
+}
+
+impl Expression {
+    fn port_node(&self, port: PortId) -> Option<span_tree::node::Ref> {
+        let crumbs = self.ports_map.get(&port)?;
+        self.span_tree.get_node(crumbs).ok()
     }
 }
 
@@ -120,7 +130,26 @@ impl Expression {
 impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
-        Self { code: t.code, span_tree: t.input_span_tree }
+        let span_tree = t.input_span_tree;
+        let mut target_map: HashMap<ast::Id, ast::Id> = HashMap::new();
+        let mut ports_map: HashMap<PortId, Crumbs> = HashMap::new();
+        span_tree.root_ref().dfs(|node| {
+            if let Some((ast_id, call_id)) = node.ast_id.zip(node.kind.call_id()) {
+                let entry = target_map.entry(call_id);
+                let is_target_argument = node.kind.is_this();
+                entry
+                    .and_modify(|target_id| {
+                        if is_target_argument {
+                            *target_id = ast_id;
+                        }
+                    })
+                    .or_insert(ast_id);
+            }
+            if let Some(port_id) = node.port_id {
+                ports_map.insert(port_id, node.crumbs.clone());
+            }
+        });
+        Self { code: t.code, span_tree, target_map, ports_map }
     }
 }
 
@@ -131,8 +160,9 @@ impl From<node::Expression> for Expression {
 // =============
 
 /// Internal model of the port area.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
+    layers:          GraphLayers,
     display_object:  display::object::Instance,
     edit_mode_label: text::Text,
     expression:      RefCell<Expression>,
@@ -150,17 +180,26 @@ struct WidgetBind {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
         let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        display_object.add_child(&edit_mode_label);
         let widget_tree = widget::Tree::new(app);
-        with_context(|ctx| ctx.layers.widget.add(&widget_tree));
-        Self { display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
-            .init(app)
+        let layers = layers.clone_ref();
+        Self {
+            layers,
+            display_object,
+            edit_mode_label,
+            expression,
+            styles,
+            styles_frp,
+            widget_tree,
+        }
+        .init(app)
     }
 
     /// React to edit mode change. Shows and hides appropriate child views according to current
@@ -171,7 +210,14 @@ impl Model {
             self.edit_mode_label.set_content(expression.code.clone());
             self.display_object.remove_child(&self.widget_tree);
             self.display_object.add_child(&self.edit_mode_label);
+
+            // A workaround to fix the cursor position calculation when clicking into the node:
+            // Since the object is not updated immediately after `add_child`, we need to force
+            // update the node layout for label to be able to calculate cursor position properly.
+            self.display_object.update(&scene());
             self.edit_mode_label.set_cursor_at_mouse_position();
+            // [`ensogl_text`] has not been ported to the new focus API yet.
+            self.edit_mode_label.deprecated_focus();
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.widget_tree);
@@ -182,24 +228,17 @@ impl Model {
 
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
-        // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        //   It needs to be more flexible once we have proper depth management.
-        //   See https://www.pivotaltracker.com/story/show/183567632.
-        let scene = &app.display.default_scene;
-        self.set_label_layer(&scene.layers.label);
-
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
+        let text_cursor_color: color::Lch = text_color.into();
 
         self.edit_mode_label.set_single_line_mode(true);
-
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
         app.commands.set_command_enabled(
             &self.edit_mode_label,
             "add_cursor_at_mouse_position",
             false,
         );
         self.edit_mode_label.set_property_default(text_color);
+        self.edit_mode_label.set_selection_color(text_cursor_color);
         self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
         self.edit_mode_label.remove_all_cursors();
 
@@ -208,16 +247,11 @@ impl Model {
         self.widget_tree.set_xy(widgets_origin);
         self.edit_mode_label.set_xy(label_origin);
         self.set_edit_mode(false);
-
         self
     }
 
-    fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.edit_mode_label.add_to_scene_layer(layer);
-    }
-
-    fn set_connected(&self, crumbs: &Crumbs, status: Option<color::Lcha>) {
-        self.widget_tree.set_connected(crumbs, status);
+    fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) {
+        self.widget_tree.set_connections(map);
     }
 
     fn set_expression_usage_type(&self, id: ast::Id, usage_type: Option<Type>) {
@@ -228,19 +262,18 @@ impl Model {
         hovered.then(cursor::Style::cursor).unwrap_or_default()
     }
 
-    fn port_hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
-        let crumbs = hovered.on()?;
-        let expr = self.expression.borrow();
-        let port = expr.span_tree.get_node(crumbs).ok()?;
-        let display_object = self.widget_tree.get_port_display_object(&port)?;
-        let tp = port.tp().map(|t| t.into());
-        let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
+    fn port_hover_pointer_style(&self, hovered: &Switch<PortId>) -> Option<cursor::Style> {
+        let display_object = self.widget_tree.get_port_display_object(hovered.into_on()?)?;
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
         let min_y = node::input::port::BASE_PORT_HEIGHT;
         let computed_size = display_object.computed_size();
         let size = Vector2(computed_size.x + pad_x, computed_size.y.max(min_y));
-        let radius = size.y / 2.0;
-        Some(cursor::Style::new_highlight(display_object, size, radius, color))
+        Some(cursor::Style::new_highlight(display_object, size, min_y / 2.0))
+    }
+
+    fn port_type(&self, port: PortId) -> Option<Type> {
+        let expression = self.expression.borrow();
+        Some(Type::from(expression.port_node(port)?.kind.tp()?))
     }
 
     /// Configure widgets associated with single Enso call expression, overriding default widgets
@@ -259,7 +292,12 @@ impl Model {
     /// If the widget tree was marked as dirty since its last update, rebuild it.
     fn rebuild_widget_tree_if_dirty(&self) {
         let expr = self.expression.borrow();
-        self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles);
+        self.widget_tree.rebuild_tree_if_dirty(
+            &expr.span_tree,
+            &expr.code,
+            &self.layers,
+            &self.styles_frp,
+        );
     }
 
     /// Scan node expressions for all known method calls, for which the language server can provide
@@ -269,11 +307,8 @@ impl Model {
     /// See also: [`controller::graph::widget`] module of `enso-gui` crate.
     #[profile(Debug)]
     fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &FrpEndpoints) {
-        let call_info = CallInfoMap::scan_expression(&expression.span_tree);
-        for (call_id, info) in call_info.iter() {
-            if let Some(target_id) = info.target_id {
-                area_frp.source.requested_widgets.emit((*call_id, target_id));
-            }
+        for (call_id, target_id) in expression.target_map.iter() {
+            area_frp.source.requested_widgets.emit((*call_id, *target_id));
         }
     }
 
@@ -284,19 +319,23 @@ impl Model {
         let new_expression = Expression::from(new_expression.into());
         debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
+        // Request widget configuration before rebuilding the widget tree, so that in case there are
+        // any widget responses already cached, they can be immediately used during the first build.
+        // Otherwise the tree would often be rebuilt twice immediately after setting the expression.
+        self.request_widget_config_overrides(&new_expression, area_frp);
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
             &new_expression.code,
-            &self.styles,
+            &self.layers,
+            &self.styles_frp,
         );
 
-        self.request_widget_config_overrides(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
     }
 
     /// Get hover shapes for all input ports of a node. Mainly used in tests to manually dispatch
     /// mouse events.
-    pub fn port_hover_shapes(&self) -> Vec<super::port::HoverShape> {
+    pub fn port_hover_shapes(&self) -> Vec<Rectangle> {
         self.widget_tree.port_hover_shapes()
     }
 }
@@ -336,17 +375,14 @@ ensogl::define_endpoints! {
         /// Set read-only mode for input ports.
         set_read_only (bool),
 
-        /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
-        /// contains the color of connected edge.
-        set_connected (Crumbs, Option<color::Lcha>),
+        /// Provide a map of edge colors for all connected ports.
+        set_connections (HashMap<PortId, color::Lcha>),
 
         /// Update widget configuration for widgets already present in this input area.
         update_widgets   (CallWidgetsConfig),
 
-        /// Enable / disable port hovering. The optional type indicates the type of the active edge
-        /// if any. It is used to highlight ports if they are missing type information or if their
-        /// types are polymorphic.
-        set_ports_active (bool,Option<Type>),
+        /// Enable / disable port hovering
+        set_ports_active (bool),
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
@@ -355,6 +391,9 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (ast::Id,Option<Type>),
+
+        /// Set the primary (background) and secondary (port) node colors.
+        set_node_colors ((color::Lcha, color::Lcha)),
     }
 
     Output {
@@ -366,8 +405,8 @@ ensogl::define_endpoints! {
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
-        on_port_press       (Crumbs),
-        on_port_hover       (Switch<Crumbs>),
+        on_port_press       (PortId),
+        on_port_hover       (Switch<PortId>),
         on_port_code_update (Crumbs,ImString),
         view_mode           (view::Mode),
         /// A set of widgets attached to a method requests their definitions to be queried from an
@@ -377,6 +416,8 @@ ensogl::define_endpoints! {
         request_import       (ImString),
         /// A connected port within the node has been moved. Some edges might need to be updated.
         input_edges_need_refresh (),
+        /// The widget tree has been rebuilt. Some ports might have been added or removed.
+        widget_tree_rebuilt (),
     }
 }
 
@@ -391,28 +432,22 @@ ensogl::define_endpoints! {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, Deref, CloneRef, Debug)]
+#[derive(Clone, Deref, CloneRef, Debug, display::Object)]
 pub struct Area {
     #[allow(missing_docs)]
     #[deref]
     pub frp:          Frp,
+    #[display_object]
     pub(crate) model: Rc<Model>,
-}
-
-impl display::Object for Area {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl Area {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app));
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
+        let model = Rc::new(Model::new(app, layers));
         let frp = Frp::new();
         let network = &frp.network;
-        let selection_color = Animation::new(network);
 
         frp::extend! { network
             init <- source::<()>();
@@ -437,8 +472,8 @@ impl Area {
 
             let ports_active = &frp.set_ports_active;
             edit_or_ready <- frp.set_edit_ready_mode || set_editing;
-            reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
-            port_vis <- all_with(&set_editing, ports_active, |e, (a, _)| !e && *a);
+            reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, a| *e && !a);
+            port_vis <- all_with(&set_editing, ports_active, |e, a| !e && *a);
             frp.output.source.ports_visible <+ port_vis;
             frp.output.source.editing <+ set_editing;
             model.widget_tree.set_ports_visible <+ frp.ports_visible;
@@ -508,30 +543,21 @@ impl Area {
             // === Widgets ===
 
             eval frp.update_widgets((a) model.apply_widget_configuration(a));
-            eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
+            eval frp.set_connections((conn) model.set_connections(conn));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
+            frp.output.source.widget_tree_rebuilt <+ model.widget_tree.on_rebuild_finished;
+
 
             // === View Mode ===
 
             frp.output.source.view_mode <+ frp.set_view_mode;
-
-            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
-            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
-            profiled          <- in_profiling_mode && finished;
-
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
-
-            use theme::code::syntax;
-            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
-            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
-            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
-
-            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.edit_mode_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
+            model.widget_tree.node_base_color <+ frp.set_node_colors._0();
+            model.widget_tree.node_port_color <+ frp.set_node_colors._1();
         }
 
         init.emit(());
@@ -539,65 +565,36 @@ impl Area {
         Self { frp, model }
     }
 
+
+    /// Check if the node currently contains a port of given ID.
+    pub fn has_port(&self, port: PortId) -> bool {
+        self.model.widget_tree.get_port_display_object(port).is_some()
+    }
+
     /// An offset from node position to a specific port.
-    pub fn port_offset(&self, crumbs: &[Crumb]) -> Vector2<f32> {
-        let expr = self.model.expression.borrow();
-        let port = expr
-            .get_node(crumbs)
-            .ok()
-            .and_then(|node| self.model.widget_tree.get_port_display_object(&node));
+    pub fn port_offset(&self, port: PortId) -> Vector2<f32> {
+        let object = self.model.widget_tree.get_port_display_object(port);
         let initial_position = Vector2(TEXT_OFFSET, NODE_HEIGHT / 2.0);
-        port.map_or(initial_position, |port| {
-            let pos = port.global_position();
+        object.map_or(initial_position, |object| {
+            let pos = object.global_position();
             let node_pos = self.model.display_object.global_position();
-            let size = port.computed_size();
+            let size = object.computed_size();
             pos.xy() - node_pos.xy() + size * 0.5
         })
     }
 
+    /// An the computed layout size of a specific port.
+    pub fn port_size(&self, port: PortId) -> Vector2<f32> {
+        self.model.port_hover_pointer_style(&Switch::On(port)).map_or_default(|s| s.get_size())
+    }
+
     /// A type of the specified port.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        expression.span_tree.get_node(crumbs).ok().and_then(|t| t.tp().map(|t| t.into()))
+    pub fn port_type(&self, port: PortId) -> Option<Type> {
+        self.model.port_type(port)
     }
 
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.model.set_label_layer(layer);
-    }
-}
-
-
-
-// ===================
-// === CallInfoMap ===
-// ===================
-
-#[derive(Debug, Deref)]
-struct CallInfoMap {
-    /// The map from node's call_id to call information.
-    call_info: HashMap<ast::Id, CallInfo>,
-}
-
-/// Information about the call expression, which are derived from the span tree.
-#[derive(Debug, Default)]
-struct CallInfo {
-    /// The AST ID associated with `self` argument span of the call expression.
-    target_id: Option<ast::Id>,
-}
-
-impl CallInfoMap {
-    fn scan_expression(expression: &SpanTree) -> Self {
-        let mut call_info: HashMap<ast::Id, CallInfo> = HashMap::new();
-        expression.root_ref().dfs(|node| {
-            if let Some(call_id) = node.kind.call_id() {
-                let mut entry = call_info.entry(call_id).or_default();
-                if entry.target_id.is_none() || node.kind.is_this() {
-                    entry.target_id = node.ast_id;
-                }
-            }
-        });
-
-        Self { call_info }
+    /// Get the span-tree crumbs for the specified port.
+    pub fn port_crumbs(&self, port: PortId) -> Option<Crumbs> {
+        self.model.expression.borrow().ports_map.get(&port).cloned()
     }
 }

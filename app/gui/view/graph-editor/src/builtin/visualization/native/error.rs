@@ -1,4 +1,4 @@
-//! Example visualisation showing the provided data as text.
+//! Example visualization showing the provided data as text.
 
 use crate::component::visualization::*;
 use crate::prelude::*;
@@ -35,12 +35,12 @@ const PADDING_TEXT: f32 = 10.0;
 
 /// The module containing the `PREPROCESSOR_FUNCTION`. See there.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_MODULE: &str = "Standard.Visualization.Preprocessor";
 
 /// The method name of the error preprocessor.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_METHOD: &str = "error_preprocessor";
 
 /// The list of arguments passed to the error preprocessor.
@@ -80,10 +80,11 @@ pub struct Input {
 // =============
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Error {
     pub frp: visualization::instance::Frp,
+    #[display_object]
     model:   Model,
     network: frp::Network,
 }
@@ -152,9 +153,10 @@ impl Error {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
+    #[display_object]
     dom:       DomSymbol,
     size:      Rc<Cell<Vector2>>,
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -261,11 +263,5 @@ impl Model {
 impl From<Error> for Instance {
     fn from(t: Error) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.dom.clone_ref()))
-    }
-}
-
-impl display::Object for Error {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.dom.display_object()
     }
 }

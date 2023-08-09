@@ -343,7 +343,7 @@ impl QueryData {
     fn new(suggestion: &enso_suggestion_database::Entry, req: &Request) -> Self {
         let node_id = req.node_id;
         let arguments = suggestion.arguments.iter().map(|arg| arg.name.clone().into()).collect();
-        let method_name = suggestion.name.clone().into();
+        let method_name = suggestion.name.clone();
         let call_expression = req.call_expression;
         let last_definitions = None;
         QueryData { node_id, arguments, method_name, call_expression, last_definitions }
@@ -355,7 +355,7 @@ impl QueryData {
         let mut visualization_modified = false;
 
         if self.method_name != suggestion.name {
-            self.method_name = suggestion.name.clone().into();
+            self.method_name = suggestion.name.clone();
             visualization_modified = true;
         }
 
@@ -392,7 +392,7 @@ impl QueryData {
     /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
         let arguments: Vec<Code> = vec![
-            Self::escape_visualization_argument(&self.method_name).into(),
+            Self::as_unresolved_symbol(&self.method_name).into(),
             Self::arg_sequence(&self.arguments).into(),
         ];
 
@@ -408,6 +408,12 @@ impl QueryData {
     /// expression with string literal.
     fn escape_visualization_argument(arg: &str) -> String {
         Ast::raw_text_literal(arg).repr()
+    }
+
+    /// Creates unresolved symbol via ".name" syntax. Unresolved symbol contains name and also
+    /// module scope to resolve it properly.
+    fn as_unresolved_symbol(arg: &str) -> String {
+        format!(".{arg}")
     }
 
     /// Escape a list of strings to be used as a visualization argument. Transforms the strings into

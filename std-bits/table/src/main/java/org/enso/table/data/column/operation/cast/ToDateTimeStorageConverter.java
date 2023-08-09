@@ -1,10 +1,11 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.builder.object.DateTimeBuilder;
+import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.graalvm.polyglot.Context;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -15,7 +16,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     if (storage instanceof DateTimeStorage dateTimeStorage) {
       return dateTimeStorage;
     } else if (storage instanceof DateStorage dateStorage) {
-      return convertDateStorage(dateStorage);
+      return convertDateStorage(dateStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -24,6 +25,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   }
 
   public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -36,8 +38,11 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
           builder.appendNulls(1);
         }
       }
+
+      context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -45,12 +50,16 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return date.atStartOfDay().atZone(ZoneId.systemDefault());
   }
 
-  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage) {
+  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
     for (int i = 0; i < dateStorage.size(); i++) {
       LocalDate date = dateStorage.getItem(i);
       builder.append(convertDate(date));
+      context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

@@ -1,21 +1,11 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Option;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.debug.DebuggerTags;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.ProvidedTags;
-import com.oracle.truffle.api.instrumentation.StandardTags;
-import com.oracle.truffle.api.nodes.ExecutableNode;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
@@ -50,6 +40,18 @@ import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Option;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.ProvidedTags;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.ExecutableNode;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+
 /**
  * The root of the Enso implementation.
  *
@@ -66,7 +68,7 @@ import org.graalvm.options.OptionType;
     version = LanguageInfo.VERSION,
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
-    contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
+    contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
     dependentLanguages = {EpbLanguage.ID},
     fileTypeDetectors = FileDetector.class,
     services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
@@ -173,6 +175,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     context.shutdown();
   }
 
+  @Override
+  public void disposeContext(EnsoContext context) {
+    super.disposeContext(context);
+  }
+
   /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
@@ -209,12 +216,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    * will be returned.
    *
    * @param request request for inline parsing
-   * @throws Exception if the compiler failed to parse
+   * @throws InlineParsingException if the compiler failed to parse
    * @return An {@link ExecutableNode} representing an AST fragment if the request contains
    *   syntactically correct Enso source, {@code null} otherwise.
    */
   @Override
-  protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
+  protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
       Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
@@ -273,9 +280,15 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       if (exprNode.isDefined()) {
         var language = EnsoLanguage.get(exprNode.get());
         return new ExecutableNode(language) {
+          @Child
+          private ExpressionNode expr;
+
           @Override
           public Object execute(VirtualFrame frame) {
-            return exprNode.get().executeGeneric(frame);
+            if (expr == null) {
+              expr = insert(exprNode.get());
+            }
+            return expr.executeGeneric(frame);
           }
         };
       }

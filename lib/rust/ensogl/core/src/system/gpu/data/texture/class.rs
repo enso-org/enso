@@ -72,8 +72,7 @@ pub struct Parameters {
 
 impl Parameters {
     /// Applies the context parameters in the given context.
-    pub fn apply_parameters(self, context: &Context) {
-        let target = Context::TEXTURE_2D;
+    pub fn apply_parameters(self, context: &Context, target: GlEnum) {
         context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.min_filter as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_MAG_FILTER, *self.mag_filter as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_WRAP_S, *self.wrap_s as i32);
@@ -233,7 +232,7 @@ where
 
     /// Element type of this texture.
     pub fn item_type() -> AnyItemType {
-        PhantomData::<T>.into()
+        ZST::<T>().into()
     }
 }
 
@@ -256,6 +255,11 @@ where S: StorageRelation<I, T>
     /// Getter.
     pub fn storage(&self) -> &StorageOf<S, I, T> {
         &self.storage
+    }
+
+    /// Texture target getter. See [`StorageRelation::target`].
+    pub fn target(&self) -> GlEnum {
+        S::target(&self.storage)
     }
 
     /// Getter.
@@ -319,7 +323,7 @@ where S: StorageRelation<I, T>
 
     /// Applies this textures' parameters in the given context.
     pub fn apply_texture_parameters(&self, context: &Context) {
-        self.parameters.apply_parameters(context);
+        self.parameters.apply_parameters(context, self.target());
     }
 }
 
@@ -330,23 +334,50 @@ where
     T: ItemType + JsBufferViewArr,
 {
     /// Reloads gpu texture with data from given slice.
-    pub fn reload_from_memory(&self, data: &[T], width: i32, height: i32) {
-        let target = Context::TEXTURE_2D;
+    pub fn reload_from_memory(&self, data: &[T], width: i32, height: i32, depth: i32) {
+        let target = self.target();
         let level = 0;
         let border = 0;
         let internal_format = Self::gl_internal_format();
         let format = Self::gl_format().into();
         let elem_type = Self::gl_elem_type();
+        let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
-        #[allow(unsafe_code)]
-        unsafe {
-            // We use unsafe array view which is used immediately, so no allocations should happen
-            // until we drop the view.
-            let view = data.js_buffer_view();
-            let result = self.context
-                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view
-                (*target,level,internal_format,width,height,border,format,elem_type,Some(&view));
-            result.unwrap();
+        match target {
+            Context::TEXTURE_2D => {
+                self.context
+                    .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                        *target,
+                        level,
+                        internal_format,
+                        width,
+                        height,
+                        border,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+            Context::TEXTURE_2D_ARRAY | Context::TEXTURE_3D => {
+                self.context
+                    .tex_image_3d_with_opt_u8_array(
+                        *target,
+                        level,
+                        internal_format,
+                        width,
+                        height,
+                        depth,
+                        border,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+            _ => {
+                panic!("Unsupported texture target: {target:?}");
+            }
         }
         self.apply_texture_parameters(&self.context);
     }
@@ -355,12 +386,12 @@ where
 
 // === Instances ===
 
-impl<S: StorageRelation<I, T>, I, T> HasContent for Texture<S, I, T> {
-    type Content = Texture<S, I, T>;
+impl<S: StorageRelation<I, T>, I, T> HasItem for Texture<S, I, T> {
+    type Item = Texture<S, I, T>;
 }
 
-impl<S: StorageRelation<I, T>, I, T> ContentRef for Texture<S, I, T> {
-    fn content(&self) -> &Self::Content {
+impl<S: StorageRelation<I, T>, I, T> ItemRef for Texture<S, I, T> {
+    fn item(&self) -> &Self::Item {
         self
     }
 }
@@ -388,16 +419,16 @@ pub trait TextureOps {
 }
 
 impl<
-        P: WithContent<Content = Texture<S, I, T>>,
+        P: WithItemRef<Item = Texture<S, I, T>>,
         S: StorageRelation<I, T>,
         I: InternalFormat,
         T: ItemType,
     > TextureOps for P
 {
     fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        self.with_content(|this| {
+        self.with_item(|this| {
             let context = context.clone();
-            let target = Context::TEXTURE_2D;
+            let target = this.target();
             context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
             context.bind_texture(*target, Some(&this.gl_texture));
             context.active_texture(*Context::TEXTURE0);
@@ -406,14 +437,14 @@ impl<
     }
 
     fn gl_texture(&self) -> WebGlTexture {
-        self.with_content(|this| this.gl_texture.clone())
+        self.with_item(|this| this.gl_texture.clone())
     }
 
     fn get_format(&self) -> AnyFormat {
-        self.with_content(|_| <Texture<S, I, T>>::format())
+        self.with_item(|_| <Texture<S, I, T>>::format())
     }
 
     fn get_item_type(&self) -> AnyItemType {
-        self.with_content(|_| <Texture<S, I, T>>::item_type())
+        self.with_item(|_| <Texture<S, I, T>>::item_type())
     }
 }

@@ -1,5 +1,7 @@
 /** @file Colored border around icons and text indicating permissions. */
-import * as react from 'react'
+import * as React from 'react'
+
+import * as backend from '../backend'
 
 // =============
 // === Types ===
@@ -9,97 +11,159 @@ import * as react from 'react'
 export enum Permission {
     owner = 'owner',
     admin = 'admin',
-    regular = 'regular',
+    edit = 'edit',
+    read = 'read',
+    view = 'view',
 }
 
-/** Base interface for all permissions. */
-interface BasePermissions {
-    type: Permission
+/** Properties common to all permissions. */
+interface BasePermissions<T extends Permission> {
+    type: T
 }
 
-/** Owner permissions over an asset. */
-interface OwnerPermissions extends BasePermissions {
-    type: Permission.owner
+/** Owner permissions for an asset. */
+interface OwnerPermissions extends BasePermissions<Permission.owner> {}
+
+/** Admin permissions for an asset. */
+interface AdminPermissions extends BasePermissions<Permission.admin> {}
+
+/** Editor permissions for an asset. */
+interface EditPermissions extends BasePermissions<Permission.edit> {}
+
+/** Reader permissions for an asset. */
+interface ReadPermissions extends BasePermissions<Permission.read> {
+    execute: boolean
+    docs: boolean
 }
 
-/** Admin permissions over an asset. */
-interface AdminPermissions extends BasePermissions {
-    type: Permission.admin
-}
-
-/** Regular permissions over an asset. */
-interface RegularPermissions extends BasePermissions {
-    type: Permission.regular
-    read: boolean
-    write: boolean
-    docsWrite: boolean
-    exec: boolean
+/** Viewer permissions for an asset. */
+interface ViewPermissions extends BasePermissions<Permission.view> {
+    execute: boolean
+    docs: boolean
 }
 
 /** Detailed permission information. This is used to draw the border. */
-export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissions
+export type Permissions =
+    | AdminPermissions
+    | EditPermissions
+    | OwnerPermissions
+    | ReadPermissions
+    | ViewPermissions
+
+// =================
+// === Constants ===
+// =================
+
+/** CSS classes for each permission. */
+export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
+    [Permission.owner]: 'text-tag-text bg-permission-owner',
+    [Permission.admin]: 'text-tag-text bg-permission-admin',
+    [Permission.edit]: 'text-tag-text bg-permission-edit',
+    [Permission.read]: 'text-tag-text bg-permission-read',
+    [Permission.view]: 'text-tag-text-2 bg-permission-view',
+} as const
+
+/** Precedences for each permission. A lower number means a higher priority. */
+const PERMISSION_PRECEDENCE: Record<Permission, number> = {
+    // These are not magic numbers - they are just a sequence of numbers.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    [Permission.owner]: 0,
+    [Permission.admin]: 1,
+    [Permission.edit]: 2,
+    [Permission.read]: 3,
+    [Permission.view]: 4,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+}
+
+/** The corresponding `Permissions` for each backend `PermissionAction`. */
+export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
+    [backend.PermissionAction.own]: { type: Permission.owner },
+    [backend.PermissionAction.execute]: {
+        type: Permission.read,
+        execute: true,
+        docs: false,
+    },
+    [backend.PermissionAction.edit]: { type: Permission.edit },
+    [backend.PermissionAction.view]: { type: Permission.view, execute: false, docs: false },
+}
+
+// ======================
+// === permissionsToX ===
+// ======================
+
+/** Converts an array of {@link backend.PermissionAction} to a {@link Permissions}. */
+export function permissionActionsToPermissions(
+    permissions: backend.PermissionAction[]
+): Permissions {
+    return permissions.reduce<Permissions>(
+        (result, action) => {
+            const actionResult = PERMISSION[action]
+            return PERMISSION_PRECEDENCE[actionResult.type] <= PERMISSION_PRECEDENCE[result.type]
+                ? actionResult
+                : result
+        },
+        { type: Permission.view, execute: false, docs: false }
+    )
+}
 
 // =================
 // === Component ===
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps {
+export interface PermissionDisplayProps extends React.PropsWithChildren {
     permissions: Permissions
+    className?: string
+    onClick?: React.MouseEventHandler<HTMLDivElement>
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps>) {
-    const { permissions, children } = props
-    let permissionBorder
+export default function PermissionDisplay(props: PermissionDisplayProps) {
+    const { permissions, className, onClick, onMouseEnter, onMouseLeave, children } = props
+
     switch (permissions.type) {
-        case Permission.owner: {
-            permissionBorder = (
-                <div className="border-perm-owner border-2 rounded-full absolute w-full h-full"></div>
+        case Permission.owner:
+        case Permission.admin:
+        case Permission.edit: {
+            return (
+                <div
+                    className={`${
+                        PERMISSION_CLASS_NAME[permissions.type]
+                    } inline-block rounded-full h-6 px-1.75 py-0.5 ${className ?? ''}`}
+                    onClick={onClick}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    {children}
+                </div>
             )
-            break
         }
-        case Permission.admin: {
-            permissionBorder = (
-                <div className="border-perm-admin border-2 rounded-full absolute w-full h-full"></div>
+        case Permission.read:
+        case Permission.view: {
+            return (
+                <div
+                    className={`relative inline-block rounded-full ${className ?? ''}`}
+                    onClick={onClick}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    {permissions.docs && (
+                        <div className="border-permission-docs clip-path-top border-2 rounded-full absolute w-full h-full" />
+                    )}
+                    {permissions.execute && (
+                        <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute w-full h-full" />
+                    )}
+                    <div
+                        className={`${
+                            PERMISSION_CLASS_NAME[permissions.type]
+                        } rounded-full h-6 px-1.75 py-0.5 m-1`}
+                    >
+                        {children}
+                    </div>
+                </div>
             )
-            break
-        }
-        case Permission.regular: {
-            permissionBorder = (
-                <>
-                    <div
-                        className={`${
-                            permissions.write ? 'border-perm-write' : 'border-perm-none'
-                        } clip-path-top-left border-2 rounded-full absolute w-full h-full`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.read ? 'border-perm-read' : 'border-perm-none'
-                        } clip-path-top-right border-2 rounded-full absolute w-full h-full`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.exec ? 'border-perm-exec' : 'border-perm-none'
-                        } clip-path-bottom-left border-2 rounded-full absolute w-full h-full`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.docsWrite ? 'border-perm-docs-write' : 'border-perm-none'
-                        } clip-path-bottom-right border-2 rounded-full absolute w-full h-full`}
-                    ></div>
-                </>
-            )
-            break
         }
     }
-
-    return (
-        <div className="m-1 relative inline-block">
-            {permissionBorder}
-            <div className="bg-label rounded-full m-1">{children}</div>
-        </div>
-    )
 }
-
-export default PermissionDisplay

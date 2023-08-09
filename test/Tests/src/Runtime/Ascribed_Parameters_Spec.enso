@@ -1,0 +1,64 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+import Standard.Base.Errors.Common.Type_Error
+
+spec = Test.group "Function Ascribed Parameters" <|
+    t1 (f1 : Function) =
+        f1 "x"
+
+    t2 (f2 : (Text -> Any)) =
+        f2 "x"
+
+    t3 (f3 : (Integer | Function)) = case f3 of
+        n : Integer -> n*7
+        _ -> f3 "x"
+
+    t4 (f4 : (Integer | (Text -> Any))) = case f4 of
+        n : Integer -> n*7
+        _ -> f4 "x"
+
+    surround x = "|" + x + "|"
+
+    with_type_error ~action = Panic.catch Type_Error action panic->panic.convert_to_dataflow_error
+
+    Test.specify "t1 with surround type check" <|
+        (t1 surround) . should_equal "|x|"
+
+    Test.specify "t2 with surround type check" <|
+        (t2 surround) . should_equal "|x|"
+
+    Test.specify "t3 with surround type check" <|
+        (t3 surround) . should_equal "|x|"
+
+    Test.specify "t4 with surround type check" <|
+        (t4 surround) . should_equal "|x|"
+
+    Test.specify "t1 with 42 type check" <|
+        with_type_error (t1 6) . should_fail_with Type_Error
+
+    Test.specify "t2 with 42 type check" <|
+        with_type_error (t2 6) . should_fail_with Type_Error
+
+    Test.specify "t3 with 42 type check" <|
+        (t3 6) . should_equal 42
+
+    Test.specify "t4 with 42 type check" <|
+        (t4 6) . should_equal 42
+
+    Test.specify "t1 with text type check" <|
+        with_type_error (t1 "hi") . should_fail_with Type_Error
+
+    Test.specify "t2 with text type check" <|
+        with_type_error (t2 "hi") . should_fail_with Type_Error
+
+    Test.specify "t3 with text type check" <|
+        with_type_error (t3 "hi") . should_fail_with Type_Error
+
+    Test.specify "t4 with text type check" <|
+        with_type_error (t4 "hi") . should_fail_with Type_Error
+
+
+main = Test_Suite.run_main spec

@@ -48,10 +48,11 @@ pub struct Params {
 /// display object for compatibility with `GridView`. The `dummy_root` is not used for
 /// displaying anything, all that is visible is the `text` element, which is updates through
 /// the FRP.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     // Needed to provide a dummy display object for the `display::Object` trait. Not used, as the
     // text element is created as HTML Element and positioned manually in `set_position_and_size`.
+    #[display_object]
     dummy_root: display::object::Instance,
     text:       Rc<web::HtmlDivElement>,
     frp:        Rc<EntryFrp<Self>>,
@@ -77,6 +78,10 @@ impl Entry {
         let mut style = "position: absolute; white-space: pre; pointer-events: auto;".to_string();
         write!(style, "left: {left}px; top: {top}px;").ok();
         write!(style, "width: {width}px; height: {height}px;").ok();
+        // This prevents a fallback font from being used. Using any other font than the one
+        // specified will break the layout mechanism because the calculated width of the chunks no
+        // longer matches the rendered width of the chunks.
+        write!(style, "font-display: block;").ok();
         // The default line height in browsers is 1.2, which is great for multi-line text and
         // elements whose height is greater than the line height. In this case, however, where the
         // height and the font size are set to the same value, the default setting of 1.2 pushes
@@ -84,12 +89,6 @@ impl Entry {
         write!(style, "line-height: 1").ok();
 
         self.text.set_attribute_or_warn("style", style);
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.dummy_root
     }
 }
 

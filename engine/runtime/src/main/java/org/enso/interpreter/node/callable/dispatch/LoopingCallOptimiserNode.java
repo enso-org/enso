@@ -3,7 +3,9 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
@@ -15,9 +17,12 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -54,23 +59,44 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @param loopNode a cached instance of the loop node used by this node
    * @return the result of executing {@code function} using {@code arguments}
    */
-  @Specialization
-  public Object dispatch(
+  @Specialization(guards = "warnings == null")
+  public Object cachedDispatch(
       Function function,
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      Warning[] warnings,
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+    return dispatch(function, callerInfo, state, arguments, loopNode);
+  }
+
+  @Specialization(guards = "warnings != null")
+  public Object cachedDispatchWarnings(
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      Warning[] warnings,
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+    Object result = dispatch(function, callerInfo, state, arguments, loopNode);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+  }
+
+  private Object dispatch(
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      LoopNode loopNode) {
     RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
     VirtualFrame frame = repeatedCallNode.createFrame();
     repeatedCallNode.setNextCall(frame, function, callerInfo, arguments);
     repeatedCallNode.setState(frame, state);
     loopNode.execute(frame);
-
     return repeatedCallNode.getResult(frame);
   }
 
-  @Specialization(replaces = "dispatch")
+  @Specialization(replaces = "cachedDispatch", guards = "warnings == null")
   @CompilerDirectives.TruffleBoundary
   public Object uncachedDispatch(
       MaterializedFrame frame,
@@ -78,7 +104,33 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      @Cached ExecuteCallNode executeCallNode) {
+      Warning[] warnings,
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
+    return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
+  }
+
+  @Specialization(replaces = "cachedDispatchWarnings", guards = "warnings != null")
+  @CompilerDirectives.TruffleBoundary
+  public Object uncachedDispatchWarnings(
+      MaterializedFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      Warning[] warnings,
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
+    Object result =
+        loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+  }
+
+  private Object loopUntilCompletion(
+      MaterializedFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      ExecuteCallNode executeCallNode) {
     while (true) {
       try {
         return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
@@ -95,6 +147,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    *
    * @return a loop node
    */
+  @NeverDefault
   static LoopNode createLoopNode() {
     return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
   }

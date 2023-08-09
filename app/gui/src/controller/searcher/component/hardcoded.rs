@@ -12,7 +12,7 @@ use crate::controller::searcher::input;
 use double_representation::name::QualifiedName;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::SuggestionDatabase;
-use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
+use ensogl_icons::icon::Id as IconId;
 
 
 
@@ -22,7 +22,7 @@ use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as 
 
 /// Name of the favorites component group in the `Standard.Base` library where virtual components
 /// created from the [`INPUT_SNIPPETS`] should be added.
-pub const INPUT_GROUP_NAME: &str = "Input";
+pub const INPUT_GROUP_NAME: &str = "Standard.Base.Input";
 /// Qualified name of the `Text` type.
 const TEXT_ENTRY: &str = "Standard.Base.Main.Data.Text.Text";
 /// Qualified name of the `Number` type.
@@ -81,7 +81,7 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a hardcoded snippet with given name, code, and icon.
-    fn new(name: &str, code: &str, icon: IconId) -> Self {
+    pub fn new(name: &str, code: &str, icon: IconId) -> Self {
         Self { name: name.into(), code: code.into(), icon, ..default() }
     }
 
@@ -139,11 +139,14 @@ impl Snippet {
 mod tests {
     use super::*;
 
+    use crate::model::execution_context::GroupQualifiedName;
+
     /// Test that the qualified names used for hardcoded snippets can be constructed. We don't check
     /// if the entries are actually available in the suggestion database.
     #[test]
     fn test_qualified_names_construction() {
         QualifiedName::from_text(TEXT_ENTRY).unwrap();
         QualifiedName::from_text(NUMBER_ENTRY).unwrap();
+        GroupQualifiedName::try_from(INPUT_GROUP_NAME).unwrap();
     }
 }

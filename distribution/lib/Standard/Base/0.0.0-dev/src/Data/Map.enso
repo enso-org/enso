@@ -1,16 +1,15 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
-import project.Data.Vector.Vector
 import project.Data.Pair.Pair
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
 ## A key-value store. It is possible to use any type as keys and values and mix them in
    one Map. Keys are checked for equality based on their hash code and `==` operator, which
@@ -32,11 +31,15 @@ from project.Data.Boolean import Boolean, True, False
    treated as a Map.
 @Builtin_Type
 type Map key value
-    ## Returns an empty map.
+    ## PRIVATE
+       ADVANCED
+       Returns an empty map.
     empty : Map
     empty = @Builtin_Method "Map.empty"
 
-    ## Returns a single-element map with the given key and value.
+    ## PRIVATE
+       ADVANCED
+       Returns a single-element map with the given key and value.
        A Call to `Map.singleton key value` is the same as a call to
        `Map.empty.insert key value`.
 
@@ -284,7 +287,7 @@ type Map key value
              import Standard.Base.Data.Map.Map
              import Standard.Examples
 
-             example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
+             example_fold = Examples.map.fold 0 (l -> r -> l.max r.length)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function = self.values.fold init function
 

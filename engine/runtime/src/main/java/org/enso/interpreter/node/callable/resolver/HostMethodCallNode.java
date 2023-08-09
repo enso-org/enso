@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.resolver;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
@@ -45,6 +46,11 @@ public abstract class HostMethodCallNode extends Node {
      * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
      */
     CONVERT_TO_TEXT,
+    /**
+     * The method call should be handled by converting {@code self} to a {@link EnsoBigInteger} and
+     * dispatching natively.
+     */
+    CONVERT_TO_BIG_INT,
     /**
      * The method call should be handled by converting {@code self} dispatching natively to methods
      * of {@link org.enso.interpreter.runtime.data.Array}
@@ -99,6 +105,7 @@ public abstract class HostMethodCallNode extends Node {
       return this != NOT_SUPPORTED
           && this != CONVERT_TO_ARRAY
           && this != CONVERT_TO_TEXT
+          && this != CONVERT_TO_BIG_INT
           && this != CONVERT_TO_DATE
           && this != CONVERT_TO_DATE_TIME
           && this != CONVERT_TO_DURATION
@@ -158,6 +165,8 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.CONVERT_TO_DURATION;
     } else if (library.isTimeZone(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_ZONE;
+    } else if (library.fitsInBigInteger(self)) {
+      return PolyglotCallType.CONVERT_TO_BIG_INT;
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.hasArrayElements(self)) {
@@ -202,8 +211,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(members.invokeMember(self, symbol, args));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
@@ -232,8 +241,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode,
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode,
       @Cached BranchProfile errorProfile) {
     if (args.length != 0) {
       errorProfile.enter();
@@ -254,8 +263,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(instances.instantiate(self, args));
     } catch (UnsupportedMessageException e) {

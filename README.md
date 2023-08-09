@@ -33,7 +33,7 @@
 
 Enso is an award-winning interactive programming language with dual visual and
 textual representations. It is a tool that spans the entire stack, going from
-high-level visualisation and communication to the nitty-gritty of backend
+high-level visualization and communication to the nitty-gritty of backend
 services, all in a single language. Watch the following introduction video to
 learn what Enso is, and how it helps companies build data workflows in minutes
 instead of weeks.
@@ -207,7 +207,7 @@ Enso consists of several sub projects:
   command line tools.
 
 - **Enso IDE:** The
-  [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is a desktop
+  [Enso IDE](https://github.com/enso-org/enso/tree/develop/app/gui) is a desktop
   application that allows working with the visual form of Enso. It consists of
   an Electron application, a high performance WebGL UI framework, and the
   searcher which provides contextual search, hints, and documentation for all of

@@ -516,11 +516,11 @@ impl Font {
         }
     }
 
-    /// Get number of rows in MSDF texture.
-    pub fn msdf_texture_rows(&self) -> usize {
+    /// Get the font MSDF atlas texture.
+    pub fn msdf_texture(&self) -> &msdf::Texture {
         match self {
-            Font::NonVariable(font) => font.msdf_texture_rows(),
-            Font::Variable(font) => font.msdf_texture_rows(),
+            Font::NonVariable(font) => &font.atlas,
+            Font::Variable(font) => &font.atlas,
         }
     }
 
@@ -693,11 +693,6 @@ impl<F: Family> FontTemplate<F> {
     /// A whole MSDF texture bound for this font.
     pub fn with_borrowed_msdf_texture_data<R>(&self, operation: impl FnOnce(&[u8]) -> R) -> R {
         self.atlas.with_borrowed_data(operation)
-    }
-
-    /// Get number of rows in MSDF texture.
-    pub fn msdf_texture_rows(&self) -> usize {
-        self.atlas.rows()
     }
 }
 
@@ -933,7 +928,6 @@ shared! { Registry
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct RegistryData {
-    scene:    scene::Scene,
     embedded: Embedded,
     fonts:    HashMap<Name, FontWithGpuData>,
 }
@@ -966,7 +960,7 @@ impl {
                 debug!("Loading font: {:?}", name);
                 let hinting = Hinting::for_font(&name);
                 let font = self.embedded.load_font(name)?;
-                let font = FontWithGpuData::new(font, hinting, &self.scene);
+                let font = FontWithGpuData::new(font, hinting, &scene());
                 entry.insert(font.clone_ref());
                 Some(font)
             }
@@ -976,19 +970,18 @@ impl {
 
 impl Registry {
     /// Constructor.
-    pub fn init_and_load_embedded_fonts(scene: &scene::Scene) -> Registry {
-        let scene = scene.clone_ref();
+    pub fn init_and_load_embedded_fonts() -> Registry {
         let embedded = Embedded::new();
         let fonts = HashMap::new();
-        let data = RegistryData { scene, embedded, fonts };
+        let data = RegistryData { embedded, fonts };
         let rc = Rc::new(RefCell::new(data));
         Self { rc }
     }
 }
 
 impl scene::Extension for Registry {
-    fn init(scene: &scene::Scene) -> Self {
-        Self::init_and_load_embedded_fonts(scene)
+    fn init(_scene: &scene::Scene) -> Self {
+        Self::init_and_load_embedded_fonts()
     }
 }
 

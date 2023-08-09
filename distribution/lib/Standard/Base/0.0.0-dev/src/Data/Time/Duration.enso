@@ -4,13 +4,12 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
@@ -18,13 +17,13 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.System
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
-from project.Data.Boolean import Boolean, True, False
-
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
-polyglot java import java.lang.ArithmeticException
 
 ## PRIVATE
    Create an interval representing the duration between two points in time.
@@ -226,25 +225,21 @@ type Duration
     hours : Integer
     hours self = @Builtin_Method "Duration.hours"
 
-    ## UNSTABLE
-       Convert the duration to total milliseconds.
+    ## Convert the duration to total milliseconds.
     total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
             Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
-    ## UNSTABLE
-       Convert the duration to total seconds.
+    ## Convert the duration to total seconds.
     total_seconds : Decimal ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
-    ## UNSTABLE
-       Convert the duration to total minutes.
+    ## Convert the duration to total minutes.
     total_minutes : Decimal ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
-    ## UNSTABLE
-       Convert the duration to total minutes.
+    ## Convert the duration to total minutes.
     total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 

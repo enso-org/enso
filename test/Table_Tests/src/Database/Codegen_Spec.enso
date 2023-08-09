@@ -1,33 +1,27 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column
+from Standard.Table import Sort_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
-from Standard.Database.Data.Table import fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Database.Helpers.Fake_Test_Connection
-
 polyglot java import java.sql.Types as Java_SQL_Types
 
 spec =
-    int = SQL_Type.Value Java_SQL_Types.INTEGER "INTEGER"
-    bool = SQL_Type.Value Java_SQL_Types.BOOLEAN "BOOLEAN"
-    str = SQL_Type.Value Java_SQL_Types.VARCHAR "TEXT"
     test_connection =
-        table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
-        table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
-        table3 = ["T3", [["A", int], ["E", bool], ["F", int]]]
-        tables = Map.from_vector [table1, table2, table3]
-        Fake_Test_Connection.make Dialect.sqlite tables
+        c = Database.connect (SQLite In_Memory)
+        c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
+        c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
+        c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
+        c
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
@@ -84,7 +78,7 @@ spec =
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
             c = t1.at "B" . fill_nothing "not-applicable"
-            c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "fill_nothing([B], \'not-applicable\')" FROM "T1" AS "T1"', ["not-applicable"]]
+            c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "B" FROM "T1" AS "T1"', ["not-applicable"]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.filter_blank_rows when_any=True
@@ -113,19 +107,13 @@ spec =
             t2 = t1.order_by ([Sort_Column.Name 'foobar'])
             t2.should_fail_with Missing_Input_Columns
 
-    Test.group "Helpers" <|
-        Test.specify "fresh_names should provide fresh names" <|
-            used_names = ["A", "A 1"]
-            preferred_names = ["A", "A", "B"]
-            fresh_names used_names preferred_names . should_equal ["A 2", "A 3", "B"]
-
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|
             code = t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
             code . should_equal ['SELECT "T1"."A grp" AS "A grp", "T1"."counter" AS "counter" FROM (SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A") AS "T1"', []]
 
         Test.specify "should allow to group by multiple fields" <|
-            code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
+            code = t1.aggregate [Sum "A" "sum_a", Group_By "C", Group_By "B" "B grp"] . to_sql . prepare
             code . should_equal ['SELECT "T1"."sum_a" AS "sum_a", "T1"."C" AS "C", "T1"."B grp" AS "B grp" FROM (SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B") AS "T1"', []]
 
 main = Test_Suite.run_main spec

@@ -1,8 +1,6 @@
 //! A crate with Component Browser View.
 //!
-//! Currently, this crate gathers the related panels. The Component Browser View itself is defined
-//! in `ide_view` crate, because the Documentation panel is used by old node searcher as well, and
-//! we need to avoid crates' circular dependencies.
+//! Currently, this crate gathers the related panels.
 
 #![recursion_limit = "256"]
 // === Standard Linter Configuration ===
@@ -44,7 +42,7 @@ pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 
 /// The Model of Component Browser View.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:    display::object::Instance,
     pub list:          component_list_panel::View,
@@ -64,17 +62,6 @@ impl component::Model for Model {
         display_object.add_child(&list);
         display_object.add_child(&documentation);
 
-        // We need to set the shapes order for the documentation panel overlay to be on top of the
-        // CB background; otherwise, the background would block some mouse events. The CB background
-        // is big because of the surrounding shadow and partially overlaps the left side of the
-        // documentation panel.
-        let scene = &app.display.default_scene;
-        shapes_order_dependencies! {
-            scene => {
-                component_list_panel::background -> documentation::overlay;
-            }
-        }
-
         Self { display_object, list, documentation }
     }
 }
@@ -87,7 +74,7 @@ impl Model {
     ) -> Vector2 {
         let half_node_height = NODE_HEIGHT / 2.0;
         let panel_left = -size.x / 2.0;
-        let panel_bottom = -size.y / 2.0;
+        let panel_bottom = 0.0;
         let x = panel_left;
         let y = panel_bottom - vertical_gap - half_node_height;
         Vector2(x, y) + snap_to_pixel_offset
@@ -102,12 +89,6 @@ impl Model {
         let panel_snapped = Vector2(panel_left_top_pos.x.floor(), panel_left_top_pos.y.floor());
         let panel_offset = panel_snapped - panel_left_top_pos;
         origin_offset - panel_offset
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -138,6 +119,7 @@ impl component::Frp<Model> for Frp {
         let input = &frp_api.input;
         let out = &frp_api.output;
         let list_panel = &model.list.output;
+        let buttons = model.list.model().buttons();
         let documentation = &model.documentation;
         let grid = &model.list.model().grid;
 
@@ -155,13 +137,16 @@ impl component::Frp<Model> for Frp {
             });
             snap <- all_with(&size, &scene.frp.shape, |sz, sh| Model::snap_to_pixel_offset(*sz, sh));
             list_position_x <-
-                all_with3(&size, &list_panel.size, &snap, |sz, list_sz, snap| list_sz.x / 2.0 - sz.x / 2.0 + snap.x);
-            doc_position_x <- all_with3(&size, &doc_size, &snap, |sz, doc_sz, snap| sz.x / 2.0 - doc_sz.x / 2.0 + snap.x);
+                all_with(&size, &snap, |sz, snap| -sz.x / 2.0 + snap.x);
+            doc_position_x <- all_with3(&size, &doc_size, &snap,
+                |sz, doc_sz, snap| sz.x / 2.0 - doc_sz.x + snap.x
+            );
             eval list_position_x ((x) model.list.set_x(*x));
             eval doc_position_x ((x) model.documentation.set_x(*x));
 
             model.list.input.show <+ input.show;
             model.list.input.hide <+ input.hide;
+            model.documentation.frp.set_visible <+ buttons.side_panel;
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
             out.expression_input_position <+ all_with3(

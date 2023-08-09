@@ -80,12 +80,6 @@ pub mod constants {
         /// The "void" atom returned by function meant to not return any argument.
         pub const NOTHING: &str = "Nothing";
     }
-
-    /// The tag name of documentation sections marked as "PRIVATE"
-    pub const PRIVATE_DOC_SECTION_TAG_NAME: &str = "PRIVATE";
-
-    /// The tag name of a documentation section with a method alias.
-    pub const ALIAS_DOC_SECTION_TAG_NAME: &str = "ALIAS";
 }
 
 pub use crumbs::Crumb;
@@ -327,7 +321,7 @@ impl Ast {
             if searched_token == token {
                 found_child = true
             } else if !found_child {
-                position += token.len()
+                position += token.repr_len()
             }
         });
         if found_child {
@@ -341,7 +335,7 @@ impl Ast {
     pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<enso_text::Range<Byte>> {
         let child = self.get(crumb)?;
         let offset = self.child_offset(child)?;
-        Ok(enso_text::Range::new(offset, offset + child.len()))
+        Ok(enso_text::Range::new(offset, offset + child.repr_len()))
     }
 }
 
@@ -738,7 +732,7 @@ impl<T: HasTokens> HasTokens for Vec<T> {
 
 impl<T: HasTokens> HasTokens for Rc<T> {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        self.content().feed_to(consumer);
+        self.item().feed_to(consumer);
     }
 }
 
@@ -814,14 +808,14 @@ pub trait HasRepr {
     /// Get the representation length in bytes.
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
-    /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
-    fn len(&self) -> Bytes {
+    /// `x.repr_len() == x.repr().len()` for any `x: impl HasRepr`.
+    fn repr_len(&self) -> Bytes {
         self.repr().len().bytes()
     }
 
     /// Check if the representation is empty.
     fn is_empty(&self) -> bool {
-        self.len() <= 0.bytes()
+        self.repr_len() <= 0.bytes()
     }
 
     /// Get the representation length in chars.
@@ -889,7 +883,7 @@ impl<T: HasTokens> HasRepr for T {
         consumer.repr
     }
 
-    fn len(&self) -> Bytes {
+    fn repr_len(&self) -> Bytes {
         let mut consumer = LengthBuilder::default();
         self.feed_to(&mut consumer);
         consumer.length
@@ -940,8 +934,8 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> Bytes {
-        self.deref().len()
+    fn repr_len(&self) -> Bytes {
+        self.deref().repr_len()
     }
 
     fn char_count(&self) -> usize {
@@ -1011,8 +1005,8 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> Bytes {
-        self.deref().len()
+    fn repr_len(&self) -> Bytes {
+        self.deref().repr_len()
     }
 
     fn char_count(&self) -> usize {
@@ -1126,11 +1120,6 @@ impl<T> Block<T> {
         let first_line = std::iter::once(self.first_line.as_ref().map(Some));
         let lines = self.lines.iter().map(|line| line.as_ref().map(|elem| elem.as_ref()));
         leading_empty_lines.chain(first_line).chain(lines)
-    }
-
-    /// Calculate absolute indentation of lines in this block.
-    pub fn indent(&self, parent_indent: usize) -> usize {
-        parent_indent + self.indent
     }
 
     /// Iterate over non-empty lines, while keeping their absolute indices.
@@ -1336,7 +1325,7 @@ mod tests {
     #[test]
     fn ast_length() {
         let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
-        assert_eq!(ast.len(), 6.bytes());
+        assert_eq!(ast.repr_len(), 6.bytes());
         assert_eq!(ast.char_count(), 5);
     }
 
@@ -1435,7 +1424,7 @@ mod tests {
     fn utf8_lengths() {
         let var = Ast::var("価");
         assert_eq!(var.char_count(), 1);
-        assert_eq!(var.len(), 3.bytes());
+        assert_eq!(var.repr_len(), 3.bytes());
 
         let idmap = var.id_map();
         assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.byte(), 3.byte()));
@@ -1443,6 +1432,6 @@ mod tests {
 
         let builder_with_char = Token::Chr('壱');
         assert_eq!(builder_with_char.char_count(), 1);
-        assert_eq!(builder_with_char.len(), 3.bytes());
+        assert_eq!(builder_with_char.repr_len(), 3.bytes());
     }
 }

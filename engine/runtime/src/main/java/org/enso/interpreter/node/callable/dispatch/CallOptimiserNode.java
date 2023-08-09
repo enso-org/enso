@@ -5,6 +5,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -33,6 +34,7 @@ public abstract class CallOptimiserNode extends Node {
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code callable}
+   * @param warnings warnings associated with the callable, null if empty
    * @return the result of executing {@code callable} using {@code arguments}
    */
   public abstract Object executeDispatch(
@@ -40,5 +42,6 @@ public abstract class CallOptimiserNode extends Node {
       Function callable,
       CallerInfo callerInfo,
       State state,
-      Object[] arguments);
+      Object[] arguments,
+      Warning[] warnings);
 }

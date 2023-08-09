@@ -67,7 +67,7 @@ impl Error {
 
 // === Constants ===
 
-const SIZE: (f32, f32) = super::super::visualization::container::DEFAULT_SIZE;
+const SIZE: Vector2 = super::super::visualization::container::DEFAULT_SIZE;
 const Z_INDEX: usize = 1;
 const BORDER_RADIUS: f32 = 14.0;
 
@@ -75,8 +75,9 @@ const BORDER_RADIUS: f32 = 14.0;
 // === Container ===
 
 /// The container containing just the error visualization and background.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct Container {
+    #[deref]
     visualization:  error_visualization::Error,
     scene:          Scene,
     // TODO : We added a HTML background to the `View`, because "shape" background was
@@ -84,14 +85,6 @@ pub struct Container {
     //     investigated while fixing rust visualization displaying. (#796)
     background_dom: DomSymbol,
     display_object: display::object::Instance,
-}
-
-impl Deref for Container {
-    type Target = error_visualization::Error;
-
-    fn deref(&self) -> &Self::Target {
-        &self.visualization
-    }
 }
 
 impl Container {
@@ -121,7 +114,7 @@ impl Container {
 
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
-        let (width, height) = SIZE;
+        let (width, height) = (SIZE.x, SIZE.y);
         let width = format!("{width}.px");
         let height = format!("{height}.px");
         let z_index = Z_INDEX.to_string();
@@ -141,11 +134,5 @@ impl Container {
     pub fn set_layer(&self, layer: visualization::Layer) {
         self.visualization.frp.set_layer.emit(layer);
         layer.apply_for_html_component(&self.scene, &self.background_dom);
-    }
-}
-
-impl display::Object for Container {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

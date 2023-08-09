@@ -1,10 +1,10 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
@@ -25,7 +26,7 @@ public final class StringStorage extends SpecializedStorage<String> {
    * @param size the number of items stored
    */
   public StringStorage(String[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildOps());
   }
 
   @Override
@@ -44,20 +45,6 @@ public final class StringStorage extends SpecializedStorage<String> {
     return TextType.VARIABLE_LENGTH;
   }
 
-  private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
-
-  @Override
-  protected Storage<?> runVectorizedMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
-  }
-
   @Override
   public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
@@ -72,23 +59,26 @@ public final class StringStorage extends SpecializedStorage<String> {
     return new StringBuilder(capacity);
   }
 
-  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOperationStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
-        new MapOperation<>(Maps.EQ) {
+        new BinaryMapOperation<>(Maps.EQ) {
           @Override
-          public BoolStorage runMap(
+          public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
               MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null) {
                 missing.set(i);
               } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, missing, storage.size(), false);
           }
@@ -100,6 +90,7 @@ public final class StringStorage extends SpecializedStorage<String> {
               MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
@@ -107,6 +98,8 @@ public final class StringStorage extends SpecializedStorage<String> {
                   && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, missing, storage.size(), false);
           }
@@ -114,13 +107,16 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected BoolStorage run(SpecializedStorage<String> storage) {
+          protected BoolStorage runUnaryMap(SpecializedStorage<String> storage, MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {
               String s = storage.data[i];
               if (s == null || s.isEmpty()) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, new BitSet(), storage.size, false);
           }

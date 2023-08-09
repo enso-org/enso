@@ -3,10 +3,8 @@ from Standard.Base import all
 import project.Data.Column.Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
-import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Base.Data.Text.Regex.Pattern.Pattern
 
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
@@ -55,25 +53,28 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
    Converts a Text column into new columns using a regular expression
    pattern.
    See `Table.parse_to_columns`.
-parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    pat = Regex.compile pattern case_insensitive=case_insensitive
+parse_to_columns : Table -> Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    regex = case pattern of
+        _ : Regex -> pattern.recompile case_sensitivity
+        _ : Text ->
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            Regex.compile pattern case_insensitive=case_insensitive
 
-    fun = handle_nothing (regex_parse_to_vectors pat)
-    column_names = regex_to_column_names pat input_column_id
+    fun = handle_nothing (regex_parse_to_vectors regex)
+    column_names = regex_to_column_names regex input_column_id
 
     column = table.at input_column_id
 
     new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems=on_problems
+        fan_out_to_rows_and_columns table input_column_id fun column_names at_least_one_row=True on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE
    Create a parser from a regex to a nested `Vector`. Each match becomes an
    element of the vector; each group (or the whole match, if there are no
    groups) becomes an element of the inner vectors.
-regex_parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Nothing)))
+regex_parse_to_vectors : Regex -> (Text -> Vector (Vector (Text | Nothing)))
 regex_parse_to_vectors pattern =
     input->
         matches = pattern.match_all input
@@ -86,7 +87,7 @@ regex_parse_to_vectors pattern =
    If the regex has no explicit groups, it uses the original column name
    unchanged; otherwise, it uses the group name if it exists, or the original
    column name with a number.
-regex_to_column_names : Pattern -> Text -> Vector Text
+regex_to_column_names : Regex -> Text -> Vector Text
 regex_to_column_names pattern original_column_name =
     case pattern.group_count of
         1 ->
@@ -188,7 +189,7 @@ fan_out_to_rows table input_column_id function at_least_one_row=False on_problem
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
     problem_builder = Problem_Builder.new
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
@@ -332,7 +333,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
    Rename a vector of columns to be unique when added to a table.
 rename_new_columns : Table -> Text -> Vector Column -> Problem_Builder -> Vector Column
 rename_new_columns table removed_column_name columns problem_builder =
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
     remaining_columns = table.columns . filter (c-> c.name != removed_column_name) . map .name
     unique.mark_used remaining_columns
     new_columns = columns.map column->
@@ -382,5 +383,5 @@ uniform_length target_length v problem_builder = if v.length == target_length th
     case v.length < target_length of
         # Pad.
         True -> v.pad target_length Nothing
-		# Truncate.
+        # Truncate.
         False -> v.take target_length

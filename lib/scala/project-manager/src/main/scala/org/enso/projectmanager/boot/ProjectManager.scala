@@ -21,10 +21,9 @@ import zio.Console.{printLine, printLineError, readLine}
 import zio.interop.catz.core._
 import zio.{ExitCode, Runtime, Scope, UIO, ZAny, ZIO, ZIOAppArgs, ZIOAppDefault}
 
-import java.io.IOException
+import java.io.{EOFException, IOException}
 import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
@@ -85,7 +84,12 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def tryReadLine: ZIO[ZAny, Nothing, String] =
     readLine.catchAll { err =>
       ZIO
-        .succeed { logger.warn("Failed to read line.", err) }
+        .succeed {
+          err match {
+            case _: EOFException =>
+            case _               => logger.warn("Failed to read line.", err)
+          }
+        }
         .as("")
     }
 

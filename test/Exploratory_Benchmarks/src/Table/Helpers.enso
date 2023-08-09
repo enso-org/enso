@@ -1,0 +1,34 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+from Standard.Table import all
+
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## PRIVATE
+   A helper implementation essentially mimicking Column.from_vector, but
+   allowing to control whether polyglot conversions are performed.
+   Used to make tests stable regardless of changes to Column.from_vector.
+column_from_vector : Text -> Vector -> Boolean -> Column
+column_from_vector name items convert_polyglot_dates =
+    expected_storage_type = Nothing
+    Illegal_Argument.handle_java_exception <|
+        java_column = case convert_polyglot_dates of
+            True ->
+                Java_Column.fromItems name items expected_storage_type
+            False ->
+                Java_Column.fromItemsNoDateConversion name items expected_storage_type
+        Column.Value java_column
+
+check_results results =
+    mapped = results.map x-> case x of
+        _ : Column -> x.to_vector
+        _ -> x
+    reference = mapped.first
+    mapped.each_with_index ix-> result->
+        if result != reference then
+            IO.println "Mismatched results: "
+            IO.println "Reference: "+reference.to_display_text
+            IO.println "Result (ix="+ix.to_text+"): "+result.to_display_text
+            Panic.throw (Illegal_State.Error "The benchmark result ix="+ix.to_text+" does not match the 0th one.")

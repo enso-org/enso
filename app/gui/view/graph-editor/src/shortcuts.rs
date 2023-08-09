@@ -10,18 +10,6 @@ use ensogl::application::shortcut::ActionType::*;
 
 /// The list of all shortcuts used in the graph editor.
 pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &str)] = &[
-    (
-        Press,
-        "!node_editing & !read_only & !is_fs_visualization_displayed",
-        "tab",
-        "start_node_creation",
-    ),
-    (
-        Press,
-        "!node_editing & !read_only & !is_fs_visualization_displayed",
-        "enter",
-        "start_node_creation",
-    ),
     // === Drag ===
     (Press, "", "left-mouse-button", "node_press"),
     (Release, "", "left-mouse-button", "node_release"),
@@ -91,12 +79,8 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Release, "!read_only", "cmd", "edit_mode_off"),
     (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
     (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
-    // === Profiling Mode ===
-    (Press, "", "cmd p", "toggle_profiling_mode"),
     // === Debug ===
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
-    (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
-    (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
     (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
     (Press, "", "ctrl shift x", "reopen_file_in_language_server"),
     // Execution Environment

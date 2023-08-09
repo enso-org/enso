@@ -17,6 +17,8 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
@@ -24,29 +26,27 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
 from project.System.File_Format import Auto_Detect, File_Format
 
-import project.Metadata.Widget
-from project.Metadata.Choice import Option
-import project.Metadata.Display
-
-polyglot java import org.enso.base.DryRunFileManager
-polyglot java import org.enso.base.Encoding_Utils
-polyglot java import org.enso.base.encoding.ReportingStreamDecoder
-polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
+polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
+polyglot java import org.enso.base.DryRunFileManager
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
+polyglot java import org.enso.base.Encoding_Utils
 
 @Builtin_Type
 type File
     ## ALIAS New File
+       GROUP Input
 
        Creates a new file object, pointing to the given path.
 
@@ -62,7 +62,7 @@ type File
 
              example_new = File.new Examples.csv_path
     new : (Text | File) -> File
-    new (path : Text|File) =
+    new (path : Text | File) =
       case path of
         _ : Text -> get_file path
         _ : File -> path
@@ -147,7 +147,7 @@ type File
     with_output_stream self open_options action =
         new_output_stream : File -> Vector File_Access -> Output_Stream ! File_Error
         new_output_stream file open_options =
-            opts = open_options . map (_.to_java) . to_array
+            opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions file <|
                 file.output_stream_builtin opts
             ## We re-wrap the File Not Found error to return the parent directory
@@ -182,9 +182,10 @@ type File
        `File.with_input_stream` instead, which does resource management.
 
        Arguments:
-       - open_options: A vector of `File_Access` objects determining how to open
-         the stream. These options set the access properties of the stream.
-    input_stream : Vector File_Access -> Input_Stream
+       - open_options: A vector of `StandardOpenOption` polyglot objects
+         determining how to open the stream. These options set the access
+         properties of the stream.
+    input_stream : Vector StandardOpenOption -> Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
     ## PRIVATE
@@ -330,8 +331,8 @@ type File
 
     ## PRIVATE
        Internal method to join two path segments together.
-    resolve : File
-    resolve self = @Builtin_Method "File.resolve"
+    resolve : Text -> File
+    resolve self subpath = @Builtin_Method "File.resolve"
 
     ## PRIVATE
        Convert the file descriptor to a JS_Object.
@@ -358,6 +359,19 @@ type File
              example_exists = Examples.csv.exists
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
+
+    ## Checks whether the file is within another path.
+
+       Arguments:
+       - parent: The path to check if self is contained within.
+
+       > Example
+         Check if a file is within another path.
+
+             is_within = File.new "foo/bar" . starts_with (File.new "foo")
+             is_not_within = File.new "foo/bar" . starts_with (File.new "f")
+    starts_with : File -> Boolean
+    starts_with self parent = @Builtin_Method "File.starts_with"
 
     ## Gets the creation time of a file.
 
@@ -565,9 +579,9 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
+                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
                   self.copy_builtin destination copy_options
-                False -> self.copy_builtin destination Array.empty
+                False -> self.copy_builtin destination []
 
     ## Moves the file to the specified destination.
 
@@ -580,9 +594,9 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
+                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
                   self.move_builtin destination copy_options
-                False -> self.move_builtin destination Array.empty
+                False -> self.move_builtin destination []
 
     ## Deletes the file if it exists on disk.
 
@@ -611,7 +625,7 @@ type File
     new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
-            opts = open_options . map (_.to_java) . to_array
+            opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions self (self.input_stream opts)
             resource = Managed_Resource.register stream close_stream
             Input_Stream.Value self resource
@@ -668,13 +682,9 @@ type File
          the name `"abc"` or any name starting with `"x"`. The groups cannot be
          nested.
 
-       Keep in mind that if `recursive` is set to True and a `name_filter` is
-       used, the function will return files from subdirectories only if the set
-       `name_filter` allows crossing directories. So even with `recursive=True`
-       a filter `"*.txt"` will only return files that are immediate children of
-       the listed directory, to list files recursively you need to use a filter
-       like `"**.txt"` or `"*/*"` (which will match only files that are exactly
-       one directory down from the listed directory) or no filter at all.
+       If `recursive` is set to True and a `name_filter` does not contain `**`,
+       it will be automatically prefixed with `**/` to allow matching files in
+       subdirectories.
 
        > Example
          List all files with ".md" or ".txt" extension in the example directory
@@ -685,19 +695,20 @@ type File
              example_list_md_files =
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector File
-    list self name_filter=Nothing recursive=False =
+    list self name_filter:Text="" recursive:Boolean=False =
         all_files = case recursive of
             True -> list_descendants self
             False -> self.list_immediate_children
-        filtered = case name_filter of
-            Nothing -> all_files
+        case name_filter of
+            "" -> all_files
             _ ->
+                used_filter = if recursive.not || name_filter.contains "**" then name_filter else
+                    (if name_filter.starts_with "*" then "*" else "**/") + name_filter
                 fs = FileSystems.getDefault
-                matcher = fs.getPathMatcher "glob:"+name_filter
+                matcher = fs.getPathMatcher "glob:"+used_filter
                 all_files.filter file->
                     pathStr = self.relativize file . path
                     matcher.matches (Path.of pathStr)
-        filtered
 
     ## Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean
@@ -759,7 +770,7 @@ type Output_Stream
     write_bytes : Vector File_Access -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
         File_Error.handle_java_exceptions self.file <|
-            java_stream.write contents.to_array
+            java_stream.write contents
             java_stream.flush
             Nothing
 
@@ -810,7 +821,7 @@ type Output_Stream
            the `?` character.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
-        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
+        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
 

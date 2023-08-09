@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -16,6 +16,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
@@ -35,6 +36,16 @@ public abstract class Storage<T> {
    */
   public StorageType inferPreciseType() {
     return getType();
+  }
+
+  /**
+   * Returns a more specialized storage, if available.
+   *
+   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
+   * MixedStorage} for more information.
+   */
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return this;
   }
 
   /**
@@ -74,6 +85,7 @@ public abstract class Storage<T> {
     public static final String OR = "||";
     public static final String IS_NOTHING = "is_nothing";
     public static final String IS_NAN = "is_nan";
+    public static final String IS_INFINITE = "is_infinite";
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
@@ -81,104 +93,101 @@ public abstract class Storage<T> {
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
     public static final String YEAR = "year";
+    public static final String QUARTER = "quarter";
     public static final String MONTH = "month";
+    public static final String WEEK = "week";
     public static final String DAY = "day";
+    public static final String HOUR = "hour";
+    public static final String MINUTE = "minute";
+    public static final String SECOND = "second";
+    public static final String MILLISECOND = "millisecond";
+    public static final String MICROSECOND = "microsecond";
+    public static final String NANOSECOND = "nanosecond";
   }
 
-  /**
-   * Specifies if the given operation has a vectorized implementation available for this storage.
-   */
-  public abstract boolean isOpVectorized(String name);
+  /* Specifies if the given unary operation has a vectorized implementation available for this storage.*/
+  public abstract boolean isUnaryOpVectorized(String name);
 
-  protected abstract Storage<?> runVectorizedMap(
+  /** Runs a vectorized unary operation. */
+  public abstract Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemBuilder problemBuilder);
+
+  /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
+  public abstract boolean isBinaryOpVectorized(String name);
+
+  /** Runs a vectorized operation on this storage, taking one scalar argument. */
+  public abstract Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
-  protected abstract Storage<?> runVectorizedZip(
+  /**
+   * Runs a vectorized operation on this storage, taking a storage as the right argument -
+   * processing row-by-row.
+   */
+  public abstract Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
 
   /**
-   * Runs a function on each non-missing element in this storage and gathers the results.
+   * Runs a unary function on each non-null element in this storage.
    *
-   * @param name a name of potential vectorized variant of the function that should be used if
-   *     supported. If this argument is null, the vectorized operation will never be used.
+   * @param function the function to run.
+   * @param skipNa whether rows containing missing values should be passed to the function.
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the function on each row
+   */
+  public final Storage<?> unaryMap(
+      Function<Object, Value> function, boolean skipNa, StorageType expectedResultType) {
+    Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (skipNa && it == null) {
+        storageBuilder.appendNulls(1);
+      } else {
+        Value result = function.apply(it);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        storageBuilder.appendNoGrow(converted);
+      }
+
+      context.safepoint();
+    }
+    return storageBuilder.seal();
+  }
+
+  /**
+   * Runs a 2-argument function on each element in this storage.
+   *
    * @param function the function to run.
    * @param argument the argument to pass to each run of the function
    * @param skipNulls specifies whether null values on the input should result in a null result
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @param problemBuilder a builder for reporting computation problems
-   * @return the result of running the function on all non-missing elements.
+   * @param expectedResultType the expected type for the result storage
+   * @return a new storage containing results of the function for each row
    */
-  public final Storage<?> bimap(
-      String name,
+  public final Storage<?> binaryMap(
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType,
-      MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
-      return runVectorizedMap(name, argument, problemBuilder);
-    }
-
-    checkFallback(function, expectedResultType, name);
-
+      StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
     if (skipNulls && argument == null) {
       storageBuilder.appendNulls(size());
       return storageBuilder.seal();
     }
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
-        storageBuilder.appendNoGrow(null);
+        storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
-    }
-    return storageBuilder.seal();
-  }
 
-  /**
-   * Runs a function on each non-missing element in this storage and gathers the results.
-   *
-   * @param name a name of potential vectorized variant of the function that should be used if
-   *     supported. If this argument is null, the vectorized operation will never be used.
-   * @param function the function to run.
-   * @param onMissing the value to place for missing cells, usually just null
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @param problemBuilder a builder for reporting computation problems
-   * @return the result of running the function on all non-missing elements.
-   */
-  public final Storage<?> map(
-      String name,
-      Function<Object, Value> function,
-      Value onMissing,
-      StorageType expectedResultType,
-      MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
-      return runVectorizedMap(name, null, problemBuilder);
-    }
-
-    checkFallback(function, expectedResultType, name);
-
-    Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
-
-    Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
-      if (it == null) {
-        storageBuilder.appendNoGrow(missingValue);
-      } else {
-        Value result = function.apply(it);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
-      }
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -186,54 +195,137 @@ public abstract class Storage<T> {
   /**
    * Runs a function on each pair of non-missing elements in this and arg.
    *
-   * @param name a name of potential vectorized variant of the function that should be used if
-   *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
-   * @param problemBuilder the builder used for reporting computation problems
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage<?> zip(
-      String name,
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
-      StorageType expectedResultType,
-      MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
-      return runVectorizedZip(name, arg, problemBuilder);
-    }
-
-    checkFallback(function, expectedResultType, name);
-
+      StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
-        storageBuilder.appendNoGrow(null);
+        storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
 
-  private static void checkFallback(Object fallback, StorageType storageType, String operationName)
+  /**
+   * Runs a unary operation.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
+   * @param skipNa whether rows containing missing values should be passed to the fallback function.
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackUnaryMap(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      Function<Object, Value> fallback,
+      boolean skipNa,
+      StorageType expectedResultType) {
+    if (isUnaryOpVectorized(name)) {
+      return runVectorizedUnaryMap(name, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return unaryMap(fallback, skipNa, expectedResultType);
+    }
+  }
+
+  /**
+   * Runs a binary operation with a scalar argument.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
+   * @param argument the argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackBinaryMap(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      BiFunction<Object, Object, Object> fallback,
+      Object argument,
+      boolean skipNulls,
+      StorageType expectedResultType) {
+    if (isBinaryOpVectorized(name)) {
+      return runVectorizedBinaryMap(name, argument, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return binaryMap(fallback, argument, skipNulls, expectedResultType);
+    }
+  }
+
+  /**
+   * Runs a binary operation with a storage argument.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
+   * @param other the other storage to zip with this one
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackZip(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      BiFunction<Object, Object, Object> fallback,
+      Storage<?> other,
+      boolean skipNulls,
+      StorageType expectedResultType) {
+    if (isBinaryOpVectorized(name)) {
+      return runVectorizedZip(name, other, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return zip(fallback, other, skipNulls, expectedResultType);
+    }
+  }
+
+  private void checkFallback(Object fallback, StorageType storageType, String operationName)
       throws IllegalArgumentException {
     if (fallback == null) {
       if (operationName == null) {
         throw new IllegalArgumentException(
             "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
       } else {
+        String className = this.getClass().getName();
         throw new IllegalArgumentException(
             "The operation "
                 + operationName
-                + " has no vectorized implementation for this storage type, but no fallback function was provided. This is a bug in the Table library.");
+                + " has no vectorized implementation for "
+                + className
+                + ", but no fallback function was provided. This is a bug in the Table library.");
       }
     }
 
@@ -250,7 +342,7 @@ public abstract class Storage<T> {
    * @return a new storage, with all missing elements replaced by arg
    */
   public Storage<?> fillMissing(Value arg) {
-    return fillMissingHelper(arg, new ObjectBuilder(size()));
+    return fillMissingHelper(arg, new MixedBuilder(size()));
   }
 
   /**
@@ -262,18 +354,22 @@ public abstract class Storage<T> {
    */
   public Storage<?> fillMissingFrom(Storage<?> other, StorageType commonType) {
     var builder = Builder.getForType(commonType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNa(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
@@ -281,6 +377,8 @@ public abstract class Storage<T> {
       } else {
         builder.appendNoGrow(it);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -350,11 +448,13 @@ public abstract class Storage<T> {
   public Storage<?> duplicateCount() {
     long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
       data[i] = count;
       occurenceCount.put(value, count + 1);
+      context.safepoint();
     }
     return new LongStorage(data);
   }

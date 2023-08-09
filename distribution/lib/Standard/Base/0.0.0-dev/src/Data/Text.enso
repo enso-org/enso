@@ -1,11 +1,12 @@
 import project.Any.Any
 import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
-import project.Errors.Common.Type_Error
+import project.Data.Text.Normalization.Normalization
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Meta
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -19,6 +20,20 @@ polyglot java import org.enso.base.Text_Utils
      users with efficient concatenation operations.
 @Builtin_Type
 type Text
+    ## ALIAS Count
+       Computes the number of characters in the text.
+
+       ! What is a Character?
+          A character is defined as an Extended Grapheme Cluster, see Unicode
+          Standard Annex 29. This is the smallest unit that still has semantic
+          meaning in most text-processing applications.
+
+       > Example
+          Getting the length of the string "건반(Korean)".
+
+              "건반(Korean)".length
+    length : Integer
+    length self = @Builtin_Method "Text.length"
 
     ## ALIAS Concatenate
        Concatenates the text that to the right side of this.
@@ -118,3 +133,30 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
+
+    ## ADVANCED
+       Checks where this Text is in FCD normalized form.
+
+       > Example
+         Check if the string is normalized
+
+             "14.95€".is_normalized
+    is_normalized : Boolean
+    is_normalized self = @Builtin_Method "Text.is_normalized"
+
+    ## ALIAS normalise
+
+       Perform Unicode normalization on the string, using the specified method.
+
+       Arguments:
+       - normalization: The `Normalization` method to use.
+
+       > Example
+         Normalize a string.
+
+             'aśb'.normalize == 'as\u0301b'
+    normalize : Text -> Normalization -> Text
+    normalize self normalization=Normalization.NFD =
+        mode = normalization.get_java_mode
+        name = normalization.get_mode_name
+        Text_Utils.normalizeWithMode self name mode

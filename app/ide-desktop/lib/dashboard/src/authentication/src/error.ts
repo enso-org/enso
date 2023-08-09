@@ -1,25 +1,49 @@
 /** @file Contains useful error types common across the module. */
+import * as toastify from 'react-toastify'
 
-// ================================
-// === Type assertions (unsafe) ===
-// ================================
+// =====================
+// === tryGetMessage ===
+// =====================
+
+/** Evaluates the given type only if it the exact same type as {@link Expected}. */
+type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
+    ? 1
+    : 2
+    ? T
+    : never
 
 /** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
  * from an API that returns `any`. */
-type MustBeAny<T> = never extends T ? (T & 1 extends 0 ? T : never) : never
+type MustBeAny<T> = never extends T ? (0 extends T & 1 ? T : never) : never
 
-/** Assumes an unknown value is an {@link Error}. */
-export function unsafeAsError<T>(error: MustBeAny<T>) {
-    // This is UNSAFE - errors can be any value.
-    // Usually they *do* extend `Error`,
-    // however great care must be taken when deciding to use this.
-    // eslint-disable-next-line no-restricted-syntax
-    return error as Error
+/** Enforces that a parameter must not have a known type. This means the only types allowed are
+ * `{}`, `object`, `unknown` and `any`. */
+export type MustNotBeKnown<T> =
+    // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
+    MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
+
+export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null
+/** Extracts the `message` property of a value if it is a string. Intended to be used on
+ * {@link Error}s. */
+export function tryGetMessage(error: unknown): string | null {
+    return error != null &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+        ? error.message
+        : null
 }
 
-/** Extracts the `message` property of a value, by first assuming it is an {@link Error}. */
-export function unsafeIntoErrorMessage<T>(error: MustBeAny<T>) {
-    return unsafeAsError(error).message
+/** Like {@link tryGetMessage} but return the string representation of the value if it is not an
+ * {@link Error} */
+export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
+    return tryGetMessage(error) ?? String(error)
+}
+
+/** Return a toastify option object that renders an error message. */
+// eslint-disable-next-line no-restricted-syntax
+export function render(f: (message: string) => string): toastify.UpdateOptions {
+    return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
 // ============================
@@ -38,4 +62,11 @@ export class UnreachableCaseError extends Error {
     constructor(value: never) {
         super(`Unreachable case: ${JSON.stringify(value)}`)
     }
+}
+
+/** A function that throws an {@link UnreachableCaseError} so that it can be used
+ * in an expresison.
+ * @throws {UnreachableCaseError} Always. */
+export function unreachable(value: never): never {
+    throw new UnreachableCaseError(value)
 }

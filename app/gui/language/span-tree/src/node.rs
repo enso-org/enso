@@ -37,6 +37,7 @@ pub struct Node {
     pub size:            ByteDiff,
     pub children:        Vec<Child>,
     pub ast_id:          Option<ast::Id>,
+    pub port_id:         Option<PortId>,
     /// When this `Node` is a part of an AST extension (a virtual span that only exists in
     /// span-tree, but not in AST), this field will contain the AST ID of the expression it extends
     /// (e.g. the AST of a function call with missing arguments, extended with expected arguments).
@@ -102,9 +103,6 @@ impl Node {
     pub fn is_expected_argument(&self) -> bool {
         self.kind.is_expected_argument()
     }
-    pub fn is_function_parameter(&self) -> bool {
-        self.kind.is_function_parameter()
-    }
 }
 
 
@@ -124,8 +122,17 @@ impl Node {
         self.children = ts;
         self
     }
-    pub fn with_ast_id(mut self, id: ast::Id) -> Self {
-        self.ast_id = Some(id);
+    pub fn with_ast_id(mut self, id: Option<ast::Id>) -> Self {
+        self.ast_id = id;
+        self.port_id = id.map(PortId::Ast);
+        self
+    }
+    pub fn with_extended_ast_id(mut self, id: Option<ast::Id>) -> Self {
+        self.extended_ast_id = id;
+        self
+    }
+    pub fn with_port_id(mut self, id: Option<PortId>) -> Self {
+        self.port_id = id;
         self
     }
     pub fn with_application(mut self, application: ApplicationData) -> Self {
@@ -140,12 +147,12 @@ impl Node {
 #[allow(missing_docs)]
 impl Node {
     pub fn name(&self) -> Option<&str> {
-        self.kind.name()
+        self.kind.argument_name()
     }
     pub fn tp(&self) -> Option<&String> {
         self.kind.tp()
     }
-    pub fn argument_info(&self) -> Option<ArgumentInfo> {
+    pub fn argument_info(&self) -> Option<&ArgumentInfo> {
         self.kind.argument_info()
     }
     pub fn set_argument_info(&mut self, info: ArgumentInfo) {
@@ -153,6 +160,9 @@ impl Node {
     }
     pub fn set_definition_index(&mut self, definition_index: usize) {
         self.kind.set_definition_index(definition_index);
+    }
+    pub fn set_port_id(&mut self, id: Option<PortId>) {
+        self.port_id = id;
     }
 }
 
@@ -188,6 +198,40 @@ impl DerefMut for Child {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
     }
+}
+
+
+
+// ==============
+// === PortId ===
+// ==============
+
+/// Identification for a port that can be hovered and connected to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum PortId {
+    /// An unique existing AST within the expression. Whenever a node has an assigned AST ID, this
+    /// port ID variant will be used.
+    Ast(ast::Id),
+    /// The root node of the expression without assigned ID.
+    #[default]
+    Root,
+    /// An argument that doesn't exist yet, but will be created when the connection is made.
+    ArgPlaceholder {
+        /// ID of method application containing this argument.
+        application: ast::Id,
+        /// The positional index of the argument within the method application that this
+        /// placeholder represents.
+        index:       usize,
+    },
+    /// A position within an array expression where a connection variable will be inserted.
+    ArrayInsert {
+        /// ID of array expression containing this insertion point.
+        array:     ast::Id,
+        /// Insert position within the array, counting only array elements, not commas or brackets.
+        /// Index 0 means the variable will be inserted before the first element, index 1 means it
+        /// will be inserted after the first element, etc.
+        insert_at: usize,
+    },
 }
 
 
@@ -880,11 +924,11 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained_this(), ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::this(), ast::crumbs::Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
-            .add_leaf(5, 3, node::Kind::argument(), RightOperand)
+            .add_leaf(5, 3, node::Kind::prefix_argument(), RightOperand)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()

@@ -87,7 +87,7 @@ impl component::Frp<Model> for Frp {
 // =============
 
 /// Internal model of the SequenceDiagram.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     // Required for dynamically creating new lines.
     app:            Application,
@@ -200,15 +200,9 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-/// A visualisation of messages passed between different actors.
+/// A visualization of messages passed between different actors.
 ///
-/// This visualisation renders a horizontal line for each actor and shows an arrow for each message.
+/// This visualization renders a horizontal line for each actor and shows an arrow for each message.
 /// The arrow will point from the sender of the message to the receive of the message. Hovering
 /// over a actor line will show the name of the actor as a tooltip, hovering over a message will
 /// show the name of the message as a tooltip.

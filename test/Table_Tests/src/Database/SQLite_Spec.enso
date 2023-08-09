@@ -1,24 +1,30 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
+import Standard.Database.Data.Column.Column
+import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
-from Standard.Database.Errors import SQL_Error
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Database.Common_Spec
+import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-sqlite_specific_spec prefix connection =
+sqlite_specific_spec prefix connection setup =
+    table_builder = setup.table_builder
+
     Test.group prefix+"Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
             connection.database . should_equal Nothing
@@ -88,13 +94,44 @@ sqlite_specific_spec prefix connection =
             action . should_fail_with SQL_Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
+        Test.specify "is capable of handling weird tables" <|
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)'
+            t1 = connection.query (SQL_Query.Table_Name "empty-column-name")
+            Problems.expect_only_warning Invalid_Column_Names t1
+            t1.column_names . should_equal ["Column 1"]
+            m1 = t1.read
+            m1.at "Column 1" . to_vector . should_equal []
+
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
+            Problems.assume_no_problems <|
+                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
+            t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
+            Problems.expect_only_warning Duplicate_Output_Column_Names t2
+            t2.column_names . should_equal ["ś", "ś 1"]
+            m2 = t2.read
+            m2.at "ś"   . to_vector . should_equal ["A"]
+            m2.at "ś 1" . to_vector . should_equal [2]
+
+            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3.should_fail_with Illegal_Argument
+            r3.catch.cause . should_be_a Duplicate_Output_Column_Names
+
+            r4 = connection.query 'SELECT 1 AS ""'
+            r4.should_fail_with Illegal_Argument
+            r4.catch.cause . should_be_a Invalid_Column_Names
+
     tinfo = Name_Generator.random_name "Tinfo"
     connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     Test.group prefix+"Metadata" <|
         t = connection.query (SQL_Query.Table_Name tinfo)
-        t.insert ["a", Nothing, False, 1.2]
-        t.insert ["abc", Nothing, Nothing, 1.3]
-        t.insert ["def", 42, True, 1.4]
+        row1 = ["a", Nothing, False, 1.2]
+        row2 = ["abc", Nothing, Nothing, 1.3]
+        row3 = ["def", 42, True, 1.4]
+        Panic.rethrow <|
+            (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]).update_database_table t update_action=Update_Action.Insert
+
         Test.specify "should return Table information" <|
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
@@ -118,6 +155,73 @@ sqlite_specific_spec prefix connection =
             expected_code = code_template.replace "{Tinfo}" tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
+    Test.group prefix+"math functions" <|
+        Test.specify "round, trunc, ceil, floor" <|
+            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+
+            col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . ceil . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . floor . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . floor . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . floor . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . truncate . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Float
+
+        do_op n op =
+            table = table_builder [["x", [n]]]
+            result = table.at "x" |> op
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "Can round correctly near the precision limit" <|
+            # This value varies depending on the version of SQLite.
+            do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
+            do_round 1.2222222222222235 15 . should_equal 1.222222222222223
+            do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                do_op Number.nan op . should_equal nan_result
+                do_op Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Decimal
+            do_round 231.2 . should_be_a Decimal
+            do_round 231.2 -1 . should_be_a Decimal
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Decimal
+            do_round 231 0 . should_be_a Decimal
+            do_round 231 . should_be_a Decimal
+            do_round 231 -1 . should_be_a Decimal
+
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =
@@ -130,9 +234,8 @@ sqlite_spec connection prefix =
     materialize = .read
 
     Common_Spec.spec prefix connection
-    sqlite_specific_spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -147,10 +250,17 @@ sqlite_spec connection prefix =
     agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
+    sqlite_specific_spec prefix connection setup
     Common_Table_Operations.Main.spec setup
 
     connection.close
+
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+    e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    Set.from_vector e
 
 spec =
     enso_project.data.create_directory

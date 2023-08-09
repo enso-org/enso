@@ -3,13 +3,14 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
@@ -68,11 +69,6 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public double getItemDouble(int idx) {
-    return (double) getItem(idx);
-  }
-
-  @Override
   public Long getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : data[idx];
   }
@@ -93,6 +89,7 @@ public final class LongStorage extends AbstractLongStorage {
   private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
         builder.appendRawNoGrow(rawArg);
@@ -100,18 +97,23 @@ public final class LongStorage extends AbstractLongStorage {
         double coerced = data[i];
         builder.appendRawNoGrow(Double.doubleToRawLongBits(coerced));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<?> fillMissingLong(long arg) {
     final var builder = NumericBuilder.createLongBuilder(size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
         builder.appendRawNoGrow(arg);
       } else {
         builder.appendRawNoGrow(data[i]);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -134,6 +136,7 @@ public final class LongStorage extends AbstractLongStorage {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         if (isMissing.get(i)) {
@@ -142,6 +145,8 @@ public final class LongStorage extends AbstractLongStorage {
           newData[resIx++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, cardinality, newMissing);
   }
@@ -151,12 +156,15 @@ public final class LongStorage extends AbstractLongStorage {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
+    Context context = Context.getCurrent();
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
         newMissing.set(i);
       } else {
         newData[i] = data[positions[i]];
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, positions.length, newMissing);
   }
@@ -166,6 +174,7 @@ public final class LongStorage extends AbstractLongStorage {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < counts.length; i++) {
       if (isMissing.get(i)) {
         newMissing.set(pos, pos + counts[i]);
@@ -175,6 +184,8 @@ public final class LongStorage extends AbstractLongStorage {
           newData[pos++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, total, newMissing);
   }
@@ -203,11 +214,13 @@ public final class LongStorage extends AbstractLongStorage {
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);
     int offset = 0;
+    Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       for (int i = 0; i < length; ++i) {
         newMissing.set(offset + i, isMissing.get(range.start() + i));
+        context.safepoint();
       }
       offset += length;
     }

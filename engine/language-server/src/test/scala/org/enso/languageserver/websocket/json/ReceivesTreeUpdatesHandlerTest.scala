@@ -6,6 +6,8 @@ import io.circe.literal._
 
 class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
 
+  override val isFileWatcherEnabled = true
+
   "ReceivesTreeUpdatesHandler" must {
 
     "acquire capability receivesTreeUpdates" in {
@@ -42,9 +44,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
     "fail to release capability it does not hold" in {
       val client = getInitialisedWsClient()
       client.send(jsonrpc.releaseReceivesTreeUpdates(1))
+      client.expectJson(jsonrpc.ok(1))
+      client.send(jsonrpc.releaseReceivesTreeUpdates(2))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 1,
+            "id": 2,
             "error": {
               "code" : 5001,
               "message" : "Capability not acquired"

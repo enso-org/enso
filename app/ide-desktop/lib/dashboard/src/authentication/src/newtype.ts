@@ -25,16 +25,22 @@ interface NewtypeVariant<TypeName extends string> {
  * `a: string = asNewtype<Newtype<string, 'Name'>>(b)` successfully typechecks. */
 export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
+/** Extracts the original type out of a {@link Newtype}.
+ * Its only use is in {@link asNewtype}. */
+type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
+    ? U
+    : NotNewtype & Omit<T, '_$type'>
+
 /** An interface that matches a type if and only if it is not a newtype. */
 interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     _$type?: never
 }
 
-/** Converts a value that is not a newtype, to a value that is a newtype. */
-export function asNewtype<T extends Newtype<unknown, string>>(
-    s: NotNewtype & Omit<T, '_$type'>
-): T {
+/** Converts a value that is not a newtype, to a value that is a newtype.
+ * This function intentionally returns another function, to ensure that each function instance
+ * is only used for one type, avoiding the de-optimization caused by polymorphic functions. */
+export function newtypeConstructor<T extends Newtype<unknown, string>>() {
     // This cast is unsafe.
     // `T` has an extra property `_$type` which is used purely for typechecking
     // and does not exist at runtime.
@@ -42,5 +48,5 @@ export function asNewtype<T extends Newtype<unknown, string>>(
     // The property name is specifically chosen to trigger eslint's `naming-convention` lint,
     // so it should not be possible to accidentally create a value with such a type.
     // eslint-disable-next-line no-restricted-syntax
-    return s as unknown as T
+    return (s: NotNewtype & UnNewtype<T>) => s as unknown as T
 }

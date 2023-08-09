@@ -7,6 +7,7 @@
 
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import process from 'node:process'
 
@@ -20,6 +21,7 @@ import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
+import * as detect from 'detect'
 // eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
@@ -100,7 +102,8 @@ class App {
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = fileToOpen || urlToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
+        const argsToParse =
+            fileToOpen != null || urlToOpen != null ? [] : fileAssociations.CLIENT_ARGUMENTS
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
@@ -193,6 +196,8 @@ class App {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and enter a "zombie mode", where user is not aware of the app still running.
         try {
+            // Light theme is needed for vibrancy to be light colored on Windows.
+            // electron.nativeTheme.themeSource = 'light'
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
@@ -283,9 +288,14 @@ class App {
                     width: windowSize.width,
                     height: windowSize.height,
                     frame: useFrame,
-                    transparent: false,
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-                    ...(useVibrancy ? { vibrancy: 'fullscreen-ui' } : {}),
+                    ...(useVibrancy && detect.supportsVibrancy()
+                        ? {
+                              vibrancy: 'fullscreen-ui',
+                              backgroundMaterial: 'acrylic',
+                              ...(os.platform() === 'win32' ? { transparent: true } : {}),
+                          }
+                        : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
@@ -399,7 +409,7 @@ class App {
         console.log('')
         console.log('Backend:')
         const backend = await projectManager.version(this.args)
-        if (!backend) {
+        if (backend == null) {
             console.log(`${indent}No backend available.`)
         } else {
             const lines = backend.split(/\r?\n/).filter(line => line.length > 0)

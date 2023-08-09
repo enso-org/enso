@@ -47,8 +47,9 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
 from datetime import datetime, timedelta, date
 from os import path
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
+
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
     exit(1)
@@ -59,7 +60,6 @@ try:
 except ModuleNotFoundError as err:
     print("ERROR: One of pandas, numpy, or jinja2 packages not installed")
     exit(1)
-
 
 BENCH_RUN_NAME = "Benchmark Engine"
 DATE_FORMAT = "%Y-%m-%d"
@@ -116,16 +116,14 @@ class BenchmarkData:
     """
     Data for a single benchmark compiled from all the job reports.
     """
+
     @dataclass
     class Entry:
         score: float
-        commit_id: str
-        commit_msg: str
-        commit_url: str
-        commit_author: str
-        commit_timestamp: datetime
+        commit: Commit
         bench_run_url: str
         bench_run_event: str
+
     label: str
     """ Label for the benchmark, as reported by org.enso.interpreter.bench.BenchmarksRunner """
     entries: List[Entry]
@@ -133,29 +131,38 @@ class BenchmarkData:
 
 
 @dataclass
-class ChartRow:
+class BenchDatapoint:
+    """
+    A single datapoint that will be on the chart. `timestamp` is on X axis,
+    `score` on Y axis, and the rest of the fields is used either for the tooltip,
+    or for the selection info.
+    """
     timestamp: datetime
     score: float
+    score_diff: str
+    """ Difference of the score with previous datapoint, or NaN """
+    score_diff_perc: str
     tooltip: str
+    bench_run_url: str
+    commit_id: str
+    commit_msg: str
+    commit_author: str
+    commit_url: str
 
 
 @dataclass
 class TemplateBenchData:
+    """ Data for one benchmark label (with a unique name and ID) """
     id: str
-    rows: List[ChartRow]
-    score_diffs: List[str]
-    """ S string that is displayed in the selection info """
-    commit_ids: List[str]
-    commit_msgs: List[str]
-    commit_authors: List[str]
-    commit_urls: List[str]
-    bench_run_urls: List[str]
-    """ URLs to Engine benchmark job """
+    """ ID of the benchmark, must not contain dots """
+    branches_datapoints: Dict[str, List[BenchDatapoint]]
+    """ Mapping of branches to datapoints for that branch """
 
 
 @dataclass
 class JinjaData:
     bench_datas: List[TemplateBenchData]
+    branches: List[str]
     since: datetime
     until: datetime
 
@@ -213,6 +220,7 @@ def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: JobRun) -> "J
     label_pattern = re.compile("<label>(?P<label>.+)</label>")
     score_pattern = re.compile("<score>(?P<score>.+)</score>")
     label_score_dict = {}
+    label: Optional[str] = None
     for line in lines:
         line = line.strip()
         label_match = label_pattern.match(line)
@@ -230,7 +238,7 @@ def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: JobRun) -> "J
 
 
 def _is_benchrun_id(name: str) -> bool:
-    return re.match("[0-9]{9}", name) is not None
+    return re.match("\d{9}", name) is not None
 
 
 def _read_json(json_file: str) -> Dict[Any, Any]:
@@ -241,7 +249,7 @@ def _read_json(json_file: str) -> Dict[Any, Any]:
 
 def _invoke_gh_api(endpoint: str,
                    query_params: Dict[str, str] = {},
-                   result_as_text: bool = True) -> Union[Dict[Any, Any], bytes]:
+                   result_as_text: bool = True) -> Union[Dict[str, Any], bytes]:
     query_str_list = [key + "=" + value for key, value in query_params.items()]
     query_str = "&".join(query_str_list)
     cmd = [
@@ -268,6 +276,7 @@ class Cache:
     Cache is a directory filled with json files that have name of format <bench_run_id>.json, and
     in every json, there is `BenchReport` dataclass serialized.
     """
+
     def __init__(self, dirname: str):
         assert path.exists(dirname) and path.isdir(dirname)
         self._dir = dirname
@@ -322,7 +331,7 @@ class FakeCache:
         return None
 
     def __setitem__(self, key, value):
-        pass
+        raise NotImplementedError()
 
     def __contains__(self, item):
         return False
@@ -331,12 +340,16 @@ class FakeCache:
         return 0
 
 
-def get_bench_runs(since: datetime, until: datetime) -> List[JobRun]:
-    logging.info(f"Looking for all successful Engine benchmark workflow run actions from {since} to {until}")
+def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun]:
+    """
+    Fetches the list of all the job runs from the GH API for the specified `branch`.
+    """
+    logging.info(f"Looking for all successful Engine benchmark workflow run "
+                 f"actions from {since} to {until} for branch {branch}")
     query_fields = {
-        "branch": "develop",
+        "branch": branch,
         "status": "success",
-        "created": since.strftime("%Y-%m-%d") + ".." + until.strftime("%Y-%m-%d"),
+        "created": since.strftime(DATE_FORMAT) + ".." + until.strftime(DATE_FORMAT),
         # Start with 1, just to determine the total count
         "per_page": "1"
     }
@@ -354,7 +367,8 @@ def get_bench_runs(since: datetime, until: datetime) -> List[JobRun]:
         query_fields["page"] = str(page)
         res = _invoke_gh_api(f"/actions/workflows/{BENCH_WORKFLOW_ID}/runs", query_fields)
         bench_runs_json = res["workflow_runs"]
-        parsed_bench_runs += [_parse_bench_run_from_json(bench_run_json) for bench_run_json in bench_runs_json]
+        parsed_bench_runs += [_parse_bench_run_from_json(bench_run_json)
+                              for bench_run_json in bench_runs_json]
         processed += per_page
         page += 1
 
@@ -469,92 +483,108 @@ def populate_cache(cache_dir: str) -> Cache:
     return cache
 
 
-def create_data_for_benchmark(bench_reports: List[JobReport], bench_label: str) -> BenchmarkData:
+def create_template_data(
+        job_reports_per_branch: Dict[str, List[JobReport]],
+        bench_labels: Set[str]) -> List[TemplateBenchData]:
     """
-    Iterates through all the bench_reports and gathers all the data for the given
-    bench_label, i.e., for a single benchmark.
-    In every JobReport, there is just one score value for a particular `bench_label`.
-    That is why we have to iterate all the job reports.
-    :param bench_reports All bench reports gathered from the GH API.
+    Creates all the necessary data for the Jinja template from all collected
+    benchmark job reports.
+    :param job_reports_per_branch: Mapping of branch name to list of job reports.
+    job reports should be sorted by the commit date, otherwise the difference
+    between scores might be wrongly computed.
+    :param bench_labels:
     :return:
     """
-    entries: List[BenchmarkData.Entry] = []
-    for bench_report in bench_reports:
-        commit_id = bench_report.bench_run.head_commit.id
-        # Not all benchmark labels have to be present in all job reports.
-        if bench_label in bench_report.label_score_dict:
-            entries.append(BenchmarkData.Entry(
-                score=bench_report.label_score_dict[bench_label],
-                commit_id=bench_report.bench_run.head_commit.id,
-                commit_msg=bench_report.bench_run.head_commit.message,
-                commit_url=ENSO_COMMIT_BASE_URL + commit_id,
-                commit_author=bench_report.bench_run.head_commit.author.name,
-                commit_timestamp=datetime.strptime(bench_report.bench_run.head_commit.timestamp, GH_DATE_FORMAT),
-                bench_run_url=bench_report.bench_run.html_url,
-                bench_run_event=bench_report.bench_run.event
-            ))
-    # Sort the entries
-    sorted_entries = sorted(entries, key=lambda entry: entry.commit_timestamp)
-    return BenchmarkData(bench_label, sorted_entries)
 
-
-def _label_to_id(label: str) -> str:
-    return label.replace(".", "_")
-
-
-def create_template_data(bench_data: BenchmarkData) -> TemplateBenchData:
-    """
-    From the given benchmark data, creates data that will be passed into
-    the Jinja template.
-    """
-    logging.debug(f"Creating template data for benchmark with label '{bench_data.label}'")
+    def pct_to_str(score_diff_perc: float) -> str:
+        if not np.isnan(score_diff_perc):
+            buff = "+" if score_diff_perc > 0 else ""
+            buff += "{:.5f}".format(score_diff_perc * 100)
+            buff += "%"
+            return buff
+        else:
+            return "NaN"
 
     def diff_str(score_diff: float, score_diff_perc: float) -> str:
         if not np.isnan(score_diff):
             diff_str = "+" if score_diff > 0 else ""
             diff_str += "{:.5f}".format(score_diff)
             diff_str += " ("
-            diff_str += "+" if score_diff_perc > 0 else ""
-            diff_str += "{:.5f}".format(score_diff_perc * 100)
-            diff_str += "%)"
+            diff_str += pct_to_str(score_diff_perc)
+            diff_str += ")"
             return diff_str
         else:
             return "NA"
 
-    # Use pandas to get differences between scores, along with percentual
-    # difference.
-    score_series = pd.Series((entry.score for entry in bench_data.entries))
-    score_diffs = score_series.diff()
-    score_diffs_perc = score_series.pct_change()
+    template_bench_datas: List[TemplateBenchData] = []
+    for bench_label in bench_labels:
+        logging.debug(f"Creating template data for benchmark {bench_label}")
+        branch_datapoints: Dict[str, List[BenchDatapoint]] = {}
+        for branch, job_reports in job_reports_per_branch.items():
+            logging.debug(f"Creating datapoints for branch {branch} from {len(job_reports)} job reports")
+            datapoints: List[BenchDatapoint] = []
+            for job_report in job_reports:
+                prev_datapoint: Optional[BenchDatapoint] = \
+                    datapoints[-1] if len(datapoints) > 0 else None
+                if bench_label in job_report.label_score_dict:
+                    score = job_report.label_score_dict[bench_label]
+                    commit = job_report.bench_run.head_commit
+                    timestamp = datetime.strptime(
+                        commit.timestamp,
+                        GH_DATE_FORMAT
+                    )
+                    commit_msg_header = \
+                        commit.message.splitlines()[0].replace('"', "'")
+                    series = pd.Series([
+                        prev_datapoint.score if prev_datapoint else None,
+                        score
+                    ])
+                    score_diff = series.diff()[1]
+                    score_diff_perc = series.pct_change()[1]
+                    tooltip = "score = " + str(score) + "\\n"
+                    tooltip += "date = " + str(timestamp) + "\\n"
+                    tooltip += "branch = " + branch + "\\n"
+                    tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
+                    author_name = commit.author.name\
+                        .replace('"', '\\"')\
+                        .replace("'", "\\'")
+                    datapoints.append(BenchDatapoint(
+                        timestamp=timestamp,
+                        score=score,
+                        score_diff=str(score_diff),
+                        score_diff_perc=pct_to_str(score_diff_perc),
+                        tooltip=tooltip,
+                        bench_run_url=job_report.bench_run.html_url,
+                        commit_id=commit.id,
+                        commit_msg=commit_msg_header,
+                        commit_author=author_name,
+                        commit_url=ENSO_COMMIT_BASE_URL + commit.id,
+                    ))
+            logging.debug(f"{len(datapoints)} datapoints created for branch {branch}")
+            branch_datapoints[branch] = datapoints.copy()
+        logging.debug(f"Template data for benchmark {bench_label} created")
+        template_bench_datas.append(TemplateBenchData(
+            id=_label_to_id(bench_label),
+            branches_datapoints=branch_datapoints,
+        ))
+    return template_bench_datas
 
-    # Create rows for each benchmark
-    chart_rows: List[ChartRow] = []
-    for i in range(len(bench_data.entries)):
-        entry = bench_data.entries[i]
-        score_diff = score_diffs[i]
-        score_diff_perc = score_diffs_perc[i]
-        tooltip = "score = " + str(entry.score) + "\\n"
-        tooltip += "date = " + str(entry.commit_timestamp) + "\\n"
-        tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
-        chart_rows.append(
-            ChartRow(
-                score=entry.score,
-                timestamp=entry.commit_timestamp,
-                tooltip=tooltip
-            )
-        )
-    score_diffs_str = [diff_str(score_diff, score_diff_perc) for score_diff, score_diff_perc in zip(score_diffs, score_diffs_perc)]
-    return TemplateBenchData(
-        id=_label_to_id(bench_data.label),
-        rows=chart_rows,
-        score_diffs=score_diffs_str,
-        commit_authors=[entry.commit_author for entry in bench_data.entries],
-        commit_ids=[entry.commit_id for entry in bench_data.entries],
-        # Take just the first row of a commit message and replace all ' with ".
-        commit_msgs=[entry.commit_msg.splitlines()[0].replace("'", "\"") for entry in bench_data.entries],
-        commit_urls=[entry.commit_url for entry in bench_data.entries],
-        bench_run_urls=[entry.bench_run_url for entry in bench_data.entries],
-    )
+
+def _label_to_id(label: str) -> str:
+    return label.replace(".", "_")
+
+
+def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
+    """
+    Iterates through all the job reports and gathers all the benchmark labels
+    found. Note that every job report can have a different set of benchmark labels.
+    :return: List of benchmark labels.
+    """
+    all_labels = set()
+    for job_report in job_reports:
+        for labels in job_report.label_score_dict.keys():
+            all_labels.add(labels)
+    return all_labels
 
 
 def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
@@ -563,7 +593,8 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
     generated_html = jinja_template.render({
         "since": jinja_data.since,
         "until": jinja_data.until,
-        "bench_datas": jinja_data.bench_datas
+        "bench_datas": jinja_data.bench_datas,
+        "branches": jinja_data.branches
     })
     with open(html_out_fname, "w") as html_file:
         html_file.write(generated_html)
@@ -642,13 +673,24 @@ if __name__ == '__main__':
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
+    arg_parser.add_argument("-b", "--branches", action="store",
+                            nargs="+",
+                            default=["develop"],
+                            help="List of branches to gather the benchmark results from. "
+                                 "The default is ['develop']")
+    arg_parser.add_argument("-l", "--labels", action="store",
+                            nargs="+",
+                            default=set(),
+                            help="List of labels to gather the benchmark results from."
+                                 "The default behavior is to gather all the labels")
     arg_parser.add_argument("--compare",
                             nargs=2,
                             default=[],
                             metavar=("<Bench action ID 1>", "<Bench action ID 2>"),
                             help="Compare two benchmark actions runs. Choose an action from https://github.com/enso-org/enso/actions/workflows/benchmark.yml, "
                                  "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
-                                 "This option excludes --since, --until, --output, and --create-csv options.")
+                                 "This option excludes --since, --until, --output, and --create-csv options."
+                                 " Note: THIS OPTION IS DEPRECATED, use --branches instead")
     arg_parser.add_argument("-o", "--output",
                             default="Engine_Benchs/data/benchs.csv",
                             metavar="CSV_OUTPUT",
@@ -692,9 +734,12 @@ if __name__ == '__main__':
     csv_fname: str = args.output
     create_csv: bool = args.create_csv
     compare: List[str] = args.compare
+    branches: List[str] = args.branches
+    labels_override: Set[str] = args.labels
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
                  f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}, "
-                 f"create_csv={create_csv}, compare={compare}")
+                 f"create_csv={create_csv}, compare={compare}, branches={branches}, "
+                 f"labels_override={labels_override}")
 
     if use_cache:
         cache = populate_cache(cache_dir)
@@ -703,44 +748,78 @@ if __name__ == '__main__':
 
     if len(compare) > 0:
         compare_runs(compare[0], compare[1], cache, temp_dir)
-    else:
-        bench_runs = get_bench_runs(since, until)
+        exit(0)
+
+    bench_labels: Optional[Set[str]] = None
+    """ Set of all gathered benchmark labels from all the job reports """
+    job_reports_per_branch: Dict[str, List[JobReport]] = {}
+    for branch in branches:
+        bench_runs = get_bench_runs(since, until, branch)
         if len(bench_runs) == 0:
             print(
-                f"No successful benchmarks found within period since {since} until {until}")
+                f"No successful benchmarks found within period since {since}"
+                f" until {until} for branch {branch}")
             exit(1)
         job_reports: List[JobReport] = []
         for bench_run in bench_runs:
             job_report = get_bench_report(bench_run, cache, temp_dir)
             if job_report:
                 job_reports.append(job_report)
-        logging.debug(f"Got {len(job_reports)} job reports")
+        logging.debug(f"Got {len(job_reports)} job reports for branch {branch}")
         if len(job_reports) == 0:
-            print("There were 0 job_reports in the specified time interval, so "
+            print(f"There were 0 job_reports in the specified time interval, "
+                  f"for branch {branch}, so "
                   "there is nothing to visualize or compare.")
             exit(1)
+
+        logging.debug("Sorting job_reports by commit date")
+
+
+        def get_timestamp(job_report: JobReport) -> datetime:
+            return datetime.strptime(
+                job_report.bench_run.head_commit.timestamp,
+                GH_DATE_FORMAT
+            )
+
+
+        job_reports.sort(key=lambda report: get_timestamp(report))
 
         if create_csv:
             write_bench_reports_to_csv(job_reports, csv_fname)
             logging.info(f"Benchmarks written to {csv_fname}")
             print(f"The generated CSV is in {csv_fname}")
+            exit(0)
 
-        # Create a separate datatable for each benchmark label
-        # with 'label' and 'commit_timestamp' as columns.
-        bench_labels: List[str] = list(job_reports[0].label_score_dict.keys())
-        template_bench_datas: List[TemplateBenchData] = []
-        for bench_label in bench_labels:
-            bench_data = create_data_for_benchmark(job_reports, bench_label)
-            template_bench_datas.append(create_template_data(bench_data))
-        jinja_data = JinjaData(
-            since=since,
-            until=until,
-            bench_datas=template_bench_datas
-        )
+        # Gather all the benchmark labels from all the job reports
+        if bench_labels is None:
+            all_bench_labels = _gather_all_bench_labels(job_reports)
+            if len(labels_override) > 0:
+                logging.info(f"Subset of labels specified: {labels_override}")
+                if not set(labels_override).issubset(all_bench_labels):
+                    print(f"Specified bench labels {labels_override} are not a subset of "
+                          f"all bench labels {all_bench_labels}")
+                    exit(1)
+                bench_labels = labels_override
+            else:
+                bench_labels = all_bench_labels
+        logging.debug(f"Gathered bench_labels: {bench_labels}")
 
-        # Render Jinja template with jinja_data
-        render_html(jinja_data, JINJA_TEMPLATE, "index.html")
-        index_html_path = os.path.join(os.getcwd(), "index.html")
+        job_reports_per_branch[branch] = job_reports
 
-        print(f"The generated HTML is in {index_html_path}")
-        print(f"Open file://{index_html_path} in the browser")
+    template_bench_datas: List[TemplateBenchData] = \
+        create_template_data(job_reports_per_branch, bench_labels)
+    template_bench_datas.sort(key=lambda data: data.id)
+
+    jinja_data = JinjaData(
+        since=since,
+        until=until,
+        bench_datas=template_bench_datas,
+        branches=branches,
+    )
+
+    # Render Jinja template with jinja_data
+    render_html(jinja_data, JINJA_TEMPLATE, "index.html")
+    index_html_path = os.path.join(os.getcwd(), "index.html")
+
+    print(f"The generated HTML is in {index_html_path}")
+    print(f"Open file://{index_html_path} in the browser")

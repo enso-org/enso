@@ -30,53 +30,16 @@ async fn create_new_project_and_add_nodes() {
     let test = Fixture::setup_new_project().await;
     let graph_editor = test.graph_editor();
 
-    assert_eq!(graph_editor.nodes().all.len(), 2);
+    assert_eq!(graph_editor.model.nodes.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
     graph_editor.add_node();
     let (added_node_id, source_node, _) = expect_node_added.expect();
     assert_eq!(source_node, None);
-    assert_eq!(graph_editor.nodes().all.len(), 3);
+    assert_eq!(graph_editor.model.nodes.len(), 3);
 
     let added_node =
-        graph_editor.nodes().get_cloned_ref(&added_node_id).expect("Added node is not added");
+        graph_editor.model.nodes.get_cloned_ref(&added_node_id).expect("Added node is not added");
     assert_eq!(added_node.view.set_expression.value().code, "");
-}
-
-#[wasm_bindgen_test]
-async fn debug_mode() {
-    let test = Fixture::setup_new_project().await;
-    let project = test.project_view();
-    let graph_editor = test.graph_editor();
-
-    assert!(!graph_editor.debug_mode.value());
-
-    // Turning On
-    let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
-    project.enable_debug_mode();
-    assert!(expect_mode.expect());
-    let message = expect_popup_message.expect();
-    assert!(
-        message.contains("Debug Mode enabled"),
-        "Message \"{message}\" does not mention enabling Debug mode"
-    );
-    assert!(
-        message.contains(enso_gui::view::debug_mode_popup::DEBUG_MODE_SHORTCUT),
-        "Message \"{message}\" does not inform about shortcut to turn mode off"
-    );
-    assert!(graph_editor.debug_mode.value());
-
-    // Turning Off
-    let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
-    project.disable_debug_mode();
-    assert!(!expect_mode.expect());
-    let message = expect_popup_message.expect();
-    assert!(
-        message.contains("Debug Mode disabled"),
-        "Message \"{message}\" does not mention disabling of debug mode"
-    );
-    assert!(!graph_editor.debug_mode.value());
 }
 
 #[wasm_bindgen_test]
@@ -129,7 +92,7 @@ async fn adding_node_with_add_node_button() {
     let (first_node_id, node_source, first_node) =
         add_node_with_add_node_button(&graph_editor, "1 + 1").await;
     assert!(node_source.is_none());
-    assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 1);
+    assert_eq!(graph_editor.model.nodes.len(), INITIAL_NODE_COUNT + 1);
     let node_position = first_node.position();
     assert!(
         first_node.position().y < bottom_node_pos.y,
@@ -137,20 +100,20 @@ async fn adding_node_with_add_node_button() {
     );
 
     // Selected node is used as a `source` node.
-    graph_editor.nodes().deselect_all();
-    graph_editor.nodes().select(first_node_id);
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(first_node_id);
     let (_, node_source, _) = add_node_with_add_node_button(&graph_editor, "+ 1").await;
     assert_eq!(node_source, Some(NodeSource { node: first_node_id }));
-    assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 2);
+    assert_eq!(graph_editor.model.nodes.len(), INITIAL_NODE_COUNT + 2);
 
     // If there is a free space, the new node is created in the center of screen.
     let camera = scene.layers.main.camera();
     camera.update_xy(|pos| pos + Vector2(1000.0, 1000.0));
     wait_a_frame().await;
-    graph_editor.nodes().deselect_all();
+    graph_editor.model.nodes.deselect_all();
     let (node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1").await;
     assert!(node_source.is_none());
-    assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 3);
+    assert_eq!(graph_editor.model.nodes.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect(
         "Node was not
 added",
@@ -167,7 +130,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model().output_port_shape().expect("No output port");
+        let port = node_1.model().output_port_hover_shape().expect("No output port");
         port.events_deprecated.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
@@ -185,7 +148,7 @@ async fn new_nodes_placement_with_nodes_selected() {
         InitialNodes::obtain_from_graph_editor(&graph_editor);
 
     // Scenario 1. Creating a new node with one node selected.
-    graph_editor.nodes().select(node_2_id);
+    graph_editor.model.nodes.select(node_2_id);
     let (node_3_id, _, node_3) = add_node_with_add_node_button(&graph_editor, "+ 1").await;
     assert_eq!(
         node_3.position().x,
@@ -194,8 +157,8 @@ async fn new_nodes_placement_with_nodes_selected() {
     );
     assert!(node_3.position().y < node_2.position().y, "New node is not below the selected one.");
 
-    graph_editor.nodes().deselect_all();
-    graph_editor.nodes().select(node_2_id);
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(node_2_id);
     let (node_4_id, _, node_4) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     assert_eq!(
         node_4.position().y,
@@ -209,13 +172,13 @@ async fn new_nodes_placement_with_nodes_selected() {
 
     graph_editor.remove_node(node_3_id);
     graph_editor.remove_node(node_4_id);
-    graph_editor.nodes().deselect_all();
+    graph_editor.model.nodes.deselect_all();
 
     // Scenario 2. Creating a new node with multiple nodes selected.
     node_1.set_position(Vector3(-100.0, 0.0, 0.0));
     wait_a_frame().await;
-    graph_editor.nodes().select(node_1_id);
-    graph_editor.nodes().select(node_2_id);
+    graph_editor.model.nodes.select(node_1_id);
+    graph_editor.model.nodes.select(node_2_id);
 
     let (.., node_5) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     assert_eq!(
@@ -225,9 +188,9 @@ async fn new_nodes_placement_with_nodes_selected() {
     );
     assert!(node_5.position().y < node_2.position().y, "New node is not below the bottom node.");
 
-    graph_editor.nodes().deselect_all();
-    graph_editor.nodes().select(node_1_id);
-    graph_editor.nodes().select(node_2_id);
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(node_1_id);
+    graph_editor.model.nodes.select(node_2_id);
 
     let (node_6_id, _, node_6) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     assert_eq!(
@@ -241,13 +204,13 @@ async fn new_nodes_placement_with_nodes_selected() {
     );
 
     // Scenario 3. Creating a new node with enabled visualization.
-    graph_editor.nodes().deselect_all();
-    graph_editor.nodes().select(node_6_id);
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(node_6_id);
     let (node_7_id, _, node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     let pos_without_visualization = node_7.position().y;
     graph_editor.remove_node(node_7_id);
-    graph_editor.nodes().deselect_all();
-    graph_editor.nodes().select(node_6_id);
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(node_6_id);
     node_6.enable_visualization();
     wait_a_frame().await;
     let (.., node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
@@ -282,7 +245,7 @@ async fn mouse_oriented_node_placement() {
                 self.graph_editor.model.get_node_position(new_node_id).map(|v| v.xy());
             assert_eq!(new_node_pos, Some(self.expected_position));
             self.graph_editor.stop_editing();
-            assert_eq!(self.graph_editor.nodes().all.len(), 2);
+            assert_eq!(self.graph_editor.model.nodes.len(), 2);
         }
 
         fn check_tab_key(&self) {
@@ -293,7 +256,7 @@ async fn mouse_oriented_node_placement() {
         }
 
         fn check_edge_drop(&self) {
-            let port = self.source_node.view.model().output_port_shape().unwrap();
+            let port = self.source_node.view.model().output_port_hover_shape().unwrap();
             port.events_deprecated.emit_mouse_down(PrimaryButton);
             port.events_deprecated.emit_mouse_up(PrimaryButton);
             self.scene.mouse.frp_deprecated.position.emit(self.mouse_position);
@@ -302,7 +265,7 @@ async fn mouse_oriented_node_placement() {
                 "No detached edge after clicking port"
             );
             let added_node = self.graph_editor.node_added.next_event();
-            self.scene.mouse.click_on_background();
+            self.scene.mouse.click_on_background(Vector2::zero());
             enso_web::simulate_sleep((enso_shortcuts::DOUBLE_EVENT_TIME_MS + 10.0) as f64);
             self.check_searcher_opening_place(added_node);
         }

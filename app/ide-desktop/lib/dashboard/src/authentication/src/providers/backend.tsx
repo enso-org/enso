@@ -1,11 +1,10 @@
-/** @file Defines the React provider for the project manager `Backend`, along with hooks to use the
+/** @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import * as localBackend from '../dashboard/localBackend'
-import * as remoteBackend from '../dashboard/remoteBackend'
+import * as backendModule from '../dashboard/backend'
 
 // =================
 // === Constants ===
@@ -14,31 +13,24 @@ import * as remoteBackend from '../dashboard/remoteBackend'
 /** The `localStorage` key under which the type of the current backend is stored. */
 export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
-// =============
-// === Types ===
-// =============
-
-/** A type representing a backend API that may be of any type. */
-export type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
-
 // ======================
 // === BackendContext ===
 // ======================
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-    backend: AnyBackendAPI
-    setBackend: (backend: AnyBackendAPI) => void
-    setBackendWithoutSavingType: (backend: AnyBackendAPI) => void
+    backend: backendModule.Backend
+    setBackend: (backend: backendModule.Backend) => void
+    setBackendWithoutSavingType: (backend: backendModule.Backend) => void
 }
 
 // @ts-expect-error The default value will never be exposed
 // as `backend` will always be accessed using `useBackend`.
-const BackendContext = react.createContext<BackendContextType>(null)
+const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends React.PropsWithChildren<object> {
-    initialBackend: AnyBackendAPI
+    initialBackend: backendModule.Backend
 }
 
 // =======================
@@ -47,11 +39,10 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
-    const { children } = props
-    const [backend, setBackendWithoutSavingType] = react.useState<
-        localBackend.LocalBackend | remoteBackend.RemoteBackend
-    >(() => new localBackend.LocalBackend())
-    const setBackend = react.useCallback((newBackend: AnyBackendAPI) => {
+    const { initialBackend, children } = props
+    const [backend, setBackendWithoutSavingType] =
+        React.useState<backendModule.Backend>(initialBackend)
+    const setBackend = React.useCallback((newBackend: backendModule.Backend) => {
         setBackendWithoutSavingType(newBackend)
         localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)
     }, [])
@@ -65,12 +56,12 @@ export function BackendProvider(props: BackendProviderProps) {
 
 /** Exposes a property to get the current backend. */
 export function useBackend() {
-    const { backend } = react.useContext(BackendContext)
+    const { backend } = React.useContext(BackendContext)
     return { backend }
 }
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-    const { setBackend, setBackendWithoutSavingType } = react.useContext(BackendContext)
+    const { setBackend, setBackendWithoutSavingType } = React.useContext(BackendContext)
     return { setBackend, setBackendWithoutSavingType }
 }

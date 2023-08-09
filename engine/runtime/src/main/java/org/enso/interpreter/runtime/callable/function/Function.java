@@ -4,9 +4,14 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -33,7 +38,7 @@ public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
+  private final @CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
   /**
@@ -141,6 +146,7 @@ public final class Function implements TruffleObject {
    *
    * @return the function's argument schema
    */
+  @Idempotent
   public FunctionSchema getSchema() {
     return schema;
   }
@@ -378,7 +384,7 @@ public final class Function implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value = "1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 

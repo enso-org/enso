@@ -81,13 +81,7 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
         eval entry_selected ([]((row, col)) debug!("Selected entry ({row}, {col})."));
         eval view.entry_accepted ([]((row, col)) debug!("ACCEPTED entry ({row}, {col})."));
         eval view.selection_movement_out_of_grid_prevented ([](dir)
-            if let Some(dir) = dir {
-                let msg = format!(
-                    "An attempt to select an entry outside the grid in {dir:?} direction was prevented."
-                );
-                debug!("{msg}");
-            }
-        );
+            debug!("An attempt to select an entry outside the grid in {dir:?} direction was prevented."));
     }
     view.set_entries_size(Vector2(130.0, ENTRY_HEIGHT));
     let params = grid_view::simple::EntryParams {
@@ -191,6 +185,12 @@ fn init(app: &Application) {
     let view = &grid_views_with_headers[0];
     for i in (0..1000).step_by(2) {
         view.set_column_width((i, 60.0));
+        view.extra_scroll_frp().set_margins(Margins {
+            left:   0.0,
+            right:  0.0,
+            top:    15.0,
+            bottom: 0.0,
+        });
     }
 
     for view in with_hover_mask {

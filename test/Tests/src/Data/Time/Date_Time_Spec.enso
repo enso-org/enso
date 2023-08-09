@@ -11,6 +11,7 @@ import project.Data.Time.Date_Part_Spec
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
+polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.lang.Exception as JException
@@ -18,6 +19,9 @@ polyglot java import java.lang.Exception as JException
 spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
     spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
+    if Polyglot.is_language_installed "python" then
+        skip_check _ _ = True
+        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=skip_check
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
@@ -40,7 +44,11 @@ spec =
             (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
             (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
 
-spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
+default_zone_equal z1 z2 =
+    z1 . should_equal z2
+    False
+
+spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False loose_zone_equal=default_zone_equal =
     Test.group name <|
 
         Test.specify "should create time" <|
@@ -57,7 +65,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should handle errors when creating time" <|
             case create_new_datetime 1970 0 0 . catch of
                 Time_Error.Error msg ->
-                    msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 0"
+                    msg.to_text . contains "0" . should_be_true
+                    msg.to_text . contains "1" . should_be_true
+                    msg.to_text . contains "12" . should_be_true
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
@@ -68,7 +78,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should format using provided pattern and locale" <|
             d = create_new_datetime 2020 6 21
             d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020
+            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020"
 
         Test.specify "should format using default pattern" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
@@ -78,7 +88,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time = create_new_datetime 1970 12 21 (zone = Time_Zone.utc)
             time.to_json.should_equal <|
                 zone_pairs = [["zone", Time_Zone.utc]]
-                time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
+                time_pairs = [["year", 1970], ["month", 12], ["day", 21], ["hour", 0], ["minute", 0], ["second", 0], ["nanosecond", 0]]
                 JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
 
         Test.specify "should parse default time format" <|
@@ -102,12 +112,12 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . zone . should_equal Time_Zone.system
+            loose_zone_equal time.zone Time_Zone.system
 
         Test.specify "should parse time Z" <|
             time = parse_datetime "1582-10-15T00:00:01Z"
             time . to_enso_epoch_seconds . should_equal 1
-            time . zone . zone_id . should_equal "Z"
+            loose_zone_equal time.zone.zone_id "Z"
 
         Test.specify "should parse time UTC" <|
             time = parse_datetime "1582-10-15T00:00:01Z[UTC]"
@@ -122,9 +132,18 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 1
-            if nanoseconds_loss_in_precision then time . nanosecond . should_equal 123000000 else
-                time . nanosecond . should_equal 123456789
-            time . zone . zone_id . should_equal "Z"
+            case nanoseconds_loss_in_precision of
+                True ->
+                    time . nanosecond include_milliseconds=True . should_equal 123000000
+                    time . millisecond . should_equal 123
+                    time . microsecond . should_equal 0
+                    time . nanosecond . should_equal 0
+                False ->
+                    time . nanosecond include_milliseconds=True . should_equal 123456789
+                    time . millisecond . should_equal 123
+                    time . microsecond . should_equal 456
+                    time . nanosecond . should_equal 789
+            loose_zone_equal time.zone.zone_id  "Z"
 
         Test.specify "should parse time with offset-based zone" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00"
@@ -134,8 +153,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal (Time_Zone.new 1 . zone_id)
+            loose_zone_equal time.zone.zone_id (Time_Zone.new 1 . zone_id)
 
         Test.specify "should parse time with id-based zone" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00[Europe/Paris]"
@@ -145,9 +166,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal "Europe/Paris"
-            time.to_display_text . should_equal "1970-01-01 00:00:01 Europe/Paris"
+            loose_zone_equal time.zone.zone_id  "Europe/Paris"
+            loose_zone_equal time.to_display_text "1970-01-01 00:00:01 Europe/Paris"
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
@@ -164,8 +187,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 4
             time . minute . should_equal 30
             time . second . should_equal 20
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal "Etc/UTC"
+            loose_zone_equal time.zone.zone_id  "Etc/UTC"
 
         Test.specify "should parse custom format of local time" <|
             time = parse_datetime "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
@@ -175,6 +200,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 4
             time . minute . should_equal 30
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
 
         Test.specify "should throw error when parsing custom format" <|
@@ -203,6 +230,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 1
             time . minute . should_equal 1
             time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 01:01:01 +01:01:01"
@@ -216,6 +245,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 3
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 03:00:00 Europe/Moscow"
@@ -233,6 +264,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
 
         Test.specify "should get time of day from id-based time" <|
@@ -240,6 +273,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
 
         Test.specify "should get date from offsed-based time" <|
@@ -262,6 +297,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 1
             time . zone . should_equal Time_Zone.utc
 
@@ -273,6 +310,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -284,6 +323,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 3
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -295,6 +336,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 23
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -306,6 +349,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 0
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -317,6 +362,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 21
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -328,6 +375,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . hour . should_equal 12
             time . minute . should_equal 0
             time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -353,6 +402,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time+Time_Period.Hour . should_equal <| create_new_datetime 1970 1 1 1 (zone = Time_Zone.utc)
             time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
             time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
+            time+Time_Period.Millisecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time+Time_Period.Microsecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^3) (zone = Time_Zone.utc)
+                time+Time_Period.Nanosecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 1 (zone = Time_Zone.utc)
 
         Test.specify "should support subtraction of Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
@@ -360,6 +413,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time-Time_Period.Hour . should_equal <| create_new_datetime 1969 12 31 23 (zone = Time_Zone.utc)
             time-Time_Period.Minute . should_equal <| create_new_datetime 1969 12 31 23 59 (zone = Time_Zone.utc)
             time-Time_Period.Second . should_equal <| create_new_datetime 1969 12 31 23 59 59 (zone = Time_Zone.utc)
+            second_in_nanos = 10^9
+            time-Time_Period.Millisecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time-Time_Period.Microsecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^3) (zone = Time_Zone.utc)
+                time-Time_Period.Nanosecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 1) (zone = Time_Zone.utc)
 
         Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
@@ -373,7 +431,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "will reflect that Time_Period.Day does not reflect daylight saving" <|
             tz = Time_Zone.parse "Europe/Warsaw"
             dt = Date_Time.new 2023 03 26 01 20 zone=tz
-            
+
             dt1 = dt + Time_Period.Day
             dt2 = dt + Date_Period.Day
 
@@ -502,6 +560,15 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 0)
             d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=max_nanos)
+            d1.start_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123000000)
+            d1.end_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123999999)
+
+            if nanoseconds_loss_in_precision.not then
+                d1.start_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456000)
+                d1.end_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456999)
+                # No change on nanosecond
+                d1.start_of Time_Period.Nanosecond . should_equal d1
+                d1.end_of Time_Period.Nanosecond . should_equal d1
 
             d2 = create_new_datetime 1970 1 1 0 0 0
             d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
@@ -526,15 +593,18 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         offset_1_h = ZoneOffset.ofTotalSeconds 3600
         offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
         tz = Time_Zone.parse "Europe/Warsaw"
-        js_dst_pending = if name.contains "Javascript" then
-            "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our Pivotal issue tracking our integration: https://www.pivotaltracker.com/story/show/183261296"
-        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=js_dst_pending <|
+        dst_pending = if name.contains "Javascript" then "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our issue tracking our integration: https://github.com/enso-org/enso/issues/5384" else
+            if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
+
+        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=dst_pending <|
             d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
             d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
             d1_plus = d1 + (Duration.new hours=1)
-            d1_plus . should_equal d2
+            loose_zone_equal d1_plus d2
 
             check_dates_spring date =
+                date.start_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
                 date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
                 date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
 
@@ -602,7 +672,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d4_end.hour . should_equal 2
             d4_end.minute . should_equal 59
             d4_end.second . should_equal 59
-            d4_end.nanosecond . should_equal max_nanos
+            d4_end.millisecond . should_equal 999
+            d4_end.microsecond . should_equal 999
+            d4_end.nanosecond . should_equal 999
             Time_Utils.get_datetime_offset d4_end . should_equal offset_1_h
 
         Test.specify "should allow to shift the date by N working days" <|
@@ -628,12 +700,13 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle shifting dates around spring DST edge cases" <|
             # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
-            create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0 . should_equal (create_new_datetime 2022 10 31 2 30 55 1234)
-            create_new_datetime 2022 10 30 1 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 1 30)
-            create_new_datetime 2022 10 30 3 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 3 30)
+            loose_zone_equal (create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0) (create_new_datetime 2022 10 31 2 30 55 1234)
+            loose_zone_equal (create_new_datetime 2022 10 30 1 30 . add_work_days 1) (Date_Time.new 2022 11 1 1 30)
+            loose_zone_equal (create_new_datetime 2022 10 30 3 30 . add_work_days 1) (Date_Time.new 2022 11 1 3 30)
 
-            create_new_datetime 2022 3 27 1 30 . add_work_days 0 . should_equal (Date_Time.new 2022 3 28 1 30)
-            create_new_datetime 2022 3 27 3 30 . add_work_days 1 . should_equal (Date_Time.new 2022 3 29 3 30)
+            tz = Time_Zone.parse "Europe/Warsaw"
+            loose_zone_equal (create_new_datetime 2022 3 27 1 30 zone=tz . add_work_days 0) (Date_Time.new 2022 3 28 1 30 zone=tz)
+            loose_zone_equal (create_new_datetime 2022 3 27 3 30 zone=tz . add_work_days 1) (Date_Time.new 2022 3 29 3 30 zone=tz)
 
         Test.specify "should handle shifting dates around autumn DST edge cases" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
@@ -675,6 +748,103 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             create_new_datetime 1999 10 30 14 40 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 14 40)
             create_new_datetime 1999 10 30 15 50 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 15 50)
 
+        Test.specify "should allow extracting a date_part" <|
+            d1 = create_new_datetime 2023 12 30 15 37 58 123456789
+            d1.date_part Date_Period.Year . should_equal 2023
+            d1.date_part Date_Period.Quarter . should_equal 4
+            d1.date_part Date_Period.Month . should_equal 12
+            d1.date_part Date_Period.Week . should_equal 52
+            d1.date_part Date_Period.Day . should_equal 30
+            d1.date_part Time_Period.Day . should_equal 30
+            d1.date_part Time_Period.Hour . should_equal 15
+            d1.date_part Time_Period.Minute . should_equal 37
+            d1.date_part Time_Period.Second . should_equal 58
+            d1.date_part Time_Period.Millisecond . should_equal 123
+            if nanoseconds_loss_in_precision.not then
+                d1.date_part Time_Period.Microsecond . should_equal 456
+                d1.date_part Time_Period.Nanosecond . should_equal 789
+
+        pending_date_diff_test = if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
+
+        Test.specify "should allow computing date_diff" pending=pending_date_diff_test <|
+            t1 = create_new_datetime 2021 11 3 10 15 0
+            t2 = create_new_datetime 2021 12 5 12 30 20
+
+            t1.date_diff t2 Date_Period.Day . should_equal 32
+            t2.date_diff t1 Date_Period.Day . should_equal -32
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 0) Date_Period.Day . should_equal 0
+
+            t1.date_diff t2 Date_Period.Month . should_equal 1
+            t1.date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . should_equal 0
+
+            t1.date_diff t2 Date_Period.Year . should_equal 0
+            t1.date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . should_equal 10
+
+            t1.date_diff t2 Time_Period.Day . should_equal 32
+
+            t1.date_diff t2 Time_Period.Hour . should_equal 770
+            t1.date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . should_equal 2
+
+            t1.date_diff t2 Time_Period.Minute . should_equal 46215
+            t1.date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . should_equal 30
+
+            t1.date_diff t2 Time_Period.Second . should_equal 2772920
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . should_equal 30
+
+            t1.date_diff t2 Time_Period.Millisecond . should_equal 2772920000
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . should_equal 30123
+
+            if nanoseconds_loss_in_precision.not then
+                t1.date_diff t2 Time_Period.Microsecond . should_equal 2772920000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . should_equal 30123456
+                t1.date_diff t2 Time_Period.Nanosecond . should_equal 2772920000000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_equal 30123456789
+
+        Test.specify "should allow shifting with date_add" <|
+            t1 = Date_Time.new 2021 01 01 12 30 0
+            t1.date_add 5 Date_Period.Day . should_equal (Date_Time.new 2021 01 06 12 30 0)
+            t1.date_add -1 Time_Period.Day . should_equal (Date_Time.new 2020 12 31 12 30 0)
+            t1.date_add 1 Date_Period.Month . should_equal (Date_Time.new 2021 02 01 12 30 0)
+            t1.date_add 10 Date_Period.Year . should_equal (Date_Time.new 2031 01 01 12 30 0)
+
+            t1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2021 01 02 12 30 0)
+            t1.date_add -1 Time_Period.Hour . should_equal (Date_Time.new 2021 01 01 11 30 0)
+            t1.date_add 23 Time_Period.Minute . should_equal (Date_Time.new 2021 01 01 12 53 0)
+            t1.date_add -15 Time_Period.Second . should_equal (Date_Time.new 2021 01 01 12 29 45)
+            t1.date_add 1 Time_Period.Millisecond . should_equal (Date_Time.new 2021 01 01 12 30 0 1)
+            if nanoseconds_loss_in_precision.not then
+                t1.date_add 1 Time_Period.Microsecond . should_equal (Date_Time.new 2021 01 01 12 30 0 microsecond=1)
+                t1.date_add 1 Time_Period.Nanosecond . should_equal (Date_Time.new 2021 01 01 12 30 0 nanosecond=1)
+
+            Test.expect_panic_with (t1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Date_Period.Day) Type_Error
+
+        Test.specify "date_diff and date_add should behave well around DST" <|
+            zone = Time_Zone.parse "Europe/Warsaw"
+            dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
+
+            # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
+            dt1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
+            dt1.date_add 1 Date_Period.Day . should_equal (Date_Time.new 2023 03 27 00 30 00 zone=zone)
+            # Time_Period.Day will shift by 24 hours.
+            dt1.date_add 1 Time_Period.Day . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
+            dt1.date_diff dt2 Time_Period.Hour . should_equal 23
+
+            dt1.date_diff dt2 Date_Period.Day . should_equal 1
+            # But when counting in hours - 23 hours is not a full 24-hour day.
+            dt1.date_diff dt2 Time_Period.Day . should_equal 0
+
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
+
+            dt3.date_diff dt4 Date_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Hour . should_equal 23
+
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
@@ -690,6 +860,19 @@ js_set_zone local_datetime zone =
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     datetime_with_tz + diff
 
+python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Nothing =
+    delta = if zone.is_nothing then -1 else
+        rules = Polyglot.invoke (ZoneId.of (zone.zone_id)) "getRules" []
+        zone_offset = Polyglot.invoke rules "getOffset" [ LocalDateTime.now ]
+        Polyglot.invoke zone_offset "getTotalSeconds" []
+    name = if zone.is_nothing then "Z" else
+        zone.zone_id
+    Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond delta name) (err -> Error.throw (Time_Error.Error err.payload))
+
+python_parse text format="" =
+    d = Date_Time.parse text format
+    python_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
+
 foreign js js_local_datetime_impl year month day hour minute second nanosecond = """
     if (month > 12 || month < 1) {
         throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
@@ -698,7 +881,7 @@ foreign js js_local_datetime_impl year month day hour minute second nanosecond =
 
 js_parse text format="" =
     d = Date_Time.parse text format
-    js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
+    js_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
@@ -709,6 +892,27 @@ foreign js js_array_datetimeCreate year month day hour minute second nanosecond 
         throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
     }
     return [ new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000) ];
+
+foreign python python_datetime_impl year month day hour minute second nanosecond zone zone_name = """
+    import datetime
+
+    class Zone(datetime.tzinfo):
+        def __init__(self, zone, name):
+            self.zone = zone
+            self.name = name
+
+        def utcoffset(self, dt):
+            return datetime.timedelta(seconds=zone)
+
+        def tzname(self, dt):
+            return self.name
+
+    microseconds = int(nanosecond / 1000000) * 1000
+
+    if zone == -1:
+        return datetime.datetime(year, month, day, hour, minute, second, microseconds)
+    else:
+        return datetime.datetime(year, month, day, hour, minute, second, microseconds, Zone(zone, zone_name))
 
 enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone

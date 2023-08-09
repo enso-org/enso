@@ -3,7 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -125,12 +125,6 @@ case object NestedPatternMatch extends IRPass {
       desugarExpression(x, freshNameSupply)
     }
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

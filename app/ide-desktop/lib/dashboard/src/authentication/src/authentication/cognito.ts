@@ -33,8 +33,9 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as config from './config'
-import * as detect from '../detect'
 import * as loggerProvider from '../providers/logger'
 
 // =================
@@ -58,6 +59,31 @@ const MESSAGES = {
         userNotConfirmed: `Cannot reset password for user with an unverified email. \
 Please verify your email first.`,
     },
+}
+
+// ================
+// === UserInfo ===
+// ================
+
+// The names come from a third-party API and cannot be changed.
+/* eslint-disable @typescript-eslint/naming-convention */
+/** Attributes returned from {@link amplify.Auth.currentUserInfo}. */
+interface UserAttributes {
+    email: string
+    email_verified: boolean
+    sub: string
+    'custom:fromDesktop'?: string
+    'custom:organizationId'?: string
+}
+/* eslint-enable @typescript-eslint/naming-convention */
+
+/** User information returned from {@link amplify.Auth.currentUserInfo}. */
+interface UserInfo {
+    username: string
+    // The type comes from a third-party API and cannot be changed.
+    // eslint-disable-next-line no-restricted-syntax
+    id: undefined
+    attributes: UserAttributes
 }
 
 // ====================
@@ -85,7 +111,7 @@ interface AmplifyError extends Error {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 function isAmplifyError(error: unknown): error is AmplifyError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error
     } else {
         return false
@@ -115,7 +141,7 @@ interface AuthError {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
 function isAuthError(error: unknown): error is AuthError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'name' in error && 'log' in error
     } else {
         return false
@@ -165,15 +191,35 @@ export class Cognito {
     /** Return the current {@link UserSession}, or `None` if the user is not logged in.
      *
      * Will refresh the {@link UserSession} if it has expired. */
-    userSession() {
-        return userSession()
+    async userSession() {
+        const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
+        const amplifySession = currentSession.mapErr(intoCurrentSessionErrorKind)
+        return amplifySession.map(parseUserSession).unwrapOr(null)
+    }
+
+    /** Returns the associated organization ID of the current user, which is passed during signup,
+     * or `null` if the user is not associated with an existing organization. */
+    async organizationId() {
+        // This `any` comes from a third-party API and cannot be avoided.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+        return userInfo.attributes['custom:organizationId'] ?? null
     }
 
     /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    signUp(username: string, password: string) {
-        return signUp(this.supportsDeepLinks, username, password)
+    async signUp(username: string, password: string, organizationId: string | null) {
+        const result = await results.Result.wrapAsync(async () => {
+            const params = intoSignUpParams(
+                this.supportsDeepLinks,
+                username,
+                password,
+                organizationId
+            )
+            await amplify.Auth.signUp(params)
+        })
+        return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
     }
 
     /** Send the email address verification code.
@@ -182,8 +228,11 @@ export class Cognito {
      * verification page. The email verification page will parse the verification code from the URL.
      * If the verification code matches, the email address is marked as verified. Once the email
      * address is verified, the user can sign in. */
-    confirmSignUp(email: string, code: string) {
-        return confirmSignUp(email, code)
+    async confirmSignUp(email: string, code: string) {
+        const result = await results.Result.wrapAsync(async () => {
+            await amplify.Auth.confirmSignUp(email, code)
+        })
+        return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow)
     }
 
     /** Sign in via the Google federated identity provider.
@@ -191,8 +240,13 @@ export class Cognito {
      * This function will open the Google authentication page in the user's browser. The user will
      * be asked to log in to their Google account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
-    signInWithGoogle() {
-        return signInWithGoogle(this.customState())
+    async signInWithGoogle() {
+        const customState = this.customState()
+        const provider = amplify.CognitoHostedUIIdentityProvider.Google
+        await amplify.Auth.federatedSignIn({
+            provider,
+            ...(customState != null ? { customState } : {}),
+        })
     }
 
     /** Sign in via the GitHub federated identity provider.
@@ -200,20 +254,40 @@ export class Cognito {
      * This function will open the GitHub authentication page in the user's browser. The user will
      * be asked to log in to their GitHub account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
-    signInWithGitHub() {
-        return signInWithGitHub()
+    async signInWithGitHub() {
+        await amplify.Auth.federatedSignIn({
+            customProvider: GITHUB_PROVIDER,
+        })
     }
 
     /** Sign in with the given username and password.
      *
      * Does not rely on external identity providers (e.g., Google or GitHub). */
-    signInWithPassword(username: string, password: string) {
-        return signInWithPassword(username, password)
+    async signInWithPassword(username: string, password: string) {
+        const result = await results.Result.wrapAsync(async () => {
+            await amplify.Auth.signIn(username, password)
+        })
+        return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
     }
 
     /** Sign out the current user. */
-    signOut() {
-        return signOut(this.logger)
+    async signOut() {
+        // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
+        // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
+        // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of
+        // the session manually by running the `signOut` again. This works because Amplify will see that
+        // we've already signed out and clear the cache accordingly. Ideally we should figure out how
+        // to fix the redirect and remove this `catch`. This has the unintended consequence of catching
+        // any other errors that might occur during sign out, that we really shouldn't be catching. This
+        // also has the unintended consequence of delaying the sign out process by a few seconds (until
+        // the timeout occurs).
+        try {
+            await amplify.Auth.signOut()
+        } catch (error) {
+            this.logger.error('Sign out failed', error)
+        } finally {
+            await amplify.Auth.signOut()
+        }
     }
 
     /** Send a password reset email.
@@ -221,8 +295,11 @@ export class Cognito {
      * The user will be able to reset their password by following the link in the email, which takes
      * them to the "reset password" page of the application. The verification code will be filled in
      * automatically. */
-    forgotPassword(email: string) {
-        return forgotPassword(email)
+    async forgotPassword(email: string) {
+        const result = await results.Result.wrapAsync(async () => {
+            await amplify.Auth.forgotPassword(email)
+        })
+        return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow)
     }
 
     /** Submit a new password for the given email address.
@@ -230,8 +307,11 @@ export class Cognito {
      * The user will have received a verification code in an email, which they will have entered on
      * the "reset password" page of the application. This function will submit the new password
      * along with the verification code, changing the user's password. */
-    forgotPasswordSubmit(email: string, code: string, password: string) {
-        return forgotPasswordSubmit(email, code, password)
+    async forgotPasswordSubmit(email: string, code: string, password: string) {
+        const result = await results.Result.wrapAsync(async () => {
+            await amplify.Auth.forgotPasswordSubmit(email, code, password)
+        })
+        return result.mapErr(intoForgotPasswordSubmitErrorOrThrow)
     }
 
     /** Change a password for current authenticated user.
@@ -240,8 +320,17 @@ export class Cognito {
      * password, new password, and repeat new password to change their old password to the new
      * one. The validation of the repeated new password is handled by the `changePasswordModel`
      * component. */
-    changePassword(oldPassword: string, newPassword: string) {
-        return changePassword(oldPassword, newPassword)
+    async changePassword(oldPassword: string, newPassword: string) {
+        const cognitoUserResult = await currentAuthenticatedUser()
+        if (cognitoUserResult.ok) {
+            const cognitoUser = cognitoUserResult.unwrap()
+            const result = await results.Result.wrapAsync(async () => {
+                await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+            })
+            return result.mapErr(intoAmplifyErrorOrThrow)
+        } else {
+            return results.Err(cognitoUserResult.val)
+        }
     }
 
     /** We want to signal to Amplify to fire a "custom state change" event when the user is
@@ -285,21 +374,6 @@ export interface UserSession {
     accessToken: string
 }
 
-/** Return the current `CognitoUserSession`, if one exists. */
-async function userSession() {
-    const amplifySession = await getAmplifyCurrentSession()
-    return amplifySession.map(parseUserSession).toOption()
-}
-
-/** Return the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
- * otherwise.
- *
- * Will refresh the session if it has expired. */
-async function getAmplifyCurrentSession() {
-    const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
-    return currentSession.mapErr(intoCurrentSessionErrorKind)
-}
-
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
 function parseUserSession(session: cognito.CognitoUserSession): UserSession {
@@ -337,21 +411,12 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 // === SignUp ===
 // ==============
 
-/** A wrapper around the Amplify "sign up" endpoint that converts known errors
- * to {@link SignUpError}s. */
-async function signUp(supportsDeepLinks: boolean, username: string, password: string) {
-    const result = await results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(supportsDeepLinks, username, password)
-        await amplify.Auth.signUp(params)
-    })
-    return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
-}
-
 /** Format a username and password as an {@link amplify.SignUpParams}. */
 function intoSignUpParams(
     supportsDeepLinks: boolean,
     username: string,
-    password: string
+    password: string,
+    organizationId: string | null
 ): amplify.SignUpParams {
     return {
         username,
@@ -369,6 +434,8 @@ function intoSignUpParams(
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         },
     }
 }
@@ -428,14 +495,6 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // === ConfirmSignUp ===
 // =====================
 
-/** A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
- * to {@link ConfirmSignUpError}s. */
-async function confirmSignUp(email: string, code: string) {
-    return results.Result.wrapAsync(async () => {
-        await amplify.Auth.confirmSignUp(email, code)
-    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
-}
-
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     internalCode: 'NotAuthorizedException',
     internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
@@ -471,43 +530,9 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
     }
 }
 
-// ========================
-// === SignInWithGoogle ===
-// ========================
-
-/** A wrapper around the Amplify "sign in with Google" endpoint. */
-async function signInWithGoogle(customState: string | null) {
-    const provider = amplify.CognitoHostedUIIdentityProvider.Google
-    const options = {
-        provider,
-        ...(customState ? { customState } : {}),
-    }
-    await amplify.Auth.federatedSignIn(options)
-}
-
-// ========================
-// === SignInWithGoogle ===
-// ========================
-
-/** A wrapper around the Amplify confirm "sign in with GitHub" endpoint. */
-async function signInWithGitHub() {
-    await amplify.Auth.federatedSignIn({
-        customProvider: GITHUB_PROVIDER,
-    })
-}
-
 // ==========================
 // === SignInWithPassword ===
 // ==========================
-
-/** A wrapper around the Amplify "sign in with password" endpoint that converts known errors
- * to {@link SignInWithPasswordError}s. */
-async function signInWithPassword(username: string, password: string) {
-    const result = await results.Result.wrapAsync(async () => {
-        await amplify.Auth.signIn(username, password)
-    })
-    return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
-}
 
 /** Internal IDs of errors that may occur when signing in with a password. */
 type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
@@ -546,25 +571,18 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
 // ======================
 // === ForgotPassword ===
 // ======================
+
 const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
     internalCode: 'InvalidParameterException',
     kind: 'UserNotConfirmed',
-    message: `Cannot reset password for the user as there is no registered/verified email or \
-phone_number`,
+    message: `Cannot reset password for the user as there is no registered/verified email \
+or phone_number`,
 } as const
 
 const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
     internalCode: 'UserNotFoundException',
     kind: 'UserNotFound',
 } as const
-
-/** A wrapper around the Amplify "forgot password" endpoint that converts known errors
- * to {@link ForgotPasswordError}s. */
-async function forgotPassword(email: string) {
-    return results.Result.wrapAsync(async () => {
-        await amplify.Auth.forgotPassword(email)
-    }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
-}
 
 /** Internal IDs of errors that may occur when requesting a password reset. */
 type ForgotPasswordErrorKind =
@@ -603,15 +621,6 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
 // === ForgotPasswordSubmit ===
 // ============================
 
-/** A wrapper around the Amplify "forgot password submit" endpoint that converts known errors
- * to {@link ForgotPasswordSubmitError}s. */
-async function forgotPasswordSubmit(email: string, code: string, password: string) {
-    const result = await results.Result.wrapAsync(async () => {
-        await amplify.Auth.forgotPasswordSubmit(email, code, password)
-    })
-    return result.mapErr(intoForgotPasswordSubmitErrorOrThrow)
-}
-
 /** Internal IDs of errors that may occur when resetting a password. */
 type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
 
@@ -640,30 +649,6 @@ function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSub
     }
 }
 
-// ===============
-// === SignOut ===
-// ===============
-
-/** A wrapper around the Amplify "sign out" endpoint. */
-async function signOut(logger: loggerProvider.Logger) {
-    // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
-    // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
-    // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of
-    // the session manually by running the `signOut` again. This works because Amplify will see that
-    // we've already signed out and clear the cache accordingly. Ideally we should figure out how
-    // to fix the redirect and remove this `catch`. This has the unintended consequence of catching
-    // any other errors that might occur during sign out, that we really shouldn't be catching. This
-    // also has the unintended consequence of delaying the sign out process by a few seconds (until
-    // the timeout occurs).
-    try {
-        await amplify.Auth.signOut()
-    } catch (error) {
-        logger.error('Sign out failed', error)
-    } finally {
-        await amplify.Auth.signOut()
-    }
-}
-
 // ======================
 // === ChangePassword ===
 // ======================
@@ -680,19 +665,4 @@ async function currentAuthenticatedUser() {
         () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
     )
     return result.mapErr(intoAmplifyErrorOrThrow)
-}
-
-/** A wrapper around the Amplify "change password submit" endpoint that converts known errors
- * to {@link AmplifyError}s. */
-async function changePassword(oldPassword: string, newPassword: string) {
-    const cognitoUserResult = await currentAuthenticatedUser()
-    if (cognitoUserResult.ok) {
-        const cognitoUser = cognitoUserResult.unwrap()
-        const result = await results.Result.wrapAsync(async () => {
-            await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
-        })
-        return result.mapErr(intoAmplifyErrorOrThrow)
-    } else {
-        return results.Err(cognitoUserResult.val)
-    }
 }

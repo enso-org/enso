@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
-import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.SQL.Builder
@@ -19,11 +18,13 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.SQLite.SQLite_Dialect
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
 
@@ -75,13 +76,6 @@ type Dialect
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
         _ = [text]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Returns an utility that allows ensuring column names are valid for the
-       given backend.
-    get_naming_helpers : Naming_Helpers
-    get_naming_helpers self =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -146,6 +140,19 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies whether the Database ROUND() function supports negative
+       decimal places.
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Specifies whether round() can take a decimal_places argument for floating point values.
+    rounding_decimal_places_not_allowed_for_floats : Boolean
+    rounding_decimal_places_not_allowed_for_floats self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Performs any transformations on a column resulting from unifying other
        columns.
 
@@ -200,6 +207,30 @@ type Dialect
     default_table_types self =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        _ = [connection, table_name]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        _ = [period, operation_input_type]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRVIATE
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        _ = [replace_params, action]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.
@@ -216,3 +247,14 @@ postgres = Postgres_Dialect.postgres
 default_fetch_types_query dialect expression context =
     empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
     dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+
+## PRIVATE
+   Default implementation relying on DatabaseMetaData.
+default_fetch_primary_key connection table_name =
+    connection.jdbc_connection.with_metadata metadata->
+        rs = metadata.getPrimaryKeys Nothing Nothing table_name
+        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+        selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
+        key_column_names = selected.order_by 1 . at 0 . to_vector
+        if key_column_names.is_empty then Nothing else key_column_names

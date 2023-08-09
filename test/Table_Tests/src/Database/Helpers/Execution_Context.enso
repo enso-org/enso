@@ -1,0 +1,15 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Context
+
+from Standard.Test import Test
+
+## PRIVATE
+   Runs the action twice, once with the Output context enabled and once with it
+   disabled, to check that the behaviour is the same regardless of context.
+run_with_and_without_output ~action =
+    Context.Output.with_enabled <|
+        Test.with_clue "(normal mode - Output context enabled) " <|
+            action
+    Context.Output.with_disabled <|
+        Test.with_clue "(dry run - Output context disabled) " <|
+            action

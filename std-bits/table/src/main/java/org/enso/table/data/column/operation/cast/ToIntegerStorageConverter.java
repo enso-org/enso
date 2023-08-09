@@ -1,8 +1,8 @@
 package org.enso.table.data.column.operation.cast;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.object.LongBuilder;
-import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.graalvm.polyglot.Context;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private final double min;
@@ -28,9 +29,9 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     if (storage instanceof LongStorage longStorage) {
       return longStorage;
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return convertDoubleStorage(problemBuilder, doubleStorage);
+      return convertDoubleStorage(doubleStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage);
+      return convertBoolStorage(boolStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -39,6 +40,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -62,8 +64,11 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
       }
+
+      context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -71,7 +76,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return value >= min && value <= max;
   }
 
-  private Storage<Long> convertBoolStorage(BoolStorage boolStorage) {
+  private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     int n = boolStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
@@ -81,18 +87,23 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         boolean value = boolStorage.getItem(i);
         builder.appendLong(booleanAsLong(value));
       }
+
+      context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Long> convertDoubleStorage(CastProblemBuilder problemBuilder, DoubleStorage doubleStorage) {
+  private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     int n = doubleStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItemDouble(i);
+        double value = doubleStorage.getItem(i);
         if (fitsInTargetRange(value)) {
           long converted = (long) value;
           builder.appendLong(converted);
@@ -101,7 +112,11 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           problemBuilder.reportConversionFailure(value);
         }
       }
+
+      context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 

@@ -1,16 +1,21 @@
 /** @file Container responsible for rendering and interactions in second half of forgot password
  * flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
+
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import GoBackIcon from 'enso-assets/go_back.svg'
+import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -26,20 +31,20 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // =====================
 
 /** A form for users to reset their password. */
-function ResetPassword() {
+export default function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
 
     const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search)
 
-    const [email, setEmail] = react.useState(initialEmail ?? '')
-    const [code, setCode] = react.useState(initialCode ?? '')
-    const [newPassword, setNewPassword] = react.useState('')
-    const [newPasswordConfirm, setNewPasswordConfirm] = react.useState('')
+    const [email, setEmail] = React.useState(initialEmail ?? '')
+    const [code, setCode] = React.useState(initialCode ?? '')
+    const [newPassword, setNewPassword] = React.useState('')
+    const [newPasswordConfirm, setNewPasswordConfirm] = React.useState('')
 
     const onSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
-            toast.error('Passwords do not match')
+            toastify.toast.error('Passwords do not match')
             return Promise.resolve()
         } else {
             return resetPassword(email, code, newPassword)
@@ -47,7 +52,7 @@ function ResetPassword() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
+        <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 className={
                     'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full ' +
@@ -72,8 +77,9 @@ function ResetPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <SvgMask src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="email"
                                     type="email"
@@ -92,8 +98,9 @@ function ResetPassword() {
                                 Confirmation Code:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="code"
                                     type="text"
@@ -112,15 +119,16 @@ function ResetPassword() {
                                 New Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_TITLE}
+                                    title={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />
@@ -134,8 +142,9 @@ function ResetPassword() {
                                 Confirm New Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="new_password_confirm"
                                     type="password"
@@ -156,7 +165,9 @@ function ResetPassword() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Reset</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <SvgMask src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -169,7 +180,9 @@ function ResetPassword() {
                             'text-center'
                         }
                     >
-                        <span>{svg.GO_BACK}</span>
+                        <span>
+                            <SvgMask src={GoBackIcon} />
+                        </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>
@@ -185,5 +198,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ResetPassword

@@ -6,14 +6,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
-import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
@@ -59,6 +59,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
 
+      Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
         KeyType key = keyFactory.apply(i);
 
@@ -72,6 +73,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
+
+        context.safepoint();
       }
     } else {
       this.locs.put(
@@ -80,6 +83,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public Table makeTable(Aggregator[] columns) {
+    Context context = Context.getCurrent();
     final int length = columns.length;
     final int size = locs.size();
 
@@ -94,12 +98,14 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {
         storage[i].appendNoGrow(columns[i].aggregate(empty));
+        context.safepoint();
       }
     } else {
       for (List<Integer> group_locs : this.locs.values()) {
         for (int i = 0; i < length; i++) {
           Object value = columns[i].aggregate(group_locs);
           storage[i].appendNoGrow(value);
+          context.safepoint();
         }
       }
     }
@@ -117,115 +123,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         merged);
   }
 
-  public Table makeCrossTabTable(
-      Column[] groupingColumns,
-      Column nameColumn,
-      Aggregator[] aggregates,
-      String[] aggregateNames) {
-    NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
-
-    final int size = locs.size();
-
-    var nameIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            new Column[] {nameColumn},
-            nameColumn.getSize(),
-            TextFoldingStrategy.unicodeNormalizedFold);
-    final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
-
-    // Create the storage
-    Builder[] storage = new Builder[columnCount];
-    for (int i = 0; i < groupingColumns.length; i++) {
-      storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size);
-    }
-
-    for (int i = 0; i < nameIndex.locs.size(); i++) {
-      int offset = groupingColumns.length + i * aggregates.length;
-      for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), size);
-      }
-    }
-
-    // Fill the storage
-    for (List<Integer> group_locs : this.locs.values()) {
-      // Fill the grouping columns
-      IntStream.range(0, groupingColumns.length)
-          .forEach(
-              i ->
-                  storage[i].appendNoGrow(
-                      groupingColumns[i].getStorage().getItemBoxed(group_locs.get(0))));
-
-      // Make a Set
-      var groupSet = new HashSet<>(group_locs);
-
-      // Fill the aggregates
-      int offset = groupingColumns.length;
-      for (List<Integer> name_locs : nameIndex.locs.values()) {
-        var filtered = name_locs.stream().filter(groupSet::contains).collect(Collectors.toList());
-
-        for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(filtered));
-        }
-
-        offset += aggregates.length;
-      }
-    }
-
-    // Create Columns
-    Column[] output = new Column[columnCount];
-    for (int i = 0; i < groupingColumns.length; i++) {
-      outputTableNameDeduplicator.markUsed(groupingColumns[i].getName());
-      output[i] = new Column(groupingColumns[i].getName(), storage[i].seal());
-    }
-
-    int offset = groupingColumns.length;
-    for (List<Integer> name_locs : nameIndex.locs.values()) {
-      Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
-      String name;
-      if (boxed == null) {
-        throw Column.raiseNothingName();
-      } else {
-        name = boxed.toString();
-        // We want to fail hard on invalid colum names stemming from invalid input values and make
-        // the user fix the data before cross_tab, to avoid data corruption.
-        Column.ensureNameIsValid(name);
-      }
-
-      for (int i = 0; i < aggregates.length; i++) {
-        String effectiveName;
-        if (aggregateNames[i].isEmpty()) {
-          effectiveName = name;
-        } else if (name.isEmpty()) {
-          effectiveName = aggregateNames[i];
-        } else {
-          effectiveName = name + " " + aggregateNames[i];
-        }
-
-        // Check again to ensure that the appended aggregate name does not invalidate the name.
-        // We do not check aggregateName itself before, because it _is_ allowed for it to be empty -
-        // meaning just key names will be used and that is fine.
-        Column.ensureNameIsValid(effectiveName);
-        effectiveName = outputTableNameDeduplicator.makeUnique(effectiveName);
-
-        output[offset + i] = new Column(effectiveName, storage[offset + i].seal());
-      }
-
-      offset += aggregates.length;
-    }
-
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 3];
-    problems[0] = this.problems;
-    problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
-    problems[2] = nameIndex.getProblems();
-    for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 3] = aggregates[i].getProblems();
-    }
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
-
-    return new Table(output, merged);
-  }
-
   public AggregatedProblems getProblems() {
     return problems;
   }
@@ -238,9 +135,11 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     int[] output = new int[rowCount];
 
     int idx = 0;
+    Context context = Context.getCurrent();
     for (List<Integer> rowIndexes : this.locs.values()) {
       for (Integer rowIndex : rowIndexes) {
         output[idx++] = rowIndex;
+        context.safepoint();
       }
     }
 
@@ -257,5 +156,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
   public List<Integer> get(KeyType key) {
     return this.locs.get(key);
+  }
+
+  public int size() {
+    return this.locs.size();
   }
 }

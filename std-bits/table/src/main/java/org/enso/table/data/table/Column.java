@@ -2,14 +2,19 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.problems.WithAggregatedProblems;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.ArrayList;
@@ -33,20 +38,20 @@ public class Column {
     this.storage = storage;
   }
 
-  public static IllegalArgumentException raiseNothingName() throws IllegalArgumentException {
-    throw new IllegalArgumentException("Column name cannot be Nothing.");
+  public static boolean isColumnNameValid(String name) {
+    boolean invalid = (name == null) || name.isEmpty() || (name.indexOf('\0') >= 0);
+    return !invalid;
   }
 
   public static void ensureNameIsValid(String name) {
-    if (name == null) {
-      raiseNothingName();
-    }
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("Column name cannot be empty.");
-    }
-    if (name.indexOf('\0') >= 0) {
-      String pretty = Text_Utils.pretty_print(name);
-      throw new IllegalArgumentException("Column name "+pretty+" must not contain the NUL character.");
+    if (!isColumnNameValid(name)) {
+      String extraMessage = switch (name) {
+        case null -> "Column name cannot be Nothing.";
+        case "" -> "Column name cannot be empty.";
+        default ->
+            (name.indexOf('\0') >= 0) ? "Column name cannot contain the NUL character." : null;
+      };
+      throw new InvalidColumnNameException(name, extraMessage);
     }
   }
 
@@ -115,17 +120,13 @@ public class Column {
     return new Column(name, storage);
   }
 
-  /**
-   * Creates a new column with given name and elements.
-   *
-   * @param name the name to use
-   * @param items the items contained in the column
-   * @return a column with given name and items
-   */
-  public static Column fromItems(String name, List<Value> items) {
-    InferredBuilder builder = new InferredBuilder(items.size());
+  /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
+  public static WithAggregatedProblems<Column> fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+    Context context = Context.getCurrent();
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
     for (Object item : items) {
       if (item instanceof Value v) {
         Object converted = Polyglot_Utils.convertPolyglotValue(v);
@@ -133,6 +134,29 @@ public class Column {
       } else {
         builder.appendNoGrow(item);
       }
+
+      context.safepoint();
+    }
+
+    var result = new Column(name, builder.seal());
+    return new WithAggregatedProblems<>(result, builder.getProblems());
+  }
+
+  /**
+   * Creates a column from an Enso array. No polyglot conversion happens.
+   * <p>
+   * If a date value is passed to this function, it may not be recognized as such due to the lack of conversion. So this
+   * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
+   * it.
+   */
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+    Context context = Context.getCurrent();
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
+    for (Object item : items) {
+      builder.appendNoGrow(item);
+      context.safepoint();
     }
     var storage = builder.seal();
     return new Column(name, storage);
@@ -145,15 +169,16 @@ public class Column {
    * @param items the items contained in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
+  public static WithAggregatedProblems<Column> fromRepeatedItems(String name, List<Value> items, int repeat) {
     if (repeat < 1) {
       throw new IllegalArgumentException("Repeat count must be positive.");
     }
 
     if (repeat == 1) {
-      return fromItems(name, items);
+      return fromItems(name, items, null);
     }
 
+    Context context = Context.getCurrent();
     var totalSize = items.size() * repeat;
 
     var values = new ArrayList<Object>(items.size());
@@ -162,14 +187,18 @@ public class Column {
     for (Object item : items) {
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       values.add(converted);
+      context.safepoint();
     }
 
     var builder = new InferredBuilder(totalSize);
     for (int i = 0; i < totalSize; i++) {
       var item = values.get(i % items.size());
       builder.appendNoGrow(item);
+      context.safepoint();
     }
-    return new Column(name, builder.seal());
+
+    var result = new Column(name, builder.seal());
+    return new WithAggregatedProblems<>(result, builder.getProblems());
   }
 
   /** @return the index of this column */

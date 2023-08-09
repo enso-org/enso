@@ -8,6 +8,8 @@ from Standard.Base.Data.Numbers import Number_Parse_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.math.BigInteger
+
 Integer.is_even self = self % 2 == 0
 
 Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
@@ -487,7 +489,7 @@ spec =
             -3.00001 . round . should_equal -3
             -3.3 . round . should_equal -3
             -3.49999 . round . should_equal -3
-            -3.5 . round . should_equal -3
+            -3.5 . round . should_equal -4
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
 
@@ -540,7 +542,7 @@ spec =
             -1499.0 . round -2 . should_equal -1500
             -1499.0 . round -3 . should_equal -1000
 
-            -1495.0 . round -1 . should_equal -1490
+            -1495.0 . round -1 . should_equal -1500
             -1494.0 . round -1 . should_equal -1490
             -1495.0 . round -2 . should_equal -1500
             -1494.0 . round -2 . should_equal -1500
@@ -594,12 +596,12 @@ spec =
             1.222222222222225 . round 14 . should_equal 1.22222222222223
             1.2222222222222225 . round 15 . should_equal 1.222222222222223
 
-            -1.22222222225 . round 10 . should_equal -1.2222222222
-            -1.222222222225 . round 11 . should_equal -1.22222222222
-            -1.2222222222225 . round 12 . should_equal -1.222222222222
-            -1.22222222222225 . round 13 . should_equal -1.2222222222222
-            -1.222222222222225 . round 14 . should_equal -1.22222222222222
-            -1.2222222222222225 . round 15 . should_equal -1.222222222222222
+            -1.22222222225 . round 10 . should_equal -1.2222222223
+            -1.222222222225 . round 11 . should_equal -1.22222222223
+            -1.2222222222225 . round 12 . should_equal -1.222222222223
+            -1.22222222222225 . round 13 . should_equal -1.2222222222223
+            -1.222222222222225 . round 14 . should_equal -1.22222222222223
+            -1.2222222222222225 . round 15 . should_equal -1.222222222222223
 
             1.22222222235 . round 10 . should_equal 1.2222222224
             1.222222222235 . round 11 . should_equal 1.22222222224
@@ -608,12 +610,12 @@ spec =
             1.222222222222235 . round 14 . should_equal 1.22222222222224
             1.2222222222222235 . round 15 . should_equal 1.222222222222224
 
-            -1.22222222235 . round 10 . should_equal -1.2222222223
-            -1.222222222235 . round 11 . should_equal -1.22222222223
-            -1.2222222222235 . round 12 . should_equal -1.222222222223
-            -1.22222222222235 . round 13 . should_equal -1.2222222222223
-            -1.222222222222235 . round 14 . should_equal -1.22222222222223
-            -1.2222222222222235 . round 15 . should_equal -1.222222222222223
+            -1.22222222235 . round 10 . should_equal -1.2222222224
+            -1.222222222235 . round 11 . should_equal -1.22222222224
+            -1.2222222222235 . round 12 . should_equal -1.222222222224
+            -1.22222222222235 . round 13 . should_equal -1.2222222222224
+            -1.222222222222235 . round 14 . should_equal -1.22222222222224
+            -1.2222222222222235 . round 15 . should_equal -1.222222222222224
 
         Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
             1.22222222225 . round 10 use_bankers=True . should_equal 1.2222222222
@@ -706,13 +708,13 @@ spec =
 
         Test.specify "Can round negative integers to a specified number of negative places correctly"
             -4 . round -1 . should_equal 0
-            -5 . round -1 . should_equal 0
+            -5 . round -1 . should_equal -10
             -6 . round -1 . should_equal -10
             -9 . round -1 . should_equal -10
             -10 . round -1 . should_equal -10
             -11 . round -1 . should_equal -10
             -24 . round -1 . should_equal -20
-            -25 . round -1 . should_equal -20
+            -25 . round -1 . should_equal -30
             -29 . round -1 . should_equal -30
             -30 . round -1 . should_equal -30
             -31 . round -1 . should_equal -30
@@ -721,7 +723,7 @@ spec =
             -2001 . round -3 . should_equal -2000
             -2412 . round -3 . should_equal -2000
             -2499 . round -3 . should_equal -2000
-            -2500 . round -3 . should_equal -2000
+            -2500 . round -3 . should_equal -3000
             -2501 . round -3 . should_equal -3000
             -2511 . round -3 . should_equal -3000
             -2907 . round -3 . should_equal -3000
@@ -797,4 +799,70 @@ spec =
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
 
+    Test.group "BigInts" <|
+        expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
+
+        bigint_spec name create mul =
+            Test.specify name+" 6 * 7" <|
+                six = create 6
+                seven = create 7
+                both = six*seven
+                both . should_equal 42
+
+                six.is_a Integer . should_be_true
+                seven.is_a Integer . should_be_true
+                both.is_a Integer . should_be_true
+
+            Test.specify name+" power of 3 with running_fold" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . running_fold three a->_->
+                    mul a three
+
+                sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
+                sum.div two_hundred.length . should_equal expected_value
+
+            Test.specify name+" power of 3 with map" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . map i->
+                    0.up_to i . fold three (v-> _-> mul v three)
+
+                sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
+                case sum of
+                    _ : Integer -> Nothing
+                    v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
+                sum.div two_hundred.length . should_equal expected_value
+
+        to_java_bigint n = BigInteger.new n.to_text
+        java_bigint_mul a b =
+            big_a = to_java_bigint a
+            big_b = to_java_bigint b
+            big_a * big_b
+
+        bigint_spec "Enso" (x->x) (*)
+        bigint_spec "Java" to_java_bigint java_bigint_mul
+        bigint_spec "JavaScript" to_js_bigint js_bigint_mul
+
+        Test.specify "Matrix of values" <|
+            x = to_java_bigint 10
+            y = 10
+            z = 10.0
+            w = to_js_bigint 10
+
+            [x, y, z, w].each a->
+                [x, y, z, w].each b->
+                    a+b . should_equal 20
+
+
+
 main = Test_Suite.run_main spec
+
+
+foreign js to_js_bigint n = """
+    return BigInt(n)
+
+foreign js js_bigint_mul a b = """
+    return BigInt(a) * BigInt(b)

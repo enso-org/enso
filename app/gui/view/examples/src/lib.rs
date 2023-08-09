@@ -24,9 +24,9 @@
 
 pub use debug_scene_component_list_panel_view as new_component_list_panel_view;
 pub use debug_scene_documentation as documentation;
-pub use debug_scene_execution_environment_dropdown as execution_environment_dropdown;
 pub use debug_scene_graph_editor_edges as graph_editor_edges;
 pub use debug_scene_icons as icons;
 pub use debug_scene_interface as interface;
+pub use debug_scene_project_view_top_bar as project_view_top_bar;
 pub use debug_scene_text_grid_visualization as text_grid_visualization;
 pub use debug_scene_visualization as visualization;

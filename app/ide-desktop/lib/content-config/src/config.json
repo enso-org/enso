@@ -3,11 +3,6 @@
     "authentication": {
       "value": true,
       "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
-    },
-    "dataCollection": {
-      "value": true,
-      "description": "Determines whether anonymous usage data is to be collected.",
-      "primary": false
     }
   },
   "groups": {
@@ -33,6 +28,11 @@
           "value": true,
           "defaultDescription": "false on MacOS, true otherwise",
           "description": "Draw window frame."
+        },
+        "topBarOffset": {
+          "value": 0,
+          "description": "The offset of rust-rendered toolbar from window's left edge.",
+          "primary": false
         }
       }
     },

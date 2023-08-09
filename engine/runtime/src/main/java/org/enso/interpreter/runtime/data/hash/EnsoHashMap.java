@@ -149,7 +149,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage(library = TypesLibrary.class)
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().map();
   }
 
@@ -166,13 +166,24 @@ public final class EnsoHashMap implements TruffleObject {
   @ExportMessage
   @TruffleBoundary
   Object toDisplayString(boolean allowSideEffects) {
+    return toString(true);
+  }
+
+  @Override
+  public String toString() {
+    // We are not using uncached InteropLibrary in this method, as it may substantially
+    // slow down Java debugger.
+    return toString(false);
+  }
+
+  private String toString(boolean useInterop) {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
         empty = false;
-        sb.append(entry.key()).append("=").append(entry.value()).append(", ");
+        sb.append(entryToString(entry, useInterop)).append(", ");
       }
     }
     if (!empty) {
@@ -183,9 +194,22 @@ public final class EnsoHashMap implements TruffleObject {
     return sb.toString();
   }
 
-  @Override
-  public String toString() {
-    return (String) toDisplayString(true);
+  private static String entryToString(StorageEntry entry, boolean useInterop) {
+    String keyStr;
+    String valStr;
+    if (useInterop) {
+      var interop = InteropLibrary.getUncached();
+      try {
+        keyStr = interop.asString(interop.toDisplayString(entry.key()));
+        valStr = interop.asString(interop.toDisplayString(entry.value()));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
+    } else {
+      keyStr = entry.key().toString();
+      valStr = entry.value().toString();
+    }
+    return keyStr + "=" + valStr;
   }
 
   private boolean isEntryInThisMap(StorageEntry entry) {

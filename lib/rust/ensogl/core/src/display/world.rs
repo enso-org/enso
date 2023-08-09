@@ -255,7 +255,7 @@ impl Uniforms {
 // =============
 
 /// The root object for EnsoGL scenes.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, display::Object)]
 pub struct World {
     rc: Rc<WorldDataWithLoop>,
 }
@@ -283,12 +283,6 @@ impl Deref for World {
     type Target = WorldDataWithLoop;
     fn deref(&self) -> &Self::Target {
         &self.rc
-    }
-}
-
-impl display::Object for World {
-    fn display_object(&self) -> &display::object::Instance {
-        self.default_scene.display_object()
     }
 }
 
@@ -406,8 +400,11 @@ thread_local! {
     pub static SCENE: RefCell<Option<Scene>> = RefCell::new(None);
 }
 
-/// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
-/// and should be instantiated before any callback is run.
+/// Get reference to [`Scene`] instance.
+///
+/// # Panics
+///
+/// It will panic if there is no [`World`] instance.
 pub fn scene() -> Scene {
     SCENE.with_borrow(|t| t.clone().unwrap())
 }
@@ -419,11 +416,12 @@ pub fn scene() -> Scene {
 // =================
 
 /// The data kept by the [`World`].
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct WorldData {
     #[deref]
     frp: api::private::Output,
+    #[display_object]
     pub default_scene: Scene,
     scene_dirty: dirty::SharedBool,
     uniforms: Uniforms,
@@ -457,7 +455,7 @@ impl WorldData {
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
-        SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+        SCENE.set(Some(default_scene.clone_ref()));
         let pixel_read_pass_threshold = default();
         let slow_frame_count = default();
         let fast_frame_count = default();
@@ -552,7 +550,7 @@ impl WorldData {
             .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
             .add(pixel_read_pass)
-            .add(CacheShapesPass::new(&self.default_scene));
+            .add(CacheShapesPass::new());
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
@@ -687,6 +685,12 @@ impl WorldData {
             info!("Setting pixel read pass threshold to {threshold}.");
             setter.set(threshold);
         }
+    }
+}
+
+impl Drop for WorldData {
+    fn drop(&mut self) {
+        SCENE.set(None);
     }
 }
 

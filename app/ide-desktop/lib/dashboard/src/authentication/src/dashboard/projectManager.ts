@@ -1,7 +1,6 @@
 /** @file This module defines the Project Manager endpoint.
- *
- * It should always be in sync with the Rust interface at
- * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
+ * @see The protocol spec
+ * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
@@ -53,14 +52,25 @@ interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
 /** The return value of a JSON-RPC call. */
 type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
+// These are constructor functions that construct values of the type they are named after.
+/* eslint-disable @typescript-eslint/no-redeclare */
+
 // This intentionally has the same brand as in the cloud backend API.
 /** An ID of a project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** Create a {@link ProjectId}. */
+export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+/** Create a {@link ProjectName}. */
+export const ProjectName = newtype.newtypeConstructor<ProjectName>()
 /** The newtype's `TypeName` is intentionally different from the name of this type alias,
  * to match the backend's newtype. */
 export type UTCDateTime = dateTime.Rfc3339DateTime
+/** Create a {@link UTCDateTime}. */
+export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
+
+/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** Details for a project. */
 export interface ProjectMetadata {
@@ -95,6 +105,12 @@ export interface OpenProject {
     languageServerBinaryAddress: IpWithSocket
     projectName: ProjectName
     projectNamespace: string
+}
+
+/** The return value of the "list available engine versions" endpoint. */
+export interface EngineVersion {
+    version: string
+    markedAsBroken: boolean
 }
 
 // ================================
@@ -136,11 +152,6 @@ export interface DeleteProjectParams {
     projectId: ProjectId
 }
 
-/** Parameters for the "list samples" endpoint. */
-export interface ListSamplesParams {
-    projectId: ProjectId
-}
-
 // =======================
 // === Project Manager ===
 // =======================
@@ -164,7 +175,7 @@ export class ProjectManager extends EventTarget {
     /** Create a {@link ProjectManager} */
     private constructor(protected readonly connectionUrl: string) {
         super()
-        let firstConnectionStartMs = Number(new Date())
+        const firstConnectionStartMs = Number(new Date())
         let lastConnectionStartMs = 0
         let justErrored = false
         const createSocket = () => {
@@ -199,7 +210,7 @@ export class ProjectManager extends EventTarget {
                     } else {
                         const delay =
                             RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
-                        setTimeout(() => {
+                        window.setTimeout(() => {
                             void createSocket().then(resolve)
                         }, Math.max(0, delay))
                     }
@@ -258,9 +269,9 @@ export class ProjectManager extends EventTarget {
         return this.sendRequest('project/delete', params)
     }
 
-    /** Get the list of sample projects that are available to the user. */
-    public async listSamples(params: ListSamplesParams): Promise<ProjectList> {
-        return this.sendRequest<ProjectList>('project/listSample', params)
+    /** List available engine versions. */
+    public listAvailableEngineVersions(): Promise<[EngineVersion, ...EngineVersion[]]> {
+        return this.sendRequest<[EngineVersion, ...EngineVersion[]]>('engine/list-available', {})
     }
 
     /** Remove all handlers for a specified request ID. */

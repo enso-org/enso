@@ -9,6 +9,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -31,7 +32,7 @@ public class InsightForEnsoTest {
                 )
                 .logHandler(OutputStream.nullOutputStream())
                 .allowExperimentalOptions(true)
-                .allowIO(true)
+                .allowIO(IOAccess.ALL)
                 .out(out)
                 .allowAllAccess(true)
                 .build();
@@ -49,6 +50,7 @@ public class InsightForEnsoTest {
             print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
             let dump = "";
             for (let p in frame) {
+                frame.unknown // used to yield NullPointerException
                 dump += ` ${p}=${frame[p]}`;
             }
             print(dump);

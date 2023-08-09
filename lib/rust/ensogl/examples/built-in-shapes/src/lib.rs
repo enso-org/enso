@@ -10,6 +10,7 @@ use ensogl_core::display::shape::compound::rectangle::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::animation::TimeInfo;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -30,51 +31,71 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
+    let border_demo_1 = RoundedRectangle(10.0).build(|t| {
+        t.set_size(Vector2::new(100.0, 100.0))
+            .set_color(color::Rgba::new(0.8, 0.2, 0.2, 0.5))
+            .set_border_color(color::Rgba::new(0.0, 0.5, 0.5, 1.0));
+    });
+    let border_demo_2 = RoundedRectangle(10.0).build(|t| {
+        t.set_size(Vector2::new(100.0, 100.0))
+            .set_color(color::Rgba::new(0.2, 0.8, 0.2, 0.5))
+            .set_border_color(color::Rgba::new(0.2, 0.2, 0.5, 1.0));
+    });
+    let border_demo_3 = RoundedRectangle(10.0).build(|t| {
+        t.set_size(Vector2::new(100.0, 100.0))
+            .set_color(color::Rgba::new(0.2, 0.2, 0.8, 0.5))
+            .set_border_color(color::Rgba::new(0.2, 0.5, 0.2, 1.0));
+    });
+
+
     let shapes = [
         Circle().build(|t| {
             t.set_size(Vector2::new(100.0, 100.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_bottom_left_quarter();
         }),
         RoundedRectangle(10.0).build(|t| {
             t.set_size(Vector2::new(100.0, 100.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0));
         }),
         RoundedRectangle(10.0).build(|t| {
             t.set_size(Vector2::new(100.0, 50.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_top_half();
         }),
         RoundedRectangle(10.0).build(|t| {
             t.set_size(Vector2::new(100.0, 50.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_bottom_half();
         }),
         RoundedRectangle(10.0).build(|t| {
             t.set_size(Vector2::new(50.0, 100.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_right_half();
         }),
         RoundedRectangle(10.0).build(|t| {
             t.set_size(Vector2::new(50.0, 100.0))
                 .set_color(color::Rgba::new(0.5, 0.0, 0.0, 0.3))
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_left_half();
         }),
         SimpleTriangle::from_base_and_altitude(100.0, 25.0).into(),
         SimpleTriangle::from_base_and_altitude(100.0, 50.0).into(),
         SimpleTriangle::from_base_and_altitude(100.0, 100.0).into(),
+        border_demo_1.clone(),
+        border_demo_2.clone(),
+        border_demo_3.clone(),
     ];
 
     let root = display::object::Instance::new();
@@ -84,6 +105,19 @@ pub fn main() {
         root.add_child(shape);
     }
     world.add_child(&root);
+
+    world
+        .on
+        .before_frame
+        .add(move |time: TimeInfo| {
+            let t = time.frame_start().as_s();
+            let inset = 10.0 + (t * 1.3).sin() * 10.0;
+            let width = 10.0 + (t * 2.77).cos() * 10.0;
+            border_demo_1.set_inset(inset).set_border(width);
+            border_demo_2.set_inset(inset).set_frame_border(width);
+            border_demo_3.set_inner_border(width, inset);
+        })
+        .forget();
 
     world.keep_alive_forever();
     mem::forget(navigator);

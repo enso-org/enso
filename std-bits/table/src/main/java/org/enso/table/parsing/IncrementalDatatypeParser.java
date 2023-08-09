@@ -1,9 +1,11 @@
 package org.enso.table.parsing;
 
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.problems.WithProblems;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.WithAggregatedProblems;
+import org.graalvm.polyglot.Context;
 
 /**
  * A base type for a datatype parsing strategy which relies on a method parsing a single value.
@@ -28,10 +30,12 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+  public WithAggregatedProblems<Storage<?>> parseColumn(
+      String columnName, Storage<String> sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
     var aggregator = new ProblemAggregatorImpl(columnName);
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < sourceStorage.size(); ++i) {
       String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
@@ -40,8 +44,12 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
       } else {
         builder.appendNoGrow(null);
       }
+
+      context.safepoint();
     }
 
-    return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());
+    return new WithAggregatedProblems<>(
+        builder.seal(),
+        AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
   }
 }

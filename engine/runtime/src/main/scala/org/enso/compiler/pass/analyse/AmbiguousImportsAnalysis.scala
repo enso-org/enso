@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.Module.Scope.Import.Polyglot
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 
 import scala.collection.mutable
@@ -49,11 +49,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
-
-  /** @inheritdoc
-    */
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
 
   /** @inheritdoc
     */

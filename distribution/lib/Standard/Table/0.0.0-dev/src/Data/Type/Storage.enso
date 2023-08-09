@@ -3,20 +3,20 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-polyglot java import org.enso.table.data.column.builder.object.Builder
-polyglot java import org.enso.table.data.column.storage.type.StorageType
-polyglot java import org.enso.table.data.column.storage.type.IntegerType
-polyglot java import org.enso.table.data.column.storage.type.FloatType
-polyglot java import org.enso.table.data.column.storage.type.BooleanType
-polyglot java import org.enso.table.data.column.storage.type.TextType
-polyglot java import org.enso.table.data.column.storage.type.DateType
-polyglot java import org.enso.table.data.column.storage.type.DateTimeType
-polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
+polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
+polyglot java import org.enso.table.data.column.storage.type.BooleanType
+polyglot java import org.enso.table.data.column.storage.type.DateTimeType
+polyglot java import org.enso.table.data.column.storage.type.DateType
+polyglot java import org.enso.table.data.column.storage.type.FloatType
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
+polyglot java import org.enso.table.data.column.storage.type.StorageType
+polyglot java import org.enso.table.data.column.storage.type.TextType
+polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
 
 ## PRIVATE
    Gets the value type represented by this Java Storage.
@@ -51,7 +51,8 @@ closest_storage_type value_type = case value_type of
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
-    _ -> Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
+    _ ->
+        Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 
 ## PRIVATE
    Converts a value type to an in-memory storage type, possibly approximating it

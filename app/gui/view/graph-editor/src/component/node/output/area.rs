@@ -7,7 +7,6 @@ use crate::component::node;
 use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
-use crate::view;
 use crate::Type;
 
 use enso_config::ARGS;
@@ -17,11 +16,10 @@ use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::shape::Rectangle;
 use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use span_tree;
 
 
 
@@ -33,13 +31,12 @@ const HIDE_DELAY_DURATION_MS: f32 = 150.0;
 const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 
 
-
 // ================
 // === SpanTree ===
 // ================
 
 use span_tree::node::Ref as PortRef;
-use span_tree::Crumbs;
+use span_tree::PortId;
 use span_tree::SpanTree;
 
 
@@ -115,7 +112,7 @@ ensogl::define_endpoints! {
         set_expression            (node::Expression),
         set_expression_visibility (bool),
         set_type_label_visibility (bool),
-        set_view_mode             (view::Mode),
+        set_port_color            (color::Lcha),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -124,31 +121,30 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        on_port_press               (Crumbs),
-        on_port_hover               (Switch<Crumbs>),
-        on_port_type_change         (Crumbs,Option<Type>),
+        on_port_press               (PortId),
+        on_port_hover               (Switch<PortId>),
         port_size_multiplier        (f32),
+        port_color                  (color::Lcha),
         body_hover                  (bool),
         type_label_visibility       (bool),
         expression_label_visibility (bool),
         tooltip                     (tooltip::Style),
-        view_mode                   (view::Mode),
         size                        (Vector2),
     }
 }
 
 /// Internal model of the port area.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
+    hover_root:     display::object::Instance,
     port_models:    RefCell<Vec<port::Model>>,
     label:          text::Text,
     expression:     RefCell<Expression>,
     id_ports_map:   RefCell<HashMap<ast::Id, usize>>,
     styles:         StyleWatch,
-    styles_frp:     StyleWatchFrp,
     frp:            FrpEndpoints,
 }
 
@@ -158,25 +154,26 @@ impl Model {
     pub fn new(app: &Application, frp: &Frp) -> Self {
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
+        let hover_root = display::object::Instance::new_named("output hover");
         let port_models = default();
         let label = app.new_view::<text::Text>();
         let id_ports_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
+        display_object.add_child(&hover_root);
         Self {
             app: app.clone_ref(),
             display_object,
             ports,
+            hover_root,
             port_models,
             label,
             expression,
             id_ports_map,
             styles,
-            styles_frp,
             frp,
         }
         .init(app)
@@ -184,12 +181,6 @@ impl Model {
 
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
-        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        // It needs to be more flexible once we have proper depth management.
-        let scene = &app.display.default_scene;
-        scene.layers.main.remove(&self.label);
-        self.label.add_to_scene_layer(&scene.layers.label);
-
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.set_single_line_mode(true);
         app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
@@ -197,20 +188,13 @@ impl Model {
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
-
         self.label.set_y(input::area::TEXT_SIZE / 2.0);
-
         self
     }
 
-    /// Return a list of Node's output ports.
-    pub fn ports(&self) -> Vec<port::Model> {
-        self.port_models.borrow().clone()
-    }
-
-    #[profile(Debug)]
-    fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.label.add_to_scene_layer(layer);
+    /// Return a list of Node's output port hover shapes.
+    pub fn port_hover_shapes(&self) -> Vec<Rectangle> {
+        self.port_models.borrow().iter().map(|m| m.shape.hover.clone()).collect()
     }
 
     #[profile(Debug)]
@@ -237,8 +221,7 @@ impl Model {
 
         let port_models = self.port_models.borrow();
         let Some(port) = port_models.get(index) else { return };
-        let Some(frp) = &port.frp else { return };
-        frp.set_usage_type(tp);
+        port.frp.set_usage_type(tp);
     }
 
     /// Traverse all span tree nodes that are considered ports.
@@ -251,11 +234,6 @@ impl Model {
             let is_a_port = (is_this || is_argument) && is_leaf;
             f(is_a_port, node);
         });
-    }
-
-    #[profile(Debug)]
-    fn set_size(&self, size: Vector2) {
-        self.ports.set_x(size.x / 2.0);
     }
 
     #[profile(Debug)]
@@ -297,34 +275,33 @@ impl Model {
                     node_tp.or_else(|| whole_expr_type.clone())
                 };
 
-                let crumbs = node.crumbs.clone_ref();
-                let mut model = port::Model::default();
                 let span = node.span();
-                model.index = span.start.into();
-                model.length = span.size();
+                let index = span.start.into();
+                let length = span.size();
+                let model = port::Model::new(&self.app, port_index, port_count, index, length);
 
-                let (port_shape,port_frp) = model
-                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index,port_count);
+                let port_frp = &model.frp;
                 let port_network = &port_frp.network;
-
+                let source = &self.frp.source;
+                let port_id = node.port_id.unwrap_or_default();
                 frp::extend! { port_network
-                    self.frp.source.on_port_hover <+ port_frp.on_hover.map
-                        (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
-
-                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
-                    self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
-                    self.frp.source.tooltip             <+ port_frp.tooltip;
-                    port_frp.set_view_mode              <+ self.frp.view_mode;
-                    port_frp.set_size                   <+ self.frp.size;
+                    port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
+                    // Currently we always use the same color for all ports.
+                    port_frp.set_color <+ self.frp.port_color;
+                    port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
+                    source.tooltip <+ port_frp.tooltip;
+                    port_frp.set_size <+ self.frp.size;
+                    source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(port_id,t));
+                    source.on_port_press <+ port_frp.on_press.constant(port_id);
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
-                port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 port_frp.set_size.emit(self.frp.size.value());
+                port_frp.set_color.emit(self.frp.port_color.value());
+                port_frp.set_size_multiplier.emit(self.frp.port_size_multiplier.value());
                 port_frp.set_definition_type.emit(node_tp);
-                self.ports.add_child(&port_shape);
+                self.ports.add_child(&model.shape.root);
+                self.hover_root.add_child(&model.shape.hover);
                 models.push(model);
             }
         });
@@ -361,11 +338,12 @@ impl Model {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Area {
     #[deref]
     pub frp:   Frp,
+    #[display_object]
     pub model: Rc<Model>,
 }
 
@@ -391,10 +369,10 @@ impl Area {
             hysteretic_transition.to_end   <+ on_hover_out;
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
-            eval frp.set_size ((t) model.set_size(*t));
             frp.source.size <+ frp.set_size;
+            frp.source.port_color <+ frp.set_port_color;
 
-            expr_label_x <- model.label.width.map(|width| -width - input::area::TEXT_OFFSET);
+            expr_label_x <- frp.set_size.map(|size| size.x + input::area::TEXT_OFFSET);
             eval expr_label_x ((x) model.label.set_x(*x));
 
             frp.source.type_label_visibility <+ frp.set_type_label_visibility;
@@ -411,8 +389,6 @@ impl Area {
             port_hover                             <- frp.on_port_hover.map(|t| t.is_on());
             frp.source.body_hover                  <+ frp.set_hover || port_hover;
             expr_vis                               <- frp.body_hover || frp.set_expression_visibility;
-            in_normal_mode                         <- frp.set_view_mode.map(|m| m.is_normal());
-            expr_vis                               <- expr_vis && in_normal_mode;
             frp.source.expression_label_visibility <+ expr_vis;
 
             let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));
@@ -421,12 +397,8 @@ impl Area {
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
-            eval new_label_color ((color) model.label.set_property(.., color::Rgba::from(color)));
+            eval new_label_color ((color) model.label.set_property_default(color::Rgba::from(color)));
 
-
-            // === View Mode ===
-
-            frp.source.view_mode <+ frp.set_view_mode;
         }
 
         label_color.target_alpha(0.0);
@@ -435,29 +407,38 @@ impl Area {
         Self { frp, model }
     }
 
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.model.set_label_layer(layer);
+    /// Get the display object that is a root of all interactive rectangles in output area.
+    pub fn hover_root(&self) -> &display::object::Instance {
+        &self.model.hover_root
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        let node = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
-        let id = node.ast_id?;
-        let index = *self.model.id_ports_map.borrow().get(&id)?;
-        self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+    pub fn port_type(&self, port: PortId) -> Option<Type> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                self.model.port_models.borrow().get(index)?.frp.tp.value()
+            }
+            _ => None,
+        }
     }
 
+    /// Get the expression code for the specified port.
+    pub fn port_expression(&self, port: PortId) -> Option<String> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                let port_models = self.model.port_models.borrow();
+                let model = port_models.get(index)?;
+                let span = enso_text::Range::new(model.index, model.index + model.length);
+                Some(self.model.expression.borrow().code.as_ref()?[span].to_owned())
+            }
+            _ => None,
+        }
+    }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
         self.model.expression.borrow().whole_expr_id
-    }
-}
-
-impl display::Object for Area {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

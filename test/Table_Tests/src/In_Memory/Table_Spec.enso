@@ -4,11 +4,10 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregate_Column
-import Standard.Table.Main as Table_Module
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 import Standard.Table.Data.Type.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type, Row_Count_Mismatch
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type, Row_Count_Mismatch
 
 import Standard.Visualization
 
@@ -97,7 +96,7 @@ spec =
             Table.from_rows [] [] . should_fail_with Illegal_Argument
             Table.from_rows [] [[]] . should_fail_with Illegal_Argument
 
-            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Invalid_Column_Names
 
         Test.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
@@ -158,6 +157,10 @@ spec =
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
             t.at 'sciana' . should_fail_with No_Such_Column
+
+            # Cannot create two columns with the same name modulo normalization.
+            r2 = Table.new [['ściana', [1, 2, 3]], ['s\u0301ciana', [4, 5, 6]]]
+            r2.should_fail_with Illegal_Argument
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -316,14 +319,8 @@ spec =
             t2.at "Y" . to_vector . should_equal ['A', 0]
 
             t3 = Table.new [["X", [1, 2, 3]], ["Y", ["", Nothing, Number.nan]]]
-            t4 = t3.remove_columns (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            t4 = t3.remove_blank_columns treat_nans_as_blank=True
             t4.columns . map .name . should_equal ["X"]
-
-        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
-            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
-            r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
-            r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
-            r1.at "X" . to_vector . should_equal [1, 2, 4]
 
     Test.group "Info" <|
         Test.specify "should return Table information" <|
@@ -521,6 +518,67 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)
 
+    Test.group "fill"
+        Test.specify "should allow to fill_nothing from a value" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col1]
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+
+        Test.specify "should allow to fill_nothing from other columns" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            defaults = Column.from_vector "def0" [1, 2, 10, 20, Nothing, 30]
+            t = Table.new [col0, col1]
+            actual = t.fill_nothing ["col0", "col1"] defaults
+            actual.at "col0" . to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+            actual.at "col1" . to_vector . should_equal [1, 200, 10, 400, 500, 30]
+
+        Test.specify "should allow to fill_empty from a value" <|
+            col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            default = "1000"
+            t = Table.new [col0, col1]
+            actual = t.fill_empty ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
+            actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
+
+        Test.specify "should allow to fill_empty from other columns" <|
+            col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            defaults = Column.from_vector "def0" ["1", "2", "10", "20", Nothing, "30"]
+            t = Table.new [col0, col1]
+            actual = t.fill_empty ["col0", "col1"] defaults
+            actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
+            actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
+
+        Test.specify "fill_nothing should leave other columns alone" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col_between, col1]
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
+
+        Test.specify "fill_nothing should work with integer column selectors" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col_between, col1]
+            actual = t.fill_nothing [0, 2] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
+
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
             table.columns . map .name . should_equal names frames_to_skip=2
@@ -543,7 +601,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"]
-            problems = [Invalid_Output_Column_Names.Error [""]]
+            problems = [Invalid_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
@@ -555,7 +613,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"]
-            problems = [Invalid_Output_Column_Names.Error [Nothing]]
+            problems = [Invalid_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: multiple invalid names" <|
@@ -567,7 +625,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"]
-            problems = [Invalid_Output_Column_Names.Error ["", Nothing]]
+            problems = [Invalid_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|

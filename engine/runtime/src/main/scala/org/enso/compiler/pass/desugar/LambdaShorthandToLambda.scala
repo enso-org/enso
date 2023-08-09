@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -20,8 +20,6 @@ import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
   OverloadsResolution
 }
-
-import scala.annotation.unused
 
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
@@ -105,12 +103,6 @@ case object LambdaShorthandToLambda extends IRPass {
 
     desugarExpression(ir, freshNameSupply)
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

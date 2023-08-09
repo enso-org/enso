@@ -17,10 +17,11 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Item<T> {
     pub frp:         Frp,
     pub elem:        T,
+    #[display_object]
     pub placeholder: StrongPlaceholder,
     pub debug:       Rc<Cell<bool>>,
 }
@@ -59,11 +60,5 @@ impl<T: display::Object> Item<T> {
 
     pub fn set_margin_left(&self, margin: f32) {
         self.frp.set_margin_left.emit(margin)
-    }
-}
-
-impl<T> display::Object for Item<T> {
-    fn display_object(&self) -> &display::object::Instance {
-        self.placeholder.display_object()
     }
 }

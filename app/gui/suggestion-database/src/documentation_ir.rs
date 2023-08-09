@@ -205,13 +205,13 @@ impl EntryDocumentation {
         let defined_in = &entry.defined_in;
         let parent_module = db.lookup_by_qualified_name(defined_in);
         match parent_module {
-            Some((id, parent)) => match parent.kind {
+            Ok((id, parent)) => match parent.kind {
                 Kind::Module => Ok(ModuleDocumentation::new(id, &parent, db)
                     .map_err(|_| NoParentModule(entry.qualified_name().to_string()))?),
                 _ => Err(NoParentModule(entry.qualified_name().to_string())),
             },
-            None => {
-                error!("Parent module for entry {} not found.", entry.qualified_name());
+            Err(err) => {
+                error!("Parent module for entry {} not found: {}", entry.qualified_name(), err);
                 Err(NoParentModule(entry.qualified_name().to_string()))
             }
         }
@@ -237,7 +237,7 @@ impl EntryDocumentation {
         };
         let self_type = db.lookup_by_qualified_name(self_type);
         match self_type {
-            Some((id, parent)) => match parent.kind {
+            Ok((id, parent)) => match parent.kind {
                 Kind::Type => {
                     let docs = Function::from_entry(entry);
                     let type_docs = TypeDocumentation::new(id, &parent, db)?;
@@ -254,8 +254,8 @@ impl EntryDocumentation {
                     Ok(Placeholder::NoDocumentation.into())
                 }
             },
-            None => {
-                error!("Parent entry for method {} not found.", entry.qualified_name());
+            Err(err) => {
+                error!("Parent entry for method {} not found: {}", entry.qualified_name(), err);
                 Ok(Self::Placeholder(Placeholder::NoDocumentation))
             }
         }
@@ -269,14 +269,14 @@ impl EntryDocumentation {
         let return_type = db.lookup_by_qualified_name(return_type);
 
         match return_type {
-            Some((id, parent)) => {
+            Ok((id, parent)) => {
                 let docs = Function::from_entry(entry);
                 let type_docs = TypeDocumentation::new(id, &parent, db)?;
                 let module_docs = Self::parent_module(db, &parent)?;
                 Ok(Documentation::Constructor { docs, type_docs, module_docs }.into())
             }
-            None => {
-                error!("No return type found for constructor {}.", entry.qualified_name());
+            Err(err) => {
+                error!("No return type found for constructor {}: {}", entry.qualified_name(), err);
                 Ok(Placeholder::NoDocumentation.into())
             }
         }
@@ -723,7 +723,7 @@ impl FilteredDocSections {
         let mut examples = Vec::new();
         for section in doc_sections {
             match section {
-                DocSection::Tag { name, body } => tags.push(Tag::new(name, body)),
+                DocSection::Tag { tag, body } => tags.push(Tag::new(tag.to_str(), body)),
                 DocSection::Marked { mark: Mark::Example, .. } => examples.push(section.clone()),
                 section => synopsis.push(section.clone()),
             }
@@ -838,21 +838,21 @@ mod tests {
                     Bar (b);
 
                     #[with_doc_section(doc_section!("Documentation of method A.baz."))]
-                    #[with_doc_section(doc_section!(@ "Tag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Deprecated, "Tag body."))]
                     fn baz() -> Standard.Base.B;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of type B."))]
                 type B {
                     #[with_doc_section(doc_section!("Documentation of constructor B.New."))]
-                    #[with_doc_section(doc_section!(@ "AnotherTag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Alias, "Tag body."))]
                     #[with_doc_section(doc_section!(! "Important", "Important note."))]
                     #[with_doc_section(doc_section!(> "Example", "Example of constructor B.New usage."))]
                     New;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of module method."))]
-                #[with_doc_section(doc_section!(@ "Deprecated", ""))]
+                #[with_doc_section(doc_section!(@ Deprecated, ""))]
                 #[with_doc_section(doc_section!(> "Example", "Example of module method usage."))]
                 fn module_method() -> Standard.Base.A;
             }
@@ -875,7 +875,7 @@ mod tests {
             name:      QualifiedName::from_text("Standard.Base.module_method").unwrap().into(),
             tags:      Tags {
                 list: SortedVec::new([Tag {
-                    name: "Deprecated".to_im_string(),
+                    name: "DEPRECATED".to_im_string(),
                     body: "".to_im_string(),
                 }]),
             },
@@ -936,7 +936,7 @@ mod tests {
     fn a_baz_method() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.A.baz").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("Tag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("DEPRECATED", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([doc_section!(
                 "Documentation of method A.baz."
@@ -960,7 +960,7 @@ mod tests {
     fn b_new_constructor() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.B.New").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("AnotherTag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("ALIAS", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([
                 doc_section!("Documentation of constructor B.New."),

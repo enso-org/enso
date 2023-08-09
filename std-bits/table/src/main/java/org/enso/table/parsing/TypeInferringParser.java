@@ -1,11 +1,13 @@
 package org.enso.table.parsing;
 
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
-import org.enso.table.problems.WithProblems;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.WithAggregatedProblems;
+import org.graalvm.polyglot.Context;
 
 /**
  * The type inferring parser tries to parse the given column using a set of provided parsers. It
@@ -39,7 +41,8 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+  public WithAggregatedProblems<Storage<?>> parseColumn(
+      String columnName, Storage<String> sourceStorage) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =
@@ -48,6 +51,7 @@ public class TypeInferringParser extends DatatypeParser {
       return fallbackParser.parseColumn(columnName, sourceStorage);
     }
 
+    Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
@@ -64,9 +68,13 @@ public class TypeInferringParser extends DatatypeParser {
         } else {
           builder.appendNoGrow(null);
         }
+
+        context.safepoint();
       }
 
-      return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());
+      return new WithAggregatedProblems<>(
+          builder.seal(),
+          AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
     }
 
     return fallbackParser.parseColumn(columnName, sourceStorage);

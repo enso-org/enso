@@ -5,6 +5,7 @@ import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * An IS_IN implementation which ensures the Enso Date/Time types are correctly coerced.
@@ -21,6 +22,7 @@ public class DateTimeIsInOp<T, S extends Storage<T>> extends SpecializedIsInOp<T
 
   @Override
   protected CompactRepresentation<T> prepareList(List<?> list) {
+    Context context = Context.getCurrent();
     HashSet<T> set = new HashSet<>();
     boolean hasNulls = false;
     for (Object o : list) {
@@ -29,6 +31,8 @@ public class DateTimeIsInOp<T, S extends Storage<T>> extends SpecializedIsInOp<T
       if (storedType.isInstance(coerced)) {
         set.add(storedType.cast(coerced));
       }
+
+      context.safepoint();
     }
     return new CompactRepresentation<>(set, hasNulls);
   }

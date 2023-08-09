@@ -3,12 +3,15 @@
  * allowing to choose a debug rendering test from. */
 
 import * as semver from 'semver'
+import * as toastify from 'react-toastify'
 
-import * as authentication from 'enso-authentication'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as dashboard from 'enso-authentication'
+import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
+import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -20,14 +23,14 @@ const logger = app.log.logger
 /** The name of the `localStorage` key storing the initial URL of the app. */
 const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
-const ESBUILD_PATH = '/esbuild'
+const ESBUILD_PATH = './esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
 /** Path to the serice worker that caches assets for offline usage.
  * In development, it also resolves all extensionless paths to `/index.html`.
  * This is required for client-side routing to work when doing `./run gui watch`.
  */
-const SERVICE_WORKER_PATH = '/serviceWorker.js'
+const SERVICE_WORKER_PATH = './serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
@@ -41,7 +44,7 @@ const PROJECT_MANAGER_URL_PARAMETER_NAME = 'engine.projectManagerUrl'
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE) {
+if (IS_DEV_MODE && !detect.isRunningInElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.
@@ -142,9 +145,20 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Configuration options for the authentication flow and dashboard. */
+interface AuthenticationConfig {
+    projectManagerUrl: string | null
+    isInAuthenticationFlow: boolean
+    shouldUseAuthentication: boolean
+    shouldUseNewDashboard: boolean
+    initialProjectName: string | null
+    inputConfig: StringConfig | null
+}
+
 /** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
+    toast = toastify.toast
 
     /** Stop an app instance, if one is running. */
     stopApp() {
@@ -153,7 +167,7 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig?: StringConfig) {
+    async runApp(inputConfig?: StringConfig | null, accessToken?: string) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -168,25 +182,42 @@ class Main implements AppRunner {
             inputConfig
         )
 
-        this.app = new app.App({
+        const configOptions = contentConfig.OPTIONS.clone()
+
+        const newApp = new app.App({
             config,
-            configOptions: contentConfig.OPTIONS,
+            configOptions,
             packageInfo: {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,
             },
         })
 
+        // We override the remote logger stub with the "real" one. Eventually the runner should not be aware of the
+        // remote logger at all, and it should be integrated with our logging infrastructure.
+        const remoteLogger = accessToken != null ? new remoteLog.RemoteLogger(accessToken) : null
+        newApp.remoteLog = async (message: string, metadata: unknown) => {
+            if (newApp.config.options.dataCollection.value && remoteLogger) {
+                await remoteLogger.remoteLog(message, metadata)
+            } else {
+                const logMessage = [
+                    'Not sending log to remote server. Data collection is disabled.',
+                    `Message: "${message}"`,
+                    `Metadata: ${JSON.stringify(metadata)}`,
+                ].join(' ')
+
+                logger.log(logMessage)
+            }
+        }
+        this.app = newApp
+
         if (!this.app.initialized) {
             console.error('Failed to initialize the application.')
         } else {
-            if (contentConfig.OPTIONS.options.dataCollection.value) {
-                // TODO: Add remote-logging here.
-            }
-            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            if (!(await checkMinSupportedVersion(configOptions))) {
                 displayDeprecatedVersionDialog()
             } else {
-                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+                const email = configOptions.groups.authentication.options.email.value
                 // The default value is `""`, so a truthiness check is most appropriate here.
                 if (email) {
                     logger.log(`User identified as '${email}'.`)
@@ -210,27 +241,44 @@ class Main implements AppRunner {
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
         }
-        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        const configOptions = contentConfig.OPTIONS.clone()
+        const parseOk = configOptions.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', authenticationUrl)
         } else {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-            const isUsingNewDashboard =
-                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+            const shouldUseAuthentication = configOptions.options.authentication.value
+            const shouldUseNewDashboard =
+                configOptions.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
-                contentConfig.OPTIONS.groups.startup.options.entry.value ===
-                contentConfig.OPTIONS.groups.startup.options.entry.default
+                configOptions.groups.startup.options.entry.value ===
+                configOptions.groups.startup.options.entry.default
+            const initialProjectName = configOptions.groups.startup.options.project.value || null
+            const projectManagerUrl =
+                contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value || null
+            // The option must be removed from the URL as well.
+            if (projectManagerUrl != null) {
+                const parsedLocation = new URL(location.href)
+                parsedLocation.searchParams.delete(PROJECT_MANAGER_URL_PARAMETER_NAME)
+                history.replaceState(null, '', parsedLocation.toString())
+            }
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
                 url.searchParams.delete('startup.project')
                 history.replaceState(null, '', url.toString())
             }
-            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
-                this.runAuthentication(isInAuthenticationFlow, inputConfig)
+            if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
+                this.runAuthentication({
+                    isInAuthenticationFlow,
+                    projectManagerUrl,
+                    shouldUseAuthentication,
+                    shouldUseNewDashboard,
+                    initialProjectName,
+                    inputConfig: inputConfig ?? null,
+                })
             } else {
                 void this.runApp(inputConfig)
             }
@@ -238,25 +286,7 @@ class Main implements AppRunner {
     }
 
     /** Begins the authentication UI flow. */
-    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
-        const initialProjectName =
-            contentConfig.OPTIONS.groups.startup.options.project.value || null
-        let projectManagerUrl =
-            contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value || null
-        // This option MUST currently be reset as the dashboard opens the IDE by specifying
-        // the RPC and data WebSocket endpoints, which are mutually exclusive with specifying
-        // the Project Manager WebSocket endpoint.
-        // This SHOULD stay unset when the dashboard switches to specifying the Project Manager
-        // endpoint, as it will still break opening projects on the cloud. Local projects will
-        // not break as this option is re-set by the dashboard.
-        contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value =
-            contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.default
-        // The option must be removed from the URL as well.
-        if (projectManagerUrl != null) {
-            const parsedLocation = new URL(location.href)
-            parsedLocation.searchParams.delete(PROJECT_MANAGER_URL_PARAMETER_NAME)
-            history.replaceState(null, '', parsedLocation.toString())
-        }
+    runAuthentication(config: AuthenticationConfig) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -266,16 +296,17 @@ class Main implements AppRunner {
          * Enso main scene being initialized. As a temporary workaround we check whether
          * appInstance was already ran. Target solution should move running appInstance
          * where it will be called only once. */
-        authentication.run({
+        dashboard.run({
             appRunner: this,
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-            initialProjectName,
-            projectManagerUrl,
-            onAuthenticated: () => {
-                if (isInAuthenticationFlow) {
+            projectManagerUrl: config.projectManagerUrl,
+            isAuthenticationDisabled: !config.shouldUseAuthentication,
+            shouldShowDashboard: config.shouldUseNewDashboard,
+            initialProjectName: config.initialProjectName,
+            onAuthenticated: (accessToken?: string) => {
+                if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {
                         // This is not used past this point, however it is set to the initial URL
@@ -283,14 +314,15 @@ class Main implements AppRunner {
                         history.replaceState(null, '', initialUrl)
                     }
                 }
-                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                if (!config.shouldUseNewDashboard) {
                     document.getElementById('enso-dashboard')?.remove()
-                    const ide = document.getElementById('root')
-                    if (ide) {
-                        ide.hidden = false
+                    const ideElement = document.getElementById('root')
+                    if (ideElement) {
+                        ideElement.style.top = ''
+                        ideElement.style.display = ''
                     }
                     if (this.app == null) {
-                        void this.runApp(inputConfig)
+                        void this.runApp(config.inputConfig, accessToken)
                     }
                 }
             },

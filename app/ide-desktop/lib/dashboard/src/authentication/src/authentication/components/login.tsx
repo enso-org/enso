@@ -1,16 +1,22 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
-import * as app from '../../components/app'
-import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import CreateAccountIcon from 'enso-assets/create_account.svg'
+import LockIcon from 'enso-assets/lock.svg'
 
+import * as auth from '../providers/auth'
+import * as validation from '../../dashboard/validation'
+
+import * as app from '../../components/app'
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -25,17 +31,18 @@ const LOGIN_QUERY_PARAMS = {
 // =============
 
 /** A form for users to log in. */
-function Login() {
+export default function Login() {
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
     const initialEmail = parseUrlSearchParams(search)
 
-    const [email, setEmail] = react.useState(initialEmail ?? '')
-    const [password, setPassword] = react.useState('')
+    const [email, setEmail] = React.useState(initialEmail ?? '')
+    const [password, setPassword] = React.useState('')
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
+        <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 className={
                     'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md ' +
@@ -52,8 +59,8 @@ function Login() {
                     }}
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
-                    <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-                    <span>Login with Google</span>
+                    <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
+                    <span>Sign Up or Login with Google</span>
                 </button>
                 <button
                     onClick={async event => {
@@ -63,7 +70,7 @@ function Login() {
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-                    <span>Login with Github</span>
+                    <span>Sign Up or Login with Github</span>
                 </button>
                 <div className="relative mt-10 h-px bg-gray-300">
                     <div className="absolute left-0 top-0 flex justify-center w-full -mt-2">
@@ -76,7 +83,9 @@ function Login() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
+                            setIsSubmitting(true)
                             await signInWithPassword(email, password)
+                            setIsSubmitting(false)
                         }}
                     >
                         <div className="flex flex-col mb-6">
@@ -87,10 +96,12 @@ function Login() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <SvgMask src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     required
+                                    validate
                                     id="email"
                                     type="email"
                                     name="email"
@@ -108,20 +119,23 @@ function Login() {
                                 Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
-                                    required={true}
+                                    required
+                                    validate
                                     id="password"
                                     type="password"
                                     name="password"
                                     placeholder="Password"
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    error={validation.PASSWORD_ERROR}
                                     value={password}
                                     setValue={setPassword}
                                 />
                             </div>
                         </div>
-
                         <div className="flex items-center mb-6 -mt-4">
                             <div className="flex ml-auto">
                                 <router.Link
@@ -132,18 +146,18 @@ function Login() {
                                 </router.Link>
                             </div>
                         </div>
-
                         <div className="flex w-full">
                             <button
+                                disabled={isSubmitting}
                                 type="submit"
                                 className={
                                     'flex items-center justify-center focus:outline-none text-white ' +
                                     'text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full ' +
-                                    'transition duration-150 ease-in'
+                                    'transition duration-150 ease-in disabled:opacity-50'
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <SvgMask src={ArrowRightIcon} />
                             </button>
                         </div>
                     </form>
@@ -156,8 +170,20 @@ function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>{svg.CREATE_ACCOUNT}</span>
+                        <SvgMask src={CreateAccountIcon} />
                         <span className="ml-2">You don&apos;t have an account?</span>
+                    </router.Link>
+                </div>
+                <div className="flex justify-center items-center mt-6">
+                    <router.Link
+                        to={app.ENTER_OFFLINE_MODE_PATH}
+                        className={
+                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                            'text-xs text-center'
+                        }
+                    >
+                        <SvgMask src={ArrowRightIcon} />
+                        <span className="ml-2">Continue without creating an account</span>
                     </router.Link>
                 </div>
             </div>
@@ -171,5 +197,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(LOGIN_QUERY_PARAMS.email)
     return email
 }
-
-export default Login

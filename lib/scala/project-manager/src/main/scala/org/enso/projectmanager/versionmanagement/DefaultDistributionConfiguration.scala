@@ -67,6 +67,7 @@ object DefaultDistributionConfiguration
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager =
     new RuntimeVersionManager(
+      environment               = this.environment,
       userInterface             = userInterface,
       distributionManager       = distributionManager,
       temporaryDirectoryManager = temporaryDirectoryManager,

@@ -338,11 +338,12 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
     }
 }
 
-#[derive(Derivative, CloneRef, Debug, Deref)]
+#[derive(Derivative, CloneRef, Debug, Deref, display::Object)]
 #[derivative(Clone(bound = ""))]
 pub struct ListEditor<T: 'static + Debug> {
     #[deref]
     pub frp: Frp<T>,
+    #[display_object]
     root:    display::object::Instance,
     model:   SharedModel<T>,
 }
@@ -794,8 +795,16 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
 
         let shape = scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
-        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
-        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+        let clip_space_x = if shape.width.is_finite() && shape.width != 0.0 {
+            origin_clip_space.w * 2.0 * screen_pos.x / shape.width
+        } else {
+            0.0
+        };
+        let clip_space_y = if shape.height.is_finite() && shape.height != 0.0 {
+            origin_clip_space.w * 2.0 * screen_pos.y / shape.height
+        } else {
+            0.0
+        };
         let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
         let world_space = camera.inversed_view_projection_matrix() * clip_space;
         (inv_object_matrix * world_space).xy()
@@ -1192,11 +1201,5 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// The insertion point of the given vertical offset.
     fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
         center_points.iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
-    }
-}
-
-impl<T: 'static + Debug> display::Object for ListEditor<T> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }

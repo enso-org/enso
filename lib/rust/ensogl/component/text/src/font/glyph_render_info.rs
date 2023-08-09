@@ -36,7 +36,7 @@ use msdf_sys::MsdfParameters;
 pub struct GlyphRenderInfo {
     /// An index of glyph in a msdf texture (counted from the top of column). For details, see
     /// msdf::Texture documentation.
-    pub msdf_texture_glyph_id: usize,
+    pub msdf_texture_glyph_id: u32,
 
     /// A required offset of the _base square_. See structure documentation for details.
     pub offset: Vector2<f32>,
@@ -81,7 +81,7 @@ impl GlyphRenderInfo {
         let msdf = Msdf::generate_by_index(handle, glyph_id.0 as usize, &params);
         let inversed_scale = Vector2::new(1.0 / msdf.scale.x, 1.0 / msdf.scale.y);
         let translation = msdf::convert_msdf_translation(&msdf);
-        let glyph_id = atlas.rows() / msdf::Texture::ONE_GLYPH_HEIGHT;
+        let glyph_id = atlas.glyphs();
         atlas.extend_with_raw_data(msdf.data.iter());
         GlyphRenderInfo {
             msdf_texture_glyph_id: glyph_id,

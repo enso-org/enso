@@ -40,6 +40,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -48,44 +49,6 @@ import scala.Function1;
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public final class Module implements TruffleObject {
-
-  /** Defines a stage of compilation of the module. */
-  public enum CompilationStage {
-    INITIAL(0),
-    AFTER_PARSING(1),
-    AFTER_IMPORT_RESOLUTION(2),
-    AFTER_GLOBAL_TYPES(3),
-    AFTER_STATIC_PASSES(4),
-    AFTER_RUNTIME_STUBS(5),
-    AFTER_CODEGEN(6);
-
-    private final int ordinal;
-
-    CompilationStage(int ordinal) {
-      this.ordinal = ordinal;
-    }
-
-    /**
-     * Checks whether the current compilation stage is at least as advanced as the provided one.
-     *
-     * @param stage the stage to compare to.
-     * @return whether or not {@code this} is at least as advanced as {@code stage}.
-     */
-    public boolean isAtLeast(CompilationStage stage) {
-      return ordinal >= stage.ordinal;
-    }
-
-    /**
-     * Checks that the current compilation stage is before the provided one.
-     *
-     * @param stage the stage to compare to.
-     * @return whether or not {@code this} is before then {@code stage}.
-     */
-    public boolean isBefore(CompilationStage stage) {
-      return ordinal < stage.ordinal;
-    }
-  }
-
   private ModuleScope scope;
   private ModuleSources sources;
   private PatchedModuleValues patchedValues;
@@ -173,15 +136,11 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name,
-      Package<TruffleFile> pkg,
-      boolean synthetic,
-      Rope literalSource,
-      EnsoContext context) {
+      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this, context);
+    this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
@@ -198,8 +157,8 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, EnsoContext context) {
-    return new Module(name, pkg, false, null, context);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg, false, null);
   }
 
   /**
@@ -211,9 +170,8 @@ public final class Module implements TruffleObject {
    * @param source source of the module declaring exports of the desired modules
    * @return the synthetic module
    */
-  public static Module synthetic(
-      QualifiedName name, Package<TruffleFile> pkg, Rope source, EnsoContext context) {
-    return new Module(name, pkg, true, source, context);
+  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+    return new Module(name, pkg, true, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -333,7 +291,7 @@ public final class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists(context);
+    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -344,9 +302,9 @@ public final class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists(EnsoContext context) {
+  public void ensureScopeExists() {
     if (scope == null) {
-      scope = new ModuleScope(this, context);
+      scope = new ModuleScope(this);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -404,7 +362,7 @@ public final class Module implements TruffleObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists(context);
+    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
     scope.reset();
@@ -451,7 +409,7 @@ public final class Module implements TruffleObject {
    *
    * @param compilationStage the new compilation stage for the module.
    */
-  public void unsafeSetCompilationStage(CompilationStage compilationStage) {
+  void unsafeSetCompilationStage(CompilationStage compilationStage) {
     this.compilationStage = compilationStage;
   }
 
@@ -464,7 +422,7 @@ public final class Module implements TruffleObject {
    *
    * @param ir the new IR for the module.
    */
-  public void unsafeSetIr(IR.Module ir) {
+  void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
   }
@@ -537,7 +495,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
-  public void setLoadedFromCache(boolean wasLoadedFromCache) {
+  void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
@@ -550,7 +508,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
+  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 
@@ -636,7 +594,8 @@ public final class Module implements TruffleObject {
           eval.getFunction(),
           callerInfo,
           context.emptyState(),
-          new Object[] {builtins.debug(), Text.create(expr)});
+          new Object[] {builtins.debug(), Text.create(expr)},
+          null);
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {

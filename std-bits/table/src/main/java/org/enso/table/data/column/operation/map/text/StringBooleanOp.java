@@ -1,16 +1,17 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
-public abstract class StringBooleanOp extends MapOperation<String, SpecializedStorage<String>> {
+public abstract class StringBooleanOp extends BinaryMapOperation<String, SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
     super(name);
   }
@@ -22,7 +23,7 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
   }
 
   @Override
-  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -31,23 +32,29 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
     } else if (arg instanceof String argString) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
+      Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNa(i)) {
           newMissing.set(i);
         } else if (doString(storage.getItem(i), argString)) {
           newVals.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
+      Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNa(i)) {
           newMissing.set(i);
         } else if (doObject(storage.getItem(i), arg)) {
           newVals.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }
@@ -55,6 +62,7 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
 
   @Override
   public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -66,6 +74,8 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else {
@@ -86,6 +96,8 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }

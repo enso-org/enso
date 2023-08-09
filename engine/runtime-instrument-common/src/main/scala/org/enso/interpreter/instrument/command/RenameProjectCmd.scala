@@ -33,9 +33,9 @@ class RenameProjectCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.acquireWriteCompilationLock()
+    val logger             = ctx.executionService.getLogger
+    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
-      val logger = ctx.executionService.getLogger
       logger.log(
         Level.FINE,
         s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
@@ -43,6 +43,13 @@ class RenameProjectCmd(
       val projectModules = getProjectModules
       projectModules.foreach { module =>
         module.setIndexed(false)
+        val newConfig = module.getPackage.reloadConfig()
+        if (newConfig.isFailure) {
+          logger.log(
+            Level.WARNING,
+            s"Failed to reload package's config: ${newConfig.failed.get.getMessage}"
+          )
+        }
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -76,6 +83,11 @@ class RenameProjectCmd(
       )
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        "Kept write compilation lock [RenameProjectCmd] for " + (System.currentTimeMillis - writeLockTimestamp) + " milliseconds"
+      )
+
     }
   }
 

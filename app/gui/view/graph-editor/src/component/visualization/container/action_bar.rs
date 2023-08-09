@@ -64,7 +64,7 @@ mod background {
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
-            let radius             = node::RADIUS.px() ;
+            let radius             = node::CORNER_RADIUS.px() ;
             let background_rounded = Rect((&width,&height)).corners_radius(radius);
             let background_sharp   = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
             let background         = background_rounded + background_sharp;
@@ -104,7 +104,7 @@ mod four_arrow_icon {
             let arrow_head_size   = (ARROW_LINE_WIDTH * 3.0).floor();
             let arrow_head_offset = &horizontal_bar_height / 2.0;
             let arrow_head        = Rect((arrow_head_size.px(),&arrow_head_size.px())).rotate((PI/4.0).radians());
-            let split_plane       = HalfPlane();
+            let split_plane       = BottomHalfPlane();
             let arrow_head        = arrow_head.difference(split_plane);
             let arrow_head        = arrow_head.translate_y(arrow_head_offset);
 
@@ -160,7 +160,7 @@ mod pin_icon {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Icons {
     display_object:      display::object::Instance,
     icon_root:           display::object::Instance,
@@ -217,12 +217,6 @@ impl Icons {
     }
 }
 
-impl display::Object for Icons {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ===========
@@ -239,7 +233,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        visualisation_selection     (Option<visualization::Path>),
+        visualization_selection     (Option<visualization::Path>),
         mouse_over                  (),
         mouse_out                   (),
         on_container_reset_position (),
@@ -254,7 +248,7 @@ ensogl::define_endpoints! {
 // === Action Bar Model ===
 // ========================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     hover_area:            hover_area::View,
     visualization_chooser: VisualizationChooser,
@@ -320,12 +314,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==================
@@ -333,7 +321,7 @@ impl display::Object for Model {
 // ==================
 
 /// UI for executing actions on a node. Consists of label indicating the active visualization
-/// and a drop-down menu for selecting a new visualisation.
+/// and a drop-down menu for selecting a new visualization.
 ///
 /// Layout
 /// ------
@@ -343,9 +331,10 @@ impl display::Object for Model {
 ///    |--------------------------------|
 /// ```
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct ActionBar {
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -391,10 +380,10 @@ impl ActionBar {
             hide              <- any(mouse_out_no_menu,remote_click);
             eval_ hide (model.hide());
 
-            // The action bar does not allow to deselect the visualisation, so we prohibit these
+            // The action bar does not allow to deselect the visualization, so we prohibit these
             // events, which can occur on re-initialization.
             has_selection <- visualization_chooser.chosen_entry.is_some();
-            frp.source.visualisation_selection
+            frp.source.visualization_selection
                 <+ visualization_chooser.chosen_entry.gate(&has_selection);
 
             let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
@@ -411,7 +400,7 @@ impl ActionBar {
             eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
 
 
-           // === Visualisation Chooser ===
+           // === Visualization Chooser ===
 
             // Note: we only want to update the chooser if it is visible, or when it becomes
             // visible. During startup we get the type information for every node, and propagate
@@ -436,11 +425,5 @@ impl ActionBar {
     /// Visualization Chooser component getter.
     pub fn visualization_chooser(&self) -> &VisualizationChooser {
         &self.model.visualization_chooser
-    }
-}
-
-impl display::Object for ActionBar {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }

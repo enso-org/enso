@@ -140,7 +140,7 @@ ensogl_core::define_endpoints! {
 /// A type of Entry used in DropDownMenu's ListView.
 pub type Entry = list_view::entry::Label;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 struct Model {
     display_object: display::object::Instance,
 
@@ -211,31 +211,20 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ============================
-// === VisualisationChooser ===
+// === VisualizationChooser ===
 // ============================
 
-/// UI entity that shows a button that opens a list of visualisations that can be selected from.
+/// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct DropDownMenu {
+    #[display_object]
     model:   Rc<Model>,
+    #[deref]
     pub frp: Frp,
-}
-
-impl Deref for DropDownMenu {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl DropDownMenu {
@@ -260,7 +249,7 @@ impl DropDownMenu {
 
             eval frp.input.set_entries ([model](entries) {
                 let entries:list_view::entry::SingleMaskedProvider<Entry> = entries.clone_ref().into();
-                model.content.set(entries.clone());
+                model.content.replace(Some(entries.clone()));
                 let entries = list_view::entry::AnyModelProvider::<Entry>::new(entries);
                 model.selection_menu.frp.set_entries.emit(entries);
             });
@@ -422,20 +411,19 @@ impl DropDownMenu {
         self
     }
 
-    /// Set the label of the dropdown menu.
+    /// Set the label's color.
     pub fn set_label_color(&self, color: color::Rgba) {
         self.model.label.set_property_default(color);
+    }
+
+    /// Set the label's font weight.
+    pub fn set_label_weight(&self, weight: text::Weight) {
+        self.model.label.set_property_default(weight);
     }
 
     /// Set the layer of all text labels.
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.selection_menu.set_label_layer(layer);
-        self.model.label.add_to_scene_layer(layer);
-    }
-}
-
-impl display::Object for DropDownMenu {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        layer.add(&self.model.label);
     }
 }

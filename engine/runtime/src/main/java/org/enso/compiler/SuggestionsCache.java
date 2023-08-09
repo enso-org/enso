@@ -94,8 +94,8 @@ public final class SuggestionsCache
       var distribution = context.getDistributionManager();
       var pathSegments = new String[]{
               pkg.namespace(),
-              pkg.name(),
-              pkg.config().version(),
+              pkg.module(),
+              pkg.getConfig().version(),
               Info.ensoVersion(),
               libraryName.namespace()
       };

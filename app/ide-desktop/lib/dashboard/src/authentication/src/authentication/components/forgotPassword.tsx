@@ -1,11 +1,15 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
+
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import SvgMask from './svgMask'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
@@ -15,13 +19,13 @@ import SvgIcon from './svgIcon'
 // ======================
 
 /** A form for users to request for their password to be reset. */
-function ForgotPassword() {
+export default function ForgotPassword() {
     const { forgotPassword } = auth.useAuth()
 
-    const [email, setEmail] = react.useState('')
+    const [email, setEmail] = React.useState('')
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
+        <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 className={
                     'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full ' +
@@ -46,8 +50,9 @@ function ForgotPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <SvgMask src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="email"
                                     type="email"
@@ -68,7 +73,9 @@ function ForgotPassword() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Send link</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <SvgMask src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -81,7 +88,9 @@ function ForgotPassword() {
                             'text-center'
                         }
                     >
-                        <span>{svg.GO_BACK}</span>
+                        <span>
+                            <SvgMask src={GoBackIcon} />
+                        </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>
@@ -89,5 +98,3 @@ function ForgotPassword() {
         </div>
     )
 }
-
-export default ForgotPassword

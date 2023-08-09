@@ -32,7 +32,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 
@@ -305,9 +306,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
     }
 
     "force all pending saves" taggedAs Retry in withCleanRoot { client =>
-      this.timingsConfig.withAutoSave(5.seconds)
+      this.timingsConfig.withAutoSave(10.seconds)
 
-      val fooPath = testContentRoot.file.toPath.resolve("foo.txt")
+      val fooPath = testContentRoot.file.toPath.resolve("foo_pending_save.txt")
       fooPath.toFile.createNewFile()
       Files.write(
         fooPath,
@@ -320,7 +321,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "foo_pending_save.txt" ]
               }
             }
           }

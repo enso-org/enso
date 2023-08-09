@@ -1,18 +1,11 @@
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
-/** This import is unused in this file, but React doesn't work without it, under Electron. This is
- * probably because it gets tree-shaken out of the bundle, so we need to explicitly import it.
- * Unlike all other imports in this project, this one is not `camelCase`. We use `React` instead of
- * `react` here. This is because if the import is named any differently then React doesn't get
- * included in the final bundle. */
-// It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
-// as per the above comment.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as detect from './detect'
+import * as detect from 'enso-common/src/detect'
+
 import App, * as app from './components/app'
 
 // =================
@@ -39,7 +32,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 function run(props: app.AppProps) {
     const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
-    /** The root element that the authentication/dashboard app will be rendered into. */
+    /** The root element into which the authentication/dashboard app will be rendered. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
     const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
@@ -52,9 +45,15 @@ function run(props: app.AppProps) {
         // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
         // via the browser.
         const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
-        reactDOM
-            .createRoot(root)
-            .render(<App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />)
+        reactDOM.createRoot(root).render(
+            IS_DEV_MODE ? (
+                <React.StrictMode>
+                    <App {...props} />
+                </React.StrictMode>
+            ) : (
+                <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+            )
+        )
     }
 }
 

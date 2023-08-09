@@ -2,7 +2,9 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
@@ -17,7 +19,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
 
-/** A helper node to handle method application for the interop library. */
 @GenerateUncached
 @NodeInfo(description = "Helper node to handle method application through the interop library.")
 public abstract class InteropMethodCallNode extends Node {
@@ -58,9 +59,11 @@ public abstract class InteropMethodCallNode extends Node {
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-        0);
+        0,
+        true);
   }
 
+  @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);
   }
@@ -74,7 +77,7 @@ public abstract class InteropMethodCallNode extends Node {
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeMethodNode sorterNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
       throws ArityException {
     Object[] args = new Object[cachedArgsLength];
     for (int i = 0; i < cachedArgsLength; i++) {
@@ -90,7 +93,7 @@ public abstract class InteropMethodCallNode extends Node {
       State state,
       Object[] arguments,
       @Cached IndirectInvokeMethodNode indirectInvokeMethodNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
       throws ArityException {
     Object[] args = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {

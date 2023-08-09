@@ -60,7 +60,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 contents: string
                 lastModified: number
             }
-            let cachedOutput: Record<string, CacheEntry> = {}
+            const cachedOutput: Record<string, CacheEntry> = {}
             let tailwindConfigLastModified = 0
             let tailwindConfigWasModified = true
             const cssProcessor = postcss([
@@ -75,7 +75,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                     tailwindConfigLastModified !== tailwindConfigNewLastModified
                 tailwindConfigLastModified = tailwindConfigNewLastModified
             })
-            build.onLoad({ filter: /\.css$/ }, async loadArgs => {
+            build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
                 const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
@@ -103,12 +103,28 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
     const { outputPath, devMode } = args
+    // This is required to prevent TypeScript from narrowing `true` to `boolean`.
+    // eslint-disable-next-line no-restricted-syntax
+    const trueBoolean = true as boolean
     const buildOptions = {
         absWorkingDir: THIS_PATH,
-        bundle: true,
+        bundle: trueBoolean,
         entryPoints: [path.resolve(THIS_PATH, 'src', 'tailwind.css')],
         outdir: outputPath,
         outbase: 'src',
+        loader: {
+            // The CSS file needs to import a single SVG as a data URL.
+            // For `bundle.ts` and `watch.ts`, `index.js` also includes various SVG icons
+            // which need to be bundled.
+            // The `dataurl` loader replaces the import with the file, as a data URL. Using the
+            // `file` loader, which copies the file and replaces the import with the path,
+            // is an option, however this loader avoids adding extra files to the bundle.
+            /* eslint-disable @typescript-eslint/naming-convention */
+            '.svg': 'dataurl',
+            // The `file` loader copies the file, and replaces the import with the path to the file.
+            '.png': 'file',
+            /* eslint-enable @typescript-eslint/naming-convention */
+        },
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
@@ -128,12 +144,13 @@ export function bundlerOptions(args: Arguments) {
             REDIRECT_OVERRIDE: 'undefined',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
-        sourcemap: true,
-        minify: true,
-        metafile: true,
+        pure: ['assert'],
+        sourcemap: trueBoolean,
+        minify: !devMode,
+        metafile: trueBoolean,
         format: 'esm',
         platform: 'browser',
-        color: true,
+        color: trueBoolean,
     } satisfies esbuild.BuildOptions
     // The narrower type is required to avoid non-null assertions elsewhere.
     // The intersection with `esbuild.BuildOptions` is required to allow adding extra properties.

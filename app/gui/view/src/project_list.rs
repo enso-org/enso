@@ -4,16 +4,15 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
-use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::display::style::FromTheme;
 use ensogl_component::grid_view;
 use ensogl_component::shadow;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
 
@@ -75,7 +74,7 @@ pub struct EntryStyle {
 // === Data ===
 
 /// The model of the list entry. Displays the name of the project.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Data {
     display_object: display::object::Instance,
     text:           text::Text,
@@ -88,7 +87,7 @@ impl Data {
         display_object.add_child(&text);
 
         if let Some(text_layer) = text_layer {
-            text.add_to_scene_layer(text_layer);
+            text_layer.add(&text);
         }
         Self { display_object, text }
     }
@@ -102,16 +101,11 @@ impl Data {
 // === Entry ===
 
 /// The list entry. Displays the name of the project.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Entry {
+    #[display_object]
     data: Data,
     frp:  grid_view::entry::EntryFrp<Self>,
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
-    }
 }
 
 impl grid_view::Entry for Entry {
@@ -130,13 +124,13 @@ impl grid_view::Entry for Entry {
         let style = EntryStyle::from_theme(network, &style_frp);
 
         frp::extend! { network
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            hover_color <- style.update.map(|s| s.hover_color.into());
-            selection_color <- style.update.map(|s| s.selection_color.into());
-            text_padding_left <- style.update.map(|s| s.text_padding_left);
-            text_padding_bottom <- style.update.map(|s| s.text_padding_bottom);
-            text_size <- style.update.map(|s| s.text_size);
-            text_color <- style.update.map(|s| color::Lcha::from(s.text_color));
+            corners_radius <- style.map(|s| s.corners_radius);
+            hover_color <- style.map(|s| s.hover_color.into());
+            selection_color <- style.map(|s| s.selection_color.into());
+            text_padding_left <- style.map(|s| s.text_padding_left);
+            text_padding_bottom <- style.map(|s| s.text_padding_bottom);
+            text_size <- style.map(|s| s.text_size);
+            text_color <- style.map(|s| color::Lcha::from(s.text_color));
 
             eval input.set_model((text) data.set_text(text.clone_ref()));
             contour <- input.set_size.map(|s| grid_view::entry::Contour::rectangular(*s));
@@ -150,7 +144,6 @@ impl grid_view::Entry for Entry {
             data.text.set_property_default <+ text_size.map(|s| text::Size(*s)).cloned_into_some();
             data.text.set_property_default <+ text_color.cloned_into_some();
         }
-        style.init.emit(());
         Self { data, frp }
     }
 
@@ -196,23 +189,6 @@ mod background {
 
 
 
-// ===========
-// === FRP ===
-// ===========
-
-ensogl::define_endpoints! {
-    Input {
-        /// This is a list of projects to choose from.
-        project_list (Vec<ProjectMetadata>),
-    }
-    Output {
-        /// This is the selected project.
-        selected_project (Option<ProjectMetadata>),
-    }
-}
-
-
-
 // ===================
 // === ProjectList ===
 // ===================
@@ -220,21 +196,20 @@ ensogl::define_endpoints! {
 /// The Project List GUI Component.
 ///
 /// This is a list of projects in a nice frame with a title.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct ProjectList {
+    network:        frp::Network,
     display_object: display::object::Instance,
     background:     background::View,
     caption:        text::Text,
-    grid:           grid_view::scrollable::SelectableGridView<Entry>,
     #[allow(missing_docs)]
-    pub frp:        Frp,
+    pub grid:       grid_view::scrollable::SelectableGridView<Entry>,
 }
 
 impl ProjectList {
     /// Create Project List Component.
     pub fn new(app: &Application) -> Self {
-        let frp = Frp::new();
-        let network = &frp.network;
+        let network = frp::Network::new("ProjectList");
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let caption = app.new_view::<text::Text>();
@@ -244,23 +219,23 @@ impl ProjectList {
         display_object.add_child(&grid);
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
-        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        app.display.default_scene.layers.panel_text.add(&caption);
 
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let style = Style::from_theme(network, &style_frp);
+        let style = Style::from_theme(&network, &style_frp);
 
         frp::extend! { network
             init <- source::<()>();
-            width <- style.update.map(|s| s.width);
-            height <- style.update.map(|s| s.height);
-            shadow_extent <- style.update.map(|s| s.shadow_extent);
-            bar_height <- style.update.map(|s| s.bar_height);
-            label_padding <- style.update.map(|s| s.label_padding);
-            label_color <- style.update.map(|s| s.bar_label_color);
-            label_size <- style.update.map(|s| s.bar_label_size);
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            entry_height <- style.update.map(|s| s.entry_height);
-            paddings <- style.update.map(|s| s.paddings);
+            width <- style.map(|s| s.width);
+            height <- style.map(|s| s.height);
+            shadow_extent <- style.map(|s| s.shadow_extent);
+            bar_height <- style.map(|s| s.bar_height);
+            label_padding <- style.map(|s| s.label_padding);
+            label_color <- style.map(|s| s.bar_label_color);
+            label_size <- style.map(|s| s.bar_label_size);
+            corners_radius <- style.map(|s| s.corners_radius);
+            entry_height <- style.map(|s| s.entry_height);
+            paddings <- style.map(|s| s.paddings);
             content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
             size <- all_with3(&width, &height, &shadow_extent, |w, h, s|
                 Vector2(w + s * 2.0, h + s * 2.0)
@@ -285,35 +260,9 @@ impl ProjectList {
             grid_x <- grid_width.map(|width| -width / 2.0);
             grid_y <- all_with3(&content_size, &bar_height, &paddings, |s,h,p| s.y / 2.0 - *h - *p);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
-
-            grid.reset_entries <+ frp.input.project_list.map(|projects| (projects.len(), 1));
-            grid_model_for_entry <= grid.model_for_entry_needed.map2(
-                &frp.input.project_list,
-                |(row, col), projects| {
-                    let project = projects.get(*row)?;
-                    Some((*row, *col, project.name.clone().into()))
-                }
-            );
-            grid.model_for_entry <+ grid_model_for_entry;
-
-            frp.source.selected_project <+ grid.entry_selected.map2(
-                &frp.input.project_list,
-                |selected_entry, projects| {
-                    let (row, _) = (*selected_entry)?;
-                    projects.get(row).cloned()
-                }
-            );
-            grid.select_entry <+ frp.output.selected_project.filter_map(|s| s.as_ref().map(|_| None));
         }
-        style.init.emit(());
         init.emit(());
 
-        Self { display_object, background, caption, grid, frp }
-    }
-}
-
-impl display::Object for ProjectList {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        Self { network, display_object, background, caption, grid }
     }
 }

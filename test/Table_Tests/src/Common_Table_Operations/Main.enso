@@ -1,6 +1,10 @@
 from Standard.Base import all
 
+import Standard.Database.Internal.Replace_Params.Replace_Params
+
+import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
+import project.Common_Table_Operations.Column_Name_Edge_Cases_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Cross_Tab_Spec
@@ -14,6 +18,7 @@ import project.Common_Table_Operations.Join.Join_Spec
 import project.Common_Table_Operations.Join.Cross_Join_Spec
 import project.Common_Table_Operations.Join.Zip_Spec
 import project.Common_Table_Operations.Join.Union_Spec
+import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
@@ -45,7 +50,9 @@ type Test_Setup
        - aggregate_test_selection: A selection of which aggregate test suites
          should be run. Can be used to skip checks for backends which do not
          support particular features.
-    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
+       - connection: A related database connection or Nothing for in-memory
+         tests.
+    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection connection
 
     ## Specifies if the given Table backend supports custom Enso types.
 
@@ -76,7 +83,7 @@ type Test_Selection
          such comparisons, when mixed type storage is allowed or by coercing to
          the target type; others will fail with a type error.
        - supports_unicode_normalization: Specifies if the backend compares
-         strings taking Unicode Normalization into accout, i.e. whether
+         strings taking Unicode Normalization into account, i.e. whether
          's\u0301' is considered equal to 'ś'.
        - is_nan_and_nothing_distinct: Specifies if the backend is able to
          distinguish between a decimal NaN value and a missing value (Enso's
@@ -88,16 +95,28 @@ type Test_Selection
        - date_time: Specifies if the backend supports date/time operations.
        - fixed_length_text_columns: Specifies if the backend supports fixed
          length text columns.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False
+       - supports_decimal_type: Specifies if the backend supports the `Decimal`
+         high-precision type.
+       - supports_time_duration: Specifies if the backend supports a
+         `Duration`/`Period` type.
+       - supports_nanoseconds_in_time: Specifies if the backend supports
+         nanosecond precision in time values.
+       - supports_mixed_columns: Specifies if the backend supports mixed-type
+         columns.
+       - supported_replace_params: Specifies the possible values of
+         Replace_Params that a backend supports.
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing
 
 spec setup =
     Core_Spec.spec setup
     Select_Columns_Spec.spec setup
+    Column_Name_Edge_Cases_Spec.spec setup
     Column_Operations_Spec.spec setup
     Date_Time_Spec.spec setup
     Conversion_Spec.spec setup
     Aggregate_Spec.spec setup
     Filter_Spec.spec setup
+    Map_Spec.spec setup
     Missing_Values_Spec.spec setup
     Order_By_Spec.spec setup
     Take_Drop_Spec.spec setup
@@ -109,6 +128,7 @@ spec setup =
     Distinct_Spec.spec setup
     Cross_Tab_Spec.spec setup
     Transpose_Spec.spec setup
+    Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
 
 main = run_default_backend spec

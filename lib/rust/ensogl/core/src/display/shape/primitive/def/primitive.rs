@@ -12,6 +12,7 @@ use crate::display::shape::primitive::def::class::AnyShape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
+use crate::display::shape::Grow;
 use crate::display::shape::Var;
 use crate::system::gpu::shader::glsl::Glsl;
 
@@ -171,15 +172,11 @@ define_sdf_shapes! {
     }
 
     HalfPlane () {
-        return bound_sdf(position.y, bounding_box(0.0,0.0));
+        return bound_sdf(-position.y, bounding_box(0.0,0.0));
     }
 
-    /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
-    /// to the upper half-plane. Negative values and values over 2*PI will cause the shape to flip
-    /// vertically. In case you want a more consistent behavior, use the slightly less efficient
-    /// `PlaneAngle` instead.
     BottomHalfPlane () {
-        return bound_sdf(-position.y, bounding_box(0.0,0.0));
+        return bound_sdf(position.y, bounding_box(0.0,0.0));
     }
 
     /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
@@ -190,7 +187,7 @@ define_sdf_shapes! {
     /// `PlaneAngleFast` instead.
     PlaneAngle (angle:Radians) {
         float pi_2       = 2.0 * PI;
-        float angle_norm = value(angle) / pi_2;
+        float angle_norm = angle.value / pi_2;
               angle_norm = 1.0 - abs(mod(angle_norm,2.0)-1.0);
         float angle_rad  = angle_norm * pi_2;
         float off        = angle_norm - 0.5; // Fixes artifacts with 0 and 360 degrees.
@@ -199,7 +196,7 @@ define_sdf_shapes! {
     }
 
     PlaneAngleFast (angle:Radians) {
-        float v_angle  = value(angle);
+        float v_angle  = angle.value;
         float off      = 0.5; // Fixes artifacts with 0 degrees.
         float distance = abs(position).x*cos(v_angle/2.0) - position.y*sin(v_angle/2.0) + off;
         return bound_sdf(distance,bounding_box(0.0,0.0));
@@ -317,15 +314,15 @@ define_sdf_shapes! {
         bool is_bottom_left  = position.x <  -size.x + bl && position.y < -size.y + bl;
         bool is_bottom_right = position.x >   size.x - br && position.y < -size.y + br;
 
+        vec2 dir = abs(position) - size;
+        float rect_inner = min(max(dir.x,dir.y),0.0);
         float dist;
         if      (is_top_left)     {dist = length(position - vec2(-size.x + tl,  size.y - tl)) - tl;}
         else if (is_top_right)    {dist = length(position - vec2( size.x - tr,  size.y - tr)) - tr;}
         else if (is_bottom_left)  {dist = length(position - vec2(-size.x + bl, -size.y + bl)) - bl;}
         else if (is_bottom_right) {dist = length(position - vec2( size.x - br, -size.y + br)) - br;}
-        else {
-            vec2 dir = abs(position) - size;
-            dist = min(max(dir.x,dir.y),0.0) + length(max(dir,0.0));
-        }
+        else { dist = length(max(dir,0.0)) + rect_inner; }
+        dist = max(dist, rect_inner);
         return bound_sdf(dist,bounding_box(size));
     }
 
@@ -417,14 +414,18 @@ define_sdf_shapes! {
         // The implementation of this shape was adapted from here:
         // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
 
+        float half_arc_angle = angle.value * 0.5;
+        vec2 sc = vec2(sin(half_arc_angle), cos(half_arc_angle));
         position.x = abs(position.x);
-        vec2 scb   = vec2(sin(value(angle)/2.0),cos(value(angle)/2.0));
-        float ra   = radius;
-        float rb   = width / 2.0;
-        float k    = (scb.y*position.x>scb.x*position.y) ? dot(position,scb) : length(position);
-        float dist = sqrt(max(0.0,dot(position,position) + ra * ra - 2.0 * ra * k)) - rb;
+        float k = sc.y * position.x > sc.x * position.y
+                    ? length(position - sc * radius)
+                    : abs(length(position) - radius);
+        float dist = k - width * 0.5;
 
-        BoundingBox bounds = bounding_box(2.0*radius+width,2.0*radius+width);
+        BoundingBox bounds = bounding_box(
+            2.0 * radius + width,
+            2.0 * radius + width
+        );
         return bound_sdf(dist,bounds);
     }
 }
@@ -449,14 +450,13 @@ impl Plane {
 
 impl Rect {
     /// Sets the radius of all the corners.
-    pub fn corners_radius<T>(&self, radius: T) -> RoundedRectByCorner
+    pub fn corners_radius<T>(&self, radius: T) -> Grow<Rect>
     where T: Into<Var<Pixels>> {
-        let radius = radius.into();
-        let top_left = radius.clone();
-        let top_right = radius.clone();
-        let bottom_left = radius.clone();
-        let bottom_right = radius;
-        RoundedRectByCorner(self.size(), top_left, top_right, bottom_left, bottom_right)
+        let size = self.size();
+        let min_size = Min::min(size.x(), size.y());
+        let radius = Min::min(min_size * 0.5, radius.into());
+        let offset = Var::<Vector2<Pixels>>::from(format!("vec2({} * 2.0)", radius.glsl()));
+        Grow(Rect(size - offset), radius)
     }
 
     /// Sets the radiuses of each of the corners.
@@ -473,28 +473,6 @@ impl Rect {
         T3: Into<Var<Pixels>>,
         T4: Into<Var<Pixels>>,
     {
-        RoundedRectByCorner(self.size(), top_left, top_right, bottom_left, bottom_right)
-    }
-
-    /// Sets the radiuses of the left corners.
-    pub fn left_corners_radius<T>(&self, radius: T) -> RoundedRectByCorner
-    where T: Into<Var<Pixels>> {
-        let radius = radius.into();
-        let top_left = radius.clone();
-        let bottom_left = radius;
-        let top_right = 0.pixels();
-        let bottom_right = 0.pixels();
-        RoundedRectByCorner(self.size(), top_left, top_right, bottom_left, bottom_right)
-    }
-
-    /// Sets the radiuses of the right corners.
-    pub fn right_corners_radius<T>(&self, radius: T) -> RoundedRectByCorner
-    where T: Into<Var<Pixels>> {
-        let radius = radius.into();
-        let top_left = 0.pixels();
-        let bottom_left = 0.pixels();
-        let top_right = radius.clone();
-        let bottom_right = radius;
         RoundedRectByCorner(self.size(), top_left, top_right, bottom_left, bottom_right)
     }
 }

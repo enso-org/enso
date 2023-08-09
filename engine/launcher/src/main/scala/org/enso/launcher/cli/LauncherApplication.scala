@@ -65,12 +65,18 @@ object LauncherApplication {
           "Specifies a project template when creating a project."
         )
       }
+      val normalizedNameOpt = Opts.optionalParameter[String](
+        "new-project-normalized-name",
+        "NORMALIZED-NAME",
+        "Specifies a normalized (Upper_Snake_Case) name when creating a project."
+      )
       val additionalArgs = Opts.additionalArguments()
 
       (
         nameOpt,
         pathOpt,
         projectTemplate,
+        normalizedNameOpt,
         versionOverride,
         systemJVMOverride,
         jvmOpts,
@@ -80,6 +86,7 @@ object LauncherApplication {
           name,
           path,
           template,
+          normalizedNameOpt,
           versionOverride,
           systemJVMOverride,
           jvmOpts,
@@ -87,8 +94,9 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).newProject(
             name                = name,
-            path                = path,
+            normalizedName      = normalizedNameOpt,
             projectTemplate     = template,
+            path                = path,
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
@@ -204,7 +212,7 @@ object LauncherApplication {
           .optionalParameter[Int](
             "data-port",
             "PORT",
-            "Data port for visualisation protocol. Defaults to 8081."
+            "Data port for visualization protocol. Defaults to 8081."
           )
           .withDefault(8081)
       val additionalArgs = Opts.additionalArguments()
