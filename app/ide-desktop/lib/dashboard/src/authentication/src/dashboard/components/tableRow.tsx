@@ -94,6 +94,8 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         columns,
         selected,
         setSelected,
+        // This prop is unused here, but is useful for components wrapping this component.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         allowContextMenu,
         onClick,
         onContextMenu,
@@ -144,9 +146,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                 onClick(innerProps, event)
             }}
             onContextMenu={event => {
-                if (allowContextMenu) {
-                    onContextMenu?.(innerProps, event)
-                }
+                onContextMenu?.(innerProps, event)
             }}
             className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
                 selected ? 'selected' : ''

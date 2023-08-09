@@ -114,6 +114,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         initialRowState,
         selected,
         allowContextMenu,
+        onContextMenu,
         state,
         columns,
     } = props
@@ -244,20 +245,25 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         className={presenceModule.CLASS_NAME[presence]}
                         {...props}
                         onContextMenu={(innerProps, event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            setIsContextMenuVisible(true)
-                            setModal(
-                                <AssetContextMenu
-                                    innerProps={innerProps}
-                                    event={event}
-                                    eventTarget={event.currentTarget}
-                                    doDelete={doDelete}
-                                />,
-                                () => {
-                                    setIsContextMenuVisible(false)
-                                }
-                            )
+                            if (allowContextMenu) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                onContextMenu?.(innerProps, event)
+                                setIsContextMenuVisible(true)
+                                setModal(
+                                    <AssetContextMenu
+                                        innerProps={innerProps}
+                                        event={event}
+                                        eventTarget={event.currentTarget}
+                                        doDelete={doDelete}
+                                    />,
+                                    () => {
+                                        setIsContextMenuVisible(false)
+                                    }
+                                )
+                            } else {
+                                onContextMenu?.(innerProps, event)
+                            }
                         }}
                         item={item}
                         setItem={setItem}
