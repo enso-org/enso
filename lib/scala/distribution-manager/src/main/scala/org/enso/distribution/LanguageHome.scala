@@ -6,7 +6,8 @@ import java.nio.file.Path
   * engine distribution from which the runtime is being run.
   *
   * @param languageHome the path to the directory containing the runner.jar and
-  *                     runtime.jar of the currently running language runtime
+  *                     runtime.jar of the currently running language runtime.
+  *                     The path does not have to exist.
   */
 case class LanguageHome(languageHome: Path) {
   private val rootPath = languageHome.getParent.toAbsolutePath.normalize

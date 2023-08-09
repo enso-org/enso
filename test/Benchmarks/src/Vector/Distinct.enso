@@ -1,31 +1,27 @@
 from Standard.Base import all
-import Standard.Base
 
 from Standard.Test import Bench
 
 import project.Vector.Utils
 
-polyglot java import org.enso.base.Time_Utils
+
+options = Bench.options . size 100 . iter 20
+
+random_vec = Utils.make_random_vec 100000
+uniform_vec = Vector.fill 100000 1
+random_text_vec = random_vec.map .to_text
+uniform_text_vec = random_vec.map .to_text
+
+collect_benches = Bench.build builder->
+    builder.group "Vector Distinct" options group_builder->
+        group_builder.specify "Random Integer Vector Distinct" <|
+            random_vec.distinct
+        group_builder.specify "Uniform Integer Vector Distinct" <|
+            uniform_vec.distinct
+        group_builder.specify "Random Text Vector Distinct" <|
+            random_text_vec.distinct
+        group_builder.specify "Uniform Text Vector Distinct" <|
+            uniform_text_vec.distinct
 
 
-## Bench Utilities ============================================================
-
-iter_size = 100
-num_iterations = 20
-
-# The Benchmarks ==============================================================
-
-bench =
-    random_vec = Utils.make_random_vec 100000
-    uniform_vec = Base.Vector.fill 100000 1
-
-    random_text_vec = random_vec.map .to_text
-    uniform_text_vec = random_vec.map .to_text
-
-    Bench.measure (random_vec.distinct) "Random Integer Vector Distinct" iter_size num_iterations
-    Bench.measure (uniform_vec.distinct) "Uniform Integer Vector Distinct" iter_size num_iterations
-
-    Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
-    Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations
-
-main = bench
+main = collect_benches . run_main

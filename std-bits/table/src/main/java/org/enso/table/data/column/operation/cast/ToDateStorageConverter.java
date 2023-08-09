@@ -15,7 +15,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     if (storage instanceof DateStorage dateStorage) {
       return dateStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return convertDateTimeStorage(dateTimeStorage);
+      return convertDateTimeStorage(dateTimeStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -41,6 +41,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -48,7 +49,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     return dateTime.toLocalDate();
   }
 
-  private Storage<LocalDate> convertDateTimeStorage(DateTimeStorage dateTimeStorage) {
+  private Storage<LocalDate> convertDateTimeStorage(DateTimeStorage dateTimeStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     DateBuilder builder = new DateBuilder(dateTimeStorage.size());
     for (int i = 0; i < dateTimeStorage.size(); i++) {
@@ -56,6 +57,8 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
       builder.append(convertDateTime(dateTime));
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

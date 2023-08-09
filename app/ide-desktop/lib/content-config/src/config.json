@@ -28,6 +28,11 @@
           "value": true,
           "defaultDescription": "false on MacOS, true otherwise",
           "description": "Draw window frame."
+        },
+        "topBarOffset": {
+          "value": 0,
+          "description": "The offset of rust-rendered toolbar from window's left edge.",
+          "primary": false
         }
       }
     },

@@ -1,0 +1,130 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import Loss_Of_Integer_Precision
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+from project.Util import all
+
+main = Test_Suite.run_main spec
+
+spec =
+    table_builder = Table.new
+    Test.group "[In-Memory] Loss_Of_Integer_Precision (large integers not being exactly representable in Float)" <|
+        # The power of 2 is still represented exactly, but x+1 is not anymore.
+        x = 2^60
+        y = x+1
+
+        Test.specify "should be reported in `cast`" <|
+            t1 = table_builder [["X", [y]]]
+            c1 = t1.at "X" . cast Value_Type.Float
+            c1.value_type . should_equal Value_Type.Float
+            # Once we also convert to float, the loss of precision is symmetric and we can see the original value again.
+            c1.to_vector . should_equal [y+0.0]
+            c2 = c1.cast Value_Type.Integer
+            # But coming back to integers, we see that we lost precision.
+            c2.to_vector . should_not_equal [y]
+
+            w = Problems.expect_only_warning Loss_Of_Integer_Precision c1
+            w.to_display_text . should_contain "too large to represent exactly"
+            w.example_value.to_text . should_equal y.to_text
+            w.example_value_converted.to_text . should_equal (y+0.0).to_text
+            w.affected_rows_count . should_equal 1
+
+            t2 = table_builder [["X", [1, 2, 3, 100, 1000, x]]]
+            c3 = t2.at "X" . cast Value_Type.Float
+            c3.value_type . should_equal Value_Type.Float
+            c3.to_vector . should_equal [1.0, 2.0, 3.0, 100.0, 1000.0, x]
+            # With small enough values, there should be no warning.
+            Problems.assume_no_problems c3
+
+            t3 = table_builder [["Z", [1, 2, x, x+1, x+2, x+3, 10, 1000, x, x+1]]]
+            c4 = t3.at "Z" . cast Value_Type.Float
+            c4.value_type . should_equal Value_Type.Float
+            # Due to loss of precision, all values around `x` are rounded to `x`.
+            c4.to_vector . should_equal [1.0, 2.0, x, x, x, x, 10.0, 1000.0, x, x]
+            w2 = Problems.expect_only_warning Loss_Of_Integer_Precision c4
+            w2.to_display_text . should_contain "too large to represent exactly"
+            w2.affected_rows_count . should_equal 4
+
+        Test.specify "should be reported in Column.from_vector and Table.new" <|
+            c1 = Column.from_vector "X" [1, 2, x, x+1, x+2, 100]
+            # No problems if integers only.
+            Problems.assume_no_problems c1
+
+            # We start with LongBuilder and will be retyped to DoubleBuilder.
+            c2 = Column.from_vector "Y" [1, x, x+1, 1.5]
+            c2.to_vector . should_equal [1, x, x, 1.5]
+            w2 = Problems.expect_only_warning Loss_Of_Integer_Precision c2
+            w2.affected_rows_count . should_equal 1
+            w2.example_value . should_equal x+1
+
+            t3 = Table.new [["X", [1, x, x+1, 1.5]]]
+            w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t3
+            w3.affected_rows_count . should_equal 1
+
+            # Here, we start with DoubleBuilder straight away.
+            c4 = Column.from_vector "X" [1.0, x, x+1, x+2, 100]
+            w4 = Problems.expect_only_warning Loss_Of_Integer_Precision c4
+            w4.affected_rows_count . should_equal 2
+
+            # Until #7352 is fixed, these tests are also useful:
+            # If we start with mixed before encountering large values, no issues occur:
+            c5 = Column.from_vector "X" ["a", 1.0, x+1]
+            Problems.assume_no_problems c5
+            c5.to_vector.map .to_text . should_equal (["a", 1.0, x+1].map .to_text)
+            # But if we first have floats and ints and only later enter mixed, we again get precision loss:
+            c6 = Column.from_vector "X" [x+1, 1.0, x+2, "a", x+3]
+            w6 = Problems.expect_only_warning Loss_Of_Integer_Precision c6
+            # The 2 integers that got into DoubleBuilder are affected, the one after upcasting to Mixed is preserved OK.
+            w6.affected_rows_count . should_equal 2
+            c6.to_vector.map .to_text . should_equal ([x+0.0, 1.0, x+0.0, "a", x+3].map .to_text)
+
+            # It should also work for from_vector_repeated:
+            c7 = Column.from_vector_repeated "X" [1.5, x+2, 100] 10
+            Problems.expect_only_warning Loss_Of_Integer_Precision c7
+
+        Test.specify "should not be reported when numeric operation mixes Float and Integer" <|
+            t = table_builder [["A", [y]], ["B", [1.0]]]
+            a = t.at "A"
+            b = t.at "B"
+            a.value_type.should_equal Value_Type.Integer
+            b.value_type.should_equal Value_Type.Float
+
+            c = a + b
+            c.value_type.should_equal Value_Type.Float
+            # Result equals to x due to lack of precision
+            c.to_vector.should_equal [x]
+            # But no errors reported - this is just the nature of floating-point operations.
+            Problems.assume_no_problems c
+
+            Problems.assume_no_problems (a + 1.0)
+            Problems.assume_no_problems (b * a)
+            Problems.assume_no_problems (a - b)
+            Problems.assume_no_problems (b / a)
+
+        Test.specify "should be reported if mixing column types in `iif` causes an Integer column to be casted" <|
+            t = table_builder [["A", [x+1, x+2]], ["B", [1.5, 2.5]], ["C", [True, False]]]
+            r = (t.at "C").iif (t.at "A") (t.at "B")
+            r.value_type . should_equal Value_Type.Float
+            # Result equals to x due to lack of precision.
+            r.to_vector . should_equal [x, 2.5]
+            w = Problems.expect_only_warning Loss_Of_Integer_Precision r
+            w.affected_rows_count . should_equal 1
+            w.example_value.to_text . should_equal (x+1).to_text
+
+        Test.specify "should be reported when reading a CSV file" <|
+            t = (enso_project.data / "lossy_int.csv") . read
+            t.column_names . should_equal ["X", "Y", "Z"]
+            t.at "X" . value_type . should_equal Value_Type.Char
+            t.at "X" . to_vector . should_equal ["a", "b", "c", "d"]
+            t.at "Y" . value_type . should_equal Value_Type.Float
+            # Loss of precision here - the 3rd value is really x+1
+            t.at "Y" . to_vector . should_equal [1, x, x, 1]
+            Problems.expect_only_warning Loss_Of_Integer_Precision t
+
+            # In this case, the column is parsed as a string column:
+            t.at "Z" . value_type . should_equal Value_Type.Char
+            t.at "Z" . to_vector . should_equal ["23", "1.0", (x+1).to_text, "'a'"]
