@@ -238,7 +238,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         init.emit(());
     }
 
-    fn init_style(&self, init: &frp::Source, on_data_update: &frp::Stream ) {
+    fn init_style(&self, init: &frp::Source, on_data_update: &frp::Stream) {
         let init = init.clone_ref();
         let on_data_update = on_data_update.clone_ref();
 
