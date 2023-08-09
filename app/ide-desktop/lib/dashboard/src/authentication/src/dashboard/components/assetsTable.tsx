@@ -42,6 +42,8 @@ import Table from './table'
 const EXTRA_COLUMNS_KEY =
     common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
+/** The value returned when {@link Array.findIndex} fails. */
+const NOT_FOUND = -1
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'item'
 /** The user-facing plural name of this asset type. */
@@ -63,6 +65,29 @@ const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folde
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
+
+// ====================
+// === insertAssets ===
+// ====================
+
+/** Splice assets into the assets list, removing a "This folder is empty" placeholder asset,
+ * if one exists. */
+function splicedAssets(
+    oldAssets: backendModule.AnyAsset[],
+    assetsToInsert: backendModule.AnyAsset[],
+    predicate: (asset: backendModule.AnyAsset) => boolean
+) {
+    const insertIndex = oldAssets.findIndex(predicate)
+    const firstChild = oldAssets[insertIndex]
+    const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
+    const newAssets = Array.from(oldAssets)
+    newAssets.splice(
+        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex,
+        numberOfItemsToRemove,
+        ...assetsToInsert
+    )
+    return newAssets
+}
 
 // ================
 // === AssetRow ===
@@ -458,6 +483,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     for (const childItem of childItems) {
                         itemDepthsRef.current.set(childItem.id, childDepth)
                     }
+                    // FIXME: sort assets inserted before this assset
                     setItems(oldItems =>
                         array.splicedReplacing(
                             oldItems,
@@ -504,7 +530,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 setItems(oldItems =>
-                    array.splicedBefore(
+                    splicedAssets(
                         oldItems,
                         [placeholderItem],
                         item =>
@@ -536,7 +562,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 setItems(oldItems =>
-                    array.splicedBefore(
+                    splicedAssets(
                         oldItems,
                         [placeholderItem],
                         item =>
@@ -585,9 +611,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
                 const projectTypeOrder =
                     backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
-                setItems(oldItems => {
-                    const ret = array.spliceBefore(
-                        array.splicedBefore(
+                setItems(oldItems =>
+                    array.spliceBefore(
+                        splicedAssets(
                             oldItems,
                             placeholderFiles,
                             item =>
@@ -599,8 +625,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             item.parentId === event.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
                     )
-                    return ret
-                })
+                )
                 const depth =
                     event.parentId != null
                         ? (itemDepthsRef.current.get(event.parentId) ?? 0) + 1
@@ -637,7 +662,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 setItems(oldItems =>
-                    array.splicedBefore(
+                    splicedAssets(
                         oldItems,
                         [placeholderItem],
                         item =>
