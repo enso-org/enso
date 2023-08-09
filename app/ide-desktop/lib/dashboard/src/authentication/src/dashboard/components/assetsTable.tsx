@@ -75,13 +75,13 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 function splicedAssets(
     oldAssets: backendModule.AnyAsset[],
     assetsToInsert: backendModule.AnyAsset[],
-    parentId: backendModule.DirectoryId,
+    parentKey: backendModule.DirectoryId | null,
     predicate: (asset: backendModule.AnyAsset) => boolean
 ) {
     const newAssets = Array.from(oldAssets)
     const insertIndex = oldAssets.findIndex(predicate)
     if (insertIndex === NOT_FOUND) {
-        const parentIndex = oldAssets.findIndex(asset => asset.id === parentId)
+        const parentIndex = oldAssets.findIndex(asset => asset.id === parentKey)
         newAssets.splice(
             parentIndex === NOT_FOUND ? oldAssets.length : parentIndex + 1,
             0,
@@ -556,7 +556,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        placeholderItem.parentId,
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -589,7 +589,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        placeholderItem.parentId,
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -642,14 +642,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                         splicedAssets(
                             oldItems,
                             placeholderFiles,
-                            parentId,
+                            event.parentKey,
                             item =>
                                 item.parentId === parentId &&
                                 backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
                         ),
                         placeholderProjects,
                         item =>
-                            item.parentId === event.parentId &&
+                            item.parentId === parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
                     )
                 )
@@ -692,7 +692,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
-                        placeholderItem.parentId,
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -839,6 +839,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     </ContextMenu>
                                 )}
                                 <GlobalContextMenu
+                                    directoryKey={backend.rootDirectoryId(organization)}
                                     directoryId={backend.rootDirectoryId(organization)}
                                     dispatchAssetListEvent={dispatchAssetListEvent}
                                 />

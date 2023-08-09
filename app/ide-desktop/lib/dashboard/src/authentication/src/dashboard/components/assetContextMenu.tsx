@@ -40,6 +40,7 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
 export default function AssetContextMenu(props: AssetContextMenuProps<backendModule.AnyAsset>) {
     const {
         innerProps: {
+            key,
             item,
             state: { dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
@@ -202,12 +203,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
             </ContextMenu>
-            <GlobalContextMenu
-                directoryId={
-                    item.type === backendModule.AssetType.directory ? item.id : item.parentId
-                }
-                dispatchAssetListEvent={dispatchAssetListEvent}
-            />
+            {item.type === backendModule.AssetType.directory ? (
+                <GlobalContextMenu
+                    // This is SAFE, as this only exists when the item is a directory.
+                    // eslint-disable-next-line no-restricted-syntax
+                    directoryKey={key as backendModule.DirectoryId}
+                    directoryId={item.id}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                />
+            ) : null}
         </ContextMenus>
     )
 }

@@ -12,13 +12,14 @@ import ContextMenuEntry from './contextMenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
+    directoryKey: backendModule.DirectoryId
     directoryId: backendModule.DirectoryId
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { directoryId, dispatchAssetListEvent } = props
+    const { directoryKey, directoryId, dispatchAssetListEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
@@ -36,6 +37,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                             if (event.currentTarget.files != null) {
                                 dispatchAssetListEvent({
                                     type: assetListEventModule.AssetListEventType.uploadFiles,
+                                    parentKey: directoryKey,
                                     parentId: directoryId,
                                     files: Array.from(event.currentTarget.files),
                                 })
@@ -57,6 +59,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newProject,
+                        parentKey: directoryKey,
                         parentId: directoryId,
                         templateId: null,
                         onSpinnerStateChange: null,
@@ -70,6 +73,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         unsetModal()
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.newFolder,
+                            parentKey: directoryKey,
                             parentId: directoryId,
                         })
                     }}

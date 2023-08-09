@@ -49,11 +49,13 @@ type SanityCheck<
 
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     templateId: string | null
     onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -61,12 +63,14 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     files: File[]
 }
 
 /** A signal to create a new secret. */
 interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     name: string
     value: string

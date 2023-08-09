@@ -179,9 +179,11 @@ export default function DriveView(props: DriveViewProps) {
                 // This should never happen, however display a nice error message in case it does.
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
+                const parentId = backend.rootDirectoryId(organization)
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentId: backend.rootDirectoryId(organization),
+                    parentKey: parentId,
+                    parentId,
                     files,
                 })
             }
@@ -190,9 +192,11 @@ export default function DriveView(props: DriveViewProps) {
     )
 
     const doCreateDirectory = React.useCallback(() => {
+        const parentId = backend.rootDirectoryId(organization)
         dispatchAssetListEvent({
             type: assetListEventModule.AssetListEventType.newFolder,
-            parentId: backend.rootDirectoryId(organization),
+            parentKey: parentId,
+            parentId,
         })
     }, [backend, organization, /* should never change */ dispatchAssetListEvent])
 
@@ -256,9 +260,11 @@ export default function DriveView(props: DriveViewProps) {
                     onDrop={event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
+                        const parentId = backend.rootDirectoryId(organization)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentId: backend.rootDirectoryId(organization),
+                            parentKey: parentId,
+                            parentId,
                             files: Array.from(event.dataTransfer.files),
                         })
                     }}

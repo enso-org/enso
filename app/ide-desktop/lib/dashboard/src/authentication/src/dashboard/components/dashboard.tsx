@@ -161,9 +161,11 @@ export default function Dashboard(props: DashboardProps) {
             templateId: string | null,
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
+            const parentId = backend.rootDirectoryId(session.organization)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newProject,
-                parentId: backend.rootDirectoryId(session.organization),
+                parentKey: parentId,
+                parentId,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
