@@ -2,6 +2,18 @@ package org.enso.table.data.column.storage.type;
 
 public record IntegerType(Bits bits) implements StorageType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
+  public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
+  public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
+  public static final IntegerType INT_8 = new IntegerType(Bits.BITS_8);
+
+  public static IntegerType create(Bits bits) {
+    return switch (bits) {
+      case BITS_8 -> INT_8;
+      case BITS_16 -> INT_16;
+      case BITS_32 -> INT_32;
+      case BITS_64 -> INT_64;
+    };
+  }
 
   public long getMaxValue() {
     return switch (bits) {

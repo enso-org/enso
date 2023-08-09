@@ -16,15 +16,15 @@ type Bits
     Bits_64
 
     ## PRIVATE
-    to_bits : Integer
-    to_bits self = case self of
+    to_integer : Integer
+    to_integer self = case self of
         Bits.Bits_16 -> 16
         Bits.Bits_32 -> 32
         Bits.Bits_64 -> 64
 
     ## PRIVATE
-    from_bits : Integer -> Bits
-    from_bits bits = case bits of
+    from_integer : Integer -> Bits
+    from_integer bits = case bits of
         16 -> Bits.Bits_16
         32 -> Bits.Bits_32
         64 -> Bits.Bits_64
@@ -33,17 +33,17 @@ type Bits
     ## PRIVATE
        Provides the text representation of the bit-size.
     to_text : Text
-    to_text self = self.to_bits.to_text + " bits"
+    to_text self = self.to_integer.to_text + " bits"
 
 ## PRIVATE
 type Bits_Comparator
     ## PRIVATE
     compare : Bits -> Bits -> Ordering
-    compare x y = Comparable.from x.to_bits . compare x.to_bits y.to_bits
+    compare x y = Comparable.from x.to_integer . compare x.to_integer y.to_integer
 
     ## PRIVATE
     hash : Bits -> Integer
-    hash x = Comparable.from x.to_bits . hash x.to_bits
+    hash x = Comparable.from x.to_integer . hash x.to_integer
 
 Comparable.from (_:Bits) = Bits_Comparator
 
@@ -96,8 +96,9 @@ type Value_Type
 
        Arguments:
        - size: the maximum number of characters that can be stored in the
-         column.
+         column. It can be nothing to indicate no limit.
        - variable_length: whether the size is a maximum or a fixed length.
+         A fixed length string must have a non-nothing size.
     Char size:(Integer|Nothing)=Nothing variable_length:Boolean=True
 
     ## Date
@@ -389,9 +390,9 @@ type Value_Type
         constructor_name = Meta.meta self . constructor . name
         additional_fields = case self of
             Value_Type.Integer size ->
-                [["bits", size.to_bits]]
+                [["bits", size.to_integer]]
             Value_Type.Float size ->
-                [["bits", size.to_bits]]
+                [["bits", size.to_integer]]
             Value_Type.Decimal precision scale ->
                 [["precision", precision], ["scale", scale]]
             Value_Type.Char size variable_length ->

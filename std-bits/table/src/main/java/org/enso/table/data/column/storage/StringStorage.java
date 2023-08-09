@@ -44,14 +44,14 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   @Override
   public TextType getType() {
-    // TODO [RW] constant length strings support
-    return TextType.VARIABLE_LENGTH;
+    return type;
   }
 
   @Override
   public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
-      return fillMissingHelper(arg, new StringBuilder(size(), type));
+      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
+      return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
       return super.fillMissing(arg);
     }
