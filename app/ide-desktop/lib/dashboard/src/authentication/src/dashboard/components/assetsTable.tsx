@@ -64,18 +64,6 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
-// =============
-// === Types ===
-// =============
-
-/** An interface containing only the depth of an item (an integer). */
-interface Depth {
-    depth: number
-}
-
-/** The type of items in an {@link AssetsTable}. */
-export type AssetTableItem<T extends backendModule.AnyAsset = backendModule.AnyAsset> = Depth & T
-
 // ================
 // === AssetRow ===
 // ================
@@ -373,6 +361,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [])
 
     React.useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        itemDepthsRef.current.set(backend.rootDirectoryId(organization), -1)
+    }, [backend, organization])
+
+    React.useEffect(() => {
         if (initialized) {
             localStorage.setItem(EXTRA_COLUMNS_KEY, JSON.stringify(Array.from(extraColumns)))
         }
@@ -401,7 +394,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 return depth != null ? [[key, depth]] : []
             })
         )
-    }, [items])
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        itemDepthsRef.current.set(backend.rootDirectoryId(organization), -1)
+    }, [items, backend, organization])
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
     const doToggleDirectoryExpansion = React.useCallback(
@@ -517,6 +512,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
+                itemDepthsRef.current.set(
+                    placeholderItem.id,
+                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newFolder,
                     placeholderId: placeholderItem.id,
@@ -544,6 +543,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                             item.parentId === event.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
+                )
+                itemDepthsRef.current.set(
+                    placeholderItem.id,
+                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newProject,
@@ -598,6 +601,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                     return ret
                 })
+                const depth =
+                    event.parentId != null
+                        ? (itemDepthsRef.current.get(event.parentId) ?? 0) + 1
+                        : 0
+                for (const file of placeholderFiles) {
+                    itemDepthsRef.current.set(file.id, depth)
+                }
+                for (const project of placeholderProjects) {
+                    itemDepthsRef.current.set(project.id, depth)
+                }
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.uploadFiles,
                     files: new Map(
@@ -632,6 +645,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
+                itemDepthsRef.current.set(
+                    placeholderItem.id,
+                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newSecret,
                     placeholderId: placeholderItem.id,
@@ -641,6 +658,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.delete: {
                 setItems(oldItems => oldItems.filter(item => item.id !== event.id))
+                itemDepthsRef.current.delete(event.id)
                 break
             }
         }
