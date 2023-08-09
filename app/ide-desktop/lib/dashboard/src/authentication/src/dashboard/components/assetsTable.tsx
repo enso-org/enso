@@ -515,7 +515,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 )
                                 if (firstChildIndex === NOT_FOUND) {
                                     firstChildIndex =
-                                        oldItems.findIndex(item => item.id === directoryId) + 1
+                                        oldItems.findIndex(item => item.id === key) + 1
                                 }
                                 let numberOfChildren = 1
                                 while (
@@ -551,20 +551,22 @@ export default function AssetsTable(props: AssetsTableProps) {
         (templateId: string | null, parentId: backendModule.DirectoryId | null) => {
             const prefix = `${templateId ?? 'New_Project'}_`
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+            const actualParentId = parentId ?? backend.rootDirectoryId(organization)
             const projectIndices = items
-                .filter(item => item.parentId === parentId)
+                .filter(item => item.parentId === actualParentId)
                 .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
             return `${prefix}${Math.max(0, ...projectIndices) + 1}`
         },
-        [items]
+        [items, backend, organization]
     )
 
     hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
+                const parentId = event.parentId ?? backend.rootDirectoryId(organization)
                 const directoryIndices = items
-                    .filter(item => item.parentId === event.parentId)
+                    .filter(item => item.parentId === parentId)
                     .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
