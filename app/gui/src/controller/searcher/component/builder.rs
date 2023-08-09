@@ -352,6 +352,7 @@ mod tests {
     use crate::controller::searcher::component::tests::check_groups;
 
     use double_representation::name::project;
+    use enso_suggestion_database::doc_section;
     use enso_suggestion_database::mock_suggestion_database;
     use ide_view::component_browser::component_list_panel::icon;
 
