@@ -12,8 +12,8 @@ import ContextMenuEntry from './contextMenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
-    directoryKey: backendModule.DirectoryId
-    directoryId: backendModule.DirectoryId
+    directoryKey: backendModule.DirectoryId | null
+    directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
 }
 

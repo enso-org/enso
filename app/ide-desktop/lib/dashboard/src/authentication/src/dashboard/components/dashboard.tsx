@@ -161,16 +161,15 @@ export default function Dashboard(props: DashboardProps) {
             templateId: string | null,
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
-            const parentId = backend.rootDirectoryId(session.organization)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newProject,
-                parentKey: parentId,
-                parentId,
+                parentKey: null,
+                parentId: null,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [backend, session.organization, /* should never change */ dispatchAssetListEvent]
+        [/* should never change */ dispatchAssetListEvent]
     )
 
     const openEditor = React.useCallback(

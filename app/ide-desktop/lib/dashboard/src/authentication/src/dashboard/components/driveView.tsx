@@ -155,10 +155,7 @@ export default function DriveView(props: DriveViewProps) {
                         !isListingRemoteDirectoryAndWillFail &&
                         !isListingRemoteDirectoryWhileOffline
                     ) {
-                        const newAssets = await backend.listDirectory(
-                            { parentId: backend.rootDirectoryId(organization) },
-                            null
-                        )
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
                             setAssets(newAssets)
@@ -179,11 +176,10 @@ export default function DriveView(props: DriveViewProps) {
                 // This should never happen, however display a nice error message in case it does.
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
-                const parentId = backend.rootDirectoryId(organization)
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentKey: parentId,
-                    parentId,
+                    parentKey: null,
+                    parentId: null,
                     files,
                 })
             }
@@ -192,13 +188,12 @@ export default function DriveView(props: DriveViewProps) {
     )
 
     const doCreateDirectory = React.useCallback(() => {
-        const parentId = backend.rootDirectoryId(organization)
         dispatchAssetListEvent({
             type: assetListEventModule.AssetListEventType.newFolder,
-            parentKey: parentId,
-            parentId,
+            parentKey: null,
+            parentId: null,
         })
-    }, [backend, organization, /* should never change */ dispatchAssetListEvent])
+    }, [/* should never change */ dispatchAssetListEvent])
 
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
@@ -260,11 +255,10 @@ export default function DriveView(props: DriveViewProps) {
                     onDrop={event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
-                        const parentId = backend.rootDirectoryId(organization)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentKey: parentId,
-                            parentId,
+                            parentKey: null,
+                            parentId: null,
                             files: Array.from(event.dataTransfer.files),
                         })
                     }}

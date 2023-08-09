@@ -546,7 +546,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: null,
                     type: backendModule.AssetType.directory,
@@ -579,7 +579,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
@@ -609,7 +609,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
-                const parentId = event.parentId ?? backendModule.DirectoryId('')
+                const parentId = event.parentId ?? backend.rootDirectoryId(organization)
                 const placeholderFiles: backendModule.FileAsset[] = reversedFiles
                     .filter(backendModule.fileIsNotProject)
                     .map(file => ({
@@ -682,7 +682,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: null,
                     type: backendModule.AssetType.secret,
@@ -839,8 +839,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     </ContextMenu>
                                 )}
                                 <GlobalContextMenu
-                                    directoryKey={backend.rootDirectoryId(organization)}
-                                    directoryId={backend.rootDirectoryId(organization)}
+                                    directoryKey={null}
+                                    directoryId={null}
                                     dispatchAssetListEvent={dispatchAssetListEvent}
                                 />
                             </ContextMenus>
