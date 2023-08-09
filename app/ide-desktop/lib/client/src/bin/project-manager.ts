@@ -30,9 +30,9 @@ export function pathOrPanic(args: config.Args): string {
 }
 
 /** Execute the Project Manager with given arguments. */
-async function exec(args: config.Args, processArgs: string[]) {
+async function exec(args: config.Args, processArgs: string[], env?: NodeJS.ProcessEnv) {
     const binPath = pathOrPanic(args)
-    return await execFile(binPath, processArgs)
+    return await execFile(binPath, processArgs, { env })
 }
 
 /** Spawn the Project Manager process.
@@ -40,22 +40,27 @@ async function exec(args: config.Args, processArgs: string[]) {
  * The standard output and error handles will be redirected to the output and error handles of the
  * Electron app. Input is piped to this process, so it will not be closed until this process
  * finishes. */
-export function spawn(args: config.Args, processArgs: string[]): childProcess.ChildProcess {
+export function spawn(
+    args: config.Args,
+    processArgs: string[],
+    env?: NodeJS.ProcessEnv
+): childProcess.ChildProcess {
     return logger.groupMeasured(
         `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
         () => {
             const binPath = pathOrPanic(args)
-            const process = childProcess.spawn(binPath, processArgs, {
+            const pmProcess = childProcess.spawn(binPath, processArgs, {
                 stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
+                env,
                 // The Project Manager should never spawn any windows. On Windows OS this needs
                 // to be manually prevented, as the default is to spawn a console window.
                 windowsHide: true,
             })
-            logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
-            process.on('exit', code => {
+            logger.log(`Backend has been spawned (pid = ${String(pmProcess.pid)}).`)
+            pmProcess.on('exit', code => {
                 logger.log(`Backend exited with code ${String(code)}.`)
             })
-            return process
+            return pmProcess
         }
     )
 }

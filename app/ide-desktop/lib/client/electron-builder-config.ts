@@ -260,8 +260,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appBundleId: macBuildOptions.appId!,
                     appPath: `${appOutDir}/${appName}.app`,
-                    appleId: process.env.APPLEID,
-                    appleIdPassword: process.env.APPLEIDPASS,
+                    // It is a mistake for either of these to be undefined.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleId: process.env.APPLEID!,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleIdPassword: process.env.APPLEIDPASS!,
                 })
             }
         },

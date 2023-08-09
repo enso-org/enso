@@ -244,12 +244,15 @@ class App {
             })
             const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
             this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
-            const backendOpts = [
-                ...(this.args.groups.debug.options.verbose.value ? ['-vv'] : []),
-                `--server-host=${this.projectManagerHost}`,
-                `--server-port=${this.projectManagerPort}`,
-            ]
-            projectManager.spawn(this.args, backendOpts)
+            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+            const backendEnv = Object.assign({}, process.env, {
+                // These are environment variables, and MUST be in CONSTANT_CASE.
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_HOST: this.projectManagerHost,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_PORT: `${this.projectManagerPort}`,
+            })
+            projectManager.spawn(this.args, backendOpts, backendEnv)
         })
     }
 
