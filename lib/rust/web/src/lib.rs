@@ -450,34 +450,10 @@ ops! { ReflectOps for Reflect
 
 ops! { WindowOps for Window
     trait {
-        // fn request_animation_frame_with_closure(
-        //     &self,
-        //     f: &Closure<dyn FnMut(f64)>,
-        // ) -> Result<i32, JsValue>;
-        // fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
-        // fn cancel_animation_frame_or_warn(&self, id: i32);
         fn performance_or_panic(&self) -> Performance;
     }
 
     impl {
-        // fn request_animation_frame_with_closure(
-        //     &self,
-        //     f: &Closure<dyn FnMut(f64)>,
-        // ) -> Result<i32, JsValue> {
-        //     self.request_animation_frame(f.as_js_function())
-        // }
-        //
-        // fn request_animation_frame_with_closure_or_panic
-        // (&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
-        //     self.request_animation_frame_with_closure(f).unwrap()
-        // }
-        //
-        // fn cancel_animation_frame_or_warn(&self, id: i32) {
-        //     self.cancel_animation_frame(id).unwrap_or_else(|err| {
-        //         logging::error!("Error when canceling animation frame: {err:?}");
-        //     });
-        // }
-
         fn performance_or_panic(&self) -> Performance {
             self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
         }

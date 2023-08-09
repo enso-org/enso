@@ -206,7 +206,7 @@ class Main implements AppRunner {
             }
         }
         newApp.printPanicMessage = (message: string) =>
-            new Promise(resolve => {
+            new Promise<void>(resolve => {
                 panic.displayPanicMessageToast(message, resolve)
             })
 
