@@ -527,10 +527,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     const getNewProjectName = React.useCallback(
-        (templateId?: string | null) => {
+        (templateId: string | null, parentId: backendModule.DirectoryId | null) => {
             const prefix = `${templateId ?? 'New_Project'}_`
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
             const projectIndices = items
+                .filter(item => item.parentId === parentId)
                 .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
             return `${prefix}${Math.max(0, ...projectIndices) + 1}`
@@ -542,6 +543,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
                 const directoryIndices = items
+                    .filter(item => item.parentId === event.parentKey)
                     .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
@@ -579,7 +581,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.newProject: {
-                const projectName = getNewProjectName(event.templateId)
+                const projectName = getNewProjectName(event.templateId, event.parentKey)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
                     id: dummyId,
