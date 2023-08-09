@@ -74,9 +74,8 @@ type Bench
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
-            IO.println <| "Benchmarking  " + s.name + " configuration: " + c.to_text
+            IO.println <| "Benchmarking '" + s.name + "' from group '" + g.name + "' configuration: " + c.to_text
             Bench.measure s.name c.warmup c.measure (s.code 0)
-            IO.println <| "Benchmarking of " + s.name + " finished"
 
     ## Measure the amount of time it takes to execute a given computation.
 
