@@ -34,7 +34,7 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|security|url-associations'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -234,6 +234,10 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
         message: "Environment must be 'production' when committing",
+    },
+    {
+        selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
+        message: '`toastAndLog` already includes a trailing `.`',
     },
 ]
 

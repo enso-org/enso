@@ -21,4 +21,6 @@ export enum Channel {
     openDeepLink = 'open-deep-link',
     /** Channel for signaling that access token be saved to a credentials file. */
     saveAccessToken = 'save-access-token',
+    /** Channel for importing a project or project bundle from the given path. */
+    importProjectFromPath = 'import-project-from-path',
 }

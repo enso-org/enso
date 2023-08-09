@@ -50,40 +50,37 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected: {
                 // Ignored. These events should all be unrelated to projects.
-                // `deleteMultiple` is handled by `AssetRow`.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {
                 const file = event.files.get(key)
                 if (file != null) {
-                    if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Files cannot be uploaded on the local backend')
-                    } else {
-                        rowState.setPresence(presence.Presence.inserting)
-                        try {
-                            const createdFile = await backend.uploadFile(
-                                {
-                                    fileId: null,
-                                    fileName: item.title,
-                                    parentDirectoryId: item.parentId,
-                                },
-                                file
-                            )
-                            rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.FileAsset = {
-                                ...item,
-                                ...createdFile,
-                            }
-                            setItem(newItem)
-                        } catch (error) {
-                            dispatchAssetListEvent({
-                                type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
-                            })
-                            toastAndLog('Error creating new file', error)
+                    rowState.setPresence(presence.Presence.inserting)
+                    try {
+                        const createdFile = await backend.uploadFile(
+                            {
+                                fileId: null,
+                                fileName: item.title,
+                                parentDirectoryId: item.parentId,
+                            },
+                            file
+                        )
+                        rowState.setPresence(presence.Presence.present)
+                        const newItem: backendModule.FileAsset = {
+                            ...item,
+                            ...createdFile,
                         }
+                        setItem(newItem)
+                    } catch (error) {
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                        toastAndLog('Could not upload file', error)
                     }
                 }
                 break
