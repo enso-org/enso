@@ -9,12 +9,13 @@ export interface ButtonProps {
     image: string
     /** A title that is only shown when `disabled` is true. */
     error?: string | null
+    className?: string
     onClick: (event: React.MouseEvent) => void
 }
 
 /** A styled button. */
 export default function Button(props: ButtonProps) {
-    const { active = false, disabled = false, image, error, onClick } = props
+    const { active = false, disabled = false, image, error, className, onClick } = props
 
     return (
         <SvgMask
@@ -22,7 +23,7 @@ export default function Button(props: ButtonProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${active && !disabled ? '' : 'opacity-50'} ${
                 !disabled ? 'cursor-pointer hover:opacity-100 cursor-pointer' : 'cursor-not-allowed'
-            }`}
+            } ${className ?? ''}`}
             onClick={onClick}
         />
     )

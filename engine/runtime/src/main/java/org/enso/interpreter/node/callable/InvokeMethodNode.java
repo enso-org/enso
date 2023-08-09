@@ -52,6 +52,7 @@ import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -77,6 +78,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   private final int argumentCount;
   private final int thisArgumentPosition;
+  private final boolean onBoundary;
 
   /**
    * Creates a new node for method invocation.
@@ -84,26 +86,30 @@ public abstract class InvokeMethodNode extends BaseNode {
    * @param schema a description of the arguments being applied to the callable
    * @param defaultsExecutionMode the defaulted arguments handling mode for this call
    * @param argumentsExecutionMode the arguments execution mode for this call
+   * @param thisArgumentPosition position
+   * @param onBoundary shall we emit plain {@code PanicException} or also attach {@code UnknownIdentifierException} cause
    * @return a new invoke method node
    */
   public static InvokeMethodNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition) {
+      int thisArgumentPosition, boolean onBoundary) {
     return InvokeMethodNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
+        schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
   }
 
   InvokeMethodNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition) {
+      int thisArgumentPosition, boolean onBoundary
+  ) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
     this.thisArgumentPosition = thisArgumentPosition;
+    this.onBoundary = onBoundary;
   }
 
   InvokeFunctionNode getInvokeFunctionNode() {
@@ -202,8 +208,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
-      throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
+      var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
+      var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
+      throw new PanicException(payload, cause, this);
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
@@ -410,7 +417,7 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getSchema(),
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
-                      thisArgumentPosition));
+                      thisArgumentPosition, false));
           childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
