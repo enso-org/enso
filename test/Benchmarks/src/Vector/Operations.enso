@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.State
 import Standard.Base
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 import project.Vector.Utils
 
@@ -11,8 +11,8 @@ polyglot java import java.util.Random as Java_Random
 ## Bench Utilities ============================================================
 
 vector_size = 1000000
-iter_size = 100
-num_iterations = 10
+warmup = Phase_Conf.Secs 2
+measure = Phase_Conf.Secs 2
 
 # The Benchmarks ==============================================================
 
@@ -49,7 +49,7 @@ collect_benches group_builder =
        State.put s+x
     bench_measure (State.run Number 0 <| random_vec.each stateful_fun) "Each"
 
-options = Bench.options . size iter_size . iter num_iterations
+options = Bench.options . set_warmup warmup . set_measure measure
 
 all = Bench.build builder->
     builder.group "Vector Operations" options group_builder->
