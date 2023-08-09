@@ -75,6 +75,11 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         unsetModal()
+        if (page === pageSwitcher.Page.editor) {
+            document.body.style.cursor = 'none'
+        } else {
+            document.body.style.cursor = 'auto'
+        }
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
@@ -213,7 +218,9 @@ export default function Dashboard(props: DashboardProps) {
         <>
             <div
                 className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                    page === pageSwitcher.Page.editor
+                        ? 'cursor-none-recursive pointer-events-none'
+                        : ''
                 }`}
                 onContextMenu={event => {
                     event.preventDefault()
@@ -232,6 +239,7 @@ export default function Dashboard(props: DashboardProps) {
                     setBackendType={setBackendType}
                     query={query}
                     setQuery={setQuery}
+                    shouldShowCursor={page !== pageSwitcher.Page.editor}
                     onSignOut={() => {
                         if (page === pageSwitcher.Page.editor) {
                             setPage(pageSwitcher.Page.drive)

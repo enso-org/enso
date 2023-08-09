@@ -39,12 +39,13 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+    shouldShowCursor: boolean
     onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-    const { onSignOut } = props
+    const { shouldShowCursor, onSignOut } = props
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
     const navigate = hooks.useNavigate()
@@ -68,7 +69,9 @@ export default function UserMenu(props: UserMenuProps) {
 
     return (
         <div
-            className="absolute bg-frame-selected right-2.25 top-11 z-1 flex flex-col rounded-2xl bg-white border"
+            className={`absolute bg-frame-selected right-2.25 top-11 z-1 flex flex-col rounded-2xl bg-white border ${
+                shouldShowCursor ? '' : 'cursor-none-recursive'
+            }`}
             onClick={event => {
                 event.stopPropagation()
             }}

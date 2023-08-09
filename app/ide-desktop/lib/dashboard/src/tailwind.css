@@ -14,8 +14,13 @@ body {
 
 .enso-dashboard {
   position: absolute;
+  pointer-events: none;
   width: 100%;
   height: 100%;
+}
+
+.enso-dashboard > * {
+  pointer-events: auto;
 }
 
 /* These styles MUST still be copied
@@ -150,6 +155,11 @@ body {
         left: unset;
       }
     }
+  }
+
+  .cursor-none-recursive,
+  .cursor-none-recursive * {
+    cursor: none;
   }
 
   .pointer-events-none-recursive,
