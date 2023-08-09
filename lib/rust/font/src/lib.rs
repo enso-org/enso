@@ -136,6 +136,7 @@ impl NonVariableDefinition {
     pub fn possible_weights(&self) -> Vec<Weight> {
         let mut weights: Vec<_> = self.variations().map(|var| var.header.weight).collect();
         weights.sort_unstable_by_key(|w| w.to_number());
+        weights.dedup();
         weights
     }
 
