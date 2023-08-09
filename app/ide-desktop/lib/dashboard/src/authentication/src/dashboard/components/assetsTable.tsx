@@ -75,6 +75,7 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 function splicedAssets(
     oldAssets: backendModule.AnyAsset[],
     assetsToInsert: backendModule.AnyAsset[],
+    parentKey: backendModule.DirectoryId | null,
     predicate: (asset: backendModule.AnyAsset) => boolean
 ) {
     const newAssets = Array.from(oldAssets)
@@ -82,7 +83,9 @@ function splicedAssets(
     const firstChild = oldAssets[insertIndex]
     const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
     newAssets.splice(
-        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex,
+        insertIndex === NOT_FOUND
+            ? oldAssets.findIndex(asset => asset.id === parentKey) + 1
+            : insertIndex,
         numberOfItemsToRemove,
         ...assetsToInsert
     )
@@ -483,38 +486,33 @@ export default function AssetsTable(props: AssetsTableProps) {
                             itemDepthsRef.current.set(childItem.id, childDepth)
                         }
                         setItems(oldItems => {
-                            if (!expandedDirectoriesRef.current.has(directoryId)) {
-                                return oldItems
-                            } else {
-                                let firstChildIndex = oldItems.findIndex(
-                                    item => item.parentId === directoryId
-                                )
-                                if (firstChildIndex === NOT_FOUND) {
-                                    firstChildIndex =
-                                        oldItems.findIndex(item => item.id === key) + 1
-                                }
-                                let numberOfChildren = 1
-                                while (
-                                    oldItems[firstChildIndex + numberOfChildren]?.parentId ===
-                                    directoryId
-                                ) {
-                                    numberOfChildren += 1
-                                }
-                                const oldChildren = oldItems.slice(
-                                    firstChildIndex,
-                                    // Subtract one extra, to exclude the placeholder "loading" asset.
-                                    firstChildIndex + numberOfChildren - 2
-                                )
-                                const newChildren =
-                                    oldChildren.length === 0
-                                        ? childItems
-                                        : [...oldChildren, ...returnedItems].sort(
-                                              backendModule.compareAssets
-                                          )
-                                const newItems = Array.from(oldItems)
-                                newItems.splice(firstChildIndex, numberOfChildren, ...newChildren)
-                                return newItems
+                            let firstChildIndex = oldItems.findIndex(
+                                item => item.parentId === directoryId
+                            )
+                            if (firstChildIndex === NOT_FOUND) {
+                                firstChildIndex = oldItems.findIndex(item => item.id === key) + 1
                             }
+                            let numberOfChildren = 1
+                            while (
+                                oldItems[firstChildIndex + numberOfChildren]?.parentId ===
+                                directoryId
+                            ) {
+                                numberOfChildren += 1
+                            }
+                            const oldChildren = oldItems.slice(
+                                firstChildIndex,
+                                // Subtract one extra, to exclude the placeholder "loading" asset.
+                                firstChildIndex + numberOfChildren - 1
+                            )
+                            const newChildren =
+                                oldChildren.length === 0
+                                    ? childItems
+                                    : [...oldChildren, ...returnedItems].sort(
+                                          backendModule.compareAssets
+                                      )
+                            const newItems = Array.from(oldItems)
+                            newItems.splice(firstChildIndex, numberOfChildren, ...newChildren)
+                            return newItems
                         })
                     }
                 })()
@@ -570,6 +568,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -609,6 +608,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
@@ -668,6 +668,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         splicedAssets(
                             oldItems,
                             placeholderFiles,
+                            event.parentKey,
                             item =>
                                 item.parentId === parentId &&
                                 backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
@@ -724,6 +725,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
+                        event.parentKey,
                         item =>
                             item.parentId === placeholderItem.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder

@@ -22,6 +22,13 @@ import * as detect from 'enso-common/src/detect'
 
 // This file MUST be a `.tsx` file so that Tailwind includes the CSS classes used here.
 
+// =================
+// === Constants ===
+// =================
+
+/** The size (both width and height) of icons. */
+export const ICON_SIZE_PX = 16
+
 // =============
 // === Types ===
 // =============

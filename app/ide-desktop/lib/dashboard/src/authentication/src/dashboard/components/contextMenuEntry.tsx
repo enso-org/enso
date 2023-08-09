@@ -46,7 +46,14 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
             }}
         >
             <div className="flex items-center gap-3">
-                <SvgMask src={info.icon} className={info.colorClass} />
+                <SvgMask
+                    style={{
+                        width: shortcutsModule.ICON_SIZE_PX,
+                        height: shortcutsModule.ICON_SIZE_PX,
+                    }}
+                    src={info.icon}
+                    className={info.colorClass}
+                />
                 {info.name}
             </div>
             <KeyboardShortcut action={action} />
