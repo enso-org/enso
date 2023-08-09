@@ -106,30 +106,15 @@ impl CodeGenerator {
 // === Enso Font ===
 // =================
 
-mod the_enso_font {
-    use super::*;
-    use crate::CodeGenerator;
-
-    use enso_build::ide::web::fonts::get_enso_font_package;
-
-    pub async fn load(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
-        let font_family = enso_enso_font::enso_font();
-        let archive = get_enso_font_package().await?;
-        enso_enso_font::extract_fonts(&font_family, archive, &out_dir).await?;
-        add_entries_to_fill_map_rs(&font_family, enso_enso_font::ENSO_FONT_FAMILY_NAME, code_gen);
-        Ok(())
+pub async fn load_enso_font(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
+    let font_family = enso_enso_font::enso_font();
+    let archive = enso_build::ide::web::fonts::get_enso_font_package().await?;
+    enso_enso_font::extract_fonts(&font_family, archive, &out_dir).await?;
+    code_gen.add_non_variable_font_definition(enso_enso_font::ENSO_FONT_FAMILY_NAME, &font_family);
+    for file in font_family.files() {
+        code_gen.add_font_data(file);
     }
-
-    fn add_entries_to_fill_map_rs(
-        family: &NonVariableDefinition,
-        family_name: &str,
-        code_gen: &mut CodeGenerator,
-    ) {
-        code_gen.add_non_variable_font_definition(family_name, family);
-        for file in family.files() {
-            code_gen.add_font_data(file);
-        }
-    }
+    Ok(())
 }
 
 
@@ -230,7 +215,7 @@ async fn main() -> Result {
 
     google_fonts::load(&out_dir, &mut code_gen, "mplus1p").await?;
 
-    the_enso_font::load(&out_dir, &mut code_gen).await?;
+    load_enso_font(&out_dir, &mut code_gen).await?;
 
     let body = code_gen.body();
     let out_path = out_dir.join(GENERATED_SOURCE_FILE_NAME);
