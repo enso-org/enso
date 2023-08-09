@@ -88,7 +88,7 @@ type Bench
             c = g.configuration
             bench_name = g.name + "." + s.name
             IO.println <| "Benchmarking '" + bench_name + "' configuration: " + c.to_text
-            Bench.measure s.name c.warmup c.measure (s.code 0)
+            Bench.measure bench_name c.warmup c.measure (s.code 0)
 
     ## Measure the amount of time it takes to execute a given computation.
 
