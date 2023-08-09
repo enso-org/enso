@@ -82,7 +82,7 @@ function splicedAssets(
     const firstChild = oldAssets[insertIndex]
     const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
     newAssets.splice(
-        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex + 1,
+        insertIndex === NOT_FOUND ? oldAssets.length : insertIndex,
         numberOfItemsToRemove,
         ...assetsToInsert
     )
@@ -482,6 +482,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 )
                 void (async () => {
                     const abortController = new AbortController()
+                    directoryListAbortControllersRef.current.set(directoryId, abortController)
                     const returnedItems = await backend.listDirectory(
                         { parentId: directoryId },
                         title ?? null

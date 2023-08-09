@@ -254,7 +254,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
                             set.withPresence(oldSelectedKeys, key, selected)
                         )
                     }}
-                    allowContextMenu={selectedKeys.size === 0 || !selectedKeys.has(key)}
+                    allowContextMenu={
+                        selectedKeys.size === 0 ||
+                        !selectedKeys.has(key) ||
+                        (selectedKeys.size === 1 && selectedKeys.has(key))
+                    }
                     onClick={onRowClick}
                     onContextMenu={(_innerProps, event) => {
                         if (!selectedKeys.has(key)) {
