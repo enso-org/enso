@@ -5,6 +5,10 @@ import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.Problem;
+
+import java.util.List;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
@@ -96,4 +100,9 @@ public abstract class Builder {
 
   /** @return the current storage type of this builder */
   public abstract StorageType getType();
+
+  /** @return any problems that occurred when building the Storage. */
+  public AggregatedProblems getProblems() {
+    return AggregatedProblems.of();
+  }
 }

@@ -111,6 +111,12 @@ export enum ProjectState {
     openInProgress = 'OpenInProgress',
     opened = 'Opened',
     closed = 'Closed',
+    /** A frontend-specific state, representing a project that should be displayed as
+     * `openInProgress`, but has not yet been added to the backend. */
+    placeholder = 'Placeholder',
+    /** A frontend-specific state, representing a project that should be displayed as `closed`,
+     * but is still in the process of shutting down. */
+    closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -176,6 +182,7 @@ export interface FileInfo {
      * but it's just string on the backend. */
     path: string
     id: FileId
+    project: CreatedProject | null
 }
 
 /** A secret environment variable. */
@@ -554,6 +561,40 @@ export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
  * This is useful to avoid React re-renders as it is not re-created on each function call. */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
     return asset.id
+}
+
+// =====================
+// === fileIsProject ===
+// =====================
+
+/** A subset of properties of the JS `File` type. */
+interface JSFile {
+    name: string
+}
+
+/** Whether a `File` is a project. */
+export function fileIsProject(file: JSFile) {
+    return (
+        file.name.endsWith('.tar.gz') ||
+        file.name.endsWith('.zip') ||
+        file.name.endsWith('.enso-project')
+    )
+}
+
+/** Whether a `File` is not a project. */
+export function fileIsNotProject(file: JSFile) {
+    return !fileIsProject(file)
+}
+
+// =============================
+// === stripProjectExtension ===
+// =============================
+
+/** Remove the extension of the project file name (if any). */
+
+/** Whether a `File` is a project. */
+export function stripProjectExtension(name: string) {
+    return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
 }
 
 // ==============================

@@ -25,6 +25,7 @@ export enum AssetEventType {
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    downloadSelected = 'download-selected',
 }
 
 /** Properties common to all asset state change events. */
@@ -41,6 +42,7 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    downloadSelected: AssetDownloadSelectedEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -67,7 +69,7 @@ export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId, File>
+    files: Map<backendModule.FileId | backendModule.ProjectId, File>
 }
 
 /** A signal to create a secret. */
@@ -89,6 +91,10 @@ export interface AssetCancelOpeningAllProjectsEvent
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
     ids: Set<backendModule.AssetId>
 }
+
+/** A signal to download the currently selected assets. */
+export interface AssetDownloadSelectedEvent
+    extends AssetBaseEvent<AssetEventType.downloadSelected> {}
 
 /** Every possible type of asset event. */
 export type AssetEvent = AssetEvents[keyof AssetEvents]

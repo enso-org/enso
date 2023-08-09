@@ -1229,7 +1229,7 @@ pub mod test {
         searcher.reload_list();
         fixture.test.run_until_stalled();
         // There are two virtual entries and two top-modules.
-        assert_eq!(dbg!(searcher.components().displayed()).len(), 4);
+        assert_eq!(searcher.components().displayed().len(), 4);
 
         let mut subscriber = searcher.subscribe();
         searcher.enter_entry(3).expect("Entering entry failed");

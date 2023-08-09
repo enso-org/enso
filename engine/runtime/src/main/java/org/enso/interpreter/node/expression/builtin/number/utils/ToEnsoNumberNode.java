@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number.utils;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -11,11 +12,25 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @ReportPolymorphism
 @NodeInfo(description = "Takes a big integer and casts it to a long, if the operation is safe.")
 public class ToEnsoNumberNode extends Node {
-  private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
+  private static ToEnsoNumberNode uncached;
+  private final CountingConditionProfile fitsProfile;
+
+  private ToEnsoNumberNode(CountingConditionProfile fitsProfile) {
+    this.fitsProfile = fitsProfile;
+  }
 
   /** @return a new instance of this node. */
-  public static ToEnsoNumberNode build() {
-    return new ToEnsoNumberNode();
+  @NeverDefault
+  public static ToEnsoNumberNode create() {
+    return new ToEnsoNumberNode(CountingConditionProfile.create());
+  }
+
+  @NeverDefault
+  public static ToEnsoNumberNode getUncached() {
+    if (uncached == null) {
+      uncached = new ToEnsoNumberNode(CountingConditionProfile.getUncached());
+    }
+    return uncached;
   }
 
   /**

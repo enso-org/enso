@@ -59,8 +59,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected: {
                 // Ignored. These events should all be unrelated to directories.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createDirectory: {
@@ -116,7 +118,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     if (!rowState.isEditingName) {
                         // This must be processed on the next tick, otherwise it will be overridden
                         // by the default click handler.
-                        setTimeout(() => {
+                        window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
                         doToggleDirectoryExpansion(item, key)

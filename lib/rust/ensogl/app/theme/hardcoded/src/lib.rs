@@ -194,6 +194,7 @@ define_themes! { [light:0, dark:1]
 
         top_bar {
             padding_left = 19.0, 19.0;
+            padding_top = 9.0, 9.0;
             gap = 16.0, 16.0;
             background {
                 color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
@@ -478,14 +479,6 @@ define_themes! { [light:0, dark:1]
                     background_color = Rgb::new(0.3, 0.96, 0.39), Rgb::new(0.3, 0.96, 0.39);
                     icon_color       = Rgb::new(0.0,0.38,0.0),    Rgb::new(0.0,0.38,0.0);
                 }
-            }
-        }
-        status_bar {
-            offset_y = -30.0, -30.0;
-            text = text, text;
-            background {
-                color = graph_editor::node::background , graph_editor::node::background;
-                corner_radius = 14.0 , 14.0;
             }
         }
     }

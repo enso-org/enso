@@ -23,9 +23,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
     } else if (storage instanceof LongStorage longStorage) {
-      return convertDoubleStorage(longStorage);
+      return convertDoubleStorage(longStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage);
+      return convertBoolStorage(boolStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -42,7 +42,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendNulls(1);
       } else if (o instanceof Boolean b) {
         builder.appendDouble(booleanAsDouble(b));
-      } else if (NumericConverter.isCoercibleToDouble(o)) {
+      } else if (NumericConverter.isCoercibleToLong(o)) {
+        builder.appendLong(NumericConverter.coerceToLong(o));
+      } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
       } else {
@@ -53,24 +55,27 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Double> convertDoubleStorage(LongStorage longStorage) {
+  private Storage<Double> convertDoubleStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
     int n = longStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
     for (int i = 0; i < n; i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = longStorage.getItemDouble(i);
-        builder.appendDouble(value);
+        long value = longStorage.getItem(i);
+        builder.appendLong(value);
       }
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Double> convertBoolStorage(BoolStorage boolStorage) {
+  private Storage<Double> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     int n = boolStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
     for (int i = 0; i < n; i++) {
@@ -81,6 +86,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendDouble(booleanAsDouble(value));
       }
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 

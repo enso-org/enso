@@ -51,9 +51,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected: {
                 // Ignored. These events should all be unrelated to secrets.
-                // `deleteMultiple` is handled by `AssetRow`.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createSecret: {
