@@ -8,6 +8,16 @@ type Phase_Conf
     ## Number of iterations of the phase.
     Iters (iters:Integer)
 
+    iterations : Integer|Nothing
+    iterations self = case self of
+        Phase_Conf.Secs _ -> Nothing
+        Phase_Conf.Iters iters -> iters
+
+    seconds : Integer|Nothing
+    seconds self = case self of
+        Phase_Conf.Secs secs -> secs
+        Phase_Conf.Iters _ -> Nothing
+
     to_text self = case self of
         Phase_Conf.Secs secs -> secs.to_text + " seconds"
         Phase_Conf.Iters iters -> iters.to_text + " iterations"
