@@ -910,7 +910,7 @@
 - [Update to GraalVM 23.0.0][7176]
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
-- [Support refactoring of a variable][7515]
+- [Support renaming variable or function][7515]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
