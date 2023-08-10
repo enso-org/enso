@@ -83,11 +83,15 @@ function splicedAssets(
 ) {
     const newAssets = Array.from(oldAssets)
     const insertIndex = oldAssets.findIndex(predicate)
+    const parentIndex =
+        insertIndex === NOT_FOUND ? oldAssets.findIndex(asset => asset.id === parentKey) : NOT_FOUND
     const firstChild = oldAssets[insertIndex]
     const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
     newAssets.splice(
         insertIndex === NOT_FOUND
-            ? oldAssets.findIndex(asset => asset.id === parentKey) + 1
+            ? parentIndex === NOT_FOUND
+                ? oldAssets.length
+                : oldAssets.findIndex(asset => asset.id === parentKey) + 1
             : insertIndex,
         numberOfItemsToRemove,
         ...assetsToInsert
