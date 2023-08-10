@@ -197,7 +197,7 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend())
+            setBackendWithoutSavingType(new localBackend.LocalBackend(null))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.

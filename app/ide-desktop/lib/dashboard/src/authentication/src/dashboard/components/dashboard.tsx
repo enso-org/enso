@@ -158,7 +158,11 @@ export default function Dashboard(props: DashboardProps) {
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            setBackend(new localBackend.LocalBackend())
+            setBackend(
+                new localBackend.LocalBackend(
+                    localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
+                )
+            )
             setDirectoryId(backendModule.DirectoryId(''))
         }
         // This hook MUST only run once, on mount.
@@ -220,7 +224,7 @@ export default function Dashboard(props: DashboardProps) {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend())
+                        setBackend(new localBackend.LocalBackend(null))
                         setDirectoryId(backendModule.DirectoryId(''))
                         break
                     case backendModule.BackendType.remote: {

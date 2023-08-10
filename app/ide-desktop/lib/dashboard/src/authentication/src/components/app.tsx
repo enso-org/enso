@@ -178,7 +178,7 @@ function AppRouter(props: AppProps) {
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
-        ? new localBackend.LocalBackend()
+        ? new localBackend.LocalBackend(null)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!
