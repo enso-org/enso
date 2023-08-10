@@ -86,12 +86,12 @@
 					}]
 				},
 				{
-					"name": "string.quoted.tripple.begin",
+					"name": "string.quoted.triple.begin",
                                         "begin": "^(\\s*)\"\"\"",
                                         "end": "^(?!\\1\\s+)(?!\\s*$)"
 				},
 				{
-					"name": "string.quoted.tripple.middle",
+					"name": "string.quoted.triple.middle",
                                         "begin": "^(\\s*)[^\\s].*\"\"\"",
                                         "end": "^(?!\\1\\s+)(?!\\s*$)"
 				},
