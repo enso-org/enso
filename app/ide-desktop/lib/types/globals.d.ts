@@ -23,17 +23,11 @@ interface Enso {
 // === Backend API ===
 // ===================
 
-/** Information required to display a bundle. */
-interface BundleInfo {
-    name: string
-    id: string
-}
-
 /** `window.backendApi` is a context bridge to the main process, when we're running in an
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    importProjectFromPath: (openedPath: string) => Promise<BundleInfo>
+    importProjectFromPath: (openedPath: string) => Promise<string>
 }
 
 // ==========================
