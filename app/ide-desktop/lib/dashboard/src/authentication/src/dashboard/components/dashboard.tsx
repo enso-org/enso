@@ -263,10 +263,7 @@ export default function Dashboard(props: DashboardProps) {
                 setProjectStartupInfo({
                     project: await backend.getProjectDetails(newProject.id, newProject.title),
                     backendType: backend.type,
-                    accessToken:
-                        backend.type === backendModule.BackendType.remote
-                            ? session.accessToken
-                            : null,
+                    accessToken: session.accessToken,
                 })
             }
         },

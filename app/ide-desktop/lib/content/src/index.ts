@@ -162,7 +162,11 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig: StringConfig | null, accessToken: string | null) {
+    async runApp(
+        inputConfig: StringConfig | null,
+        accessToken: string | null,
+        loggingMetadata?: object
+    ) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -191,14 +195,17 @@ class Main implements AppRunner {
         // We override the remote logger stub with the "real" one. Eventually the runner should not be aware of the
         // remote logger at all, and it should be integrated with our logging infrastructure.
         const remoteLogger = accessToken != null ? new remoteLog.RemoteLogger(accessToken) : null
+            console.log('?', remoteLogger, accessToken)
         newApp.remoteLog = async (message: string, metadata: unknown) => {
-            if (newApp.config.options.dataCollection.value && remoteLogger) {
-                await remoteLogger.remoteLog(message, metadata)
+            const actualMetadata =
+                loggingMetadata == null ? metadata : { ...loggingMetadata, metadata }
+            if (newApp.config.options.dataCollection.value && remoteLogger != null) {
+                await remoteLogger.remoteLog(message, actualMetadata)
             } else {
                 const logMessage = [
                     'Not sending log to remote server. Data collection is disabled.',
                     `Message: "${message}"`,
-                    `Metadata: ${JSON.stringify(metadata)}`,
+                    `Metadata: ${JSON.stringify(actualMetadata)}`,
                 ].join(' ')
 
                 logger.log(logMessage)

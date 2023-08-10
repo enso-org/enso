@@ -115,7 +115,8 @@ export default function Editor(props: EditorProps) {
                                     topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
                                 },
                             },
-                            accessToken
+                            accessToken,
+                            { projectId: project.projectId }
                         )
                     }
                     if (backendType === backendModule.BackendType.local) {
