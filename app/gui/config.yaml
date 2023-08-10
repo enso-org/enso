@@ -15,6 +15,9 @@ windowAppScopeThemeName: "theme"
 # This MUST be kept in sync with the corresponding value in `app/gui/src/constants.rs`.
 projectManagerEndpoint: "ws://127.0.0.1:30535"
 
+# The URL to the base path of the HTTP endpoints of the Project Manager.
+projectManagerHttpEndpoint: "http://127.0.0.1:30535"
+
 # TODO [ao] add description here.
 minimumSupportedVersion": "2.0.0-alpha.6"
 

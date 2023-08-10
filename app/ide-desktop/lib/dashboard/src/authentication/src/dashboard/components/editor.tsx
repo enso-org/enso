@@ -68,10 +68,10 @@ export default function Editor(props: EditorProps) {
                 const jsonAddress = project.jsonAddress
                 const binaryAddress = project.binaryAddress
                 if (jsonAddress == null) {
-                    toastAndLog("Could not get the address of the project's JSON endpoint.")
+                    toastAndLog("Could not get the address of the project's JSON endpoint")
                     return
                 } else if (binaryAddress == null) {
-                    toastAndLog("Could not get the address of the project's binary endpoint.")
+                    toastAndLog("Could not get the address of the project's binary endpoint")
                     return
                 } else {
                     let assetsRoot: string

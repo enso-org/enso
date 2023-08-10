@@ -12,13 +12,14 @@ import * as localBackend from '../localBackend'
 import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
@@ -59,12 +60,7 @@ export default function Dashboard(props: DashboardProps) {
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const [directoryId, setDirectoryId] = React.useState(
-        session.organization != null
-            ? backendModule.rootDirectoryId(session.organization.id)
-            : // The local backend uses the empty string as the sole directory ID.
-              backendModule.DirectoryId('')
-    )
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
@@ -163,7 +159,6 @@ export default function Dashboard(props: DashboardProps) {
                     localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
                 )
             )
-            setDirectoryId(backendModule.DirectoryId(''))
         }
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,22 +197,10 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
-                    shortcuts.KeyboardAction.closeModal,
-                    event
-                )
-            ) {
-                event.preventDefault()
-                unsetModal()
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
-        }
-    }, [unsetModal])
+        return shortcuts.registerKeyboardHandlers({
+            [shortcutsModule.KeyboardAction.closeModal]: unsetModal,
+        })
+    }, [shortcuts, unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
@@ -225,24 +208,18 @@ export default function Dashboard(props: DashboardProps) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
                         setBackend(new localBackend.LocalBackend(null))
-                        setDirectoryId(backendModule.DirectoryId(''))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
                         headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                         const client = new http.Client(headers)
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                        setDirectoryId(
-                            session.organization != null
-                                ? backendModule.rootDirectoryId(session.organization.id)
-                                : backendModule.DirectoryId('')
-                        )
                         break
                     }
                 }
             }
         },
-        [backend.type, logger, session.accessToken, session.organization, setBackend]
+        [backend.type, logger, session.accessToken, setBackend]
     )
 
     const doCreateProject = React.useCallback(
@@ -251,13 +228,14 @@ export default function Dashboard(props: DashboardProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.createProject,
-                parentId: directoryId,
+                type: assetListEventModule.AssetListEventType.newProject,
+                parentKey: null,
+                parentId: null,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [directoryId, /* should never change */ dispatchAssetListEvent]
+        [/* should never change */ dispatchAssetListEvent]
     )
 
     const openEditor = React.useCallback(
@@ -346,7 +324,6 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
-                            directoryId={directoryId}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             query={query}

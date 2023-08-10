@@ -24,7 +24,6 @@ export interface DriveViewProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
-    directoryId: backendModule.DirectoryId | null
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
@@ -44,7 +43,6 @@ export default function DriveView(props: DriveViewProps) {
         page,
         hidden,
         initialProjectName,
-        directoryId,
         query,
         assetListEvents,
         dispatchAssetListEvent,
@@ -58,7 +56,7 @@ export default function DriveView(props: DriveViewProps) {
         isListingRemoteDirectoryAndWillFail,
     } = props
     const logger = loggerProvider.useLogger()
-    const { accessToken } = authProvider.useNonPartialUserSession()
+    const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
@@ -90,7 +88,7 @@ export default function DriveView(props: DriveViewProps) {
 
     React.useEffect(() => {
         setIsLoadingAssets(true)
-    }, [backend, directoryId])
+    }, [backend])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -102,9 +100,9 @@ export default function DriveView(props: DriveViewProps) {
         (newAssets: backendModule.AnyAsset[]) => {
             rawSetAssets(newAssets)
             if (nameOfProjectToImmediatelyOpen != null) {
-                const projectToLoad = newAssets.find(
-                    projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-                )
+                const projectToLoad = newAssets
+                    .filter(backendModule.assetIsProject)
+                    .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
                 if (projectToLoad != null) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -155,13 +153,9 @@ export default function DriveView(props: DriveViewProps) {
                 case backendModule.BackendType.remote: {
                     if (
                         !isListingRemoteDirectoryAndWillFail &&
-                        !isListingRemoteDirectoryWhileOffline &&
-                        directoryId != null
+                        !isListingRemoteDirectoryWhileOffline
                     ) {
-                        const newAssets = await backend.listDirectory(
-                            { parentId: directoryId },
-                            null
-                        )
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
                             setAssets(newAssets)
@@ -173,35 +167,33 @@ export default function DriveView(props: DriveViewProps) {
                 }
             }
         },
-        [accessToken, directoryId, backend]
+        [accessToken, organization, backend]
     )
 
     const doUploadFiles = React.useCallback(
-        (files: FileList) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                toastAndLog('Files cannot be uploaded to the local backend')
-            } else if (directoryId == null) {
+        (files: File[]) => {
+            if (backend.type !== backendModule.BackendType.local && organization == null) {
                 // This should never happen, however display a nice error message in case it does.
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentId: directoryId,
+                    parentKey: null,
+                    parentId: null,
                     files,
                 })
             }
         },
-        [backend.type, directoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
+        [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: assetListEventModule.AssetListEventType.createDirectory,
-            parentId: directoryId,
+            type: assetListEventModule.AssetListEventType.newFolder,
+            parentKey: null,
+            parentId: null,
         })
-    }, [directoryId, /* should never change */ dispatchAssetListEvent])
+    }, [/* should never change */ dispatchAssetListEvent])
 
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
@@ -234,6 +226,7 @@ export default function DriveView(props: DriveViewProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
+                    dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
             <AssetsTable
@@ -249,7 +242,7 @@ export default function DriveView(props: DriveViewProps) {
                 doCloseIde={doCloseEditor}
             />
             {isFileBeingDragged &&
-            directoryId != null &&
+            organization != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
@@ -264,8 +257,9 @@ export default function DriveView(props: DriveViewProps) {
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentId: directoryId,
-                            files: event.dataTransfer.files,
+                            parentKey: null,
+                            parentId: null,
+                            files: Array.from(event.dataTransfer.files),
                         })
                     }}
                 >
