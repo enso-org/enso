@@ -344,6 +344,8 @@ fn generate_node_for_ast(
         match ast.shape() {
             ast::Shape::Prefix(_) =>
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
+            ast::Shape::Tree(tree) if tree.type_info == ast::TreeType::Lambda =>
+                lambda_generate_node(tree, kind, context, ast.id),
             ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
                 tree_generate_node(tree, kind, context, ast.id),
             ast::Shape::Block(block) => block_generate_node(block, kind, context, ast.id),
@@ -823,6 +825,82 @@ fn generate_trailing_expected_arguments(
 // =========================
 // === SpanTree for Tree ===
 // =========================
+
+fn lambda_generate_node(
+    tree: &ast::Tree<Ast>,
+    kind: node::Kind,
+    context: &impl Context,
+    ast_id: Option<Id>,
+) -> FallibleResult<Node> {
+    let mut children = vec![];
+    let size;
+    if let Some(leaf_info) = &tree.leaf_info {
+        size = ByteDiff::from(leaf_info.len());
+    } else {
+        let mut parent_offset = ByteDiff::from(0);
+        let mut sibling_offset = ByteDiff::from(0);
+        let is_arrow = |span_info| matches!(span_info, SpanSeed::Token(ast::SpanSeedToken { token }) if token == "->");
+        let arrow_index = tree.span_info.iter().cloned().position(is_arrow).unwrap_or(0);
+        let mut is_in_body = false;
+        for (index, raw_span_info) in tree.span_info.iter().enumerate() {
+            if index > arrow_index && !is_in_body {
+                is_in_body = true;
+                let kind = node::Kind::Token;
+                let node = Node::new().with_kind(kind).with_size(parent_offset);
+                let ast_crumbs = vec![TreeCrumb { index: 0 }.into()];
+                children.push(node::Child {
+                    node,
+                    parent_offset: ByteDiff::from(0),
+                    sibling_offset: ByteDiff::from(0),
+                    ast_crumbs,
+                });
+                sibling_offset = 0.byte_diff();
+            }
+            match raw_span_info {
+                SpanSeed::Space(ast::SpanSeedSpace { space }) => {
+                    parent_offset += ByteDiff::from(space);
+                    sibling_offset += ByteDiff::from(space);
+                }
+                SpanSeed::Token(ast::SpanSeedToken { token }) => {
+                    let kind = node::Kind::Token;
+                    let size = ByteDiff::from(token.len());
+                    let ast_crumbs = vec![TreeCrumb { index }.into()];
+                    let node = Node::new().with_kind(kind).with_size(size);
+                    if is_in_body {
+                        children.push(node::Child {
+                            node,
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs,
+                        });
+                    }
+                    parent_offset += size;
+                    sibling_offset = 0.byte_diff();
+                }
+                SpanSeed::Child(ast::SpanSeedChild { node }) => {
+                    let kind = node::Kind::argument().with_removable(false);
+                    let node = node.generate_node(kind, context)?;
+                    let child_size = node.size;
+                    let ast_crumbs = vec![TreeCrumb { index }.into()];
+                    if is_in_body {
+                        children.push(node::Child {
+                            node,
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs,
+                        });
+                    }
+                    parent_offset += child_size;
+                    sibling_offset = 0.byte_diff();
+                }
+            }
+        }
+        size = parent_offset;
+    }
+
+    let tree_type = Some(tree.type_info.clone());
+    Ok(Node { kind, tree_type, size, children, ..default() }.with_ast_id(ast_id))
+}
 
 fn tree_generate_node(
     tree: &ast::Tree<Ast>,
