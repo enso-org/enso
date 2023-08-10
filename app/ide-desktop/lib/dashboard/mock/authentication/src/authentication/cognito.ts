@@ -29,7 +29,9 @@
  * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
-// This SHOULD NOT import any runtime code.
+// These SHOULD NOT import any runtime code.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import type * as amplify from '@aws-amplify/auth'
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
@@ -353,14 +355,14 @@ export interface UserSession {
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(session: cognito.CognitoUserSession): UserSession {
-    const payload: Record<string, unknown> = session.getIdToken().payload
+function parseUserSession(_session: cognito.CognitoUserSession): UserSession {
+    const payload: Record<string, unknown> = { email: 'email@example.com' }
     const email = payload.email
     /** The `email` field is mandatory, so we assert that it exists and is a string. */
     if (typeof email !== 'string') {
         throw new Error('Payload does not have an email field.')
     } else {
-        const accessToken = session.getAccessToken().getJwtToken()
+        const accessToken = 'a jwt token'
         return { email, accessToken }
     }
 }
@@ -493,7 +495,7 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
  * to {@link ConfirmSignUpError}s. */
 async function confirmSignUp(_email: string, _code: string) {
     return results.Result.wrapAsync(async () => {
-        await Promise.resolve(null)
+        // Ignored.
     }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow))
 }
 
@@ -540,7 +542,7 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 
 /** A wrapper around the Amplify "sign in with Google" endpoint. */
 async function signInWithGoogle(_customState: string | null) {
-    await Promise.resolve(null)
+    // Ignored.
 }
 
 // ========================
@@ -567,7 +569,7 @@ function signInWithGitHub() {
  * to {@link SignInWithPasswordError}s. */
 async function signInWithPassword(_username: string, _password: string) {
     const result = await results.Result.wrapAsync(async () => {
-        await Promise.resolve(null)
+        // Ignored.
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
 }
@@ -634,9 +636,9 @@ const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
 
 /** A wrapper around the Amplify "forgot password" endpoint that converts known errors
  * to {@link ForgotPasswordError}s. */
-async function forgotPassword(email: string) {
+async function forgotPassword(_email: string) {
     return results.Result.wrapAsync(async () => {
-        await amplify.Auth.forgotPassword(email)
+        // Ignored.
     }).then(result => result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow))
 }
 
@@ -676,7 +678,7 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
  * to {@link ForgotPasswordSubmitError}s. */
 async function forgotPasswordSubmit(_email: string, _code: string, _password: string) {
     const result = await results.Result.wrapAsync(async () => {
-        await Promise.resolve(null)
+        // Ignored.
     })
     return result.mapErr(intoForgotPasswordSubmitErrorOrThrow)
 }
@@ -720,24 +722,20 @@ function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSub
  * to {@link AmplifyError}s. */
 async function currentAuthenticatedUser() {
     const result = await results.Result.wrapAsync(
-        /** The interface provided by Amplify declares that the return type is
-         * `Promise<CognitoUser | any>`, but TypeScript automatically converts it to `Promise<any>`.
-         * Therefore, it is necessary to use `as` to narrow down the type to
-         * `Promise<CognitoUser>`. */
+        // The methods are not needed.
         // eslint-disable-next-line no-restricted-syntax
-        () => amplify.Auth.currentAuthenticatedUser() as Promise<amplify.CognitoUser>
+        async () => await Promise.resolve<amplify.CognitoUser>({} as unknown as amplify.CognitoUser)
     )
     return result.mapErr(intoAmplifyErrorOrThrow)
 }
 
 /** A wrapper around the Amplify "change password submit" endpoint that converts known errors
  * to {@link AmplifyError}s. */
-async function changePassword(oldPassword: string, newPassword: string) {
+async function changePassword(_oldPassword: string, _newPassword: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
-        const cognitoUser = cognitoUserResult.unwrap()
         const result = await results.Result.wrapAsync(async () => {
-            await amplify.Auth.changePassword(cognitoUser, oldPassword, newPassword)
+            // Ignored.
         })
         return result.mapErr(intoAmplifyErrorOrThrow)
     } else {

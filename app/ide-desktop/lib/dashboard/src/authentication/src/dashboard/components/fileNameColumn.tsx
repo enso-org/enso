@@ -7,6 +7,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
+import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
@@ -109,7 +110,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <img src={fileInfo.fileIcon()} />
+            <img src={fileIcon.fileIcon()} />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

@@ -30,17 +30,25 @@ OPTS.loader['.html'] = 'copy'
 OPTS.plugins.push({
     name: 'inject-mock-modules',
     setup: build => {
-        build.onResolve({ filter: /(?:)/ }, async args => {
-            if (/^\.\.?\//.test(args.path)) {
-                const mockPath = path
-                    .resolve(args.importer, args.path)
-                    .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
+        build.onResolve({ filter: /^\.[^.]+$/ }, async args => {
+            const sourcePath = path.resolve(path.dirname(args.importer), args.path)
+            if (sourcePath.includes('/lib/dashboard/src/')) {
+                const mockPath = sourcePath.replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
                 try {
-                    await fs.access(mockPath, fs.constants.R_OK)
-                    return { path: mockPath }
+                    await fs.access(mockPath + '.ts', fs.constants.R_OK)
+                    return { path: mockPath + '.ts' }
                 } catch {
-                    return
+                    try {
+                        await fs.access(mockPath + '.tsx', fs.constants.R_OK)
+                        return { path: mockPath + '.tsx ' }
+                    } catch {
+                        return
+                    }
                 }
+            } else {
+                // The `if` case above always returns.
+                // eslint-disable-next-line no-restricted-syntax
+                return
             }
         })
     },

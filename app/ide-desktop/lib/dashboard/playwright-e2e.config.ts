@@ -12,5 +12,7 @@ export default test.defineConfig({
         command: 'npx tsx test-server.ts',
         port: 8080,
         reuseExistingServer: !process.env.CI,
+        stdout: 'pipe',
+        stderr:'pipe',
     },
 })

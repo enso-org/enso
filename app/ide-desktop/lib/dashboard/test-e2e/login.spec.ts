@@ -14,7 +14,19 @@ test.test('login flow', async ({ page }) => {
         'form should reject invalid email'
     ).toBe(false)
 
+    await page.fill('#email', '')
     await page.type('#email', 'email@example.com')
     await page.type('#password', 'password')
+    test.expect(
+        await page.evaluate(() => document.querySelector('form')?.checkValidity()),
+        'form should reject invalid password'
+    ).toBe(false)
+
+    await page.fill('#password', '')
+    await page.type('#password', 'Password0!')
     await page.click('[type=submit]')
+    await test.expect(page).toHaveScreenshot()
+
+    await page.waitForTimeout(3000)
+    await test.expect(page).toHaveScreenshot()
 })
