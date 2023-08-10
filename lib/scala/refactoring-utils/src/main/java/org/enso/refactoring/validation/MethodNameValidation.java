@@ -3,6 +3,7 @@ package org.enso.refactoring.validation;
 public final class MethodNameValidation {
 
   public static final String DEFAULT_NAME = "operator";
+
   private static final char CHAR_UNDERSCORE = '_';
   private static final char CHAR_LOWERCASE_A = 'a';
   private static final char CHAR_LOWERCASE_Z = 'z';
@@ -10,7 +11,7 @@ public final class MethodNameValidation {
   private static final char CHAR_UPPERCASE_Z = 'Z';
 
   /**
-   * Normalize the name to make it a valid Enso identifier of a method.
+   * Normalize the name to make it a valid identifier of a method.
    *
    * @param name the name to normalize.
    * @return the normalized name.
@@ -26,8 +27,8 @@ public final class MethodNameValidation {
   }
 
   /**
-   * @return {@code true} if the provided name is a valid identifier of an Enso method and {@code
-   *     false} otherwise.
+   * @return {@code true} if the provided name is a valid identifier of a method and {@code false}
+   *     otherwise.
    */
   public static boolean isAllowedName(String name) {
     return !name.isEmpty()

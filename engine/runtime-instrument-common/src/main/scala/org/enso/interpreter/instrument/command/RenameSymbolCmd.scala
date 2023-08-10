@@ -27,9 +27,14 @@ class RenameSymbolCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
+    val moduleFile = ctx.executionService.getContext
+      .findModule(request.module)
+      .map(module => Seq(new File(module.getPath)))
+      .orElseGet(() => Seq())
+
     val ensureCompiledJob = ctx.jobProcessor.run(
       new EnsureCompiledJob(
-        ctx.state.pendingEdits.files,
+        (ctx.state.pendingEdits.files ++ moduleFile).distinct,
         isCancellable = false
       )
     )

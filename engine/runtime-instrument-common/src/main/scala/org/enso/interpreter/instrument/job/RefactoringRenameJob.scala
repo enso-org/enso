@@ -151,7 +151,7 @@ final class RefactoringRenameJob(
       ctx.locking.releasePendingEditsLock()
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Kept read compilation lock [{0}] for {1} milliseconds.",
+        s"Kept pending edits lock [{0}] for {1} milliseconds.",
         Array(
           getClass.getSimpleName,
           System.currentTimeMillis() - pendingEditsLockTimestamp
