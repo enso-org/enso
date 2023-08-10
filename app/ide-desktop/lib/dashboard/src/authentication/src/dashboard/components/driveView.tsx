@@ -153,12 +153,14 @@ export default function DriveView(props: DriveViewProps) {
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
-            if (!initialized && initialProjectName != null) {
+            if (!initialized) {
                 setInitialized(true)
-                if (!newAssets.some(isInitialProject)) {
-                    const errorMessage = `No project named '${initialProjectName}' was found.`
-                    toastify.toast.error(errorMessage)
-                    logger.error(`Error opening project on startup: ${errorMessage}`)
+                if (initialProjectName != null) {
+                    if (!newAssets.some(isInitialProject)) {
+                        const errorMessage = `No project named '${initialProjectName}' was found.`
+                        toastify.toast.error(errorMessage)
+                        logger.error(`Error opening project on startup: ${errorMessage}`)
+                    }
                 }
             }
         },
