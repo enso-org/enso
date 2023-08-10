@@ -4,24 +4,30 @@ from Standard.Test import Bench, Phase_Conf
 
 import project.Vector.Utils
 
+type Setup
+    Value random_vec uniform_vec random_text_vec uniform_text_vec
 
-options = Bench.options . set_warmup (Phase_Conf.Iters 2) . set_measure (Phase_Conf.Iters 2)
+    setup : Setup
+    setup =
+        random_vec = Utils.make_random_vec 100000
+        uniform_vec = Vector.fill 100000 1
+        random_text_vec = random_vec.map .to_text
+        uniform_text_vec = random_vec.map .to_text
+        Setup.Value random_vec uniform_vec random_text_vec uniform_text_vec
 
-random_vec = Utils.make_random_vec 100000
-uniform_vec = Vector.fill 100000 1
-random_text_vec = random_vec.map .to_text
-uniform_text_vec = random_vec.map .to_text
+
+options = Bench.options . set_warmup (Phase_Conf.Iters 1) . set_measure (Phase_Conf.Iters 1) . set_setup Setup
 
 collect_benches = Bench.build builder->
     builder.group "Vector_Distinct" options group_builder->
         group_builder.specify "Random_Integer_Vector_Distinct" <|
-            random_vec.distinct
+            arg -> arg.random_vec.distinct
         group_builder.specify "Uniform_Integer_Vector_Distinct" <|
-            uniform_vec.distinct
+            arg -> arg.uniform_vec.distinct
         group_builder.specify "Random_Text_Vector_Distinct" <|
-            random_text_vec.distinct
+            arg -> arg.random_text_vec.distinct
         group_builder.specify "Uniform_Text_Vector_Distinct" <|
-            uniform_text_vec.distinct
+            arg -> arg.uniform_text_vec.distinct
 
 
 main = collect_benches . run_main
