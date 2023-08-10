@@ -47,6 +47,7 @@ export const theme = {
             'black-a10': 'rgba(0, 0, 0, 0.10)',
             'black-a16': 'rgba(0, 0, 0, 0.16)',
             'black-a30': 'rgba(0, 0, 0, 0.30)',
+            'black-a50': 'rgba(0, 0, 0, 0.50)',
             'gray-350': '#b7bcc5',
         },
         fontSize: {

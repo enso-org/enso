@@ -45,12 +45,13 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
-                <div className="flex items-center bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
                             <Button
                                 active
                                 image={AddFolderIcon}
+                                disabledOpacityClassName="opacity-20"
                                 onClick={() => {
                                     unsetModal()
                                     doCreateDirectory()
@@ -61,6 +62,7 @@ export default function DriveBar(props: DriveBarProps) {
                                 disabled
                                 image={AddConnectorIcon}
                                 error="Not implemented yet."
+                                disabledOpacityClassName="opacity-20"
                                 onClick={() => {
                                     // No backend support yet.
                                 }}
@@ -89,6 +91,7 @@ export default function DriveBar(props: DriveBarProps) {
                     <Button
                         active
                         image={DataUploadIcon}
+                        disabledOpacityClassName="opacity-20"
                         onClick={() => {
                             unsetModal()
                             uploadFilesRef.current?.click()
@@ -99,6 +102,7 @@ export default function DriveBar(props: DriveBarProps) {
                         disabled={backend.type !== backendModule.BackendType.local}
                         image={DataDownloadIcon}
                         error="Not implemented yet."
+                        disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()
                             unsetModal()
