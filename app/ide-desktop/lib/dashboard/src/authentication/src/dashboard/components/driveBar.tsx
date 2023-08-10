@@ -11,6 +11,9 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
+
 import Button from './button'
 
 // ================
@@ -31,7 +34,26 @@ export default function DriveBar(props: DriveBarProps) {
     const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        return shortcuts.registerKeyboardHandlers({
+            ...(backend.type !== backendModule.BackendType.local
+                ? {
+                      [shortcutsModule.KeyboardAction.newFolder]: () => {
+                          doCreateDirectory()
+                      },
+                  }
+                : {}),
+            [shortcutsModule.KeyboardAction.newProject]: () => {
+                doCreateProject(null)
+            },
+            [shortcutsModule.KeyboardAction.uploadFiles]: () => {
+                uploadFilesRef.current?.click()
+            },
+        })
+    }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
     return (
         <div className="flex py-0.5">
