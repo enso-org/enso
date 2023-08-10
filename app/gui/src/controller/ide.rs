@@ -27,7 +27,7 @@ pub use engine_protocol::project_manager::ProjectName;
 // ============================
 
 /// The handle used to pair the ProcessStarted and ProcessFinished notifications.
-pub type BackgroundTaskHandle = usize;
+pub type BackgroundTaskHandle = Uuid;
 
 /// A notification which should be displayed to the User on the status bar.
 #[allow(missing_docs)]
@@ -44,8 +44,7 @@ pub enum StatusNotification {
 /// A publisher for status notification events.
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct StatusNotificationPublisher {
-    publisher:           notification::Publisher<StatusNotification>,
-    next_process_handle: Rc<Cell<usize>>,
+    publisher: notification::Publisher<StatusNotification>,
 }
 
 impl StatusNotificationPublisher {
@@ -68,8 +67,7 @@ impl StatusNotificationPublisher {
     #[profile(Debug)]
     pub fn publish_background_task(&self, label: impl Into<String>) -> BackgroundTaskHandle {
         let label = label.into();
-        let handle = self.next_process_handle.get();
-        self.next_process_handle.set(handle + 1);
+        let handle = Uuid::new_v4();
         let notification = StatusNotification::BackgroundTaskStarted { label, handle };
         executor::global::spawn(self.publisher.publish(notification));
         handle

@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage> {
+public abstract class DoubleNumericOp extends BinaryMapOperation<Double, DoubleStorage> {
 
   public DoubleNumericOp(String name) {
     super(name);
@@ -20,7 +20,7 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
   protected abstract double doDouble(double a, double b, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public Storage<Double> runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<Double> runBinaryMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       return DoubleStorage.makeEmpty(storage.size());
     }

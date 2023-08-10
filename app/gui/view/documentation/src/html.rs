@@ -54,7 +54,7 @@ fn svg_icon(content: &'static str, class: &'static str) -> impl Render {
 // === Render ===
 // ==============
 
-/// Render entry documentation to HTML code with Tailwind CSS styles.
+/// Render entry documentation to HTML code.
 #[profile(Detail)]
 pub fn render(docs: &EntryDocumentation) -> String {
     let html = match docs {
@@ -584,23 +584,4 @@ fn single_tag<'a>(tag: &'a Tag) -> Box<dyn Render + 'a> {
 /// generated HTML elements.
 pub fn anchor_name(name: &QualifiedName) -> String {
     name.to_string().replace('.', "_").to_lowercase()
-}
-
-
-
-// ===============
-// === Caption ===
-// ===============
-
-/// "Hovered item preview" caption on top of the documentation panel.
-pub fn caption_html() -> String {
-    owned_html! {
-        div(class="enso-docs-caption-container") {
-            div(class="enso-docs-caption") {
-                : "Hovered item preview. Press the right mouse button to lock it.";
-            }
-        }
-    }
-    .into_string()
-    .unwrap()
 }

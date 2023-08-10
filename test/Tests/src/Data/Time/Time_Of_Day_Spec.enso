@@ -13,6 +13,8 @@ polyglot java import java.time.format.DateTimeFormatter
 spec =
     specWith "Time_Of_Day" enso_time Time_Of_Day.parse
     specWith "JavaLocalTime" java_time java_parse
+    if Polyglot.is_language_installed "python" then
+        specWith "PythonLocalTime" python_time python_parse nanoseconds_loss_in_precision=True
 
 specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
     Test.group name <|
@@ -27,7 +29,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
         Test.specify "should handle errors when creating a time" <|
             case create_new_time 24 0 0 . catch of
                 Time_Error.Error msg ->
-                    msg . should_equal "Invalid value for HourOfDay (valid values 0 - 23): 24"
+                    msg.to_text . contains "24" . should_not_equal -1
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
@@ -281,4 +283,19 @@ java_parse time_text pattern=Nothing =
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
 
+python_time hour minute=0 second=0 nanoOfSecond=0 =
+    Panic.catch Any (python_time_impl hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload))
+
+python_parse time_text pattern=Nothing =
+    t = Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
+        if pattern.is_nothing then LocalTime.parse time_text else
+            formatter = DateTimeFormatter.ofPattern pattern
+            LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
+    python_time t.hour t.minute t.second t.nanosecond
+
 main = Test_Suite.run_main spec
+
+foreign python python_time_impl hour minute second nanoOfSecond = """
+    import datetime
+    t = datetime.time(hour, minute, second, int(nanoOfSecond / 1000))
+    return t

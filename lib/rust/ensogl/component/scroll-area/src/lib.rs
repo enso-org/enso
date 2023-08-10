@@ -157,6 +157,30 @@ impl Viewport {
     }
 }
 
+impl Add<Vector2> for Viewport {
+    type Output = Self;
+    fn add(self, rhs: Vector2) -> Self::Output {
+        Self {
+            left:   self.left + rhs.x,
+            right:  self.right + rhs.x,
+            top:    self.top + rhs.y,
+            bottom: self.bottom + rhs.y,
+        }
+    }
+}
+
+impl Sub<Vector2> for Viewport {
+    type Output = Self;
+    fn sub(self, rhs: Vector2) -> Self::Output {
+        Self {
+            left:   self.left - rhs.x,
+            right:  self.right - rhs.x,
+            top:    self.top - rhs.y,
+            bottom: self.bottom - rhs.y,
+        }
+    }
+}
+
 
 
 // =============
@@ -185,7 +209,7 @@ mod mask {
 }
 
 /// Internal representaton of the scroll area.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Model {
     content:        display::object::Instance,
     scrollbars:     display::object::Instance,
@@ -199,14 +223,14 @@ struct Model {
 
 impl Model {
     fn resize(&self, size: Vector2) {
-        self.h_scrollbar.set_y(-size.y + scrollbar::WIDTH / 2.0);
-        let scrollbar_y = size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0;
-        self.v_scrollbar.set_x(scrollbar_y);
-        self.h_scrollbar.set_x(size.x / 2.0);
-        self.v_scrollbar.set_y(-size.y / 2.0);
+        self.v_scrollbar.set_xy((size.x - scrollbar::WIDTH, 0.0));
+        self.h_scrollbar.set_xy((0.0, -size.y));
+        self.v_scrollbar.set_length(size.y);
+        self.h_scrollbar.set_length(size.x);
+        self.v_scrollbar.set_thumb_size(size.y);
+        self.h_scrollbar.set_thumb_size(size.x);
         self.mask.set_size(size);
-        self.mask.set_x(size.x / 2.0);
-        self.mask.set_y(-size.y / 2.0);
+        self.mask.set_xy((size.x / 2.0, -size.y / 2.0));
     }
 }
 
@@ -222,24 +246,12 @@ impl Model {
 /// left corner. All scroll coordinates describe the point of the `content` object at that corner.
 /// The scrollbars are only active when the content is actually larger than the viewport on the
 /// respective axis. The component does not have a background.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct ScrollArea {
+    #[display_object]
     model: Model,
+    #[deref]
     frp:   Frp,
-}
-
-impl Deref for ScrollArea {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl display::Object for ScrollArea {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl ScrollArea {
@@ -293,10 +305,6 @@ impl ScrollArea {
 
             model.h_scrollbar.set_max        <+ frp.set_content_width;
             model.v_scrollbar.set_max        <+ frp.set_content_height;
-            model.h_scrollbar.set_thumb_size <+ frp.resize.map(|size| size.x);
-            model.v_scrollbar.set_thumb_size <+ frp.resize.map(|size| size.y);
-            model.h_scrollbar.set_length     <+ frp.resize.map(|size| size.x);
-            model.v_scrollbar.set_length     <+ frp.resize.map(|size| size.y);
             frp.source.scroll_area_height    <+ frp.resize.map(|size| size.y);
 
             eval frp.resize((size) model.resize(*size));
@@ -353,7 +361,6 @@ impl ScrollArea {
                 }
             });
             frp.source.viewport <+ viewport;
-
         }
 
 

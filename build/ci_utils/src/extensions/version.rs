@@ -14,6 +14,12 @@ pub trait VersionExt {
         self.core() == other.core()
     }
 
+    /// Get the version numbers, excluding the prerelease or build metadata, as a string.
+    fn to_string_core(&self) -> String {
+        let (major, minor, patch) = self.core();
+        format!("{major}.{minor}.{patch}")
+    }
+
     /// Get the identifiers (i.e. the dot-separated parts after the hyphen) of the prerelease.
     ///
     /// ```

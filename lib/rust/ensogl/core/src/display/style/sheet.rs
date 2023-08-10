@@ -791,6 +791,20 @@ pub struct Var {
     rc: Rc<VarData>,
 }
 
+impl Eq for Var {}
+impl PartialEq for Var {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.rc, &other.rc)
+    }
+}
+
+impl Hash for Var {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Rc::as_ptr(&self.rc).hash(state)
+    }
+}
+
+
 /// Internal state of `Var`.
 #[derive(Debug)]
 pub struct VarData {

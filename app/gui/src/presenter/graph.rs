@@ -97,22 +97,27 @@ impl Model {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
     ) -> Self {
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
             controller.clone_ref(),
-            view.clone_ref(),
+            graph_editor_view.clone_ref(),
             state.clone_ref(),
         );
         let widget = controller::Widget::new(controller.clone_ref());
-        let execution_stack =
-            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
+        let execution_stack = CallStack::new(
+            controller.clone_ref(),
+            graph_editor_view.clone_ref(),
+            project_view.clone_ref(),
+            state.clone_ref(),
+        );
         Self {
             project,
             controller,
-            view,
+            view: graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -668,8 +673,9 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let view = project_view.graph().clone_ref();
-        let model = Rc::new(Model::new(project, controller, view));
+        let graph_editor_view = project_view.graph().clone_ref();
+        let project_view_clone = project_view.clone_ref();
+        let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
         Self { network, model }.init(project_view)
     }
 

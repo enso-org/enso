@@ -4,7 +4,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -14,9 +14,9 @@ public abstract class BranchNode extends BaseNode {
   private @Child DirectCallNode callNode;
   private final boolean terminalBranch;
 
-  private final ConditionProfile finalBranchProfiler = ConditionProfile.createCountingProfile();
-  private final ConditionProfile propgateResultProfiler = ConditionProfile.createCountingProfile();
-  private final ConditionProfile ensureWrappedProfiler = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile finalBranchProfiler = CountingConditionProfile.create();
+  private final CountingConditionProfile propgateResultProfiler = CountingConditionProfile.create();
+  private final CountingConditionProfile ensureWrappedProfiler = CountingConditionProfile.create();
 
   BranchNode(RootCallTarget branch, boolean terminalBranch) {
     this.callNode = DirectCallNode.create(branch);

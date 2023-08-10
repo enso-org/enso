@@ -30,7 +30,7 @@ class ProjectInfoHandler(languageServerConfig: Config)
       )
       if (projectConfig.isSuccess) {
         val projectInfo = ProjectInfo.Result(
-          projectName   = projectConfig.get.name,
+          projectName   = projectConfig.get.moduleName,
           engineVersion = Info.ensoVersion,
           graalVersion  = Info.graalVersion
         )

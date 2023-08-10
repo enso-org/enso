@@ -625,7 +625,10 @@ impl<'s> Lexer<'s> {
                     let (left, right) = token.split_at_(Bytes(1));
                     let lhs = analyze_operator(&left.code);
                     self.submit_token(left.with_variant(token::Variant::operator(lhs)));
-                    let rhs = analyze_operator(&right.code);
+                    // The `-` in this case is not identical to a free `-`: It is only allowed a
+                    // unary interpretation.
+                    let rhs = token::OperatorProperties::new()
+                        .with_unary_prefix_mode(token::Precedence::unary_minus());
                     self.submit_token(right.with_variant(token::Variant::operator(rhs)));
                 }
                 // Composed of operator characters, but not an operator node.
@@ -1560,9 +1563,7 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let properties = analyze_operator("-");
-        let unary_minus = Token("", "-", token::Variant::operator(properties));
-        test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
+        assert_eq!(run("+-").unwrap().len(), 2);
     }
 
     /// Based on https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt.

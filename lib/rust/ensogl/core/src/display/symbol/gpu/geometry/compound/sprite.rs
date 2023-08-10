@@ -383,7 +383,7 @@ impl SpriteSystem {
 /// such as a [`ShapeSystem`]; however, because the display object is permanently bound to an
 /// instance from a particular [`SpriteSystem`], it is not possible to implement layer operations
 /// for such objects.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct Sprite {
     #[deref]
     sprite:         RawSprite,
@@ -414,11 +414,5 @@ impl Sprite {
             eval_ display_object.on_show(sprite.show());
             eval_ display_object.on_hide(sprite.hide());
         }
-    }
-}
-
-impl display::Object for Sprite {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

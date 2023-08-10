@@ -3,15 +3,14 @@ package org.enso.interpreter.test;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -36,14 +35,17 @@ public class JavaInteropTest extends TestBase {
     out.reset();
   }
 
-  private void checkPrint(String code, List<String> expected) {
-    Value result = evalModule(ctx, code);
-    assertTrue("should return Nothing", result.isNull());
-    String[] logLines = out
+  private String[] getStdOutLines() {
+    return out
         .toString(StandardCharsets.UTF_8)
         .trim()
         .split(System.lineSeparator());
-    assertArrayEquals(expected.toArray(), logLines);
+  }
+
+  private void checkPrint(String code, List<String> expected) {
+    Value result = evalModule(ctx, code);
+    assertTrue("should return Nothing", result.isNull());
+    assertArrayEquals(expected.toArray(), getStdOutLines());
   }
 
   @Test
@@ -72,7 +74,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportStaticInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass.StaticInnerClass
-        
+
         main =
             instance = StaticInnerClass.new "my_data"
             instance.add 1 2
@@ -87,7 +89,7 @@ public class JavaInteropTest extends TestBase {
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.InnerEnum
-        
+
         main =
             IO.println <| TestClass.enumToString InnerEnum.ENUM_VALUE_1
             IO.println <| TestClass.enumToString TestClass.InnerEnum.ENUM_VALUE_2
@@ -99,7 +101,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportOuterClassAndReferenceInner() {
     var code = """
         polyglot java import org.enso.example.TestClass
-        
+
         main =
             instance = TestClass.StaticInnerClass.new "my_data"
             instance.getData
@@ -114,7 +116,7 @@ public class JavaInteropTest extends TestBase {
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.StaticInnerClass
-        
+
         main =
             inner_value = TestClass.StaticInnerClass.new "my_data"
             other_inner_value = StaticInnerClass.new "my_data"
@@ -128,7 +130,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportNestedInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass.StaticInnerClass.StaticInnerInnerClass
-        
+
         main =
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
@@ -163,12 +165,96 @@ public class JavaInteropTest extends TestBase {
   public void testImportOuterClassAndAccessNestedInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass
-        
+
         main =
             instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
             instance.mul 3 5
         """;
     var res = evalModule(ctx, code);
     assertEquals(15, res.asInt());
+  }
+
+  @Test
+  public void testToStringBehavior() {
+    var code = """
+    from Standard.Base import all
+
+    polyglot java import org.enso.example.ToString as Foo
+
+    type My_Fooable_Implementation
+        Instance x
+
+        foo : Integer
+        foo self = 100+self.x
+
+    main =
+        fooable = My_Fooable_Implementation.Instance 23
+        a = fooable.foo
+        b = fooable.to_text
+        c = Foo.callFoo fooable
+        d = Foo.showObject fooable
+        e = Foo.callFooAndShow fooable
+        [a, b, c, d, e]
+    """;
+
+    var res = evalModule(ctx, code);
+    assertTrue("It is an array", res.hasArrayElements());
+    assertEquals("Array with five elements", 5, res.getArraySize());
+    assertEquals(123, res.getArrayElement(0).asInt());
+    assertEquals("(Instance 23)", res.getArrayElement(1).asString());
+    assertEquals("Fooable.foo() = 123", res.getArrayElement(2).asString());
+    assertEquals("obj.toString() = (Instance 23)", res.getArrayElement(3).asString());
+    assertEquals("{(Instance 23)}.foo() = 123", res.getArrayElement(4).asString());
+  }
+
+  @Test
+  public void testInterfaceProxyFailuresA() {
+    var payload = evalInterfaceProxyFailures("a");
+    assertEquals("My_Exc", payload.getMetaObject().getMetaSimpleName());
+    var stdout = getStdOutLines();
+    var expectedLines = List.of("Executing Fooable_Panic.foo");
+    assertArrayEquals(expectedLines.toArray(), stdout);
+  }
+
+  @Test
+  public void testInterfaceProxyFailuresB() {
+    var result = evalInterfaceProxyFailures("b");
+    assertEquals("nonexistent_text_method", result.asString());
+    var stdout = getStdOutLines();
+    var expectedLines = List.of("Executing Fooable_Unresolved.foo");
+    assertArrayEquals(expectedLines.toArray(), stdout);
+  }
+
+  private Value evalInterfaceProxyFailures(String methodToEval) {
+    var code = """
+        from Standard.Base import all
+        import Standard.Base.Errors.Common.No_Such_Method
+
+        polyglot java import org.enso.example.ToString as Foo
+
+        type My_Exc
+            Error
+
+        type Fooable_Panic
+            Value
+
+            foo : Integer
+            foo self =
+                IO.println "Executing Fooable_Panic.foo"
+                Panic.throw My_Exc.Error
+
+        type Fooable_Unresolved
+            Value
+
+            foo : Integer
+            foo self =
+                IO.println "Executing Fooable_Unresolved.foo"
+                "".nonexistent_text_method
+
+        a = Panic.catch My_Exc (Foo.callFoo Fooable_Panic.Value) (.payload)
+        b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
+        """;
+
+    return evalModule(ctx, code + "\nmain = " + methodToEval);
   }
 }

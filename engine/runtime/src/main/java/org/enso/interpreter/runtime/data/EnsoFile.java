@@ -10,7 +10,9 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
 import java.util.function.IntFunction;
+
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -28,6 +30,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Set;
+
+import com.oracle.truffle.api.dsl.Cached;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -51,10 +55,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.ReturningGuestObject
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public OutputStream outputStream(Object opts,
-      EnsoContext ctx,
-      @CachedLibrary(limit = "5") InteropLibrary interop) throws IOException {
-    OpenOption[] openOptions = convertInteropArray(opts, interop, ctx, OpenOption[]::new);
+  public OutputStream outputStream(Object opts, EnsoContext ctx) throws IOException {
+    OpenOption[] openOptions = convertInteropArray(opts, InteropLibrary.getUncached(), ctx, OpenOption[]::new);
     return this.truffleFile.newOutputStream(openOptions);
   }
 
@@ -63,10 +65,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Specialize
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
-  public InputStream inputStream(Object opts,
-      EnsoContext ctx,
-      @CachedLibrary(limit = "5") InteropLibrary interop) throws IOException {
-    OpenOption[] openOptions = convertInteropArray(opts, interop, ctx, OpenOption[]::new);
+  public InputStream inputStream(Object opts, EnsoContext ctx) throws IOException {
+    OpenOption[] openOptions = convertInteropArray(opts, InteropLibrary.getUncached(), ctx, OpenOption[]::new);
     return this.truffleFile.newInputStream(openOptions);
   }
 
@@ -268,10 +268,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public void copy(EnsoFile target, Object options,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
-      EnsoContext ctx) throws IOException {
-    CopyOption[] copyOptions = convertInteropArray(options, interop, ctx, CopyOption[]::new);
+  public void copy(EnsoFile target, Object options, EnsoContext ctx) throws IOException {
+    CopyOption[] copyOptions = convertInteropArray(options, InteropLibrary.getUncached(), ctx, CopyOption[]::new);
     truffleFile.copy(target.truffleFile, copyOptions);
   }
 
@@ -280,9 +278,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public void move(EnsoFile target, Object options,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
       EnsoContext ctx) throws IOException {
-    CopyOption[] copyOptions = convertInteropArray(options, interop, ctx, CopyOption[]::new);
+    CopyOption[] copyOptions = convertInteropArray(options, InteropLibrary.getUncached(), ctx, CopyOption[]::new);
     truffleFile.move(target.truffleFile, copyOptions);
   }
 
@@ -347,7 +344,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().file();
   }
 }

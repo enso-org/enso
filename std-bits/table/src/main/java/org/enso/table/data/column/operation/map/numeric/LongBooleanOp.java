@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -15,7 +15,7 @@ import java.util.BitSet;
 /**
  * An operation expecting a numeric argument and returning a boolean.
  */
-public abstract class LongBooleanOp extends MapOperation<Long, AbstractLongStorage> {
+public abstract class LongBooleanOp extends BinaryMapOperation<Long, AbstractLongStorage> {
   public LongBooleanOp(String name) {
     super(name);
   }
@@ -29,7 +29,7 @@ public abstract class LongBooleanOp extends MapOperation<Long, AbstractLongStora
   }
 
   @Override
-  public BoolStorage runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     if (arg instanceof Long) {
       long x = (Long) arg;
@@ -132,5 +132,10 @@ public abstract class LongBooleanOp extends MapOperation<Long, AbstractLongStora
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }
+  }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
   }
 }

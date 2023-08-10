@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.graalvm.polyglot.Context;
 
-/** An operation that takes a single double argumebnt and returns a long. */
+/** An operation that takes a single double argument and returns a long. */
 public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, AbstractLongStorage> {
 
   public UnaryLongToLongOp(String name) {
@@ -16,7 +17,8 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
   protected abstract long doOperation(long value);
 
   @Override
-  protected LongStorage run(AbstractLongStorage storage) {
+  protected LongStorage runUnaryMap(
+      AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];

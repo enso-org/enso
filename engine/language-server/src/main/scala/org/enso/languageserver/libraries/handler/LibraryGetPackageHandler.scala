@@ -136,7 +136,7 @@ class LibraryGetPackageHandler(
           .readPackage()
           .map(config =>
             LocalLibraryManagerProtocol.GetPackageResponse(
-              LibraryName(config.namespace, config.name),
+              LibraryName(config.namespace, config.moduleName),
               config.license,
               config.componentGroups.toOption,
               config.originalJson
@@ -154,7 +154,7 @@ class LibraryGetPackageHandler(
       .fetchPackageConfig()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
-    libraryName     = LibraryName(config.namespace, config.name),
+    libraryName     = LibraryName(config.namespace, config.moduleName),
     license         = config.license,
     componentGroups = config.componentGroups.toOption,
     rawPackage      = config.originalJson

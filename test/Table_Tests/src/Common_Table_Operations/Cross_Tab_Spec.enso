@@ -17,10 +17,11 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    db_todo = if setup.is_database.not then Nothing else "Table.transpose is not implemented yet in Database."
+    db_todo = if setup.is_database.not then Nothing else "Table.cross_tab is not implemented yet in Database."
     Test.group prefix+"Table.cross_tab" pending=db_todo <|
         table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
         table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+
         Test.specify "should cross_tab counts by default using first column as names" <|
             t1 = table.cross_tab [] "Key"
             t1.column_names . should_equal ["x", "y", "z"]
@@ -80,6 +81,16 @@ spec setup =
             t1.at "z" . to_vector . should_equal [1, 1]
 
             table2.cross_tab [Sum "Group"] "Key" . should_fail_with Illegal_Argument
+
+        Test.specify "should allow a grouping by Aggregate_Colum, with some empty bins" <|
+            table3 = table_builder [["Group", ["B","A","B","A","A"]], ["Key", ["x", "y", "y", "y", "z"]], ["Value", [4, 5, 6, 7, 8]]]
+            t1 = table3.cross_tab [Group_By "Group"] "Key"
+            t1.column_names . should_equal ["Group", "x", "y", "z"]
+            t1.row_count . should_equal 2
+            t1.at "Group" . to_vector . should_equal ["A", "B"]
+            t1.at "x" . to_vector . should_equal [0, 1]
+            t1.at "y" . to_vector . should_equal [2, 1]
+            t1.at "z" . to_vector . should_equal [1, 0]
 
         Test.specify "should allow a grouping by text" <|
             t1 = table2.cross_tab "Group" "Key"
@@ -227,23 +238,23 @@ spec setup =
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab [] "Key"
-            r1.should_fail_with Illegal_Argument
-            r1.catch.to_display_text . should_contain "must not contain the NUL character"
+            r1.should_fail_with Invalid_Column_Names
+            r1.catch.to_display_text . should_contain "cannot contain the NUL character"
 
             r2 = table2.cross_tab [] "Key" values=[Average "Value" new_name='x\0']
             r2.print
-            r2.should_fail_with Illegal_Argument
-            r2.catch.to_display_text . should_contain "must not contain the NUL character"
+            r2.should_fail_with Invalid_Column_Names
+            r2.catch.to_display_text . should_contain "cannot contain the NUL character"
 
         Test.specify "should fail gracefully if an effective column name would be empty or null" <|
             table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab [] "Key"
-            r1.should_fail_with Illegal_Argument
+            r1.should_fail_with Invalid_Column_Names
             r1.catch.to_display_text . should_contain "cannot be empty"
 
             table2 = table_builder [["Key", [" ", "x", "x", "x", Nothing, Nothing, Nothing, "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r2 = table2.cross_tab [] "Key"
-            r2 . should_fail_with Illegal_Argument
+            r2 . should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot be Nothing"
 
         Test.specify "should fail gracefully if producing too many columns in a table" <|

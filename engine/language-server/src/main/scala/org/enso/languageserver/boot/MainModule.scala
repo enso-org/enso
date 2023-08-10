@@ -9,6 +9,7 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
+import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -235,6 +236,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       ReceivesTreeUpdatesHandler.props(
         languageServerConfig,
         contentRootManagerWrapper,
+        new WatcherAdapterFactory,
         fileSystem,
         zioExec
       ),

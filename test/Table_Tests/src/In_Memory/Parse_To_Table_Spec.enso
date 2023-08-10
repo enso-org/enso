@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Data.Table_Conversions
 import Standard.Test.Extensions
@@ -17,6 +18,12 @@ spec =
             expected = Table.from_rows ["Column"]
                                        [["a"], ["ab12"], ["bt100"], ["c12"], ["d20"], ["q"]]
             actual = "a 7 ab12 bt100 c12d20q 12".parse_to_table "[a-z]+\d*"
+            actual.should_equal expected
+
+        Test.specify "text_to_table with a regex" <|
+            expected = Table.from_rows ["Column"]
+                                       [["a"], ["ab12"], ["bt100"], ["c12"], ["d20"], ["q"]]
+            actual = "a 7 ab12 bt100 c12d20q 12".parse_to_table "[a-z]+\d*".to_regex
             actual.should_equal expected
 
     Test.group "Text.parse_to_table with groups" <|
@@ -67,5 +74,8 @@ spec =
 
         Test.specify "enpty pattern" <|
             "abc".parse_to_table "" . should_fail_with Illegal_Argument
+
+        Test.specify "bad arg" <|
+            Test.expect_panic_with (actual = "a 7 ab12 bt100 c12d20q 12".parse_to_table 12) Type_Error
 
 main = Test_Suite.run_main spec

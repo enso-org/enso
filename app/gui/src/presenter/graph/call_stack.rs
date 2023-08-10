@@ -20,20 +20,20 @@ use ide_view as view;
 #[derive(Debug)]
 struct Model {
     controller: controller::ExecutedGraph,
-    view:       view::graph_editor::GraphEditor,
+    view:       view::project::View,
     state:      Rc<State>,
 }
 
 impl Model {
     fn new(
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        view: view::project::View,
         state: Rc<State>,
     ) -> Self {
         Self { controller, view, state }
     }
 
-    fn push_stack(&self, stack: Vec<view::graph_editor::LocalCall>) {
+    fn push_stack(&self, stack: Vec<view::project_view_top_bar::LocalCall>) {
         let store_stack = self.store_updated_stack_task();
         let controller = self.controller.clone_ref();
         executor::global::spawn(async move {
@@ -137,12 +137,12 @@ impl Model {
     fn add_breadcrumbs_in_view(&self, stack: Vec<LocalCall>) {
         let view_stack = stack
             .into_iter()
-            .map(|frame| view::graph_editor::LocalCall {
+            .map(|frame| view::project_view_top_bar::LocalCall {
                 call:       frame.call,
                 definition: frame.definition.into(),
             })
             .collect::<Vec<_>>();
-        self.view.model.breadcrumbs.push_breadcrumbs(view_stack);
+        self.view.top_bar().breadcrumbs.push_breadcrumbs(view_stack);
     }
 }
 
@@ -164,17 +164,18 @@ impl CallStack {
     /// Constructor. The returned presenter works right away.
     pub fn new(
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
         state: Rc<State>,
     ) -> Self {
         let network = frp::Network::new("presenter::graph::CallStack");
-        let model = Rc::new(Model::new(controller, view, state));
+        let model = Rc::new(Model::new(controller, project_view, state));
         let view = &model.view;
-        let breadcrumbs = &view.model.breadcrumbs;
+        let breadcrumbs = &view.top_bar().breadcrumbs;
 
         frp::extend! { network
-            eval view.node_entered ((node) model.node_entered(*node));
-            eval_ view.node_exited (model.node_exited());
+            eval graph_editor_view.node_entered ((node) model.node_entered(*node));
+            eval_ graph_editor_view.node_exited (model.node_exited());
 
             eval breadcrumbs.output.breadcrumb_push ((stack) model.push_stack(stack.clone()));
             eval breadcrumbs.output.breadcrumb_pop ((count) model.pop_stack(*count));
@@ -194,7 +195,7 @@ impl CallStack {
             match notification {
                 Notification::EnteredStack(stack) => model.add_breadcrumbs_in_view(stack),
                 Notification::ExitedStack(count) =>
-                    model.view.model.breadcrumbs.pop_breadcrumbs(count),
+                    model.view.top_bar().breadcrumbs.pop_breadcrumbs(count),
                 _ => {}
             }
             std::future::ready(())

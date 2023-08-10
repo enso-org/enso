@@ -52,10 +52,19 @@ case class Buffer(
     * @param lastModifiedTime the last modified time of the underlying file
     * @return the buffer with new last modified time
     */
-  def withLastModifiedTime(lastModifiedTime: OffsetDateTime): Buffer =
+  def withLastModifiedTime(
+    lastModifiedTime: OffsetDateTime
+  ): Buffer =
     copy(
-      fileWithMetadata =
-        fileWithMetadata.copy(lastModifiedTime = Some(lastModifiedTime))
+      fileWithMetadata = fileWithMetadata.copy(
+        lastModifiedTime = Some(lastModifiedTime)
+      )
+    )
+
+  /** Set the modified-on-disk flag of the underlying file. */
+  def withModifiedOnDisk(flag: Boolean = true): Buffer =
+    copy(
+      fileWithMetadata = fileWithMetadata.copy(isModifiedOnDisk = flag)
     )
 }
 

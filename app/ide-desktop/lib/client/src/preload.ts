@@ -6,6 +6,7 @@
 import * as electron from 'electron'
 
 import * as ipc from 'ipc'
+import * as projectManagement from 'project-management'
 
 // =================
 // === Constants ===
@@ -13,7 +14,37 @@ import * as ipc from 'ipc'
 
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
+const BACKEND_API_KEY = 'backendApi'
+/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+ * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
+
+// =============================
+// === importProjectFromPath ===
+// =============================
+
+const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
+    string,
+    (projectId: projectManagement.BundleInfo) => void
+>()
+
+electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
+    importProjectFromPath: (projectPath: string) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+        return new Promise<projectManagement.BundleInfo>(resolve => {
+            IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
+        })
+    },
+})
+
+electron.ipcRenderer.on(
+    ipc.Channel.importProjectFromPath,
+    (_event, projectPath: string, projectInfo: projectManagement.BundleInfo) => {
+        const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
+        IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
+        resolveFunction?.(projectInfo)
+    }
+)
 
 // =======================
 // === Debug Info APIs ===
@@ -35,6 +66,7 @@ electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
 // Save and load profile data.
 let onProfiles: ((profiles: string[]) => void)[] = []
 let profilesLoaded: string[] | null
+
 electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)
@@ -42,6 +74,7 @@ electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[])
     onProfiles = []
     profilesLoaded = profiles
 })
+
 electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
     saveProfile: (data: unknown) => {
@@ -77,6 +110,8 @@ electron.contextBridge.exposeInMainWorld('enso_console', {
 // === Authentication API ===
 // ==========================
 
+let currentDeepLinkHandler: ((event: Electron.IpcRendererEvent, url: string) => void) | null = null
+
 /** Object exposed on the Electron main window; provides proxy functions to:
  * - open OAuth flows in the system browser, and
  * - handle deep links from the system browser or email client to the dashboard.
@@ -102,10 +137,15 @@ const AUTHENTICATION_API = {
      * `enso://authentication/register?code=...&state=...` from external sources like the user's
      * system browser or email client. Handling the links involves resuming whatever flow was in
      * progress when the link was opened (e.g., an OAuth registration flow). */
-    setDeepLinkHandler: (callback: (url: string) => void) =>
-        electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => {
+    setDeepLinkHandler: (callback: (url: string) => void) => {
+        if (currentDeepLinkHandler != null) {
+            electron.ipcRenderer.off(ipc.Channel.openDeepLink, currentDeepLinkHandler)
+        }
+        currentDeepLinkHandler = (_event, url: string) => {
             callback(url)
-        }),
+        }
+        electron.ipcRenderer.on(ipc.Channel.openDeepLink, currentDeepLinkHandler)
+    },
     /** Save the access token to a credentials file.
      *
      * The backend doesn't have access to Electron's `localStorage` so we need to save access token

@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "@types/semver": "^7.3.9",
-    "enso-content-config": "^1.0.0"
+    "enso-content-config": "^1.0.0",
+    "react-toastify": "^9.1.3"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

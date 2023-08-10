@@ -33,6 +33,11 @@ spec =
         Test.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
 
+        Test.specify "passing a non-string should fail with a type error" <|
+            Test.expect_panic_with (Regex.compile 12) Type_Error
+            p = Regex.compile "[a-z]"
+            Test.expect_panic_with (Regex.compile p) Type_Error
+
     Test.group "Escape" <|
         Test.specify "should escape an expression for use as a literal" <|
             Regex.escape "[a-z\d]+" . should_equal '\\[a-z\\d\\]\\+'

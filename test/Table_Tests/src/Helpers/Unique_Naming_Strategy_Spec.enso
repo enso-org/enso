@@ -1,26 +1,31 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+import Standard.Database.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
+    no_limit = Unlimited_Naming_Properties.Instance
     Test.group 'Unique_Name_Strategy Helper' <|
         Test.specify 'should change an empty name to "Column"' <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_valid_name "" . should_equal "Column"
             strategy.make_valid_name "FOO" . should_equal "FOO"
             strategy.make_valid_name "Column" . should_equal "Column"
             strategy.invalid_names.length . should_equal 1
 
         Test.specify 'should change Nothing to "Column"' <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_valid_name Nothing . should_equal "Column"
             strategy.invalid_names.length . should_equal 1
 
         Test.specify 'should not rename unique names' <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_unique "A" . should_equal "A"
             strategy.make_unique "B" . should_equal "B"
             strategy.make_unique "C" . should_equal "C"
@@ -28,7 +33,7 @@ spec =
             strategy.invalid_names.length . should_equal 0
 
         Test.specify 'should rename duplicates names' <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_unique "A" . should_equal "A"
             strategy.make_unique "A" . should_equal "A 1"
             strategy.make_unique "A" . should_equal "A 2"
@@ -36,7 +41,7 @@ spec =
             strategy.invalid_names.length . should_equal 0
 
         Test.specify 'should preserve existing suffix' <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_unique "A" . should_equal "A"
             strategy.make_unique "A 1" . should_equal "A 1"
             strategy.make_unique "A" . should_equal "A 2"
@@ -45,7 +50,7 @@ spec =
             strategy.invalid_names.length . should_equal 0
 
         Test.specify "should always add a counter when renaming invalid names" <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             strategy.make_unique "" . should_equal "Column 1"
             strategy.make_unique "" . should_equal "Column 2"
             strategy.make_unique Nothing . should_equal "Column 3"
@@ -54,7 +59,7 @@ spec =
             strategy.make_unique "" . should_equal "Column 4"
 
         Test.specify 'should work as in examples' <|
-            unique_name_strategy = Unique_Name_Strategy.new
+            unique_name_strategy = Unique_Name_Strategy.new no_limit
             unique_names = ["A", "B", "A", ""] . map unique_name_strategy.make_unique
             duplicates = unique_name_strategy.renames
             invalid = unique_name_strategy.invalid_names
@@ -62,13 +67,125 @@ spec =
             invalid.should_equal [""]
             unique_names.should_equal ["A", "B", "A 1", "Column 1"]
 
-            strategy_1 = Unique_Name_Strategy.new
+            strategy_1 = Unique_Name_Strategy.new no_limit
             strategy_1.make_unique "A" . should_equal "A"
             strategy_1.make_unique "A" . should_equal "A 1"
 
+        Test.specify "should treat string equality consistently with Enso" <|
+            s1 = 'ś'
+            s2 = 's\u0301'
+            # Enso makes these values equal
+            s1 . should_equal s2
+            # but their codepoint representation does differ:
+            s1.codepoints . should_equal [347]
+            s2.codepoints . should_equal [115, 769]
+
+            strategy = Unique_Name_Strategy.new no_limit
+            r1 = strategy.make_unique s1
+            r1 . should_equal s1
+            r1.codepoints . should_equal [347]
+
+            # A suffix should be added, because the two names should be considered equal, so the second one needs to be deduplicated.
+            r2 = strategy.make_unique s2
+            r2 . should_equal 's\u0301 1'
+            # But the underlying representation should remain unchanged.
+            r2.codepoints . should_equal [115, 769, 32, 49]
+
+        Test.specify "should work with a string size limit" <|
+            limit = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.utf_8 limit=5
+            strategy = Unique_Name_Strategy.new limit
+
+            strategy.make_unique "A" . should_equal "A"
+            strategy.make_unique "A" . should_equal "A 1"
+
+            strategy.make_unique "abcdefgh" . should_equal "abcde"
+            strategy.make_unique "abcdefghXYZ" . should_equal "abc 1"
+            strategy.make_unique "abc" . should_equal "abc"
+            # abc 1 is used so we go straight to abc 2
+            strategy.make_unique "abc" . should_equal "abc 2"
+            strategy.make_unique "abcd" . should_equal "abcd"
+            strategy.make_unique "abcde" . should_equal "abc 3"
+            strategy.make_unique "abcd" . should_equal "abc 4"
+            strategy.make_unique "abX" . should_equal "abX"
+            strategy.make_unique "abc" . should_equal "abc 5"
+
+            strategy.make_unique "abcdX" . should_equal "abcdX"
+            strategy.make_unique "abcdY" . should_equal "abcdY"
+            strategy.make_unique "abcdYZ" . should_equal "abc 6"
+
+            strategy.make_all_unique ["abcd", "abcde", "abc"] . should_equal ["abc 7", "abc 8", "abc 9"]
+            strategy.make_unique "abc" . should_equal "ab 10"
+            strategy.make_unique "abc" . should_equal "ab 11"
+
+            strategy.truncated_names . should_be_a Map
+            strategy.truncated_names.get "abcdefgh" . should_equal "abcde"
+            # abc will contain the entry for the last truncated case
+            strategy.truncated_names.get "abc" . should_equal "ab 11"
+
+            strategy.make_valid_name "abc" . should_equal "abc"
+            strategy.make_valid_name "123456789" . should_equal "12345"
+
+        Test.specify "should handle too small limits gracefully" <|
+            limit = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.utf_8 limit=1
+            strategy = Unique_Name_Strategy.new limit
+            strategy.make_unique "A" . should_equal "A"
+            # Not enough space to add any numeric suffix, so we need to fail.
+            strategy.make_unique "A" . should_fail_with Illegal_Argument
+
+            limit2 = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.utf_8 limit=2
+            strategy2 = Unique_Name_Strategy.new limit2
+            strategy2.make_unique "A" . should_equal "A"
+            strategy2.make_unique "A" . should_equal " 1"
+            strategy2.make_unique "A" . should_equal " 2"
+            strategy2.make_unique "A" . should_equal " 3"
+            strategy2.make_unique "A" . should_equal " 4"
+            strategy2.make_unique "A" . should_equal " 5"
+            strategy2.make_unique "A" . should_equal " 6"
+            strategy2.make_unique "A" . should_equal " 7"
+            strategy2.make_unique "A" . should_equal " 8"
+            strategy2.make_unique "A" . should_equal " 9"
+            strategy2.make_unique "A" . should_fail_with Illegal_Argument
+            strategy2.make_unique "B" . should_equal "B"
+            strategy2.make_unique "B" . should_fail_with Illegal_Argument
+
+        Test.specify "should correctly handle graphemes spanning multiple units with size limit" <|
+            limit = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.utf_8 limit=3
+            strategy = Unique_Name_Strategy.new limit
+
+            strategy.make_valid_name 'abcd' . should_equal 'abc'
+            # ś takes 2 bytes in UTF-8, so abś is 4 bytes, with a limit of 3, we can keep only the 2 (to not split the ś in half)
+            strategy.make_valid_name 'abś' . should_equal 'ab'
+            strategy.make_valid_name 'aśc' . should_equal 'aś'
+            # Again, 2 ś will take 4 bytes, so we can fit at most one.
+            strategy.make_valid_name 'śśś' . should_equal 'ś'
+
+            strategy.make_unique 'śśś' . should_equal 'ś'
+            # We can't fit the prefix at all now because we need at least 2 bytes for the suffix.
+            strategy.make_unique 'śśś' . should_equal ' 1'
+
+            strategy.make_valid_name '' . should_equal 'Col'
+
+            facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+            strategy.make_valid_name facepalm . should_equal 'Col'
+
+            limit2 = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.utf_8 limit=20
+            strategy2 = Unique_Name_Strategy.new limit2
+            strategy2.make_valid_name facepalm+facepalm . should_equal facepalm
+            strategy2.make_unique facepalm+facepalm . should_equal facepalm
+            strategy2.make_unique facepalm+facepalm . should_equal facepalm+" 1"
+            strategy2.make_unique facepalm+facepalm . should_equal facepalm+" 2"
+
+        Test.specify "should fail gracefully when encountering not-encodable characters" <|
+            limit = Encoding_Limited_Naming_Properties.Instance encoding=Encoding.ascii limit=5
+            strategy = Unique_Name_Strategy.new limit
+            strategy.make_valid_name "ąęś" . should_fail_with Illegal_Argument
+            strategy.make_unique "ąęś" . should_fail_with Illegal_Argument
+            strategy.make_unique "ABC" . should_equal "ABC"
+            strategy.combine_with_prefix ["A"] ["ą"] "P_" . should_fail_with Illegal_Argument
+
     Test.group "Unique_Name_Strategy.combine_with_prefix" <|
         Test.specify "should work as in examples" <|
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             first = ["A", "B", "second_A"]
             second = ["A", "B", "second_A 1", "C"]
             unique_second = strategy.combine_with_prefix first second "second_"
@@ -79,44 +196,44 @@ spec =
         Test.specify "should work with no prefix" <|
             first = ["A", "B"]
             second = ["B", "A", "C"]
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             r = strategy.combine_with_prefix first second ""
             r . should_equal ["B 1", "A 1", "C"]
 
         Test.specify "should work for empty input" <|
-            Unique_Name_Strategy.new.combine_with_prefix [] [] "" . should_equal []
-            Unique_Name_Strategy.new.combine_with_prefix ["a"] [] "" . should_equal []
-            Unique_Name_Strategy.new.combine_with_prefix [] ["a"] "" . should_equal ["a"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix [] [] "" . should_equal []
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["a"] [] "" . should_equal []
+            Unique_Name_Strategy.new no_limit . combine_with_prefix [] ["a"] "" . should_equal ["a"]
 
         Test.specify "should find the first free spot" <|
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2"] ["A"] "" . should_equal ["A 3"]
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2"] ["A 4", "A 6", "A 100", "A", "A 3"] "" . should_equal ["A 4", "A 6", "A 100", "A 5", "A 3"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2"] ["A"] "" . should_equal ["A 3"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2"] ["A 4", "A 6", "A 100", "A", "A 3"] "" . should_equal ["A 4", "A 6", "A 100", "A 5", "A 3"]
 
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2"] ["A"] "P_" . should_equal ["P_A"]
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2", "P_A"] ["A"] "P_" . should_equal ["P_A 1"]
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2", "P_A 1"] ["A"] "P_" . should_equal ["P_A"]
-            Unique_Name_Strategy.new.combine_with_prefix ["A", "A 1", "A 2", "P_A 1"] ["A", "P_A", "P_A 2"] "P_" . should_equal ["P_A 3", "P_A", "P_A 2"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2"] ["A"] "P_" . should_equal ["P_A"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2", "P_A"] ["A"] "P_" . should_equal ["P_A 1"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2", "P_A 1"] ["A"] "P_" . should_equal ["P_A"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix ["A", "A 1", "A 2", "P_A 1"] ["A", "P_A", "P_A 2"] "P_" . should_equal ["P_A 3", "P_A", "P_A 2"]
 
         Test.specify "will add a prefix/suffix, not increment an existing counter" <|
             first = ["A", "A 1", "A 2", "A 3"]
-            Unique_Name_Strategy.new.combine_with_prefix first ["A 2"] "P_" . should_equal ["P_A 2"]
-            Unique_Name_Strategy.new.combine_with_prefix first ["A 2"] "" . should_equal ["A 2 1"]
-            Unique_Name_Strategy.new.combine_with_prefix first+["P_A 2"] ["A 2"] "P_" . should_equal ["P_A 2 1"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix first ["A 2"] "P_" . should_equal ["P_A 2"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix first ["A 2"] "" . should_equal ["A 2 1"]
+            Unique_Name_Strategy.new no_limit . combine_with_prefix first+["P_A 2"] ["A 2"] "P_" . should_equal ["P_A 2 1"]
 
         Test.specify "should prioritize existing names when renaming conflicts and rename only ones that are clashing with the other list" <|
             first = ["A", "B"]
             second = ["B", "A", "B 1", "C", "B 2", "B_4"]
-            strategy = Unique_Name_Strategy.new
+            strategy = Unique_Name_Strategy.new no_limit
             r = strategy.combine_with_prefix first second ""
             r . should_equal ["B 3", "A 1", "B 1", "C", "B 2", "B_4"]
             strategy.invalid_names . should_equal []
             strategy.renames . should_equal ["B", "A"]
 
-            r2 = Unique_Name_Strategy.new.combine_with_prefix first second "P_"
+            r2 = Unique_Name_Strategy.new no_limit . combine_with_prefix first second "P_"
             r2 . should_equal ["P_B", "P_A", "B 1", "C", "B 2", "B_4"]
 
             third = ["B", "A", "P_B", "X", "P_B 1", "P_B 2"]
-            r3 = Unique_Name_Strategy.new.combine_with_prefix first third "P_"
+            r3 = Unique_Name_Strategy.new no_limit . combine_with_prefix first third "P_"
             r3 . should_equal ["P_B 3", "P_A", "P_B", "X", "P_B 1", "P_B 2"]
 
 main = Test_Suite.run_main spec

@@ -8,6 +8,8 @@ from Standard.Base.Data.Numbers import Number_Parse_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.math.BigInteger
+
 Integer.is_even self = self % 2 == 0
 
 Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
@@ -797,4 +799,70 @@ spec =
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
 
+    Test.group "BigInts" <|
+        expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
+
+        bigint_spec name create mul =
+            Test.specify name+" 6 * 7" <|
+                six = create 6
+                seven = create 7
+                both = six*seven
+                both . should_equal 42
+
+                six.is_a Integer . should_be_true
+                seven.is_a Integer . should_be_true
+                both.is_a Integer . should_be_true
+
+            Test.specify name+" power of 3 with running_fold" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . running_fold three a->_->
+                    mul a three
+
+                sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
+                sum.div two_hundred.length . should_equal expected_value
+
+            Test.specify name+" power of 3 with map" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . map i->
+                    0.up_to i . fold three (v-> _-> mul v three)
+
+                sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
+                case sum of
+                    _ : Integer -> Nothing
+                    v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
+                sum.div two_hundred.length . should_equal expected_value
+
+        to_java_bigint n = BigInteger.new n.to_text
+        java_bigint_mul a b =
+            big_a = to_java_bigint a
+            big_b = to_java_bigint b
+            big_a * big_b
+
+        bigint_spec "Enso" (x->x) (*)
+        bigint_spec "Java" to_java_bigint java_bigint_mul
+        bigint_spec "JavaScript" to_js_bigint js_bigint_mul
+
+        Test.specify "Matrix of values" <|
+            x = to_java_bigint 10
+            y = 10
+            z = 10.0
+            w = to_js_bigint 10
+
+            [x, y, z, w].each a->
+                [x, y, z, w].each b->
+                    a+b . should_equal 20
+
+
+
 main = Test_Suite.run_main spec
+
+
+foreign js to_js_bigint n = """
+    return BigInt(n)
+
+foreign js js_bigint_mul a b = """
+    return BigInt(a) * BigInt(b)

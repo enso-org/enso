@@ -11,15 +11,9 @@ maintainers:
 component-groups:
   new:
     - Input:
-        exports:
-          - Standard.Base.System.File.File.new
-          - Standard.Base.Data.read
-          - Standard.Base.Data.read_text
-          - Standard.Base.Data.list_directory
+        exports: []
     - Web:
-        exports:
-          - Standard.Base.Network.HTTP.HTTP.new
-          - Standard.Base.Data.fetch
+        exports: []
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse

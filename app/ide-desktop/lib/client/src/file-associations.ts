@@ -158,7 +158,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) 
  * @throws {Error} if the project from the file cannot be opened or imported. */
 export function handleOpenFile(openedFile: string): string {
     try {
-        return project.importProjectFromPath(openedFile)
+        return project.importProjectFromPath(openedFile).id
     } catch (error) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.

@@ -42,7 +42,7 @@ use ensogl_text_msdf::run_once_initialized;
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object: display::object::Instance,
     shape:          Rectangle,
@@ -89,9 +89,11 @@ ensogl_core::define_endpoints! { [TRACE_ALL]
 // === View ===
 // ============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 struct View {
+    #[deref]
     frp:   Frp,
+    #[display_object]
     model: Model,
 }
 
@@ -111,19 +113,6 @@ impl View {
         }
 
         Self { frp, model }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }
 

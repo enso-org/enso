@@ -16,7 +16,7 @@ interface InternalRefreshProps {
 }
 
 /** A component for testing the `useRefresh` hook. */
-function Refresh(props: InternalRefreshProps) {
+export default function Refresh(props: InternalRefreshProps) {
     const { onRefresh } = props
     const [refresh, doRefresh] = useRefresh.useRefresh()
     React.useEffect(() => {
@@ -25,5 +25,3 @@ function Refresh(props: InternalRefreshProps) {
 
     return <div onClick={doRefresh}>.</div>
 }
-
-export default Refresh

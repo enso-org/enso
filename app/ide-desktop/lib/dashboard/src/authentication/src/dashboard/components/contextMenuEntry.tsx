@@ -12,9 +12,8 @@ export interface ContextMenuEntryProps {
     onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
 }
 
-// This component MUST NOT use `useState` because it is not rendered directly.
 /** An item in a `ContextMenu`. */
-function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
+export default function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
     const { children, disabled = false, title, onClick } = props
     return (
         <button
@@ -32,5 +31,3 @@ function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>)
         </button>
     )
 }
-
-export default ContextMenuEntry

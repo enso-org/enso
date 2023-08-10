@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -16,7 +16,7 @@ import java.util.BitSet;
 /**
  * An operation expecting a numeric argument and returning a boolean.
  */
-public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStorage> {
+public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLongStorage> {
   private final boolean alwaysCastToDouble;
 
   public LongNumericOp(String name, boolean alwaysCastToDouble) {
@@ -33,7 +33,7 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
   public abstract Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public NumericStorage<?> runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public NumericStorage<?> runBinaryMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     if (arg == null) {
       if (alwaysCastToDouble) {

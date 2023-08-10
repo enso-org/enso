@@ -160,10 +160,12 @@ class LanguageServerController(
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,
-    clients: Set[UUID] = Set.empty
+    clients: Set[UUID]                     = Set.empty,
+    scheduledShutdown: Option[Cancellable] = None
   ): Receive =
     LoggingReceive.withLabel("supervising") {
       case StartServer(clientId, _, requestedEngineVersion, _, _) =>
+        scheduledShutdown.foreach(_.cancel())
         if (requestedEngineVersion != engineVersion) {
           sender() ! ServerBootFailed(
             new IllegalStateException(
@@ -184,11 +186,13 @@ class LanguageServerController(
             supervising(
               connectionInfo,
               serverProcessManager,
-              clients + clientId
+              clients + clientId,
+              None
             )
           )
         }
       case Terminated(_) =>
+        scheduledShutdown.foreach(_.cancel())
         logger.debug("Bootloader for {} terminated.", project)
 
       case StopServer(clientId, _) =>
@@ -197,10 +201,15 @@ class LanguageServerController(
           serverProcessManager,
           clients,
           clientId,
-          Some(sender())
+          Some(sender()),
+          scheduledShutdown
         )
 
+      case ScheduledShutdown(requester) =>
+        shutDownServer(requester)
+
       case ShutDownServer =>
+        scheduledShutdown.foreach(_.cancel())
         shutDownServer(None)
 
       case ClientDisconnected(clientId) =>
@@ -209,10 +218,12 @@ class LanguageServerController(
           serverProcessManager,
           clients,
           clientId,
-          None
+          None,
+          scheduledShutdown
         )
 
       case RenameProject(_, namespace, oldName, newName) =>
+        scheduledShutdown.foreach(_.cancel())
         val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
         context.actorOf(
           ProjectRenameAction
@@ -230,6 +241,7 @@ class LanguageServerController(
         )
 
       case ServerDied =>
+        scheduledShutdown.foreach(_.cancel())
         logger.error("Language server died [{}].", connectionInfo)
         context.stop(self)
 
@@ -240,15 +252,40 @@ class LanguageServerController(
     serverProcessManager: ActorRef,
     clients: Set[UUID],
     clientId: UUID,
-    maybeRequester: Option[ActorRef]
+    maybeRequester: Option[ActorRef],
+    shutdownTimeout: Option[Cancellable]
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      shutDownServer(maybeRequester)
+      logger.debug("Delaying shutdown for project {}.", project.id)
+      val scheduledShutdown =
+        shutdownTimeout.orElse(
+          Some(
+            context.system.scheduler
+              .scheduleOnce(
+                timeoutConfig.delayedShutdownTimeout,
+                self,
+                ScheduledShutdown(maybeRequester)
+              )
+          )
+        )
+      context.become(
+        supervising(
+          connectionInfo,
+          serverProcessManager,
+          Set.empty,
+          scheduledShutdown
+        )
+      )
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(
-        supervising(connectionInfo, serverProcessManager, updatedClients)
+        supervising(
+          connectionInfo,
+          serverProcessManager,
+          updatedClients,
+          shutdownTimeout
+        )
       )
     }
   }
@@ -306,7 +343,7 @@ class LanguageServerController(
     }
 
   private def waitingForChildren(): Receive =
-    LoggingReceive.withLabel("waitingForChldren") { case Terminated(_) =>
+    LoggingReceive.withLabel("waitingForChildren") { case Terminated(_) =>
       if (context.children.isEmpty) {
         context.stop(self)
       }
@@ -388,5 +425,8 @@ object LanguageServerController {
   case object ServerDied
 
   case class Retry(message: Any)
+
+  /** Signals that a (cancellable) shutdown has been initiated */
+  case class ScheduledShutdown(requester: Option[ActorRef])
 
 }

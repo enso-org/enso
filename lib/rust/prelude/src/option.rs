@@ -7,8 +7,8 @@ pub trait OptionOps {
     type Item;
     fn map_none<F>(self, f: F) -> Self
     where F: FnOnce();
-    fn map_ref<U, F>(&self, f: F) -> Option<U>
-    where F: FnOnce(&Self::Item) -> U;
+    fn map_ref<'a, U, F>(&'a self, f: F) -> Option<U>
+    where F: FnOnce(&'a Self::Item) -> U;
     fn map_or_default<U, F>(self, f: F) -> U
     where
         U: Default,
@@ -17,17 +17,17 @@ pub trait OptionOps {
     where
         U: Default,
         F: FnOnce() -> U;
-    fn map_ref_or_default<U, F>(&self, f: F) -> U
+    fn map_ref_or_default<'a, U, F>(&'a self, f: F) -> U
     where
         U: Default,
-        F: FnOnce(&Self::Item) -> U;
+        F: FnOnce(&'a Self::Item) -> U;
     fn for_each<U, F>(self, f: F)
     where F: FnOnce(Self::Item) -> U;
-    fn for_each_ref<U, F>(&self, f: F)
-    where F: FnOnce(&Self::Item) -> U;
+    fn for_each_ref<'a, U, F>(&'a self, f: F)
+    where F: FnOnce(&'a Self::Item) -> U;
     /// Returns true if option contains Some with value matching given predicate.
-    fn contains_if<F>(&self, f: F) -> bool
-    where F: FnOnce(&Self::Item) -> bool;
+    fn contains_if<'a, F>(&'a self, f: F) -> bool
+    where F: FnOnce(&'a Self::Item) -> bool;
 }
 
 impl<T> OptionOps for Option<T> {
@@ -43,8 +43,8 @@ impl<T> OptionOps for Option<T> {
         self
     }
 
-    fn map_ref<U, F>(&self, f: F) -> Option<U>
-    where F: FnOnce(&Self::Item) -> U {
+    fn map_ref<'a, U, F>(&'a self, f: F) -> Option<U>
+    where F: FnOnce(&'a Self::Item) -> U {
         self.as_ref().map(f)
     }
 
@@ -62,10 +62,10 @@ impl<T> OptionOps for Option<T> {
         self.map_or_else(U::default, |_| f())
     }
 
-    fn map_ref_or_default<U, F>(&self, f: F) -> U
+    fn map_ref_or_default<'a, U, F>(&'a self, f: F) -> U
     where
         U: Default,
-        F: FnOnce(&Self::Item) -> U, {
+        F: FnOnce(&'a Self::Item) -> U, {
         self.as_ref().map_or_default(f)
     }
 
@@ -76,15 +76,15 @@ impl<T> OptionOps for Option<T> {
         }
     }
 
-    fn for_each_ref<U, F>(&self, f: F)
-    where F: FnOnce(&Self::Item) -> U {
+    fn for_each_ref<'a, U, F>(&'a self, f: F)
+    where F: FnOnce(&'a Self::Item) -> U {
         if let Some(x) = self {
             f(x);
         }
     }
 
-    fn contains_if<F>(&self, f: F) -> bool
-    where F: FnOnce(&Self::Item) -> bool {
+    fn contains_if<'a, F>(&'a self, f: F) -> bool
+    where F: FnOnce(&'a Self::Item) -> bool {
         self.as_ref().map_or(false, f)
     }
 }

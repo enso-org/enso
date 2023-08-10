@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -23,13 +24,16 @@ public abstract class SliceArrayVectorNode extends Node {
   abstract Object execute(Object self, long start, long end);
 
   @Specialization
-  Object executeArray(Array self, long start, long end) {
+  Object sliceArray(Array self, long start, long end) {
     return Array.slice(self, start, end, self.length());
   }
 
   @Specialization
-  Object executeVector(
-      Vector self, long start, long end, @CachedLibrary(limit = "3") InteropLibrary iop) {
+  Object sliceVector(
+      Vector self,
+      long start,
+      long end,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return Array.slice(self, start, end, self.length(iop));
     } catch (UnsupportedMessageException ex) {
@@ -38,9 +42,12 @@ public abstract class SliceArrayVectorNode extends Node {
     }
   }
 
-  @Specialization(replaces = {"executeArray", "executeVector"})
-  Object executeArrayLike(
-      Object self, long start, long end, @CachedLibrary(limit = "3") InteropLibrary iop) {
+  @Specialization(replaces = {"sliceArray", "sliceVector"})
+  Object sliceArrayLike(
+      Object self,
+      long start,
+      long end,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       long len = iop.getArraySize(self);
       return Array.slice(self, start, end, len);

@@ -36,7 +36,7 @@ type SQL_Error
     to_text : Text
     to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
-        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
+        "There was an SQL error: " + self.java_exception.getMessage.to_display_text + "." + query
 
     ## PRIVATE
        Pretty print the SQL error.
@@ -72,30 +72,20 @@ type SQL_Timeout
     to_display_text : Text
     to_display_text self = self.to_text
 
-
-## Signals that a name for a column or table is not supported.
-
-   Arguments:
-   - text: The name that is not supported.
-
-   Currently the names can only include ASCII letters, numbers and the
-   underscore. This is a temporary limitation simplifying name handling. It will
-   be removed in a future version.
-type Unsupported_Name
+type SQL_Warning
     ## PRIVATE
-    Error text
+       Indicates that a database backend has reported a non-fatal warning when
+       executing an operation.
+    Warning java_exception
 
     ## PRIVATE
-       Creates a human-readable representation of the unsupported name error.
-    to_text : Text
-    to_text self =
-        "The name " + self.text + " is not currently supported by the Database library."
+    message : Text
+    message self = self.java_exception.getMessage
 
     ## PRIVATE
-       Pretty print the unsupported name error.
     to_display_text : Text
-    to_display_text self = self.to_text
-
+    to_display_text self =
+        "SQL Warning: " + self.message.to_display_text
 
 type Integrity_Error
     ## PRIVATE
@@ -211,3 +201,20 @@ type Multiple_Target_Rows_Matched_For_Update
     to_display_text : Text
     to_display_text self =
         "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."
+
+type Unsupported_Database_Encoding
+    ## PRIVATE
+       A warning indicating that the encoding inferred to be used by the
+       database is not supported by Enso.
+
+       This should not affect data passed to/from the database, as the
+       connection driver should handle the translation. However, it affects how
+       identifier names are being handled, and it may cause trouble when the
+       length of identifier names is wrongly inferred, causing aliasing of names
+       and generating invalid queries.
+    Warning message
+
+    ## PRIVATE
+       Pretty print the unsupported database encoding warning.
+    to_display_text : Text
+    to_display_text self = self.message

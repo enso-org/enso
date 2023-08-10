@@ -31,6 +31,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
+import project.Data.Text.Normalization.Normalization
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Text.Text_Ordering.Text_Ordering
@@ -118,6 +119,7 @@ export project.Data.Text.Encoding.Encoding
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
+export project.Data.Text.Normalization.Normalization
 export project.Data.Text.Regex.Regex
 export project.Data.Text.Text
 export project.Data.Text.Text_Ordering.Text_Ordering

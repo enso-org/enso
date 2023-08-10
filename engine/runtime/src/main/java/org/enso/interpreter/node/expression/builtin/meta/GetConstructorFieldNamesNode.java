@@ -22,8 +22,8 @@ public abstract class GetConstructorFieldNamesNode extends Node {
   abstract Array execute(Object obj);
 
   @Specialization
-  final Array executeAtomConstructor(AtomConstructor atom_constructor) {
-    ArgumentDefinition[] fields = atom_constructor.getFields();
+  final Array fieldNamesForAtomCtor(AtomConstructor atomConstructor) {
+    ArgumentDefinition[] fields = atomConstructor.getFields();
     Object[] result = new Object[fields.length];
     for (int i = 0; i < fields.length; i++) {
       result[i] = Text.create(fields[i].getName());
@@ -32,7 +32,7 @@ public abstract class GetConstructorFieldNamesNode extends Node {
   }
 
   @Fallback
-  final Array executeAny(Object any) {
+  final Array fieldNamesForAny(Object any) {
     return Array.empty();
   }
 }

@@ -11,6 +11,7 @@ import java.util.UUID
   *
   * @param id a project id
   * @param name a project name
+  * @param module a module name
   * @param namespace a project namespace
   * @param kind a project kind
   * @param created a project creation time
@@ -21,6 +22,7 @@ import java.util.UUID
 case class Project(
   id: UUID,
   name: String,
+  module: String,
   namespace: String,
   kind: ProjectKind,
   created: OffsetDateTime,

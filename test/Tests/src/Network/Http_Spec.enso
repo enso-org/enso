@@ -46,7 +46,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -60,7 +60,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -75,7 +75,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -96,7 +96,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -115,7 +115,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -135,7 +135,7 @@ spec =
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "text/plain",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -155,7 +155,7 @@ spec =
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -175,7 +175,7 @@ spec =
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -205,7 +205,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -227,7 +227,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -249,7 +249,7 @@ spec =
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -269,7 +269,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -285,7 +285,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -309,7 +309,7 @@ spec =
                   "headers": {
                     "Content-Length": "16",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/17.0.6"
+                    "User-Agent": "Java-http-client/17.0.7"
                   },
                   "origin": "127.0.0.1",
                   "url": "",

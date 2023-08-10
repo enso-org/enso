@@ -21,7 +21,7 @@ use enso_frp as frp;
 use enso_prelude::FallibleResult;
 use enso_text as text;
 use enso_text::Byte;
-use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
+use ide_view::component_browser::component_list_panel::grid::EntryId;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project;
@@ -111,7 +111,7 @@ impl SearcherPresenter for AISearcher {
     fn expression_accepted(
         self: Box<Self>,
         node_id: NodeId,
-        _entry_id: Option<GroupEntryId>,
+        _entry_id: Option<EntryId>,
     ) -> Option<AstNodeId> {
         let ast_id = self.model.graph_presenter.ast_node_of_view(node_id)?;
         let expression = self.model.input_expression.borrow().clone();

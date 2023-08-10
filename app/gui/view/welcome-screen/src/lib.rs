@@ -114,7 +114,7 @@ static STYLESHEET: &str = include_str!("../style.css");
 // === Model ===
 
 /// Model of Welcome Screen that generates HTML DOM elements.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     dom:            DomSymbol,
     display_object: display::object::Instance,
@@ -190,18 +190,13 @@ ensogl::define_endpoints! {
 // ============
 
 /// View of the Welcome Screen.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
+    #[display_object]
     model:   Model,
+    #[deref]
     pub frp: Frp,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -233,12 +228,6 @@ impl View {
         }
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

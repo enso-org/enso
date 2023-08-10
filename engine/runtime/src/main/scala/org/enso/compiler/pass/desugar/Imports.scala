@@ -129,7 +129,7 @@ case object Imports extends IRPass {
           )
           val pkgName =
             IR.Name.Literal(
-              pkg.name,
+              pkg.module,
               isMethod = false,
               location = None
             )

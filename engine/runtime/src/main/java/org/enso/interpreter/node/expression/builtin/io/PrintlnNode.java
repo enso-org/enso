@@ -2,6 +2,8 @@ package org.enso.interpreter.node.expression.builtin.io;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -37,7 +39,7 @@ public abstract class PrintlnNode extends Node {
       VirtualFrame frame,
       State state,
       Object message,
-      @CachedLibrary(limit = "10") InteropLibrary strings) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings) {
     EnsoContext ctx = EnsoContext.get(this);
     try {
       print(ctx.getOut(), strings.asString(message));
@@ -52,7 +54,7 @@ public abstract class PrintlnNode extends Node {
       VirtualFrame frame,
       State state,
       Object message,
-      @CachedLibrary(limit = "10") InteropLibrary strings,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
@@ -91,10 +93,12 @@ public abstract class PrintlnNode extends Node {
     out.println(str);
   }
 
+  @NeverDefault
   UnresolvedSymbol buildSymbol() {
     return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
   }
 
+  @NeverDefault
   InvokeCallableNode buildInvokeCallableNode() {
     return InvokeCallableNode.build(
         new CallArgumentInfo[] {new CallArgumentInfo()},
@@ -102,6 +106,7 @@ public abstract class PrintlnNode extends Node {
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
+  @NeverDefault
   static PrintlnNode build() {
     return PrintlnNodeGen.create();
   }

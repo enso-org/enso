@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.text.util;
 
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -24,6 +25,7 @@ public final class ToJavaStringNode extends Node {
    *
    * @return a new instance of this node.
    */
+  @NeverDefault
   public static ToJavaStringNode build() {
     return new ToJavaStringNode();
   }

@@ -103,9 +103,6 @@ impl Node {
     pub fn is_expected_argument(&self) -> bool {
         self.kind.is_expected_argument()
     }
-    pub fn is_function_parameter(&self) -> bool {
-        self.kind.is_function_parameter()
-    }
 }
 
 
@@ -150,12 +147,12 @@ impl Node {
 #[allow(missing_docs)]
 impl Node {
     pub fn name(&self) -> Option<&str> {
-        self.kind.name()
+        self.kind.argument_name()
     }
     pub fn tp(&self) -> Option<&String> {
         self.kind.tp()
     }
-    pub fn argument_info(&self) -> Option<ArgumentInfo> {
+    pub fn argument_info(&self) -> Option<&ArgumentInfo> {
         self.kind.argument_info()
     }
     pub fn set_argument_info(&mut self, info: ArgumentInfo) {
@@ -927,11 +924,11 @@ mod test {
         // An example with single call and expected arguments.
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained_this(), ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::this(), ast::crumbs::Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
-            .add_leaf(5, 3, node::Kind::argument(), RightOperand)
+            .add_leaf(5, 3, node::Kind::prefix_argument(), RightOperand)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()

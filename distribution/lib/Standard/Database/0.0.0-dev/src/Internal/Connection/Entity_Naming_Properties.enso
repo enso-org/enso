@@ -1,0 +1,14 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+## PRIVATE
+type Entity_Naming_Properties
+    ## PRIVATE
+       Describes naming properties of database tables and columns.
+
+       Arguments:
+       - for_table_names: properties of naming database tables. Should implement
+         the `Naming_Properties` interface.
+       - for_column_names: properties of naming database columns. Should
+         implement the `Naming_Properties` interface.
+    Value for_table_names for_column_names

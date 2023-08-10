@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -32,8 +33,8 @@ public abstract class RemoveAtVectorNode extends Node {
   Vector fromVector(
       Vector vec,
       long index,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(vec.toArray(), index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
@@ -47,8 +48,8 @@ public abstract class RemoveAtVectorNode extends Node {
   Vector fromArray(
       Array vec,
       long index,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(vec, index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
@@ -60,8 +61,8 @@ public abstract class RemoveAtVectorNode extends Node {
   Vector fromArrayLike(
       Object vec,
       long index,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(vec, index, copyNode, interop);
     } catch (UnsupportedMessageException e) {

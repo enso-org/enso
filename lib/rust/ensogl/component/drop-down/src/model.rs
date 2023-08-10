@@ -41,7 +41,7 @@ const OPEN_ANIMATION_OFFSET: f32 = OPEN_ANIMATION_SCALE - 1.001;
 // === Model ===
 // =============
 
-#[derive(Derivative, CloneRef, Debug)]
+#[derive(Derivative, CloneRef, Debug, display::Object)]
 #[derivative(Clone(bound = ""))]
 pub struct Model<T> {
     display_object:   display::object::Instance,
@@ -288,12 +288,6 @@ impl<T: DropdownValue> Model<T> {
     /// Set the background color of the dropdown.
     pub fn set_color(&self, color: Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
-    }
-}
-
-impl<T: PartialEq + Hash> display::Object for Model<T> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

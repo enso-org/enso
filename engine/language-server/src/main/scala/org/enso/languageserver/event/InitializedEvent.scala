@@ -7,6 +7,7 @@ object InitializedEvent {
 
   case object SuggestionsRepoInitialized extends InitializedEvent
   case object TruffleContextInitialized  extends InitializedEvent
+  case object ZioRuntimeInitialized      extends InitializedEvent
   case object InitializationFinished     extends InitializedEvent
   case object InitializationFailed       extends InitializedEvent
 }

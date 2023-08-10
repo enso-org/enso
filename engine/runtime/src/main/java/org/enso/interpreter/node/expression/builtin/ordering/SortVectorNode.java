@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -99,7 +100,7 @@ public abstract class SortVectorNode extends Node {
         "areAllDefaultComparators(interop, hostValueToEnsoNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
-      })
+      }, limit = "3")
   Object sortPrimitives(
       State state,
       Object self,
@@ -109,12 +110,12 @@ public abstract class SortVectorNode extends Node {
       Object byFunc,
       Object onFunc,
       long problemBehavior,
-      @Cached LessThanNode lessThanNode,
-      @Cached EqualsNode equalsNode,
+      @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
-      @Cached TypeOfNode typeOfNode,
-      @Cached AnyToTextNode toTextNode,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
     try {
@@ -182,13 +183,13 @@ public abstract class SortVectorNode extends Node {
       Object byFunc,
       Object onFunc,
       long problemBehaviorNum,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached LessThanNode lessThanNode,
-      @Cached EqualsNode equalsNode,
-      @Cached TypeOfNode typeOfNode,
-      @Cached AnyToTextNode toTextNode,
+      @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
       @Cached(value = "build()", uncached = "build()") HostValueToEnsoNode hostValueToEnsoNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {

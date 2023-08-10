@@ -61,18 +61,28 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public boolean isOpVectorized(String name) {
+  public boolean isUnaryOpVectorized(String name) {
     return false;
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public boolean isBinaryOpVectorized(String name) {
+    return false;
+  }
+
+  @Override
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return null;
+  }
+
+  @Override
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return null;
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return null;
   }

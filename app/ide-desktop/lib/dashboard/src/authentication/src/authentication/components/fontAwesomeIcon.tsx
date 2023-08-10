@@ -14,7 +14,7 @@ export interface FontAwesomeIconProps {
 }
 
 /** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
-function FontAwesomeIcon(props: FontAwesomeIconProps) {
+export default function FontAwesomeIcon(props: FontAwesomeIconProps) {
     return (
         <span
             className={
@@ -26,5 +26,3 @@ function FontAwesomeIcon(props: FontAwesomeIconProps) {
         </span>
     )
 }
-
-export default FontAwesomeIcon

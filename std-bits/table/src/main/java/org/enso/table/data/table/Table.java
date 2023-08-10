@@ -2,6 +2,7 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
@@ -9,6 +10,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -182,12 +184,31 @@ public class Table {
   }
 
   /**
-   * Creates a new table with the rows sorted
+   * Build a cross-tab table on the given grouping and naming columns, aggregating
+   * across the aggregate columns.
    *
-   * @param columns set of columns to use as an Index
-   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
-   * @return a table indexed by the proper column
+   * @param groupingColumns specifies the rows of the cross-tab table
+   * @param nameColumn specifies the values of the columns of the cross-tab table
+   * @param aggregates the columns to aggregate across rows and columns
+   * @param aggregateNames the names of the aggregate columns
+   * @return a cross-tab table
    */
+  public Table makeCrossTabTable(
+          Column[] groupingColumns,
+          Column nameColumn,
+          Aggregator[] aggregates,
+          String[] aggregateNames) {
+    CrossTabIndex index = new CrossTabIndex(new Column[] {nameColumn}, groupingColumns, this.rowCount());
+    return index.makeCrossTabTable(aggregates, aggregateNames);
+  }
+
+    /**
+     * Creates a new table with the rows sorted
+     *
+     * @param columns set of columns to use as an Index
+     * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
+     * @return a table indexed by the proper column
+     */
   public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator);

@@ -28,10 +28,10 @@ use ensogl::prelude::*;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color::Rgba;
+use ensogl::data::text;
 use ensogl::display;
-use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl::display::style::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::graph_editor::execution_environment_selector as theme;
 
@@ -104,7 +104,7 @@ ensogl::define_endpoints_2! {
 // =============
 
 /// The model of the execution environment selector.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     /// Main root object for the execution environment selector exposed for external positioning.
     display_object: display::object::Instance,
@@ -120,9 +120,11 @@ pub struct Model {
 impl Model {
     fn update_dropdown_style(&self, style: &Style) {
         self.dropdown.set_menu_offset_y(style.menu_offset);
-        self.dropdown.set_x(style.overall_width() / 2.0 - style.divider_offset);
+        self.dropdown
+            .set_xy(Vector2(style.overall_width() - style.divider_offset, style.height / 2.0));
         self.dropdown.set_width(style.dropdown_width);
         self.dropdown.set_label_color(Rgba::white());
+        self.dropdown.set_label_weight(text::Weight::ExtraBold);
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);
         self.dropdown.set_label_alignment(ensogl_drop_down_menu::Alignment::Left);
@@ -133,32 +135,22 @@ impl Model {
         let Style { height, background, .. } = *style;
         let size = Vector2::new(width, height);
         self.background.set_size(size);
-        self.background.set_xy(-size / 2.0);
         self.background.set_corner_radius(height / 2.0);
         self.background.set_color(background);
+        self.display_object.set_size(size);
 
         self.divider.set_size(Vector2::new(1.0, height));
-        self.divider.set_xy(Vector2::new(width / 2.0 - style.divider_offset, -height / 2.0));
+        self.divider.set_x(width - style.divider_offset);
         self.divider.set_color(style.divider);
     }
 
     fn update_play_button_style(&self, style: &Style) {
         let width = style.overall_width();
-        let Style { height, .. } = *style;
-        self.play_button.set_x(width / 2.0);
-        self.play_button.set_y(-height / 2.0);
-    }
-
-    fn update_position(&self, style: &Style, camera: &Camera2d) {
-        let screen = camera.screen();
-        let x = -screen.width / 2.0 + style.overall_width() / 2.0;
-        let y = screen.height / 2.0 - style.height / 2.0;
-        self.inner_root.set_x(x.round());
-        self.inner_root.set_y(y.round());
+        self.play_button.set_x(width);
     }
 
     fn set_entries(&self, entries: Rc<Vec<ExecutionEnvironment>>) {
-        let labels = entries.iter().map(|e| e.to_string().capitalize_first_letter()).collect_vec();
+        let labels = entries.iter().map(ToString::to_string).collect_vec();
         let labels = Rc::new(labels);
         let provider = ensogl_list_view::entry::AnyModelProvider::from(labels);
         self.dropdown.set_entries(provider);
@@ -173,12 +165,6 @@ impl Model {
             self.inner_root.remove_child(&self.play_button);
             self.inner_root.remove_child(&self.divider);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -223,31 +209,22 @@ impl component::Frp<Model> for Frp {
     fn init(
         network: &enso_frp::Network,
         frp: &<Self as ensogl::application::frp::API>::Private,
-        app: &Application,
+        _app: &Application,
         model: &Model,
         style_watch: &StyleWatchFrp,
     ) {
-        let scene = &app.display.default_scene;
-        let camera = scene.camera();
         let dropdown = &model.dropdown;
         let play_button = &model.play_button;
         let input = &frp.input;
         let output = &frp.output;
 
         let style = Style::from_theme(network, style_watch);
-        let style_update = style.update;
 
         frp::extend! { network
 
             // == Layout ==
 
-            let camera_changed = scene.frp.camera_changed.clone_ref();
-            update_position <- all(camera_changed, style_update)._1();
-            eval update_position ([model, camera] (style){
-                model.update_position(style, &camera);
-            });
-
-            eval style_update((style) {
+            eval style((style) {
                model.update_dropdown_style(style);
                model.update_background_style(style);
                model.update_play_button_style(style);
@@ -277,11 +254,10 @@ impl component::Frp<Model> for Frp {
             // == Outputs ==
 
             output.play_press <+ play_button.pressed;
-            output.size <+ style_update.map(|style| {
-                Vector2::new(style.overall_width(),style.height)
+            output.size <+ style.map(|style| {
+                Vector2::new(style.overall_width(), style.height)
             }).on_change();
         }
-        style.init.emit(());
     }
 }
 
