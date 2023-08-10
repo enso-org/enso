@@ -154,7 +154,9 @@ pub async fn extract_item(
             let mut archive = zip::open(&archive_path)?;
             tokio::task::spawn_blocking(move || {
                 zip::extract_subtree(&mut archive, item_path, output_path)
-            }).instrument(Span::current()).await??;
+            })
+            .instrument(Span::current())
+            .await??;
         }
         Format::Tar(Some(Compression::Gzip)) => {
             let archive = tar::Archive::open_tar_gz(&archive_path).await?;

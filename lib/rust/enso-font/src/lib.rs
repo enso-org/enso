@@ -50,10 +50,9 @@ const ENSO_FONT_FAMILY_FONTS: &[(&str, ttf::Weight)] = &[
     ("Thin", ttf::Weight::Thin),
 ];
 
-/// The URL for the Enso Font package, excluding the final component.
-pub const PACKAGE_BASE_URL: &str = "https://github.com/enso-org/font/releases/download/1.0/";
-/// The final (filename) component of the URL for the Enso Font package.
-pub const PACKAGE_FILE: &str = "enso-font-1.0.tar.gz";
+/// The URL for the Enso Font package.
+pub const PACKAGE_URL: &str =
+    "https://github.com/enso-org/font/releases/download/1.0/enso-font-1.0.tar.gz";
 const PACKAGE_FONTS_PREFIX: &str = "ttf";
 
 

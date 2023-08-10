@@ -68,6 +68,7 @@ impl Archive {
                 .strip_prefix(&prefix)
                 .ok()
                 .map(|relative_path| output.as_ref().join(relative_path))
-        }).await
+        })
+        .await
     }
 }

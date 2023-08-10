@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::ide::web::download::get_file_from_cache_or_download;
 use crate::ide::web::google_font;
 
 use enso_enso_font::ttf;
@@ -41,7 +40,7 @@ pub async fn install_enso_font_for_html(
         .filter(|v| html_fonts.contains_key(&v.header))
         .collect();
     let get_font_files = async {
-        let package = get_enso_font_package_(cache, octocrab.clone()).await?;
+        let package = get_enso_font_package_(cache, octocrab).await?;
         enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
     };
     let make_css_file = async {
@@ -83,11 +82,23 @@ pub async fn install_enso_font_for_html(
 pub async fn get_enso_font_package() -> Result<Box<Path>> {
     let cache = Cache::new_default().await?;
     let octocrab = ide_ci::github::setup_octocrab().await?;
-    get_enso_font_package_(&cache, octocrab).await
+    get_enso_font_package_(&cache, &octocrab).await
 }
 
-async fn get_enso_font_package_(cache: &Cache, octocrab: Octocrab) -> Result<Box<Path>> {
-    let url = format!("{}{}", enso_enso_font::PACKAGE_BASE_URL, enso_enso_font::PACKAGE_FILE);
-    let filename = Path::new(enso_enso_font::PACKAGE_FILE);
-    get_file_from_cache_or_download(filename, cache, octocrab, url).await
+async fn get_enso_font_package_(cache: &Cache, octocrab: &Octocrab) -> Result<Box<Path>> {
+    Ok(cache
+        .get(ide_ci::cache::download::DownloadFile {
+            client: octocrab.client.clone(),
+            key:    ide_ci::cache::download::Key {
+                url:                enso_enso_font::PACKAGE_URL.parse().unwrap(),
+                additional_headers: reqwest::header::HeaderMap::from_iter([(
+                    reqwest::header::ACCEPT,
+                    reqwest::header::HeaderValue::from_static(
+                        mime::APPLICATION_OCTET_STREAM.as_ref(),
+                    ),
+                )]),
+            },
+        })
+        .await?
+        .into_boxed_path())
 }
