@@ -16,28 +16,13 @@ export function includesPredicate<T>(array: Iterable<T>) {
 // ======================
 
 /** The value returned when {@link Array.findIndex} fails. */
-const FIND_INDEX_FAILURE = -1
-
-/** Insert items before the first index `i` for which `predicate(array[i])` is `true`.
- * Insert the items at the end if the `predicate` never returns `true`. */
-export function spliceBefore<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    const index = array.findIndex(predicate)
-    array.splice(index === FIND_INDEX_FAILURE ? array.length : index, 0, ...items)
-    return array
-}
-
-/** Return a copy of the array, with items inserted before the first index `i` for which
- * `predicate(array[i])` is `true`. The items are inserted at the end if the `predicate` never
- * returns `true`. */
-export function splicedBefore<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    return spliceBefore(Array.from(array), items, predicate)
-}
+const NOT_FOUND = -1
 
 /** Insert items after the first index `i` for which `predicate(array[i])` is `true`.
  * Insert the items at the end if the `predicate` never returns `true`. */
 export function spliceAfter<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     const index = array.findIndex(predicate)
-    array.splice(index === FIND_INDEX_FAILURE ? array.length : index + 1, 0, ...items)
+    array.splice(index === NOT_FOUND ? array.length : index + 1, 0, ...items)
     return array
 }
 
@@ -46,20 +31,4 @@ export function spliceAfter<T>(array: T[], items: T[], predicate: (value: T) => 
  * returns `true`. */
 export function splicedAfter<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     return spliceAfter(Array.from(array), items, predicate)
-}
-
-/** Insert items to replace the first item for which the `predicate` returns `true`.
- * Do not insert items if the `predicate` never returns `true`. */
-export function spliceReplacing<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    const index = array.findIndex(predicate)
-    if (index !== FIND_INDEX_FAILURE) {
-        array.splice(index, 1, ...items)
-    }
-    return array
-}
-
-/** Return a copy of the array, with items replacing the first item for which `predicate` is `true`.
- * The items are not inserted if the `predicate` never returns `true`. */
-export function splicedReplacing<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    return spliceReplacing(Array.from(array), items, predicate)
 }

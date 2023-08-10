@@ -79,18 +79,28 @@ function splicedAssets(
     oldAssets: backendModule.AnyAsset[],
     assetsToInsert: backendModule.AnyAsset[],
     parentKey: backendModule.DirectoryId | null,
-    predicate: (asset: backendModule.AnyAsset) => boolean
+    parentId: backendModule.DirectoryId,
+    assetType: backendModule.AssetType
 ) {
+    const typeOrder = backendModule.ASSET_TYPE_ORDER[assetType]
     const newAssets = Array.from(oldAssets)
-    const insertIndex = oldAssets.findIndex(predicate)
-    const parentIndex =
-        insertIndex === NOT_FOUND ? oldAssets.findIndex(asset => asset.id === parentKey) : NOT_FOUND
+    const insertIndex = oldAssets.findIndex(
+        item => item.parentId === parentId && backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+    )
+    let lastChildIndex = oldAssets.length
+    if (insertIndex === NOT_FOUND) {
+        let child = oldAssets[lastChildIndex - 1]
+        while (child != null && child.parentId !== parentId) {
+            lastChildIndex -= 1
+            child = oldAssets[lastChildIndex - 1]
+        }
+    }
     const firstChild = oldAssets[insertIndex]
     const numberOfItemsToRemove = firstChild?.type === backendModule.AssetType.specialEmpty ? 1 : 0
     newAssets.splice(
         insertIndex === NOT_FOUND
-            ? parentIndex === NOT_FOUND
-                ? oldAssets.length
+            ? lastChildIndex !== 0
+                ? lastChildIndex
                 : oldAssets.findIndex(asset => asset.id === parentKey) + 1
             : insertIndex,
         numberOfItemsToRemove,
@@ -504,7 +514,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const childDepth = getDepth(key) + 1
                 set.add(directoryId)
                 const loadingAssetId = backendModule.LoadingAssetId(uniqueString.uniqueString())
-                itemDepthsRef.current.set(loadingAssetId, childDepth)
                 setItems(
                     array.splicedAfter(
                         items,
@@ -522,6 +531,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         item => item.id === key
                     )
                 )
+                itemDepthsRef.current.set(loadingAssetId, childDepth)
                 void (async () => {
                     const abortController = new AbortController()
                     directoryListAbortControllersRef.current.set(directoryId, abortController)
@@ -615,12 +625,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
+                    parentId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.directory,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -633,9 +642,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         oldItems,
                         [placeholderItem],
                         event.parentKey,
-                        item =>
-                            item.parentId === placeholderItem.parentId &&
-                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                        placeholderItem.parentId,
+                        placeholderItem.type
                     )
                 )
                 itemDepthsRef.current.set(
@@ -660,7 +668,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -673,9 +680,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         oldItems,
                         [placeholderItem],
                         event.parentKey,
-                        item =>
-                            item.parentId === placeholderItem.parentId &&
-                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                        placeholderItem.parentId,
+                        placeholderItem.type
                     )
                 )
                 itemDepthsRef.current.set(
@@ -717,9 +723,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                             type: backendModule.ProjectState.new,
                         },
                     }))
-                const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
-                const projectTypeOrder =
-                    backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -728,19 +731,18 @@ export default function AssetsTable(props: AssetsTableProps) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setItems(oldItems =>
-                    array.spliceBefore(
+                    splicedAssets(
                         splicedAssets(
                             oldItems,
                             placeholderFiles,
                             event.parentKey,
-                            item =>
-                                item.parentId === parentId &&
-                                backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
+                            parentId,
+                            backendModule.AssetType.file
                         ),
                         placeholderProjects,
-                        item =>
-                            item.parentId === parentId &&
-                            backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
+                        event.parentKey,
+                        parentId,
+                        backendModule.AssetType.directory
                     )
                 )
                 const depth =
@@ -777,7 +779,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     projectState: null,
                     type: backendModule.AssetType.secret,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -790,9 +791,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         oldItems,
                         [placeholderItem],
                         event.parentKey,
-                        item =>
-                            item.parentId === placeholderItem.parentId &&
-                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                        placeholderItem.parentId,
+                        placeholderItem.type
                     )
                 )
                 itemDepthsRef.current.set(
