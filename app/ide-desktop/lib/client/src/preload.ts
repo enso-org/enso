@@ -6,6 +6,7 @@
 import * as electron from 'electron'
 
 import * as ipc from 'ipc'
+import * as projectManagement from 'project-management'
 
 // =================
 // === Constants ===
@@ -13,7 +14,37 @@ import * as ipc from 'ipc'
 
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
+const BACKEND_API_KEY = 'backendApi'
+/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+ * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
+
+// =============================
+// === importProjectFromPath ===
+// =============================
+
+const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
+    string,
+    (projectId: projectManagement.BundleInfo) => void
+>()
+
+electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
+    importProjectFromPath: (projectPath: string) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+        return new Promise<projectManagement.BundleInfo>(resolve => {
+            IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
+        })
+    },
+})
+
+electron.ipcRenderer.on(
+    ipc.Channel.importProjectFromPath,
+    (_event, projectPath: string, projectInfo: projectManagement.BundleInfo) => {
+        const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
+        IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
+        resolveFunction?.(projectInfo)
+    }
+)
 
 // =======================
 // === Debug Info APIs ===
@@ -35,6 +66,7 @@ electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
 // Save and load profile data.
 let onProfiles: ((profiles: string[]) => void)[] = []
 let profilesLoaded: string[] | null
+
 electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[]) => {
     for (const callback of onProfiles) {
         callback(profiles)
@@ -42,6 +74,7 @@ electron.ipcRenderer.on(ipc.Channel.profilesLoaded, (_event, profiles: string[])
     onProfiles = []
     profilesLoaded = profiles
 })
+
 electron.contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
     saveProfile: (data: unknown) => {

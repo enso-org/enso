@@ -63,7 +63,7 @@ interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventT
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
     parentId: backend.DirectoryId | null
-    files: FileList
+    files: File[]
 }
 
 /** A signal to create a new secret. */

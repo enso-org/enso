@@ -68,13 +68,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-                // `deleteMultiple` is handled by `AssetRow`.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
@@ -105,6 +105,83 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             id: key,
                         })
                         toastAndLog('Error creating new project', error)
+                    }
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.uploadFiles: {
+                const file = event.files.get(key)
+                if (file != null) {
+                    rowState.setPresence(presence.Presence.inserting)
+                    try {
+                        if (backend.type === backendModule.BackendType.local) {
+                            /** Information required to display a bundle. */
+                            interface BundleInfo {
+                                name: string
+                                id: string
+                            }
+                            // This non-standard property is defined in Electron.
+                            let info: BundleInfo
+                            if (
+                                'backendApi' in window &&
+                                'path' in file &&
+                                typeof file.path === 'string'
+                            ) {
+                                info = await window.backendApi.importProjectFromPath(file.path)
+                            } else {
+                                const response = await fetch('./api/upload-project', {
+                                    method: 'POST',
+                                    // Ideally this would use `file.stream()`, to minimize RAM
+                                    // requirements. for uploading large projects. Unfortunately,
+                                    // this requires HTTP/2, which is HTTPS-only, so it will not
+                                    // work on `http://localhost`.
+                                    body: await file.arrayBuffer(),
+                                })
+                                // This is SAFE, as the types of this API are statically known.
+                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                                info = await response.json()
+                            }
+                            rowState.setPresence(presence.Presence.present)
+                            setItem({
+                                ...item,
+                                title: info.name,
+                                id: backendModule.ProjectId(info.id),
+                            })
+                        } else {
+                            const fileName = item.title
+                            const title = backendModule.stripProjectExtension(item.title)
+                            setItem({
+                                ...item,
+                                title,
+                            })
+                            const createdFile = await backend.uploadFile(
+                                {
+                                    fileId: null,
+                                    fileName,
+                                    parentDirectoryId: item.parentId,
+                                },
+                                file
+                            )
+                            const project = createdFile.project
+                            if (project == null) {
+                                throw new Error('The uploaded file was not a project.')
+                            } else {
+                                rowState.setPresence(presence.Presence.present)
+                                setItem({
+                                    ...item,
+                                    title,
+                                    id: project.projectId,
+                                    projectState: project.state,
+                                })
+                                return
+                            }
+                        }
+                    } catch (error) {
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                        toastAndLog('Could not upload project', error)
                     }
                 }
                 break
