@@ -1,18 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.api.profiles.ValueProfile;
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
         type = "Integer",
@@ -27,16 +23,19 @@ public class RoundNode extends Node {
     /** Maximum value for the `decimal_places` parameter to `roundDouble`. */
     private static final double ROUND_MAX_DECIMAL_PLACES = 15;
 
-    private final ValueProfile constantPlacesDecimalPlaces = ValueProfile.createIdentityProfile();
+    private final PrimitiveValueProfile constantPlacesDecimalPlaces = PrimitiveValueProfile.create();
 
-    private final ValueProfile constantPlacesUseBankers = ValueProfile.createIdentityProfile();
+    private final PrimitiveValueProfile constantPlacesUseBankers = PrimitiveValueProfile.create();
 
-    Object execute(long n, long decimalPlaces, boolean useBankers) {
-        decimalPlaces = constantPlacesDecimalPlaces.profile(decimalPlaces);
-        useBankers = constantPlacesUseBankers.profile(useBankers);
+    private final BranchProfile outOfRangeProfile = BranchProfile.create();
+
+    Object execute(long n, long dp, boolean ub) {
+        var decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
+        var useBankers = constantPlacesUseBankers.profile(ub);
 
         if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
-            decimalPlacesOutOfRangePanic(decimalPlaces);
+            outOfRangeProfile.enter();
+            throw decimalPlacesOutOfRangePanic(decimalPlaces);
         }
 
         if (decimalPlaces >= 0) {
@@ -62,7 +61,7 @@ public class RoundNode extends Node {
     }
 
     @TruffleBoundary
-    private void decimalPlacesOutOfRangePanic(long decimalPlaces) throws PanicException {
+    private PanicException decimalPlacesOutOfRangePanic(long decimalPlaces) throws PanicException {
         String msg =
                 "round: decimalPlaces must be between "
                         + ROUND_MIN_DECIMAL_PLACES
