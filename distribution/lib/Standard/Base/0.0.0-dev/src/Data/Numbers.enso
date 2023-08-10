@@ -623,7 +623,6 @@ type Decimal
 
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        #Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             Decimal.round_builtin_2 self decimal_places use_bankers
@@ -953,7 +952,6 @@ type Integer
 
     round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        #Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             Integer.round_builtin self decimal_places use_bankers
