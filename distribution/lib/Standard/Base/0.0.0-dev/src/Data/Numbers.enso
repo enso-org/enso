@@ -624,9 +624,9 @@ type Decimal
     round self decimal_places=0 use_bankers=False =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Decimal.round_builtin_2 self decimal_places use_bankers
+            Decimal.round_decimal_builtin self decimal_places use_bankers
 
-    round_builtin_2 n decimal_places use_bankers = @Builtin_Method "Decimal.round"
+    round_decimal_builtin n decimal_places use_bankers = @Builtin_Method "Decimal.round"
 
     ## Compute the negation of this.
 
@@ -953,9 +953,9 @@ type Integer
     round self decimal_places=0 use_bankers=False =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Integer.round_builtin self decimal_places use_bankers
+            Integer.round_integer_builtin self decimal_places use_bankers
 
-    round_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
+    round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 
     ## Compute the negation of this.
 
