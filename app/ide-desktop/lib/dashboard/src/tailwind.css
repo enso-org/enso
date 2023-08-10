@@ -12,6 +12,12 @@ body {
   animation-duration: 0.2s;
 }
 
+.enso-dashboard {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
 .enso-dashboard,
@@ -149,5 +155,11 @@ body {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
+  }
+
+  /* The class is repeated to make this take precedence over most Tailwind classes. */
+  .cursor-none-recursive.cursor-none-recursive,
+  .cursor-none-recursive.cursor-none-recursive * {
+    cursor: none;
   }
 }

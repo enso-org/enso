@@ -207,9 +207,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.createSecret:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected: {
                 // Ignored. Any missing project-related events should be handled by
-                // `ProjectNameColumn`. `deleteMultiple` is handled by `AssetRow`.
+                // `ProjectNameColumn`. `deleteMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {

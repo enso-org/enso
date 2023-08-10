@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 from project.Data.Type.Value_Type import Auto, Bits, Value_Type
 
@@ -69,9 +70,8 @@ type Data_Formatter
     parse : Text -> (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Problem_Behavior -> Any
     parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
         parser = self.make_datatype_parser datatype
-        result = parser.parseIndependentValue text
-        problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
-        on_problems.attach_problems_after result.value problems
+        Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem datatype) <|
+            parser.parseIndependentValue text
 
     ## PRIVATE
        ADVANCED

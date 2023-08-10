@@ -23,34 +23,6 @@ public abstract class NumericBuilder extends TypedBuilder {
     return new LongBuilder(new BitSet(size), new long[size], 0);
   }
 
-  /**
-   * Converts the provided LongBuilder to a DoubleBuilder.
-   *
-   * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
-   * used.
-   */
-  protected static DoubleBuilder retypeLongBuilderToDouble(LongBuilder builder) {
-    long[] data = builder.data;
-    BitSet isMissing = builder.isMissing;
-    int currentSize = builder.currentSize;
-
-    // Invalidate the old builder.
-    builder.data = null;
-    builder.isMissing = null;
-    builder.currentSize = -1;
-
-    // Translate the data in-place to avoid unnecessary allocations.
-    for (int i = 0; i < currentSize; i++) {
-      if (!isMissing.get(i)) {
-        long currentIntegerValue = data[i];
-        double convertedFloatValue = (double) currentIntegerValue;
-        data[i] = Double.doubleToRawLongBits(convertedFloatValue);
-      }
-    }
-
-    return new DoubleBuilder(isMissing, data, currentSize);
-  }
-
   @Override
   public void appendNulls(int count) {
     isMissing.set(currentSize, currentSize + count);

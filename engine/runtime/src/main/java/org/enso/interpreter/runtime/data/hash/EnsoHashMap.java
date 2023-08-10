@@ -149,7 +149,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage(library = TypesLibrary.class)
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().map();
   }
 
