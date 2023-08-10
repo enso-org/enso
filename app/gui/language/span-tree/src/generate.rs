@@ -985,6 +985,7 @@ mod test {
     use ast::Crumbs;
     use ast::IdMap;
     use parser::Parser;
+    use pretty_assertions::assert_eq;
 
 
     /// A helper function which removes information about expression id from thw tree rooted at
@@ -1158,7 +1159,18 @@ mod test {
         let expected = TreeBuilder::new(13)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(3, BeforeArgument(0))
-            .add_leaf(4, 9, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .add_child(4, 9, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(4, 5, node::Kind::argument(), TreeCrumb { index: 3 })
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::argument(), InfixCrumb::LeftOperand)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+            .add_empty_child(3, BeforeArgument(1))
+            .add_leaf(4, 1, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_empty_child(5, Append)
+            .done()
+            .done()
             .add_empty_child(13, Append)
             .build();
 
