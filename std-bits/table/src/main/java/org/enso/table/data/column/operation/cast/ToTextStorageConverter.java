@@ -3,12 +3,14 @@ package org.enso.table.data.column.operation.cast;
 import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
@@ -43,7 +45,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         return adaptStringStorage(stringStorage, problemBuilder);
       }
     }
-    if (storage instanceof LongStorage longStorage) {
+    if (storage instanceof AbstractLongStorage longStorage) {
       return castLongStorage(longStorage, problemBuilder);
     } else if (storage instanceof DoubleStorage doubleStorage) {
       return castDoubleStorage(doubleStorage, problemBuilder);
@@ -104,7 +106,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return b ? "True" : "False";
   }
 
-  private Storage<String> castLongStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> castLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(longStorage.size(), targetType);
     for (int i = 0; i < longStorage.size(); i++) {
@@ -181,6 +183,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     String adapted = adaptWithoutWarning(value);
 
     // If the value was truncated, report the data loss.
+    // (We can use the codepoint lengths here because truncation on grapheme length will still change the codepoint
+    // length too, and this check is simply faster.)
     if (adapted.length() < value.length()) {
       problemBuilder.reportTextTooLong(value);
     }
