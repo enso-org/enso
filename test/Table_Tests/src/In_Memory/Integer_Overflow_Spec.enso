@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import Conversion_Failure
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+from project.Util import all
+
+main = Test_Suite.run_main spec
+
+spec =
+    table_builder = Table.new
+    Test.group "[In-Memory] Column operation Integer Overflow handling" <|
+        Test.specify "TODO" <|
+            1
