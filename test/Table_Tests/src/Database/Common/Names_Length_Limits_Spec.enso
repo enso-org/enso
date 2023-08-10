@@ -325,7 +325,6 @@ spec prefix connection =
                 a = db_table.at name_a
                 b = db_table.at name_b
                 c1 = a + b
-                IO.println c1.name
                 Problems.assume_no_problems c1
                 # The column names should be truncated so that prefixes of both names and the operator all fit:
                 c1.name . should_contain "+"
@@ -334,7 +333,6 @@ spec prefix connection =
                 c1.name . should_contain "bbb"
 
                 c2 = (a == b).iif b 0
-                IO.println c2.name
                 Problems.assume_no_problems c2
                 c2.name . should_start_with "if [[aaa"
                 c2.name . should_contain " then [bbb"
@@ -343,7 +341,6 @@ spec prefix connection =
                 # We repeat the argument maaany times.
                 args = Vector.new (max_column_name_length * 2) _-> b
                 c3 = a.max args
-                IO.println c3.name
                 Problems.assume_no_problems c3
                 c3.name.should_start_with "max([aaa"
                 c3.name.should_contain "..., "
