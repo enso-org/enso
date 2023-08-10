@@ -110,7 +110,6 @@ type Column_Naming_Helper
        to display every part.
     concat : Vector Text -> Boolean -> Text
     concat self texts add_spaces=True =
-        # TODO truncate parts smarter way
         separator = if add_spaces then " " else ""
         joined = texts.join separator
         case self.naming_properties.size_limit of
