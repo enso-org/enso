@@ -657,7 +657,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 )
                 itemDepthsRef.current.set(
                     placeholderItem.id,
-                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
+                    event.parentKey != null
+                        ? (itemDepthsRef.current.get(event.parentKey) ?? 0) + 1
+                        : 0
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newFolder,
@@ -695,7 +697,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 )
                 itemDepthsRef.current.set(
                     placeholderItem.id,
-                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
+                    event.parentKey != null
+                        ? (itemDepthsRef.current.get(event.parentKey) ?? 0) + 1
+                        : 0
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newProject,
@@ -755,8 +759,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
                 const depth =
-                    event.parentId != null
-                        ? (itemDepthsRef.current.get(event.parentId) ?? 0) + 1
+                    event.parentKey != null
+                        ? (itemDepthsRef.current.get(event.parentKey) ?? 0) + 1
                         : 0
                 for (const file of placeholderFiles) {
                     itemDepthsRef.current.set(file.id, depth)
@@ -806,7 +810,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 )
                 itemDepthsRef.current.set(
                     placeholderItem.id,
-                    (itemDepthsRef.current.get(placeholderItem.parentId) ?? 0) + 1
+                    event.parentKey != null
+                        ? (itemDepthsRef.current.get(event.parentKey) ?? 0) + 1
+                        : 0
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newSecret,
