@@ -219,25 +219,25 @@ export const COLUMN_HEADING: Record<
 > = {
     [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
     [Column.modified]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={TimeIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
         </div>
     ),
     [Column.sharedWith]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={PeopleIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={TagIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={AccessedByProjectsIcon} />
             <span className="leading-144.5 h-6 py-0.5">
                 {COLUMN_NAME[Column.accessedByProjects]}
@@ -245,13 +245,13 @@ export const COLUMN_HEADING: Record<
         </div>
     ),
     [Column.accessedData]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={AccessedDataIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             <SvgMask src={DocsIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
         </div>

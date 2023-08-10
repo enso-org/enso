@@ -18,6 +18,10 @@ import SvgMask from '../../authentication/components/svgMask'
 // === Constants ===
 // =================
 
+/** The size of the icon, in pixels. */
+const ICON_SIZE_PX = 24
+/** The styles of the icons. */
+const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX } satisfies React.CSSProperties
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The interval between requests checking whether the IDE is ready. */
@@ -369,21 +373,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6"
+                    className="h-6"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask src={PlayIcon} />
+                    <SvgMask style={ICON_STYLE} src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
         case backendModule.ProjectState.placeholder:
             return (
                 <button
-                    className="w-6"
+                    className="h-6"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -391,28 +395,26 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     }}
                 >
                     <div className="relative h-0">
-                        <Spinner size={24} state={spinnerState} />
+                        <Spinner size={ICON_SIZE_PX} state={spinnerState} />
                     </div>
-                    <SvgMask src={StopIcon} />
+                    <SvgMask style={ICON_STYLE} src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
             return (
-                <>
-                    <button
-                        className="w-6"
-                        onClick={async clickEvent => {
-                            clickEvent.stopPropagation()
-                            unsetModal()
-                            await closeProject()
-                        }}
-                    >
-                        <div className="relative h-0">
-                            <Spinner size={24} state={spinnerState} />
-                        </div>
-                        <SvgMask src={StopIcon} />
-                    </button>
-                </>
+                <button
+                    className="h-6"
+                    onClick={async clickEvent => {
+                        clickEvent.stopPropagation()
+                        unsetModal()
+                        await closeProject()
+                    }}
+                >
+                    <div className="relative h-0">
+                        <Spinner size={ICON_SIZE_PX} state={spinnerState} />
+                    </div>
+                    <SvgMask style={ICON_STYLE} src={StopIcon} />
+                </button>
             )
     }
 }
