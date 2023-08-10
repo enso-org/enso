@@ -149,6 +149,15 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
+        if (item.type === backendModule.AssetType.directory) {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.closeFolder,
+                id: item.id,
+                // This is SAFE, as this asset is already known to be a directory.
+                // eslint-disable-next-line no-restricted-syntax
+                key: key as backendModule.DirectoryId,
+            })
+        }
         try {
             if (
                 item.type === backendModule.AssetType.project &&
@@ -816,6 +825,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     type: assetEventModule.AssetEventType.removeSelf,
                     id: event.id,
                 })
+                break
+            }
+            case assetListEventModule.AssetListEventType.closeFolder: {
+                if (expandedDirectoriesRef.current.has(event.key)) {
+                    doToggleDirectoryExpansion(event.id, event.key)
+                }
                 break
             }
         }
