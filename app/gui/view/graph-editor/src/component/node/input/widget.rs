@@ -742,7 +742,7 @@ impl Tree {
             styles,
         );
         self.frp.private.output.on_rebuild_finished.emit(());
-        console_log!("Widget tree:\n{:?}", self.pretty_printer());
+        debug!("Widget tree:\n{:?}", self.pretty_printer());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -1822,6 +1822,19 @@ impl<'a> TreeBuilder<'a> {
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
         Child { info, root_object: child_root }
+    }
+
+    /// Access a tree node widget at given span ID that were created during this build process. Only
+    /// widgets that were built before calling this method will be returned.
+    pub fn iter_built_widgets_of_span(
+        &self,
+        span_id: StableSpanIdentity,
+    ) -> impl DoubleEndedIterator<Item = &TreeNode> + '_ {
+        let last_index = self.pointer_usage.get(&span_id).map_or(0, |usage| usage.next_index);
+        (0..last_index).filter_map(move |index| {
+            let id = WidgetIdentity { main: span_id, index };
+            self.new_nodes.get(&id).map(|e| &e.node)
+        })
     }
 }
 
