@@ -195,6 +195,15 @@ export class RemoteBackend extends backend.Backend {
         throw new Error(message)
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
+    }
+
     /** Return a list of all users in the same organization. */
     async listUsers(): Promise<backend.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)

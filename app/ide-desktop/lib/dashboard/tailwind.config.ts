@@ -33,8 +33,6 @@ export const theme = {
             dim: 'rgba(0, 0, 0, 0.25)',
             frame: 'rgba(255, 255, 255, 0.40)',
             'frame-selected': 'rgba(255, 255, 255, 0.70)',
-            'black-a5': 'rgba(0, 0, 0, 0.05)',
-            'black-a10': 'rgba(0, 0, 0, 0.10)',
             'tag-text': 'rgba(255, 255, 255, 0.90)',
             'tag-text-2': 'rgba(0, 0, 0, 0.60)',
             'permission-owner': 'rgba(236, 2, 2, 0.70)',
@@ -45,20 +43,26 @@ export const theme = {
             'permission-exec': 'rgba(236, 2, 2, 0.70)',
             'permission-view': 'rgba(0, 0, 0, 0.10)',
             'call-to-action': '#fa6c08',
+            'black-a5': 'rgba(0, 0, 0, 0.05)',
+            'black-a10': 'rgba(0, 0, 0, 0.10)',
+            'black-a16': 'rgba(0, 0, 0, 0.16)',
+            'black-a30': 'rgba(0, 0, 0, 0.30)',
+            'black-a50': 'rgba(0, 0, 0, 0.50)',
             'gray-350': '#b7bcc5',
-        },
-        flexGrow: {
-            2: '2',
         },
         fontSize: {
             xs: '0.71875rem',
             sm: '0.8125rem',
+        },
+        lineHeight: {
+            '170': '170%',
         },
         spacing: {
             '0.75': '0.1875rem',
             '1.75': '0.4375rem',
             '2.25': '0.5625rem',
             '3.25': '0.8125rem',
+            '3.5': '0.875rem',
             '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '6.5': '1.625rem',
@@ -70,6 +74,7 @@ export const theme = {
             '30.25': '7.5625rem',
             '42': '10.5rem',
             '54': '13.5rem',
+            '57.5': '14.375rem',
             '70': '17.5rem',
             '83.5': '20.875rem',
             '98.25': '24.5625rem',
@@ -92,9 +97,7 @@ export const theme = {
         backdropBlur: {
             xs: '2px',
         },
-        lineHeight: {
-            '170': '170%',
-        },
+        borderWidth: { '0.5': '0.5px' },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \

@@ -33,7 +33,7 @@ export interface ManagePermissionsModalProps {
     /** Remove the current user's permissions from this asset. This MUST be a prop because it should
      * change the assets list. */
     doRemoveSelf: () => void
-    eventTarget: HTMLElement
+    eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
@@ -50,7 +50,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const [email, setEmail] = React.useState<string | null>(null)
     const [action, setAction] = React.useState(backendModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
-    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
             self.permission === backendModule.PermissionAction.own
@@ -227,12 +227,19 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         }
 
         return (
-            <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
+            <Modal
+                centered={eventTarget == null}
+                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10"
+            >
                 <div
-                    style={{
-                        left: position.left + window.scrollX,
-                        top: position.top + window.scrollY,
-                    }}
+                    style={
+                        position != null
+                            ? {
+                                  left: position.left + window.scrollX,
+                                  top: position.top + window.scrollY,
+                              }
+                            : {}
+                    }
                     className="sticky w-115.25"
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
