@@ -1,0 +1,12 @@
+import project.Any.Any
+import project.Data.Array.Array
+import project.Data.Numbers.Integer
+
+## PRIVATE
+    The builtin cannot throw `Illegal_Argument` as that type cannot be a
+    builtin, because they do not support default arguments in constructors.
+    So a wrapper is used which will translate a Java exception into the Enso
+    one. This indirection may be removed once the following story is done:
+    https://www.pivotaltracker.com/n/projects/2539304/stories/183817602
+new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
+new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"

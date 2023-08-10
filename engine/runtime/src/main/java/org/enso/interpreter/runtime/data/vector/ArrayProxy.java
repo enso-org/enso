@@ -6,15 +6,14 @@ import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -27,9 +26,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Array_Proxy.Array_Proxy")
 @ImportStatic(BranchProfile.class)
-public final class ArrayProxy implements TruffleObject {
+final class ArrayProxy implements EnsoObject {
   private final long length;
   private final Object at;
 
@@ -52,9 +50,7 @@ public final class ArrayProxy implements TruffleObject {
     this.at = at;
   }
 
-  @Builtin.Method(name = "new_builtin", description = "Creates an array backed by a proxy object.")
-  @Builtin.WrapException(from = IllegalArgumentException.class)
-  public static ArrayProxy create(long length, Object at) throws IllegalArgumentException {
+  static ArrayProxy create(long length, Object at) throws IllegalArgumentException {
     return new ArrayProxy(length, at);
   }
 
