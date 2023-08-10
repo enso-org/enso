@@ -215,6 +215,8 @@
   the selected entry in the component browser. Clear separating lines between
   method arguments were added. The node selection was made easier with
   additional thick interactive selection border.
+- [Connections to lamdas are displayed correctly][7550]. It is possible to drag
+  a connection to any expression inside the lambda body.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -239,6 +241,7 @@
 [7372]: https://github.com/enso-org/enso/pull/7372
 [7337]: https://github.com/enso-org/enso/pull/7337
 [7311]: https://github.com/enso-org/enso/pull/7311
+[7550]: https://github.com/enso-org/enso/pull/7550
 
 #### EnsoGL (rendering engine)
 
