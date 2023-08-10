@@ -1195,6 +1195,10 @@ mod test {
     #[test]
     fn generating_span_tree_for_lambda() {
         let parser = Parser::new();
+
+
+        // === Simple lambda ===
+
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -1217,7 +1221,37 @@ mod test {
             .done()
             .add_empty_child(13, Append)
             .build();
+        assert_eq!(expected, tree);
 
+
+        // === Lambda with two arguments ===
+
+        let ast = parser.parse_line_ast("foo a->b-> a + b").unwrap();
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
+        clear_expression_ids(&mut tree.root);
+        clear_parameter_infos(&mut tree.root);
+
+        let expected = TreeBuilder::new(16)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
+            .add_empty_child(3, BeforeArgument(0))
+            .add_child(4, 12, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(3, 9, node::Kind::argument(), TreeCrumb { index: 2 })
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(4, 5, node::Kind::argument(), TreeCrumb { index: 3 })
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::argument(), InfixCrumb::LeftOperand)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+            .add_empty_child(3, BeforeArgument(1))
+            .add_leaf(4, 1, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_empty_child(5, Append)
+            .done()
+            .done()
+            .done()
+            .add_empty_child(16, Append)
+            .build();
         assert_eq!(expected, tree);
     }
 
