@@ -41,8 +41,8 @@ pub async fn install_enso_font_for_html(
         .filter(|v| html_fonts.contains_key(&v.header))
         .collect();
     let get_font_files = async {
-        let archive = get_enso_font_package_(cache, octocrab.clone()).await?;
-        enso_enso_font::extract_fonts(&html_font_definitions, archive, output_path).await
+        let package = get_enso_font_package_(cache, octocrab.clone()).await?;
+        enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
     };
     let make_css_file = async {
         let mut css = String::new();
@@ -51,7 +51,12 @@ pub async fn install_enso_font_for_html(
         for (header, variant) in html_fonts {
             use std::fmt::Write;
             let def = html_font_definitions.get(header);
-            let def = def.ok_or(anyhow!("Required font not found in package."))?;
+            let def = def.ok_or_else(|| {
+                anyhow!(
+                    "Required font not found in Enso Font package. \
+                    Expected a font matching: {header:?}."
+                )
+            })?;
             let file = &def.file;
             writeln!(&mut css, "@font-face {{")?;
             writeln!(&mut css, "  font-family: '{family}{variant}';")?;
@@ -61,8 +66,7 @@ pub async fn install_enso_font_for_html(
             writeln!(&mut css, "}}")?;
         }
         let css_path = output_path.join("ensoFont.css");
-        let mut css_file = ide_ci::fs::tokio::create(css_path).await?;
-        css_file.write_all(css.as_bytes()).await?;
+        ide_ci::fs::tokio::write(css_path, css).await?;
         Ok(())
     };
     try_join!(get_font_files, make_css_file)?;
@@ -76,14 +80,14 @@ pub async fn install_enso_font_for_html(
 // =================
 
 /// Download the Enso Font package, with caching and GitHub authentication.
-pub async fn get_enso_font_package() -> Result<std::fs::File> {
+pub async fn get_enso_font_package() -> Result<Box<Path>> {
     let cache = Cache::new_default().await?;
     let octocrab = ide_ci::github::setup_octocrab().await?;
     get_enso_font_package_(&cache, octocrab).await
 }
 
-async fn get_enso_font_package_(cache: &Cache, octocrab: Octocrab) -> Result<std::fs::File> {
+async fn get_enso_font_package_(cache: &Cache, octocrab: Octocrab) -> Result<Box<Path>> {
     let url = format!("{}{}", enso_enso_font::PACKAGE_BASE_URL, enso_enso_font::PACKAGE_FILE);
-    let path = Path::new(enso_enso_font::PACKAGE_FILE);
-    get_file_from_cache_or_download(path, cache, octocrab, url).await
+    let filename = Path::new(enso_enso_font::PACKAGE_FILE);
+    get_file_from_cache_or_download(filename, cache, octocrab, url).await
 }

@@ -108,8 +108,8 @@ impl CodeGenerator {
 
 pub async fn load_enso_font(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
     let font_family = enso_enso_font::enso_font();
-    let archive = enso_build::ide::web::fonts::get_enso_font_package().await?;
-    enso_enso_font::extract_fonts(&font_family, archive, &out_dir).await?;
+    let package = enso_build::ide::web::fonts::get_enso_font_package().await?;
+    enso_enso_font::extract_fonts(&font_family, package, &out_dir).await?;
     code_gen.add_non_variable_font_definition(enso_enso_font::ENSO_FONT_FAMILY_NAME, &font_family);
     for file in font_family.files() {
         code_gen.add_font_data(file);

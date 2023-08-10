@@ -79,24 +79,23 @@ pub fn enso_font() -> NonVariableDefinition {
 }
 
 /// Extract the fonts from the given archive file, and write them in the given directory.
+#[context("Failed to extract fonts from archive: {}", package.as_ref().display())]
 pub async fn extract_fonts(
     fonts: &NonVariableDefinition,
-    archive_file: impl Read,
+    package: impl AsRef<Path>,
     out_dir: impl AsRef<Path>,
 ) -> Result {
-    let tar = flate2::read::GzDecoder::new(archive_file);
-    let mut archive = tar::Archive::new(tar);
     let mut files_expected: HashSet<_> = fonts.files().collect();
-    let entries = archive.entries()?;
-    for entry in entries {
-        let mut entry = entry?;
-        let file_path = entry.path()?;
-        if let Ok(file_path) = file_path.strip_prefix(PACKAGE_FONTS_PREFIX)
-            && let Some(file_path_str) = file_path.to_str()
-            && files_expected.remove(file_path_str) {
-            entry.unpack(out_dir.as_ref().join(file_path))?;
-        }
-    }
+    ide_ci::archive::tar::Archive::open_tar_gz(&package)
+        .await?
+        .extract_files(|path_in_archive| {
+            path_in_archive
+                .strip_prefix(PACKAGE_FONTS_PREFIX)
+                .ok()
+                .filter(|path| path.to_str().map_or(false, |path| files_expected.remove(path)))
+                .map(|path| out_dir.as_ref().join(path))
+        })
+        .await?;
     ensure!(files_expected.is_empty(), "Required fonts not found in archive: {files_expected:?}.");
     Ok(())
 }

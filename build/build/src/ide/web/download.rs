@@ -5,7 +5,6 @@ use crate::prelude::*;
 use ide_ci::cache::Cache;
 use ide_ci::cache::Storable;
 use reqwest::IntoUrl;
-use std::fs::File;
 
 
 
@@ -14,22 +13,23 @@ use std::fs::File;
 // ===========================
 
 /// Check whether the specified URL has been downloaded and cached. If not, download it using the
-/// specified downloader, and store it in the cache. Opens the file in the cache and returns it.
+/// specified downloader, and store it in the cache. Returns the path to the file obtained from the
+/// URL.
 ///
-/// The `filename` parameter will be used to name the file within its directory in the cache; the
-/// name does not matter to application operation, but only serves to inform anyone inspecting the
-/// cache directory.
+/// The `filename` parameter must be a plain filename or relative path. It will be used to name the
+/// file within its directory in the cache; the name does not matter to application operation, but
+/// only serves to inform anyone inspecting the cache directory.
 pub async fn get_file_from_cache_or_download(
     filename: impl AsRef<Path>,
     cache: &Cache,
     downloader: impl Downloader,
     url: impl IntoUrl,
-) -> Result<File> {
+) -> Result<Box<Path>> {
     let url = url.into_url()?;
     let filename = filename.as_ref().into();
     let downloader = Arc::new(downloader);
     let cache_path = cache.get(FixedContentUrl { url, filename, downloader }).await?;
-    Ok(File::open(&cache_path)?)
+    Ok(cache_path)
 }
 
 /// A URL that can provide a file which can be assumed to be constant.
