@@ -10,7 +10,6 @@ use ensogl_core::system::gpu::texture;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
-use std::collections::hash_map::Entry;
 use ttf::AsFaceRef;
 
 
@@ -30,7 +29,6 @@ pub use ttf::Style;
 pub use ttf::Tag;
 pub use ttf::Weight;
 pub use ttf::Width;
-
 
 
 // =================
@@ -289,7 +287,7 @@ pub struct VariableFamily {
 impl NonVariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
-    fn load_all_faces(&self, embedded: &Embedded) {
+    fn load_all_faces(&self, embedded: &EmbeddedData) {
         for variation in self.definition.variations() {
             if let Some(face) = embedded.load_face(variation.file) {
                 self.faces.borrow_mut().insert(variation.header, face);
@@ -330,7 +328,7 @@ impl NonVariableFamily {
 impl VariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
-    fn load_all_faces(&self, embedded: &Embedded) {
+    fn load_all_faces(&self, embedded: &EmbeddedData) {
         if let Some(face) = embedded.load_face(&self.definition.file_name) {
             // Set default variation axes during face initialization. This is needed to make some
             // fonts appear on the screen. In case some axes are not found, warnings will be
@@ -965,60 +963,60 @@ impl FontWithGpuData {
 // ================
 
 /// Stores all loaded fonts.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[derive(CloneRef)]
 pub struct Registry {
-    rc: Rc<RefCell<RegistryData>>,
-}
-
-#[derive(Debug, Default)]
-struct RegistryData {
-    embedded: Embedded,
-    fonts:    HashMap<Name, FontWithGpuData>,
+    fonts: Rc<HashMap<Name, FontWithGpuData>>,
 }
 
 impl Registry {
     /// Load the default font. See the docs of [`load`] to learn more.
     pub fn load_default(&self) -> FontWithGpuData {
-        self.load(DEFAULT_FONT)
+        self.try_load(DEFAULT_FONT).expect("Default font not found.")
     }
 
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns the default font if the name is missing in both cache
-    /// and embedded font list.
+    /// Load a font by name. Returns the default font if a font is not found for the name.
     pub fn load(&self, name: impl Into<Name>) -> FontWithGpuData {
         let name = name.into();
         self.try_load(&name).unwrap_or_else(|| {
             warn!("Font '{name}' not found. Loading the default font.");
-            self.try_load(DEFAULT_FONT).expect("Default font not found.")
+            self.load_default()
         })
     }
 
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns [`None`] if the name is missing in both cache and
-    /// embedded font list.
+    /// Load a font by name. Returns [`None`] if a font is not found for the name.
     pub fn try_load(&self, name: impl Into<Name>) -> Option<FontWithGpuData> {
-        let mut data = self.rc.borrow_mut();
-        let data = &mut *data;
         let name = name.into();
-        match data.fonts.entry(name.clone()) {
-            Entry::Occupied(entry) => Some(entry.get().clone_ref()),
-            Entry::Vacant(entry) => {
+        self.fonts.get(&name).cloned()
+    }
+
+    fn from_fonts(fonts: impl IntoIterator<Item = (Name, Font)>) -> Self {
+        let scene = scene();
+        let scene_shape = scene.shape().value();
+        let context = get_context(&scene);
+        let fonts = fonts
+            .into_iter()
+            .map(|(name, font)| {
                 debug!("Loading font: {:?}", name);
-                let scene = scene();
-                let hinting = Hinting::for_font(&name, scene.shape().value());
-                let font = data.embedded.load_font(name)?;
-                let font = FontWithGpuData::new(font, hinting, &get_context(&scene));
-                entry.insert(font.clone_ref());
-                Some(font)
-            }
-        }
+                let hinting = Hinting::for_font(&name, scene_shape);
+                (name, FontWithGpuData::new(font, hinting, &context))
+            })
+            .collect();
+        let fonts = Rc::new(fonts);
+        Self { fonts }
     }
 }
 
 impl scene::Extension for Registry {
     fn init(_scene: &scene::Scene) -> Self {
         Self::default()
+    }
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        let fonts = Embedded::default().into_fonts();
+        Self::from_fonts(fonts)
     }
 }
 
@@ -1096,16 +1094,46 @@ impl Default for Hinting {
 // =========================
 
 /// A registry of font data built-in to the application.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Embedded {
     definitions: HashMap<Name, family::FontFamily>,
-    data:        HashMap<&'static str, &'static [u8]>,
+    data:        EmbeddedData,
 }
 
 impl Embedded {
     /// Load a font from the registry.
     pub fn load_font(&self, name: Name) -> Option<Font> {
-        self.definitions.get(&name).map(|definition| match definition {
+        self.definitions.get(&name).map(|definition| self.data.load_font(name.clone(), definition))
+    }
+
+    /// Load and return all fonts from the registry.
+    pub fn into_fonts(self) -> impl Iterator<Item = (Name, Font)> {
+        let data = self.data;
+        self.definitions
+            .into_iter()
+            .map(move |(name, definition)| (name.clone(), data.load_font(name, &definition)))
+    }
+}
+
+impl Default for Embedded {
+    fn default() -> Self {
+        let ensogl_text_embedded_fonts::Embedded { definitions, data } = default();
+        Self { definitions, data: EmbeddedData { data } }
+    }
+}
+
+
+// === Embedded data ===
+
+/// Font files compiled into the application.
+#[derive(Debug)]
+pub struct EmbeddedData {
+    data: HashMap<&'static str, &'static [u8]>,
+}
+
+impl EmbeddedData {
+    fn load_font(&self, name: Name, definition: &family::FontFamily) -> Font {
+        match definition {
             family::FontFamily::NonVariable(definition) => {
                 let family = NonVariableFamily::from(definition);
                 family.load_all_faces(self);
@@ -1122,7 +1150,7 @@ impl Embedded {
                 family.load_all_faces(self);
                 VariableFont::new(name, family).into()
             }
-        })
+        }
     }
 
     /// Load the font face from memory. Corrupted faces will be reported.
