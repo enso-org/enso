@@ -364,14 +364,17 @@ function mousebind(
 /** The equivalent of the `Control` key for the current platform. */
 const CTRL = (detect.platform() === detect.Platform.macOS ? 'Meta' : 'Ctrl') satisfies ModifierKey
 
+/** The key known as the `Delete` key for the current platform. */
+const DELETE = detect.platform() === detect.Platform.macOS ? 'Backspace' : 'Delete'
+
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
     [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
-    [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], 'Delete')],
-    [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], 'Delete')],
+    [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], DELETE)],
+    [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
     [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
