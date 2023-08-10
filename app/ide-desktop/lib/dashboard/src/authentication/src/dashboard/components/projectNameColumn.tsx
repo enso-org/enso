@@ -9,7 +9,8 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
 import * as column from '../column'
@@ -44,8 +45,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             getDepth,
         },
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     const doRename = async (newName: string) => {
         try {
@@ -67,17 +69,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newFolder:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
@@ -204,10 +207,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,

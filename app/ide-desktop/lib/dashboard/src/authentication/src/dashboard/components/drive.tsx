@@ -18,13 +18,6 @@ import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
 
-// =================
-// === Constants ===
-// =================
-
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
-
 // =============
 // === Drive ===
 // =============
@@ -34,8 +27,6 @@ export interface DriveProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
-    directoryId: backendModule.DirectoryId | null
-    setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
@@ -55,8 +46,6 @@ export default function Drive(props: DriveProps) {
         page,
         hidden,
         initialProjectName,
-        directoryId,
-        setDirectoryId,
         query,
         assetListEvents,
         dispatchAssetListEvent,
@@ -77,7 +66,6 @@ export default function Drive(props: DriveProps) {
     const [initialized, setInitialized] = React.useState(false)
     const [assets, rawSetAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
-    const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
@@ -104,7 +92,7 @@ export default function Drive(props: DriveProps) {
 
     React.useEffect(() => {
         setIsLoadingAssets(true)
-    }, [backend, directoryId])
+    }, [backend])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -112,39 +100,13 @@ export default function Drive(props: DriveProps) {
         }
     }, [loadingProjectManagerDidFail, backend.type])
 
-    React.useEffect(() => {
-        const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
-        if (cachedDirectoryStackJson != null) {
-            // The JSON was inserted by the code below, so it will always have the right type.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backendModule.DirectoryAsset[] =
-                JSON.parse(cachedDirectoryStackJson)
-            setDirectoryStack(cachedDirectoryStack)
-            const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
-            if (cachedDirectoryId) {
-                setDirectoryId(cachedDirectoryId)
-            }
-        }
-    }, [setDirectoryId])
-
-    React.useEffect(() => {
-        if (
-            organization != null &&
-            directoryId === backendModule.rootDirectoryId(organization.id)
-        ) {
-            localStorage.removeItem(DIRECTORY_STACK_KEY)
-        } else {
-            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
-        }
-    }, [directoryStack, directoryId, organization])
-
     const setAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
             rawSetAssets(newAssets)
             if (nameOfProjectToImmediatelyOpen != null) {
-                const projectToLoad = newAssets.find(
-                    projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-                )
+                const projectToLoad = newAssets
+                    .filter(backendModule.assetIsProject)
+                    .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
                 if (projectToLoad != null) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -195,13 +157,9 @@ export default function Drive(props: DriveProps) {
                 case backendModule.BackendType.remote: {
                     if (
                         !isListingRemoteDirectoryAndWillFail &&
-                        !isListingRemoteDirectoryWhileOffline &&
-                        directoryId != null
+                        !isListingRemoteDirectoryWhileOffline
                     ) {
-                        const newAssets = await backend.listDirectory(
-                            { parentId: directoryId },
-                            directoryStack[0]?.title ?? null
-                        )
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
                             setAssets(newAssets)
@@ -213,31 +171,33 @@ export default function Drive(props: DriveProps) {
                 }
             }
         },
-        [accessToken, directoryId, backend]
+        [accessToken, organization, backend]
     )
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
-            if (backend.type !== backendModule.BackendType.local && directoryId == null) {
+            if (backend.type !== backendModule.BackendType.local && organization == null) {
                 // This should never happen, however display a nice error message in case it does.
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentId: directoryId,
+                    parentKey: null,
+                    parentId: null,
                     files,
                 })
             }
         },
-        [backend.type, directoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
+        [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: assetListEventModule.AssetListEventType.createDirectory,
-            parentId: directoryId,
+            type: assetListEventModule.AssetListEventType.newFolder,
+            parentKey: null,
+            parentId: null,
         })
-    }, [directoryId, /* should never change */ dispatchAssetListEvent])
+    }, [/* should never change */ dispatchAssetListEvent])
 
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
@@ -271,7 +231,7 @@ export default function Drive(props: DriveProps) {
     ) : isListingLocalDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="text-base text-center">
-                Could not connect to the Project Manager. Please try restarting{' '}
+                Could not connect to the Project Manager. Please try restarting
                 {common.PRODUCT_NAME}, or manually launching the Project Manager.
             </div>
         </div>
@@ -313,7 +273,7 @@ export default function Drive(props: DriveProps) {
                 doCloseIde={doCloseEditor}
             />
             {isFileBeingDragged &&
-            directoryId != null &&
+            organization != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
@@ -328,7 +288,8 @@ export default function Drive(props: DriveProps) {
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentId: directoryId,
+                            parentKey: null,
+                            parentId: null,
                             files: Array.from(event.dataTransfer.files),
                         })
                     }}

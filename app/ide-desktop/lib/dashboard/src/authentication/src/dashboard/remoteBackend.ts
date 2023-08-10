@@ -195,6 +195,15 @@ export class RemoteBackend extends backend.Backend {
         throw new Error(message)
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
+    }
+
     /** Return a list of all users in the same organization. */
     async listUsers(): Promise<backend.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
@@ -279,7 +288,8 @@ export class RemoteBackend extends backend.Backend {
             return (await response.json()).assets
                 .map(
                     asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                        // This type assertion is safe; it is only needed to convert `type` to a
+                        // newtype.
                         // eslint-disable-next-line no-restricted-syntax
                         ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
                 )
@@ -289,6 +299,10 @@ export class RemoteBackend extends backend.Backend {
                         ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
                         : asset
                 )
+                .map(asset => ({
+                    ...asset,
+                    permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),
+                }))
         }
     }
 

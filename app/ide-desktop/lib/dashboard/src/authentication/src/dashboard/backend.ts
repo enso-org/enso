@@ -2,6 +2,7 @@
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
+import * as permissions from './permissions'
 
 // =============
 // === Types ===
@@ -18,71 +19,58 @@ export enum BackendType {
 
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-/** Create a {@link UserOrOrganizationId}. */
 export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
-/** Create a {@link DirectoryId}. */
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
 /** Unique identifier for an asset representing the items inside a directory for which the
  * request to retrive the items has not yet completed. */
 export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-/** Create a {@link LoadingAssetId}. */
 export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-/** Create a {@link EmptyAssetId}. */
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-/** Create a {@link ProjectId}. */
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>
-/** Create a {@link FileId}. */
 export const FileId = newtype.newtypeConstructor<FileId>()
 
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
-/** Create a {@link SecretId}. */
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
-/** Unique identifier for an arbitrary asset */
+/** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
-/** Create a {@link TagId}. */
 export const TagId = newtype.newtypeConstructor<TagId>()
 
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
-/** Create an {@link Address}. */
 export const Address = newtype.newtypeConstructor<Address>()
 
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
-/** Create an {@link EmailAddress}. */
 export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
 
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
-/** Create an {@link S3FilePath}. */
 export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 
 /** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
-/** Create an {@link Ami}. */
 export const Ami = newtype.newtypeConstructor<Ami>()
 
 /** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
-/** Create a {@link Subject}. */
 export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
@@ -124,7 +112,7 @@ export interface ProjectStateType {
     type: ProjectState
 }
 
-/** Common `Project` fields returned by all `Project`-related endpoints.  */
+/** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
     organizationId: string
     projectId: ProjectId
@@ -295,22 +283,20 @@ export interface SimpleUser {
 /** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
-    execute = 'Execute',
+    admin = 'Admin',
     edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
     view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
 }
 
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
-}
-
-/** User permissions for a specific user. This is only returned by
- * {@link groupPermissionsByUser}. */
-export interface UserPermissions {
-    user: User
-    permissions: PermissionAction[]
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -350,16 +336,25 @@ export interface IdType {
     [AssetType.specialEmpty]: EmptyAssetId
 }
 
+/** The english name of each asset type. */
+export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+    [AssetType.directory]: 'folder',
+    [AssetType.project]: 'project',
+    [AssetType.file]: 'file',
+    [AssetType.secret]: 'secret',
+    [AssetType.specialLoading]: 'special loading asset',
+    [AssetType.specialEmpty]: 'special empty asset',
+} as const
+
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */
 export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+    // This is a sequence of numbers, not magic numbers. `999` and `1000` are arbitrary numbers
+    // that are higher than the number of possible asset types.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.directory]: 0,
     [AssetType.project]: 1,
     [AssetType.file]: 2,
-    // These are not magic constants; `3` is simply the next number after `2`.
-    // `999` and `1000` are arbitrary numbers chosen to be higher than the number of possible
-    // asset types.
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.secret]: 3,
     [AssetType.specialLoading]: 999,
     [AssetType.specialEmpty]: 1000,
@@ -434,6 +429,39 @@ export const assetIsSecret = assetIsType(AssetType.secret)
 export const assetIsFile = assetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
+// ==============================
+// === compareUserPermissions ===
+// ==============================
+
+/** A value returned from a compare function passed to {@link Array.sort}, indicating that the
+ * first argument was less than the second argument. */
+const COMPARE_LESS_THAN = -1
+
+/** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
+ * when `a === b`. */
+export function compareUserPermissions(a: UserPermission, b: UserPermission) {
+    const relativePermissionPrecedence =
+        permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
+        permissions.PERMISSION_ACTION_PRECEDENCE[b.permission]
+    if (relativePermissionPrecedence !== 0) {
+        return relativePermissionPrecedence
+    } else {
+        const aName = a.user.user_name
+        const bName = b.user.user_name
+        const aEmail = a.user.user_email
+        const bEmail = b.user.user_email
+        return aName < bName
+            ? COMPARE_LESS_THAN
+            : aName > bName
+            ? 1
+            : aEmail < bEmail
+            ? COMPARE_LESS_THAN
+            : aEmail > bEmail
+            ? 1
+            : 0
+    }
+}
+
 // =================
 // === Endpoints ===
 // =================
@@ -455,7 +483,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    actions: PermissionAction[]
+    action: PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -544,13 +572,17 @@ export function detectVersionLifecycle(version: string) {
     }
 }
 
-// =======================
-// === rootDirectoryId ===
-// =======================
+// =====================
+// === compareAssets ===
+// =====================
 
-/** Return the id of the root directory for a user or organization. */
-export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
-    return DirectoryId(userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`))
+/** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
+export function compareAssets(a: AnyAsset, b: AnyAsset) {
+    const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+    if (relativeTypeOrder !== 0) {
+        return relativeTypeOrder
+    }
+    return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
 }
 
 // ==================
@@ -597,30 +629,6 @@ export function stripProjectExtension(name: string) {
     return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
 }
 
-// ==============================
-// === groupPermissionsByUser ===
-// ==============================
-
-/** Converts an array of {@link UserPermission}s to an array of {@link UserPermissions}. */
-export function groupPermissionsByUser(permissions: UserPermission[]) {
-    const users: UserPermissions[] = []
-    const userMap: Record<Subject, UserPermissions> = {}
-    for (const permission of permissions) {
-        const existingUser = userMap[permission.user.pk]
-        if (existingUser != null) {
-            existingUser.permissions.push(permission.permission)
-        } else {
-            const newUser: UserPermissions = {
-                user: permission.user,
-                permissions: [permission.permission],
-            }
-            users.push(newUser)
-            userMap[permission.user.pk] = newUser
-        }
-    }
-    return users
-}
-
 // ===============
 // === Backend ===
 // ===============
@@ -656,6 +664,8 @@ export abstract class Backend {
             }
         }
     }
+    /** Return the root directory id for the given user. */
+    abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
