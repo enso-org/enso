@@ -51,7 +51,8 @@ public final class MethodNameValidation {
       }
 
       if (isLetterAscii(current) || Character.isDigit(current) || current == CHAR_UNDERSCORE) {
-        if (Character.isUpperCase(current) && (Character.isLowerCase(previous) || Character.isDigit(previous))) {
+        if (Character.isUpperCase(current)
+            && (Character.isLowerCase(previous) || Character.isDigit(previous))) {
           result.append(CHAR_UNDERSCORE);
         }
         if (Character.isLowerCase(current) && Character.isDigit(previous)) {
