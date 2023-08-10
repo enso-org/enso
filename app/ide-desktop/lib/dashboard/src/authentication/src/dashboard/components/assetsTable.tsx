@@ -237,7 +237,7 @@ export interface AssetsTableState {
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    doCloseIde: (project: backendModule.ProjectAsset) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -265,7 +265,7 @@ export interface AssetsTableProps {
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    doCloseIde: (project: backendModule.ProjectAsset) => void
 }
 
 /** The table of project assets. */
@@ -601,12 +601,16 @@ export default function AssetsTable(props: AssetsTableProps) {
         [/* should never change */ dispatchAssetEvent]
     )
 
-    const doCloseIde = React.useCallback(() => {
-        dispatchAssetEvent({
-            type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
-        })
-        rawDoCloseIde()
-    }, [rawDoCloseIde, /* should never change */ dispatchAssetEvent])
+    const doCloseIde = React.useCallback(
+        (project: backendModule.ProjectAsset) => {
+            // FIXME: should not do this if the project is different
+            dispatchAssetEvent({
+                type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
+            })
+            rawDoCloseIde(project)
+        },
+        [rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+    )
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.

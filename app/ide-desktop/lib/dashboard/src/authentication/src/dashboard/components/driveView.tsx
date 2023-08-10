@@ -40,7 +40,7 @@ export interface DriveViewProps {
     query: string
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (project: backendModule.ProjectAsset) => void
-    doCloseEditor: () => void
+    doCloseEditor: (project: backendModule.ProjectAsset) => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean

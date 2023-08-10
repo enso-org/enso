@@ -206,8 +206,11 @@ export default function Dashboard(props: DashboardProps) {
         [backend, project?.projectId, setPage]
     )
 
-    const closeEditor = React.useCallback(() => {
-        setProject(null)
+    const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+        setProject(oldProject => (oldProject?.projectId === closingProject.id ? null : oldProject))
+        setProjectAsset(oldProjectAsset =>
+            oldProjectAsset?.id === closingProject.id ? null : oldProjectAsset
+        )
     }, [])
 
     const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'

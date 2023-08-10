@@ -149,7 +149,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 openIde={() => {
                     doOpenIde(item)
                 }}
-                onClose={doCloseIde}
+                onClose={() => {
+                    doCloseIde(item)
+                }}
             />
             <EditableSpan
                 editable={rowState.isEditingName}
