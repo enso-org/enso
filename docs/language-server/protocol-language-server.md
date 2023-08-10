@@ -3328,14 +3328,45 @@ edits required to perform the refactoring will be returned as a
 
 #### Supported refactorings
 
-Rename an operator.
+Refactorins supports only limited cases listed below.
+
+##### Local definition
 
 ```text
-operator1 = ...
-^^^^^^^^^
+main =
+    operator1 = 42
+    ^^^^^^^^^
 ```
 
-Expression id should point to the left hand side symbol of the assignment.
+Expression id in the request should point to the left hand side symbol of the
+assignment.
+
+##### Module method
+
+```text
+function1 x = x
+^^^^^^^^^
+
+main =
+    operator1 = Main.function1 42
+```
+
+Expression id in the request should point to the symbol defining the function.
+
+Current limitations of the method renaming are:
+
+- Methods defined on types are not supported, i.e.
+  ```text
+  Main.function1 x = x
+  ```
+- Method calls where the self type is not specified will not be renamed, i.e.
+
+  ```text
+  function1 x = x
+
+  main =
+      operator1 = function1 42
+  ```
 
 #### Parameters
 
