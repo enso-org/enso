@@ -58,6 +58,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     } else {
                         const input = document.createElement('input')
                         input.type = 'file'
+                        input.style.display = 'none'
                         document.body.appendChild(input)
                         input.addEventListener('input', () => {
                             if (input.files != null) {
@@ -69,8 +70,9 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                                 })
                                 unsetModal()
                             }
-                            input.remove()
                         })
+                        input.click()
+                        input.remove()
                     }
                 }}
             />

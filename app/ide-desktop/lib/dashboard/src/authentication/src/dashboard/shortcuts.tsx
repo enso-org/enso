@@ -257,14 +257,18 @@ export class ShortcutRegistry {
     /** Trigger the appropriate handler for the action matching the currently pressed shortcut
      * (if any). Return `true` if a matching action was found, otherwise return `false`. */
     handleKeyboardEvent(event: KeyboardEvent | React.KeyboardEvent) {
-        for (const shortcut of this.keyboardShortcutsByKey[event.key.toUpperCase()] ?? []) {
-            if (this.matchesKeyboardShortcut(shortcut, event)) {
-                const handler = this.activeKeyboardHandlers[shortcut.action]
-                if (handler != null) {
-                    handler(event)
-                    // The matching `false` return is immediately after this loop.
-                    // eslint-disable-next-line no-restricted-syntax
-                    return true
+        // `event` is missing `.key` on a `keydown` event that fires after signing out.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (event.key != null) {
+            for (const shortcut of this.keyboardShortcutsByKey[event.key.toUpperCase()] ?? []) {
+                if (this.matchesKeyboardShortcut(shortcut, event)) {
+                    const handler = this.activeKeyboardHandlers[shortcut.action]
+                    if (handler != null) {
+                        handler(event)
+                        // The matching `false` return is immediately after this loop.
+                        // eslint-disable-next-line no-restricted-syntax
+                        return true
+                    }
                 }
             }
         }
