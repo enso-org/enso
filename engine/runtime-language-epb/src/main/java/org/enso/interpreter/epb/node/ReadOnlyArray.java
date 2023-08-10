@@ -12,8 +12,8 @@ import java.util.Arrays;
  * A primitive boxed array type to be used only in EPB.
  *
  * <p>{@link ReadOnlyArray} is essentially a stripped-down, read-only, version of {@link
- * org.enso.interpreter.runtime.data.Array}, used for passing arguments. The latter cannot be used
- * in EPB because EPB is a dependency of runtime.
+ * org.enso.interpreter.runtime.data.vector.Array}, used for passing arguments. The latter cannot be
+ * used in EPB because EPB is a dependency of runtime.
  */
 @ExportLibrary(InteropLibrary.class)
 public final class ReadOnlyArray implements TruffleObject {

@@ -9,8 +9,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(type = "Vector", name = "slice", description = "Returns a slice of this Vector.")

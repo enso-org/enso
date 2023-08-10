@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(

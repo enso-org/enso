@@ -5,7 +5,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.vector.Array;
 
 @BuiltinMethod(
     type = "Polyglot",

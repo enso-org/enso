@@ -11,7 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class CopyNode extends Node {

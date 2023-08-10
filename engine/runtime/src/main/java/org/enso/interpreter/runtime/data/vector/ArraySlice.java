@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;

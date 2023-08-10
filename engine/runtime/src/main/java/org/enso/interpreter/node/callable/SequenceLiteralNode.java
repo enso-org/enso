@@ -1,8 +1,8 @@
 package org.enso.interpreter.node.callable;
 
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 
 import com.oracle.truffle.api.frame.VirtualFrame;

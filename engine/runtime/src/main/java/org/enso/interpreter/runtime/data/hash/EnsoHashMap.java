@@ -15,8 +15,8 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
+import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**

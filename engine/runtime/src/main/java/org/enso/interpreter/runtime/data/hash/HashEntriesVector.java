@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.vector.Vector;
 
 /**
  * A vector used to hold hash map entries, where each entry is represented as a 2-element vector.
