@@ -34,7 +34,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         rowState,
         setRowState,
         state: {
-            appRunner,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -222,7 +221,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 setItem={setItem}
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
-                appRunner={appRunner}
                 openIde={() => {
                     doOpenIde(item)
                 }}

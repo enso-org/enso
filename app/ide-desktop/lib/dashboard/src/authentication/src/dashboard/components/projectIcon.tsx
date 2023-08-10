@@ -79,22 +79,12 @@ export interface ProjectIconProps {
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
-    appRunner: AppRunner | null
     openIde: () => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-    const {
-        keyProp: key,
-        item,
-        setItem,
-        assetEvents,
-        appRunner,
-        doOpenManually,
-        onClose,
-        openIde,
-    } = props
+    const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
@@ -247,7 +237,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             openIde()
             setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenWhenReady, state, openIde])
+        // `openIde` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shouldOpenWhenReady, state])
 
     React.useEffect(() => {
         switch (checkState) {
@@ -339,7 +331,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setState(backendModule.ProjectState.closing)
         onSpinnerStateChange?.(null)
         setOnSpinnerStateChange(null)
-        appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         if (
             state !== backendModule.ProjectState.closing &&

@@ -19,9 +19,9 @@ export default function Button(props: ButtonProps) {
     return (
         <button
             disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`cursor-pointer disabled:cursor-default disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-100 ${
-                active ? '' : 'opacity-50'
+            {...(!active && disabled && error != null ? { title: error } : {})}
+            className={`cursor-pointer disabled:cursor-default disabled:cursor-not-allowed hover:opacity-100 ${
+                active ? '' : 'disabled:opacity-50 opacity-50'
             } ${className ?? ''}`}
             onClick={onClick}
         >

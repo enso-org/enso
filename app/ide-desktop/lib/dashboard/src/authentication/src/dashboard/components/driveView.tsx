@@ -41,7 +41,6 @@ export interface DriveViewProps {
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (project: backendModule.ProjectAsset) => void
     doCloseEditor: (project: backendModule.ProjectAsset) => void
-    appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -62,7 +61,6 @@ export default function DriveView(props: DriveViewProps) {
         doCreateProject,
         doOpenEditor,
         doCloseEditor,
-        appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -151,12 +149,14 @@ export default function DriveView(props: DriveViewProps) {
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
-            if (!initialized && initialProjectName != null) {
+            if (!initialized) {
                 setInitialized(true)
-                if (!newAssets.some(asset => asset.title === initialProjectName)) {
-                    const errorMessage = `No project named '${initialProjectName}' was found.`
-                    toastify.toast.error(errorMessage)
-                    logger.error(`Error opening project on startup: ${errorMessage}`)
+                if (initialProjectName != null) {
+                    if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                        const errorMessage = `No project named '${initialProjectName}' was found.`
+                        toastify.toast.error(errorMessage)
+                        logger.error(`Error opening project on startup: ${errorMessage}`)
+                    }
                 }
             }
         },
@@ -277,7 +277,6 @@ export default function DriveView(props: DriveViewProps) {
                 items={assets}
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
-                appRunner={appRunner}
                 assetEvents={assetEvents}
                 dispatchAssetEvent={dispatchAssetEvent}
                 assetListEvents={assetListEvents}

@@ -290,7 +290,6 @@ export default function Dashboard(props: DashboardProps) {
                             doCreateProject={doCreateProject}
                             doOpenEditor={openEditor}
                             doCloseEditor={closeEditor}
-                            appRunner={appRunner}
                             loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                             isListingRemoteDirectoryWhileOffline={
                                 isListingRemoteDirectoryWhileOffline

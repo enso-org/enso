@@ -236,7 +236,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-    appRunner: AppRunner | null
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -267,7 +266,6 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-    appRunner: AppRunner | null
     items: backendModule.AnyAsset[]
     filter: ((item: backendModule.AnyAsset) => boolean) | null
     isLoading: boolean
@@ -282,7 +280,6 @@ export interface AssetsTableProps {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
     const {
-        appRunner,
         items: rawItems,
         filter,
         isLoading,
@@ -649,7 +646,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
-            appRunner,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -660,7 +656,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
         }),
         [
-            appRunner,
             assetEvents,
             doOpenManually,
             doOpenIde,
