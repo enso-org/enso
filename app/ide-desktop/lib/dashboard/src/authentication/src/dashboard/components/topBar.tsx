@@ -22,6 +22,7 @@ export interface TopBarProps {
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
     projectAsset: backendModule.ProjectAsset | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>> | null
     asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
@@ -29,6 +30,7 @@ export interface TopBarProps {
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
+    doRemoveSelf: () => void
     onSignOut: () => void
 }
 
@@ -40,6 +42,7 @@ export default function TopBar(props: TopBarProps) {
         page,
         setPage,
         projectAsset,
+        setProjectAsset,
         asset,
         isEditorDisabled,
         setBackendType,
@@ -47,6 +50,7 @@ export default function TopBar(props: TopBarProps) {
         setIsHelpChatOpen,
         query,
         setQuery,
+        doRemoveSelf,
         onSignOut,
     } = props
     const searchRef = React.useRef<HTMLInputElement>(null)
@@ -77,7 +81,7 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
                 <>
-                    <div className="search-bar absolute flex items-center text-primary bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
+                    <div className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
                         <label htmlFor="search">
                             <img src={FindIcon} className="opacity-80" />
                         </label>
@@ -104,6 +108,8 @@ export default function TopBar(props: TopBarProps) {
                     isHelpChatOpen={isHelpChatOpen}
                     setIsHelpChatOpen={setIsHelpChatOpen}
                     projectAsset={projectAsset}
+                    setProjectAsset={setProjectAsset}
+                    doRemoveSelf={doRemoveSelf}
                     onSignOut={onSignOut}
                 />
             </div>

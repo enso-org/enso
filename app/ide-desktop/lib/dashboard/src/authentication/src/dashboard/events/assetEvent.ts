@@ -26,6 +26,7 @@ export enum AssetEventType {
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
     downloadSelected = 'download-selected',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset state change events. */
@@ -43,6 +44,7 @@ interface AssetEvents {
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
+    removeSelf: AssetRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -95,6 +97,11 @@ export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.
 /** A signal to download the currently selected assets. */
 export interface AssetDownloadSelectedEvent
     extends AssetBaseEvent<AssetEventType.downloadSelected> {}
+
+/** A signal to remove the current user's permissions for an asset.. */
+export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {
+    id: backendModule.AssetId
+}
 
 /** Every possible type of asset event. */
 export type AssetEvent = AssetEvents[keyof AssetEvents]

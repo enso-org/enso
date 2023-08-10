@@ -28,8 +28,8 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                 disabled={backend.type === backendModule.BackendType.remote}
                 className={`rounded-l-full px-2.5 py-1 ${
                     backend.type === backendModule.BackendType.remote
-                        ? 'bg-frame-selected-bg text-cloud'
-                        : 'bg-frame-bg text-black'
+                        ? 'bg-frame-selected text-cloud'
+                        : 'bg-frame text-black'
                 }`}
                 onClick={() => {
                     setBackendType(backendModule.BackendType.remote)
@@ -48,8 +48,8 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                 disabled={backend.type === backendModule.BackendType.local}
                 className={`rounded-r-full px-2.5 py-1 ${
                     backend.type === backendModule.BackendType.local
-                        ? 'bg-frame-selected-bg text-cloud'
-                        : 'bg-frame-bg text-black'
+                        ? 'bg-frame-selected text-cloud'
+                        : 'bg-frame text-black'
                 }`}
                 onClick={() => {
                     setBackendType(backendModule.BackendType.local)

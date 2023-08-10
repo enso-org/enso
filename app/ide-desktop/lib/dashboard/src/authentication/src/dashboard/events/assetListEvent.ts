@@ -19,6 +19,7 @@ export enum AssetListEventType {
     uploadFiles = 'upload-files',
     createSecret = 'create-secret',
     delete = 'delete',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset list events. */
@@ -33,6 +34,7 @@ interface AssetListEvents {
     uploadFiles: AssetListUploadFilesEvent
     createSecret: AssetListCreateSecretEvent
     delete: AssetListDeleteEvent
+    removeSelf: AssetListRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
@@ -75,6 +77,11 @@ interface AssetListCreateSecretEvent extends AssetListBaseEvent<AssetListEventTy
 
 /** A signal to delete a file. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
+    id: backend.AssetId
+}
+
+/** A signal for a file to remove itself from the asset list, without being deleted. */
+interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {
     id: backend.AssetId
 }
 

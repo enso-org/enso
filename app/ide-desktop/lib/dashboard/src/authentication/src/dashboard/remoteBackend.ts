@@ -279,7 +279,8 @@ export class RemoteBackend extends backend.Backend {
             return (await response.json()).assets
                 .map(
                     asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                        // This type assertion is safe; it is only needed to convert `type` to a
+                        // newtype.
                         // eslint-disable-next-line no-restricted-syntax
                         ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
                 )
@@ -289,6 +290,10 @@ export class RemoteBackend extends backend.Backend {
                         ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
                         : asset
                 )
+                .map(asset => ({
+                    ...asset,
+                    permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),
+                }))
         }
     }
 

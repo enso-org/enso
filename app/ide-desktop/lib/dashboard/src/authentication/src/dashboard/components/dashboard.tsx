@@ -228,6 +228,12 @@ export default function Dashboard(props: DashboardProps) {
                 <TopBar
                     supportsLocalBackend={supportsLocalBackend}
                     projectAsset={projectAsset}
+                    // This is SAFE, because it will only be called when `projectAsset` is not
+                    // `null`, and `projectAsset` is passed as a prop, meaning its value will always
+                    // be up to date. The `as never` is an incorrect type assertion, to suppress the
+                    // type error.
+                    // eslint-disable-next-line no-restricted-syntax
+                    setProjectAsset={setProjectAsset as never}
                     page={page}
                     setPage={setPage}
                     asset={null}
@@ -237,11 +243,22 @@ export default function Dashboard(props: DashboardProps) {
                     setBackendType={setBackendType}
                     query={query}
                     setQuery={setQuery}
+                    doRemoveSelf={() => {
+                        if (projectAsset != null) {
+                            dispatchAssetListEvent({
+                                type: assetListEventModule.AssetListEventType.removeSelf,
+                                id: projectAsset.id,
+                            })
+                            setProject(null)
+                            setProjectAsset(null)
+                        }
+                    }}
                     onSignOut={() => {
                         if (page === pageSwitcher.Page.editor) {
                             setPage(pageSwitcher.Page.drive)
                         }
                         setProject(null)
+                        setProjectAsset(null)
                     }}
                 />
                 {isListingRemoteDirectoryWhileOffline ? (
