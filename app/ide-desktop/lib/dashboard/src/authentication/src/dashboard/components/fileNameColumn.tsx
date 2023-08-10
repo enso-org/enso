@@ -51,7 +51,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to projects.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break

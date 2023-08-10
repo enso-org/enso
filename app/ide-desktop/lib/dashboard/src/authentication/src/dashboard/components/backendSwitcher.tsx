@@ -27,8 +27,8 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
             <div
                 className={`rounded-l-full px-2.5 py-1 ${
                     backend.type === backendModule.BackendType.remote
-                        ? 'bg-frame-selected-bg'
-                        : 'bg-frame-bg'
+                        ? 'bg-frame-selected'
+                        : 'bg-frame'
                 }`}
             >
                 <button
@@ -49,8 +49,8 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
             <div
                 className={`rounded-r-full px-2.5 py-1 ${
                     backend.type === backendModule.BackendType.local
-                        ? 'bg-frame-selected-bg'
-                        : 'bg-frame-bg'
+                        ? 'bg-frame-selected'
+                        : 'bg-frame'
                 }`}
             >
                 <button

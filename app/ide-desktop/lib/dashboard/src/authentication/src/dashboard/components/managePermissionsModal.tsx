@@ -1,78 +1,38 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
-
-import CloseIcon from 'enso-assets/close.svg'
+import * as toast from 'react-toastify'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
+import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
 import PermissionSelector from './permissionSelector'
+import UserPermissions from './userPermissions'
 
 // =================
 // === Constants ===
 // =================
 
-/** The maximum number of items to show in the {@link Autocomplete} before it switches to showing
- * "X items selected". */
-const MAX_AUTOCOMPLETE_ITEMS_TO_SHOW = 3
+/** The vertical offset of the {@link PermissionTypeSelector} from its parent element, for the
+ * input to invite new users. */
+const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 // ==============================
 // === ManagePermissionsModal ===
 // ==============================
 
-/** Possible actions that a {@link ManagePermissionsModal} can perform. */
-enum ManagePermissionsAction {
-    /** The default action. Add permissions for a new user. */
-    share = 'share',
-    /** Update permissions. */
-    update = 'update',
-    /** Remove access for a user from this asset. */
-    remove = 'remove',
-    /** Invite a user not yet in the organization. */
-    inviteToOrganization = 'invite-to-organization',
-}
-
-/** The text on the submit button, for each action. */
-const SUBMIT_BUTTON_TEXT: Record<ManagePermissionsAction, string> = {
-    [ManagePermissionsAction.share]: 'Share',
-    [ManagePermissionsAction.update]: 'Update',
-    [ManagePermissionsAction.remove]: 'Remove',
-    [ManagePermissionsAction.inviteToOrganization]: 'Invite to organization',
-} as const
-
-/** The classes specific to each action, for the submit button. */
-const ACTION_CSS_CLASS: Record<ManagePermissionsAction, string> = {
-    [ManagePermissionsAction.share]: 'bg-blue-600',
-    [ManagePermissionsAction.update]: 'bg-blue-600',
-    [ManagePermissionsAction.remove]: 'bg-red-700',
-    [ManagePermissionsAction.inviteToOrganization]: 'bg-blue-600',
-} as const
-
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps {
-    asset: backendModule.Asset
-    initialPermissions: backendModule.PermissionAction[]
-    emailsOfUsersWithPermission: Set<backendModule.EmailAddress>
-    /* If present, the user cannot be changed. */
-    user?: backendModule.User
-    onSubmit: (
-        users: backendModule.SimpleUser[],
-        permissions: backendModule.PermissionAction[]
-    ) => void
-    onSuccess?: (
-        users: backendModule.SimpleUser[],
-        permissions: backendModule.PermissionAction[]
-    ) => void
-    onFailure?: (
-        users: backendModule.SimpleUser[],
-        permissions: backendModule.PermissionAction[]
-    ) => void
+    item: backendModule.AnyAsset
+    setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
+    self: backendModule.UserPermission
+    /** Remove the current user's permissions from this asset. This MUST be a prop because it should
+     * change the assets list. */
+    doRemoveSelf: () => void
     eventTarget: HTMLElement
 }
 
@@ -80,64 +40,51 @@ export interface ManagePermissionsModalProps {
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
-    const {
-        asset,
-        initialPermissions,
-        emailsOfUsersWithPermission,
-        user: rawUser,
-        onSubmit: rawOnSubmit,
-        onSuccess,
-        onFailure,
-        eventTarget,
-    } = props
+    const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
-
-    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-    const [willInviteNewUser, setWillInviteNewUser] = React.useState(false)
+    const toastAndLog = hooks.useToastAndLog()
+    const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
-    const [matchingUsers, setMatchingUsers] = React.useState(users)
-    const [emails, setEmails] = React.useState<string[]>(
-        rawUser != null ? [rawUser.user_email] : []
-    )
-    const [permissions, setPermissions] = React.useState(new Set<backendModule.PermissionAction>())
-
-    const user = React.useMemo(() => {
-        const firstEmail = emails[0]
-        if (rawUser != null) {
-            return rawUser
-        } else if (firstEmail != null && emails.length === 1) {
-            return asset.permissions?.find(permission => permission.user.user_email === firstEmail)
-                ?.user
-        } else {
-            return null
-        }
-    }, [rawUser, emails, /* should never change */ asset.permissions])
-
-    const userEmailRef = React.useRef<HTMLInputElement>(null)
-
-    const errorMessage = React.useMemo(
+    const [email, setEmail] = React.useState<string | null>(null)
+    const [action, setAction] = React.useState(backendModule.PermissionAction.view)
+    const emailValidityRef = React.useRef<HTMLInputElement>(null)
+    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const editablePermissions = React.useMemo(
         () =>
-            emails.length === 0
-                ? 'An email address must be provided.'
-                : userEmailRef.current?.validity.valid === false
-                ? 'The email address provided is invalid.'
-                : !willInviteNewUser && user == null && permissions.size === 0
-                ? 'Permissions must be set when adding a new user.'
-                : null,
-        [user, emails, permissions, willInviteNewUser]
+            self.permission === backendModule.PermissionAction.own
+                ? permissions
+                : permissions.filter(
+                      permission => permission.permission !== backendModule.PermissionAction.own
+                  ),
+        [permissions, self.permission]
     )
-    const canSubmit = errorMessage == null
+    const usernamesOfUsersWithPermission = React.useMemo(
+        () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
+        [item.permissions]
+    )
+    const emailsOfUsersWithPermission = React.useMemo(
+        () =>
+            new Set<string>(
+                item.permissions?.map(userPermission => userPermission.user.user_email)
+            ),
+        [item.permissions]
+    )
+    const isOnlyOwner = React.useMemo(
+        () =>
+            self.permission === backendModule.PermissionAction.own &&
+            permissions.every(
+                permission =>
+                    permission.permission !== backendModule.PermissionAction.own ||
+                    permission.user.user_email === organization?.email
+            ),
+        [organization?.email, permissions, self.permission]
+    )
 
-    const action =
-        user != null
-            ? permissions.size !== 0
-                ? ManagePermissionsAction.update
-                : ManagePermissionsAction.remove
-            : willInviteNewUser
-            ? ManagePermissionsAction.inviteToOrganization
-            : ManagePermissionsAction.share
+    React.useEffect(() => {
+        setItem(oldItem => ({ ...oldItem, permissions }))
+    }, [permissions, /* should never change */ setItem])
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "shared with" column,
@@ -146,187 +93,265 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
         throw new Error('Unable to share projects on the local backend.')
     } else {
-        React.useEffect(() => {
-            if (user == null) {
-                void (async () => {
-                    const listedUsers = await backend.listUsers()
-                    const newUsers = listedUsers.filter(
-                        listedUser => !emailsOfUsersWithPermission.has(listedUser.email)
+        const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
+        const allUsers = React.useMemo(
+            () =>
+                listedUsers.filter(
+                    listedUser =>
+                        !usernamesOfUsersWithPermission.has(listedUser.name) &&
+                        !emailsOfUsersWithPermission.has(listedUser.email)
+                ),
+            [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
+        )
+        const willInviteNewUser = React.useMemo(() => {
+            if (users.length !== 0) {
+                return false
+            } else if (email == null || email === '') {
+                return true
+            } else {
+                const lowercase = email.toLowerCase()
+                return (
+                    lowercase !== '' &&
+                    !usernamesOfUsersWithPermission.has(lowercase) &&
+                    !emailsOfUsersWithPermission.has(lowercase) &&
+                    !allUsers.some(
+                        innerUser =>
+                            innerUser.name.toLowerCase() === lowercase ||
+                            innerUser.email.toLowerCase() === lowercase
                     )
-                    setUsers(newUsers)
-                    if (emails.length <= 1) {
-                        const lowercaseEmail = emails[0]?.toLowerCase() ?? ''
-                        setMatchingUsers(
-                            newUsers.filter(newUser =>
-                                newUser.email.toLowerCase().includes(lowercaseEmail)
-                            )
-                        )
-                    }
-                })()
+                )
             }
-            // `emails` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [
-            rawUser,
-            /* should never change */ backend,
-            /* should never change */ emailsOfUsersWithPermission,
+            users.length,
+            email,
+            emailsOfUsersWithPermission,
+            usernamesOfUsersWithPermission,
+            allUsers,
         ])
 
-        const onEmailsChange = React.useCallback(
-            (newEmails: string[]) => {
-                setEmails(newEmails)
-                const lowercaseEmail =
-                    newEmails[0] != null
-                        ? backendModule.EmailAddress(newEmails[0].toLowerCase())
-                        : null
-                if (
-                    userEmailRef.current?.validity.valid === true &&
-                    newEmails.length === 1 &&
-                    lowercaseEmail != null
-                ) {
-                    // A new user will be invited to the organization.
-                    setWillInviteNewUser(
-                        lowercaseEmail !== '' &&
-                            !emailsOfUsersWithPermission.has(lowercaseEmail) &&
-                            !users.some(
-                                innerUser => innerUser.email.toLowerCase() === lowercaseEmail
-                            )
-                    )
-                }
-            },
-            [users, /* should never change */ emailsOfUsersWithPermission]
-        )
-
-        const onSubmit = React.useCallback(
-            async (formEvent: React.FormEvent) => {
-                formEvent.preventDefault()
-                const isEmailInvalid = userEmailRef.current?.validity.valid === false
-                const isPermissionsInvalid =
-                    !willInviteNewUser && user == null && permissions.size === 0
-                const usersMap = Object.fromEntries(
-                    users.map(theUser => [theUser.email.toLowerCase(), theUser])
-                )
-                const finalUsers: backendModule.SimpleUser[] =
-                    rawUser != null
-                        ? [{ id: rawUser.pk, email: rawUser.user_email, name: rawUser.user_name }]
-                        : emails.flatMap(email => {
-                              const theUser = usersMap[email.toLowerCase()]
-                              return theUser != null ? [theUser] : []
-                          })
-                const firstEmail = emails[0]
-                if (isEmailInvalid || isPermissionsInvalid) {
-                    // This should never happen. Do nothing.
-                } else if (willInviteNewUser && firstEmail != null) {
-                    unsetModal()
-                    try {
+        const doSubmit = async () => {
+            if (willInviteNewUser) {
+                try {
+                    setUsers([])
+                    if (email != null) {
                         await backend.inviteUser({
                             organizationId: organization.id,
-                            userEmail: backendModule.EmailAddress(firstEmail),
+                            userEmail: backendModule.EmailAddress(email),
                         })
-                    } catch (error) {
-                        toastify.toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
+                        toast.toast.success(`You've invited ${email} to join Enso!`)
                     }
-                } else if (finalUsers.length !== 0) {
-                    unsetModal()
-                    const permissionsArray = [...permissions]
-                    try {
-                        rawOnSubmit(finalUsers, permissionsArray)
-                        await backend.createPermission({
-                            userSubjects: finalUsers.map(finalUser => finalUser.id),
-                            resourceId: asset.id,
-                            actions: permissionsArray,
-                        })
-                        onSuccess?.(finalUsers, permissionsArray)
-                    } catch {
-                        onFailure?.(finalUsers, permissionsArray)
-                        const finalUserEmails = finalUsers.map(finalUser => `'${finalUser.email}'`)
-                        toastify.toast.error(
-                            `Unable to set permissions of ${finalUserEmails.join(', ')}.`
+                } catch (error) {
+                    toastAndLog('Could not invite user', error)
+                }
+            } else {
+                setUsers([])
+                const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
+                    user: {
+                        // The names come from a third-party API and cannot be
+                        // changed.
+                        /* eslint-disable @typescript-eslint/naming-convention */
+                        organization_id: organization.id,
+                        pk: newUser.id,
+                        user_email: newUser.email,
+                        user_name: newUser.name,
+                        /* eslint-enable @typescript-eslint/naming-convention */
+                    },
+                    permission: action,
+                }))
+                const addedUsersPks = new Set(addedUsersPermissions.map(newUser => newUser.user.pk))
+                const oldUsersPermissions = permissions.filter(userPermission =>
+                    addedUsersPks.has(userPermission.user.pk)
+                )
+                try {
+                    setPermissions(oldPermissions =>
+                        [
+                            ...oldPermissions.filter(
+                                oldUserPermissions => !addedUsersPks.has(oldUserPermissions.user.pk)
+                            ),
+                            ...addedUsersPermissions,
+                        ].sort(backendModule.compareUserPermissions)
+                    )
+                    await backend.createPermission({
+                        userSubjects: addedUsersPermissions.map(
+                            userPermissions => userPermissions.user.pk
+                        ),
+                        resourceId: item.id,
+                        action: action,
+                    })
+                } catch (error) {
+                    setPermissions(oldPermissions =>
+                        [
+                            ...oldPermissions.filter(
+                                permission => !addedUsersPks.has(permission.user.pk)
+                            ),
+                            ...oldUsersPermissions,
+                        ].sort(backendModule.compareUserPermissions)
+                    )
+                    const usernames = addedUsersPermissions.map(
+                        userPermissions => userPermissions.user.user_name
+                    )
+                    toastAndLog(`Unable to set permissions for ${usernames.join(', ')}`, error)
+                }
+            }
+        }
+
+        const doDelete = async (userToDelete: backendModule.User) => {
+            if (userToDelete.pk === self.user.pk) {
+                doRemoveSelf()
+            } else {
+                const oldPermission = permissions.find(
+                    userPermission => userPermission.user.pk === userToDelete.pk
+                )
+                try {
+                    setPermissions(oldPermissions =>
+                        oldPermissions.filter(
+                            oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+                        )
+                    )
+                    await backend.createPermission({
+                        userSubjects: [userToDelete.pk],
+                        resourceId: item.id,
+                        action: null,
+                    })
+                } catch (error) {
+                    if (oldPermission != null) {
+                        setPermissions(oldPermissions =>
+                            [...oldPermissions, oldPermission].sort(
+                                backendModule.compareUserPermissions
+                            )
                         )
                     }
+                    toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
                 }
-            },
-            [
-                emails,
-                permissions,
-                willInviteNewUser,
-                asset.id,
-                organization.id,
-                users,
-                user,
-                rawOnSubmit,
-                onSuccess,
-                onFailure,
-                /* should never change */ unsetModal,
-                /* should never change */ backend,
-                /* should never change */ rawUser,
-            ]
-        )
+            }
+        }
 
         return (
-            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-10">
-                <form
+            <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
+                <div
                     style={{
                         left: position.left + window.scrollX,
                         top: position.top + window.scrollY,
                     }}
-                    className="sticky bg-white shadow-soft rounded-lg w-64"
-                    onSubmit={onSubmit}
+                    className="sticky w-115.25"
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
                     }}
+                    onContextMenu={mouseEvent => {
+                        mouseEvent.stopPropagation()
+                        mouseEvent.preventDefault()
+                    }}
                 >
-                    <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
-                        <img src={CloseIcon} />
-                    </button>
-                    <h2 className="inline-block font-semibold m-2">
-                        {user == null ? 'Share' : 'Update permissions'}
-                    </h2>
-                    <div className="mx-2 my-1">
-                        <label htmlFor="share_with_user_email">Email</label>
-                    </div>
-                    <div className="mx-2">
-                        <Autocomplete
-                            autoFocus
-                            multiple
-                            maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
-                            disabled={rawUser != null}
-                            inputRef={userEmailRef}
-                            type="email"
-                            itemNamePlural="users"
-                            initialValue={emails[0] ?? null}
-                            items={matchingUsers.map(matchingUser => matchingUser.email)}
-                            onInput={newEmail => {
-                                const lowercaseEmail = newEmail.toLowerCase()
-                                setMatchingUsers(
-                                    users.filter(innerUser =>
-                                        innerUser.email.includes(lowercaseEmail)
-                                    )
-                                )
+                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
+                    <div className="relative flex flex-col rounded-2xl gap-2 p-2">
+                        <div>
+                            <h2 className="text-sm font-bold">Invite</h2>
+                            {/* Space reserved for other tabs. */}
+                        </div>
+                        <form
+                            className="flex gap-1"
+                            onSubmit={event => {
+                                event.preventDefault()
+                                void doSubmit()
                             }}
-                            onChange={onEmailsChange}
-                        />
+                        >
+                            <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
+                                <PermissionSelector
+                                    disabled={willInviteNewUser}
+                                    selfPermission={self.permission}
+                                    typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
+                                    action={backendModule.PermissionAction.view}
+                                    assetType={item.type}
+                                    onChange={setAction}
+                                />
+                                <input
+                                    readOnly
+                                    hidden
+                                    ref={emailValidityRef}
+                                    type="email"
+                                    className="hidden"
+                                    value={email ?? ''}
+                                />
+                                <Autocomplete
+                                    multiple
+                                    autoFocus
+                                    placeholder="Type usernames or emails to search or invite"
+                                    type="text"
+                                    itemsToString={items =>
+                                        items.length === 1 && items[0] != null
+                                            ? items[0].email
+                                            : `${items.length} users selected`
+                                    }
+                                    values={users}
+                                    setValues={setUsers}
+                                    items={allUsers}
+                                    itemToKey={user => user.id}
+                                    itemToString={user => `${user.name} (${user.email})`}
+                                    matches={(user, text) =>
+                                        user.email.toLowerCase().includes(text.toLowerCase()) ||
+                                        user.name.toLowerCase().includes(text.toLowerCase())
+                                    }
+                                    className="grow"
+                                    inputClassName="bg-transparent leading-170 h-6 py-px"
+                                    text={email}
+                                    setText={setEmail}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={
+                                    users.length === 0 ||
+                                    (email != null && emailsOfUsersWithPermission.has(email)) ||
+                                    (willInviteNewUser &&
+                                        emailValidityRef.current?.validity.valid !== true)
+                                }
+                                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
+                            >
+                                <div className="h-6 py-0.5">
+                                    {willInviteNewUser ? 'Invite' : 'Share'}
+                                </div>
+                            </button>
+                        </form>
+                        <div className="overflow-auto pl-1 pr-12 max-h-80">
+                            {editablePermissions.map(userPermissions => (
+                                <div
+                                    key={userPermissions.user.pk}
+                                    className="flex items-center h-8"
+                                >
+                                    <UserPermissions
+                                        asset={item}
+                                        self={self}
+                                        isOnlyOwner={isOnlyOwner}
+                                        userPermission={userPermissions}
+                                        setUserPermission={newUserPermission => {
+                                            setPermissions(oldPermissions =>
+                                                oldPermissions.map(oldUserPermission =>
+                                                    oldUserPermission.user.pk ===
+                                                    newUserPermission.user.pk
+                                                        ? newUserPermission
+                                                        : oldUserPermission
+                                                )
+                                            )
+                                            if (newUserPermission.user.pk === self.user.pk) {
+                                                // This must run only after the permissions have
+                                                // been updated through `setItem`.
+                                                setTimeout(() => {
+                                                    unsetModal()
+                                                }, 0)
+                                            }
+                                        }}
+                                        doDelete={userToDelete => {
+                                            if (userToDelete.pk === self.user.pk) {
+                                                unsetModal()
+                                            }
+                                            void doDelete(userToDelete)
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    {!willInviteNewUser && (
-                        <>
-                            <div className="mx-2 my-1">Permission</div>
-                            <PermissionSelector
-                                className="m-1"
-                                initialPermissions={initialPermissions}
-                                onChange={setPermissions}
-                            />
-                        </>
-                    )}
-                    <input
-                        type="submit"
-                        disabled={!canSubmit}
-                        {...(errorMessage != null ? { title: errorMessage } : {})}
-                        className={`inline-block text-white rounded-full px-4 py-1 m-2 ${
-                            ACTION_CSS_CLASS[action]
-                        } ${canSubmit ? 'hover:cursor-pointer' : 'opacity-50'}`}
-                        value={SUBMIT_BUTTON_TEXT[action]}
-                    />
-                </form>
+                </div>
             </Modal>
         )
     }

@@ -40,7 +40,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
     // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-    const doRename = async (/* _newName: string */) => {
+    const doRename = async () => {
         await Promise.resolve(null)
     }
 
@@ -52,7 +52,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to secrets.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
