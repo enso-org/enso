@@ -18,7 +18,6 @@
 
 use ensogl::prelude::*;
 
-use enso_config::ARGS;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::compound::rectangle::Rectangle;
@@ -32,14 +31,10 @@ use project_name::ProjectName;
 // ==============
 
 pub mod project_name;
-pub mod window_control_buttons;
 
 pub use breadcrumbs::LocalCall;
 
-
-
 mod breadcrumbs;
-mod go_to_dashboard_button;
 
 
 
@@ -116,9 +111,6 @@ impl ProjectNameWithEnvironmentSelector {
 pub struct ProjectViewTopBar {
     #[display_object]
     root: display::object::Instance,
-    /// These buttons are only visible in a cloud environment.
-    pub window_control_buttons: window_control_buttons::View,
-    pub go_to_dashboard_button: go_to_dashboard_button::View,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
     pub project_name_with_environment_selector: ProjectNameWithEnvironmentSelector,
     network: frp::Network,
@@ -128,15 +120,9 @@ impl ProjectViewTopBar {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new_named("ProjectViewTopBar");
-        let window_control_buttons = app.new_view::<window_control_buttons::View>();
-        let go_to_dashboard_button = go_to_dashboard_button::View::new(app);
         let breadcrumbs = breadcrumbs::Breadcrumbs::new(app);
         let project_name_with_environment_selector = ProjectNameWithEnvironmentSelector::new(app);
 
-        if ARGS.groups.startup.options.platform.value == "web" {
-            root.add_child(&window_control_buttons);
-        }
-        root.add_child(&go_to_dashboard_button);
         root.add_child(&project_name_with_environment_selector);
         root.add_child(&breadcrumbs);
         root.use_auto_layout().set_children_alignment_center();
@@ -145,15 +131,7 @@ impl ProjectViewTopBar {
 
         let network = frp::Network::new("ProjectViewTopBar");
 
-        Self {
-            root,
-            window_control_buttons,
-            go_to_dashboard_button,
-            breadcrumbs,
-            project_name_with_environment_selector,
-            network,
-        }
-        .init()
+        Self { root, breadcrumbs, project_name_with_environment_selector, network }.init()
     }
 
     fn init(self) -> Self {
@@ -165,10 +143,13 @@ impl ProjectViewTopBar {
             init <- source_();
             let gap = style_watch.get_number(theme::gap);
             let padding_left = style_watch.get_number(theme::padding_left);
+            let padding_top = style_watch.get_number(theme::padding_top);
             gap <- all(init, gap)._1();
             padding_left <- all(init, padding_left)._1();
+            padding_top <- all(init, padding_top)._1();
             eval gap([root](g) { root.set_gap((*g, 0.0)); });
             eval padding_left([root](p) { root.set_padding_left(*p); });
+            eval padding_top([root](p) { root.set_padding_top(*p); });
         }
         init.emit(());
         self

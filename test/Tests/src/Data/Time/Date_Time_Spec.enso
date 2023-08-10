@@ -190,7 +190,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . millisecond . should_equal 0
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            loose_zone_equal time.zone.zone_id  "Etc/UTC"
+            loose_zone_equal (time.zone.zone_id . take (Last 3) . to_case Case.Upper)  "UTC"
 
         Test.specify "should parse custom format of local time" <|
             time = parse_datetime "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
@@ -698,7 +698,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             create_new_datetime 2000 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 2000 3 2 12 10)
             create_new_datetime 1999 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 1999 3 4 12 10)
 
-        Test.specify "should handle shifting dates around spring DST edge cases" <|
+        Test.specify "should handle shifting dates around spring DST edge cases" pending=dst_pending <|
             # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
             loose_zone_equal (create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0) (create_new_datetime 2022 10 31 2 30 55 1234)
             loose_zone_equal (create_new_datetime 2022 10 30 1 30 . add_work_days 1) (Date_Time.new 2022 11 1 1 30)

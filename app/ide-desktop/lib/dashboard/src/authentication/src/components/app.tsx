@@ -44,12 +44,14 @@ import * as authServiceModule from '../authentication/service'
 import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
+import * as shortcutsModule from '../dashboard/shortcuts'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
+import * as shortcutsProvider from '../providers/shortcuts'
 
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
@@ -169,6 +171,18 @@ function AppRouter(props: AppProps) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
+    const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (shortcuts.handleKeyboardEvent(event)) {
+                event.preventDefault()
+            }
+        }
+        document.body.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.removeEventListener('keydown', onKeyDown)
+        }
+    }, [shortcuts])
     const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -222,7 +236,11 @@ function AppRouter(props: AppProps) {
                         authService={authService}
                         onAuthenticated={onAuthenticated}
                     >
-                        <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
+                        <modalProvider.ModalProvider>
+                            <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                                {routes}
+                            </shortcutsProvider.ShortcutsProvider>
+                        </modalProvider.ModalProvider>
                     </authProvider.AuthProvider>
                 </backendProvider.BackendProvider>
             </sessionProvider.SessionProvider>
