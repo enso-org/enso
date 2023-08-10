@@ -951,9 +951,10 @@ type Integer
 
     round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
-        Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Integer.round_integer_builtin self decimal_places use_bankers
+        Rounding_Helpers.check_round_input self <|
+            report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+            Panic.catch Unsupported_Argument_Types handler=report_unsupported
+                Integer.round_integer_builtin self decimal_places use_bankers
 
     round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 

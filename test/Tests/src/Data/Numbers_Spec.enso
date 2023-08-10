@@ -769,7 +769,9 @@ spec =
             231 . round -1 . should_be_a Integer
 
         Test.specify "Input out of range" <|
-             100000000000000 . round -2 . should_fail_with Illegal_Argument
+            922337203685477580700000 . round . should_fail_with Illegal_Argument
+            -922337203685477580700000 . round . should_fail_with Illegal_Argument
+            100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
             100000000000000 . round . should_fail_with Illegal_Argument
             -100000000000000 . round . should_fail_with Illegal_Argument

@@ -20,25 +20,19 @@ public class RoundNode extends Node {
 
     private final BranchProfile decimalPlacesOutOfRangeProfile = BranchProfile.create();
 
-    private final BranchProfile outOfRangeProfile = BranchProfile.create();
-
     Object execute(long n, long dp, boolean ub) {
         var decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
 
+        // We don't check if `n` is out of range here, since the Enso wrapper does.
         if (decimalPlaces < RoundHelpers.ROUND_MIN_DECIMAL_PLACES || decimalPlaces > RoundHelpers.ROUND_MAX_DECIMAL_PLACES) {
             decimalPlacesOutOfRangeProfile.enter();
             RoundHelpers.decimalPlacesOutOfRangePanic(this, decimalPlaces);
         }
 
-        boolean inRange = n >= RoundHelpers.ROUND_MIN_LONG && n <= RoundHelpers.ROUND_MAX_LONG;
-        if (!inRange) {
-            outOfRangeProfile.enter();
-            RoundHelpers.argumentOutOfRangePanic(this, n);
-        }
-
         if (decimalPlaces >= 0) {
             return n;
         }
+
         var useBankers = constantPlacesUseBankers.profile(ub);
         long scale = (long) Math.pow(10, -decimalPlaces);
         long halfway = scale / 2;
