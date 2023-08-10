@@ -93,17 +93,23 @@ final class RefactoringRenameJob(
       .getOrElse(
         throw new RefactoringRenameJob.ExpressionNotFound(expressionId)
       )
-    val literal = getLiteral(expression)
+    val local            = getLiteral(expression)
+    val methodDefinition = getMethodDefinition(expression)
+    val symbol = local
+      .orElse(methodDefinition)
       .getOrElse(
         throw new RefactoringRenameJob.OperationNotSupported(expressionId)
       )
-    val usages = IRUtils
-      .findLocalUsages(module.getIr, literal)
-      .orElse(
-        IRUtils.findModuleMethodUsages(module.getName, module.getIr, literal)
-      )
+
+    def localUsages = local.flatMap(IRUtils.findLocalUsages(module.getIr, _))
+    def methodDefinitionUsages = methodDefinition.flatMap(
+      IRUtils.findModuleMethodUsages(module.getName, module.getIr, _)
+    )
+
+    val usages = localUsages
+      .orElse(methodDefinitionUsages)
       .getOrElse(Set())
-      .concat(Set(literal))
+      .concat(Set(symbol))
       .flatMap(_.location)
       .map(_.location)
       .toSeq
@@ -158,6 +164,15 @@ final class RefactoringRenameJob(
     ir match {
       case literal: IR.Name.Literal => Some(literal)
       case _                        => None
+    }
+
+  private def getMethodDefinition(ir: IR): Option[IR.Name] =
+    ir match {
+      case methodRef: IR.Name.MethodReference
+          if methodRef.typePointer.isEmpty =>
+        Some(methodRef.methodName)
+      case _ =>
+        None
     }
 
   private def reply(
