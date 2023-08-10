@@ -37,7 +37,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex py-0.5">
             <div className="flex gap-2.5">
                 <button
-                    className="flex items-center bg-frame-bg rounded-full h-8 px-2.5"
+                    className="flex items-center bg-frame rounded-full h-8 px-2.5"
                     onClick={() => {
                         unsetModal()
                         doCreateProject(null)
@@ -45,7 +45,7 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
-                <div className="flex items-center bg-frame-bg rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
                             <Button

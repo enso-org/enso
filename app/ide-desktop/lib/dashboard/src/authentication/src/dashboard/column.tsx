@@ -9,6 +9,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
+import * as assetEvent from './events/assetEvent'
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
@@ -17,9 +18,9 @@ import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
-import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
+import PermissionDisplay from './components/permissionDisplay'
 
 // =============
 // === Types ===
@@ -56,9 +57,6 @@ export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
 // =================
 // === Constants ===
 // =================
-
-/** An immutable empty array, useful as a React prop. */
-const EMPTY_ARRAY: never[] = []
 
 /** The list of extra columns, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
@@ -143,12 +141,7 @@ function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
 
 /** Props for a {@link UserPermissionDisplay}. */
 interface InternalUserPermissionDisplayProps {
-    user: backend.UserPermissions
-    item: backend.Asset
-    emailsOfUsersWithPermission: Set<backend.EmailAddress>
-    ownsThisAsset: boolean
-    onDelete: () => void
-    onPermissionsChange: (permissions: backend.PermissionAction[]) => void
+    user: backend.UserPermission
 }
 
 // =============================
@@ -157,77 +150,15 @@ interface InternalUserPermissionDisplayProps {
 
 /** Displays permissions for a user on a specific asset. */
 function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
-    const {
-        user,
-        item,
-        emailsOfUsersWithPermission,
-        ownsThisAsset,
-        onDelete,
-        onPermissionsChange,
-    } = props
-    const { setModal } = modalProvider.useSetModal()
-    const [permissions, setPermissions] = React.useState(user.permissions)
-    const [oldPermissions, setOldPermissions] = React.useState(user.permissions)
-    const [isHovered, setIsHovered] = React.useState(false)
-    const [isDeleting, setIsDeleting] = React.useState(false)
+    const { user } = props
+    const [permissions, setPermissions] = React.useState(user.permission)
 
     React.useEffect(() => {
-        setPermissions(user.permissions)
-    }, [user.permissions])
+        setPermissions(user.permission)
+    }, [user.permission])
 
-    return isDeleting ? null : (
-        <PermissionDisplay
-            key={user.user.pk}
-            permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
-            className={ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''}
-            onClick={event => {
-                event.stopPropagation()
-                if (ownsThisAsset) {
-                    setModal(
-                        <ManagePermissionsModal
-                            key={Number(new Date())}
-                            user={user.user}
-                            initialPermissions={user.permissions}
-                            asset={item}
-                            emailsOfUsersWithPermission={emailsOfUsersWithPermission}
-                            eventTarget={event.currentTarget}
-                            onSubmit={(_users, newPermissions) => {
-                                if (newPermissions.length === 0) {
-                                    setIsDeleting(true)
-                                } else {
-                                    setOldPermissions(permissions)
-                                    setPermissions(newPermissions)
-                                    onPermissionsChange(newPermissions)
-                                }
-                            }}
-                            onSuccess={(_users, newPermissions) => {
-                                if (newPermissions.length === 0) {
-                                    onDelete()
-                                }
-                            }}
-                            onFailure={() => {
-                                setIsDeleting(false)
-                                setPermissions(oldPermissions)
-                                onPermissionsChange(oldPermissions)
-                            }}
-                        />
-                    )
-                }
-            }}
-            onMouseEnter={() => {
-                setIsHovered(true)
-            }}
-            onMouseLeave={() => {
-                setIsHovered(false)
-            }}
-        >
-            {isHovered && (
-                <div className="relative">
-                    <div className="absolute text-primary bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
-                        {user.user.user_email}
-                    </div>
-                </div>
-            )}
+    return (
+        <PermissionDisplay key={user.user.pk} action={permissions}>
             {user.user.user_name}
         </PermissionDisplay>
     )
@@ -239,22 +170,20 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 
 /** A column listing the users with which this asset is shared. */
 function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    const { item } = props
+    const {
+        item,
+        setItem,
+        state: { dispatchAssetEvent },
+    } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [permissions, setPermissions] = React.useState(() =>
-        backend.groupPermissionsByUser(item.permissions ?? [])
-    )
-    const [oldPermissions, setOldPermissions] = React.useState(permissions)
     const [isHovered, setIsHovered] = React.useState(false)
-    const emailsOfUsersWithPermission = React.useMemo(
-        () => new Set(permissions.map(permission => permission.user.user_email)),
-        [permissions]
-    )
-    const selfPermission = item.permissions?.find(
+    const self = item.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
-    )?.permission
-    const ownsThisAsset = selfPermission === backend.PermissionAction.own
+    )
+    const managesThisAsset =
+        self?.permission === backend.PermissionAction.own ||
+        self?.permission === backend.PermissionAction.admin
     return (
         <div
             className="flex items-center gap-1"
@@ -265,69 +194,25 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                 setIsHovered(false)
             }}
         >
-            {permissions.map(user => (
-                <UserPermissionDisplay
-                    key={user.user.user_email}
-                    user={user}
-                    item={item}
-                    emailsOfUsersWithPermission={emailsOfUsersWithPermission}
-                    ownsThisAsset={ownsThisAsset}
-                    onDelete={() => {
-                        setPermissions(
-                            permissions.filter(
-                                permission => permission.user.user_email !== user.user.user_email
-                            )
-                        )
-                    }}
-                    onPermissionsChange={newPermissions => {
-                        setPermissions(
-                            permissions.map(permission =>
-                                permission.user.user_email === user.user.user_email
-                                    ? { user: user.user, permissions: newPermissions }
-                                    : permission
-                            )
-                        )
-                    }}
-                />
+            {(item.permissions ?? []).map(user => (
+                <UserPermissionDisplay key={user.user.user_email} user={user} />
             ))}
-            {ownsThisAsset && isHovered && (
+            {managesThisAsset && isHovered && (
                 <button
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
                             <ManagePermissionsModal
                                 key={uniqueString.uniqueString()}
-                                asset={item}
-                                initialPermissions={EMPTY_ARRAY}
-                                emailsOfUsersWithPermission={emailsOfUsersWithPermission}
+                                item={item}
+                                setItem={setItem}
+                                self={self}
                                 eventTarget={event.currentTarget}
-                                onSubmit={(users, newPermissions) => {
-                                    setOldPermissions(permissions)
-                                    setPermissions([
-                                        ...permissions,
-                                        ...users.map(user => {
-                                            const userPermissions: backend.UserPermissions = {
-                                                user: {
-                                                    pk: user.id,
-                                                    // The names come from a third-party API
-                                                    // and cannot be changed.
-                                                    /* eslint-disable @typescript-eslint/naming-convention */
-                                                    user_name: user.name,
-                                                    user_email: user.email,
-                                                    /** {@link SharedWithColumn} is only accessible
-                                                     * if `session.organization` is not `null`. */
-                                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                                    organization_id: session.organization!.id,
-                                                    /* eslint-enable @typescript-eslint/naming-convention */
-                                                },
-                                                permissions: newPermissions,
-                                            }
-                                            return userPermissions
-                                        }),
-                                    ])
-                                }}
-                                onFailure={() => {
-                                    setPermissions(oldPermissions)
+                                doRemoveSelf={() => {
+                                    dispatchAssetEvent({
+                                        type: assetEvent.AssetEventType.removeSelf,
+                                        id: item.id,
+                                    })
                                 }}
                             />
                         )

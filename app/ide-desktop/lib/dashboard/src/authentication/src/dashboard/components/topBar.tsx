@@ -57,7 +57,7 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
                 <>
-                    <div className="search-bar absolute flex items-center text-primary bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
+                    <div className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
                         <label htmlFor="search">
                             <img src={FindIcon} className="opacity-80" />
                         </label>

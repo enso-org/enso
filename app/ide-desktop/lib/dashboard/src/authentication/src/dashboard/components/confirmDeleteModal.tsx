@@ -16,7 +16,7 @@ import Modal from './modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
-    /** Must fit in the sentence "Are you sure you want to delete <description>"? */
+    /** Must fit in the sentence "Are you sure you want to delete <description>?". */
     description: string
     doDelete: () => void
 }

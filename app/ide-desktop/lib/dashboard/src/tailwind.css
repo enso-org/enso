@@ -1,9 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
 body {
   margin: 0;
-  backdrop-filter: blur(64px);
   background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
   background-blend-mode: lighten;
 }
@@ -56,8 +55,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  border: 1px solid rgba(220, 220, 220, 0.5);
-  background-color: rgba(190, 190, 190, 0.5);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 ::-webkit-scrollbar-corner {
@@ -117,6 +115,10 @@ body {
 
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
+    }
+
+    .backface-invisible {
+      backface-visibility: hidden;
     }
 
     .rounded-rows > tbody > tr:nth-child(odd) {

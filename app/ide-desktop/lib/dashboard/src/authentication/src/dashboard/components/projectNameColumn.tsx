@@ -72,7 +72,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break

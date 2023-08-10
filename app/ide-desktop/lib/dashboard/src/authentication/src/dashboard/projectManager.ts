@@ -1,5 +1,5 @@
 /** @file This module defines the Project Manager endpoint.
- * @see The protocol spec
+ * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
