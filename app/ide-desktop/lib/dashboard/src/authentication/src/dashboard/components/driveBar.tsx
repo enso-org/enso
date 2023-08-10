@@ -45,7 +45,7 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
-                <div className="flex items-center text-black-a30 bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
                             <Button

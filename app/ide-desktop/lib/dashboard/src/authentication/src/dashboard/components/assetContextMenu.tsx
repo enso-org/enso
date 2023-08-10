@@ -10,6 +10,7 @@ import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
@@ -22,6 +23,10 @@ import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
 import ManagePermissionsModal from './managePermissionsModal'
+
+// ========================
+// === AssetContextMenu ===
+// ========================
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
@@ -44,6 +49,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
         innerProps: {
             key,
             item,
+            setItem,
             state: { dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
@@ -52,9 +58,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
         doDelete,
     } = props
     const logger = loggerProvider.useLogger()
-    const { accessToken } = authProvider.useNonPartialUserSession()
+    const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const self = item.permissions?.find(
+        permission => permission.user.user_email === organization?.email
+    )
+    const managesThisAsset =
+        self?.permission === backendModule.PermissionAction.own ||
+        self?.permission === backendModule.PermissionAction.admin
     return (
         <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
             <ContextMenu hidden={hidden}>
@@ -71,50 +84,54 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         }}
                     />
                 )}
-                {item.type === backendModule.AssetType.project && (
-                    <ContextMenuEntry
-                        hidden={hidden}
-                        action={shortcuts.KeyboardAction.uploadToCloud}
-                        doAction={async () => {
-                            unsetModal()
-                            if (accessToken == null) {
-                                toastAndLog('Cannot upload to cloud in offline mode')
-                            } else {
-                                try {
-                                    const headers = new Headers([
-                                        ['Authorization', `Bearer ${accessToken}`],
-                                    ])
-                                    const client = new http.Client(headers)
-                                    const remoteBackend = new remoteBackendModule.RemoteBackend(
-                                        client,
-                                        logger
-                                    )
-                                    const projectResponse = await fetch(
-                                        `./api/project-manager/projects/${item.id}/enso-project`
-                                    )
-                                    // This DOES NOT update the cloud assets list when it completes,
-                                    // as the current backend is not the remote (cloud) backend.
-                                    // The user may change to the cloud backend while this request
-                                    // is in progress, however this is uncommon enough that it is
-                                    // not worth the added complexity.
-                                    await remoteBackend.uploadFile(
-                                        {
-                                            fileName: `${item.title}.enso-project`,
-                                            fileId: null,
-                                            parentDirectoryId: null,
-                                        },
-                                        await projectResponse.blob()
-                                    )
-                                    toast.toast.success(
-                                        'Successfully uploaded local project to cloud!'
-                                    )
-                                } catch (error) {
-                                    toastAndLog('Could not upload local project to cloud', error)
+                {item.type === backendModule.AssetType.project &&
+                    backend.type === backendModule.BackendType.local && (
+                        <ContextMenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.uploadToCloud}
+                            doAction={async () => {
+                                unsetModal()
+                                if (accessToken == null) {
+                                    toastAndLog('Cannot upload to cloud in offline mode')
+                                } else {
+                                    try {
+                                        const headers = new Headers([
+                                            ['Authorization', `Bearer ${accessToken}`],
+                                        ])
+                                        const client = new http.Client(headers)
+                                        const remoteBackend = new remoteBackendModule.RemoteBackend(
+                                            client,
+                                            logger
+                                        )
+                                        const projectResponse = await fetch(
+                                            `./api/project-manager/projects/${item.id}/enso-project`
+                                        )
+                                        // This DOES NOT update the cloud assets list when it
+                                        // completes, as the current backend is not the remote
+                                        // (cloud) backend. The user may change to the cloud backend
+                                        // while this request is in progress, however this is
+                                        // uncommon enough that it is not worth the added complexity.
+                                        await remoteBackend.uploadFile(
+                                            {
+                                                fileName: `${item.title}.enso-project`,
+                                                fileId: null,
+                                                parentDirectoryId: null,
+                                            },
+                                            await projectResponse.blob()
+                                        )
+                                        toast.toast.success(
+                                            'Successfully uploaded local project to cloud!'
+                                        )
+                                    } catch (error) {
+                                        toastAndLog(
+                                            'Could not upload local project to cloud',
+                                            error
+                                        )
+                                    }
                                 }
-                            }
-                        }}
-                    />
-                )}
+                            }}
+                        />
+                    )}
                 <ContextMenuEntry
                     hidden={hidden}
                     disabled={
@@ -151,29 +168,28 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuSeparator hidden={hidden} />
-                <ContextMenuEntry
-                    hidden={hidden}
-                    action={shortcuts.KeyboardAction.share}
-                    doAction={() => {
-                        setModal(
-                            <ManagePermissionsModal
-                                asset={item}
-                                eventTarget={eventTarget}
-                                initialPermissions={[]}
-                                emailsOfUsersWithPermission={
-                                    new Set(
-                                        item.permissions?.map(
-                                            permission => permission.user.user_email
-                                        )
-                                    )
-                                }
-                                onSubmit={() => {
-                                    // TODO[sb]: Update the asset's permissions list.
-                                }}
-                            />
-                        )
-                    }}
-                />
+                {managesThisAsset && (
+                    <ContextMenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.share}
+                        doAction={() => {
+                            setModal(
+                                <ManagePermissionsModal
+                                    item={item}
+                                    setItem={setItem}
+                                    self={self}
+                                    eventTarget={eventTarget}
+                                    doRemoveSelf={() => {
+                                        dispatchAssetEvent({
+                                            type: assetEventModule.AssetEventType.removeSelf,
+                                            id: item.id,
+                                        })
+                                    }}
+                                />
+                            )
+                        }}
+                    />
+                )}
                 <ContextMenuEntry
                     hidden={hidden}
                     disabled

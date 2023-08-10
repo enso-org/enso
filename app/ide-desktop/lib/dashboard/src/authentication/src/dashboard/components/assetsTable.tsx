@@ -116,6 +116,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     const { assetEvents, dispatchAssetListEvent, getDepth } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
     const [presence, setPresence] = React.useState(presenceModule.Presence.present)
@@ -181,6 +182,27 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         './api/project-manager/' + `projects/${item.id}/enso-project`,
                         `${item.title}.enso-project`
                     )
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.removeSelf: {
+                // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
+                if (event.id === item.id && user != null) {
+                    setPresence(presenceModule.Presence.deleting)
+                    try {
+                        await backend.createPermission({
+                            action: null,
+                            resourceId: item.id,
+                            userSubjects: [user.id],
+                        })
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                    } catch (error) {
+                        setPresence(presenceModule.Presence.present)
+                        toastAndLog('Unable to delete project', error)
+                    }
                 }
                 break
             }
@@ -344,7 +366,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
-    const { organization } = authProvider.useNonPartialUserSession()
+    const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [initialized, setInitialized] = React.useState(false)
@@ -552,7 +574,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.directory,
                 }
@@ -592,7 +614,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
                 }
@@ -636,7 +658,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
                         parentId,
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                     }))
@@ -647,7 +669,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
                         title: file.name,
                         parentId,
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: {
                             type: backendModule.ProjectState.new,
@@ -709,7 +731,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.secret,
                 }

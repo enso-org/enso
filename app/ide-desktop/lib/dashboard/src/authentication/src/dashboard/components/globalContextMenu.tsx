@@ -52,7 +52,26 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.uploadFiles}
                         doAction={() => {
-                            filesInputRef.current?.click()
+                            if (filesInputRef.current?.isConnected === true) {
+                                filesInputRef.current.click()
+                            } else {
+                                const input = document.createElement('input')
+                                input.type = 'file'
+                                document.body.appendChild(input)
+                                input.addEventListener('input', () => {
+                                    if (input.files != null) {
+                                        dispatchAssetListEvent({
+                                            type: assetListEventModule.AssetListEventType
+                                                .uploadFiles,
+                                            parentKey: directoryKey,
+                                            parentId: directoryId,
+                                            files: Array.from(input.files),
+                                        })
+                                        unsetModal()
+                                    }
+                                    input.remove()
+                                })
+                            }
                         }}
                     />
                 </>
