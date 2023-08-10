@@ -303,31 +303,50 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (sortColumn == null || sortDirection == null) {
             return items
         } else {
-            let sort: (a: backendModule.AnyAsset, b: backendModule.AnyAsset) => number
+            const sortDescendingMultiplier = -1
+            const multiplier = {
+                [sorting.SortDirection.ascending]: 1,
+                [sorting.SortDirection.descending]: sortDescendingMultiplier,
+            }[sortDirection]
+            let compare: (a: backendModule.AnyAsset, b: backendModule.AnyAsset) => number
             switch (sortColumn) {
                 case columnModule.Column.name: {
-                    sort = (a, b) =>
+                    compare = (a, b) =>
                         a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
                     break
                 }
                 case columnModule.Column.modified: {
-                    sort = (a, b) => Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
+                    compare = (a, b) =>
+                        Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
                     break
                 }
             }
-            if (sortDirection === sorting.SortDirection.ascending) {
-                return items.sort((a, b) =>
-                    a.parentId === b.parentId && a.type === b.type
-                        ? sort(a, b)
-                        : items.indexOf(a) - items.indexOf(b)
-                )
-            } else {
-                return items.sort((a, b) =>
-                    a.parentId === b.parentId && a.type === b.type
-                        ? sort(b, a)
-                        : items.indexOf(b) - items.indexOf(a)
-                )
-            }
+            const itemsById = new Map(items.map(item => [item.id, item]))
+            const itemIndices = new Map(items.map((item, index) => [item, index]))
+            return Array.from(items).sort((a, b) => {
+                let normalizedA = a
+                let normalizedB = b
+                let aDepth = itemDepthsRef.current.get(normalizedA.id) ?? 0
+                let bDepth = itemDepthsRef.current.get(normalizedB.id) ?? 0
+                while (aDepth > bDepth) {
+                    aDepth -= 1
+                    // Using `normalizedA` as a fallback is INCORRECT, but it is better than
+                    // throwing an exception. This will never happen unless the parent folder is not
+                    // visible anyway, implying the assets list is already in an invalid state.
+                    normalizedA = itemsById.get(normalizedA.parentId) ?? normalizedA
+                }
+                while (bDepth > aDepth) {
+                    bDepth -= 1
+                    normalizedB = itemsById.get(normalizedB.parentId) ?? normalizedB
+                }
+                while (normalizedA.parentId !== normalizedB.parentId) {
+                    normalizedA = itemsById.get(normalizedA.parentId) ?? normalizedA
+                    normalizedB = itemsById.get(normalizedA.parentId) ?? normalizedB
+                }
+                return normalizedA.type === normalizedB.type
+                    ? multiplier * compare(normalizedA, normalizedB)
+                    : (itemIndices.get(normalizedA) ?? 0) - (itemIndices.get(normalizedB) ?? 0)
+            })
         }
     }, [items, sortColumn, sortDirection])
 
@@ -372,6 +391,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [items])
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
+    React.useEffect(() => {
+        expandedDirectoriesRef.current = new Set()
+    }, [backend])
     const doToggleDirectoryExpansion = React.useCallback(
         (directory: backendModule.DirectoryAsset, key: backendModule.AssetId) => {
             const set = expandedDirectoriesRef.current
