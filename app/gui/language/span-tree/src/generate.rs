@@ -829,10 +829,7 @@ struct FoldedLambdaArguments {
 /// Fold the lambda arguments into a single [`node::Kind::Token`] node.
 /// It is needed to ignore lambda arguments as connection targets, but still generate a valid
 /// SpanTree from the lambda body.
-fn fold_lambda_arguments(
-    tree: &ast::Tree<Ast>,
-    context: &impl Context,
-) -> Result<FoldedLambdaArguments, failure::Error> {
+fn fold_lambda_arguments(tree: &ast::Tree<Ast>) -> FoldedLambdaArguments {
     let is_arrow = |span_info| matches!(span_info, SpanSeed::Token(ast::SpanSeedToken { token }) if token == "->");
     let arrow_index = tree.span_info.iter().cloned().position(is_arrow).unwrap_or(0);
     let bytes_till_body = tree
@@ -840,19 +837,13 @@ fn fold_lambda_arguments(
         .iter()
         .take(arrow_index + 1)
         .map(|raw_span_info| match raw_span_info {
-            SpanSeed::Space(ast::SpanSeedSpace { space }) => Ok(*space),
-            SpanSeed::Token(ast::SpanSeedToken { token }) => Ok(token.len()),
-            SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                let kind = node::Kind::argument().with_removable(false);
-                let node = node.generate_node(kind, context);
-                node.map(|node| node.size.as_usize())
-            }
+            SpanSeed::Space(ast::SpanSeedSpace { space }) => ByteDiff::from(space),
+            SpanSeed::Token(ast::SpanSeedToken { token }) => ByteDiff::from(token.len()),
+            SpanSeed::Child(ast::SpanSeedChild { node }) => node.repr_len().to_diff(),
         })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .sum::<usize>();
+        .sum::<ByteDiff>();
+    let size = bytes_till_body;
     let kind = node::Kind::Token;
-    let size = ByteDiff::from(bytes_till_body);
     let node = Node::new().with_kind(kind).with_size(size);
     let ast_crumbs = vec![TreeCrumb { index: 0 }.into()];
     let nodes_replaced = arrow_index + 1;
@@ -862,7 +853,7 @@ fn fold_lambda_arguments(
         sibling_offset: ByteDiff::from(0),
         ast_crumbs,
     };
-    Ok(FoldedLambdaArguments { child, nodes_replaced })
+    FoldedLambdaArguments { child, nodes_replaced }
 }
 
 fn tree_generate_node(
@@ -891,8 +882,7 @@ fn tree_generate_node(
         // If the node is a lambda, we fold the lambda arguments into a single child node,
         // and then continue handling the lambda body as usual.
         let skip = if tree.type_info == ast::TreeType::Lambda {
-            let FoldedLambdaArguments { child, nodes_replaced } =
-                fold_lambda_arguments(tree, context)?;
+            let FoldedLambdaArguments { child, nodes_replaced } = fold_lambda_arguments(tree);
             parent_offset += child.node.size;
             children.push(child);
             nodes_replaced
