@@ -1,14 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.node.expression.builtin.number.utils.RoundHelpers;
 
 @BuiltinMethod(
         type = "Integer",
@@ -17,21 +14,28 @@ import org.enso.interpreter.runtime.error.PanicException;
 public class RoundNode extends Node {
     private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-    /** Minimum value for the `decimal_places` parameter to `roundDouble`. */
-    private static final double ROUND_MIN_DECIMAL_PLACES = -15;
-
-    /** Maximum value for the `decimal_places` parameter to `roundDouble`. */
-    private static final double ROUND_MAX_DECIMAL_PLACES = 15;
-
     private final PrimitiveValueProfile constantPlacesDecimalPlaces = PrimitiveValueProfile.create();
 
     private final PrimitiveValueProfile constantPlacesUseBankers = PrimitiveValueProfile.create();
 
+    private final BranchProfile decimalPlacesOutOfRangeProfile = BranchProfile.create();
+
+    private final BranchProfile outOfRangeProfile = BranchProfile.create();
+
     Object execute(long n, long dp, boolean ub) {
         var decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
-        if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
-            throw decimalPlacesOutOfRangePanic(decimalPlaces);
+
+        if (decimalPlaces < RoundHelpers.ROUND_MIN_DECIMAL_PLACES || decimalPlaces > RoundHelpers.ROUND_MAX_DECIMAL_PLACES) {
+            decimalPlacesOutOfRangeProfile.enter();
+            RoundHelpers.decimalPlacesOutOfRangePanic(this, decimalPlaces);
         }
+
+        boolean inRange = n >= RoundHelpers.ROUND_MIN_LONG && n <= RoundHelpers.ROUND_MAX_LONG;
+        if (!inRange) {
+            outOfRangeProfile.enter();
+            RoundHelpers.argumentOutOfRangePanic(this, n);
+        }
+
         if (decimalPlaces >= 0) {
             return n;
         }
@@ -52,18 +56,5 @@ public class RoundNode extends Node {
             boolean roundUp = halfGoesUp ? remainder < -halfway : remainder <= -halfway;
             return roundUp ? resultUnnudged - scale : resultUnnudged;
         }
-    }
-
-    @TruffleBoundary
-    private PanicException decimalPlacesOutOfRangePanic(long decimalPlaces) throws PanicException {
-        String msg =
-                "round: decimalPlaces must be between "
-                        + ROUND_MIN_DECIMAL_PLACES
-                        + " and "
-                        + ROUND_MAX_DECIMAL_PLACES
-                        + " (inclusive), but was "
-                        + decimalPlaces;
-        Builtins builtins = EnsoContext.get(this).getBuiltins();
-        throw new PanicException(builtins.error().makeUnsupportedArgumentsError(new Object[] { decimalPlaces }, msg), this);
     }
 }

@@ -659,9 +659,9 @@ spec =
             3.1 . round -16 . should_fail_with Illegal_Argument
 
         Test.specify "NaN/Inf" <|
-            Number.nan . round . should_fail_with Arithmetic_Error
-            Number.positive_infinity . round . should_fail_with Arithmetic_Error
-            Number.negative_infinity . round . should_fail_with Arithmetic_Error
+            Number.nan . round . should_fail_with Illegal_Argument
+            Number.positive_infinity . round . should_fail_with Illegal_Argument
+            Number.negative_infinity . round . should_fail_with Illegal_Argument
 
         Test.specify "Floating point imperfect representation counter-examples" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
@@ -769,16 +769,14 @@ spec =
             231 . round -1 . should_be_a Integer
 
         Test.specify "Input out of range" <|
-            100000000000000 . round -2 . should_fail_with Illegal_Argument
+             100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
+            100000000000000 . round . should_fail_with Illegal_Argument
+            -100000000000000 . round . should_fail_with Illegal_Argument
+            100000000000000 . round 1 . should_fail_with Illegal_Argument
+            -100000000000000 . round 1 . should_fail_with Illegal_Argument
             99999999999999 . round -2 . should_equal 100000000000000
             -99999999999999 . round -2 . should_equal -100000000000000
-
-        Test.specify "Input out of range is ignored when the implementation returns its argument immediately" <|
-            100000000000000 . round . should_equal 100000000000000
-            -100000000000000 . round . should_equal -100000000000000
-            100000000000000 . round 1 . should_equal 100000000000000
-            -100000000000000 . round 1 . should_equal -100000000000000
 
     Test.group "Decimal.truncate"
 

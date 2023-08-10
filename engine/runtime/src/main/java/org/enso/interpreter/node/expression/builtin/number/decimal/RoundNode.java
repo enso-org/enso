@@ -11,11 +11,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.node.expression.builtin.number.utils.RoundHelpers;
 
 @BuiltinMethod(
         type = "Decimal",
@@ -24,21 +22,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class RoundNode extends Node {
     private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-    /** Minimum value for the `decimal_places` parameter to `roundDouble`. */
-    private static final double ROUND_MIN_DECIMAL_PLACES = -15;
-
-    /** Maximum value for the `decimal_places` parameter to `roundDouble`. */
-    private static final double ROUND_MAX_DECIMAL_PLACES = 15;
-
-    /** Minimum value for the `n` parameter to `roundDouble`. */
-    private static final double ROUND_MIN_DOUBLE = -99999999999999.0;
-
-    /** Minimum value for the `n` parameter to `roundDouble`. */
-    private static final double ROUND_MAX_DOUBLE = 99999999999999.0;
-
     private final PrimitiveValueProfile constantPlacesDecimalPlaces = PrimitiveValueProfile.create();
 
     private final PrimitiveValueProfile constantPlacesUseBankers = PrimitiveValueProfile.create();
+
+    private final BranchProfile decimalPlacesOutOfRangeProfile = BranchProfile.create();
 
     private final BranchProfile outOfRangeProfile = BranchProfile.create();
 
@@ -46,14 +34,19 @@ public class RoundNode extends Node {
         long decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
         boolean useBankers = constantPlacesUseBankers.profile(ub);
 
-        boolean inRange = n >= ROUND_MIN_DOUBLE && n <= ROUND_MAX_DOUBLE;
+        if (decimalPlaces < RoundHelpers.ROUND_MIN_DECIMAL_PLACES || decimalPlaces > RoundHelpers.ROUND_MAX_DECIMAL_PLACES) {
+            decimalPlacesOutOfRangeProfile.enter();
+            RoundHelpers.decimalPlacesOutOfRangePanic(this, decimalPlaces);
+        }
+
+        boolean inRange = n >= RoundHelpers.ROUND_MIN_DOUBLE && n <= RoundHelpers.ROUND_MAX_DOUBLE;
         if (!inRange) {
             outOfRangeProfile.enter();
             if (Double.isNaN(n) || Double.isInfinite(n)) {
-                Builtins builtins = EnsoContext.get(this).getBuiltins();
-                throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
+                RoundHelpers.specialValuePanic(this, n);
+            } else {
+                RoundHelpers.argumentOutOfRangePanic(this, n);
             }
-            throw argumentOutOfRangePanic(n);
         }
 
         // Algorithm taken from https://stackoverflow.com/a/7211688.
@@ -79,31 +72,5 @@ public class RoundNode extends Node {
     @TruffleBoundary
     private BigInteger toBigInteger(double n) {
         return BigDecimal.valueOf(n).toBigIntegerExact();
-    }
-
-    @TruffleBoundary
-    private void decimalPlacesOutOfRangePanic(long decimalPlaces) throws PanicException {
-        String msg =
-                "round: decimalPlaces must be between "
-                        + ROUND_MIN_DECIMAL_PLACES
-                        + " and "
-                        + ROUND_MAX_DECIMAL_PLACES
-                        + " (inclusive), but was "
-                        + decimalPlaces;
-        Builtins builtins = EnsoContext.get(this).getBuiltins();
-        throw new PanicException(builtins.error().makeUnsupportedArgumentsError(new Object[] { decimalPlaces }, msg), this);
-    }
-
-    @TruffleBoundary
-    private PanicException argumentOutOfRangePanic(double n) throws PanicException {
-        String msg =
-                "Error: `round` can only accept values between "
-                        + ROUND_MIN_DOUBLE
-                        + " and "
-                        + ROUND_MAX_DOUBLE
-                        + " (inclusive), but was "
-                        + n;
-        Builtins builtins = EnsoContext.get(this).getBuiltins();
-        throw new PanicException(builtins.error().makeUnsupportedArgumentsError(new Object[] { n }, msg), this);
     }
 }
