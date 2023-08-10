@@ -11,6 +11,9 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
+
 import Button from './button'
 
 // ================
@@ -31,7 +34,26 @@ export default function DriveBar(props: DriveBarProps) {
     const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        return shortcuts.registerKeyboardHandlers({
+            ...(backend.type !== backendModule.BackendType.local
+                ? {
+                      [shortcutsModule.KeyboardAction.newFolder]: () => {
+                          doCreateDirectory()
+                      },
+                  }
+                : {}),
+            [shortcutsModule.KeyboardAction.newProject]: () => {
+                doCreateProject(null)
+            },
+            [shortcutsModule.KeyboardAction.uploadFiles]: () => {
+                uploadFilesRef.current?.click()
+            },
+        })
+    }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
     return (
         <div className="flex py-0.5">
@@ -45,12 +67,13 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
-                <div className="flex items-center bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
                             <Button
                                 active
                                 image={AddFolderIcon}
+                                disabledOpacityClassName="opacity-20"
                                 onClick={() => {
                                     unsetModal()
                                     doCreateDirectory()
@@ -61,6 +84,7 @@ export default function DriveBar(props: DriveBarProps) {
                                 disabled
                                 image={AddConnectorIcon}
                                 error="Not implemented yet."
+                                disabledOpacityClassName="opacity-20"
                                 onClick={() => {
                                     // No backend support yet.
                                 }}
@@ -89,6 +113,7 @@ export default function DriveBar(props: DriveBarProps) {
                     <Button
                         active
                         image={DataUploadIcon}
+                        disabledOpacityClassName="opacity-20"
                         onClick={() => {
                             unsetModal()
                             uploadFilesRef.current?.click()
@@ -99,6 +124,7 @@ export default function DriveBar(props: DriveBarProps) {
                         disabled={backend.type !== backendModule.BackendType.local}
                         image={DataDownloadIcon}
                         error="Not implemented yet."
+                        disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()
                             unsetModal()

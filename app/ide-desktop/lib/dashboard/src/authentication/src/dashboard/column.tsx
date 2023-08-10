@@ -21,6 +21,7 @@ import * as assetsTable from './components/assetsTable'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
+import SvgMask from '../authentication/components/svgMask'
 
 // =============
 // === Types ===
@@ -219,25 +220,25 @@ export const COLUMN_HEADING: Record<
     [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
     [Column.modified]: () => (
         <div className="flex gap-2">
-            <img src={TimeIcon} />
+            <SvgMask src={TimeIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
         </div>
     ),
     [Column.sharedWith]: () => (
         <div className="flex gap-2">
-            <img src={PeopleIcon} />
+            <SvgMask src={PeopleIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
         <div className="flex gap-2">
-            <img src={TagIcon} />
+            <SvgMask src={TagIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
         <div className="flex gap-2">
-            <img src={AccessedByProjectsIcon} />
+            <SvgMask src={AccessedByProjectsIcon} />
             <span className="leading-144.5 h-6 py-0.5">
                 {COLUMN_NAME[Column.accessedByProjects]}
             </span>
@@ -245,13 +246,13 @@ export const COLUMN_HEADING: Record<
     ),
     [Column.accessedData]: () => (
         <div className="flex gap-2">
-            <img src={AccessedDataIcon} />
+            <SvgMask src={AccessedDataIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
         <div className="flex gap-2">
-            <img src={DocsIcon} />
+            <SvgMask src={DocsIcon} />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
         </div>
     ),
