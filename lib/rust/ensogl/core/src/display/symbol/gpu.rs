@@ -19,7 +19,6 @@ use crate::system::gpu::data::uniform::AnyUniform;
 use enso_shapely::newtype_prim;
 use enso_shapely::shared2;
 use shader::Shader;
-use shader::WeakShader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
@@ -317,7 +316,7 @@ pub struct Symbol {
     #[display_object]
     data:         Rc<SymbolData>,
     shader_dirty: ShaderDirty,
-    shader:       Shader,
+    shader:       Rc<RefCell<Shader>>,
 }
 
 impl Symbol {
@@ -333,7 +332,7 @@ impl Symbol {
             let on_mut2 = on_mut.clone();
             let shader_dirty = ShaderDirty::new(Box::new(on_mut));
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
-            let shader = Shader::new(stats, shader_on_mut);
+            let shader = Rc::new(RefCell::new(Shader::new(stats, shader_on_mut)));
             let data = Rc::new(SymbolData::new(stats, label, id, global_id_provider, on_mut2));
             Self { data, shader_dirty, shader }
         })
@@ -349,7 +348,7 @@ impl Symbol {
     pub(crate) fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         self.surface.set_context(context);
-        self.shader.set_context(context);
+        self.shader.borrow_mut().set_context(context);
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -364,7 +363,7 @@ impl Symbol {
                     let var_bindings = self.discover_variable_bindings(global_variables);
                     let data = self.data.clone_ref();
                     let global_variables = global_variables.clone_ref();
-                    self.shader.update(var_bindings, move |var_bindings, program| {
+                    self.shader.borrow_mut().update(var_bindings, move |var_bindings, program| {
                         data.init_variable_bindings(var_bindings, &global_variables, program)
                     });
                     self.shader_dirty.unset();
@@ -408,6 +407,7 @@ impl Symbol {
         global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {
         self.shader
+            .borrow()
             .collect_variables()
             .map(|(name, decl)| {
                 let scope = self.lookup_variable(&name, global_variables);
@@ -422,7 +422,7 @@ impl Symbol {
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
     fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.native_program().as_ref() {
+        if let Some(program) = self.shader.borrow().native_program().as_ref() {
             context.with_program(program, || self.with_vao(|_| f(program)));
         }
     }
@@ -462,8 +462,8 @@ impl Symbol {
         &self.surface
     }
 
-    pub fn shader(&self) -> &Shader {
-        &self.shader
+    pub fn shader(&self) -> RefMut<Shader> {
+        self.shader.borrow_mut()
     }
 
     pub fn variables(&self) -> &UniformScope {
@@ -488,7 +488,7 @@ impl From<&Symbol> for SymbolId {
 pub struct WeakSymbol {
     data:         Weak<SymbolData>,
     shader_dirty: WeakShaderDirty,
-    shader:       WeakShader,
+    shader:       Weak<RefCell<Shader>>,
 }
 
 impl WeakElement for WeakSymbol {

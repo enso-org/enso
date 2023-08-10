@@ -327,7 +327,7 @@ impl SpriteSystem {
     }
 
     fn init_shader(&self) {
-        let shader = self.symbol.shader();
+        let mut shader = self.symbol.shader();
         let surface_material = Self::default_surface_material();
         let geometry_material = Self::default_geometry_material();
         shader.set_geometry_material(geometry_material);
