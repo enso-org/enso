@@ -98,7 +98,10 @@ final class RefactoringRenameJob(
         throw new RefactoringRenameJob.OperationNotSupported(expressionId)
       )
     val usages = IRUtils
-      .findUsages(module.getIr, literal)
+      .findLocalUsages(module.getIr, literal)
+      .orElse(
+        IRUtils.findModuleMethodUsages(module.getName, module.getIr, literal)
+      )
       .getOrElse(Set())
       .concat(Set(literal))
       .flatMap(_.location)
