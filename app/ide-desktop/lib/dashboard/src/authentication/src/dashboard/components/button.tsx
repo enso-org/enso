@@ -33,7 +33,7 @@ export default function Button(props: ButtonProps) {
             className={`${active && !disabled ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
                 !disabled ? 'cursor-pointer hover:opacity-100 cursor-pointer' : 'cursor-not-allowed'
             } ${className ?? ''}`}
-            onClick={onClick}
+            {...(disabled ? {} : { onClick })}
         />
     )
 }
