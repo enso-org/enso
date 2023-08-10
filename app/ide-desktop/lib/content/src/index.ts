@@ -47,7 +47,11 @@ if (IS_DEV_MODE && !detect.isRunningInElectron()) {
         location.href = location.href.toString()
     })
 }
-void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+void (async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    await registration?.unregister()
+    await navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+})()
 
 // =============
 // === Fetch ===

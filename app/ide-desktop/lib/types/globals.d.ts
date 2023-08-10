@@ -19,6 +19,23 @@ interface Enso {
     main: (inputConfig?: StringConfig) => Promise<void>
 }
 
+// ===================
+// === Backend API ===
+// ===================
+
+/** Information required to display a bundle. */
+interface BundleInfo {
+    name: string
+    id: string
+}
+
+/** `window.backendApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains non-authentication-related functionality. */
+interface BackendApi {
+    /** Return the ID of the new project. */
+    importProjectFromPath: (openedPath: string) => Promise<BundleInfo>
+}
+
 // ==========================
 // === Authentication API ===
 // ==========================
@@ -48,14 +65,23 @@ interface AuthenticationApi {
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
+    // Documentation is already inherited.
     /** */
     interface Window {
         enso?: AppRunner & Enso
+        backendApi?: BackendApi
         authenticationApi: AuthenticationApi
     }
 
+    // Documentation is already inherited.
+    /** */
+    interface Object {
+        /** Log self and return self. Only available in development mode. */
+        $d$: <T>(this: T, message?: string) => T
+    }
+
     namespace NodeJS {
-        /** */
+        /** Environment variables. */
         interface ProcessEnv {
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
@@ -75,6 +101,7 @@ declare global {
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
+    /** Only exists in development mode. */
     // This is a function.
     // eslint-disable-next-line no-restricted-syntax
     const assert: (invariant: boolean, message: string) => void

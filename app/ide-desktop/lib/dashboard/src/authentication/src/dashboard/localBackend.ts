@@ -40,10 +40,15 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(): backend.DirectoryId {
+        return backend.DirectoryId('')
+    }
+
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listDirectory(): Promise<backend.AnyAsset[]> {
+    override async listDirectory(): Promise<backend.AnyAsset[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             type: backend.AssetType.project,
@@ -65,7 +70,7 @@ export class LocalBackend extends backend.Backend {
     /** Return a list of projects belonging to the current user.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listProjects(): Promise<backend.ListedProject[]> {
+    override async listProjects(): Promise<backend.ListedProject[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             name: project.name,
@@ -83,7 +88,9 @@ export class LocalBackend extends backend.Backend {
     /** Create a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
+    override async createProject(
+        body: backend.CreateProjectRequestBody
+    ): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
             name: projectManager.ProjectName(body.projectName),
             ...(body.projectTemplateName != null
@@ -105,7 +112,7 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
@@ -125,7 +132,7 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
         const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
@@ -187,7 +194,7 @@ export class LocalBackend extends backend.Backend {
     /** Prepare a project for execution.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async openProject(
+    override async openProject(
         projectId: backend.ProjectId,
         _body: backend.OpenProjectRequestBody | null,
         title: string | null
@@ -216,7 +223,7 @@ export class LocalBackend extends backend.Backend {
     /** Change the name of a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async projectUpdate(
+    override async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody
     ): Promise<backend.UpdatedProject> {
@@ -258,7 +265,10 @@ export class LocalBackend extends backend.Backend {
     /** Delete a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    override async deleteProject(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }

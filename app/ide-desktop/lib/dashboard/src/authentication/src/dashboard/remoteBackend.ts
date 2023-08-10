@@ -5,6 +5,7 @@
  * the response from the API. */
 import * as backend from './backend'
 import * as config from '../config'
+import * as errorModule from '../error'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 
@@ -194,6 +195,15 @@ export class RemoteBackend extends backend.Backend {
         throw new Error(message)
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
+    }
+
     /** Return a list of all users in the same organization. */
     async listUsers(): Promise<backend.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
@@ -278,7 +288,8 @@ export class RemoteBackend extends backend.Backend {
             return (await response.json()).assets
                 .map(
                     asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                        // This type assertion is safe; it is only needed to convert `type` to a
+                        // newtype.
                         // eslint-disable-next-line no-restricted-syntax
                         ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
                 )
@@ -288,6 +299,10 @@ export class RemoteBackend extends backend.Backend {
                         ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
                         : asset
                 )
+                .map(asset => ({
+                    ...asset,
+                    permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),
+                }))
         }
     }
 
@@ -511,7 +526,7 @@ export class RemoteBackend extends backend.Backend {
         params: backend.UploadFileRequestParams,
         body: Blob
     ): Promise<backend.FileInfo> {
-        const response = await this.postBase64<backend.FileInfo>(
+        const response = await this.postBinary<backend.FileInfo>(
             UPLOAD_FILE_PATH +
                 '?' +
                 new URLSearchParams({
@@ -526,12 +541,21 @@ export class RemoteBackend extends backend.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
+            let suffix = '.'
+            try {
+                const error = errorModule.tryGetError<unknown>(await response.json())
+                if (error != null) {
+                    suffix = `: ${error}`
+                }
+            } catch {
+                // Ignored.
+            }
             if (params.fileName != null) {
-                return this.throw(`Unable to upload file with name '${params.fileName}'.`)
+                return this.throw(`Could not upload file with name '${params.fileName}'${suffix}`)
             } else if (params.fileId != null) {
-                return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
+                return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
             } else {
-                return this.throw('Unable to upload file.')
+                return this.throw(`Could not upload file${suffix}`)
             }
         } else {
             return await response.json()
@@ -687,8 +711,8 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Send a binary HTTP POST request to the given path. */
-    private postBase64<T = void>(path: string, payload: Blob) {
-        return this.client.postBase64<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    private postBinary<T = void>(path: string, payload: Blob) {
+        return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
     /** Send a JSON HTTP PUT request to the given path. */
