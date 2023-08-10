@@ -27,21 +27,15 @@ public class RoundNode extends Node {
 
     private final PrimitiveValueProfile constantPlacesUseBankers = PrimitiveValueProfile.create();
 
-    private final BranchProfile outOfRangeProfile = BranchProfile.create();
-
     Object execute(long n, long dp, boolean ub) {
         var decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
-        var useBankers = constantPlacesUseBankers.profile(ub);
-
         if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
-            outOfRangeProfile.enter();
             throw decimalPlacesOutOfRangePanic(decimalPlaces);
         }
-
         if (decimalPlaces >= 0) {
             return n;
         }
-
+        var useBankers = constantPlacesUseBankers.profile(ub);
         long scale = (long) Math.pow(10, -decimalPlaces);
         long halfway = scale / 2;
         long remainder = n % scale;
