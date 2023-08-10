@@ -33,36 +33,38 @@ interface InitialRowStateProp<RowState> {
 interface InternalTableRowInnerProps<T, Key extends string = string> {
     key: Key
     item: T
-    setItem: (newItem: T) => void
+    setItem: React.Dispatch<React.SetStateAction<T>>
 }
 
 /** State and setters passed to event handlers on a {@link TableRow}. */
 export type TableRowInnerProps<
     T,
-    TableRowState = never,
+    State = never,
+    RowState = never,
     Key extends string = string
 > = InternalTableRowInnerProps<T, Key> &
-    ([TableRowState] extends never ? unknown : InternalTableRowStateProps<TableRowState>)
+    ([RowState] extends never ? unknown : InternalTableRowStateProps<RowState>) &
+    ([State] extends never ? unknown : StateProp<State>)
 
 /** Props for a {@link TableRow}. */
-interface InternalBaseTableRowProps<
-    T,
-    State = never,
-    TableRowState = never,
-    Key extends string = string
-> extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
+interface InternalBaseTableRowProps<T, State = never, RowState = never, Key extends string = string>
+    extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
     keyProp: Key
+    tableRowRef?: React.RefObject<HTMLTableRowElement>
     item: T
+    /** Pass this in only if `item` also needs to be updated in the parent component. */
     setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
-    initialRowState?: TableRowState
-    columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
+    initialRowState?: RowState
+    /** Pass this in only if `rowState` also needs to be updated in the parent component. */
+    setRowState?: React.Dispatch<React.SetStateAction<RowState>>
+    columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     selected: boolean
     setSelected: (selected: boolean) => void
     allowContextMenu: boolean
-    onClick: (props: TableRowInnerProps<T, TableRowState, Key>, event: React.MouseEvent) => void
+    onClick: (props: TableRowInnerProps<T, State, RowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
-        props: TableRowInnerProps<T, TableRowState, Key>,
+        props: TableRowInnerProps<T, State, RowState, Key>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -83,13 +85,17 @@ export default function TableRow<T, State = never, RowState = never, Key extends
 ) {
     const {
         keyProp: key,
+        tableRowRef,
         item: rawItem,
         setItem: rawSetItem,
         state,
         initialRowState,
+        setRowState: rawSetRowState,
         columns,
         selected,
         setSelected,
+        // This prop is unused here, but is useful for components wrapping this component.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         allowContextMenu,
         onClick,
         onContextMenu,
@@ -98,15 +104,20 @@ export default function TableRow<T, State = never, RowState = never, Key extends
     } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    /** The internal state for this row. This may change as backend requests are sent. */
-    // This hook is not called conditionally. `setItem` either always exists, or never exists.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [item, setItem] = rawSetItem != null ? [rawItem, rawSetItem] : React.useState(rawItem)
+    const [fallbackItem, fallbackSetItem] = React.useState(rawItem)
+    /** The item represented by this row. This may change as backend requests are sent. */
+    const [item, setItem] =
+        rawSetItem != null ? [rawItem, rawSetItem] : [fallbackItem, fallbackSetItem]
     /** This is SAFE, as the type is defined such that they MUST be present when `RowState` is not
      * `never`.
      * See the type definitions of {@link TableRowProps} and `TableProps`. */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
+    const [fallbackRowState, fallbackSetRowState] = React.useState<RowState>(initialRowState!)
+    /** The internal state for this row. This may change as backend requests are sent. */
+    const [rowState, setRowState] =
+        initialRowState != null && rawSetRowState != null
+            ? [initialRowState, rawSetRowState]
+            : [fallbackRowState, fallbackSetRowState]
 
     React.useEffect(() => {
         if (rawSetItem == null) {
@@ -114,25 +125,28 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         }
     }, [rawItem, /* should never change */ setItem, /* should never change */ rawSetItem])
 
-    const innerProps: TableRowInnerProps<T, RowState, Key> = {
+    const innerProps: TableRowInnerProps<T, State, RowState, Key> = {
         key,
         item,
         setItem,
+        // This is SAFE, as the type is defined such that they MUST be present when `State` is not
+        //`never`.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        state: state!,
         rowState,
         setRowState,
     }
 
     return (
         <tr
+            ref={tableRowRef}
             tabIndex={-1}
             onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
             }}
             onContextMenu={event => {
-                if (allowContextMenu) {
-                    onContextMenu?.(innerProps, event)
-                }
+                onContextMenu?.(innerProps, event)
             }}
             className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
                 selected ? 'selected' : ''

@@ -11,10 +11,12 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ==================
 // === SecretName ===
@@ -36,6 +38,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     } = props
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
@@ -46,8 +49,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
@@ -58,7 +61,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createSecret: {
+            case assetEventModule.AssetEventType.newSecret: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Secrets cannot be created on the local backend')
@@ -99,10 +102,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -111,7 +111,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <img src={SecretIcon} />{' '}
+            <SvgMask src={SecretIcon} />{' '}
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

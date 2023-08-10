@@ -21,6 +21,7 @@ import * as assetsTable from './components/assetsTable'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
+import SvgMask from '../authentication/components/svgMask'
 
 // =============
 // === Types ===
@@ -240,33 +241,33 @@ export const COLUMN_HEADING: Record<
 > = {
     [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
     [Column.modified]: () => (
-        <div className="flex gap-2">
-            <img src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
         </div>
     ),
     [Column.sharedWith]: () => (
-        <div className="flex gap-2">
-            <img src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}
         </div>
     ),
     [Column.tags]: () => (
-        <div className="flex gap-2">
-            <img src={TagIcon} /> {COLUMN_NAME[Column.tags]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={TagIcon} /> {COLUMN_NAME[Column.tags]}
         </div>
     ),
     [Column.accessedByProjects]: () => (
-        <div className="flex gap-2">
-            <img src={AccessedByProjectsIcon} /> {COLUMN_NAME[Column.accessedByProjects]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={AccessedByProjectsIcon} /> {COLUMN_NAME[Column.accessedByProjects]}
         </div>
     ),
     [Column.accessedData]: () => (
-        <div className="flex gap-2">
-            <img src={AccessedDataIcon} /> {COLUMN_NAME[Column.accessedData]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={AccessedDataIcon} /> {COLUMN_NAME[Column.accessedData]}
         </div>
     ),
     [Column.docs]: () => (
-        <div className="flex gap-2">
-            <img src={DocsIcon} /> {COLUMN_NAME[Column.docs]}
+        <div className="flex items-center gap-2">
+            <SvgMask src={DocsIcon} /> {COLUMN_NAME[Column.docs]}
         </div>
     ),
 }

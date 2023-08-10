@@ -23,17 +23,19 @@ declare global {
     }
 }
 
-Object.defineProperty(Object.prototype, '$d$', {
-    /** Log self and return self. */
-    value: function <T>(this: T, message?: string) {
-        if (message != null) {
-            console.log(message, this)
-        } else {
-            console.log(this)
-        }
-        return this
-    },
-    enumerable: false,
-    writable: false,
-    configurable: false,
-})
+if (!('$d$' in Object.prototype)) {
+    Object.defineProperty(Object.prototype, '$d$', {
+        /** Log self and return self. */
+        value: function <T>(this: T, message?: string) {
+            if (message != null) {
+                console.log(message, this)
+            } else {
+                console.log(this)
+            }
+            return this
+        },
+        enumerable: false,
+        writable: false,
+        configurable: false,
+    })
+}

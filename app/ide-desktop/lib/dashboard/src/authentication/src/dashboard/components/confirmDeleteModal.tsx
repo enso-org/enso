@@ -2,8 +2,6 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
-import CloseIcon from 'enso-assets/close.svg'
-
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -39,47 +37,39 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     }
 
     return (
-        <Modal centered className="bg-opacity-90">
-            <form
-                onClick={event => {
-                    event.stopPropagation()
-                }}
-                onSubmit={event => {
-                    event.preventDefault()
-                    // Consider not calling `onSubmit()` here to make it harder to accidentally
-                    // delete an important asset.
-                    onSubmit()
-                }}
-                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
-            >
-                <div className="flex">
-                    {/* Padding. */}
-                    <div className="grow" />
-                    <button
-                        type="button"
-                        className="absolute right-0 top-0 m-2"
-                        onClick={unsetModal}
-                    >
-                        <img src={CloseIcon} />
-                    </button>
-                </div>
-                <div className="m-2">Are you sure you want to delete {description}?</div>
-                <div className="m-1">
-                    <button
-                        type="submit"
-                        className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
-                    >
-                        Delete
-                    </button>
-                    <button
-                        type="button"
-                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
-                        onClick={unsetModal}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </form>
+        <Modal centered className="bg-dim">
+            <div className="relative rounded-2xl pointer-events-auto">
+                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
+                <form
+                    onClick={event => {
+                        event.stopPropagation()
+                    }}
+                    onSubmit={event => {
+                        event.preventDefault()
+                        // Consider not calling `onSubmit()` here to make it harder to accidentally
+                        // delete an important asset.
+                        onSubmit()
+                    }}
+                    className="relative shadow-soft rounded-2xl w-96 px-4 py-2"
+                >
+                    <div className="m-2">Are you sure you want to delete {description}?</div>
+                    <div className="m-1">
+                        <button
+                            type="submit"
+                            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1 m-1"
+                        >
+                            Delete
+                        </button>
+                        <button
+                            type="button"
+                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 m-1"
+                            onClick={unsetModal}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </Modal>
     )
 }

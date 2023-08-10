@@ -25,7 +25,7 @@ export default function Modal(props: ModalProps) {
     return (
         <div
             style={style}
-            className={`inset-0 bg-primary z-10 ${
+            className={`inset-0 z-10 ${
                 centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
             }${className ?? ''}`}
             onClick={
