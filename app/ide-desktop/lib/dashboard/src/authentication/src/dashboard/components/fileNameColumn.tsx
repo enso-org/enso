@@ -10,10 +10,12 @@ import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ================
 // === FileName ===
@@ -33,8 +35,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
@@ -45,45 +48,43 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to projects.
-                // `deleteMultiple` is handled by `AssetRow`.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {
                 const file = event.files.get(key)
                 if (file != null) {
-                    if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Files cannot be uploaded on the local backend')
-                    } else {
-                        rowState.setPresence(presence.Presence.inserting)
-                        try {
-                            const createdFile = await backend.uploadFile(
-                                {
-                                    fileId: null,
-                                    fileName: item.title,
-                                    parentDirectoryId: item.parentId,
-                                },
-                                file
-                            )
-                            rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.FileAsset = {
-                                ...item,
-                                ...createdFile,
-                            }
-                            setItem(newItem)
-                        } catch (error) {
-                            dispatchAssetListEvent({
-                                type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
-                            })
-                            toastAndLog('Error creating new file', error)
+                    rowState.setPresence(presence.Presence.inserting)
+                    try {
+                        const createdFile = await backend.uploadFile(
+                            {
+                                fileId: null,
+                                fileName: item.title,
+                                parentDirectoryId: item.parentId,
+                            },
+                            file
+                        )
+                        rowState.setPresence(presence.Presence.present)
+                        const newItem: backendModule.FileAsset = {
+                            ...item,
+                            ...createdFile,
                         }
+                        setItem(newItem)
+                    } catch (error) {
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                        toastAndLog('Could not upload file', error)
                     }
                 }
                 break
@@ -100,10 +101,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -112,7 +110,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <img src={fileInfo.fileIcon()} />
+            <SvgMask src={fileInfo.fileIcon()} className="m-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

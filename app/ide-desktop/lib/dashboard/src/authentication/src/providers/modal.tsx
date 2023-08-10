@@ -11,7 +11,7 @@ export type Modal = JSX.Element
 
 /** State contained in a `SetModalContext`. */
 interface SetModalContextType {
-    setModal: (modal: React.SetStateAction<Modal | null>) => void
+    setModal: React.Dispatch<React.SetStateAction<Modal | null>>
 }
 
 /** State contained in a `ModalContext`. */
@@ -25,8 +25,8 @@ const ModalContext = React.createContext<ModalContextType>({
 
 const SetModalContext = React.createContext<SetModalContextType>({
     setModal: () => {
-        // Ignored. This default value will never be used
-        // as `ModalProvider` always provides its own value.
+        // Ignored. This default value will never be used as `ModalProvider` always provides
+        // its own value.
     },
 })
 
@@ -48,7 +48,7 @@ export function ModalProvider(props: ModalProviderProps) {
 
 /** Props for a {@link ModalProvider}. */
 interface InternalSetModalProviderProps extends React.PropsWithChildren {
-    setModal: (modal: React.SetStateAction<Modal | null>) => void
+    setModal: React.Dispatch<React.SetStateAction<Modal | null>>
 }
 
 /** A React provider containing a function to set the currently active modal. */
