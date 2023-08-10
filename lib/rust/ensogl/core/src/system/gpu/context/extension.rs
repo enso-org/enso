@@ -36,6 +36,7 @@ impl Extensions {
 pub struct ExtensionsData {
     pub khr_parallel_shader_compile:     Option<KhrParallelShaderCompile>,
     pub ext_disjoint_timer_query_webgl2: Option<ExtDisjointTimerQueryWebgl2>,
+    pub webgl_lose_context:              Option<WebglLoseContext>,
 }
 
 impl ExtensionsData {
@@ -43,7 +44,8 @@ impl ExtensionsData {
     fn init(context: &WebGl2RenderingContext) -> Self {
         let khr_parallel_shader_compile = KhrParallelShaderCompile::try_init(context);
         let ext_disjoint_timer_query_webgl2 = ExtDisjointTimerQueryWebgl2::try_init(context);
-        Self { khr_parallel_shader_compile, ext_disjoint_timer_query_webgl2 }
+        let webgl_lose_context = WebglLoseContext::try_init(context);
+        Self { khr_parallel_shader_compile, ext_disjoint_timer_query_webgl2, webgl_lose_context }
     }
 }
 
@@ -161,6 +163,51 @@ impl ExtDisjointTimerQueryWebgl2 {
             self.query_counter_ext_fn.call2(&self.ext, query, &(*self.timestamp_ext).into())
         {
             warn!("Error while querying timestamp: {:?}", err);
+        }
+    }
+}
+
+
+
+// ========================
+// === WebglLoseContext ===
+// ========================
+
+/// Supports losing the WebGL Context.
+/// See: [https://registry.khronos.org/webgl/extensions/WEBGL_lose_context]
+#[derive(Debug, Clone)]
+pub struct WebglLoseContext {
+    ext:             Object,
+    lose_context:    js_sys::Function,
+    restore_context: js_sys::Function,
+}
+
+impl WebglLoseContext {
+    /// Try to obtain the extension.
+    pub fn try_init(context: &WebGl2RenderingContext) -> Option<Self> {
+        let ext = context.get_extension("WEBGL_lose_context").ok()??;
+        let lose_context = js_sys::Reflect::get(&ext, &"loseContext".into())
+            .ok()?
+            .dyn_into::<js_sys::Function>()
+            .ok()?;
+        let restore_context = js_sys::Reflect::get(&ext, &"restoreContext".into())
+            .ok()?
+            .dyn_into::<js_sys::Function>()
+            .ok()?;
+        Some(Self { ext, lose_context, restore_context })
+    }
+
+    pub fn lose_context(&self) {
+        if let Err(err) = self.lose_context.call0(&self.ext) {
+            warn!("Failed to lose the WebGL context: {:?}. \
+                This is expected to occur if the context was already lost.", err);
+        }
+    }
+
+    // XXX: We must have access to this extension even after context is lost!
+    pub fn restore_context(&self) {
+        if let Err(err) = self.restore_context.call0(&self.ext) {
+            error!("Failed to restore the WebGL context: {:?}", err);
         }
     }
 }

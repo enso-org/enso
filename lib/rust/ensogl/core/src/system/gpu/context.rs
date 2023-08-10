@@ -148,11 +148,12 @@ pub fn init_webgl_2_context<D: Display + 'static>(
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(native) => {
             let context = Context::from_native(native);
-            type Handler = web::JsEventHandler;
+            type Handler = web::JsEventHandler<web_sys::Event>;
             display.set_context(Some(&context));
-            let lost: Handler = Closure::new(f_!([display]
+            let lost: Handler = Closure::new(f!([display] (e: web_sys::Event)
                 warn!("Lost the WebGL context.");
-                display.set_context(None)
+                display.set_context(None);
+                e.prevent_default();
             ));
             let restored: Handler = Closure::new(f_!([display]
                 warn!("Trying to restore the WebGL context.");

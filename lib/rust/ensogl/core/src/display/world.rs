@@ -436,6 +436,7 @@ pub struct WorldData {
     pixel_read_pass_threshold: Rc<RefCell<Weak<Cell<usize>>>>,
     slow_frame_count: Rc<Cell<usize>>,
     fast_frame_count: Rc<Cell<usize>>,
+    restore_context: Rc<RefCell<Option<crate::system::gpu::context::extension::WebglLoseContext>>>,
 }
 
 impl WorldData {
@@ -459,6 +460,7 @@ impl WorldData {
         let pixel_read_pass_threshold = default();
         let slow_frame_count = default();
         let fast_frame_count = default();
+        let restore_context = default();
 
         Self {
             frp,
@@ -476,6 +478,7 @@ impl WorldData {
             pixel_read_pass_threshold,
             slow_frame_count,
             fast_frame_count,
+            restore_context,
         }
         .init()
     }
@@ -496,6 +499,7 @@ impl WorldData {
         let display_mode = self.display_mode.clone_ref();
         let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
+        let restore_context = self.restore_context.clone();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
@@ -520,6 +524,23 @@ impl WorldData {
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key == "KeyG" {
                     enso_debug_api::open_gpu_debug_info();
+                } else if key == "KeyX" {
+                    if let Some(restore) = restore_context.take() {
+                        restore.restore_context();
+                    } else {
+                        if let Some(context) = scene().context.borrow().as_ref() {
+                            if let Some(lose_context) =
+                                context.extensions.webgl_lose_context.as_ref()
+                            {
+                                restore_context.borrow_mut().replace(lose_context.clone());
+                                lose_context.lose_context();
+                            } else {
+                                error!("Could not lose context: Missing extension.");
+                            }
+                        } else {
+                            error!("Could not lose context: Context lost.");
+                        }
+                    }
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
