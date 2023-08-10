@@ -22,18 +22,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
-  private final int minLength;
-  private final int maxLength;
   private final TextType targetType;
 
   public ToTextStorageConverter(TextType textType) {
-    maxLength = Math.toIntExact(textType.maxLength());
-    if (textType.fixedLength()) {
-      minLength = maxLength;
-    } else {
-      minLength = -1;
-    }
-
     targetType = textType;
   }
 
@@ -193,19 +184,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private String adaptWithoutWarning(String value) {
-    if (maxLength == -1) {
-      return value;
-    }
-
-    int textLength = (int) Text_Utils.grapheme_length(value);
-
-    if (textLength > maxLength) {
-      return Text_Utils.take_prefix(value, maxLength);
-    } else if (textLength < minLength) {
-      return value + " ".repeat(minLength - textLength);
-    } else {
-      return value;
-    }
+    return targetType.adapt(value);
   }
 
   private Storage<String> adaptStringStorage(StringStorage stringStorage, CastProblemBuilder problemBuilder) {

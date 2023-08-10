@@ -27,6 +27,23 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     }
   }
 
+  /** Truncate or pad the string to make sure that it fits. */
+  public String adapt(String string) {
+    if (maxLength == -1) {
+      return string;
+    }
+
+    long textLength = Text_Utils.grapheme_length(string);
+
+    if (textLength > maxLength) {
+      return Text_Utils.take_prefix(string, maxLength);
+    } else if (fixedLength && textLength < maxLength) {
+      return string + " ".repeat(Math.toIntExact(maxLength - textLength));
+    } else {
+      return string;
+    }
+  }
+
   /**
    * Checks if values of otherType can be transferred to this type without any conversions.
    * <p>

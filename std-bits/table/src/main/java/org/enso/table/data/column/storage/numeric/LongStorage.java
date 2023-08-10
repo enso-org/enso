@@ -241,4 +241,11 @@ public final class LongStorage extends AbstractLongStorage {
 
     return new LongStorage(newData, newSize, newMissing, type);
   }
+
+  /** Widening to a bigger type can be done without copying the data. */
+  @Override
+  public LongStorage widen(IntegerType widerType) {
+    assert widerType.fits(type);
+    return new LongStorage(data, size, isMissing, widerType);
+  }
 }

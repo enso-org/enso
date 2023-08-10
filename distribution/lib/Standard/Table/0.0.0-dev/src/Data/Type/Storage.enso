@@ -41,7 +41,6 @@ to_value_type storage_type = case storage_type of
 
 ## PRIVATE
 closest_storage_type value_type = case value_type of
-    # TODO we will want builders and storages with bounds checking, but for now we approximate
     Value_Type.Byte -> IntegerType.INT_8
     Value_Type.Integer bits ->
         java_bits = Java_Bits.fromInteger bits.to_integer

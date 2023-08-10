@@ -1,6 +1,7 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -10,6 +11,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -20,9 +22,13 @@ import java.util.Objects;
  */
 public class LongBuilder extends NumericBuilder {
   private final IntegerType type;
+  private final CastProblemBuilder castProblemBuilder;
   LongBuilder(BitSet isMissing, long[] data, int currentSize, IntegerType type) {
     super(isMissing, data, currentSize);
     this.type = type;
+    // Currently we have no correlation with column name, and it may not be necessary for now.
+    String relatedColumnName = null;
+    this.castProblemBuilder = new CastProblemBuilder(relatedColumnName, type);
   }
 
   @Override
@@ -134,13 +140,26 @@ public class LongBuilder extends NumericBuilder {
     if (type.fits(data)) {
       appendRawNoGrow(data);
     } else {
-      // TODO: Handle overflow
-      throw new IllegalStateException("TODO");
+      castProblemBuilder.reportNumberOutOfRange(data);
+      appendNulls(1);
     }
+  }
+
+  /** Append a new integer to this builder, without checking for overflows.
+   * <p>
+   * Used if the range has already been checked by the caller.
+   */
+  public void appendLongUnchecked(long data) {
+    appendRawNoGrow(data);
   }
 
   @Override
   public Storage<Long> seal() {
     return new LongStorage(data, currentSize, isMissing, type);
+  }
+
+  @Override
+  public AggregatedProblems getProblems() {
+    return castProblemBuilder.getAggregatedProblems();
   }
 }

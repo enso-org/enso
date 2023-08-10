@@ -148,4 +148,11 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   private static final BitSet EMPTY = new BitSet();
+
+  @Override
+  public AbstractLongStorage widen(IntegerType widerType) {
+    // Currently the implementation only reports 64-bit type so there is no widening to do - we can just return self.
+    assert getType().equals(IntegerType.INT_64);
+    return this;
+  }
 }

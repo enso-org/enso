@@ -28,8 +28,8 @@ public class StringBuilder extends TypedBuilderImpl<String> {
   public void appendNoGrow(Object o) {
     String str = (String) o;
     if (!type.fits(str)) {
-      // TODO
-      throw new IllegalArgumentException("String does not fit the type");
+      str = type.adapt(str);
+
     }
 
     data[currentSize++] = str;
@@ -61,6 +61,8 @@ public class StringBuilder extends TypedBuilderImpl<String> {
 
     super.appendBulkStorage(storage);
   }
+
+
 
   @Override
   protected Storage<String> doSeal() {

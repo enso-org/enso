@@ -325,4 +325,11 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(new LongIsInOp());
     return ops;
   }
+
+  /**
+   * Return an instance of storage containing the same data but with a wider type.
+   * <p>
+   * Ideally it should avoid copying the data, if it's possible.
+   */
+  public abstract AbstractLongStorage widen(IntegerType widerType);
 }

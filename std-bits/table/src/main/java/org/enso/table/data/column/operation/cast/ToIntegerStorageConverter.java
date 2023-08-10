@@ -4,13 +4,17 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
+
+import java.util.BitSet;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private final IntegerType targetType;
@@ -20,12 +24,11 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
-    if (storage instanceof LongStorage longStorage) {
-      if (storage.getType().equals(targetType)) {
+    if (storage instanceof AbstractLongStorage longStorage) {
+      if (longStorage.getType().equals(targetType)) {
         return longStorage;
       } else {
-        // TODO [RW] FIXME this is just a hack that is totally invalid, just doing it to check a test in Union
-        return new LongStorage(longStorage.getRawData(), longStorage.size(), longStorage.getIsMissing(), targetType);
+        return convertLongStorage(longStorage, problemBuilder);
       }
     } else if (storage instanceof DoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemBuilder);
@@ -49,16 +52,19 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         builder.appendLong(booleanAsLong(b));
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
-        builder.appendLong(x);
+        if (targetType.fits(x)) {
+          builder.appendLongUnchecked(x);
+        } else {
+          problemBuilder.reportNumberOutOfRange(x);
+          builder.appendNulls(1);
+        }
       } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
-        // TODO is this ok or do we need it to be more efficient?
         if (targetType.fits(x)) {
           long converted = (long) x;
-          builder.appendLong(converted);
+          builder.appendLongUnchecked(converted);
         } else {
-          // TODO maybe more precise Out_Of_Range conversion here?
-          problemBuilder.reportConversionFailure(o);
+          problemBuilder.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
       } else {
@@ -115,6 +121,35 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
     problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
+  }
+
+  private Storage<Long> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+    boolean isWidening = targetType.fits(longStorage.getType());
+    if (isWidening) {
+      // If the target type is larger than the source type, we can just widen the storage without doing any checks.
+      return longStorage.widen(targetType);
+    } else {
+      // Otherwise we have to check for elements that may not fit.
+      Context context = Context.getCurrent();
+      int n = longStorage.size();
+      long[] data = new long[n];
+      BitSet isMissing = BitSets.makeDuplicate(longStorage.getIsMissing());
+      for (int i = 0; i < n; i++) {
+        if (!isMissing.get(i)) {
+          long value = longStorage.getItem(i);
+          if (targetType.fits(value)) {
+            data[i] = value;
+          } else {
+            isMissing.set(i);
+            problemBuilder.reportNumberOutOfRange(value);
+          }
+        }
+
+        context.safepoint();
+      }
+
+      return new LongStorage(data, n, isMissing, targetType);
+    }
   }
 
   public static long booleanAsLong(boolean value) {

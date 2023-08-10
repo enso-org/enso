@@ -556,14 +556,14 @@ type Conversion_Failure
 
        This may occur for example when a number does not fit the range of the
        target type.
-    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Any)
+    Error (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Any)
 
     ## Indicates that for some values, their text representation is too long for
        the target text type.
-    Text_Too_Long (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
+    Text_Too_Long (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
 
     ## Indicates that some values are out of the range of the target type.
-    Out_Of_Bounds (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Integer)
+    Out_Of_Range (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Integer)
 
     ## PRIVATE
 
@@ -582,12 +582,17 @@ type Conversion_Failure
                         cases = if remaining_count == 1 then "case" else "cases"
                         " and "+remaining_count.to_text+" other "+cases
                     "["+examples+additional+"]"
+        column_suffix = case self.related_column of
+            Nothing -> ""
+            column_name -> " when converting the column ["+column_name+"]"
 
         case self of
             Conversion_Failure.Error _ _ _ _ ->
-                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+column_suffix+"."
+            Conversion_Failure.Out_Of_Range _ _ _ _ ->
+                rows_info + " are out of the range of the target type "+self.target_type.to_display_text+column_suffix+"."
             Conversion_Failure.Text_Too_Long _ _ _ _ ->
-                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+column_suffix+"."
 
 type Loss_Of_Integer_Precision
     ## PRIVATE
