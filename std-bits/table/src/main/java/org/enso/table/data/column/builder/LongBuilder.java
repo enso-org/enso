@@ -41,7 +41,7 @@ public class LongBuilder extends NumericBuilder {
   @Override
   public TypedBuilder retypeTo(StorageType type) {
     if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return retypeLongBuilderToDouble(this);
+      return DoubleBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();
     }

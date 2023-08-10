@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Value_Type.Value_Type
+import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
@@ -55,6 +56,9 @@ type Cast_Problem_Builder
         if text_too_long_rows > 0 then
             example_values = Vector.from_polyglot_array java_instance.getTextTooLongExamples
             builder.append (Conversion_Failure.Text_Too_Long self.target_type self.column_name text_too_long_rows example_values)
+
+        aggregated = Java_Problems.parse_aggregated_problems java_instance.getAggregatedProblems
+        builder.append_vector_range aggregated
 
         builder.to_vector
 

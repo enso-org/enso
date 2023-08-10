@@ -13,6 +13,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -120,7 +121,7 @@ public class Column {
   }
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
-  public static Column fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+  public static WithAggregatedProblems<Column> fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
     Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
@@ -136,8 +137,9 @@ public class Column {
 
       context.safepoint();
     }
-    var storage = builder.seal();
-    return new Column(name, storage);
+
+    var result = new Column(name, builder.seal());
+    return new WithAggregatedProblems<>(result, builder.getProblems());
   }
 
   /**
@@ -167,7 +169,7 @@ public class Column {
    * @param items the items contained in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
+  public static WithAggregatedProblems<Column> fromRepeatedItems(String name, List<Value> items, int repeat) {
     if (repeat < 1) {
       throw new IllegalArgumentException("Repeat count must be positive.");
     }
@@ -194,7 +196,9 @@ public class Column {
       builder.appendNoGrow(item);
       context.safepoint();
     }
-    return new Column(name, builder.seal());
+
+    var result = new Column(name, builder.seal());
+    return new WithAggregatedProblems<>(result, builder.getProblems());
   }
 
   /** @return the index of this column */

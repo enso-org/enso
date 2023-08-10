@@ -33,6 +33,7 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new MixedBuilder(widenedData);
       res.setCurrentSize(currentSize);
+      res.setPreExistingProblems(getProblems());
       return res;
     } else {
       throw new UnsupportedOperationException();

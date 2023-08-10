@@ -914,18 +914,13 @@ type Table
                 False ->
                     Map.from_vector <| selected_columns.map c-> [c.name, True]
 
-            parse_problem_builder = Problem_Builder.new
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
-                    new_storage_and_problems = parser.parseColumn column.name storage
-                    new_storage = new_storage_and_problems.value
-                    problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
-                    problems.each parse_problem_builder.report_other_warning
+                    new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
+                        parser.parseColumn column.name storage
                     Column.Value (Java_Column.new column.name new_storage)
-
-            parse_problem_builder.attach_problems_before on_problems <|
-                Table.new new_columns
+            Table.new new_columns
 
     ## Cast the selected columns to a specific type.
 
