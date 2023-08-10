@@ -951,6 +951,8 @@ type Integer
 
     round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
+        ## We reject values outside the range of `long` here, so we don't also
+           do this check in the Java.
         Rounding_Helpers.check_round_input self <|
             report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
