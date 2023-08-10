@@ -277,5 +277,4 @@ object ExecutionApi {
         Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
       )
   }
-
 }
