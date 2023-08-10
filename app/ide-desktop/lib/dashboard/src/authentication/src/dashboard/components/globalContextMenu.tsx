@@ -26,56 +26,54 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     return (
         <ContextMenu hidden={hidden}>
-            {backend.type !== backendModule.BackendType.local && (
-                <>
-                    {!hidden && (
-                        <input
-                            ref={filesInputRef}
-                            multiple
-                            type="file"
-                            id="context_menu_file_input"
-                            className="hidden"
-                            onInput={event => {
-                                if (event.currentTarget.files != null) {
-                                    dispatchAssetListEvent({
-                                        type: assetListEventModule.AssetListEventType.uploadFiles,
-                                        parentKey: directoryKey,
-                                        parentId: directoryId,
-                                        files: Array.from(event.currentTarget.files),
-                                    })
-                                    unsetModal()
-                                }
-                            }}
-                        ></input>
-                    )}
-                    <ContextMenuEntry
-                        hidden={hidden}
-                        action={shortcuts.KeyboardAction.uploadFiles}
-                        doAction={() => {
-                            if (filesInputRef.current?.isConnected === true) {
-                                filesInputRef.current.click()
-                            } else {
-                                const input = document.createElement('input')
-                                input.type = 'file'
-                                document.body.appendChild(input)
-                                input.addEventListener('input', () => {
-                                    if (input.files != null) {
-                                        dispatchAssetListEvent({
-                                            type: assetListEventModule.AssetListEventType
-                                                .uploadFiles,
-                                            parentKey: directoryKey,
-                                            parentId: directoryId,
-                                            files: Array.from(input.files),
-                                        })
-                                        unsetModal()
-                                    }
-                                    input.remove()
-                                })
-                            }
-                        }}
-                    />
-                </>
+            {!hidden && (
+                <input
+                    ref={filesInputRef}
+                    multiple
+                    type="file"
+                    id="context_menu_file_input"
+                    {...(backend.type !== backendModule.BackendType.local
+                        ? {}
+                        : { accept: '.enso-project' })}
+                    className="hidden"
+                    onInput={event => {
+                        if (event.currentTarget.files != null) {
+                            dispatchAssetListEvent({
+                                type: assetListEventModule.AssetListEventType.uploadFiles,
+                                parentKey: directoryKey,
+                                parentId: directoryId,
+                                files: Array.from(event.currentTarget.files),
+                            })
+                            unsetModal()
+                        }
+                    }}
+                ></input>
             )}
+            <ContextMenuEntry
+                hidden={hidden}
+                action={shortcuts.KeyboardAction.uploadFiles}
+                doAction={() => {
+                    if (filesInputRef.current?.isConnected === true) {
+                        filesInputRef.current.click()
+                    } else {
+                        const input = document.createElement('input')
+                        input.type = 'file'
+                        document.body.appendChild(input)
+                        input.addEventListener('input', () => {
+                            if (input.files != null) {
+                                dispatchAssetListEvent({
+                                    type: assetListEventModule.AssetListEventType.uploadFiles,
+                                    parentKey: directoryKey,
+                                    parentId: directoryId,
+                                    files: Array.from(input.files),
+                                })
+                                unsetModal()
+                            }
+                            input.remove()
+                        })
+                    }
+                }}
+            />
             <ContextMenuEntry
                 hidden={hidden}
                 action={shortcuts.KeyboardAction.newProject}
