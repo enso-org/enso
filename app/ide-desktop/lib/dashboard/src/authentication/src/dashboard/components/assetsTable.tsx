@@ -380,6 +380,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [items])
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
+    React.useEffect(() => {
+        expandedDirectoriesRef.current = new Set()
+    }, [backend])
     const doToggleDirectoryExpansion = React.useCallback(
         (directory: backendModule.DirectoryAsset, key: backendModule.AssetId) => {
             const set = expandedDirectoriesRef.current
