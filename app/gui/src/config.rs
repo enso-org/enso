@@ -46,6 +46,7 @@ pub enum BackendService {
         binary_endpoint: String,
         namespace:       String,
         project_name:    String,
+        displayed_name:  String,
     },
 }
 
@@ -90,11 +91,19 @@ impl BackendService {
                     } else {
                         Ok(project_name.to_owned())
                     }?;
+                    let displayed_name_option = &args.groups.startup.options.displayed_project_name;
+                    let displayed_name = displayed_name_option.value.as_str();
+                    let displayed_name = if displayed_name.is_empty() {
+                        project_name.clone()
+                    } else {
+                        displayed_name.to_owned()
+                    };
                     Ok(Self::LanguageServer {
                         json_endpoint,
                         binary_endpoint,
                         namespace,
                         project_name,
+                        displayed_name,
                     })
                 }
             }
