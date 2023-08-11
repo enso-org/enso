@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -88,7 +88,7 @@ spec =
             c10.value_type . should_equal value_type
             Problems.expect_only_warning Arithmetic_Overflow c10
 
-        test_no_overflow value_type min_value max_value = Test.specify "operations on "+value_type.to_display_text+" will not overflow, because the result type is always 64-bit integer column" <|
+        test_no_overflow value_type max_value min_value = Test.specify "operations on "+value_type.to_display_text+" will not overflow, because the result type is always 64-bit integer column" <|
             t = Table.new [["X", [0, 1, max_value, 0]], ["Y", [0, -1, min_value, 0]], ["U", [1, 1, 1, 1]]]
             x = t.at "X" . cast value_type
             y = t.at "Y" . cast value_type
@@ -98,16 +98,21 @@ spec =
             c1.to_vector . should_equal [1, 2, max_value+1, 1]
             c1.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c1
+            c1_casted = c1.cast value_type
+            c1_casted.to_vector . should_equal [1, 2, Nothing, 1]
+            Problems.expect_only_warning Conversion_Failure c1_casted
 
             c2 = y-1
             c2.to_vector . should_equal [-1, -2, min_value-1, -1]
             c2.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c2
+            c2.cast value_type . to_vector . should_equal [-1, -2, Nothing, -1]
 
             c3 = x*y
             c3.to_vector . should_equal [0, -1, min_value*max_value, 0]
             c3.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c3
+            c3.cast value_type . to_vector . should_equal [0, -1, Nothing, 0]
 
             ## There is no risk of overflow in modulus, but for consistency we always return int-64.
                We may adapt this in the future.
@@ -115,16 +120,19 @@ spec =
             c4.to_vector . should_equal [0, -1, 0, 0]
             c4.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c4
+            c4.cast value_type . to_vector . should_equal [0, -1, 0, 0]
 
             c5 = x+u
             c5.to_vector . should_equal [1, 2, max_value+1, 1]
             c5.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c5
+            c5.cast value_type . to_vector . should_equal [1, 2, Nothing, 1]
 
             c6 = y-u
             c6.to_vector . should_equal [-1, -2, min_value-1, -1]
             c6.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c6
+            c6.cast value_type . to_vector . should_equal [-1, -2, Nothing, -1]
 
         test_no_overflow Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
         test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
@@ -138,9 +146,9 @@ spec =
             c1 = x-y
             Problems.assume_no_problems c1
 
-            c2 = x+y
-            c2.to_vector . should_equal [Nothing]
             # The resulting value type is always 64-bit integer.
+            c2 = x+y
+            c2.to_vector . should_equal [32768]
             c2.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
             # The scalar also gets its value type, and it can make the result wider.
