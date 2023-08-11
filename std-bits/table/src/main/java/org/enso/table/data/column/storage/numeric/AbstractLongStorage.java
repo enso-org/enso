@@ -15,7 +15,6 @@ import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
@@ -343,8 +342,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   /**
    * Return an instance of storage containing the same data but with a wider type.
-   * <p>
-   * Ideally it should avoid copying the data, if it's possible.
+   *
+   * <p>Ideally it should avoid copying the data, if it's possible.
    */
   public abstract AbstractLongStorage widen(IntegerType widerType);
 }

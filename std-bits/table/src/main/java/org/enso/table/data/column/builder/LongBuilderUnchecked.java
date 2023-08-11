@@ -1,13 +1,12 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-import java.util.BitSet;
-
 /**
- * A LongBuilder that does not need to check value ranges, because it stores 64-bit integers and no larger integers will
- * come to appendLong anyway.
+ * A LongBuilder that does not need to check value ranges, because it stores 64-bit integers and no
+ * larger integers will come to appendLong anyway.
  */
 public class LongBuilderUnchecked extends LongBuilder {
   protected LongBuilderUnchecked(BitSet isMissing, long[] data, int currentSize) {

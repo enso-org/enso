@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -151,7 +150,8 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
   @Override
   public AbstractLongStorage widen(IntegerType widerType) {
-    // Currently the implementation only reports 64-bit type so there is no widening to do - we can just return self.
+    // Currently the implementation only reports 64-bit type so there is no widening to do - we can
+    // just return self.
     assert getType().equals(IntegerType.INT_64);
     return this;
   }

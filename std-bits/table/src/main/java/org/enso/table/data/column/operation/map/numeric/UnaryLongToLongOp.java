@@ -5,7 +5,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 /** An operation that takes a single double argument and returns a long. */

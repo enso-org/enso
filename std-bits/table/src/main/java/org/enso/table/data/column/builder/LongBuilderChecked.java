@@ -1,16 +1,16 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.AggregatedProblems;
 
-import java.util.BitSet;
-
 /** A LongBuilder that ensures values it is given fit the target type. */
 public class LongBuilderChecked extends LongBuilder {
   private final IntegerType type;
   private final CastProblemBuilder castProblemBuilder;
+
   protected LongBuilderChecked(BitSet isMissing, long[] data, int currentSize, IntegerType type) {
     super(isMissing, data, currentSize);
     this.type = type;

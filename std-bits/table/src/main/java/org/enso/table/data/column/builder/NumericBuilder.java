@@ -1,9 +1,8 @@
 package org.enso.table.data.column.builder;
 
-import org.enso.table.data.column.storage.type.IntegerType;
-
 import java.util.Arrays;
 import java.util.BitSet;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {

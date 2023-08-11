@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
 import java.util.ArrayList;
-
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.AggregatedProblems;
 

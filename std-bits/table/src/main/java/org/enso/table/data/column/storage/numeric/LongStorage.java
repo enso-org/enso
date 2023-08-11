@@ -6,7 +6,6 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -27,7 +26,8 @@ public final class LongStorage extends AbstractLongStorage {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code i} is missing.
+   * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
+   *     i} is missing.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
   public LongStorage(long[] data, int size, BitSet isMissing, IntegerType type) {

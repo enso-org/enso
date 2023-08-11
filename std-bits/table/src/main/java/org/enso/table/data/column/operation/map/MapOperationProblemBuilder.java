@@ -22,8 +22,7 @@ public class MapOperationProblemBuilder {
     AggregatedProblems additionalProblems = new AggregatedProblems();
     if (overflowCount > 0) {
       additionalProblems.add(
-          new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample)
-      );
+          new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample));
     }
     return AggregatedProblems.merge(problems, additionalProblems);
   }
