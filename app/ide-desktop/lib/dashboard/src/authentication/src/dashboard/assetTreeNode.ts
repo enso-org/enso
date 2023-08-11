@@ -62,11 +62,10 @@ export function assetTreeMap(
 
 /** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
  * function, otherwise return the original {@link AssetTreeNode} array. The predicate is applied to
- * a parent node after it is applied to its children. */
+ * a parent node before it is applied to its children. */
 export function assetTreeFilter(
     tree: AssetTreeNode[],
-    predicate: (node: AssetTreeNode) => boolean,
-    deleteEmptyChildren = false
+    predicate: (node: AssetTreeNode) => boolean
 ) {
     let result: AssetTreeNode[] | null = null
     for (let i = 0; i < tree.length; i += 1) {
@@ -74,25 +73,21 @@ export function assetTreeFilter(
         if (node == null) {
             break
         }
-        if (node.children != null) {
-            const newChildren = assetTreeFilter(node.children, predicate)
-            if (newChildren !== node.children) {
-                result ??= tree.slice(0, i)
-                const newNode = {
-                    ...node,
-                    children: newChildren.length === 0 && deleteEmptyChildren ? null : newChildren,
-                }
-                if (predicate(newNode)) {
+        if (!predicate(node)) {
+            result = tree.slice(0, i)
+        } else {
+            if (node.children != null) {
+                const newChildren = assetTreeFilter(node.children, predicate)
+                if (newChildren !== node.children) {
+                    result ??= tree.slice(0, i)
+                    const newNode = {
+                        ...node,
+                        children: newChildren.length === 0 ? null : newChildren,
+                    }
                     result.push(newNode)
                 }
-            }
-        } else if (result != null) {
-            if (predicate(node)) {
+            } else if (result != null) {
                 result.push(node)
-            }
-        } else {
-            if (!predicate(node)) {
-                result = tree.slice(0, i)
             }
         }
     }

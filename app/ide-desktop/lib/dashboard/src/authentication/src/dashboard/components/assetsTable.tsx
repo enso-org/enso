@@ -616,11 +616,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeFilter(
-                        oldAssetTree,
-                        item => item.key !== event.key,
-                        true
-                    )
+                    assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== event.key)
                 )
                 break
             }
