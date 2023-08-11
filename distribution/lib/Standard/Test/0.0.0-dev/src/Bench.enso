@@ -4,23 +4,23 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
     ## The minimal number of seconds for which the phase should run.
-    Secs (secs:Integer)
+    Seconds (secs:Integer)
     ## Number of iterations of the phase.
-    Iters (iters:Integer)
+    Iterations (iters:Integer)
 
     iterations : Integer|Nothing
     iterations self = case self of
-        Phase_Conf.Secs _ -> Nothing
-        Phase_Conf.Iters iters -> iters
+        Phase_Conf.Seconds _ -> Nothing
+        Phase_Conf.Iterations iters -> iters
 
     seconds : Integer|Nothing
     seconds self = case self of
-        Phase_Conf.Secs secs -> secs
-        Phase_Conf.Iters _ -> Nothing
+        Phase_Conf.Seconds secs -> secs
+        Phase_Conf.Iterations _ -> Nothing
 
     to_text self = case self of
-        Phase_Conf.Secs secs -> secs.to_text + " seconds"
-        Phase_Conf.Iters iters -> iters.to_text + " iterations"
+        Phase_Conf.Seconds secs -> secs.to_text + " seconds"
+        Phase_Conf.Iterations iters -> iters.to_text + " iterations"
 
 ## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
    defined in the JMH benchmarking library. See the JMH documentation for more details:
@@ -72,7 +72,7 @@ type Bench
         Bench.All b.to_vector
 
     options : Bench_Options
-    options = Bench_Options.Impl (Phase_Conf.Secs 3) (Phase_Conf.Secs 3)
+    options = Bench_Options.Impl (Phase_Conf.Seconds 3) (Phase_Conf.Seconds 3)
 
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
@@ -130,14 +130,14 @@ type Bench
         run_phase (phase_name:Text) (conf:Phase_Conf) =
             phase_start = System.nano_time
             durations = case conf of
-                Phase_Conf.Secs secs ->
+                Phase_Conf.Seconds secs ->
                     stop_ns = phase_start + secs * 1000000000
                     go = durations -> cur_ns ->
                         if cur_ns  > stop_ns then durations else
                             dur = single_call Nothing
                             @Tail_Call go (durations + [dur]) (cur_ns + dur)
                     go [] phase_start
-                Phase_Conf.Iters iters ->
+                Phase_Conf.Iterations iters ->
                     go = durations -> cur_iter ->
                         if cur_iter >= iters then durations else
                             dur = single_call Nothing
@@ -153,7 +153,7 @@ type Bench
             IO.println <| phase_name + " iterations: " + run_iters.to_text
             IO.println <| phase_name + " avg time: " + fmt + " ms"
 
-        empty_conf = Phase_Conf.Iters 0
+        empty_conf = Phase_Conf.Iterations 0
         if dry_run then run_phase "dummy" empty_conf else
             warmup_durations = run_phase "Warmup" warmup_conf
             measure_durations = run_phase "Measurement" measure_conf

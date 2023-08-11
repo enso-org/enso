@@ -5,7 +5,7 @@ from Standard.Test import Bench, Phase_Conf
 import project.Vector.Utils
 
 
-options = Bench.options . set_warmup (Phase_Conf.Secs 2) . set_measure (Phase_Conf.Secs 2)
+options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
 
 
 collect_benches = Bench.build builder->

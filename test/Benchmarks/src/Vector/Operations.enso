@@ -11,8 +11,8 @@ polyglot java import java.util.Random as Java_Random
 ## Bench Utilities ============================================================
 
 vector_size = 1000000
-warmup = Phase_Conf.Secs 2
-measure = Phase_Conf.Secs 2
+warmup = Phase_Conf.Seconds 2
+measure = Phase_Conf.Seconds 2
 
 # The Benchmarks ==============================================================
 
