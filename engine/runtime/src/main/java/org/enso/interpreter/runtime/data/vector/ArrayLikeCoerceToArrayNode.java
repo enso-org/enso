@@ -15,12 +15,12 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 
-public abstract class CoerceArrayNode extends Node {
+public abstract class ArrayLikeCoerceToArrayNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);
 
   @NeverDefault
-  public static CoerceArrayNode build() {
-    return CoerceArrayNodeGen.create();
+  public static ArrayLikeCoerceToArrayNode build() {
+    return ArrayLikeCoerceToArrayNodeGen.create();
   }
 
   public abstract Object[] execute(Object value);
@@ -31,7 +31,7 @@ public abstract class CoerceArrayNode extends Node {
   }
 
   @Specialization
-  Object[] doVector(Vector arr, @Cached CoerceArrayNode coerceArrayNode) {
+  Object[] doVector(Vector arr, @Cached ArrayLikeCoerceToArrayNode coerceArrayNode) {
     return coerceArrayNode.execute(arr.toArray());
   }
 
