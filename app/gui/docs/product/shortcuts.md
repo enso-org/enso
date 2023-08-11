@@ -97,7 +97,7 @@ broken and require further investigation.
 
 | Shortcut                                         | Action                                                      |
 | ------------------------------------------------ | ----------------------------------------------------------- |
-| <kbd>tab</kbd>                                   | Open Component Browser to create a new node .               |
+| <kbd>enter</kbd>                                 | Open Component Browser to create a new node .               |
 | <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes.                                      |
 | <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes.                            |
 | <kbd>cmd</kbd>+<kbd>LMB</kbd>                    | Start editing node expression.                              |
