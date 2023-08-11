@@ -13,9 +13,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 
-public abstract class CopyNode extends Node {
-  public static CopyNode build() {
-    return CopyNodeGen.create();
+public abstract class ArrayLikeCopyToArrayNode extends Node {
+  public static ArrayLikeCopyToArrayNode build() {
+    return ArrayLikeCopyToArrayNodeGen.create();
   }
 
   public abstract Object execute(

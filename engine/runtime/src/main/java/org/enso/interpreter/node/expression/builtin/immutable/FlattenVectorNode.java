@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.data.vector.CopyNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -35,7 +35,7 @@ public abstract class FlattenVectorNode extends Node {
   @Specialization
   EnsoObject fromVector(
       Vector self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(ArrayLikeHelpers.vectorToArray(self), copyNode, interop);
@@ -50,7 +50,7 @@ public abstract class FlattenVectorNode extends Node {
   @Specialization
   EnsoObject fromArray(
       Array self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(self, copyNode, interop);
@@ -62,7 +62,7 @@ public abstract class FlattenVectorNode extends Node {
   @Specialization(guards = "interop.hasArrayElements(self)")
   EnsoObject fromArrayLike(
       Object self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(self, copyNode, interop);
@@ -83,7 +83,7 @@ public abstract class FlattenVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private EnsoObject flatten(Object storage, CopyNode copyNode, InteropLibrary interop)
+  private EnsoObject flatten(Object storage, ArrayLikeCopyToArrayNode copyNode, InteropLibrary interop)
       throws UnsupportedMessageException {
     try {
       long length = interop.getArraySize(storage);

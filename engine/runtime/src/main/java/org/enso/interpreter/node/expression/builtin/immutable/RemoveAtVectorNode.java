@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.data.vector.CopyNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -35,7 +35,7 @@ public abstract class RemoveAtVectorNode extends Node {
   EnsoObject fromVector(
       Vector vec,
       long index,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(ArrayLikeHelpers.vectorToArray(vec), index, copyNode, interop);
@@ -50,7 +50,7 @@ public abstract class RemoveAtVectorNode extends Node {
   EnsoObject fromArray(
       Array vec,
       long index,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(vec, index, copyNode, interop);
@@ -63,7 +63,7 @@ public abstract class RemoveAtVectorNode extends Node {
   EnsoObject fromArrayLike(
       Object vec,
       long index,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return removeAtIndex(vec, index, copyNode, interop);
@@ -85,7 +85,7 @@ public abstract class RemoveAtVectorNode extends Node {
   }
 
   private EnsoObject removeAtIndex(
-      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop)
+      Object storage, long index, ArrayLikeCopyToArrayNode copyArrayNode, InteropLibrary interop)
       throws UnsupportedMessageException {
     long length = interop.getArraySize(storage);
     long actualIndex = index < 0 ? index + length : index;

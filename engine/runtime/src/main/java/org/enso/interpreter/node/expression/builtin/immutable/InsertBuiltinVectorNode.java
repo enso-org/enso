@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.data.vector.CopyNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -34,7 +34,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Vector vec,
       long index,
       Vector values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(
         ArrayLikeHelpers.vectorToArray(vec),
@@ -49,7 +49,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Array vec,
       long index,
       Vector values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, ArrayLikeHelpers.vectorToArray(values), copyNode, interop);
   }
@@ -59,7 +59,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Object vec,
       long index,
       Vector values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, ArrayLikeHelpers.vectorToArray(values), copyNode, interop);
   }
@@ -69,7 +69,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Vector vec,
       long index,
       Object values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(ArrayLikeHelpers.vectorToArray(vec), index, values, copyNode, interop);
   }
@@ -79,7 +79,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Array vec,
       long index,
       Object values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values, copyNode, interop);
   }
@@ -89,7 +89,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Object vec,
       long index,
       Object values,
-      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("copyNode") @Cached ArrayLikeCopyToArrayNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values, copyNode, interop);
   }
@@ -106,7 +106,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
   }
 
   private EnsoObject insertBuiltin(
-      Object current, long index, Object values, CopyNode copyNode, InteropLibrary interop) {
+      Object current, long index, Object values, ArrayLikeCopyToArrayNode copyNode, InteropLibrary interop) {
     try {
       long currentLength = interop.getArraySize(current);
       long valuesLength = interop.getArraySize(values);
