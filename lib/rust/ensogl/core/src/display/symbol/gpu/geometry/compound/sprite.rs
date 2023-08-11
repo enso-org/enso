@@ -244,7 +244,9 @@ impl SpriteSystem {
         let size = instance_scope.add_buffer("size");
         let alignment_value = Rc::new(Cell::new(alignment));
         let initial_alignment = alignment_value.get().normalized();
-        let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
+        let variables = symbol.variables();
+        let mut variables = variables.borrow_mut();
+        let alignment = variables.add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
 

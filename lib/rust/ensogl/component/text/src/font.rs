@@ -938,7 +938,7 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 // =======================
 
 #[cfg(target_arch = "wasm32")]
-type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+type AtlasTexture = gpu::Texture<texture::Rgb, u8>;
 
 #[cfg(not(target_arch = "wasm32"))]
 type AtlasTexture = f32;
@@ -963,6 +963,12 @@ impl FontWithGpuData {
         let opacity_increase = gpu::Uniform::new(opacity_increase);
         let opacity_exponent = gpu::Uniform::new(opacity_exponent);
         Self { font, atlas, opacity_exponent, opacity_increase }
+    }
+
+    fn set_context(&self, context: Option<&Context>) {
+        if let Some(context) = context {
+            self.atlas.set(get_texture(context));
+        }
     }
 }
 
@@ -1000,10 +1006,9 @@ impl Registry {
         self.fonts.get(&name).cloned()
     }
 
-    fn from_fonts(fonts: impl IntoIterator<Item = (Name, Font)>) -> Self {
-        let scene = scene();
-        let scene_shape = scene.shape().value();
+    fn from_fonts(scene: &ensogl_core::display::Scene, fonts: impl IntoIterator<Item = (Name, Font)>) -> Self {
         let context = get_context(&scene);
+        let scene_shape = scene.shape().value();
         let fonts = fonts
             .into_iter()
             .map(|(name, font)| {
@@ -1025,8 +1030,9 @@ impl scene::Extension for Registry {
 
 impl Default for Registry {
     fn default() -> Self {
+        let scene = scene();
         let fonts = Embedded::default().into_fonts();
-        Self::from_fonts(fonts)
+        Self::from_fonts(&scene, fonts)
     }
 }
 

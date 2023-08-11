@@ -24,6 +24,7 @@ use crate::display::scene::UpdateStatus;
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
+use crate::display::uniform::UniformScopeData;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::shader;
 use crate::system::web;
@@ -39,7 +40,6 @@ use web::JsValue;
 // ==============
 
 pub use crate::display::symbol::types::*;
-
 
 
 // =================
@@ -242,7 +242,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &UniformScope) -> Self {
+    pub fn new(scope: &mut UniformScopeData) -> Self {
         let time = scope.add_or_panic("time", 0.0);
         Self { time }
     }
@@ -450,7 +450,7 @@ impl WorldData {
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
-        let uniforms = Uniforms::new(&default_scene.variables);
+        let uniforms = Uniforms::new(&mut *default_scene.variables.borrow_mut());
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let themes = with_context(|t| t.theme_manager.clone_ref());

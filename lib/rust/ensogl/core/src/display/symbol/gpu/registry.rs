@@ -104,7 +104,7 @@ impl SymbolRegistry {
         let run_mode = default();
         let dirty = Dirty::new(());
         let symbols = default();
-        let variables = UniformScope::new();
+        let mut variables = crate::display::uniform::UniformScopeData::new();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let display_mode = variables.add_or_panic("display_mode", 0);
@@ -116,6 +116,7 @@ impl SymbolRegistry {
         let theme_manager = theme::Manager::from(&style_sheet);
         style::javascript::expose_to_window(&theme_manager);
         let layers = scene::HardcodedLayers::new();
+        let variables = Rc::new(RefCell::new(variables));
         Self {
             run_mode,
             symbols,

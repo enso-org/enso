@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::system::gpu::*;
 
 use crate::display::scene::UpdateStatus;
-use crate::system::gpu::data::texture::class::TextureOps;
+use crate::system::gpu::data::texture::TextureOps;
 
 
 

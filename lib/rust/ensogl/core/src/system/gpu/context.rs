@@ -60,13 +60,25 @@ pub struct Context {
 }
 
 /// Internal data of [`Context`].
-#[derive(Debug, Deref)]
+#[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ContextData {
-    #[deref]
-    native:              native::ContextWithExtensions,
-    pub profiler:        profiler::Profiler,
-    pub shader_compiler: shader::Compiler,
+    native:          native::ContextWithExtensions,
+    pub profiler:    profiler::Profiler,
+    shader_compiler: shader::Compiler,
+    pub(crate) id:              u32,
+}
+
+static CURRENT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+impl Deref for ContextData {
+    type Target = native::ContextWithExtensions;
+
+    fn deref(&self) -> &Self::Target {
+        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
+        assert_eq!(self.id, current_context);
+        &self.native
+    }
 }
 
 impl Context {
@@ -77,10 +89,25 @@ impl Context {
 
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
+        let prev_id =
+            CURRENT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
+        let id = prev_id + 1;
+        warn!("Current context: {id}");
         let native = native::ContextWithExtensions::from_native(native);
         let profiler = profiler::Profiler::new(&native);
-        let shader_compiler = shader::Compiler::new(&native);
-        Self { native, profiler, shader_compiler }
+        let shader_compiler = shader::Compiler::new(&native, id);
+        Self { native, profiler, shader_compiler, id }
+    }
+
+    pub fn shader_compiler(&self) -> &shader::Compiler {
+        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
+        assert_eq!(self.id, current_context);
+        &self.shader_compiler
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
+        self.id == current_context
     }
 }
 
@@ -157,6 +184,9 @@ pub fn init_webgl_2_context<D: Display + 'static>(
             ));
             let restored: Handler = Closure::new(f_!([display]
                 warn!("Trying to restore the WebGL context.");
+                let hdc = display.device_context_handler();
+                let native = hdc.get_webgl2_context().unwrap();
+                let context = Context::from_native(native);
                 display.set_context(Some(&context))
             ));
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);

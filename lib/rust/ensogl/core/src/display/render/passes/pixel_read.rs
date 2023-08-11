@@ -6,7 +6,7 @@ use crate::system::js::*;
 
 use crate::display::render::pass;
 use crate::display::scene::UpdateStatus;
-use crate::system::gpu::data::texture::class::TextureOps;
+use crate::system::gpu::data::texture::TextureOps;
 
 use web_sys::WebGlBuffer;
 use web_sys::WebGlFramebuffer;
@@ -98,7 +98,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         self.threshold.clone()
     }
 
-    fn init_if_fresh(&mut self, context: &Context, variables: &UniformScope) {
+    fn init_if_fresh(&mut self, context: &Context, variables: &uniform::UniformScopeData) {
         if self.data.is_none() {
             let buffer = context.create_buffer().unwrap();
             let js_array = JsTypedArray::<T>::new_with_length(4);
@@ -190,7 +190,7 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             self.since_last_read += 1;
         } else {
             self.since_last_read = 0;
-            self.init_if_fresh(&instance.context, &instance.variables);
+            self.init_if_fresh(&instance.context, &*instance.variables.borrow());
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
             }

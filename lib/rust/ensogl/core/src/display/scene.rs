@@ -24,6 +24,7 @@ use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
+use crate::display::uniform::UniformScopeData;
 use crate::display::world;
 use crate::frp::io::keyboard as frp_keyboard;
 use crate::system;
@@ -57,7 +58,6 @@ pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTargetId;
 pub use pointer_target::PointerTarget_DEPRECATED;
-
 
 
 // =====================
@@ -178,6 +178,7 @@ impl Mouse {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::default()));
+        let mut variables = variables.borrow_mut();
         let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
         let pointer_target_encoded = variables.add_or_panic("mouse_hover_ids", Vector4::default());
@@ -600,7 +601,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &UniformScope) -> Self {
+    pub fn new(scope: &mut UniformScopeData) -> Self {
         let pixel_ratio = scope.add_or_panic("pixel_ratio", 1.0);
         Self { pixel_ratio }
     }
@@ -1027,7 +1028,7 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let uniforms = Uniforms::new(&variables);
+        let uniforms = Uniforms::new(&mut *variables.borrow_mut());
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
@@ -1357,7 +1358,7 @@ impl Scene {
     pub async fn next_shader_compiler_idle(&self) {
         if let Some(context) = &*self.context.borrow() {
             // Ensure the callback will be run if the queue is already idle.
-            context.shader_compiler.submit_probe_job();
+            context.shader_compiler().submit_probe_job();
         } else {
             return;
         };

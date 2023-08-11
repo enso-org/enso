@@ -143,11 +143,12 @@ pub struct Program {
     #[deref]
     pub native: WebGlProgram,
     pub shader: CompiledCode,
+    pub(crate) context: u32,
 }
 
 impl Program {
     /// Constructor.
-    pub fn new(shader: CompiledCode, native: WebGlProgram) -> Self {
-        Self { native, shader }
+    pub fn new(shader: CompiledCode, native: WebGlProgram, context: u32) -> Self {
+        Self { native, shader, context }
     }
 }

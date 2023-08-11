@@ -132,13 +132,16 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
 
         sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
         display::world::with_context(|t| {
-            t.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-            t.variables.add("msdf_size", size);
+            let mut variables = t.variables.borrow_mut();
+            variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+            variables.add("msdf_size", size);
         });
 
-        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
-        symbol.variables().add_uniform_or_panic("opacity_increase", &font.opacity_increase);
-        symbol.variables().add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
+        let variables = symbol.variables();
+        let mut variables = variables.borrow_mut();
+        variables.add_uniform_or_panic("atlas", &font.atlas);
+        variables.add_uniform_or_panic("opacity_increase", &font.opacity_increase);
+        variables.add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
 
         SystemData {}
     }
@@ -161,107 +164,61 @@ pub struct Glyph {
 #[derive(Debug, display::Object)]
 pub struct GlyphData {
     pub view:               glyph_shape::View,
-    pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
-    pub display_object:     display::object::Instance,
-    pub context:            Context,
-    pub properties:         Cell<font::family::NonVariableFaceHeader>,
-    pub variations:         RefCell<VariationAxes>,
     pub x_advance:          Cell<f32>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
     pub attached_to_cursor: Cell<bool>,
+    glyph_id:           Cell<GlyphId>,
+    display_object:     display::object::Instance,
+    context:            Context,
+    properties:         Cell<font::family::NonVariableFaceHeader>,
+    variations:         RefCell<VariationAxes>,
 }
 
 
 // === Face Header Properties Getters and Setters ===
 
-/// For each property, such as `Weight(Thin, ExtraLight, ...)` defines:
-/// ```text
-/// pub fn weight(&self) -> Weight { ... }
-/// pub fn set_weight(&self, weight: Weight) { ... }
-/// pub fn set_weight_thin(&self) { ... }
-/// pub fn set_weight_extra_light(&self) { ... }
-/// ...
-/// pub fn is_weight_thin(&self) { ... }
-/// pub fn is_weight_extra_light(&self) { ... }
-/// ...
-/// ```
-///
-/// It also defines:
-///
-/// ``text
-/// pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) { ... }
-/// ```
-macro_rules! define_prop_setters_and_getters {
-    ($($prop:ident ($($variant:ident),* $(,)?)),*$(,)?) => { paste! {
-
-        /// Set `NonVariableFaceHeader` of the glyph.
-        pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
-            self.properties.set(props.clone());
-            $(
-                self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
-            )*
-            self.refresh();
-        }
-
-        $(
-            #[doc = "Setter of the glyph `"]
-            #[doc = stringify!($prop)]
-            #[doc = "` property."]
-            pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
-                self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
-                self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
-                self.refresh();
-            }
-
-            #[doc = "Gets the current `"]
-            #[doc = stringify!($prop)]
-            #[doc = "` property value.`"]
-            pub fn [<$prop:snake:lower>](&self) -> $prop {
-                self.properties.get().[<$prop:snake:lower>]
-            }
-
-            $(
-                #[doc = "Set the `"]
-                #[doc = stringify!($prop)]
-                #[doc = "` property to `"]
-                #[doc = stringify!($variant)]
-                #[doc = "`."]
-                pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
-                    self.[<set_ $prop:snake:lower>]($prop::$variant)
-                }
-
-                #[doc = "Checks whether the `"]
-                #[doc = stringify!($prop)]
-                #[doc = "` property is set to `"]
-                #[doc = stringify!($variant)]
-                #[doc = "`."]
-                pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
-                    self.properties.get().[<$prop:snake:lower>] == $prop::$variant
-                }
-            )*
-        )*
-    }};
-}
-
+#[allow(missing_docs)]
 impl Glyph {
-    define_prop_setters_and_getters![
-        Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
-        Style(Normal, Italic, Oblique),
-        Width(
-            UltraCondensed,
-            ExtraCondensed,
-            Condensed,
-            SemiCondensed,
-            Normal,
-            SemiExpanded,
-            Expanded,
-            ExtraExpanded,
-            UltraExpanded
-        )
-    ];
+    pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
+        self.properties.set(props.clone());
+        self.variations.borrow_mut().set_weight(props.weight);
+        self.variations.borrow_mut().set_style(props.style);
+        self.variations.borrow_mut().set_width(props.width);
+        self.refresh();
+    }
+
+    pub fn set_weight(&self, value: Weight) {
+        self.properties.modify(|p| p.weight = value);
+        self.variations.borrow_mut().set_weight(value);
+        self.refresh();
+    }
+
+    pub fn weight(&self) -> Weight {
+        self.properties.get().weight
+    }
+
+    pub fn set_style(&self, value: Style) {
+        self.properties.modify(|p| p.style = value);
+        self.variations.borrow_mut().set_style(value);
+        self.refresh();
+    }
+
+    pub fn style(&self) -> Style {
+        self.properties.get().style
+    }
+
+    pub fn set_width(&self, value: Width) {
+        self.properties.modify(|p| p.width = value);
+        self.variations.borrow_mut().set_width(value);
+        self.refresh();
+    }
+
+    pub fn width(&self) -> Width {
+        self.properties.get().width
+    }
 }
 
 

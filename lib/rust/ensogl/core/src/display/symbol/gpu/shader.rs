@@ -74,6 +74,9 @@ impl Shader {
         if context.is_some() {
             self.dirty.set();
             self.profiler.get_or_insert_with(new_profiler);
+        } else {
+            self.program.take();
+            self.shader_compiler_job.take();
         }
         self.context = context.cloned();
     }
@@ -188,29 +191,28 @@ impl Shader {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>(
+    pub fn update<F: 'static + FnOnce(&[VarBinding], &shader::Program)>(
         &mut self,
         bindings: Vec<VarBinding>,
         on_ready: F,
     ) {
-        debug_span!("Updating.").in_scope(|| {
-            if let Some(context) = self.context.as_ref() {
-                if self.dirty.check_all() {
-                    self.stats.inc_shader_compile_count();
-                    let code = self.gen_gpu_code(glsl::Version::V300, &bindings);
-
-                    *self.program.borrow_mut() = None;
-                    let program = self.program.clone_ref();
-                    let profiler = self.profiler.take().unwrap_or_else(new_profiler);
-                    let handler = context.shader_compiler.submit(code, profiler, move |prog| {
-                        on_ready(&bindings, &prog);
-                        *program.borrow_mut() = Some(prog);
-                    });
-                    self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
-                    self.dirty.unset_all();
-                }
+        if let Some(context) = self.context.as_ref() {
+            if self.dirty.check_all() {
+                self.stats.inc_shader_compile_count();
+                let code = self.gen_gpu_code(glsl::Version::V300, &bindings);
+                *self.program.borrow_mut() = None;
+                let program = self.program.clone_ref();
+                let profiler = self.profiler.take().unwrap_or_else(new_profiler);
+                let context_id = context.id;
+                let handler = context.shader_compiler().submit(code, profiler, move |prog| {
+                    assert_eq!(prog.context, context_id);
+                    on_ready(&bindings, &prog);
+                    *program.borrow_mut() = Some(prog);
+                });
+                self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
+                self.dirty.unset_all();
             }
-        })
+        }
     }
 
     fn cancel_previous_shader_compiler_job_and_use_new_one(

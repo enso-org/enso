@@ -7,10 +7,11 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
+use crate::display::uniform::UniformScopeData;
 use crate::system::gpu;
 use crate::system::gpu::context::native::ContextOps;
 use crate::system::gpu::data::buffer::IsBuffer;
-use crate::system::gpu::data::texture::class::TextureOps;
+use crate::system::gpu::data::texture::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
 use crate::system::gpu::data::uniform::AnyPrimUniformOps;
 use crate::system::gpu::data::uniform::AnyTextureUniform;
@@ -50,7 +51,6 @@ pub mod types {
     pub use geometry::types::*;
 }
 pub use types::*;
-
 
 
 // ======================
@@ -177,7 +177,10 @@ impl VertexArrayObjectData {
 
 impl Drop for VertexArrayObjectData {
     fn drop(&mut self) {
-        self.context.delete_vertex_array(Some(&self.vao));
+        // Delete the object, unless it's from a previous context.
+        if self.context.is_valid() && self.context.is_vertex_array(Some(&self.vao)) {
+            self.context.delete_vertex_array(Some(&self.vao));
+        }
     }
 }
 
@@ -354,21 +357,19 @@ impl Symbol {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self, global_variables: &UniformScope) {
         if self.context.borrow().is_some() {
-            debug_span!("Updating.").in_scope(|| {
-                if self.surface_dirty.check() {
-                    self.surface.update();
-                    self.surface_dirty.unset();
-                }
-                if self.shader_dirty.check() {
-                    let var_bindings = self.discover_variable_bindings(global_variables);
-                    let data = self.data.clone_ref();
-                    let global_variables = global_variables.clone_ref();
-                    self.shader.borrow_mut().update(var_bindings, move |var_bindings, program| {
-                        data.init_variable_bindings(var_bindings, &global_variables, program)
-                    });
-                    self.shader_dirty.unset();
-                }
-            })
+            if self.surface_dirty.check() {
+                self.surface.update();
+                self.surface_dirty.unset();
+            }
+            if self.shader_dirty.check() {
+                let var_bindings = self.discover_variable_bindings(&*global_variables.borrow());
+                let data = self.data.clone_ref();
+                let global_variables = Rc::clone(global_variables);
+                self.shader.borrow_mut().update(var_bindings, move |var_bindings, program| {
+                    data.init_variable_bindings(var_bindings, global_variables, program)
+                });
+                self.shader_dirty.unset();
+            }
         }
     }
 
@@ -404,7 +405,7 @@ impl Symbol {
     /// For each variable from the shader definition, looks up its position in geometry scopes.
     fn discover_variable_bindings(
         &self,
-        global_variables: &UniformScope,
+        global_variables: &UniformScopeData,
     ) -> Vec<shader::VarBinding> {
         self.shader
             .borrow()
@@ -423,6 +424,7 @@ impl Symbol {
     /// is executed, both program and VAO are bound to None.
     fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
         if let Some(program) = self.shader.borrow().native_program().as_ref() {
+            assert_eq!(self.shader.borrow().program().unwrap().context, context.id);
             context.with_program(program, || self.with_vao(|_| f(program)));
         }
     }
@@ -466,8 +468,8 @@ impl Symbol {
         self.shader.borrow_mut()
     }
 
-    pub fn variables(&self) -> &UniformScope {
-        &self.variables
+    pub fn variables(&self) -> UniformScope {
+        Rc::clone(&self.variables)
     }
 }
 
@@ -555,7 +557,7 @@ impl SymbolData {
         let surface_dirty = GeometryDirty::new(Box::new(on_mut));
         let surface_on_mut = Box::new(f!(surface_dirty.set()));
         let surface = Mesh::new(stats, surface_on_mut);
-        let variables = UniformScope::new();
+        let variables = default();
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
@@ -607,12 +609,12 @@ impl SymbolData {
     pub fn lookup_variable<S: Str>(
         &self,
         name: S,
-        global_variables: &UniformScope,
+        global_variables: &UniformScopeData,
     ) -> Option<ScopeType> {
         let name = name.as_ref();
         match self.surface.lookup_variable(name) {
             Some(mesh_scope) => Some(ScopeType::Mesh(mesh_scope)),
-            _ if self.variables.contains(name) => Some(ScopeType::Symbol),
+            _ if self.variables.borrow().contains(name) => Some(ScopeType::Symbol),
             _ if global_variables.contains(name) => Some(ScopeType::Global),
             _ => None,
         }
@@ -628,7 +630,7 @@ impl SymbolData {
     fn init_variable_bindings(
         &self,
         var_bindings: &[shader::VarBinding],
-        global_variables: &UniformScope,
+        global_variables: UniformScope,
         program: &gpu::shader::Program,
     ) {
         if let Some(context) = &*self.context.borrow() {
@@ -646,6 +648,7 @@ impl SymbolData {
             self.bindings.borrow_mut().vao = Some(VertexArrayObject::new(context));
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
+            assert_eq!(program.context, context.id);
             context.with_program(&program.native, || {
                 self.with_vao(|this| {
                     for binding in var_bindings {
@@ -657,7 +660,7 @@ impl SymbolData {
                                 program,
                                 binding,
                                 &mut texture_unit_iter,
-                                global_variables,
+                                &*global_variables.borrow(),
                             ),
                             None => {}
                         }
@@ -696,7 +699,7 @@ impl SymbolData {
         program: &WebGlProgram,
         binding: &shader::VarBinding,
         texture_unit_iter: &mut dyn Iterator<Item = TextureUnit>,
-        global_variables: &UniformScope,
+        global_variables: &UniformScopeData,
     ) {
         let name = &binding.name;
         let uni_name = shader::builder::mk_uniform_name(name);
@@ -704,7 +707,7 @@ impl SymbolData {
 
         opt_location.map(|location| {
             let uniform = match &binding.scope {
-                Some(ScopeType::Symbol) => self.variables.get(name),
+                Some(ScopeType::Symbol) => self.variables.borrow().get(name),
                 Some(ScopeType::Global) => global_variables.get(name),
                 _ => todo!(),
             };
