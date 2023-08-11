@@ -1,10 +1,14 @@
+from Standard.Base import Vector
 import project.Vector.Distinct
 import project.Vector.Operations
+import project.Vector.Sort
 
 all_benchmarks =
-    vec_ops = Operations.collect_benches
-    vec_distinct = Distinct.collect_benches
-    [vec_ops, vec_distinct]
+    builder = Vector.new_builder
+    builder.append Operations.collect_benches
+    builder.append Distinct.collect_benches
+    builder.append Sort.collect_benches
+    builder.to_vector
 
 main =
     all_benchmarks.each suite->
