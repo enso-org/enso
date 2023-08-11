@@ -771,7 +771,7 @@ spec setup =
             do_round 0.00001 . should_equal 0
             do_round -0.00001 . should_equal 0
 
-        Test.specify "Can round decimals to a specified number of decimal places" <|
+        Test.specify "Can round positive decimals to a specified number of decimal places" <|
             do_round 3.0001 2 . should_equal 3.0
             do_round 3.1414 2 . should_equal 3.14
             do_round 3.1415 2 . should_equal 3.14
@@ -783,6 +783,19 @@ spec setup =
             do_round 3.1415 3 . should_equal 3.142
             do_round 3.1416 3 . should_equal 3.142
             do_round 3.9999 3 . should_equal 4.0
+
+        Test.specify "Can round negative decimals to a specified number of decimal places" <|
+            do_round -3.0001 2 . should_equal -3.0
+            do_round -3.1414 2 . should_equal -3.14
+            do_round -3.1415 2 . should_equal -3.14
+            do_round -3.1416 2 . should_equal -3.14
+            do_round -3.9999 2 . should_equal -4.0
+
+            do_round -3.0001 3 . should_equal -3.0
+            do_round -3.1414 3 . should_equal -3.141
+            do_round -3.1415 3 . should_equal -3.142
+            do_round -3.1416 3 . should_equal -3.142
+            do_round -3.9999 3 . should_equal -4.0
 
         Test.specify "Can round positive decimals to a specified negative number of decimal places" <|
             do_round 1234.0 -1 . should_equal 1230
