@@ -114,7 +114,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + storage
                 + ". This is a bug in the Table library.");
       }
-    } else if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
+    } else if (storage.getType() instanceof IntegerType) {
       if (storage instanceof LongStorage longStorage) {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
@@ -125,7 +125,7 @@ public class DoubleBuilder extends NumericBuilder {
         }
       } else {
         throw new IllegalStateException(
-            "Unexpected storage implementation for type LONG: "
+            "Unexpected storage implementation for type INTEGER: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
