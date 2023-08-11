@@ -127,7 +127,7 @@ export default function Editor(props: EditorProps) {
                             load.loadStyle(`${assetsRoot}style.css`),
                             load.loadScript(`${assetsRoot}index.js.gz`),
                         ])
-                        document.body.removeChild(script)
+                        script.remove()
                         const originalUrl = window.location.href
                         // The URL query contains commandline options when running in the desktop,
                         // which will break the entrypoint for opening a fresh IDE instance.
