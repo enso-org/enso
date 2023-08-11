@@ -459,7 +459,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ? assetTree
                         : nodeMap.get(event.parentKey)?.children ?? []
                 const directoryIndices = siblings
-                    .filter(node => backendModule.assetIsProject(node.item))
+                    .filter(node => backendModule.assetIsDirectory(node.item))
                     .map(node => DIRECTORY_NAME_REGEX.exec(node.item.title))
                     .map(match => match?.groups?.directoryIndex)
                     .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
