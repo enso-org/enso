@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -11,6 +12,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -25,8 +27,9 @@ public abstract class SliceArrayVectorNode extends Node {
   abstract Object execute(Object self, long start, long end);
 
   @Specialization
-  Object sliceArray(Array self, long start, long end) {
-    return ArrayLikeHelpers.slice(self, start, end, self.length());
+  Object sliceArray(Array self, long start, long end, @Cached ArrayLikeLengthNode lengthNode) {
+    var len = lengthNode.executeLength(self);
+    return ArrayLikeHelpers.slice(self, start, end, len);
   }
 
   @Specialization

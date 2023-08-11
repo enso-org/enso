@@ -99,7 +99,7 @@ public final class Array implements EnsoObject {
     return v;
   }
 
-  public long length() {
+  long length() {
     return items.length;
   }
 
