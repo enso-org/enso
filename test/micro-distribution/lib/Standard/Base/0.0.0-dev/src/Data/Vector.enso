@@ -1,4 +1,8 @@
 @Builtin_Type
 type Vector a
     from_array array = @Builtin_Method "Vector.from_array"
-    at self index = @Builtin_Method "Vector.at"
+    at self index = array_like_at self index
+    length self = array_like_length self
+
+array_like_at array index = @Builtin_Method "Array_Like_Helpers.at"
+array_like_length array = @Builtin_Method "Array_Like_Helpers.length"

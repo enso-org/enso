@@ -23,6 +23,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
+import project.Internal.Array_Like_Helpers
+
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
@@ -170,7 +172,7 @@ type Vector a
 
              [1, 2, 3, 4].length
     length : Integer
-    length self = @Builtin_Method "Vector.length"
+    length self = Array_Like_Helpers.length self
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -189,7 +191,7 @@ type Vector a
 
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = @Builtin_Method "Vector.at"
+    at self index = Array_Like_Helpers.at self index
 
     ## Gets an element from the vector at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.

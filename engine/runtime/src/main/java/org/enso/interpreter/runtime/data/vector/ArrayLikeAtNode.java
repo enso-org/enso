@@ -1,0 +1,65 @@
+package org.enso.interpreter.runtime.data.vector;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+
+public abstract class ArrayLikeAtNode extends Node {
+  public abstract Object executeAt(Object arrayLike, long index) throws InvalidArrayIndexException;
+
+  @NeverDefault
+  public static ArrayLikeAtNode create() {
+    return ArrayLikeAtNodeGen.create();
+  }
+
+  //
+  // implementation
+  //
+
+  @Specialization
+  Object arrayAt(Array self, long index) throws InvalidArrayIndexException {
+    try {
+      return self.getItems()[Math.toIntExact(index)];
+    } catch (ArithmeticException | IndexOutOfBoundsException ex) {
+      throw InvalidArrayIndexException.create(index, ex);
+    }
+  }
+
+  @Specialization
+  Object vectorAt(
+      Vector self,
+      long index,
+      @Cached.Exclusive @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached.Exclusive @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached.Exclusive @Cached HostValueToEnsoNode convert)
+      throws InvalidArrayIndexException {
+    try {
+      return self.readArrayElement(index, interop, warnings, convert);
+    } catch (UnsupportedMessageException ex) {
+      throw CompilerDirectives.shouldNotReachHere(ex);
+    }
+  }
+
+  @Specialization
+  Object genericAt(
+      Object self,
+      long index,
+      @Cached.Exclusive @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached.Exclusive @Cached HostValueToEnsoNode convert)
+      throws InvalidArrayIndexException {
+    try {
+      var element = interop.readArrayElement(self, index);
+      return convert.execute(element);
+    } catch (UnsupportedMessageException ex) {
+      throw CompilerDirectives.shouldNotReachHere(ex);
+    }
+  }
+}

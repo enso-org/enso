@@ -10,3 +10,6 @@ import project.Data.Numbers.Integer
     https://www.pivotaltracker.com/n/projects/2539304/stories/183817602
 new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
 new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"
+
+length array_like = @Builtin_Method "Array_Like_Helpers.length"
+at array_like index = @Builtin_Method "Array_Like_Helpers.at"

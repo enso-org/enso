@@ -71,13 +71,6 @@ public final class Vector implements EnsoObject {
     return this.storage;
   }
 
-  @Builtin.Method(description = "Returns the length of this Vector.")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class)
-  public final long length(InteropLibrary interop) throws UnsupportedMessageException {
-    return interop.getArraySize(storage);
-  }
-
   //
   // messages for the InteropLibrary
   //

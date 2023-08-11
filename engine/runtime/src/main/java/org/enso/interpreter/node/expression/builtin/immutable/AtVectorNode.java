@@ -1,43 +1,30 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.vector.Vector;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 @BuiltinMethod(
-    type = "Vector",
+    type = "Array_Like_Helpers",
     name = "at",
     description = "Returns an element of Vector at the specified index.")
 public class AtVectorNode extends Node {
-  private @Child InteropLibrary interop = InteropLibrary.getFactory().createDispatched(3);
-  private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
-  private @Child HostValueToEnsoNode convert = HostValueToEnsoNode.build();
+  private @Child ArrayLikeAtNode at = ArrayLikeAtNode.create();
+  private @Child ArrayLikeLengthNode length = ArrayLikeLengthNode.create();
 
-  Object execute(Vector self, long index) {
+  Object execute(Object arrayLike, long index) {
+    long len = length.executeLength(arrayLike);
     try {
-      return readElement(self, index);
-    } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(e);
-    }
-  }
-
-  private Object readElement(Vector self, long index) throws UnsupportedMessageException {
-    try {
-      long actualIndex = index < 0 ? index + self.length(interop) : index;
-      return self.readArrayElement(actualIndex, interop, warnings, convert);
+      long actualIndex = index < 0 ? index + len : index;
+      return at.executeAt(arrayLike, actualIndex);
     } catch (InvalidArrayIndexException e) {
       EnsoContext ctx = EnsoContext.get(this);
       return DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeIndexOutOfBounds(index, self.length(interop)), this);
+          ctx.getBuiltins().error().makeIndexOutOfBounds(index, len), this);
     }
   }
 }
