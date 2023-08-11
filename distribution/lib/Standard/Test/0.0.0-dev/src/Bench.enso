@@ -1,7 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Runtime.Debug
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
@@ -24,101 +22,22 @@ type Phase_Conf
         Phase_Conf.Secs secs -> secs.to_text + " seconds"
         Phase_Conf.Iters iters -> iters.to_text + " iterations"
 
-    ## Validates the config and throws a Panic if it is invalid.
-    validate : Nothing
-    validate self = case self of
-        Phase_Conf.Secs secs ->
-            if secs < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
-        Phase_Conf.Iters iters ->
-            if iters < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
-
-
-type Default_Setup
-    setup : (Any|Nothing)
-    setup = Nothing
-
-
-type Default_Teardown
-    teardown : (Any|Nothing) -> Nothing
-    teardown _ = Nothing
-
-
-## The benchmark options for a `Bench_Group`. These options roughly corresponds
-   to the options defined in the JMH benchmarking library. See the JMH
-   documentation for more details:
+## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
+   defined in the JMH benchmarking library. See the JMH documentation for more details:
    https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
-
-   ! Setup and teardown configuration
-     The `setup` and `teardown` are optional methods are called before starting
-     a single benchmark from `Bench_Spec` and after finishing a single benchmark
-     from `Bench_Spec` respectively. This frequency of calling `setup` and
-     `teardown` methods corresponds to `Level.Trial` in JMH - https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/Level.html#Trial
-     It is not possible to set a different frequency.
-
-     To provide a custom implementation of the `setup` method, you need to pass
-     a type that contains a single static method called `setup` that takes no
-     arguments and returns any object that will be passed as input arguments to
-     the benchmark.
-
-     To provide a custom implementation of the `teardown` method, you need to
-     pass a type that contains a single static method called `teardown` that
-     takes a single argument and returns `Nothing`.
-
-     Setup can be specified without Teardown, but Teardown cannot be specified
-     without Setup.
-
-     See the `Default_Setup` and `Default_Teardown` prototypes.
-
-     Note that the providing setup or teardown behavior as static methods in
-     types allows for delaying the execution of the setup and teardown code until
-     the benchmark is actually run.
 type Bench_Options
     ## PRIVATE
-    Impl (warmup:Phase_Conf) (measure:Phase_Conf) (setup:Any) (teardown:Any)
+    Impl (warmup:Phase_Conf) (measure:Phase_Conf)
 
-    ## Sets the length of the warmup phase.
+    ## Sets the warmup phase.
     set_warmup : Phase_Conf -> Bench_Options
-    set_warmup self warm = Bench_Options.Impl warm self.measure self.setup self.teardown
+    set_warmup self (warm:Phase_Conf) = Bench_Options.Impl warm self.measure
 
-    ## Sets the length the measurement phase.
+    ## Sets the measurement phase.
     set_measure : Phase_Conf -> Bench_Options
-    set_measure self meas = Bench_Options.Impl self.warmup meas self.setup self.teardown
+    set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
-    ## Sets the setup hook that is called before every benchmark invocation.
-
-       Arguments:
-       - setup: A type that has a `setup` static method that returns an object
-         that will be passed as input arguments to the benchmark.
-    set_setup : Any -> Bench_Options
-    set_setup self setup = Bench_Options.Impl self.warmup self.measure setup self.teardown
-
-    ## Sets the teardown hook that is called after every benchmark invocation.
-
-       Arguments:
-       - teardown: A type that has a `teardown` static method that takes a single
-         argument and returns `Nothing`. It will be called after every benchmark
-         invocation, with the argument being the object returned by the `setup`
-         method.
-    set_teardown : Any -> Bench_Options
-    set_teardown self teardown = Bench_Options.Impl self.warmup self.measure self.setup teardown
-
-    to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}, setup=" + self.setup.to_text + ", teardown=" + self.teardown.to_text + "]"
-
-    ## Validates the config and throws a Panic if it is invalid.
-    validate : Nothing
-    validate self =
-        self.warmup.validate
-        self.measure.validate
-        case (Meta.get_type_methods (Meta.type_of self.setup)).contains "setup" of
-            False -> Panic.throw (Illegal_Argument.Error "setup field is not a type with a method called `setup`")
-            True -> Nothing
-        case (Meta.get_type_methods (Meta.type_of self.teardown)).contains "teardown" of
-            False -> Panic.throw (Illegal_Argument.Error "teardown field is not a type with a method called `teardown`")
-            True -> Nothing
-        case (self.setup == Default_Setup && self.teardown != Default_Teardown) of
-            True -> Panic.throw (Illegal_Argument.Error "Teardown cannot be specified without setup")
-            False -> Nothing
-
+    to_text self = "[warmup=" + self.warmup.to_text + ", measurement=" + self.measure.to_text + "]"
 
 type Bench_Builder
     ## PRIVATE
@@ -127,27 +46,18 @@ type Bench_Builder
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
         validate_name name
-        configuration.validate
         b = Vector.new_builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
-
 
 type Group_Builder
     ## PRIVATE
     Impl builder
 
-    ## Adds a benchmark specification to the group.
-
-       Arguments:
-       - name: The name of the benchmark. Must be a valid Java identifier.
-       - benchmark: The benchmark function. Takes a single argument that is
-         produced by the `setup` method of the `Bench_Options` configuration.
-         The return value is ignored.
-    specify : Text -> (Any -> Nothing) -> Bench
+    specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
         validate_name name
-        self.builder.append <| Bench.Spec name benchmark
+        self.builder.append <| Bench.Spec name (_ -> benchmark)
 
 
 type Bench
@@ -162,7 +72,7 @@ type Bench
         Bench.All b.to_vector
 
     options : Bench_Options
-    options = Bench_Options.Impl (Phase_Conf.Secs 3) (Phase_Conf.Secs 3) Default_Setup Default_Teardown
+    options = Bench_Options.Impl (Phase_Conf.Secs 3) (Phase_Conf.Secs 3)
 
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
@@ -175,12 +85,10 @@ type Bench
         IO.println <| "Found " + count.to_text + " cases to execute"
 
         self.fold Nothing _-> g-> s->
-            conf = g.configuration
+            c = g.configuration
             bench_name = g.name + "." + s.name
-            input_arg = conf.setup.setup
-            IO.println <| "Benchmarking '" + bench_name + "' configuration: " + conf.to_text
-            Bench.measure bench_name conf (s.code input_arg)
-            conf.teardown.teardown input_arg
+            IO.println <| "Benchmarking '" + bench_name + "' configuration: " + c.to_text
+            Bench.measure bench_name c.warmup c.measure (s.code 0)
 
     ## Measure the amount of time it takes to execute a given computation.
 
@@ -209,7 +117,7 @@ type Bench
              example_measure =
                  Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
     measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
-    measure (label:Text) (bench_opts:Bench_Options) ~act =
+    measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         measure_start = System.nano_time
 
@@ -247,8 +155,9 @@ type Bench
 
         empty_conf = Phase_Conf.Iters 0
         if dry_run then run_phase "dummy" empty_conf else
-            warmup_durations = run_phase "Warmup" bench_opts.warmup
-            measure_durations = run_phase "Measurement" bench_opts.measure
+            warmup_durations = run_phase "Warmup" warmup_conf
+            measure_durations = run_phase "Measurement" measure_conf
+            # TODO: Print some stats at the end of the phase
             measure_end = System.nano_time
             measure_duration_ms = (measure_end - measure_start) / 1000000
             fmt_duration_ms = measure_duration_ms.format "#.###"
