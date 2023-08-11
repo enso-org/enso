@@ -329,7 +329,7 @@ macro_rules! define_widget_modules(
 
             /// Return a bitfield that determines which widget kinds need to be checked for a match
             /// before applying this configuration as override.
-            fn flags_to_query_before_override(&self) -> KindFlags {
+            fn flags_with_priority_before_override(&self) -> KindFlags {
                 // All bits that are set before the current one. Since we know that the `self.flag`
                 // always has only a single bit set, we can just subtract 1 from it.
                 let all_defined_before = KindFlags::from_bits_retain(self.flag().bits() - 1);
@@ -1729,11 +1729,11 @@ impl<'a> TreeBuilder<'a> {
             Some(override_config) => {
                 // Once an override is determined, check if there are other higher-priority widgets
                 // that would like to force their configuration on this node, despite the override.
-                let to_query =
-                    override_config.kind.flags_to_query_before_override() & allowed_configs;
+                let with_priority =
+                    override_config.kind.flags_with_priority_before_override() & allowed_configs;
 
                 let matched_before_override =
-                    Configuration::infer_from_context(&ctx, to_query, Score::OnlyOverride);
+                    Configuration::infer_from_context(&ctx, with_priority, Score::OnlyOverride);
                 if let Some(matched) = matched_before_override {
                     // When an applicable local override ends up not being applied, we need to put
                     // it back into the local overrides map. It may still be used by a child widget
