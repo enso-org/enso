@@ -56,7 +56,7 @@ pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 
 const INITIAL_SECTION_NAME: &str = "Popular";
 /// Delay before updating the displayed documentation.
-const DISPLAY_DELAY_MS: i32 = 0;
+const DISPLAY_DELAY_MS: u32 = 0;
 
 
 // === Style ===

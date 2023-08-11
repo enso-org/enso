@@ -73,9 +73,9 @@ const MIN_THUMB_SIZE: f32 = 12.0;
 /// After an animation, the thumb will be visible for this time, before it hides again.
 const HIDE_DELAY: f32 = 1000.0;
 /// Time delay before holding down a mouse button triggers first scroll, in milliseconds.
-const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
+const CLICK_AND_HOLD_DELAY_MS: u32 = 500;
 /// Time interval between scrolls while holding down a mouse button, in milliseconds.
-const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
+const CLICK_AND_HOLD_INTERVAL_MS: u32 = 200;
 /// Minimum scroll movement in pixels per frame required to show the scrollbar.
 const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 

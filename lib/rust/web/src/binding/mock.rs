@@ -576,16 +576,8 @@ mock_data! { Window => EventTarget
     fn document(&self) -> Option<Document>;
     fn open_with_url_and_target(&self, url: &str, target: &str)
         -> Result<Option<Window>, JsValue>;
-    fn request_animation_frame(&self, callback: &Function) -> Result<i32, JsValue>;
-    fn cancel_animation_frame(&self, handle: i32) -> Result<(), JsValue>;
     fn performance(&self) -> Option<Performance>;
     fn device_pixel_ratio(&self) -> f64;
-    fn set_timeout_with_callback_and_timeout_and_arguments_0
-        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
-    fn set_interval_with_callback_and_timeout_and_arguments_0
-        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
-    fn clear_timeout_with_handle(&self, handle: i32);
-    fn clear_interval_with_handle(&self, handle: i32);
 }
 
 
