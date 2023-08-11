@@ -1,8 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import BlankIcon from 'enso-assets/blank.svg'
 
 import * as array from '../array'
@@ -16,6 +14,8 @@ import * as dateTime from '../dateTime'
 import * as download from '../../download'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
@@ -37,10 +37,6 @@ import Table from './table'
 // =================
 // === Constants ===
 // =================
-
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const EXTRA_COLUMNS_KEY =
-    common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
 /** The value returned when {@link Array.findIndex} fails. */
 const NOT_FOUND = -1
@@ -369,6 +365,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [initialized, setInitialized] = React.useState(false)
     const [items, setItems] = React.useState(rawItems)
     const [extraColumns, setExtraColumns] = React.useState(
@@ -380,17 +377,11 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setInitialized(true)
-        const extraColumnsJson = localStorage.getItem(EXTRA_COLUMNS_KEY)
-        if (extraColumnsJson != null) {
-            const savedExtraColumns: unknown = JSON.parse(extraColumnsJson)
-            if (
-                Array.isArray(savedExtraColumns) &&
-                savedExtraColumns.every(array.includesPredicate(columnModule.EXTRA_COLUMNS))
-            ) {
-                setExtraColumns(new Set(savedExtraColumns))
-            }
+        const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
+        if (savedExtraColumns != null) {
+            setExtraColumns(new Set(savedExtraColumns))
         }
-    }, [])
+    }, [/* should never change */ localStorage])
 
     React.useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -399,9 +390,12 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         if (initialized) {
-            localStorage.setItem(EXTRA_COLUMNS_KEY, JSON.stringify(Array.from(extraColumns)))
+            localStorage.set(
+                localStorageModule.LocalStorageKey.extraColumns,
+                Array.from(extraColumns)
+            )
         }
-    }, [extraColumns, initialized])
+    }, [extraColumns, initialized, /* should never change */ localStorage])
 
     const getDepth = React.useCallback(
         (id: backendModule.AssetId) => itemDepthsRef.current.get(id) ?? 0,

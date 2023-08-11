@@ -55,8 +55,8 @@ authentication.run({
         stopApp: () => {
             window.enso?.stopApp()
         },
-        runApp: async config => {
-            await window.enso?.runApp(config)
+        runApp: async (config, accessToken) => {
+            await window.enso?.runApp(config, accessToken)
         },
     },
 })
