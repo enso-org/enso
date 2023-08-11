@@ -1,6 +1,8 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.polyglot.common_utils.Core_Math_Utils;
+import org.enso.table.data.column.builder.DoubleBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -62,27 +64,26 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
             return new LongStorage(out, storage.size(), isMissing);
         } else {
             // Return double storage.
-            long[] out = new long[storage.size()];
-            BitSet isMissing = new BitSet();
+            DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size());
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
                     double item = storage.getItem(i);
                     boolean special = Double.isNaN(item) || Double.isInfinite(item);
                     if (!special) {
-                        out[i] = Double.doubleToRawLongBits(Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
+                        doubleBuilder.appendDouble(Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
                     } else {
                         String msg = "Value is " + item;
                         problemBuilder.reportArithmeticError(msg, i);
-                        isMissing.set(i);
+                        doubleBuilder.appendNulls(1);
                     }
                 } else {
-                    isMissing.set(i);
+                    doubleBuilder.appendNulls(1);
                 }
 
                 context.safepoint();
             }
-            return new DoubleStorage(out, storage.size(), isMissing);
+            return doubleBuilder.seal();
         }
     }
 }
