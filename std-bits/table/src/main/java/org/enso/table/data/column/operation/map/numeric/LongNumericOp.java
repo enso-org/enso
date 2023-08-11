@@ -40,7 +40,7 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
       } else {
-        // TODO inherit type
+        // Regardless of input type, our operations return 64-bit integers.
         return LongStorage.makeEmpty(storage.size(), IntegerType.INT_64);
       }
     } else if (!alwaysCastToDouble && arg instanceof Long x) {
@@ -59,7 +59,6 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
         context.safepoint();
       }
 
-      // TODO use a combined type
       return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
     } else if (arg instanceof Double || arg instanceof Long) {
       double x = (arg instanceof Double) ? (Double) arg : (Long) arg;

@@ -626,8 +626,9 @@ type Arithmetic_Overflow
             count   -> count.to_text+" rows"
         op_info = case self.example_operands of
             Nothing -> ""
-            operands -> "(e.g. operation " + (operands.map .to_display_text . join " ") + ")"
-        rows_info + op_info + " encountered integer overflow, the results do not fit the type "+self.target_type.to_display_text+"."
+            operands ->
+                " (e.g. operation " + (operands.map .to_display_text . join " ") + ")"
+        rows_info + op_info + " encountered integer overflow - the results do not fit the type "+self.target_type.to_display_text+". These values have ben replaced with `Nothing`."
 
     ## PRIVATE
     to_text : Text

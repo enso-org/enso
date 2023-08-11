@@ -84,7 +84,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in + arg;
+                try {
+                  return Math.addExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "+", arg);
+                  return null;
+                }
               }
             })
         .add(
@@ -98,7 +103,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in - arg;
+                try {
+                  return Math.subtractExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "-", arg);
+                  return null;
+                }
               }
             })
         .add(
@@ -112,7 +122,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in * arg;
+                try {
+                  return Math.multiplyExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "*", arg);
+                  return null;
+                }
               }
             })
         .add(
