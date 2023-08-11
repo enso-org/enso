@@ -20,6 +20,9 @@ import java.util.BitSet;
 public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLongStorage> {
   private final boolean alwaysCastToDouble;
 
+  // Regardless of input type, our operations return 64-bit integers.
+  private static final IntegerType INTEGER_RESULT_TYPE = IntegerType.INT_64;
+
   public LongNumericOp(String name, boolean alwaysCastToDouble) {
     super(name);
     this.alwaysCastToDouble = alwaysCastToDouble;
@@ -40,8 +43,7 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
       } else {
-        // Regardless of input type, our operations return 64-bit integers.
-        return LongStorage.makeEmpty(storage.size(), IntegerType.INT_64);
+        return LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
       }
     } else if (!alwaysCastToDouble && arg instanceof Long x) {
       BitSet newMissing = BitSets.makeDuplicate(storage.getIsMissing());
@@ -59,7 +61,7 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
         context.safepoint();
       }
 
-      return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
+      return new LongStorage(newVals, newVals.length, newMissing, INTEGER_RESULT_TYPE);
     } else if (arg instanceof Double || arg instanceof Long) {
       double x = (arg instanceof Double) ? (Double) arg : (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -99,8 +101,8 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
 
         context.safepoint();
       }
-      // TODO inherit type or not?
-      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing, IntegerType.INT_64);
+
+      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing, INTEGER_RESULT_TYPE);
     } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
