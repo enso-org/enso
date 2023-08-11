@@ -850,22 +850,9 @@ spec make_new_connection prefix persistent_connector=True =
             has_warning_or_error.not
         if non_trivial_types_supported then
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ["a", "xyz", "abcdefghijkl"]], ["Z", ["a", "pqrst", "abcdefghijkl"]]]
-            ## TODO [RW] figure out what semantics we want here; I think the current one may be OK but it is going to
-               be slightly painful, so IMO an auto-conversion could be useful. We could make it so that we do
-               auto-conversion (cast), but in a more strict mode such that if anything does not fit
-               (even just string padding required) we fail hard and tell the user to fix this.
             Test.specify "fails if the target type is more restrictive than source" <|
                 result = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
                 result.should_fail_with Column_Type_Mismatch
-            but_maybe="I'm not sure if we want this automatic restriction. If anything, we should probably report situations like abcdefghijkl being truncated."
-            Test.specify "should warn if the target type is more restrictive than source and truncation may occur" pending=but_maybe <|
-                result = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
-                IO.println (Problems.get_attached_warnings result)
-
-                result.column_names . should_equal ["X", "Y", "Z"]
-                result.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                result.at "Y" . to_vector . should_contain_the_same_elements_as ["a", "xyz", "abc"]
-                result.at "Z" . to_vector . should_contain_the_same_elements_as ["a     ", "pqrst", "abcde"]
 
         Test.specify "should not leave behind any garbage temporary tables if the upload fails" <|
             dest_name = Name_Generator.random_name "dest-table"
