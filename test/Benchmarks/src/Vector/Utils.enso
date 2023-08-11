@@ -5,4 +5,4 @@ polyglot java import java.util.Random as Java_Random
 make_random_vec : Integer -> Vector
 make_random_vec n =
     random_gen = Java_Random.new n
-    Vector.fill n random_gen.nextLong
+    Vector.fill n random_gen.nextDouble

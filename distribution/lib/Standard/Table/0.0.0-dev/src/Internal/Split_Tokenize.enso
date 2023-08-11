@@ -53,13 +53,16 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
    Converts a Text column into new columns using a regular expression
    pattern.
    See `Table.parse_to_columns`.
-parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    pat = Regex.compile pattern case_insensitive=case_insensitive
+parse_to_columns : Table -> Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    regex = case pattern of
+        _ : Regex -> pattern.recompile case_sensitivity
+        _ : Text ->
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            Regex.compile pattern case_insensitive=case_insensitive
 
-    fun = handle_nothing (regex_parse_to_vectors pat)
-    column_names = regex_to_column_names pat input_column_id
+    fun = handle_nothing (regex_parse_to_vectors regex)
+    column_names = regex_to_column_names regex input_column_id
 
     column = table.at input_column_id
 
@@ -186,7 +189,7 @@ fan_out_to_rows table input_column_id function at_least_one_row=False on_problem
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
     problem_builder = Problem_Builder.new
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
@@ -330,7 +333,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
    Rename a vector of columns to be unique when added to a table.
 rename_new_columns : Table -> Text -> Vector Column -> Problem_Builder -> Vector Column
 rename_new_columns table removed_column_name columns problem_builder =
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
     remaining_columns = table.columns . filter (c-> c.name != removed_column_name) . map .name
     unique.mark_used remaining_columns
     new_columns = columns.map column->

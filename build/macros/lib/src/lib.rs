@@ -26,6 +26,7 @@ mod prelude {
     pub use syn::Data;
     pub use syn::DeriveInput;
     pub use syn::Ident;
+    pub use syn_1 as syn;
 }
 
 use prelude::*;

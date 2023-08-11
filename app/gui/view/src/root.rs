@@ -10,7 +10,6 @@ use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::StyleWatchFrp;
 use std::rc::Rc;
 
 
@@ -30,13 +29,12 @@ enum State {
 
 /// Root View model. Stores both Welcome Screen and Project views and handles their
 /// visibility.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     // Required for creating project view dynamically
     app:            Application,
     display_object: display::object::Instance,
     state:          Rc<CloneCell<State>>,
-    status_bar:     crate::status_bar::View,
     welcome_view:   crate::welcome_screen::View,
     project_view:   Rc<CloneCell<Option<crate::project::View>>>,
 }
@@ -47,13 +45,11 @@ impl Model {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let state = Rc::new(CloneCell::new(State::WelcomeScreen));
-        let status_bar = crate::status_bar::View::new(&app);
-        display_object.add_child(&status_bar);
         let welcome_view = app.new_view::<crate::welcome_screen::View>();
         let project_view = Rc::new(CloneCell::new(None));
         display_object.add_child(&welcome_view);
 
-        Self { app, display_object, state, status_bar, welcome_view, project_view }
+        Self { app, display_object, state, welcome_view, project_view }
     }
 
     /// Switch displayed view from Project View to Welcome Screen. Project View will not be
@@ -83,15 +79,6 @@ impl Model {
     fn init_project_view(&self) {
         if self.project_view.get().is_none() {
             let view = self.app.new_view::<crate::project::View>();
-            let network = &view.network;
-            let status_bar = &self.status_bar;
-            let display_object = &self.display_object;
-            frp::extend! { network
-                fs_vis_shown <- view.fullscreen_visualization_shown.on_true();
-                fs_vis_hidden <- view.fullscreen_visualization_shown.on_false();
-                eval fs_vis_shown ((_) status_bar.unset_parent());
-                eval fs_vis_hidden ([display_object, status_bar](_) display_object.add_child(&status_bar));
-            }
             self.project_view.set(Some(view));
         }
     }
@@ -121,18 +108,13 @@ ensogl::define_endpoints! {
 // ============
 
 /// Root View of the IDE. Displays either Welcome Screen or Project View.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
+    #[display_object]
     model:   Model,
+    #[deref]
     pub frp: Frp,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -141,28 +123,18 @@ impl View {
         let model = Model::new(app);
         let frp = Frp::new();
         let network = &frp.network;
-        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let offset_y = style.get_number(ensogl_hardcoded_theme::application::status_bar::offset_y);
 
         frp::extend! { network
             init <- source::<()>();
 
             eval_ frp.switch_view_to_project(model.switch_view_to_project());
             eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
-            offset_y <- all(&init,&offset_y)._1();
-            eval offset_y ((offset_y) model.status_bar.set_y(*offset_y));
-
-            model.status_bar.add_event <+ app.frp.show_notification.map(|message| {
-                message.into()
+            eval app.frp.show_notification([](message) {
+                crate::notification::logged::info(message, &None);
             });
         }
         init.emit(());
         Self { model, frp }
-    }
-
-    /// Status Bar view from Project View.
-    pub fn status_bar(&self) -> &crate::status_bar::View {
-        &self.model.status_bar
     }
 
     /// Lazily initializes Project View.
@@ -173,12 +145,6 @@ impl View {
     /// Welcome View.
     pub fn welcome_screen(&self) -> &crate::welcome_screen::View {
         &self.model.welcome_view
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

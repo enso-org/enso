@@ -106,7 +106,7 @@ impl GraalVM {
         let os_name = match *os {
             OS::Linux => "linux",
             OS::Windows => "windows",
-            OS::MacOS => "darwin",
+            OS::MacOS => "macos",
             other_os => unimplemented!("System `{}` is not supported!", other_os),
         };
         let arch_name = match *arch {

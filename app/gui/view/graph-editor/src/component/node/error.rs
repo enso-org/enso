@@ -75,8 +75,9 @@ const BORDER_RADIUS: f32 = 14.0;
 // === Container ===
 
 /// The container containing just the error visualization and background.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct Container {
+    #[deref]
     visualization:  error_visualization::Error,
     scene:          Scene,
     // TODO : We added a HTML background to the `View`, because "shape" background was
@@ -84,14 +85,6 @@ pub struct Container {
     //     investigated while fixing rust visualization displaying. (#796)
     background_dom: DomSymbol,
     display_object: display::object::Instance,
-}
-
-impl Deref for Container {
-    type Target = error_visualization::Error;
-
-    fn deref(&self) -> &Self::Target {
-        &self.visualization
-    }
 }
 
 impl Container {
@@ -141,11 +134,5 @@ impl Container {
     pub fn set_layer(&self, layer: visualization::Layer) {
         self.visualization.frp.set_layer.emit(layer);
         layer.apply_for_html_component(&self.scene, &self.background_dom);
-    }
-}
-
-impl display::Object for Container {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

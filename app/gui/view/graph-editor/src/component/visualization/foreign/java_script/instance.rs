@@ -81,10 +81,11 @@ type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>
 
 /// `JsVisualizationGeneric` allows the use of arbitrary javascript to create visualizations. It
 /// takes function definitions as strings and proved those functions with data.
-#[derive(Clone, CloneRef, Derivative)]
+#[derive(Clone, CloneRef, Derivative, display::Object)]
 #[derivative(Debug)]
 #[allow(missing_docs)]
 pub struct InstanceModel {
+    #[display_object]
     pub root_node:       DomSymbol,
     on_data_received:    Rc<Option<web::Function>>,
     set_size:            Rc<Option<web::Function>>,
@@ -255,10 +256,11 @@ impl InstanceModel {
 // ================
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Instance {
     #[deref]
+    #[display_object]
     model:   InstanceModel,
     frp:     visualization::instance::Frp,
     network: frp::Network,
@@ -312,12 +314,6 @@ impl Instance {
 impl From<Instance> for visualization::Instance {
     fn from(t: Instance) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.root_node.clone_ref()))
-    }
-}
-
-impl display::Object for Instance {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.root_node.display_object()
     }
 }
 

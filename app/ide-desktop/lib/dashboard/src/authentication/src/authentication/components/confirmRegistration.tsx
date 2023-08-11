@@ -2,7 +2,7 @@
  * email address. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as app from '../../components/app'
 import * as authModule from '../providers/auth'
@@ -23,7 +23,7 @@ const REGISTRATION_QUERY_PARAMS = {
 // ============================
 
 /** An empty component redirecting users based on the backend response to user registration. */
-function ConfirmRegistration() {
+export default function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const auth = authModule.useAuth()
     const location = router.useLocation()
@@ -31,8 +31,6 @@ function ConfirmRegistration() {
 
     const { verificationCode, email } = parseUrlSearchParams(location.search)
 
-    // No dependencies means this runs on every render, however this component immediately
-    // navigates away so it should not exist for more than a few renders.
     React.useEffect(() => {
         if (email == null || verificationCode == null) {
             navigate(app.LOGIN_PATH)
@@ -43,14 +41,17 @@ function ConfirmRegistration() {
                     navigate(app.LOGIN_PATH + location.search.toString())
                 } catch (error) {
                     logger.error('Error while confirming sign-up', error)
-                    toast.error(
+                    toastify.toast.error(
                         'Something went wrong! Please try again or contact the administrators.'
                     )
                     navigate(app.LOGIN_PATH)
                 }
             })()
         }
-    })
+        // This MUST only run once - this is fine because the above function *always* `navigate`s
+        // away.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return <></>
 }
@@ -62,5 +63,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(REGISTRATION_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ConfirmRegistration

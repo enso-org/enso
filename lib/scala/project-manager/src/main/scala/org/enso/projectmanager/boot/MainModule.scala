@@ -30,6 +30,7 @@ import org.enso.projectmanager.protocol.{
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service._
+import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
@@ -44,7 +45,10 @@ class MainModule[
   computeExecutionContext: ExecutionContext
 )(implicit
   E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
-  E2: MonadError[F[ValidationFailure, *], ValidationFailure]
+  E2: MonadError[
+    F[ProjectNameValidator.ValidationFailure, *],
+    ProjectNameValidator.ValidationFailure
+  ]
 ) {
 
   implicit val system: ActorSystem =
@@ -62,7 +66,7 @@ class MainModule[
 
   lazy val gen = new SystemGenerator[F]
 
-  lazy val projectValidator = new MonadicProjectValidator[F]()
+  lazy val projectValidator = new ProjectNameValidator[F]()
 
   lazy val projectRepository =
     new ProjectFileRepository[F](

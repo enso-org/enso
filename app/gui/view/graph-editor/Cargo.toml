@@ -25,6 +25,7 @@ ensogl-derive-theme = { path = "../../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-drop-manager = { path = "../../../../lib/rust/ensogl/component/drop-manager" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+ensogl-icons = { path = "../../../../lib/rust/ensogl/component/icons" }
 failure = { workspace = true }
 ide-view-execution-environment-selector = { path = "../execution-environment-selector" }
 indexmap = "1.9.2"

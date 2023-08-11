@@ -1,0 +1,140 @@
+from Standard.Base import all
+
+from Standard.Table import all
+import Standard.Table.Data.Type.Storage
+
+from Standard.Test import Bench
+
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
+
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
+polyglot java import org.enso.table.data.column.builder.StringBuilder
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## This tests an operation that executes an Enso function on each element of a column.
+   It is meant to compare the cost of calling-back into Enso from Java vs staying in Enso.
+type Boxed_Enso_Callback_Test
+    Instance text_column (fn : Text -> Text)
+
+    current_implementation self =
+        self.text_column.map self.fn
+
+    java_roundtrip self =
+        expected_type = Storage.from_value_type_strict Value_Type.Char
+        Column.from_storage "result" <|
+            MapHelpers.mapCallback self.text_column.java_column.getStorage self.fn expected_type
+
+    enso_map_as_vector self convert_polyglot_dates =
+        vector_proxy = self.text_column.to_vector
+        mapped = vector_proxy.map self.fn
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder self =
+        n = self.text_column.length
+        fn = self.fn
+        builder = StringBuilder.new n
+        storage = self.text_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                item ->
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_roundtrip, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
+## This variant checks how a primitive type column will behave.
+type Primitive_Enso_Callback_Test
+    Instance int_column (shift : Integer)
+
+    fn self =
+        shift = self.shift
+        x-> x + shift
+
+    current_implementation_as_map self =
+        self.int_column.map self.fn
+
+    java_vectorized self =
+        Column.from_storage "result" <|
+            MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
+
+    java_roundtrip self =
+        expected_type = Storage.from_value_type_strict Value_Type.Integer
+        Column.from_storage "result" <|
+            MapHelpers.mapCallback self.int_column.java_column.getStorage self.fn expected_type
+
+    enso_map_as_vector_inferred_builder self convert_polyglot_dates =
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map self.fn
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_as_vector_long_builder self =
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map self.fn
+        # No expected storage will use inferred builder.
+        expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
+        Column.Value (Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type)
+
+    enso_map_with_builder_2_calls_unboxed self =
+        n = self.int_column.length
+        fn = self.fn
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.int_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.isNa i of
+                True ->
+                    builder.appendNulls 1
+                False ->
+                    item = storage.getItem i
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
+    enso_map_with_builder_1_call_boxed self =
+        n = self.int_column.length
+        fn = self.fn
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.int_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                item ->
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation_as_map, self.java_vectorized, self.java_roundtrip, self.enso_map_as_vector_inferred_builder convert_polyglot_dates=True, self.enso_map_as_vector_inferred_builder convert_polyglot_dates=False, self.enso_map_as_vector_long_builder, self.enso_map_with_builder_2_calls_unboxed, self.enso_map_with_builder_1_call_boxed]
+
+main = spec (Common_Setup.Config)
+
+spec setup =
+    t = setup.generate_input_table
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
+
+    primitive_callback_test = Primitive_Enso_Callback_Test.Instance (t.at "ints") 42
+    primitive_callback_test.verify_correctness
+    Bench.measure (primitive_callback_test.current_implementation_as_map) "Primitive_Enso_Callback_Test.current_implementation_as_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.java_vectorized) "Primitive_Enso_Callback_Test.java_vectorized" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.java_roundtrip) "Primitive_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=False) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=True) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder_and_date_conversions" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_long_builder) "Primitive_Enso_Callback_Test.enso_map_as_vector_long_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_with_builder_2_calls_unboxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_2_calls_unboxed" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_with_builder_1_call_boxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_1_call_boxed" iter_size num_iterations run_gc_between_iterations=should_run_gc
+
+    fn x = "|" + x + "|"
+    boxed_callback_test = Boxed_Enso_Callback_Test.Instance (t.at "text") fn
+    boxed_callback_test.verify_correctness
+    Bench.measure (boxed_callback_test.current_implementation) "Boxed_Enso_Callback_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.java_roundtrip) "Boxed_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Enso_Callback_Test.enso_map_as_vector_without_date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Enso_Callback_Test.enso_map_as_vector_with_date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_with_builder) "Boxed_Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc

@@ -1,0 +1,19 @@
+## NOTE
+  This file is _not_ automatically run when the benchmarks are run.
+  It can be used to run all performance tests in a single run.
+import project.Table.Column_Aggregate
+import project.Table.Column_Bi_Map
+import project.Table.Column_Map
+import project.Table.Column_Map_2
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Enso_Callback
+
+spec =
+    setup = (Common_Setup.Config)
+    Column_Map.spec setup
+    Column_Map_2.spec setup
+    Column_Bi_Map.spec setup
+    Column_Aggregate.spec setup
+    Enso_Callback.spec setup
+
+main = spec

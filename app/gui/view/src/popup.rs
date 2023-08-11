@@ -26,8 +26,9 @@ const DEFAULT_DELAY_MS: f32 = 5_000.0;
 // =============
 
 /// Text label that disappears after a predefined delay.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Model {
+    #[display_object]
     label:             Label,
     opacity_animation: Animation<f32>,
     delay_animation:   DelayedAnimation,
@@ -97,10 +98,11 @@ ensogl::define_endpoints! {
 // ============
 
 /// A temporary text message on top of the screen.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct View {
     #[deref]
     frp:   Frp,
+    #[display_object]
     model: Model,
 }
 
@@ -133,11 +135,5 @@ impl View {
     /// Get the FRP node for the content of the pop-up, for testing purposes.
     pub fn content_frp_node(&self) -> impl EventOutput<Output = String> + HasLabel {
         self.frp.set_label.clone_ref()
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.label.display_object()
     }
 }

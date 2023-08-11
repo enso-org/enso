@@ -125,6 +125,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`heartbeat/init`](#heartbeatinit)
 - [Refactoring](#refactoring)
   - [`refactoring/renameProject`](#refactoringrenameproject)
+  - [`refactoring/renameSymbol`](#refactoringrenamesymbol)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -224,6 +225,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`InvalidLibraryName`](#invalidlibraryname)
   - [`DependencyDiscoveryError`](#dependencydiscoveryerror)
   - [`InvalidSemverVersion`](#invalidsemverversion)
+  - [`ExpressionNotFoundError`](#expressionnotfounderror)
+  - [`FailedToApplyEdits`](#failedtoapplyedits)
+  - [`RefactoringNotSupported`](#refactoringnotsupported)
 
 <!-- /MarkdownTOC -->
 
@@ -3311,6 +3315,101 @@ null;
 
 None
 
+### `refactoring/renameSymbol`
+
+Sent from the client to the server to rename a symbol in the program. The text
+edits required to perform the refactoring will be returned as a
+[`text/didChange`](#textdidchange) notification.
+
+- **Type:** Request
+- **Direction:** Project Manager -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+#### Supported refactorings
+
+Refactorins supports only limited cases listed below.
+
+##### Local definition
+
+```text
+main =
+    operator1 = 42
+    ^^^^^^^^^
+```
+
+Expression id in the request should point to the left hand side symbol of the
+assignment.
+
+##### Module method
+
+```text
+function1 x = x
+^^^^^^^^^
+
+main =
+    operator1 = Main.function1 42
+```
+
+Expression id in the request should point to the symbol defining the function.
+
+Current limitations of the method renaming are:
+
+- Methods defined on types are not supported, i.e.
+  ```text
+  Main.function1 x = x
+  ```
+- Method calls where the self type is not specified will not be renamed, i.e.
+
+  ```text
+  function1 x = x
+
+  main =
+      operator1 = function1 42
+  ```
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The qualified module name.
+   */
+  module: string;
+
+  /**
+   * The symbol to rename.
+   */
+  expressionId: ExpressionId;
+
+  /**
+   * The new name of the symbol. If the provided name is not a valid Enso
+   * identifier (contains unsupported symbols, spaces, etc.), it will be normalized.
+   * The final name will be returned in the response.
+   */
+  newName: string;
+}
+```
+
+#### Result
+
+```typescript
+{
+  newName: string;
+}
+```
+
+#### Errors
+
+- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the requested
+  module cannot be found.
+- [`ExpressionNotFoundError`](#expressionnotfounderror) to signal that the given
+  expression cannot be found.
+- [`FailedToApplyEdits`](#failedtoapplyedits) to signal that the refactoring
+  operation was not able to apply generated edits.
+- [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
+  refactoring of the given expression is not supported.
+
 ## Execution Management Operations
 
 The execution management portion of the language server API deals with exposing
@@ -5785,5 +5884,38 @@ message contains the invalid version in the payload.
   "payload" : {
     "version" : "<invalid-version>"
   }
+}
+```
+
+### `ExpressionNotFoundError`
+
+Signals that the expression cannot be found by the provided id.
+
+```typescript
+"error" : {
+  "code" : 9001,
+  "message" : "Expression not found by id [<expression-id>]"
+}
+```
+
+### `FailedToApplyEdits`
+
+Signals that the refactoring operation was not able to apply generated edits.
+
+```typescript
+"error" : {
+  "code" : 9002,
+  "message" : "Failed to apply edits to module [<module-name>]"
+}
+```
+
+### `RefactoringNotSupported`
+
+Signals that the refactoring of the given expression is not supported.
+
+```typescript
+"error" : {
+  "code" : 9003,
+  "message" : "Refactoring not supported for expression [<expression-id>]"
 }
 ```

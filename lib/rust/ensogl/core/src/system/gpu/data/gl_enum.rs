@@ -13,8 +13,15 @@ use crate::system::gpu::Context;
 
 /// The newtype for WebGL enums.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default, Deref, Display)]
+#[derive(Copy, Clone, Debug, Default, Display, PartialEq, Eq)]
 pub struct GlEnum(pub u32);
+
+impl const Deref for GlEnum {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl From<GlEnum> for u32 {
     fn from(t: GlEnum) -> u32 {

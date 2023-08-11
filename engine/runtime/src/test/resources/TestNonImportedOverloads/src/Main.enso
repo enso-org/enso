@@ -1,7 +1,0 @@
-import Standard.Base.Nothing
-from Standard.Base.Errors.Common import all
-from local.TestNonImportedOverloads.Util import all
-
-X.method self = 10
-
-main = Nothing.util (X.Mk_X 1)

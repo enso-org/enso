@@ -8,6 +8,7 @@ use crate::presenter;
 use crate::presenter::searcher::ai::AISearcher;
 use crate::presenter::searcher::SearcherPresenter;
 use crate::presenter::ComponentBrowserSearcher;
+use crate::EXECUTION_FAILED_MESSAGE;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
@@ -18,6 +19,7 @@ use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
+use view::notification::logged as notification;
 
 
 
@@ -44,13 +46,12 @@ struct Model {
     graph_controller: controller::ExecutedGraph,
     ide_controller: controller::Ide,
     view: view::project::View,
-    status_bar: view::status_bar::View,
     graph: presenter::Graph,
     code: presenter::Code,
     searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
     available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
-    execution_failed_process_id: Rc<Cell<Option<view::status_bar::process::Id>>>,
+    execution_failed_notification: notification::Notification,
 }
 
 impl Model {
@@ -60,7 +61,6 @@ impl Model {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> Self {
         let graph_controller = init_result.main_graph;
         let text_controller = init_result.main_module_text;
@@ -74,20 +74,27 @@ impl Model {
         let searcher = default();
         let available_projects = default();
         let shortcut_transaction = default();
-        let execution_failed_process_id = default();
+        let options = notification::UpdateOptions {
+            render:  Some(EXECUTION_FAILED_MESSAGE.into()),
+            options: notification::Options {
+                auto_close: Some(notification::AutoClose::Never()),
+                r#type: Some(notification::Type::Error),
+                ..default()
+            },
+        };
+        let execution_failed_notification = notification::Notification::new(options);
         Model {
             controller,
             module_model,
             graph_controller,
             ide_controller,
             view,
-            status_bar,
             graph,
             code,
             searcher,
             available_projects,
             shortcut_transaction,
-            execution_failed_process_id,
+            execution_failed_notification,
         }
     }
 
@@ -220,17 +227,11 @@ impl Model {
     fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_complete.emit(());
-        if let Some(id) = self.execution_failed_process_id.get() {
-            self.status_bar.finish_process(id);
-        }
+        self.execution_failed_notification.dismiss();
     }
 
     fn execution_failed(&self) {
-        let message = crate::EXECUTION_FAILED_MESSAGE;
-        let message = view::status_bar::process::Label::from(message);
-        self.status_bar.add_process(message);
-        let id = self.status_bar.last_process.value();
-        self.execution_failed_process_id.set(Some(id));
+        self.execution_failed_notification.show();
     }
 
     fn execution_context_interrupt(&self) {
@@ -281,7 +282,6 @@ impl Model {
         let controller = self.ide_controller.clone_ref();
         let projects_list = self.available_projects.clone_ref();
         let view = self.view.clone_ref();
-        let status_bar = self.status_bar.clone_ref();
         let id = *id_in_list;
         executor::global::spawn(async move {
             let app = js::app_or_panic();
@@ -292,14 +292,17 @@ impl Model {
                 let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
                 if let Some(uuid) = uuid {
                     if let Err(error) = api.open_project(uuid).await {
-                        error!("Error opening project: {error}.");
-                        status_bar.add_event(format!("Error opening project: {error}."));
+                        let message = format!("Error opening project: {error}");
+                        notification::error(message, &None);
                     }
                 } else {
-                    error!("Project with id {id} not found.");
+                    notification::error(format!("Project with id {id} not found."), &None);
                 }
             } else {
-                error!("Project Manager API not available, cannot open project.");
+                notification::error(
+                    "Project Manager API not available, cannot open project.",
+                    &None,
+                );
             }
             app.hide_progress_indicator();
             view.show_graph_editor();
@@ -363,10 +366,9 @@ impl Project {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
-        let model = Model::new(ide_controller, controller, init_result, view, status_bar);
+        let model = Model::new(ide_controller, controller, init_result, view);
         let model = Rc::new(model);
         Self { network, model }.init()
     }
@@ -481,8 +483,12 @@ impl Project {
             match notification {
                 Notification::ConnectionLost(_) => {
                     let message = crate::BACKEND_DISCONNECTED_MESSAGE;
-                    let message = view::status_bar::event::Label::from(message);
-                    model.status_bar.add_event(message);
+                    let options = notification::Options {
+                        auto_close: Some(notification::AutoClose::Never()),
+                        toast_id: Some(crate::BACKEND_DISCONNECTED_NOTIFICATION_ID.into()),
+                        ..Default::default()
+                    };
+                    notification::error(message, &Some(options));
                 }
                 Notification::VcsStatusChanged(VcsStatus::Dirty) => {
                     model.set_project_changed(true);
@@ -539,13 +545,11 @@ impl Project {
         ide_controller: controller::Ide,
         controller: controller::Project,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
         debug!("Initializing project controller...");
         let init_result = controller.initialize().await?;
         debug!("Project controller initialized.");
-        let presenter =
-            Self::new(ide_controller, controller.clone(), init_result, view, status_bar);
+        let presenter = Self::new(ide_controller, controller.clone(), init_result, view);
         debug!("Project presenter created.");
         // Following the project initialization, the Undo/Redo stack should be empty.
         // This makes sure that any initial modifications resulting from the GUI initialization

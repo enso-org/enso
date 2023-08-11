@@ -76,7 +76,7 @@ impl Animations {
 // === ProjectNameModel ===
 // ========================
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct ProjectNameModel {
     display_object: display::object::Instance,
     overlay:        Rectangle,
@@ -100,8 +100,6 @@ impl ProjectNameModel {
         text_field.set_property_default(base_color);
         text_field.set_property_default(text_size);
         text_field.set_single_line_mode(true);
-
-        text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 
         let overlay = Rectangle::new().set_color(INVISIBLE_HOVER_COLOR).clone();
@@ -145,12 +143,6 @@ impl ProjectNameModel {
     }
 }
 
-impl display::Object for ProjectNameModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ===================
@@ -158,10 +150,12 @@ impl display::Object for ProjectNameModel {
 // ===================
 
 /// The view used for displaying and renaming it.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct ProjectName {
+    #[display_object]
     model:   Rc<ProjectNameModel>,
+    #[deref]
     pub frp: Frp,
 }
 
@@ -229,19 +223,6 @@ impl ProjectName {
         frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for ProjectName {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
-impl Deref for ProjectName {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }
 

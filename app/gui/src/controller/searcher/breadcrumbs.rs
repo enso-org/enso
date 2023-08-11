@@ -103,7 +103,7 @@ impl BreadcrumbEntry {
 impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
     fn from((component_id, entry): (suggestion_database::entry::Id, Rc<Entry>)) -> Self {
         let qualified_name = entry.qualified_name();
-        let displayed_name = ImString::new(&entry.name);
+        let displayed_name = entry.name.clone();
         BreadcrumbEntry { displayed_name, component_id, qualified_name }
     }
 }

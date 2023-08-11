@@ -145,7 +145,7 @@ final class SuggestionsHandler(
               MaskedPath(config.projectContentRoot.file.toPath),
               t
             ),
-          pkg => self ! ProjectNameUpdated(pkg.getConfig().name)
+          pkg => self ! ProjectNameUpdated(pkg.getConfig().moduleName)
         )
       val requestId = UUID.randomUUID()
       runtimeConnector ! Api.Request(requestId, Api.GetTypeGraphRequest())

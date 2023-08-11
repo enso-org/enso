@@ -114,6 +114,7 @@ impl SymbolRegistry {
         let next_id = default();
         let style_sheet = style::Sheet::new();
         let theme_manager = theme::Manager::from(&style_sheet);
+        style::javascript::expose_to_window(&theme_manager);
         let layers = scene::HardcodedLayers::new();
         Self {
             run_mode,

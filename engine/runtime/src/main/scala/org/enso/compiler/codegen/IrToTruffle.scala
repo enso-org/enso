@@ -251,8 +251,7 @@ class IrToTruffle(
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
             val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
-
-            val arg = argFactory.run(unprocessedArg, idx)
+            val arg            = argFactory.run(unprocessedArg, idx, runtimeTypes)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -783,6 +782,8 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -797,6 +798,8 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -1703,9 +1706,9 @@ class IrToTruffle(
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
-            val arg = argFactory.run(unprocessedArg, idx)
-            argDefinitions(idx) = arg
             val runtimeTypes = checkRuntimeTypes(unprocessedArg)
+            val arg          = argFactory.run(unprocessedArg, idx, runtimeTypes)
+            argDefinitions(idx) = arg
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -2037,12 +2040,14 @@ class IrToTruffle(
       *
       * @param inputArg the argument to generate code for
       * @param position the position of `arg` at the function definition site
+      * @param types null or types to check the argument for
       * @return a truffle entity corresponding to the definition of `arg` for a
       *         given function
       */
     def run(
       inputArg: IR.DefinitionArgument,
-      position: Int
+      position: Int,
+      types: List[Type]
     ): ArgumentDefinition =
       inputArg match {
         case arg: IR.DefinitionArgument.Specified =>
@@ -2079,6 +2084,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             position,
             arg.name.name,
+            if (types == null || types.length == 0) null else types.toArray,
             defaultedValue,
             executionMode
           )

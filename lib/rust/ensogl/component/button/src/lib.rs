@@ -199,7 +199,7 @@ pub mod shape {
 // =============
 
 /// An internal model of the button component.
-#[derive(CloneRef, Debug, Derivative)]
+#[derive(CloneRef, Debug, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Model<S: Shape> {
@@ -260,12 +260,13 @@ ensogl_core::define_endpoints! {
 /// the primary mouse button pressed without interrupting the click.
 ///
 /// The button is fully theme-aware and dynamically sized.
-#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derive(CloneRef, Debug, Deref, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct View<S: Shape> {
     #[deref]
     frp:   Frp,
+    #[display_object]
     model: Model<S>,
     style: StyleWatchFrp,
 }
@@ -363,12 +364,6 @@ impl<Shape: ButtonShape> View<Shape> {
         frp.set_size.emit(Vector2(size_x, size_y));
 
         Self { frp, model, style }
-    }
-}
-
-impl<S: Shape> display::Object for View<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

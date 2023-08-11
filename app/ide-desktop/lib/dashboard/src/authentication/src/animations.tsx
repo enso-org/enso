@@ -8,9 +8,14 @@ import * as react from 'react'
 // =================
 // === Constants ===
 // =================
+
 /** The number of times the segment from 0 to 1 will be bisected to find the x-value for
  * a cubic bezier curve. */
 const CUBIC_BEZIER_BISECTIONS = 10
+
+// ==============================
+// === useInterpolateOverTime ===
+// ==============================
 
 /** Accepts a parameter containing the actual progress as a fraction between 0 and 1 inclusive,
  * and returns the fraction. */

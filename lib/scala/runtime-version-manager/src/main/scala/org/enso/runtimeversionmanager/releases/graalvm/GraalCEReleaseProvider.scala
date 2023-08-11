@@ -69,7 +69,7 @@ object GraalCEReleaseProvider {
   def packageFileNameForCurrentOS(version: GraalVMVersion): String = {
     val os = OS.operatingSystem match {
       case OS.Linux   => "linux"
-      case OS.MacOS   => "darwin"
+      case OS.MacOS   => if (version.graalMajorVersion < 23) "darwin" else "macos"
       case OS.Windows => "windows"
     }
     val extension = OS.operatingSystem match {

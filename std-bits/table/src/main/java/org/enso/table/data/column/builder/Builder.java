@@ -5,12 +5,20 @@ import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.Problem;
+
+import java.util.List;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
+  /** Constructs a builder accepting values of a specific type.
+   * <p>
+   * If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer the type from the data.
+   */
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case AnyObjectType x -> new ObjectBuilder(size);
+      case AnyObjectType x -> new MixedBuilder(size);
       case BooleanType x -> new BoolBuilder(size);
       case DateType x -> new DateBuilder(size);
       case DateTimeType x -> new DateTimeBuilder(size);
@@ -35,6 +43,7 @@ public abstract class Builder {
 
         yield new StringBuilder(size);
       }
+      case null -> new InferredBuilder(size);
     };
     assert builder.getType().equals(type);
     return builder;
@@ -91,4 +100,9 @@ public abstract class Builder {
 
   /** @return the current storage type of this builder */
   public abstract StorageType getType();
+
+  /** @return any problems that occurred when building the Storage. */
+  public AggregatedProblems getProblems() {
+    return AggregatedProblems.of();
+  }
 }

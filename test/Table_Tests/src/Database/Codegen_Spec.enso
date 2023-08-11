@@ -1,33 +1,27 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column
+from Standard.Table import Sort_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
-from Standard.Database.Data.Table import fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Database.Helpers.Fake_Test_Connection
-
 polyglot java import java.sql.Types as Java_SQL_Types
 
 spec =
-    int = SQL_Type.Value Java_SQL_Types.INTEGER "INTEGER"
-    bool = SQL_Type.Value Java_SQL_Types.BOOLEAN "BOOLEAN"
-    str = SQL_Type.Value Java_SQL_Types.VARCHAR "TEXT"
     test_connection =
-        table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
-        table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
-        table3 = ["T3", [["A", int], ["E", bool], ["F", int]]]
-        tables = Map.from_vector [table1, table2, table3]
-        Fake_Test_Connection.make Dialect.sqlite tables
+        c = Database.connect (SQLite In_Memory)
+        c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
+        c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
+        c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]
+        c
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
@@ -112,12 +106,6 @@ spec =
         Test.specify 'should return warnings and errors when passed a non-existent column' <|
             t2 = t1.order_by ([Sort_Column.Name 'foobar'])
             t2.should_fail_with Missing_Input_Columns
-
-    Test.group "Helpers" <|
-        Test.specify "fresh_names should provide fresh names" <|
-            used_names = ["A", "A 1"]
-            preferred_names = ["A", "A", "B"]
-            fresh_names used_names preferred_names . should_equal ["A 2", "A 3", "B"]
 
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|

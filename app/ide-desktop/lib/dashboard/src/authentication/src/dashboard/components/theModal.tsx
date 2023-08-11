@@ -8,10 +8,8 @@ import * as modalProvider from '../../providers/modal'
 // ================
 
 /** Renders the modal instance from the modal React Context (if any). */
-function TheModal() {
+export default function TheModal() {
     const { modal } = modalProvider.useModal()
 
     return <>{modal}</>
 }
-
-export default TheModal

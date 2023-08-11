@@ -44,7 +44,7 @@ const CLOUD_REDIRECTS = {
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
     pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-    npekin: ApiUrl('https://s02ejyepk1.execute-api.eu-west-1.amazonaws.com'),
+    npekin: ApiUrl('https://lkxuay3ha1.execute-api.eu-west-1.amazonaws.com'),
     production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 

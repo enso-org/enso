@@ -11,7 +11,12 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
@@ -70,7 +75,8 @@ public final class Type implements TruffleObject {
             node.getCallTarget(),
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -174,6 +180,8 @@ public final class Type implements TruffleObject {
                       new ArgumentDefinition(
                           0,
                           Constants.Names.SELF_ARGUMENT,
+                          null,
+                          null,
                           ArgumentDefinition.ExecutionMode.EXECUTE)));
           definitionScope.registerMethod(this, name, f);
         });

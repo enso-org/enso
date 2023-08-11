@@ -43,9 +43,12 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
+use ensogl_icons::icon;
 use ensogl_text as text;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel::grid;
-use ide_view_component_list_panel::grid::entry::icon;
+use ide_view_documentation::breadcrumbs::Breadcrumb;
+use ide_view_documentation::breadcrumbs::Breadcrumbs;
 
 
 
@@ -132,6 +135,7 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
+        let tooltip = Tooltip::new(&app);
 
         let world = &app.display;
         let scene = &world.default_scene;
@@ -139,8 +143,23 @@ pub fn main() {
         let panel = app.new_view::<ide_view_component_list_panel::View>();
         scene.layers.node_searcher.add(&panel);
         panel.show();
+
+        let breadcrumbs = app.new_view::<Breadcrumbs>();
+        breadcrumbs.set_y(400.0);
+        breadcrumbs.frp().set_size(Vector2(500.0, 100.0));
+        breadcrumbs.set_entries_from((
+            vec![
+                Breadcrumb::from("home"),
+                Breadcrumb::from("data"),
+                Breadcrumb::new_with_icon("read", icon::Id::DataInput),
+            ],
+            0,
+        ));
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
+
+
         let network = frp::Network::new("new_component_list_panel_view");
-        //TODO[ao] should be done by panel itself.
+        // TODO[ao] should be done by panel itself.
         let grid = &panel.model().grid;
         frp::extend! { network
             init <- source_();
@@ -153,14 +172,23 @@ pub fn main() {
             // === Disable navigator on hover ===
 
             navigator.frp.set_enabled <+ panel.is_hovered.not();
+
+
+            // === Tooltip ===
+
+            tooltip.frp.set_style <+ app.frp.tooltip;
         }
         init.emit(());
 
         grid.reset(content_info());
         scene.add_child(&panel);
+        scene.add_child(&tooltip);
+        scene.add_child(&breadcrumbs);
         panel.show();
         mem::forget(app);
+        mem::forget(tooltip);
         mem::forget(panel);
+        mem::forget(breadcrumbs);
         mem::forget(network);
         mem::forget(navigator);
     })

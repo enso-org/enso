@@ -92,9 +92,9 @@ read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> 
 read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
         reader = prepare_reader format max_columns on_problems
-        result_with_problems = reader.read java_reader
-        parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map Java_Problems.translate_problem
-        on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems
+        java_table = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
+            reader.read java_reader
+        Table.Value java_table
 
 ## PRIVATE
 prepare_reader format max_columns on_problems newline_override=Nothing =

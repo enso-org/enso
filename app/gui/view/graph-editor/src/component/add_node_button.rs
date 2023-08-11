@@ -80,9 +80,10 @@ type View = ensogl_component::button::View<shape::Shape>;
 ///
 /// This is a button with + icon, which sticks to the left-bottom corner of the scene. It exposes
 /// the FRP of EnsoGL Button Component, including the main "click" event.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct AddNodeButton {
     network:     frp::Network,
+    #[display_object]
     view:        View,
     style_watch: StyleWatchFrp,
 }
@@ -132,11 +133,5 @@ impl AddNodeButton {
         let y = -screen.height / 2.0 + margin + size / 2.0;
         view.set_x(x.round());
         view.set_y(y.round());
-    }
-}
-
-impl display::Object for AddNodeButton {
-    fn display_object(&self) -> &display::object::Instance {
-        self.view.display_object()
     }
 }

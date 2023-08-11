@@ -24,6 +24,8 @@ export enum Presence {
 /** The corresponding CSS classes for table rows, for each {@link Presence}. */
 export const CLASS_NAME: Record<Presence, string> = {
     [Presence.present]: '',
+    // Note that in some cases (e.g. table rows with alternating colors), the element should be
+    // completely removed from the DOM.
     [Presence.deleting]: 'hidden',
     [Presence.inserting]: 'opacity-50 pointer-events-none-recursive',
 } as const

@@ -1,9 +1,0 @@
-import Standard.Base.Nothing
-import local.TestNonImportedOwnMethods.Util
-
-type X
-    Mk_X a
-
-X.method self = 10
-
-main = Nothing.util (X.Mk_X 1)

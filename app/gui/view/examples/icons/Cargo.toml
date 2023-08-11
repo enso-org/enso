@@ -14,6 +14,6 @@ ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hard
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
 ide-view-component-list-panel-grid = { path = "../../component-browser/component-list-panel/grid" }
-ide-view-component-list-panel-icons = { path = "../../component-browser/component-list-panel/icons" }
+ensogl-icons = { path = "../../../../../lib/rust/ensogl/component/icons" }
 ide-view-graph-editor = { path = "../../graph-editor" }
 wasm-bindgen = { workspace = true }

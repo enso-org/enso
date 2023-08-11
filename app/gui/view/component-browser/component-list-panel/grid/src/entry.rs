@@ -18,6 +18,7 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
+use ensogl_icons::icon;
 use ensogl_text as text;
 
 
@@ -25,7 +26,6 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
-pub mod icon;
 pub mod style;
 
 pub use crate::entry::style::Style;
@@ -39,7 +39,7 @@ pub use crate::entry::style::Style;
 /// The number of pixels the entries backgrounds overlap each other.
 ///
 /// The entries need to overlap, otherwise we see artifacts at their boundaries.
-const ENTRIES_OVERLAP_PX: f32 = 2.0;
+const ENTRIES_OVERLAP_PX: f32 = 0.5;
 
 
 
@@ -139,7 +139,7 @@ pub struct Params {
 // === Data ===
 
 /// The data of Component Browser Entry [`View`], passed to its FRP nodes.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Data {
     display_object: display::object::Instance,
     label:          text::Text,
@@ -160,9 +160,10 @@ impl Data {
         display_object.add_child(&label);
         background.set_size((0.0, 0.0));
         icon.set_size((icon::SIZE, icon::SIZE));
+        icon.set_y(-icon::SIZE / 2.0);
         label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
-            label.add_to_scene_layer(layer);
+            layer.add(&label);
         }
         Self { display_object, label, background, icon, style }
     }
@@ -172,7 +173,7 @@ impl Data {
         self.background.set_size(entry_size + overlap);
         self.background.set_xy(-entry_size / 2.0 - overlap);
         let left = -entry_size.x / 2.0 + style.padding;
-        let icon_x = left + style.icon_size / 2.0;
+        let icon_x = left;
         self.icon.set_x(icon_x);
         let text_x = Self::text_x_position(style, grid_style);
         let text_y = style.text_y_offset;
@@ -215,9 +216,10 @@ impl Data {
 /// The entries (except [local scope entries](`Kind::LocalScopeEntry`) have width equal to the
 /// column width declared in [`Style`]. Making grid column  broader can create a nice vertical gaps
 /// between columns. The horizontal gaps are left by the header entries (having a bit lower height).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
     frp:  grid_view::entry::EntryFrp<Self>,
+    #[display_object]
     data: Data,
 }
 
@@ -285,11 +287,5 @@ impl grid_view::Entry for View {
 
     fn frp(&self) -> &grid_view::entry::EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }

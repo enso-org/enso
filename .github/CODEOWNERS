@@ -13,7 +13,7 @@ Cargo.lock
 Cargo.toml
 /lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
 /lib/rust/ensogl/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
-/lib/rust/parser/ @kazcw @jaroslavtulach
+/lib/rust/parser/ @MichaelMauderer @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
 /integration-test/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
 /tools/build-performance/ @kazcw @mwu-tow @Akirathan
 

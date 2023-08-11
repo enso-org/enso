@@ -31,27 +31,32 @@ import org.enso.interpreter.runtime.state.State;
 @ExportLibrary(TypesLibrary.class)
 public final class PanicException extends AbstractTruffleException {
   final Object payload;
-  String cacheMessage;
+  private String cacheMessage;
 
   /**
-   * Creates an instance of this class.
+   * Creates new user visible panic.
    *
    * @param payload arbitrary, user-provided payload carried by this exception
    * @param location the node throwing this exception, for use in guest stack traces
    */
   public PanicException(Object payload, Node location) {
-    super(location);
+    this(payload, null, location);
+  }
+
+  /**
+   * Creates user visible panic with additional cause.
+   *
+   * @param payload arbitrary, user-provided payload carried by this exception
+   * @param cause additional exception to carry information about the panic
+   * @param location the node throwing this exception, for use in guest stack traces
+   */
+  public PanicException(Object payload, Throwable cause, Node location) {
+    super(null, cause, UNLIMITED_STACK_TRACE, location);
     if (!InteropLibrary.isValidValue(payload)) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
-    InteropLibrary library = InteropLibrary.getUncached();
-    try {
-      cacheMessage = library.asString(library.getExceptionMessage(this));
-    } catch (UnsupportedMessageException e) {
-      cacheMessage = TypeToDisplayTextNodeGen.getUncached().execute(payload);
-    }
   }
 
   /**
@@ -65,7 +70,23 @@ public final class PanicException extends AbstractTruffleException {
 
   @Override
   public String getMessage() {
+    if (cacheMessage == null) {
+      return computeMessage();
+    }
     return cacheMessage;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String computeMessage() {
+    String msg;
+    InteropLibrary library = InteropLibrary.getUncached();
+    try {
+      msg = library.asString(library.getExceptionMessage(this));
+    } catch (UnsupportedMessageException e) {
+      msg = TypeToDisplayTextNodeGen.getUncached().execute(payload);
+    }
+    cacheMessage = msg;
+    return msg;
   }
 
   @Override
@@ -123,7 +144,7 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().panic();
   }
 

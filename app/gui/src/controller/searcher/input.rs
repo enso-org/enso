@@ -135,7 +135,7 @@ impl ast::TokenConsumer for AstAtPositionFinder {
                         .push(AstWithRange { ast: ast.clone_ref(), range: (start..end).into() });
                 }
             }
-            other => self.current_offset += other.len(),
+            other => self.current_offset += other.repr_len(),
         }
     }
 }

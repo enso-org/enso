@@ -124,11 +124,11 @@ ensogl::define_endpoints! {
 // ========================
 
 /// Breadcrumbs panel model.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct BreadcrumbsModel {
-    /// The breadcrumbs panel display object.
+    #[display_object]
     background:            Rectangle,
-    /// A container for all the breadcrumbs after project name. This contained and all its
+    /// A container for all the breadcrumbs after project name. This container and all its
     /// breadcrumbs are moved when project name component is resized.
     breadcrumbs_container: display::object::Instance,
     // Required for creating new breadcrumbs
@@ -394,12 +394,6 @@ impl BreadcrumbsModel {
     }
 }
 
-impl display::Object for BreadcrumbsModel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.background.display_object()
-    }
-}
-
 
 
 // ===================
@@ -407,10 +401,12 @@ impl display::Object for BreadcrumbsModel {
 // ===================
 
 /// The breadcrumbs panel's view used for visualizing the breadcrumbs and navigating them.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object, Deref)]
 #[allow(missing_docs)]
 pub struct Breadcrumbs {
+    #[display_object]
     model: BreadcrumbsModel,
+    #[deref]
     frp:   Frp,
 }
 
@@ -478,18 +474,5 @@ impl Breadcrumbs {
         }
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for Breadcrumbs {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
-impl Deref for Breadcrumbs {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }

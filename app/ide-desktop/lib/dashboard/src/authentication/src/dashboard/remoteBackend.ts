@@ -5,6 +5,7 @@
  * the response from the API. */
 import * as backend from './backend'
 import * as config from '../config'
+import * as errorModule from '../error'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 
@@ -129,7 +130,7 @@ interface ListUsersResponseBody {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
-    assets: backend.BaseAsset[]
+    assets: backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -162,7 +163,7 @@ interface ListVersionsResponseBody {
 // =====================
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export class RemoteBackend implements backend.Backend {
+export class RemoteBackend extends backend.Backend {
     readonly type = backend.BackendType.remote
 
     /** Create a new instance of the {@link RemoteBackend} API client.
@@ -172,6 +173,7 @@ export class RemoteBackend implements backend.Backend {
         private readonly client: http.Client,
         private readonly logger: loggerProvider.Logger
     ) {
+        super()
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
         if (!this.client.defaultHeaders.has('Authorization')) {
@@ -191,6 +193,15 @@ export class RemoteBackend implements backend.Backend {
     throw(message: string): never {
         this.logger.error(message)
         throw new Error(message)
+    }
+
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
     }
 
     /** Return a list of all users in the same organization. */
@@ -251,7 +262,7 @@ export class RemoteBackend implements backend.Backend {
     async listDirectory(
         query: backend.ListDirectoryRequestParams,
         title: string | null
-    ): Promise<backend.Asset[]> {
+    ): Promise<backend.AnyAsset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
                 '?' +
@@ -274,11 +285,24 @@ export class RemoteBackend implements backend.Backend {
                 return this.throw('Unable to list root directory.')
             }
         } else {
-            return (await response.json()).assets.map(
-                // This type assertion is safe; it is only needed to convert `type` to a newtype.
-                // eslint-disable-next-line no-restricted-syntax
-                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.Asset)
-            )
+            return (await response.json()).assets
+                .map(
+                    asset =>
+                        // This type assertion is safe; it is only needed to convert `type` to a
+                        // newtype.
+                        // eslint-disable-next-line no-restricted-syntax
+                        ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
+                )
+                .map(asset =>
+                    asset.type === backend.AssetType.project &&
+                    asset.projectState.type === backend.ProjectState.opened
+                        ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
+                        : asset
+                )
+                .map(asset => ({
+                    ...asset,
+                    permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),
+                }))
         }
     }
 
@@ -397,12 +421,28 @@ export class RemoteBackend implements backend.Backend {
             )
         } else {
             const project = await response.json()
-            return {
-                ...project,
-                jsonAddress:
-                    project.address != null ? backend.Address(`${project.address}json`) : null,
-                binaryAddress:
-                    project.address != null ? backend.Address(`${project.address}binary`) : null,
+            const ideVersion =
+                project.ide_version ??
+                (
+                    await this.listVersions({
+                        versionType: backend.VersionType.ide,
+                        default: true,
+                    })
+                )[0]?.number
+            if (ideVersion == null) {
+                return this.throw('No IDE version found')
+            } else {
+                return {
+                    ...project,
+                    ideVersion,
+                    engineVersion: project.engine_version,
+                    jsonAddress:
+                        project.address != null ? backend.Address(`${project.address}json`) : null,
+                    binaryAddress:
+                        project.address != null
+                            ? backend.Address(`${project.address}binary`)
+                            : null,
+                }
             }
         }
     }
@@ -502,7 +542,7 @@ export class RemoteBackend implements backend.Backend {
         params: backend.UploadFileRequestParams,
         body: Blob
     ): Promise<backend.FileInfo> {
-        const response = await this.postBase64<backend.FileInfo>(
+        const response = await this.postBinary<backend.FileInfo>(
             UPLOAD_FILE_PATH +
                 '?' +
                 new URLSearchParams({
@@ -517,12 +557,21 @@ export class RemoteBackend implements backend.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
+            let suffix = '.'
+            try {
+                const error = errorModule.tryGetError<unknown>(await response.json())
+                if (error != null) {
+                    suffix = `: ${error}`
+                }
+            } catch {
+                // Ignored.
+            }
             if (params.fileName != null) {
-                return this.throw(`Unable to upload file with name '${params.fileName}'.`)
+                return this.throw(`Could not upload file with name '${params.fileName}'${suffix}`)
             } else if (params.fileId != null) {
-                return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
+                return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
             } else {
-                return this.throw('Unable to upload file.')
+                return this.throw(`Could not upload file${suffix}`)
             }
         } else {
             return await response.json()
@@ -648,9 +697,7 @@ export class RemoteBackend implements backend.Backend {
     /** Return list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listVersions(
-        params: backend.ListVersionsRequestParams
-    ): Promise<[backend.Version, ...backend.Version[]]> {
+    async listVersions(params: backend.ListVersionsRequestParams): Promise<backend.Version[]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
                 '?' +
@@ -678,8 +725,8 @@ export class RemoteBackend implements backend.Backend {
     }
 
     /** Send a binary HTTP POST request to the given path. */
-    private postBase64<T = void>(path: string, payload: Blob) {
-        return this.client.postBase64<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    private postBinary<T = void>(path: string, payload: Blob) {
+        return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
     /** Send a JSON HTTP PUT request to the given path. */

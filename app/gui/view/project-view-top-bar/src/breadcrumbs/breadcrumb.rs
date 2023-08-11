@@ -7,6 +7,7 @@ use crate::breadcrumbs::SharedMethodPointer;
 
 use super::BACKGROUND_HEIGHT;
 use super::TEXT_SIZE;
+
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -214,7 +215,7 @@ pub struct BreadcrumbInfo {
 // =======================
 
 /// Breadcrumbs model.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct BreadcrumbModel {
     display_object:    display::object::Instance,
     overlay:           Rectangle,
@@ -245,8 +246,6 @@ impl BreadcrumbModel {
 
         scene.layers.panel_overlay.add(&overlay);
         scene.layers.panel.add(&separator);
-
-        label.add_to_scene_layer(&scene.layers.panel_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)
@@ -357,12 +356,6 @@ impl BreadcrumbModel {
     }
 }
 
-impl display::Object for BreadcrumbModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==================
@@ -370,10 +363,11 @@ impl display::Object for BreadcrumbModel {
 // ==================
 
 /// The breadcrumb's view which displays its name and exposes mouse press interactions.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Breadcrumb {
     #[deref]
+    #[display_object]
     model:   Rc<BreadcrumbModel>,
     pub frp: Frp,
 }
@@ -447,11 +441,5 @@ impl Breadcrumb {
         init.emit(());
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for Breadcrumb {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

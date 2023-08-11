@@ -396,7 +396,7 @@ impl Camera2dData {
 ///   in the center of the view will not move visually. If you set the alignment to bottom-left
 ///   corner, you will get a view which behaves like a window in window-based GUIs. When scaling the
 ///   window, the left-bottom corner will stay in place.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Camera2d {
     display_object: display::object::Instance,
     data:           Rc<RefCell<Camera2dData>>,
@@ -540,15 +540,6 @@ impl Camera2d {
 
     pub fn set_position(&self, value: Vector3<f32>) {
         self.data.borrow_mut().set_position(value)
-    }
-}
-
-
-// === Conversions ===
-
-impl display::Object for Camera2d {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

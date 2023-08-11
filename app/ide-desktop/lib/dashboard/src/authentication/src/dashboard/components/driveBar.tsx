@@ -1,20 +1,20 @@
 /** @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
-import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
-import DownloadIcon from 'enso-assets/download.svg'
-import UploadIcon from 'enso-assets/upload.svg'
+import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddFolderIcon from 'enso-assets/add_folder.svg'
+import DataDownloadIcon from 'enso-assets/data_download.svg'
+import DataUploadIcon from 'enso-assets/data_upload.svg'
 
+import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as column from '../column'
-import * as featureFlags from '../featureFlags'
-import * as fileListEventModule from '../events/fileListEvent'
-import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
-import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
+import Button from './button'
 
 // ================
 // === DriveBar ===
@@ -22,123 +22,119 @@ import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    directoryId: backendModule.DirectoryId | null
-    directory: backendModule.DirectoryAsset | null
-    parentDirectory: backendModule.DirectoryAsset | null
-    columnDisplayMode: column.ColumnDisplayMode
-    setColumnDisplayMode: (columnDisplayMode: column.ColumnDisplayMode) => void
-    dispatchFileListEvent: (fileListEvent: fileListEventModule.FileListEvent) => void
-    exitDirectory: () => void
+    doCreateProject: (templateId: string | null) => void
+    doCreateDirectory: () => void
+    doUploadFiles: (files: File[]) => void
+    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
-function DriveBar(props: DriveBarProps) {
-    const {
-        directoryId,
-        directory,
-        parentDirectory,
-        columnDisplayMode,
-        setColumnDisplayMode,
-        dispatchFileListEvent,
-        exitDirectory,
-    } = props
-    const logger = loggerProvider.useLogger()
+export default function DriveBar(props: DriveBarProps) {
+    const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const uploadFilesRef = React.useRef<HTMLInputElement>(null)
 
-    const uploadFiles = React.useCallback(
-        (event: React.FormEvent<HTMLInputElement>) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
-                logger.error(message)
-            } else if (
-                event.currentTarget.files == null ||
-                event.currentTarget.files.length === 0
-            ) {
-                toast.success('No files selected to upload.')
-            } else if (directoryId == null) {
-                // This should never happen, however display a nice error message in case
-                // it somehow does.
-                const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
-                logger.error(message)
-            } else {
-                dispatchFileListEvent({
-                    type: fileListEventModule.FileListEventType.uploadMultiple,
-                    files: event.currentTarget.files,
-                })
-            }
-        },
-        [
-            backend.type,
-            directoryId,
-            /* should not change */ logger,
-            /* should never change */ dispatchFileListEvent,
-        ]
-    )
+    React.useEffect(() => {
+        return shortcuts.registerKeyboardHandlers({
+            ...(backend.type !== backendModule.BackendType.local
+                ? {
+                      [shortcutsModule.KeyboardAction.newFolder]: () => {
+                          doCreateDirectory()
+                      },
+                  }
+                : {}),
+            [shortcutsModule.KeyboardAction.newProject]: () => {
+                doCreateProject(null)
+            },
+            [shortcutsModule.KeyboardAction.uploadFiles]: () => {
+                uploadFilesRef.current?.click()
+            },
+        })
+    }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
     return (
-        <div className="flex flex-row flex-nowrap my-2">
-            <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
-            <div className="flex flex-row flex-nowrap mx-4">
-                <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                    {directory && (
+        <div className="flex py-0.5">
+            <div className="flex gap-2.5">
+                <button
+                    className="flex items-center bg-frame rounded-full h-8 px-2.5"
+                    onClick={() => {
+                        unsetModal()
+                        doCreateProject(null)
+                    }}
+                >
+                    <span className="font-semibold leading-5 h-6 py-px">New Project</span>
+                </button>
+                <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
+                    {backend.type !== backendModule.BackendType.local && (
                         <>
-                            <button className="mx-2" onClick={exitDirectory}>
-                                {parentDirectory?.title ?? '/'}
-                            </button>
-                            <img src={ArrowRightSmallIcon} />
+                            <Button
+                                active
+                                image={AddFolderIcon}
+                                disabledOpacityClassName="opacity-20"
+                                onClick={() => {
+                                    unsetModal()
+                                    doCreateDirectory()
+                                }}
+                            />
+                            <Button
+                                active
+                                disabled
+                                image={AddConnectorIcon}
+                                error="Not implemented yet."
+                                disabledOpacityClassName="opacity-20"
+                                onClick={() => {
+                                    // No backend support yet.
+                                }}
+                            />
                         </>
                     )}
-                    <span className="mx-2">{directory?.title ?? '/'}</span>
-                </div>
-                <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                    <div className="m-2">Shared with</div>
-                    <div></div>
-                </div>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                     <input
+                        ref={uploadFilesRef}
                         type="file"
                         multiple
-                        disabled={backend.type === backendModule.BackendType.local}
                         id="upload_files_input"
                         name="upload_files_input"
-                        className="w-0 h-0"
-                        onInput={uploadFiles}
+                        {...(backend.type !== backendModule.BackendType.local
+                            ? {}
+                            : { accept: '.enso-project' })}
+                        className="hidden"
+                        onInput={event => {
+                            if (event.currentTarget.files != null) {
+                                doUploadFiles(Array.from(event.currentTarget.files))
+                            }
+                            // Clear the list of selected files. Otherwise, `onInput` will not be
+                            // dispatched again if the same file is selected.
+                            event.currentTarget.value = ''
+                        }}
                     />
-                    <label
-                        htmlFor="upload_files_input"
-                        className={`mx-1 ${
-                            backend.type === backendModule.BackendType.local
-                                ? 'opacity-50'
-                                : 'cursor-pointer'
-                        }`}
-                    >
-                        <img src={UploadIcon} />
-                    </label>
-                    <button
-                        className={`mx-1 opacity-50`}
-                        disabled={true}
+                    <Button
+                        active
+                        image={DataUploadIcon}
+                        disabledOpacityClassName="opacity-20"
+                        onClick={() => {
+                            unsetModal()
+                            uploadFilesRef.current?.click()
+                        }}
+                    />
+                    <Button
+                        active
+                        disabled={backend.type !== backendModule.BackendType.local}
+                        image={DataDownloadIcon}
+                        error="Not implemented yet."
+                        disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()
-                            /* TODO */
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.downloadSelected,
+                            })
                         }}
-                    >
-                        <img src={DownloadIcon} />
-                    </button>
-                </div>
-                {featureFlags.FEATURE_FLAGS.columnDisplayModeSwitcher && (
-                    <ColumnDisplayModeSwitcher
-                        columnDisplayMode={columnDisplayMode}
-                        setColumnDisplayMode={setColumnDisplayMode}
                     />
-                )}
+                </div>
             </div>
         </div>
     )
 }
-
-export default DriveBar

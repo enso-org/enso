@@ -64,7 +64,7 @@ mod background {
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
-            let radius             = node::RADIUS.px() ;
+            let radius             = node::CORNER_RADIUS.px() ;
             let background_rounded = Rect((&width,&height)).corners_radius(radius);
             let background_sharp   = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
             let background         = background_rounded + background_sharp;
@@ -160,7 +160,7 @@ mod pin_icon {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Icons {
     display_object:      display::object::Instance,
     icon_root:           display::object::Instance,
@@ -217,12 +217,6 @@ impl Icons {
     }
 }
 
-impl display::Object for Icons {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ===========
@@ -254,7 +248,7 @@ ensogl::define_endpoints! {
 // === Action Bar Model ===
 // ========================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     hover_area:            hover_area::View,
     visualization_chooser: VisualizationChooser,
@@ -320,12 +314,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==================
@@ -343,9 +331,10 @@ impl display::Object for Model {
 ///    |--------------------------------|
 /// ```
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct ActionBar {
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -436,11 +425,5 @@ impl ActionBar {
     /// Visualization Chooser component getter.
     pub fn visualization_chooser(&self) -> &VisualizationChooser {
         &self.model.visualization_chooser
-    }
-}
-
-impl display::Object for ActionBar {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }

@@ -200,10 +200,11 @@ impl Frp {
 // ================
 
 /// Abstraction for any visualization instance.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Instance {
     display_object: display::object::Instance,
+    #[deref]
     pub frp:        Frp,
     network:        frp::Network,
     root_dom:       Immutable<Option<DomSymbol>>,
@@ -233,18 +234,5 @@ impl Instance {
     /// Get the root dom of visualization if exists.
     pub fn root_dom(&self) -> &Option<DomSymbol> {
         self.root_dom.deref()
-    }
-}
-
-impl Deref for Instance {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl display::Object for Instance {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

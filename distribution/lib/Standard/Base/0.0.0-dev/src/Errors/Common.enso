@@ -1,11 +1,13 @@
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.Arithmetic_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, False, True
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
 polyglot java import org.enso.base.CompareException
 
@@ -207,6 +209,11 @@ type Arithmetic_Error
        Convert the Arithmetic_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Arithmetic error: "+self.message+"."
+
+    ## PRIVATE
+       Capture a Java `ArithmeticException` and convert it to an Enso dataflow error - `Arithmetic_Error.Error`.
+    handle_java_exception =
+        Panic.catch ArithmeticException handler=(cause-> Error.throw (Arithmetic_Error.Error cause.payload.getMessage))
 
 @Builtin_Type
 type Incomparable_Values

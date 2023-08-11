@@ -17,7 +17,6 @@ use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_conda;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::wrap_expression;
-use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
@@ -80,6 +79,10 @@ pub mod secret {
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
     pub const ECR_PUSH_RUNTIME_ACCESS_KEY_ID: &str = "ECR_PUSH_RUNTIME_ACCESS_KEY_ID";
+
+    // === Enso Cloud deployment ===
+    /// Static token for admin requests on our Lambdas.
+    pub const ENSO_ADMIN_TOKEN: &str = "ENSO_ADMIN_TOKEN";
 
 
     // === Apple Code Signing & Notarization ===
@@ -459,10 +462,7 @@ pub fn gui() -> Result<Workflow> {
 
 pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut permissions = BTreeMap::new();
-    // Required for `dorny/test-reporter`.
-    permissions.insert("checks".to_string(), Access::Write);
-    let mut workflow = Workflow { name: "Engine CI".into(), on, permissions, ..default() };
+    let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
     workflow.add(PRIMARY_OS, job::CancelWorkflow);
     for os in TARGETED_SYSTEMS {
         workflow.add(os, job::CiCheckBackend);

@@ -49,6 +49,6 @@ impl<I: InternalFormat, T: ItemType + JsBufferViewArr> TextureReload
         let data = storage.data.as_slice();
         let width = storage.width;
         let height = storage.height;
-        self.reload_from_memory(data, width, height);
+        self.reload_from_memory(data, width, height, 0);
     }
 }

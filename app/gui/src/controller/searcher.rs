@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
+use crate::model::execution_context::GroupQualifiedName;
 use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
 use crate::presenter::searcher;
@@ -28,6 +29,7 @@ use flo_stream::Subscriber;
 pub mod breadcrumbs;
 pub mod component;
 pub mod input;
+pub mod search;
 
 
 
@@ -39,6 +41,8 @@ pub mod input;
 /// needed. Currently enabled to trigger engine's caching of user-added nodes.
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES: bool = true;
+/// A name of a component group containing entries representing literals.
+pub const LITERALS_GROUP_NAME: &str = "Literals";
 
 
 // ==============
@@ -717,9 +721,9 @@ impl Searcher {
 
 fn add_virtual_entries_to_builder(builder: &mut component::Builder) {
     let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
-    let group_name = component::hardcoded::INPUT_GROUP_NAME;
-    let project = project::QualifiedName::standard_base_library();
-    builder.add_virtual_entries_to_group(group_name, project, snippets);
+    // Unwrap is safe because conversion from INPUT_GROUP_NAME is tested.
+    let group_name = GroupQualifiedName::try_from(component::hardcoded::INPUT_GROUP_NAME).unwrap();
+    builder.add_virtual_entries_to_group(group_name, snippets);
 }
 
 
@@ -865,8 +869,9 @@ fn component_list_for_literal(
 ) -> component::List {
     let mut builder = component::builder::Builder::new_empty(db);
     let project = project::QualifiedName::standard_base_library();
+    let group_name = GroupQualifiedName::new(project, LITERALS_GROUP_NAME);
     let snippet = component::hardcoded::Snippet::from_literal(literal, db).into();
-    builder.add_virtual_entries_to_group("Literals", project, vec![snippet]);
+    builder.add_virtual_entries_to_group(group_name, vec![snippet]);
     builder.build()
 }
 
@@ -1224,7 +1229,7 @@ pub mod test {
         searcher.reload_list();
         fixture.test.run_until_stalled();
         // There are two virtual entries and two top-modules.
-        assert_eq!(dbg!(searcher.components().displayed()).len(), 4);
+        assert_eq!(searcher.components().displayed().len(), 4);
 
         let mut subscriber = searcher.subscribe();
         searcher.enter_entry(3).expect("Entering entry failed");
@@ -1420,7 +1425,7 @@ pub mod test {
             let picked_method = PickedSuggestion { suggestion, inserted_code: default(), import };
             with(searcher.data.borrow_mut(), |mut data| {
                 data.picked_suggestions.push(picked_method);
-                data.input = input::Input::parse(&parser, &expression, default());
+                data.input = input::Input::parse(&parser, expression.as_str(), default());
             });
 
             // Add new node.

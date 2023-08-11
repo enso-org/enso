@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "^", description = "Big integer exponentiation.")
 public abstract class PowNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   public abstract Object execute(EnsoBigInteger self, Object that);
 

@@ -272,6 +272,7 @@ lazy val enso = (project in file("."))
     `locking-test-helper`,
     `akka-native`,
     `version-output`,
+    `refactoring-utils`,
     `engine-runner`,
     runtime,
     searcher,
@@ -296,6 +297,7 @@ lazy val enso = (project in file("."))
     `connected-lock-manager`,
     syntax,
     testkit,
+    `common-polyglot-core-utils`,
     `std-base`,
     `std-database`,
     `std-google-api`,
@@ -303,7 +305,8 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-aws`,
     `simple-httpbin`,
-    `enso-test-java-helpers`
+    `enso-test-java-helpers`,
+    `exploratory-benchmark-java-helpers`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -784,6 +787,22 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
         )
     }.taskValue
   )
+
+lazy val `refactoring-utils` = project
+  .in(file("lib/scala/refactoring-utils"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    )
+  )
+  .dependsOn(`runtime-parser`)
+  .dependsOn(`text-buffer`)
+  .dependsOn(testkit % Test)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -1340,6 +1359,9 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
+    Global / onLoad := GraalVersionCheck.addVersionCheck(
+      graalVersion
+    )((Global / onLoad).value),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value
   )
   .settings(
@@ -1359,6 +1381,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
@@ -1428,6 +1451,7 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       )
     )
+    .dependsOn(`refactoring-utils`)
     .dependsOn(
       runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
     )
@@ -1764,6 +1788,119 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
+lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
+      "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
+      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % "provided",
+      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
+      "junit"               % "junit"                    % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface"          % junitIfVersion            % Test,
+      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Test
+    ),
+    Compile / javacOptions := ((Compile / javacOptions).value ++
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    )),
+    commands += WithDebugCommand.withDebug,
+    (Test / fork) := true,
+    (Test / parallelExecution) := false,
+    (Test / javaOptions) ++= {
+      val runtimeJars =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+      val jarsStr = runtimeJars.map(_.data).mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=${jarsStr}"
+      )
+    }
+  )
+  .dependsOn(`polyglot-api`)
+  .dependsOn(runtime)
+
+lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= jmh ++ Seq(
+      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % Benchmark,
+      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
+      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
+    ),
+    commands += WithDebugCommand.withDebug,
+    (Compile / logManager) :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+      )
+  )
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings)
+  )
+  .settings(
+    (Benchmark / parallelExecution) := false,
+    (Benchmark / run / fork) := true,
+    (Benchmark / run / connectInput) := true,
+    // Pass -Dtruffle.class.path.append to javac
+    (Benchmark / compile / javacOptions) ++= {
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+      val runtimeInstrumentsClasspath =
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / Compile / fullClasspath).value
+      val appendClasspath =
+        (runtimeClasspath ++ runtimeInstrumentsClasspath)
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(
+        s"-J-Dtruffle.class.path.append=$appendClasspath"
+      )
+    },
+    (Benchmark / compile / javacOptions) ++= Seq(
+      "-s",
+      (Benchmark / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
+    ),
+    (Benchmark / run / javaOptions) ++= {
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+      val runtimeInstrumentsClasspath =
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / Compile / fullClasspath).value
+      val appendClasspath =
+        (runtimeClasspath ++ runtimeInstrumentsClasspath)
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=$appendClasspath"
+      )
+    }
+  )
+  .settings(
+    bench := (Benchmark / run).toTask("").tag(Exclusive).value,
+    benchOnly := Def.inputTaskDyn {
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _          => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (Benchmark / run).toTask(" " + name).value
+      }
+    }.evaluated
+  )
+  .dependsOn(`bench-processor` % Benchmark)
+  .dependsOn(runtime % Benchmark)
+
 lazy val editions = project
   .in(file("lib/scala/editions"))
   .configs(Test)
@@ -2013,6 +2150,26 @@ lazy val `enso-test-java-helpers` = project
       }
       result
     }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `exploratory-benchmark-java-helpers` = project
+  .in(
+    file(
+      "test/Exploratory_Benchmarks/polyglot-sources/exploratory-benchmark-java-helpers"
+    )
+  )
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file(
+        "test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"
+      ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+    )
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -2340,11 +2497,13 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
       (`std-aws` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value

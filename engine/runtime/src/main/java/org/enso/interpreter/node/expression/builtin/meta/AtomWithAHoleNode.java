@@ -1,7 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.dsl.NeverDefault;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -12,9 +13,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.State;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -24,8 +27,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -36,6 +37,10 @@ public abstract class AtomWithAHoleNode extends Node {
 
   static AtomWithAHoleNode build() {
     return AtomWithAHoleNodeGen.create();
+  }
+
+  public static boolean isHole(Object v) {
+    return v instanceof HoleInAtom;
   }
 
   abstract Object execute(VirtualFrame frame, Object factory, State state);
@@ -96,6 +101,13 @@ public abstract class AtomWithAHoleNode extends Node {
         };
     }
 
+    @ExportMessage boolean isMemberInvocable(String member) {
+        return switch (member) {
+            case "fill" -> true;
+            default -> false;
+        };
+    }
+
     @ExportMessage Object getMembers(boolean includeInternal) {
         return new Array("value", "fill");
     }
@@ -107,6 +119,21 @@ public abstract class AtomWithAHoleNode extends Node {
       }
       if ("fill".equals(name)) {
         return function;
+      }
+      throw UnknownIdentifierException.create(name);
+    }
+
+    @ExportMessage
+    Object invokeMember(
+      String name, Object[] args,
+      @Cached(value="buildWithArity(1)", allowUncached=true) InvokeFunctionNode invoke
+    ) throws UnknownIdentifierException {
+      if ("fill".equals(name)) {
+        if (args.length == 0) {
+          return function;
+        }
+        var ctx = EnsoContext.get(invoke);
+        return invoke.execute(function, null, State.create(ctx), args);
       }
       throw UnknownIdentifierException.create(name);
     }
@@ -125,8 +152,8 @@ public abstract class AtomWithAHoleNode extends Node {
     private SwapAtomFieldNode() {
       super(null);
       this.schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[]{
-        new ArgumentDefinition(0, "lazy", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
+        new ArgumentDefinition(0, "lazy", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
       }, new CallArgumentInfo[0], new Annotation[0]);

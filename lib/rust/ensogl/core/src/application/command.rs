@@ -20,15 +20,20 @@ use crate::frp;
 pub trait DerefToCommandApi = Deref where <Self as Deref>::Target: CommandApi;
 
 /// A visual component of an application.
-pub trait View: FrpNetworkProvider + DerefToCommandApi {
+pub trait View: FrpNetworkProvider + DerefToCommandApi + crate::display::Object {
     /// Identifier of the command provider class.
     fn label() -> &'static str;
 
     /// Constructor.
     fn new(app: &Application) -> Self;
 
-    /// Set of default shortcuts.
-    fn default_shortcuts() -> Vec<Shortcut> {
+    /// Set of shortcuts that are active regardless of the currently-focused component.
+    fn global_shortcuts() -> Vec<Shortcut> {
+        default()
+    }
+
+    /// Set of shortcuts enabled only when the component is focused.
+    fn focused_shortcuts() -> Vec<Shortcut> {
         default()
     }
 
@@ -173,22 +178,23 @@ impl Registry {
         }
     }
 
-    /// Registers the command `ProviderInstance`.
-    pub fn register_instance<T: View>(&self, target: &T) {
+    /// Registers the command `ProviderInstance`. Returns an identifier for the registered instance.
+    pub fn register_instance<T: View>(&self, target: &T) -> frp::NetworkId {
         let label = T::label();
-        let network = T::network(target).downgrade();
-        let command_map = target.deref().command_api();
-        let status_map = target.deref().status_api();
-        let instance = ProviderInstance { network, command_map, status_map };
         let was_registered = self.name_map.borrow().get(label).is_some();
         if !was_registered {
             self.register::<T>();
             // FIXME[WD]: The registration should be performed automatically by using before-main
             //     entry points.
         };
+        let network = T::network(target).downgrade();
+        let command_map = target.deref().command_api();
+        let status_map = target.deref().status_api();
+        let instance = ProviderInstance { network, command_map, status_map };
         let id = instance.id();
         self.name_map.borrow_mut().get_mut(label).unwrap().push(instance.clone_ref());
         self.id_map.borrow_mut().insert(id, instance);
+        id
     }
 
     /// Queries the command map by command name and applies the provided function to the result.

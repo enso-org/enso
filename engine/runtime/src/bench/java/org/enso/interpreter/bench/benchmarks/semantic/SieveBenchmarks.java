@@ -49,7 +49,17 @@ public class SieveBenchmarks {
   }
 
   @Benchmark
+  public void sieveWithoutTypes(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
   public void sieve1(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void sieveAscribed(Blackhole matter) {
     performBenchmark(matter);
   }
 

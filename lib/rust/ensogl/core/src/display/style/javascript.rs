@@ -7,9 +7,8 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use crate::system::web;
 
-use super::sheet::Data;
-use super::sheet::Value;
 use super::theme::Manager;
+
 #[cfg(target_arch = "wasm32")]
 use js_sys;
 use wasm_bindgen::prelude::Closure;
@@ -129,7 +128,11 @@ mod js {
 //     management to JS GC. See https://github.com/enso-org/ide/issues/1028
 /// Expose the `window.theme` variable which can be used to inspect and change the theme directly
 /// from the JavaScript console.
+#[cfg(target_arch = "wasm32")]
 pub fn expose_to_window(manager: &Manager) {
+    use super::sheet::Data;
+    use super::sheet::Value;
+
     let list: js::List = Closure::new(f!([manager]() format!("{:?}",manager.keys())));
     let choose: js::Choose = Closure::new(f!((name) manager.set_enabled(&[name])));
     let snapshot: js::Snapshot = Closure::new(f!((name) manager.snapshot(name)));
@@ -180,4 +183,10 @@ pub fn expose_to_window(manager: &Manager) {
     mem::forget(snapshot);
     mem::forget(diff);
     mem::forget(get);
+}
+
+/// Stub of `expose_to_window` for non-web targets.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn expose_to_window(manager: &Manager) {
+    let _ = manager;
 }
