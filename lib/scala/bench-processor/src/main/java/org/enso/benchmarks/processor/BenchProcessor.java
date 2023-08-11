@@ -217,6 +217,8 @@ public class BenchProcessor extends AbstractProcessor {
     out.println(getMeasureAnnotationForGroup(group));
     out.println("@State(Scope.Benchmark)");
     out.println("public class " + className + " {");
+
+    // Field definitions
     out.println("  private Value groupInputArg;");
     for (var specJavaName : specJavaNames) {
       out.println("  private Value benchFunc_" + specJavaName + ";");
@@ -280,7 +282,7 @@ public class BenchProcessor extends AbstractProcessor {
 
     // Benchmark methods
     for (var specJavaName : specJavaNames) {
-      out.println("  ");
+      out.println();
       out.println("  @Benchmark");
       out.println("  public void " + specJavaName + "(Blackhole blackhole) {");
       out.println(
