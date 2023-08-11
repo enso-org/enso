@@ -1,13 +1,21 @@
 from Standard.Base import Vector
+import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
 import project.Vector.Operations
 import project.Vector.Sort
+import project.Collections
+import project.Column_Numeric
+import project.Equality
 
 all_benchmarks =
     builder = Vector.new_builder
-    builder.append Operations.collect_benches
+    builder.append Array_Proxy_Bench.collect_benches
     builder.append Distinct.collect_benches
+    builder.append Operations.collect_benches
     builder.append Sort.collect_benches
+    builder.append Collections.collect_benches
+    builder.append Column_Numeric.collect_benches
+    builder.append Equality.collect_benches
     builder.to_vector
 
 main =
