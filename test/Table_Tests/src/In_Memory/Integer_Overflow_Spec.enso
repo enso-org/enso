@@ -116,6 +116,16 @@ spec =
             c4.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c4
 
+            c5 = x+u
+            c5.to_vector . should_equal [1, 2, max_value+1, 1]
+            c5.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c5
+
+            c6 = y-u
+            c6.to_vector . should_equal [-1, -2, min_value-1, -1]
+            c6.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c6
+
         test_no_overflow Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
         test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
         test_no_overflow (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
