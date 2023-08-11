@@ -33,7 +33,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -234,7 +234,8 @@ public final class Error {
    *     given method call
    */
   public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
-    return unsupportedArgumentsError.newInstance(new Array(args), message);
+    return unsupportedArgumentsError.newInstance(
+        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), message);
   }
 
   /**

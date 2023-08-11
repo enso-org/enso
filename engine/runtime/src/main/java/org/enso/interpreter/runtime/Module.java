@@ -34,7 +34,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
@@ -604,8 +604,8 @@ public final class Module implements EnsoObject {
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      Object[] imports = context.getCompiler().gatherImportStatements(module);
-      return new Array(imports);
+      String[] imports = context.getCompiler().gatherImportStatements(module);
+      return ArrayLikeHelpers.wrapStrings(imports);
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -684,7 +684,7 @@ public final class Module implements EnsoObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(
+    return ArrayLikeHelpers.wrapStrings(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,

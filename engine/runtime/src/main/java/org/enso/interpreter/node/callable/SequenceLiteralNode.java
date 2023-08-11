@@ -2,7 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.vector.Array;
-import org.enso.interpreter.runtime.data.vector.Vector;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -43,6 +43,6 @@ public class SequenceLiteralNode extends ExpressionNode {
         throw sentinel;
       }
     }
-    return Vector.fromArray(new Array(itemValues));
+    return ArrayLikeHelpers.asVectorWithCheckAt(itemValues);
   }
 }

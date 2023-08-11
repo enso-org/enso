@@ -48,7 +48,7 @@ final class ArraySlice implements EnsoObject {
     long slice_end = Math.min(this_length, end);
     Object slice;
     if (slice_start >= slice_end) {
-      slice = Array.allocate(0);
+      slice = ArrayLikeHelpers.allocate(0);
     } else if ((slice_start == 0) && (slice_end == this_length)) {
       return null;
     } else {

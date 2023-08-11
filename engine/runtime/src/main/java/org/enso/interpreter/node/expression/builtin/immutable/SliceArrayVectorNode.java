@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -25,7 +26,7 @@ public abstract class SliceArrayVectorNode extends Node {
 
   @Specialization
   Object sliceArray(Array self, long start, long end) {
-    return Array.slice(self, start, end, self.length());
+    return ArrayLikeHelpers.slice(self, start, end, self.length());
   }
 
   @Specialization
@@ -35,7 +36,7 @@ public abstract class SliceArrayVectorNode extends Node {
       long end,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
-      return Array.slice(self, start, end, self.length(iop));
+      return ArrayLikeHelpers.slice(self, start, end, self.length(iop));
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw unsupportedMessageException(self);
@@ -50,7 +51,7 @@ public abstract class SliceArrayVectorNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       long len = iop.getArraySize(self);
-      return Array.slice(self, start, end, len);
+      return ArrayLikeHelpers.slice(self, start, end, len);
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw unsupportedMessageException(self);

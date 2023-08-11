@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 
@@ -62,9 +62,9 @@ public final class Warning implements EnsoObject {
   }
 
   @Builtin.Method(description = "Gets the list of locations where the warnings was reassigned.")
-  public Array getReassignments() {
+  public EnsoObject getReassignments() {
     Warning.Reassignment[] reassignmentsArray = reassignments.toArray(Warning.Reassignment[]::new);
-    return new Array(Arrays.copyOf(reassignmentsArray, reassignmentsArray.length, Object[].class));
+    return ArrayLikeHelpers.wrapEnsoObjects(reassignmentsArray);
   }
 
   @Builtin.Method(
@@ -92,10 +92,10 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
+  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
     sortArray(warnings);
-    return new Array((Object[]) warnings);
+    return ArrayLikeHelpers.wrapEnsoObjects(warnings);
   }
 
   @Builtin.Method(
@@ -103,17 +103,17 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static Array getAll(Object value, WarningsLibrary warnings) {
+  public static EnsoObject getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
         Warning[] arr = warnings.getWarnings(value, null);
         sortArray(arr);
-        return new Array((Object[]) arr);
+        return ArrayLikeHelpers.wrapEnsoObjects(arr);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      return new Array();
+      return ArrayLikeHelpers.empty();
     }
   }
 

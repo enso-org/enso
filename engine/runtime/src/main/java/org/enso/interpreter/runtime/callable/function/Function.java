@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
@@ -268,7 +268,7 @@ public final class Function implements EnsoObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(MethodNames.Function.EQUALS);
+    return ArrayLikeHelpers.wrapStrings(MethodNames.Function.EQUALS);
   }
 
   /**

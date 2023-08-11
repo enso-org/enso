@@ -215,8 +215,8 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "list_immediate_children_array")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public EnsoFile[] list() throws IOException {
-    return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
+  public EnsoObject list() throws IOException {
+    return ArrayLikeHelpers.wrapEnsoObjects(this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new));
   }
 
   @Builtin.Method

@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
@@ -107,8 +107,8 @@ public final class TopLevelScope implements EnsoObject {
    * @return a collection of all the exported members.
    */
   @ExportMessage
-  Array getMembers(boolean includeInternal) {
-    return new Array(
+  EnsoObject getMembers(boolean includeInternal) {
+    return ArrayLikeHelpers.wrapStrings(
         MethodNames.TopScope.GET_MODULE,
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,

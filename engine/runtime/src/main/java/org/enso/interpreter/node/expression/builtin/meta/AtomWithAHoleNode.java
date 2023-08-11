@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -110,7 +110,7 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     @ExportMessage Object getMembers(boolean includeInternal) {
-        return new Array("value", "fill");
+        return ArrayLikeHelpers.wrapStrings("value", "fill");
     }
 
     @ExportMessage

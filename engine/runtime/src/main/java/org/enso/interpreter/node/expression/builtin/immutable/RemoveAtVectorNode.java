@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -87,7 +88,7 @@ public abstract class RemoveAtVectorNode extends Node {
       throws UnsupportedMessageException {
     long length = interop.getArraySize(storage);
     long actualIndex = index < 0 ? index + length : index;
-    Array array = Array.allocate(length - 1);
+    Array array = ArrayLikeHelpers.allocate(length - 1);
     copyArrayNode.execute(storage, 0, array, 0, actualIndex);
     copyArrayNode.execute(storage, actualIndex + 1, array, actualIndex, length - actualIndex - 1);
     return Vector.fromArray(array);

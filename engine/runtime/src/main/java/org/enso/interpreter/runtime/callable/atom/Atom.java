@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -141,7 +142,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public Array getMembers(boolean includeInternal) {
+  public EnsoObject getMembers(boolean includeInternal) {
     Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
@@ -151,8 +152,8 @@ public abstract class Atom implements EnsoObject {
     if (members != null) {
       allMembers.addAll(members.keySet());
     }
-    Object[] mems = allMembers.toArray();
-    return new Array(mems);
+    String[] mems = allMembers.toArray(new String[0]);
+    return ArrayLikeHelpers.wrapStrings(mems);
   }
 
   @ExportMessage

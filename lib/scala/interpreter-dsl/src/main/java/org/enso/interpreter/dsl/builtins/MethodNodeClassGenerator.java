@@ -148,6 +148,5 @@ public abstract class MethodNodeClassGenerator {
           "org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode",
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
-          "org.enso.interpreter.runtime.data.vector.Array",
           "org.enso.interpreter.runtime.error.PanicException");
 }

@@ -26,7 +26,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
@@ -220,7 +220,7 @@ public final class Type implements EnsoObject {
       throw UnsupportedMessageException.create();
     }
     assert getSupertype() != null;
-    return new Array(getSupertype());
+    return ArrayLikeHelpers.wrapEnsoObjects(getSupertype());
   }
 
   @ExportMessage
@@ -286,8 +286,8 @@ public final class Type implements EnsoObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  Array getMembers(boolean includeInternal) {
-    return new Array(constructors.keySet().toArray(Object[]::new));
+  EnsoObject getMembers(boolean includeInternal) {
+    return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
   }
 
   @ExportMessage

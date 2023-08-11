@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -99,7 +100,7 @@ public abstract class FlattenVectorNode extends Node {
         flattened_length += interop.getArraySize(item);
       }
 
-      Array result = Array.allocate(flattened_length);
+      Array result = ArrayLikeHelpers.allocate(flattened_length);
       long current_index = 0;
       for (long i = 0; i < length; i++) {
         var item = interop.readArrayElement(storage, i);

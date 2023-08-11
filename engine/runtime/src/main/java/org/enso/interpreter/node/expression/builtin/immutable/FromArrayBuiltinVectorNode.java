@@ -7,7 +7,8 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.vector.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -21,7 +22,7 @@ public abstract class FromArrayBuiltinVectorNode extends Node {
     return FromArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object arr);
+  abstract EnsoObject execute(Object arr);
 
   @Specialization
   Vector fromVector(Vector arr) {
@@ -29,11 +30,11 @@ public abstract class FromArrayBuiltinVectorNode extends Node {
   }
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
-  Vector fromArrayLikeObject(
+  EnsoObject fromArrayLikeObject(
       Object arr,
       @Cached CoerceArrayNode coerce,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return Vector.fromArray(new Array(coerce.execute(arr)));
+    return ArrayLikeHelpers.asVectorWithCheckAt(coerce.execute(arr));
   }
 
   @Fallback
