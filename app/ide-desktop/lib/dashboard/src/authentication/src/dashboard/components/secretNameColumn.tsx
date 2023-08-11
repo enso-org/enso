@@ -31,7 +31,6 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
@@ -71,7 +70,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 break
             }
             case assetEventModule.AssetEventType.newSecret: {
-                if (key === event.placeholderId) {
+                if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Secrets cannot be created on the local backend')
                     } else {
@@ -83,15 +82,14 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                                 secretValue: event.value,
                             })
                             rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.SecretAsset = {
+                            setAsset({
                                 ...asset,
-                                ...createdSecret,
-                            }
-                            setAsset(newItem)
+                                id: createdSecret.id,
+                            })
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                key,
+                                key: item.key,
                             })
                             toastAndLog('Error creating new secret', error)
                         }

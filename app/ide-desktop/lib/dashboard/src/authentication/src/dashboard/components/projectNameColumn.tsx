@@ -30,7 +30,6 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
@@ -189,7 +188,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            key,
+                            key: item.key,
                         })
                         toastAndLog('Could not upload project', error)
                     }
@@ -224,7 +223,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             }}
         >
             <ProjectIcon
-                keyProp={key}
+                keyProp={item.key}
                 item={asset}
                 setItem={setAsset}
                 assetEvents={assetEvents}

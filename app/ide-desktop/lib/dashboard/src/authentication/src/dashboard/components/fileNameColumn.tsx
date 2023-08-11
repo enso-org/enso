@@ -30,7 +30,6 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
@@ -83,15 +82,14 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             file
                         )
                         rowState.setPresence(presence.Presence.present)
-                        const newItem: backendModule.FileAsset = {
+                        setAsset({
                             ...asset,
-                            ...createdFile,
-                        }
-                        setAsset(newItem)
+                            id: createdFile.id,
+                        })
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            key,
+                            key: item.key,
                         })
                         toastAndLog('Could not upload file', error)
                     }

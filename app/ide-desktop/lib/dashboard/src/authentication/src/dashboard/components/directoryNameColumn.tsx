@@ -31,7 +31,6 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
@@ -77,7 +76,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 break
             }
             case assetEventModule.AssetEventType.newFolder: {
-                if (key === event.placeholderId) {
+                if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Folders cannot be created on the local backend')
                     } else {
@@ -95,7 +94,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                key,
+                                key: item.key,
                             })
                             toastAndLog('Error creating new folder', error)
                         }
@@ -128,7 +127,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
-                        doToggleDirectoryExpansion(asset.id, key, asset.title)
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
                     }
                 }
             }}
