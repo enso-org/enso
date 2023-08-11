@@ -11,6 +11,8 @@ import org.graalvm.polyglot.Context;
 /** An operation that takes a single argument of some type and returns an integer. */
 public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOperation<T, I> {
 
+  private static final IntegerType RESULT_TYPE = IntegerType.INT_64;
+
   public UnaryIntegerOp(String name) {
     super(name);
   }
@@ -32,7 +34,6 @@ public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOp
       context.safepoint();
     }
 
-    // TODO probably inherit type?
-    return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
+    return new LongStorage(newVals, newVals.length, newMissing, RESULT_TYPE);
   }
 }
