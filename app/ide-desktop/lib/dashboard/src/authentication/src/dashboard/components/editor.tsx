@@ -95,29 +95,33 @@ export default function Editor(props: EditorProps) {
                                 : {
                                       projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                                   }
-                        await appRunner.runApp(
-                            {
-                                loader: {
-                                    assetsUrl: `${assetsRoot}dynamic-assets`,
-                                    wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                        try {
+                            await appRunner.runApp(
+                                {
+                                    loader: {
+                                        assetsUrl: `${assetsRoot}dynamic-assets`,
+                                        wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                        jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                                    },
+                                    engine: {
+                                        ...engineConfig,
+                                        ...(project.engineVersion != null
+                                            ? { preferredVersion: project.engineVersion.value }
+                                            : {}),
+                                    },
+                                    startup: {
+                                        project: project.packageName,
+                                    },
+                                    window: {
+                                        topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                                    },
                                 },
-                                engine: {
-                                    ...engineConfig,
-                                    ...(project.engineVersion != null
-                                        ? { preferredVersion: project.engineVersion.value }
-                                        : {}),
-                                },
-                                startup: {
-                                    project: project.packageName,
-                                },
-                                window: {
-                                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
-                                },
-                            },
-                            accessToken,
-                            { projectId: project.projectId }
-                        )
+                                accessToken,
+                                { projectId: project.projectId }
+                            )
+                        } catch {
+                            // Ignored.
+                        }
                     }
                     if (backendType === backendModule.BackendType.local) {
                         await runNewProject()
