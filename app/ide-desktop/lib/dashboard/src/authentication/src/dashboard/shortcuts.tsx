@@ -124,7 +124,9 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
         !event.ctrlKey &&
         !event.shiftKey &&
         !event.metaKey &&
-        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) || event.key === 'Backspace')
+        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
+            event.key === 'Backspace' ||
+            event.key === 'Delete')
     )
 }
 
