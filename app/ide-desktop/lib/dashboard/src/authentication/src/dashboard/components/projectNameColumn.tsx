@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
@@ -53,21 +54,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`ProjectNameColumn` can only display project assets.')
     }
-    const setAsset = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<backendModule.ProjectAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    // This is SAFE, because it is a mistake for an item to change type.
-                    // eslint-disable-next-line no-restricted-syntax
-                    item: valueOrUpdater(oldItem.item as backendModule.ProjectAsset),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
-        },
-        [/* should never change */ setItem]
-    )
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     const doRename = async (newName: string) => {
         try {

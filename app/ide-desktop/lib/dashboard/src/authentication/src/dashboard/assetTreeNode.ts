@@ -1,4 +1,6 @@
 /** @file A node in the drive's item tree. */
+import * as React from 'react'
+
 import * as backendModule from './backend'
 
 // =====================
@@ -144,4 +146,34 @@ export function assetTreeNodeFromAsset(
         children: null,
         depth,
     }
+}
+
+// ===================
+// === useSetAsset ===
+// ===================
+
+/** Converts a React set state action for an {@link AssetTreeNode} to a set state action for any
+ * subset of {@link backendModule.AnyAsset}. This is unsafe when `T` does not match the type of the
+ * item contained in the `AssetTreeNode`, so this MUST be guarded by checking that the item is of
+ * the correct type. A value of type `T` must be provided as the first parameter to ensure that this
+ * has been done. */
+export function useSetAsset<T extends backendModule.AnyAsset>(
+    _value: T,
+    setNode: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+) {
+    return React.useCallback(
+        (valueOrUpdater: React.SetStateAction<T>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setNode(oldNode => ({
+                    ...oldNode,
+                    // This is SAFE, because it is a mistake for an item to change type.
+                    // eslint-disable-next-line no-restricted-syntax
+                    item: valueOrUpdater(oldNode.item as T),
+                }))
+            } else {
+                setNode(oldNode => ({ ...oldNode, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setNode]
+    )
 }

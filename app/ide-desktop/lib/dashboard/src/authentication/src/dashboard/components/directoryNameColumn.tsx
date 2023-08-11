@@ -5,6 +5,7 @@ import DirectoryIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
@@ -47,21 +48,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`DirectoryNameColumn` can only display directory assets.')
     }
-    const setAsset = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<backendModule.DirectoryAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    // This is SAFE, because it is a mistake for an item to change type.
-                    // eslint-disable-next-line no-restricted-syntax
-                    item: valueOrUpdater(oldItem.item as backendModule.DirectoryAsset),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
-        },
-        [/* should never change */ setItem]
-    )
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
