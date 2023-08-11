@@ -282,8 +282,7 @@ impl State {
             .nodes
             .borrow()
             .get(node)
-            .map(|node| node.disable_expression_auto_update)
-            .unwrap_or_default();
+            .map_or_default(|node| node.disable_expression_auto_update);
         !auto_update_disabled
     }
 
@@ -448,10 +447,9 @@ impl<'a> ControllerChange<'a> {
     /// Set whether this node is currently awaiting completion of execution.
     pub fn set_node_pending(
         &self,
-        expression: ast::Id,
+        node_id: ast::Id,
         is_pending: bool,
     ) -> Option<(ViewNodeId, bool)> {
-        let node_id = self.state.nodes.borrow().get(expression).is_some().as_some(expression)?;
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut(node_id)?;
         if displayed.is_pending != is_pending {

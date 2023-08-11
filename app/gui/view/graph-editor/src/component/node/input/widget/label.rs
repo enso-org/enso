@@ -40,7 +40,7 @@ ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(ColorState),
-        text_alpha(AlphaState),
+        text_pending(bool),
         text_weight(Option<text::Weight>),
         text_sdf_weight(f32),
     }
@@ -92,10 +92,10 @@ impl SpanWidget for Widget {
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             parent_port_hovered <- parent_port_hovered.on_change();
             text_color <- frp.text_color.on_change();
-            text_alpha <- frp.text_alpha.on_change();
+            text_pending <- frp.text_pending.on_change();
             label_color <- all_with4(
-                &style, &text_color, &parent_port_hovered, &text_alpha,
-                |style, state, hovered, alpha_factor| state.to_color(*hovered, style, alpha_factor.to_alpha(style))
+                &style, &text_color, &parent_port_hovered, &text_pending,
+                |style, state, hovered, text_pending| state.to_color(*hovered, style, *text_pending)
             ).debounce().on_change();
             color_anim.target <+ label_color;
             eval color_anim.value((color) label.set_property_default(color));
@@ -144,10 +144,6 @@ impl SpanWidget for Widget {
             _ if is_placeholder => ColorState::Placeholder,
             _ => ColorState::Base,
         };
-        let text_alpha = match ctx.info.pending {
-            true => AlphaState::Pending,
-            false => AlphaState::Normal,
-        };
 
         let ext = ctx.get_extension_or_default::<Extension>();
         let bold = ext.bold || is_placeholder;
@@ -156,7 +152,7 @@ impl SpanWidget for Widget {
         let input = &self.frp.public.input;
         input.content(content);
         input.text_color(color_state);
-        input.text_alpha(text_alpha);
+        input.text_pending(ctx.info.pending);
         input.text_weight(text_weight);
     }
 }
@@ -210,7 +206,7 @@ impl ColorState {
         })
     }
 
-    fn to_color(self, is_hovered: bool, style: &Style, alpha_factor: f32) -> color::Lcha {
+    fn to_color(self, is_hovered: bool, style: &Style, text_pending: bool) -> color::Lcha {
         let base_color = color::Lcha::from(match self {
             _ if is_hovered => style.connected_color,
             ColorState::Base => style.base_color,
@@ -218,31 +214,9 @@ impl ColorState {
             ColorState::Disabled => style.disabled_color,
             ColorState::Placeholder => style.placeholder_color,
         });
-        base_color.opaque.with_alpha(base_color.alpha * alpha_factor)
-    }
-}
-
-
-
-// ==================
-// === AlphaState ===
-// ==================
-
-/// The state of the text's opacity.
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum AlphaState {
-    /// The normal state.
-    #[default]
-    Normal,
-    /// The state when awaiting a pending computation.
-    Pending,
-}
-
-impl AlphaState {
-    fn to_alpha(self, style: &Style) -> f32 {
-        match self {
-            AlphaState::Normal => 1.0,
-            AlphaState::Pending => style.pending_alpha,
+        match text_pending {
+            true => base_color.multiply_alpha(style.pending_alpha),
+            false => base_color,
         }
     }
 }

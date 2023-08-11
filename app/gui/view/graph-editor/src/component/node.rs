@@ -869,7 +869,7 @@ impl Node {
                 &base_color_source, &frp.set_pending, &pending_alpha_factor,
                 |c: &color::Lcha, pending, factor| {
                     match *pending {
-                        true => c.opaque.with_alpha(c.alpha * factor),
+                        true => c.multiply_alpha(*factor),
                         false => *c,
                     }
                 }

@@ -107,15 +107,14 @@ impl SpanWidget for Widget {
             eval icon_alpha((alpha)
                 icon_view.borrow().r_component.set(Vector4(1.0, 1.0, 1.0, *alpha)));
         }
-        let this = Self {
+        frp.set_icon(IconId::default());
+        frp.set_icon_state(IconState::Ready);
+        Self {
             display_object,
             icon_wrapper,
             icon_view,
             frp,
-        };
-        this.frp.set_icon(IconId::default());
-        this.frp.set_icon_state(IconState::Ready);
-        this
+        }
     }
 
     fn configure(&mut self, _: &Config, mut ctx: ConfigContext) {
