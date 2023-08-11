@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -17,6 +16,7 @@ import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -24,7 +24,7 @@ import org.graalvm.collections.EconomicSet;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
 @ExportLibrary(TypesLibrary.class)
-public final class Warning implements TruffleObject {
+public final class Warning implements EnsoObject {
   private final Object value;
   private final Object origin;
   private final ArrayRope<Reassignment> reassignments;
@@ -190,7 +190,7 @@ public final class Warning implements TruffleObject {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  public static final class Reassignment implements TruffleObject {
+  public static final class Reassignment implements EnsoObject {
     private final String methodName;
     private final SourceSection location;
 

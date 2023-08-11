@@ -42,7 +42,7 @@ import com.oracle.truffle.api.dsl.Cached;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
-public final class EnsoFile implements TruffleObject {
+public final class EnsoFile implements EnsoObject {
   private final TruffleFile truffleFile;
 
   public EnsoFile(TruffleFile truffleFile) {

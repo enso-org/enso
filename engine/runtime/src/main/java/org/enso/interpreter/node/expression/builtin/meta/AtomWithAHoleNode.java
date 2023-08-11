@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -76,7 +77,7 @@ public abstract class AtomWithAHoleNode extends Node {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  static final class HoleInAtom implements TruffleObject {
+  static final class HoleInAtom implements EnsoObject {
     Atom result;
     int index;
     Function function;

@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -22,7 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
     pkg = "date",
     name = "TimeZone",
     stdlibName = "Standard.Base.Data.Time.Time_Zone.Time_Zone")
-public final class EnsoTimeZone implements TruffleObject {
+public final class EnsoTimeZone implements EnsoObject {
   private final ZoneId zone;
 
   public EnsoTimeZone(ZoneId zone) {

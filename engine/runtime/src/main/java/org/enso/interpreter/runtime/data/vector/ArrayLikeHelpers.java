@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import java.nio.ByteBuffer;
-
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.data.EnsoObject;
 

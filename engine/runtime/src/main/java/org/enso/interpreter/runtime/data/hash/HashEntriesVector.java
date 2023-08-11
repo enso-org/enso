@@ -3,10 +3,10 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Vector;
 
 /**
@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.data.vector.Vector;
  * (array), and for Enso {@code Map.to_vector} method. May be empty.
  */
 @ExportLibrary(InteropLibrary.class)
-final class HashEntriesVector implements TruffleObject {
+final class HashEntriesVector implements EnsoObject {
   private final Vector[] entryPairs;
 
   private HashEntriesVector(Object[] keys, Object[] values) {
@@ -74,7 +74,7 @@ final class HashEntriesVector implements TruffleObject {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  static final class EntryPair implements TruffleObject {
+  static final class EntryPair implements EnsoObject {
     private final Object key;
     private final Object value;
 

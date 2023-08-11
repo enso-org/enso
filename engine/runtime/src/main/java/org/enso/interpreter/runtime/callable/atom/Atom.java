@@ -8,6 +8,7 @@ import java.util.Set;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -37,7 +38,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public abstract class Atom implements TruffleObject {
+public abstract class Atom implements EnsoObject {
   final AtomConstructor constructor;
   private Integer hashCode;
 

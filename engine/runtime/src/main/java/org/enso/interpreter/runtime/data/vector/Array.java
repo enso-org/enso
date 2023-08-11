@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -15,6 +14,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -27,7 +27,7 @@ import org.graalvm.collections.EconomicSet;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
-public final class Array implements TruffleObject {
+public final class Array implements EnsoObject {
   private final Object[] items;
   private Boolean withWarnings;
   private Warning[] cachedWarnings;
@@ -81,6 +81,7 @@ public final class Array implements TruffleObject {
    * Handles reading an element by index through the polyglot API.
    *
    * @param index the index to read
+   * @param errProfile
    * @return the element value at the provided index
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
