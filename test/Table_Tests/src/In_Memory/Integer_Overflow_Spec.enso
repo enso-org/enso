@@ -18,7 +18,10 @@ main = Test_Suite.run_main spec
 
 spec =
     Test.group "[In-Memory] Column operation Integer Overflow handling" <|
-        test_overflow name value_type max_value min_value = Test.specify name <|
+        Test.specify "64-bit integer column overflow" <|
+            min_value = Java_Long.MIN_VALUE
+            max_value = Java_Long.MAX_VALUE
+            value_type = Value_Type.Integer Bits.Bits_64
             t = Table.new [["X", [0, 1, max_value, 0]], ["Y", [0, -1, min_value, 0]], ["U", [1, 1, 1, 1]]]
             x = t.at "X" . cast value_type
             y = t.at "Y" . cast value_type
@@ -85,10 +88,36 @@ spec =
             c10.value_type . should_equal value_type
             Problems.expect_only_warning Arithmetic_Overflow c10
 
-        test_overflow "Byte" Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
-        test_overflow "Integer 16-bit" (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
-        test_overflow "Integer 32-bit" (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
-        test_overflow "Integer 64-bit" (Value_Type.Integer Bits.Bits_64) Java_Long.MAX_VALUE Java_Long.MIN_VALUE
+        test_no_overflow value_type min_value max_value = Test.specify "operations on "+value_type.to_display_text+" will not overflow, because the result type is always 64-bit integer column" <|
+            t = Table.new [["X", [0, 1, max_value, 0]], ["Y", [0, -1, min_value, 0]], ["U", [1, 1, 1, 1]]]
+            x = t.at "X" . cast value_type
+            y = t.at "Y" . cast value_type
+            u = t.at "U" . cast value_type
+
+            c1 = x+1
+            c1.to_vector . should_equal [1, 2, max_value+1, 1]
+            c1.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c1
+
+            c2 = y-1
+            c2.to_vector . should_equal [-1, -2, min_value-1, -1]
+            c2.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c2
+
+            c3 = x*y
+            c3.to_vector . should_equal [0, -1, min_value*max_value, 0]
+            c3.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c3
+
+            # But operations that have no risk of overflow (currently only modulus) will not widen the type unnecessarily
+            c4 = y%2
+            c4.to_vector . should_equal [0, -1, 0, 0]
+            c4.value_type . should_equal value_type
+            Problems.assume_no_problems c4
+
+        test_no_overflow Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
+        test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
+        test_no_overflow (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
 
         Test.specify "mixed operations" <|
             t = Table.new [["X", [Java_Short.MAX_VALUE]], ["Y", [1]]]
@@ -100,25 +129,26 @@ spec =
 
             c2 = x+y
             c2.to_vector . should_equal [Nothing]
-            # The resulting value type is the larger of the two.
-            c2.value_type . should_equal Value_Type.Bits_16
-            Problems.expect_only_warning Arithmetic_Overflow c2
-
-            c3 = x + (y.cast Value_Type.Integer Bits.Bits_64)
-            c3.to_vector . should_equal [Java_Short.MAX_VALUE + 1]
-            c3.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-            Problems.assume_no_problems c3
+            # The resulting value type is always 64-bit integer.
+            c2.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
             # The scalar also gets its value type, and it can make the result wider.
             big_scalar = Java_Integer.MAX_VALUE + 1
-            c4 = y + big_scalar
-            c4.to_vector . should_equal [big_scalar + 1]
+            c3 = y + big_scalar
+            c3.to_vector . should_equal [big_scalar + 1]
+            c3.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            Problems.assume_no_problems c3
+
+            medium_scalar = Java_Short.MAX_VALUE + 1
+            c4 = y + medium_scalar
+            c4.to_vector . should_equal [medium_scalar + 1]
             c4.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c4
 
-            medium_scalar = Java_Short.MAX_VALUE + 1
-            c5 = y + medium_scalar
-            c5.to_vector . should_equal [medium_scalar + 1]
-            # The size grows to the size of the scalar which is no bigger than necessary.
-            c5.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            # But operations that have no risk of overflow (currently only modulus) will widen the type to the bigger of the two operands.
+            c5 = x%y
+            c5.to_vector . should_equal [0]
+            c5.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             Problems.assume_no_problems c5
+
+            (x%2).value_type . should_equal (Value_Type.Byte)
