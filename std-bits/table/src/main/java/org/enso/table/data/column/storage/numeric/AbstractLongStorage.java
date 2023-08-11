@@ -259,7 +259,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                   MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof DoubleStorage) {
                   problemBuilder.reportFloatingPointEquality(-1);
-                } else if (!(arg instanceof LongStorage)) {
+                } else if (!(arg instanceof AbstractLongStorage)) {
                   boolean hasFloats = false;
                   Context context = Context.getCurrent();
                   for (int i = 0; i < storage.size(); i++) {

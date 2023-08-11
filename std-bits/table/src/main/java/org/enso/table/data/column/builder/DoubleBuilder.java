@@ -3,9 +3,9 @@ package org.enso.table.data.column.builder;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -115,7 +115,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof LongStorage longStorage) {
+      if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
         for (int i = 0; i < n; i++) {
