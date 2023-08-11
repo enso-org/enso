@@ -48,6 +48,7 @@ import * as shortcutsModule from '../dashboard/shortcuts'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
+import * as localStorageProvider from '../providers/localStorage'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
@@ -117,7 +118,7 @@ export interface AppProps {
     shouldShowDashboard: boolean
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
-    onAuthenticated: () => void
+    onAuthenticated: (accessToken: string | null) => void
     appRunner: AppRunner
 }
 
@@ -191,7 +192,7 @@ function AppRouter(props: AppProps) {
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
-        ? new localBackend.LocalBackend()
+        ? new localBackend.LocalBackend(null)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!
@@ -222,6 +223,8 @@ function AppRouter(props: AppProps) {
             </React.Fragment>
         </router.Routes>
     )
+    /** {@link backendProvider.BackendProvider} depends on
+     * {@link localStorageProvider.LocalStorageProvider}. */
     return (
         <loggerProvider.LoggerProvider logger={logger}>
             <sessionProvider.SessionProvider
@@ -229,20 +232,22 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider initialBackend={initialBackend}>
-                    <authProvider.AuthProvider
-                        shouldStartInOfflineMode={isAuthenticationDisabled}
-                        supportsLocalBackend={supportsLocalBackend}
-                        authService={authService}
-                        onAuthenticated={onAuthenticated}
-                    >
-                        <modalProvider.ModalProvider>
-                            <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
-                                {routes}
-                            </shortcutsProvider.ShortcutsProvider>
-                        </modalProvider.ModalProvider>
-                    </authProvider.AuthProvider>
-                </backendProvider.BackendProvider>
+                <localStorageProvider.LocalStorageProvider>
+                    <backendProvider.BackendProvider initialBackend={initialBackend}>
+                        <authProvider.AuthProvider
+                            shouldStartInOfflineMode={isAuthenticationDisabled}
+                            supportsLocalBackend={supportsLocalBackend}
+                            authService={authService}
+                            onAuthenticated={onAuthenticated}
+                        >
+                            <modalProvider.ModalProvider>
+                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                                    {routes}
+                                </shortcutsProvider.ShortcutsProvider>
+                            </modalProvider.ModalProvider>
+                        </authProvider.AuthProvider>
+                    </backendProvider.BackendProvider>
+                </localStorageProvider.LocalStorageProvider>
             </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )

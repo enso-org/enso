@@ -2,16 +2,9 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../dashboard/backend'
-
-// =================
-// === Constants ===
-// =================
-
-/** The `localStorage` key under which the type of the current backend is stored. */
-export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
+import * as localStorageModule from '../dashboard/localStorage'
+import * as localStorageProvider from './localStorage'
 
 // ======================
 // === BackendContext ===
@@ -40,12 +33,16 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
     const { initialBackend, children } = props
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [backend, setBackendWithoutSavingType] =
         React.useState<backendModule.Backend>(initialBackend)
-    const setBackend = React.useCallback((newBackend: backendModule.Backend) => {
-        setBackendWithoutSavingType(newBackend)
-        localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)
-    }, [])
+    const setBackend = React.useCallback(
+        (newBackend: backendModule.Backend) => {
+            setBackendWithoutSavingType(newBackend)
+            localStorage.set(localStorageModule.LocalStorageKey.backendType, newBackend.type)
+        },
+        [/* should never change */ localStorage]
+    )
 
     return (
         <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
