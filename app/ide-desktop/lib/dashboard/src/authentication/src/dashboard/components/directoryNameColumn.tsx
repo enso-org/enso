@@ -88,15 +88,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 title: asset.title,
                             })
                             rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.DirectoryAsset = {
+                            setAsset({
                                 ...asset,
                                 ...createdDirectory,
-                            }
-                            setAsset(newItem)
+                            })
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
+                                key,
                             })
                             toastAndLog('Error creating new folder', error)
                         }

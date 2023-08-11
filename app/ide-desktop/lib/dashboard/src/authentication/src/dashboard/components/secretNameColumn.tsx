@@ -91,7 +91,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
+                                key,
                             })
                             toastAndLog('Error creating new secret', error)
                         }

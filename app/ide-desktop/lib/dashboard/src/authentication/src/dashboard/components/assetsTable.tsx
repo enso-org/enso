@@ -624,7 +624,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeFilter(
                         oldAssetTree,
-                        item => item.item.id !== event.id,
+                        item => item.key !== event.key,
                         true
                     )
                 )

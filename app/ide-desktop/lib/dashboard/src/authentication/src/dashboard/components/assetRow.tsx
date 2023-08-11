@@ -85,7 +85,7 @@ export default function AssetRow(props: AssetRowProps) {
             await backend.deleteAsset(asset)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,
-                id: item.key,
+                key: item.key,
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
@@ -137,7 +137,7 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: item.key,
+                            key: item.key,
                         })
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)

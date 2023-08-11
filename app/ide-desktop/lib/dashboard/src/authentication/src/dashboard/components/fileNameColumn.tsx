@@ -91,7 +91,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            key,
                         })
                         toastAndLog('Could not upload file', error)
                     }

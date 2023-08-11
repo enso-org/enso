@@ -112,7 +112,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: item.key,
+                            key: item.key,
                         })
                         toastAndLog('Error creating new project', error)
                     }
@@ -189,7 +189,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            key,
                         })
                         toastAndLog('Could not upload project', error)
                     }
