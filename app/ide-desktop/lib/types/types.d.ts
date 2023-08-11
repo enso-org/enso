@@ -13,5 +13,9 @@ interface StringConfig {
  * open a new IDE instance. */
 interface AppRunner {
     stopApp: () => void
-    runApp: (config?: StringConfig, accessToken?: string) => Promise<void>
+    runApp: (
+        config: StringConfig | null,
+        accessToken: string | null,
+        metadata?: object
+    ) => Promise<void>
 }

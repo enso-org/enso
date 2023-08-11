@@ -217,6 +217,8 @@
   additional thick interactive selection border.
 - [The shortcut for opening Component Browser was changed to
   <kbd>enter</kbd>][7527]
+- [Connections to lamdas are displayed correctly][7550]. It is possible to drag
+  a connection to any expression inside the lambda body.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -242,6 +244,7 @@
 [7337]: https://github.com/enso-org/enso/pull/7337
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
+[7550]: https://github.com/enso-org/enso/pull/7550
 
 #### EnsoGL (rendering engine)
 
@@ -913,6 +916,7 @@
 - [Update to GraalVM 23.0.0][7176]
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
+- [Support renaming variable or function][7515]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1043,6 +1047,7 @@
 [7291]: https://github.com/enso-org/enso/pull/7291
 [7420]: https://github.com/enso-org/enso/pull/7420
 [7397]: https://github.com/enso-org/enso/pull/7397
+[7515]: https://github.com/enso-org/enso/pull/7515
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
