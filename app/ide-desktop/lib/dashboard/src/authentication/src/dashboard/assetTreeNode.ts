@@ -85,6 +85,8 @@ export function assetTreeFilter(
                         children: newChildren.length === 0 ? null : newChildren,
                     }
                     result.push(newNode)
+                } else if (result != null) {
+                    result.push(node)
                 }
             } else if (result != null) {
                 result.push(node)
