@@ -91,7 +91,7 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
     /** User's organization information. */
     organization: backendModule.UserOrOrganization
-    user: backendModule.SimpleUser
+    user: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -268,10 +268,16 @@ export function AuthProvider(props: AuthProviderProps) {
                 while (true) {
                     try {
                         organization = await backend.usersMe()
-                        user =
-                            (await backend.listUsers()).find(
-                                listedUser => listedUser.email === organization?.email
-                            ) ?? null
+                        try {
+                            user =
+                                organization != null
+                                    ? (await backend.listUsers()).find(
+                                          listedUser => listedUser.email === organization?.email
+                                      ) ?? null
+                                    : null
+                        } catch {
+                            user = null
+                        }
                         break
                     } catch {
                         // The value may have changed after the `await`.
@@ -293,7 +299,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     history.replaceState(null, '', url.toString())
                 }
                 let newUserSession: UserSession
-                if (organization == null || user == null) {
+                if (organization == null) {
                     newUserSession = {
                         type: UserSessionType.partial,
                         ...session,
