@@ -1,24 +1,27 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
+import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as hooks from '../../hooks'
-import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import AssetRow from './assetRow'
 import Button from './button'
@@ -135,47 +138,65 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
     appRunner: AppRunner | null
-    items: backendModule.AnyAsset[]
-    filter: ((item: backendModule.AnyAsset) => boolean) | null
-    isLoading: boolean
+    query: string
+    initialProjectName: string | null
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
+    loadingProjectManagerDidFail: boolean
+    isListingRemoteDirectoryWhileOffline: boolean
+    isListingLocalDirectoryAndWillFail: boolean
+    isListingRemoteDirectoryAndWillFail: boolean
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
     const {
         appRunner,
-        items: rawItems,
-        filter,
-        isLoading,
+        query,
+        initialProjectName,
         assetEvents,
         dispatchAssetEvent,
         assetListEvents,
         dispatchAssetListEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
+        loadingProjectManagerDidFail,
+        isListingRemoteDirectoryWhileOffline,
+        isListingLocalDirectoryAndWillFail,
+        isListingRemoteDirectoryAndWillFail,
     } = props
-    const { organization, user } = authProvider.useNonPartialUserSession()
+    const logger = loggerProvider.useLogger()
+    const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [initialized, setInitialized] = React.useState(false)
-    const [items, setItems] = React.useState(rawItems)
+    const [assets, setAssets] = React.useState<backendModule.AnyAsset[]>([])
+    const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
     )
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
-    const sortedItems = React.useMemo(() => {
+    const filter = React.useMemo(() => {
+        if (query === '') {
+            return null
+        } else {
+            const regex = new RegExp(string.regexEscape(query), 'i')
+            return (asset: backendModule.AnyAsset) => regex.test(asset.title)
+        }
+    }, [query])
+    const displayItems = React.useMemo(() => {
         if (sortColumn == null || sortDirection == null) {
-            return items
+            return assets
         } else {
             const sortDescendingMultiplier = -1
             const multiplier = {
@@ -195,9 +216,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
             }
-            const itemsById = new Map(items.map(item => [item.id, item]))
-            const itemIndices = new Map(items.map((item, index) => [item, index]))
-            return Array.from(items).sort((a, b) => {
+            const itemsById = new Map(assets.map(item => [item.id, item]))
+            const itemIndices = new Map(assets.map((item, index) => [item, index]))
+            return Array.from(assets).sort((a, b) => {
                 let normalizedA = a
                 let normalizedB = b
                 let aDepth = itemDepthsRef.current.get(normalizedA.id) ?? 0
@@ -222,7 +243,91 @@ export default function AssetsTable(props: AssetsTableProps) {
                     : (itemIndices.get(normalizedA) ?? 0) - (itemIndices.get(normalizedB) ?? 0)
             })
         }
-    }, [items, sortColumn, sortDirection])
+    }, [assets, sortColumn, sortDirection])
+
+    React.useEffect(() => {
+        setIsLoading(true)
+    }, [backend])
+
+    React.useEffect(() => {
+        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
+            setIsLoading(false)
+        }
+    }, [loadingProjectManagerDidFail, backend.type])
+
+    const overwriteAssets = React.useCallback(
+        (newAssets: backendModule.AnyAsset[]) => {
+            setAssets(newAssets)
+            if (nameOfProjectToImmediatelyOpen != null) {
+                const projectToLoad = newAssets
+                    .filter(backendModule.assetIsProject)
+                    .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
+                if (projectToLoad != null) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: projectToLoad.id,
+                    })
+                }
+                setNameOfProjectToImmediatelyOpen(null)
+            }
+            if (!initialized && initialProjectName != null) {
+                setInitialized(true)
+                if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                    const errorMessage = `No project named '${initialProjectName}' was found.`
+                    toastify.toast.error(errorMessage)
+                    logger.error(`Error opening project on startup: ${errorMessage}`)
+                }
+            }
+        },
+        [
+            initialized,
+            initialProjectName,
+            logger,
+            nameOfProjectToImmediatelyOpen,
+            /* should never change */ setNameOfProjectToImmediatelyOpen,
+            /* should never change */ dispatchAssetEvent,
+        ]
+    )
+
+    React.useEffect(() => {
+        overwriteAssets([])
+        // `setAssets` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [backend])
+
+    hooks.useAsyncEffect(
+        null,
+        async signal => {
+            switch (backend.type) {
+                case backendModule.BackendType.local: {
+                    if (!isListingLocalDirectoryAndWillFail) {
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        if (!signal.aborted) {
+                            setIsLoading(false)
+                            overwriteAssets(newAssets)
+                        }
+                    }
+                    break
+                }
+                case backendModule.BackendType.remote: {
+                    if (
+                        !isListingRemoteDirectoryAndWillFail &&
+                        !isListingRemoteDirectoryWhileOffline
+                    ) {
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        if (!signal.aborted) {
+                            setIsLoading(false)
+                            overwriteAssets(newAssets)
+                        }
+                    } else {
+                        setIsLoading(false)
+                    }
+                    break
+                }
+            }
+        },
+        [accessToken, organization, backend]
+    )
 
     React.useEffect(() => {
         setInitialized(true)
@@ -255,21 +360,17 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     React.useEffect(() => {
-        setItems(rawItems)
-    }, [rawItems])
-
-    React.useEffect(() => {
         // Remove unused keys.
         const oldDepths = itemDepthsRef.current
         itemDepthsRef.current = new Map(
-            items.map(backendModule.getAssetId).flatMap(key => {
+            assets.map(backendModule.getAssetId).flatMap(key => {
                 const depth = oldDepths.get(key)
                 return depth != null ? [[key, depth]] : []
             })
         )
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         itemDepthsRef.current.set(backend.rootDirectoryId(organization), -1)
-    }, [items, backend, organization])
+    }, [assets, backend, organization])
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
     React.useEffect(() => {
@@ -293,8 +394,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 set.delete(directoryId)
                 const foldersToCollapse = new Set([directoryId])
-                setItems(
-                    items.filter(item => {
+                setAssets(
+                    assets.filter(item => {
                         const shouldKeep = !foldersToCollapse.has(item.parentId)
                         if (item.type === backendModule.AssetType.directory && !shouldKeep) {
                             foldersToCollapse.add(item.id)
@@ -307,9 +408,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 set.add(directoryId)
                 const loadingAssetId = backendModule.LoadingAssetId(uniqueString.uniqueString())
                 itemDepthsRef.current.set(loadingAssetId, childDepth)
-                setItems(
+                setAssets(
                     array.splicedAfter(
-                        items,
+                        assets,
                         [
                             {
                                 type: backendModule.AssetType.specialLoading,
@@ -351,7 +452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         for (const childItem of childItems) {
                             itemDepthsRef.current.set(childItem.id, childDepth)
                         }
-                        setItems(oldItems => {
+                        setAssets(oldItems => {
                             let firstChildIndex = oldItems.findIndex(
                                 item => item.parentId === directoryId
                             )
@@ -384,7 +485,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [items, backend, getDepth]
+        [assets, backend, getDepth]
     )
 
     const getNewProjectName = React.useCallback(
@@ -392,20 +493,20 @@ export default function AssetsTable(props: AssetsTableProps) {
             const prefix = `${templateId ?? 'New_Project'}_`
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
             const actualParentId = parentId ?? backend.rootDirectoryId(organization)
-            const projectIndices = items
+            const projectIndices = assets
                 .filter(item => item.parentId === actualParentId)
                 .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
             return `${prefix}${Math.max(0, ...projectIndices) + 1}`
         },
-        [items, backend, organization]
+        [assets, backend, organization]
     )
 
     hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
                 const parentId = event.parentId ?? backend.rootDirectoryId(organization)
-                const directoryIndices = items
+                const directoryIndices = assets
                     .filter(item => item.parentId === parentId)
                     .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
@@ -430,7 +531,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
-                setItems(oldItems =>
+                setAssets(oldItems =>
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
@@ -470,7 +571,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
-                setItems(oldItems =>
+                setAssets(oldItems =>
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
@@ -529,7 +630,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
-                setItems(oldItems =>
+                setAssets(oldItems =>
                     array.spliceBefore(
                         splicedAssets(
                             oldItems,
@@ -587,7 +688,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
-                setItems(oldItems =>
+                setAssets(oldItems =>
                     splicedAssets(
                         oldItems,
                         [placeholderItem],
@@ -609,7 +710,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.delete: {
-                setItems(oldItems => oldItems.filter(item => item.id !== event.id))
+                setAssets(oldItems => oldItems.filter(item => item.id !== event.id))
                 itemDepthsRef.current.delete(event.id)
                 break
             }
@@ -700,7 +801,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 >
                     footer={<tfoot className="h-full"></tfoot>}
                     rowComponent={AssetRow}
-                    items={sortedItems}
+                    items={displayItems}
                     filter={filter}
                     isLoading={isLoading}
                     state={state}
