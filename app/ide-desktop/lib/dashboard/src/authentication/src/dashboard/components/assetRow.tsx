@@ -59,10 +59,6 @@ export default function AssetRow(props: AssetRowProps) {
         setPresence,
     }))
 
-    React.useEffect(() => {
-        setItem(rawItem)
-    }, [rawItem])
-
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
         try {
