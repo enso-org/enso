@@ -2,7 +2,7 @@ import project.Vector.Distinct
 import project.Vector.Operations
 
 all_benchmarks =
-    vec_ops = Operations.collect_benches
+    vec_ops = Operations.all
     vec_distinct = Distinct.collect_benches
     [vec_ops, vec_distinct]
 
