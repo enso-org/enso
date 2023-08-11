@@ -2,8 +2,6 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
-import * as common from 'enso-common'
-
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -12,6 +10,8 @@ import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as hooks from '../../hooks'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
 import * as shortcuts from '../shortcuts'
@@ -36,10 +36,6 @@ import Table from './table'
 // =================
 // === Constants ===
 // =================
-
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const EXTRA_COLUMNS_KEY =
-    common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
@@ -169,6 +165,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -320,23 +317,20 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setInitialized(true)
-        const extraColumnsJson = localStorage.getItem(EXTRA_COLUMNS_KEY)
-        if (extraColumnsJson != null) {
-            const savedExtraColumns: unknown = JSON.parse(extraColumnsJson)
-            if (
-                Array.isArray(savedExtraColumns) &&
-                savedExtraColumns.every(array.includesPredicate(columnModule.EXTRA_COLUMNS))
-            ) {
-                setExtraColumns(new Set(savedExtraColumns))
-            }
+        const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
+        if (savedExtraColumns != null) {
+            setExtraColumns(new Set(savedExtraColumns))
         }
-    }, [])
+    }, [/* should never change */ localStorage])
 
     React.useEffect(() => {
         if (initialized) {
-            localStorage.setItem(EXTRA_COLUMNS_KEY, JSON.stringify(Array.from(extraColumns)))
+            localStorage.set(
+                localStorageModule.LocalStorageKey.extraColumns,
+                Array.from(extraColumns)
+            )
         }
-    }, [extraColumns, initialized])
+    }, [extraColumns, initialized, /* should never change */ localStorage])
 
     const directoryListAbortControllersRef = React.useRef(
         new Map<backendModule.DirectoryId, AbortController>()
