@@ -13,6 +13,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
@@ -28,16 +29,16 @@ public abstract class RemoveAtVectorNode extends Node {
     return RemoveAtVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object vec, long index);
+  abstract EnsoObject execute(Object vec, long index);
 
   @Specialization
-  Vector fromVector(
+  EnsoObject fromVector(
       Vector vec,
       long index,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return removeAtIndex(vec.toArray(), index, copyNode, interop);
+      return removeAtIndex(ArrayLikeHelpers.vectorToArray(vec), index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
@@ -46,7 +47,7 @@ public abstract class RemoveAtVectorNode extends Node {
   }
 
   @Specialization
-  Vector fromArray(
+  EnsoObject fromArray(
       Array vec,
       long index,
       @Shared("copyNode") @Cached CopyNode copyNode,
@@ -59,7 +60,7 @@ public abstract class RemoveAtVectorNode extends Node {
   }
 
   @Specialization(guards = "interop.hasArrayElements(vec)")
-  Vector fromArrayLike(
+  EnsoObject fromArrayLike(
       Object vec,
       long index,
       @Shared("copyNode") @Cached CopyNode copyNode,
@@ -83,7 +84,7 @@ public abstract class RemoveAtVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector removeAtIndex(
+  private EnsoObject removeAtIndex(
       Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop)
       throws UnsupportedMessageException {
     long length = interop.getArraySize(storage);
@@ -91,6 +92,6 @@ public abstract class RemoveAtVectorNode extends Node {
     Array array = ArrayLikeHelpers.allocate(length - 1);
     copyArrayNode.execute(storage, 0, array, 0, actualIndex);
     copyArrayNode.execute(storage, actualIndex + 1, array, actualIndex, length - actualIndex - 1);
-    return Vector.fromArray(array);
+    return ArrayLikeHelpers.asVectorFromArray(array);
   }
 }

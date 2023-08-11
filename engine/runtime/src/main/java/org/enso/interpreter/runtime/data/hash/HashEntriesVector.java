@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.vector.Vector;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /**
  * A vector used to hold hash map entries, where each entry is represented as a 2-element vector.
@@ -16,13 +16,13 @@ import org.enso.interpreter.runtime.data.vector.Vector;
  */
 @ExportLibrary(InteropLibrary.class)
 final class HashEntriesVector implements EnsoObject {
-  private final Vector[] entryPairs;
+  private final EnsoObject[] entryPairs;
 
   private HashEntriesVector(Object[] keys, Object[] values) {
     assert keys.length == values.length;
-    this.entryPairs = new Vector[keys.length];
+    this.entryPairs = new EnsoObject[keys.length];
     for (int i = 0; i < keys.length; i++) {
-      entryPairs[i] = Vector.fromArray(new EntryPair(keys[i], values[i]));
+      entryPairs[i] = ArrayLikeHelpers.asVectorFromArray(new EntryPair(keys[i], values[i]));
     }
   }
 

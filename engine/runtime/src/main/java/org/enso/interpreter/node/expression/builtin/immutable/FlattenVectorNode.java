@@ -14,6 +14,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
@@ -29,15 +30,15 @@ public abstract class FlattenVectorNode extends Node {
     return FlattenVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object self);
+  abstract EnsoObject execute(Object self);
 
   @Specialization
-  Vector fromVector(
+  EnsoObject fromVector(
       Vector self,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return flatten(self.toArray(), copyNode, interop);
+      return flatten(ArrayLikeHelpers.vectorToArray(self), copyNode, interop);
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
@@ -47,7 +48,7 @@ public abstract class FlattenVectorNode extends Node {
   }
 
   @Specialization
-  Vector fromArray(
+  EnsoObject fromArray(
       Array self,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
@@ -59,7 +60,7 @@ public abstract class FlattenVectorNode extends Node {
   }
 
   @Specialization(guards = "interop.hasArrayElements(self)")
-  Vector fromArrayLike(
+  EnsoObject fromArrayLike(
       Object self,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
@@ -82,7 +83,7 @@ public abstract class FlattenVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop)
+  private EnsoObject flatten(Object storage, CopyNode copyNode, InteropLibrary interop)
       throws UnsupportedMessageException {
     try {
       long length = interop.getArraySize(storage);
@@ -109,7 +110,7 @@ public abstract class FlattenVectorNode extends Node {
         current_index += item_length;
       }
 
-      return Vector.fromArray(result);
+      return ArrayLikeHelpers.asVectorWithCheckAt(result);
     } catch (InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();

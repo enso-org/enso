@@ -11,7 +11,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
+import org.enso.interpreter.runtime.data.vector.CoerceArrayNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(

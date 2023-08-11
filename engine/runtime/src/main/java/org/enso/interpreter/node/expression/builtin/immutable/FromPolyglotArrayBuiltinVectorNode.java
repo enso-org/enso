@@ -6,6 +6,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -21,11 +23,11 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
     return FromPolyglotArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object arr);
+  abstract EnsoObject execute(Object arr);
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
-  Vector doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {
-    return Vector.fromArray(arr);
+  EnsoObject doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {
+    return ArrayLikeHelpers.asVectorFromArray(arr);
   }
 
   @Fallback

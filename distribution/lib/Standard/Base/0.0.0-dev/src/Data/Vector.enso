@@ -71,7 +71,7 @@ type Vector a
 
              Vector.new my_vec.length (ix -> my_vec.at ix)
     new : Integer -> (Integer -> Any) -> Vector Any
-    new length constructor = @Builtin_Method "Vector.new"
+    new length constructor = Array_Like_Helpers.vector_from_function length constructor
 
     ## PRIVATE
        ADVANCED
@@ -163,7 +163,7 @@ type Vector a
     ## PRIVATE
        ADVANCED
        Copies content of a vector into an Array.
-    to_array self = @Builtin_Method "Vector.to_array"
+    to_array self = Array_Like_Helpers.vector_to_array self
 
     ## Returns the number of elements stored in this vector.
 

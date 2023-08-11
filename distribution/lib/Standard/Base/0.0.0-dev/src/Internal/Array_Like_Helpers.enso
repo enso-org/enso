@@ -13,3 +13,6 @@ new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_arra
 
 length array_like = @Builtin_Method "Array_Like_Helpers.length"
 at array_like index = @Builtin_Method "Array_Like_Helpers.at"
+
+vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array"
+vector_from_function = @Builtin_Method "Array_Like_Helpers.vector_from_function"

@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
-import org.enso.interpreter.runtime.data.vector.Vector;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -83,7 +83,8 @@ public final class EnsoHashMap implements EnsoObject {
         }
       }
       cachedVectorRepresentation =
-          Vector.fromArray(HashEntriesVector.createFromKeysAndValues(keys, values));
+          ArrayLikeHelpers.asVectorFromArray(
+              HashEntriesVector.createFromKeysAndValues(keys, values));
     }
     return cachedVectorRepresentation;
   }

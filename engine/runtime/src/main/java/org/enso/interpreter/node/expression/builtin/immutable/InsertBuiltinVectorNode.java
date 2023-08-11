@@ -11,6 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
@@ -26,50 +27,55 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return InsertBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object vec, long index, Object values);
+  abstract EnsoObject execute(Object vec, long index, Object values);
 
   @Specialization
-  Vector fromVector(
+  EnsoObject fromVector(
       Vector vec,
       long index,
       Vector values,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(vec.toArray(), index, values.toArray(), copyNode, interop);
+    return insertBuiltin(
+        ArrayLikeHelpers.vectorToArray(vec),
+        index,
+        ArrayLikeHelpers.vectorToArray(values),
+        copyNode,
+        interop);
   }
 
   @Specialization
-  Vector fromArray(
+  EnsoObject fromArray(
       Array vec,
       long index,
       Vector values,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
+    return insertBuiltin(vec, index, ArrayLikeHelpers.vectorToArray(values), copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(vec)")
-  Vector fromArrayLike(
+  EnsoObject fromArrayLike(
       Object vec,
       long index,
       Vector values,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
+    return insertBuiltin(vec, index, ArrayLikeHelpers.vectorToArray(values), copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(values)")
-  Vector fromVectorWithArrayLikeObject(
+  EnsoObject fromVectorWithArrayLikeObject(
       Vector vec,
       long index,
       Object values,
       @Shared("copyNode") @Cached CopyNode copyNode,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(vec.toArray(), index, values, copyNode, interop);
+    return insertBuiltin(ArrayLikeHelpers.vectorToArray(vec), index, values, copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(values)")
-  Vector fromArrayWithArrayLikeObject(
+  EnsoObject fromArrayWithArrayLikeObject(
       Array vec,
       long index,
       Object values,
@@ -79,7 +85,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
   }
 
   @Specialization(guards = {"interop.hasArrayElements(vec)", "interop.hasArrayElements(values)"})
-  Vector fromArrayLikeWithArrayLikeObject(
+  EnsoObject fromArrayLikeWithArrayLikeObject(
       Object vec,
       long index,
       Object values,
@@ -89,7 +95,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
   }
 
   @Fallback
-  Vector fromUnknown(Object vec, long index, Object values) {
+  EnsoObject fromUnknown(Object vec, long index, Object values) {
     throw unsupportedException(values);
   }
 
@@ -99,7 +105,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector insertBuiltin(
+  private EnsoObject insertBuiltin(
       Object current, long index, Object values, CopyNode copyNode, InteropLibrary interop) {
     try {
       long currentLength = interop.getArraySize(current);
@@ -108,7 +114,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
       copyNode.execute(current, 0, result, 0, index);
       copyNode.execute(values, 0, result, index, valuesLength);
       copyNode.execute(current, index, result, index + valuesLength, currentLength - index);
-      return Vector.fromArray(result);
+      return ArrayLikeHelpers.asVectorFromArray(result);
     } catch (UnsupportedMessageException e) {
       throw unsupportedException(values);
     }
