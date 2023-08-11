@@ -1688,7 +1688,8 @@ impl<'a> TreeBuilder<'a> {
         let parent_extensions_len = self.extensions.len();
 
         // TODO: We always use `main_nodes` here right now, as widgets are never visible when the
-        // node in edit mode. Once this changes, we will need to use `edited_nodes` conditionally.
+        // node is in edit the mode. Once this changes, we will need to use `edited_nodes`
+        // conditionally.
         let layers = self.layers.main_nodes.layers_for_widgets_at_depth(depth);
 
         let ctx = ConfigContext {
