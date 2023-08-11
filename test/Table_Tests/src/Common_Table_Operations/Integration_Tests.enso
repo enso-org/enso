@@ -134,6 +134,22 @@ spec setup =
                 r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
 
+            Test.specify "add_row_number and union" <|
+                t1 = table_builder [["X", ["a", "b", "c"]]]
+                t2 = table_builder [["X", ["ddd", "eee", "fff"]]]
+
+                t12 = (t1.add_row_number order_by="X") . union (t2.add_row_number order_by="X")
+                r12 = t12 |> materialize
+                r12.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff"]
+                r12.at "Row" . to_vector . should_equal [1, 2, 3, 1, 2, 3]
+
+                t3 = table_builder [["X", ["a", "b", "c"]], ["Row", [1.5, 2.5, 3.5]]]
+
+                t123 = ((t1.add_row_number order_by="X").union [(t2.add_row_number order_by="X"), t3])
+                r123 = t123 |> materialize
+                r123.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff", "a", "b", "c"]
+                r123.at "Row" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1.5, 2.5, 3.5]
+
         if setup.test_selection.fixed_length_text_columns then
             Test.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
                 t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]] . cast "X" (Value_Type.Char 1 False)
