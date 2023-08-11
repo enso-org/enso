@@ -301,7 +301,11 @@ impl<S, I, T> Drop for Texture<S, I, T>
 where S: StorageRelation<I, T>
 {
     fn drop(&mut self) {
-        self.context.delete_texture(Some(&self.gl_texture));
+        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
+        // previous context.
+        if self.context.is_texture(Some(&self.gl_texture)) {
+            self.context.delete_texture(Some(&self.gl_texture));
+        }
     }
 }
 
