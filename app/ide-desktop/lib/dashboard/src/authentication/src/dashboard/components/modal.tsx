@@ -14,14 +14,15 @@ export interface ModalProps extends React.PropsWithChildren {
     centered?: boolean | undefined
     style?: React.CSSProperties
     className?: string
-    onClick?: (event: React.MouseEvent<HTMLDivElement>) => void
+    onClick?: React.MouseEventHandler<HTMLDivElement>
+    onContextMenu?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** A fullscreen modal with content at the center. The background is fully opaque by default;
  * background transparency can be enabled with Tailwind's `bg-opacity` classes, like
  * `className="bg-opacity-50"`. */
 export default function Modal(props: ModalProps) {
-    const { children, centered = false, style, className, onClick } = props
+    const { children, centered = false, style, className, onClick, onContextMenu } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     return (
@@ -39,6 +40,7 @@ export default function Modal(props: ModalProps) {
                     }
                 })
             }
+            onContextMenu={onContextMenu}
         >
             {children}
         </div>
