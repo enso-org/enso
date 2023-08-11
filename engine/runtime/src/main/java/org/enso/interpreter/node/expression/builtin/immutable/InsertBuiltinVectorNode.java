@@ -12,8 +12,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.Array;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -106,7 +106,11 @@ public abstract class InsertBuiltinVectorNode extends Node {
   }
 
   private EnsoObject insertBuiltin(
-      Object current, long index, Object values, ArrayLikeCopyToArrayNode copyNode, InteropLibrary interop) {
+      Object current,
+      long index,
+      Object values,
+      ArrayLikeCopyToArrayNode copyNode,
+      InteropLibrary interop) {
     try {
       long currentLength = interop.getArraySize(current);
       long valuesLength = interop.getArraySize(values);
