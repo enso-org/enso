@@ -68,6 +68,30 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
+// ===================================
+// === insertAssetTreeNodeChildren ===
+// ===================================
+
+/** Return a a directory, with new children added into its list of children.
+ * The list of children MUST be all of one specific asset type. */
+function insertAssetTreeNodeChildren(
+    item: assetTreeNode.AssetTreeNode,
+    children: backendModule.AnyAsset[]
+): assetTreeNode.AssetTreeNode {
+    const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
+    const newDepth = item.depth + 1
+    return {
+        ...item,
+        children: array.splicedBefore(
+            (item.children ?? []).filter(
+                node => node.item.type !== backendModule.AssetType.specialEmpty
+            ),
+            children.map(asset => assetTreeNode.assetTreeNodeFromAsset(asset, newDepth)),
+            innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+        ),
+    }
+}
+
 // ===================
 // === AssetsTable ===
 // ===================
@@ -332,21 +356,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
             } else {
-                const loadingAsset: backendModule.SpecialLoadingAsset = {
-                    type: backendModule.AssetType.specialLoading,
-                    title: '',
-                    id: backendModule.LoadingAssetId(uniqueString.uniqueString()),
-                    modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: directoryId,
-                    permissions: [],
-                    projectState: null,
-                }
-                const loadingAssetNode: assetTreeNode.AssetTreeNode = {
-                    key: loadingAsset.id,
-                    item: loadingAsset,
-                    children: null,
-                    depth: 0,
-                }
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== key
@@ -354,10 +363,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                             : {
                                   ...item,
                                   children: [
-                                      // `Object.assign` is dangerous because it can change the
-                                      // type of an asset by adding extra properties.
-                                      // However, it is convenient here.
-                                      Object.assign(loadingAssetNode, { depth: item.depth + 1 }),
+                                      assetTreeNode.assetTreeNodeFromAsset(
+                                          backendModule.createSpecialLoadingAsset(directoryId),
+                                          item.depth + 1
+                                      ),
                                   ],
                               }
                     )
@@ -387,17 +396,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         (initialChildren != null && initialChildren.length !== 0) ||
                                         childAssetNodes.length !== 0
                                             ? null
-                                            : {
-                                                  type: backendModule.AssetType.specialEmpty,
-                                                  title: '',
-                                                  id: backendModule.EmptyAssetId(
-                                                      uniqueString.uniqueString()
-                                                  ),
-                                                  modifiedAt: dateTime.toRfc3339(new Date()),
-                                                  parentId: directoryId,
-                                                  permissions: [],
-                                                  projectState: null,
-                                              }
+                                            : backendModule.createSpecialEmptyAsset(directoryId)
                                     const children =
                                         specialEmptyAsset != null
                                             ? [
@@ -474,7 +473,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     projectState: null,
                     type: backendModule.AssetType.directory,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -487,25 +485,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
-                            : {
-                                  ...item,
-                                  children: array.splicedBefore(
-                                      (item.children ?? []).filter(
-                                          node =>
-                                              node.item.type !==
-                                              backendModule.AssetType.specialEmpty
-                                      ),
-                                      [
-                                          assetTreeNode.assetTreeNodeFromAsset(
-                                              placeholderItem,
-                                              item.depth + 1
-                                          ),
-                                      ],
-                                      innerItem =>
-                                          backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
-                                          typeOrder
-                                  ),
-                              }
+                            : insertAssetTreeNodeChildren(item, [placeholderItem])
                     )
                 )
                 dispatchAssetEvent({
@@ -526,7 +506,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -539,25 +518,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
-                            : {
-                                  ...item,
-                                  children: array.splicedBefore(
-                                      (item.children ?? []).filter(
-                                          node =>
-                                              node.item.type !==
-                                              backendModule.AssetType.specialEmpty
-                                      ),
-                                      [
-                                          assetTreeNode.assetTreeNodeFromAsset(
-                                              placeholderItem,
-                                              item.depth + 1
-                                          ),
-                                      ],
-                                      innerItem =>
-                                          backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
-                                          typeOrder
-                                  ),
-                              }
+                            : insertAssetTreeNodeChildren(item, [placeholderItem])
                     )
                 )
                 dispatchAssetEvent({
@@ -595,9 +556,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                             type: backendModule.ProjectState.new,
                         },
                     }))
-                const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
-                const projectTypeOrder =
-                    backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -610,28 +568,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
-                            : {
-                                  ...item,
-                                  children: array.spliceBefore(
-                                      array.splicedBefore(
-                                          (item.children ?? []).filter(
-                                              node =>
-                                                  node.item.type !==
-                                                  backendModule.AssetType.specialEmpty
-                                          ),
-                                          placeholderFiles.map(
-                                              assetTreeNode.assetTreeNodeFromAsset
-                                          ),
-                                          innerItem =>
-                                              backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
-                                              fileTypeOrder
-                                      ),
-                                      placeholderProjects.map(assetTreeNode.assetTreeNodeFromAsset),
-                                      innerItem =>
-                                          backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
-                                          projectTypeOrder
-                                  ),
-                              }
+                            : insertAssetTreeNodeChildren(
+                                  insertAssetTreeNodeChildren(item, placeholderFiles),
+                                  placeholderProjects
+                              )
                     )
                 )
                 dispatchAssetEvent({
@@ -658,7 +598,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     projectState: null,
                     type: backendModule.AssetType.secret,
                 }
-                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -671,25 +610,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
-                            : {
-                                  ...item,
-                                  children: array.splicedBefore(
-                                      (item.children ?? []).filter(
-                                          node =>
-                                              node.item.type !==
-                                              backendModule.AssetType.specialEmpty
-                                      ),
-                                      [
-                                          assetTreeNode.assetTreeNodeFromAsset(
-                                              placeholderItem,
-                                              item.depth + 1
-                                          ),
-                                      ],
-                                      innerItem =>
-                                          backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
-                                          typeOrder
-                                  ),
-                              }
+                            : insertAssetTreeNodeChildren(item, [placeholderItem])
                     )
                 )
                 dispatchAssetEvent({
