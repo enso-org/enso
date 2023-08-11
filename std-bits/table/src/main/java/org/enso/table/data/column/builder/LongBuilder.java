@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -11,7 +10,6 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -20,15 +18,19 @@ import java.util.Objects;
 /**
  * A builder for integer columns.
  */
-public class LongBuilder extends NumericBuilder {
-  private final IntegerType type;
-  private final CastProblemBuilder castProblemBuilder;
-  LongBuilder(BitSet isMissing, long[] data, int currentSize, IntegerType type) {
+public abstract class LongBuilder extends NumericBuilder {
+  protected LongBuilder(BitSet isMissing, long[] data, int currentSize) {
     super(isMissing, data, currentSize);
-    this.type = type;
-    // Currently we have no correlation with column name, and it may not be necessary for now.
-    String relatedColumnName = null;
-    this.castProblemBuilder = new CastProblemBuilder(relatedColumnName, type);
+  }
+
+  static LongBuilder make(int initialSize, IntegerType type) {
+    BitSet isMissing = new BitSet();
+    long[] data = new long[initialSize];
+    if (type.equals(IntegerType.INT_64)) {
+      return new LongBuilderUnchecked(isMissing, data, 0);
+    } else {
+      return new LongBuilderChecked(isMissing, data, 0, type);
+    }
   }
 
   @Override
@@ -57,18 +59,7 @@ public class LongBuilder extends NumericBuilder {
   }
 
   @Override
-  public StorageType getType() {
-    return IntegerType.INT_64;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
-    if (o == null) {
-      isMissing.set(currentSize++);
-    } else {
-      data[currentSize++] = NumericConverter.coerceToLong(o);
-    }
-  }
+  public abstract IntegerType getType();
 
   @Override
   public boolean accepts(Object o) {
@@ -77,14 +68,14 @@ public class LongBuilder extends NumericBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (Objects.equals(storage.getType(), type) && storage instanceof LongStorage longStorage) {
+    if (Objects.equals(storage.getType(), getType()) && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
       int n = longStorage.size();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
       currentSize += n;
-    } else if (storage.getType() instanceof IntegerType otherType && type.fits(otherType)) {
+    } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         ensureFreeSpaceFor(n);
@@ -136,14 +127,7 @@ public class LongBuilder extends NumericBuilder {
     appendLongNoGrow(data);
   }
 
-  public void appendLongNoGrow(long data) {
-    if (type.fits(data)) {
-      appendRawNoGrow(data);
-    } else {
-      castProblemBuilder.reportNumberOutOfRange(data);
-      appendNulls(1);
-    }
-  }
+  public abstract void appendLongNoGrow(long data);
 
   /** Append a new integer to this builder, without checking for overflows.
    * <p>
@@ -155,11 +139,6 @@ public class LongBuilder extends NumericBuilder {
 
   @Override
   public Storage<Long> seal() {
-    return new LongStorage(data, currentSize, isMissing, type);
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    return castProblemBuilder.getAggregatedProblems();
+    return new LongStorage(data, currentSize, isMissing, getType());
   }
 }

@@ -18,11 +18,11 @@ public abstract class NumericBuilder extends TypedBuilder {
   }
 
   public static DoubleBuilder createDoubleBuilder(int size) {
-    return new DoubleBuilder(new BitSet(size), new long[size], 0);
+    return new DoubleBuilder(new BitSet(), new long[size], 0);
   }
 
   public static LongBuilder createLongBuilder(int size, IntegerType type) {
-    return new LongBuilder(new BitSet(size), new long[size], 0, type);
+    return LongBuilder.make(size, type);
   }
 
   @Override

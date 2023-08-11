@@ -89,12 +89,6 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingDouble(double arg) {
-    if (!type.fits(arg)) {
-      // TODO possibly a more precise exception?
-      throw new IllegalArgumentException(
-          "Cannot fill missing values with a value that does not fit the column type.");
-    }
-
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     Context context = Context.getCurrent();
@@ -112,13 +106,7 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingLong(long arg) {
-    if (!type.fits(arg)) {
-      // TODO possibly a more precise exception?
-      throw new IllegalArgumentException(
-          "Cannot fill missing values with a value that does not fit the column type.");
-    }
-
-    final var builder = NumericBuilder.createLongBuilder(size(), type);
+    final var builder = NumericBuilder.createLongBuilder(size(), IntegerType.INT_64);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
