@@ -109,11 +109,11 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
 } as const
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
-export type AssetColumnProps<T extends backend.AnyAsset> = tableColumn.TableColumnProps<
-    T,
+export type AssetColumnProps = tableColumn.TableColumnProps<
+    assetsTable.AssetTreeNode,
     assetsTable.AssetsTableState,
     assetsTable.AssetRowState,
-    T['id']
+    backend.AssetId
 >
 
 // =====================
@@ -142,8 +142,8 @@ export function getColumnList(backendType: backend.BackendType, extraColumns: Se
 // ==========================
 
 /** A column displaying the time at which the asset was last modified. */
-function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    return <>{dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
+function LastModifiedColumn(props: AssetColumnProps) {
+    return <>{dateTime.formatDateTime(new Date(props.item.item.modifiedAt))}</>
 }
 
 /** Props for a {@link UserPermissionDisplay}. */
@@ -176,9 +176,9 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 // ========================
 
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
+function SharedWithColumn(props: AssetColumnProps) {
     const {
-        item,
+        item: { item },
         setItem,
         state: { dispatchAssetEvent },
     } = props
@@ -191,6 +191,19 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
     const managesThisAsset =
         self?.permission === backend.PermissionAction.own ||
         self?.permission === backend.PermissionAction.admin
+    const setAsset = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: valueOrUpdater(oldItem.item),
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
     return (
         <div
             className="flex items-center gap-1"
@@ -212,7 +225,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                             <ManagePermissionsModal
                                 key={uniqueString.uniqueString()}
                                 item={item}
-                                setItem={setItem}
+                                setItem={setAsset}
                                 self={self}
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
@@ -345,10 +358,7 @@ export const COLUMN_HEADING: Record<
 /** React components for every column except for the name column. */
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-export const COLUMN_RENDERER: Record<
-    Column,
-    (props: AssetColumnProps<backend.AnyAsset>) => JSX.Element
-> = {
+export const COLUMN_RENDERER: Record<Column, (props: AssetColumnProps) => JSX.Element> = {
     [Column.name]: AssetNameColumn,
     [Column.modified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,

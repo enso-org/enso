@@ -24,16 +24,16 @@ import AssetContextMenu from './assetContextMenu'
 // ================
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps<T extends backendModule.AnyAsset>
+export interface AssetRowProps
     extends tableRow.TableRowProps<
-        T,
+        assetsTable.AssetTreeNode,
         assetsTable.AssetsTableState,
         assetsTable.AssetRowState,
-        T['id']
+        backendModule.AssetId
     > {}
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
+export default function AssetRow(props: AssetRowProps) {
     const {
         keyProp: key,
         item: rawItem,
@@ -45,12 +45,13 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetListEvent, getDepth } = state
+    const { assetEvents, dispatchAssetListEvent } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
+    const asset = item.item
     const [presence, setPresence] = React.useState(presenceModule.Presence.present)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() => ({
         ...initialRowState,
@@ -65,31 +66,37 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         setPresence(presenceModule.Presence.deleting)
         try {
             if (
-                item.type === backendModule.AssetType.project &&
+                asset.type === backendModule.AssetType.project &&
                 backend.type === backendModule.BackendType.local
             ) {
                 if (
-                    item.projectState.type !== backendModule.ProjectState.placeholder &&
-                    item.projectState.type !== backendModule.ProjectState.closed
+                    asset.projectState.type !== backendModule.ProjectState.placeholder &&
+                    asset.projectState.type !== backendModule.ProjectState.closed
                 ) {
-                    await backend.openProject(item.id, null, item.title)
+                    await backend.openProject(asset.id, null, asset.title)
                 }
                 try {
-                    await backend.closeProject(item.id, item.title)
+                    await backend.closeProject(asset.id, asset.title)
                 } catch {
                     // Ignored. The project was already closed.
                 }
             }
-            await backend.deleteAsset(item)
+            await backend.deleteAsset(asset)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,
-                id: key,
+                id: item.key,
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
             toastAndLog('Unable to delete project', error)
         }
-    }, [backend, dispatchAssetListEvent, item, key, toastAndLog])
+    }, [
+        backend,
+        dispatchAssetListEvent,
+        asset,
+        /* should never change */ item.key,
+        /* should never change */ toastAndLog,
+    ])
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
@@ -103,7 +110,7 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 break
             }
             case assetEventModule.AssetEventType.deleteMultiple: {
-                if (event.ids.has(key)) {
+                if (event.ids.has(item.key)) {
                     await doDelete()
                 }
                 break
@@ -111,25 +118,25 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             case assetEventModule.AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
-                        './api/project-manager/' + `projects/${item.id}/enso-project`,
-                        `${item.title}.enso-project`
+                        './api/project-manager/' + `projects/${asset.id}/enso-project`,
+                        `${asset.title}.enso-project`
                     )
                 }
                 break
             }
             case assetEventModule.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-                if (event.id === item.id && user != null) {
+                if (event.id === asset.id && user != null) {
                     setPresence(presenceModule.Presence.deleting)
                     try {
                         await backend.createPermission({
                             action: null,
-                            resourceId: item.id,
+                            resourceId: asset.id,
                             userSubjects: [user.id],
                         })
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            id: item.key,
                         })
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
@@ -141,7 +148,7 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         }
     })
 
-    switch (item.type) {
+    switch (asset.type) {
         case backendModule.AssetType.directory:
         case backendModule.AssetType.project:
         case backendModule.AssetType.file:
@@ -203,9 +210,7 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 <tr>
                     <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
-                            className={`flex justify-center py-2 ${indent.indentClass(
-                                getDepth(key)
-                            )}`}
+                            className={`flex justify-center py-2 ${indent.indentClass(item.depth)}`}
                         >
                             <StatelessSpinner
                                 size={24}
@@ -222,7 +227,7 @@ export default function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                     <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
                             className={`flex items-center h-10 py-2 ${indent.indentClass(
-                                getDepth(key)
+                                item.depth
                             )}`}
                         >
                             <img src={BlankIcon} />
