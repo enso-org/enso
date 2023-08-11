@@ -22,7 +22,7 @@ export interface TopBarProps {
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
     projectAsset: backendModule.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>> | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
     asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void

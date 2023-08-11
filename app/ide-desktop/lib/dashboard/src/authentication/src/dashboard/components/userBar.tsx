@@ -24,7 +24,7 @@ export interface UserBarProps {
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     projectAsset: backendModule.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>> | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
     doRemoveSelf: () => void
     onSignOut: () => void
 }

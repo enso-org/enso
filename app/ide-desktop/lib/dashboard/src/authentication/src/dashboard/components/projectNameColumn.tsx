@@ -222,7 +222,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 openIde={() => {
-                    doOpenIde(item)
+                    doOpenIde(item, setItem)
                 }}
                 onClose={() => {
                     doCloseIde(item)

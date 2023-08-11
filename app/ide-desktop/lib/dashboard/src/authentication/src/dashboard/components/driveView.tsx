@@ -28,7 +28,10 @@ export interface DriveViewProps {
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
     doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (project: backendModule.ProjectAsset) => void
+    doOpenEditor: (
+        project: backendModule.ProjectAsset,
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+    ) => void
     doCloseEditor: (project: backendModule.ProjectAsset) => void
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean

@@ -198,6 +198,7 @@ class BaseServerTest
           fileManager,
           vcsManager,
           runtimeConnectorProbe.ref,
+          contentRootManagerWrapper,
           timingsConfig
         )(
           Sha3_224VersionCalculator

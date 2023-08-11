@@ -272,6 +272,7 @@ lazy val enso = (project in file("."))
     `locking-test-helper`,
     `akka-native`,
     `version-output`,
+    `refactoring-utils`,
     `engine-runner`,
     runtime,
     searcher,
@@ -786,6 +787,22 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
         )
     }.taskValue
   )
+
+lazy val `refactoring-utils` = project
+  .in(file("lib/scala/refactoring-utils"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    )
+  )
+  .dependsOn(`runtime-parser`)
+  .dependsOn(`text-buffer`)
+  .dependsOn(testkit % Test)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -1434,6 +1451,7 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       )
     )
+    .dependsOn(`refactoring-utils`)
     .dependsOn(
       runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
     )
