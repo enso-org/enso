@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
@@ -761,6 +762,11 @@ spec =
             -12249 . round -2 use_bankers=True . should_equal -12200
             -12250 . round -2 use_bankers=True . should_equal -12200
             -12251 . round -2 use_bankers=True . should_equal -12300
+
+        Test.specify "Handles incorrect argument types" <|
+            Test.expect_panic_with (123 . round "two") Type_Error
+            Test.expect_panic_with (123 . round use_bankers="no") Type_Error
+            Test.expect_panic_with (123 . round use_bankers=0) Type_Error
 
         Test.specify "Returns the correct type" <|
             231 . round 1 . should_be_a Integer

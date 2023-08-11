@@ -615,7 +615,7 @@ type Decimal
 
             2.5 . round use_bankers=True == 2
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             Decimal.round_decimal_builtin self decimal_places use_bankers
@@ -923,7 +923,7 @@ type Integer
 
             12250 . round -2 use_bankers=True == 12200
     round : Integer -> Boolean -> Integer ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
         Rounding_Helpers.check_round_input self <|
