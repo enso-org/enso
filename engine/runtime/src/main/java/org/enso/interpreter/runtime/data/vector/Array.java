@@ -52,7 +52,7 @@ public final class Array implements EnsoObject {
   }
 
   /** @return the elements of this array as a java array. */
-  public Object[] getItems() {
+  final Object[] getItems() {
     return items;
   }
 
