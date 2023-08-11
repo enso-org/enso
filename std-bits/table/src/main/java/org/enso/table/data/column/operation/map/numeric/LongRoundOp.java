@@ -14,10 +14,10 @@ import java.util.BitSet;
 /** An operation rounding integers. */
 public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> {
 
-    /** Minimum value for the `n` parameter to `roundDouble`. */
+    /** Minimum value for the `n` parameter to `roundLong`. */
     private static final long ROUND_MIN_LONG = -99999999999999L;
 
-    /** Minimum value for the `n` parameter to `roundDouble`. */
+    /** Minimum value for the `n` parameter to `roundLong`. */
     private static final long ROUND_MAX_LONG = 99999999999999L;
 
     public LongRoundOp(String name) {
@@ -37,8 +37,14 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
+
         if (!(useBankersObject instanceof Boolean useBankers)) {
             throw new UnexpectedTypeException("a boolean.");
+        }
+
+        if (decimalPlaces >= 0) {
+            // No change, return original storage.
+            return storage;
         }
 
         Context context = Context.getCurrent();

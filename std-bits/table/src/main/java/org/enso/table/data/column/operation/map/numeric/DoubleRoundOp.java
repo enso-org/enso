@@ -33,6 +33,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
+
         if (!(useBankersObject instanceof Boolean useBankers)) {
             throw new UnexpectedTypeException("a boolean.");
         }

@@ -770,9 +770,7 @@ type Column
     round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
-            is_integer = self.inferred_precise_value_type.is_integer
-            if is_integer && decimal_places >= 0 then self.rename new_name else
-                run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
+            run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
 
     ## ALIAS int
 
