@@ -396,8 +396,8 @@ macro_rules! define_widget_modules(
     };
 );
 
-/// Definition of implemented widget kinds. The order of the definitions determines the order in
-/// which the widgets are checked for a match with every span-tree node.
+// Definition of implemented widget kinds. The order of the definitions determines the order in
+// which the widgets are checked for a match with every span-tree node.
 define_widget_modules! {
     /// A widget for top-level Enso method calls. Displays an icon.
     Method method,
