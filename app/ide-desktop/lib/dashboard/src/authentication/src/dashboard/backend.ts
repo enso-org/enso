@@ -127,7 +127,7 @@ export interface CreatedProject extends BaseProject {
 
 /** A `Project` returned by the `listProjects` endpoint. */
 export interface ListedProjectRaw extends CreatedProject {
-    address: Address | null
+    address?: Address
 }
 
 /** A `Project` returned by `listProjects`. */
@@ -145,14 +145,24 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-    ideVersion: VersionNumber | null
-    engineVersion: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    ide_version: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    engine_version: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-    ideVersion: VersionNumber | null
+    /** This must not be null as it is required to determine the base URL for backend assets. */
+    ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+}
+
+/** Information required to open a project. */
+export interface ProjectStartupInfo {
+    project: Project
+    backendType: BackendType
+    accessToken: string | null
 }
 
 /** Metadata describing an uploaded file. */
@@ -735,5 +745,5 @@ export abstract class Backend {
     /** Delete a file tag or project tag. */
     abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
-    abstract listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]>
+    abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }
