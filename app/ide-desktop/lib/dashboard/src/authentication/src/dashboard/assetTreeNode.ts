@@ -94,28 +94,6 @@ export function assetTreeFilter(
     return result ?? tree
 }
 
-/** Return a new {@link AssetTreeNode}  */
-export function assetTreeDFS(
-    tree: AssetTreeNode[],
-    predicate: (node: AssetTreeNode) => boolean
-): AssetTreeNode | null {
-    let result: AssetTreeNode | null = null
-    for (const node of tree) {
-        if (predicate(node)) {
-            result = node
-            break
-        }
-        if (node.children != null) {
-            const innerResult = assetTreeDFS(node.children, predicate)
-            if (innerResult != null) {
-                result = innerResult
-                break
-            }
-        }
-    }
-    return result
-}
-
 /** Returns all items in the tree, flattened into an array using pre-order traversal. */
 export function assetTreePreorderTraversal(
     tree: AssetTreeNode[],

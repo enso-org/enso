@@ -177,7 +177,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const assetsMap = React.useMemo(
+    const nodeMap = React.useMemo(
         () =>
             new Map(
                 assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
@@ -352,7 +352,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
     const doToggleDirectoryExpansion = React.useCallback(
         (directoryId: backendModule.DirectoryId, key: backendModule.AssetId, title?: string) => {
-            const directory = assetsMap.get(key)
+            const directory = nodeMap.get(key)
             if (directory?.children != null) {
                 const abortController = directoryListAbortControllersRef.current.get(directoryId)
                 if (abortController != null) {
@@ -434,25 +434,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [assetsMap, backend]
+        [nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(
         (templateId: string | null, parentKey: backendModule.DirectoryId | null) => {
             const prefix = `${templateId ?? 'New_Project'}_`
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-            const siblings =
-                parentKey == null
-                    ? assetTree
-                    : assetTreeNode.assetTreeDFS(assetTree, node => node.key === parentKey)
-                          ?.children ?? []
+            const siblings = parentKey == null ? assetTree : nodeMap.get(parentKey)?.children ?? []
             const projectIndices = siblings
                 .filter(node => backendModule.assetIsProject(node.item))
                 .map(node => projectNameTemplate.exec(node.item.title)?.groups?.projectIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
             return `${prefix}${Math.max(0, ...projectIndices) + 1}`
         },
-        [assetTree]
+        [assetTree, nodeMap]
     )
 
     hooks.useEventHandler(assetListEvents, event => {
@@ -461,10 +457,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const siblings =
                     event.parentKey == null
                         ? assetTree
-                        : assetTreeNode.assetTreeDFS(
-                              assetTree,
-                              node => node.key === event.parentKey
-                          )?.children ?? []
+                        : nodeMap.get(event.parentKey)?.children ?? []
                 const directoryIndices = siblings
                     .filter(node => backendModule.assetIsProject(node.item))
                     .map(node => DIRECTORY_NAME_REGEX.exec(node.item.title))
@@ -485,8 +478,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
-                        ?.children == null
+                    nodeMap.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -518,8 +510,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
-                        ?.children == null
+                    nodeMap.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -568,8 +559,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
-                        ?.children == null
+                    nodeMap.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -610,8 +600,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
-                        ?.children == null
+                    nodeMap.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
