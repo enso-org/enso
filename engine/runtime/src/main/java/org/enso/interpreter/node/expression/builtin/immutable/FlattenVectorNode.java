@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -35,22 +34,14 @@ public abstract class FlattenVectorNode extends Node {
       @Cached ArrayLikeCopyToArrayNode copyNode,
       @Cached ArrayLikeLengthNode lengthNode,
       @Cached ArrayLikeAtNode atNode) {
-    try {
-      return flatten(self, copyNode, lengthNode, atNode);
-    } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeTypeError(builtins.vector(), self, "self"), this);
-    }
+    return flatten(self, copyNode, lengthNode, atNode);
   }
 
   private EnsoObject flatten(
       Object storage,
       ArrayLikeCopyToArrayNode copyNode,
       ArrayLikeLengthNode lengthNode,
-      ArrayLikeAtNode atNode)
-      throws UnsupportedMessageException {
+      ArrayLikeAtNode atNode) {
     try {
       long length = lengthNode.executeLength(storage);
 
