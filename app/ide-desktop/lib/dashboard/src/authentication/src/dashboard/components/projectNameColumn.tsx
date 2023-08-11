@@ -118,19 +118,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
-                            /** Information required to display a bundle. */
-                            interface BundleInfo {
-                                name: string
-                                id: string
-                            }
-                            // This non-standard property is defined in Electron.
-                            let info: BundleInfo
+                            let id: string
                             if (
                                 'backendApi' in window &&
+                                // This non-standard property is defined in Electron.
                                 'path' in file &&
                                 typeof file.path === 'string'
                             ) {
-                                info = await window.backendApi.importProjectFromPath(file.path)
+                                id = await window.backendApi.importProjectFromPath(file.path)
                             } else {
                                 const response = await fetch('./api/upload-project', {
                                     method: 'POST',
@@ -140,15 +135,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                     // work on `http://localhost`.
                                     body: await file.arrayBuffer(),
                                 })
-                                // This is SAFE, as the types of this API are statically known.
-                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                                info = await response.json()
+                                id = await response.text()
                             }
+                            const listedProject = await backend.getProjectDetails(
+                                backendModule.ProjectId(id),
+                                null
+                            )
                             rowState.setPresence(presence.Presence.present)
                             setItem({
                                 ...item,
-                                title: info.name,
-                                id: backendModule.ProjectId(info.id),
+                                title: listedProject.packageName,
+                                id: backendModule.ProjectId(id),
                             })
                         } else {
                             const fileName = item.title
