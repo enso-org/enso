@@ -20,4 +20,8 @@ final class PendingFileEdits(
   /** @inheritdoc */
   override def dequeue(file: File): Seq[PendingEdit] =
     pending.remove(file).getOrElse(Seq())
+
+  /** @inheritdoc */
+  override def files: Seq[File] =
+    pending.keys.toSeq
 }
