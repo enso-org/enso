@@ -43,7 +43,7 @@ pub struct Widget {
 impl SpanWidget for Widget {
     type Config = Config;
 
-    const QUERY_ON_OVERRIDE: bool = true;
+    const PRIORITY_OVER_OVERRIDE: bool = true;
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
         let matches = ctx.info.nesting_level.is_primary()
@@ -93,7 +93,7 @@ impl SpanWidget for Widget {
             let _name_node = child_iter.next();
             let _token = child_iter.next();
             let Some(arg_node) = child_iter.next() else { return };
-            // make sure to not create another layer of separator for that nested node.
+            // Make sure to not create another layer of separator for that nested node.
             ctx.builder.forbid_widget_kind(&arg_node, KindFlags::Separator);
             ctx.builder.child_widget(arg_node, level)
         } else {

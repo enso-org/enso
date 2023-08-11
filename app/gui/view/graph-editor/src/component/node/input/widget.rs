@@ -41,6 +41,16 @@
 //! 3. The default configuration for the node is created using [`Configuration::from_node`] method.
 //!    It uses the combination of span tree node kind data and type information to decide which
 //!    widget is the best fit for the node.
+//!
+//!
+//! ## Priority over override
+//!
+//! Whenever a configuration is selected using an override source (either point 1. or 2.), its
+//! application can still be rejected if there are other applicable widgets that define
+//! [`SpanWidget::PRIORITY_OVER_OVERRIDE`] as `true` in their implementation. In that case, the
+//! override will be applied again on their children that use the same span-tree node.
+
+
 
 use crate::prelude::*;
 
@@ -167,10 +177,12 @@ pub trait SpanWidget: display::Object {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
     /// Declare whether this widget should be considered for creation despite a config override
-    /// being present. Widgets that declare `true` here should always create a child widget on
-    /// the same span-tree node, so that the override can eventually be applied to it. Only widgets
-    /// declared before the widget selected by override will take priority over it.
-    const QUERY_ON_OVERRIDE: bool = false;
+    /// being present. Widgets that declare `true` here must create a child widget on the same
+    /// span-tree node, so that the override can be applied to this child instead.
+    ///
+    /// Only widgets declared above the overridden widget will take priority over it. That
+    /// declaration order is defined in the usage of [`define_widget_modules!`] macro.
+    const PRIORITY_OVER_OVERRIDE: bool = false;
     /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
     /// node or declaration type match specific patterns. When this method returns
     /// [`Score::Mismatch`], this widget kind will not be used, even if it was requested by an
@@ -282,8 +294,8 @@ macro_rules! define_widget_modules(
                 )*
                 /// A combination of flags for all widget kinds that has to be matched first before
                 /// accepting an overridden configuration.
-                const QUERY_ON_OVERRIDE = $(
-                    (<$module::Widget as SpanWidget>::QUERY_ON_OVERRIDE as u32) << ${index()}
+                const PRIORITY_OVER_OVERRIDE = $(
+                    (<$module::Widget as SpanWidget>::PRIORITY_OVER_OVERRIDE as u32) << ${index()}
                 )|*;
             }
         }
@@ -315,13 +327,13 @@ macro_rules! define_widget_modules(
                 }
             }
 
-            /// Return a bitfield that determines which widget kinds needs to be checked for a match
+            /// Return a bitfield that determines which widget kinds need to be checked for a match
             /// before applying this configuration as override.
             fn flags_to_query_before_override(&self) -> KindFlags {
                 // All bits that are set before the current one. Since we know that the `self.flag`
                 // always has only a single bit set, we can just subtract 1 from it.
                 let all_defined_before = KindFlags::from_bits_retain(self.flag().bits() - 1);
-                all_defined_before & KindFlags::QUERY_ON_OVERRIDE
+                all_defined_before & KindFlags::PRIORITY_OVER_OVERRIDE
             }
         }
 
@@ -384,6 +396,8 @@ macro_rules! define_widget_modules(
     };
 );
 
+/// Definition of implemented widget kinds. The order of the definitions determines the order in
+/// which the widgets are checked for a match with every span-tree node.
 define_widget_modules! {
     /// A widget for top-level Enso method calls. Displays an icon.
     Method method,
@@ -1666,7 +1680,7 @@ impl<'a> TreeBuilder<'a> {
         // usage type and whether it has children.
         //
         // Note that the override can still be rejected if there is an available higher priority
-        // applicable widget that defines [`SpanWidget::QUERY_ON_OVERRIDE`] as `true` in its
+        // applicable widget that defines [`SpanWidget::PRIORITY_OVER_OVERRIDE`] as `true` in its
         // implementation. In that case, it is expected that the forcing widget will declare a child
         // using the same span-tree node, so that the override can eventually be applied anyway.
 
@@ -1674,7 +1688,7 @@ impl<'a> TreeBuilder<'a> {
         let parent_extensions_len = self.extensions.len();
 
         // TODO: We always use `main_nodes` here right now, as widgets are never visible when the
-        // node in edit mode. Once this changes, we will need to use conditionally use `edit_nodes`.
+        // node in edit mode. Once this changes, we will need to use `edited_nodes` conditionally.
         let layers = self.layers.main_nodes.layers_for_widgets_at_depth(depth);
 
         let ctx = ConfigContext {

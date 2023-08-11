@@ -46,7 +46,7 @@ pub struct Widget {
 impl SpanWidget for Widget {
     type Config = Config;
 
-    const QUERY_ON_OVERRIDE: bool = true;
+    const PRIORITY_OVER_OVERRIDE: bool = true;
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
         let matches = ctx.info.subtree_connection.is_none()
