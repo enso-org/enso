@@ -109,10 +109,11 @@ spec =
             c3.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c3
 
-            # But operations that have no risk of overflow (currently only modulus) will not widen the type unnecessarily
+            ## There is no risk of overflow in modulus, but for consistency we always return int-64.
+               We may adapt this in the future.
             c4 = y%2
             c4.to_vector . should_equal [0, -1, 0, 0]
-            c4.value_type . should_equal value_type
+            c4.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c4
 
         test_no_overflow Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
@@ -145,10 +146,9 @@ spec =
             c4.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c4
 
-            # But operations that have no risk of overflow (currently only modulus) will widen the type to the bigger of the two operands.
             c5 = x%y
             c5.to_vector . should_equal [0]
-            c5.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            c5.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             Problems.assume_no_problems c5
 
-            (x%2).value_type . should_equal (Value_Type.Byte)
+            (x%2).value_type . should_equal (Value_Type.Integer Bits.Bits_64)
