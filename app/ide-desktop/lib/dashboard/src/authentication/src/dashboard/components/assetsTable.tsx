@@ -7,6 +7,7 @@ import * as common from 'enso-common'
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
@@ -66,145 +67,6 @@ export const EMPTY_DIRECTORY_PLACEHOLDER = (
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
-
-// =====================
-// === AssetTreeNode ===
-// =====================
-
-/** A node in the drive's item tree. */
-export interface AssetTreeNode {
-    /** The original id of the asset (the placeholder id for new assets). This must never change. */
-    key: backendModule.AssetId
-    /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
-     * keep updated values within the row itself as well. */
-    item: backendModule.AnyAsset
-    /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
-     * asset. */
-    children: AssetTreeNode[] | null
-    depth: number
-}
-
-/** Get an {@link AssetTreeNode.key} from an {@link AssetTreeNode}. Useful for React, references
- * of global functions do not change. */
-function getAssetTreeNodeKey(node: AssetTreeNode) {
-    return node.key
-}
-
-/** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
- * Uses {@link backendModule.compareAssets} internally. */
-function compareAssetTreeNodes(a: AssetTreeNode, b: AssetTreeNode) {
-    return backendModule.compareAssets(a.item, b.item)
-}
-
-/** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
- * function, otherwise return the original {@link AssetTreeNode} array. */
-function assetTreeMap(tree: AssetTreeNode[], transform: (node: AssetTreeNode) => AssetTreeNode) {
-    let result: AssetTreeNode[] | null = null
-    for (let i = 0; i < tree.length; i += 1) {
-        const node = tree[i]
-        if (node == null) {
-            break
-        }
-        const intermediateNode = transform(node)
-        let newNode: AssetTreeNode = intermediateNode
-        if (intermediateNode.children != null) {
-            const newChildren = assetTreeMap(intermediateNode.children, transform)
-            if (newChildren !== intermediateNode.children) {
-                newNode = { ...intermediateNode, children: newChildren }
-            }
-        }
-        if (newNode !== node) {
-            result ??= Array.from(tree)
-            result[i] = newNode
-        }
-    }
-    return result ?? tree
-}
-
-/** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
- * function, otherwise return the original {@link AssetTreeNode} array. The predicate is applied to
- * a parent node after it is applied to its children. */
-function assetTreeFilter(
-    tree: AssetTreeNode[],
-    predicate: (node: AssetTreeNode) => boolean,
-    deleteEmptyChildren = false
-) {
-    let result: AssetTreeNode[] | null = null
-    for (let i = 0; i < tree.length; i += 1) {
-        const node = tree[i]
-        if (node == null) {
-            break
-        }
-        if (node.children != null) {
-            const newChildren = assetTreeFilter(node.children, predicate)
-            if (newChildren !== node.children) {
-                result ??= tree.slice(0, i)
-                const newNode = {
-                    ...node,
-                    children: newChildren.length === 0 && deleteEmptyChildren ? null : newChildren,
-                }
-                if (predicate(newNode)) {
-                    result.push(newNode)
-                }
-            }
-        } else if (result != null) {
-            if (predicate(node)) {
-                result.push(node)
-            }
-        } else {
-            if (!predicate(node)) {
-                result = tree.slice(0, i)
-            }
-        }
-    }
-    return result ?? tree
-}
-
-/** Return a new {@link AssetTreeNode}  */
-function assetTreeDFS(
-    tree: AssetTreeNode[],
-    predicate: (node: AssetTreeNode) => boolean
-): AssetTreeNode | null {
-    let result: AssetTreeNode | null = null
-    for (const node of tree) {
-        if (predicate(node)) {
-            result = node
-            break
-        }
-        if (node.children != null) {
-            const innerResult = assetTreeDFS(node.children, predicate)
-            if (innerResult != null) {
-                result = innerResult
-                break
-            }
-        }
-    }
-    return result
-}
-
-/** Returns all items in the tree, flattened into an array using pre-order traversal. */
-function assetTreePreorderTraversal(
-    tree: AssetTreeNode[],
-    preprocess?: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null
-): AssetTreeNode[] {
-    return (preprocess?.(tree) ?? tree).flatMap(node => {
-        if (node.children != null) {
-            return [node, ...assetTreePreorderTraversal(node.children, preprocess ?? null)]
-        } else {
-            return [node]
-        }
-    })
-}
-
-/** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
-function assetTreeNodeFromAsset(asset: backendModule.AnyAsset, depth: number): AssetTreeNode {
-    return {
-        key: asset.id,
-        item: asset,
-        children: null,
-        depth,
-    }
-}
 
 // ===================
 // === AssetsTable ===
@@ -284,7 +146,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [initialized, setInitialized] = React.useState(false)
-    const [assetTree, setAssetTree] = React.useState<AssetTreeNode[]>([])
+    const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
@@ -295,7 +157,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
     const assetsMap = React.useMemo(
-        () => new Map(assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])),
+        () =>
+            new Map(
+                assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
+            ),
         [assetTree]
     )
     const filter = React.useMemo(() => {
@@ -303,19 +168,19 @@ export default function AssetsTable(props: AssetsTableProps) {
             return null
         } else {
             const regex = new RegExp(string.regexEscape(query), 'i')
-            return (node: AssetTreeNode) => regex.test(node.item.title)
+            return (node: assetTreeNode.AssetTreeNode) => regex.test(node.item.title)
         }
     }, [query])
     const displayItems = React.useMemo(() => {
         if (sortColumn == null || sortDirection == null) {
-            return assetTreePreorderTraversal(assetTree)
+            return assetTreeNode.assetTreePreorderTraversal(assetTree)
         } else {
             const sortDescendingMultiplier = -1
             const multiplier = {
                 [sorting.SortDirection.ascending]: 1,
                 [sorting.SortDirection.descending]: sortDescendingMultiplier,
             }[sortDirection]
-            let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
+            let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
             switch (sortColumn) {
                 case columnModule.Column.name: {
                     compare = (a, b) =>
@@ -334,7 +199,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
             }
-            return assetTreePreorderTraversal(assetTree, tree => tree.sort(compare))
+            return assetTreeNode.assetTreePreorderTraversal(assetTree, tree => tree.sort(compare))
         }
     }, [assetTree, sortColumn, sortDirection])
 
@@ -462,7 +327,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     directoryListAbortControllersRef.current.delete(directoryId)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== key ? item : { ...item, children: null }
                     )
                 )
@@ -476,14 +341,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                     permissions: [],
                     projectState: null,
                 }
-                const loadingAssetNode: AssetTreeNode = {
+                const loadingAssetNode: assetTreeNode.AssetTreeNode = {
                     key: loadingAsset.id,
                     item: loadingAsset,
                     children: null,
                     depth: 0,
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== key
                             ? item
                             : {
@@ -505,9 +370,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
-                        const childAssetNodes = childAssets.map(assetTreeNodeFromAsset)
+                        const childAssetNodes = childAssets.map(
+                            assetTreeNode.assetTreeNodeFromAsset
+                        )
                         setAssetTree(oldAssetTree =>
-                            assetTreeMap(oldAssetTree, item => {
+                            assetTreeNode.assetTreeMap(oldAssetTree, item => {
                                 if (item.key !== key) {
                                     return item
                                 } else {
@@ -534,7 +401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     const children =
                                         specialEmptyAsset != null
                                             ? [
-                                                  assetTreeNodeFromAsset(
+                                                  assetTreeNode.assetTreeNodeFromAsset(
                                                       specialEmptyAsset,
                                                       item.depth + 1
                                                   ),
@@ -543,7 +410,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               initialChildren.length === 0
                                             ? childAssetNodes
                                             : [...initialChildren, ...childAssetNodes].sort(
-                                                  compareAssetTreeNodes
+                                                  assetTreeNode.compareAssetTreeNodes
                                               )
                                     for (const child of children) {
                                         child.depth = item.depth + 1
@@ -569,7 +436,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             const siblings =
                 parentKey == null
                     ? assetTree
-                    : assetTreeDFS(assetTree, node => node.key === parentKey)?.children ?? []
+                    : assetTreeNode.assetTreeDFS(assetTree, node => node.key === parentKey)
+                          ?.children ?? []
             const projectIndices = siblings
                 .filter(node => backendModule.assetIsProject(node.item))
                 .map(node => projectNameTemplate.exec(node.item.title)?.groups?.projectIndex)
@@ -585,8 +453,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const siblings =
                     event.parentKey == null
                         ? assetTree
-                        : assetTreeDFS(assetTree, node => node.key === event.parentKey)?.children ??
-                          []
+                        : assetTreeNode.assetTreeDFS(
+                              assetTree,
+                              node => node.key === event.parentKey
+                          )?.children ?? []
                 const directoryIndices = siblings
                     .filter(node => backendModule.assetIsProject(node.item))
                     .map(node => DIRECTORY_NAME_REGEX.exec(node.item.title))
@@ -608,12 +478,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeDFS(assetTree, node => node.key === event.parentKey)?.children == null
+                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
+                        ?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
                             : {
@@ -624,7 +495,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               node.item.type !==
                                               backendModule.AssetType.specialEmpty
                                       ),
-                                      [assetTreeNodeFromAsset(placeholderItem, item.depth + 1)],
+                                      [
+                                          assetTreeNode.assetTreeNodeFromAsset(
+                                              placeholderItem,
+                                              item.depth + 1
+                                          ),
+                                      ],
                                       innerItem =>
                                           backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
                                           typeOrder
@@ -654,12 +530,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeDFS(assetTree, node => node.key === event.parentKey)?.children == null
+                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
+                        ?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
                             : {
@@ -670,7 +547,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               node.item.type !==
                                               backendModule.AssetType.specialEmpty
                                       ),
-                                      [assetTreeNodeFromAsset(placeholderItem, item.depth + 1)],
+                                      [
+                                          assetTreeNode.assetTreeNodeFromAsset(
+                                              placeholderItem,
+                                              item.depth + 1
+                                          ),
+                                      ],
                                       innerItem =>
                                           backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
                                           typeOrder
@@ -719,12 +601,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeDFS(assetTree, node => node.key === event.parentKey)?.children == null
+                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
+                        ?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
                             : {
@@ -736,12 +619,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                   node.item.type !==
                                                   backendModule.AssetType.specialEmpty
                                           ),
-                                          placeholderFiles.map(assetTreeNodeFromAsset),
+                                          placeholderFiles.map(
+                                              assetTreeNode.assetTreeNodeFromAsset
+                                          ),
                                           innerItem =>
                                               backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
                                               fileTypeOrder
                                       ),
-                                      placeholderProjects.map(assetTreeNodeFromAsset),
+                                      placeholderProjects.map(assetTreeNode.assetTreeNodeFromAsset),
                                       innerItem =>
                                           backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
                                           projectTypeOrder
@@ -777,12 +662,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    assetTreeDFS(assetTree, node => node.key === event.parentKey)?.children == null
+                    assetTreeNode.assetTreeDFS(assetTree, node => node.key === event.parentKey)
+                        ?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeMap(oldAssetTree, item =>
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
                         item.key !== event.parentKey
                             ? item
                             : {
@@ -793,7 +679,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               node.item.type !==
                                               backendModule.AssetType.specialEmpty
                                       ),
-                                      [assetTreeNodeFromAsset(placeholderItem, item.depth + 1)],
+                                      [
+                                          assetTreeNode.assetTreeNodeFromAsset(
+                                              placeholderItem,
+                                              item.depth + 1
+                                          ),
+                                      ],
                                       innerItem =>
                                           backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >=
                                           typeOrder
@@ -810,7 +701,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
-                    assetTreeFilter(oldAssetTree, item => item.item.id !== event.id, true)
+                    assetTreeNode.assetTreeFilter(
+                        oldAssetTree,
+                        item => item.item.id !== event.id,
+                        true
+                    )
                 )
                 break
             }
@@ -891,7 +786,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </div>
                     </div>
                 </div>
-                <Table<AssetTreeNode, AssetsTableState, AssetRowState, backendModule.AssetId>
+                <Table<
+                    assetTreeNode.AssetTreeNode,
+                    AssetsTableState,
+                    AssetRowState,
+                    backendModule.AssetId
+                >
                     footer={<tfoot className="h-full"></tfoot>}
                     rowComponent={AssetRow}
                     items={displayItems}
@@ -899,7 +799,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     isLoading={isLoading}
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}
-                    getKey={getAssetTreeNodeKey}
+                    getKey={assetTreeNode.getAssetTreeNodeKey}
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
                     placeholder={PLACEHOLDER}

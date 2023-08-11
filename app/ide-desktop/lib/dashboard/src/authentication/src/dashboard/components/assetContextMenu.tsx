@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -32,7 +33,7 @@ import ManagePermissionsModal from './managePermissionsModal'
 export interface AssetContextMenuProps {
     hidden?: boolean
     innerProps: tableRow.TableRowInnerProps<
-        assetsTable.AssetTreeNode,
+        assetTreeNode.AssetTreeNode,
         assetsTable.AssetsTableState,
         assetsTable.AssetRowState
     >

@@ -12,6 +12,7 @@ import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from './events/assetEvent'
+import * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
@@ -110,7 +111,7 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
 export type AssetColumnProps = tableColumn.TableColumnProps<
-    assetsTable.AssetTreeNode,
+    assetTreeNode.AssetTreeNode,
     assetsTable.AssetsTableState,
     assetsTable.AssetRowState,
     backend.AssetId

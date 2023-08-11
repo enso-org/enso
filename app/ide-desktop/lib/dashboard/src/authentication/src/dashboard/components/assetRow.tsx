@@ -5,6 +5,7 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -26,7 +27,7 @@ import AssetContextMenu from './assetContextMenu'
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
     extends tableRow.TableRowProps<
-        assetsTable.AssetTreeNode,
+        assetTreeNode.AssetTreeNode,
         assetsTable.AssetsTableState,
         assetsTable.AssetRowState,
         backendModule.AssetId
