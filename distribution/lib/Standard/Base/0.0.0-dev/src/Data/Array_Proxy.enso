@@ -16,6 +16,9 @@ import project.Internal.Array_Like_Helpers
    vector backed by such custom storage.
 type Array_Proxy
     ## PRIVATE
+    Value ignore
+
+    ## PRIVATE
        ADVANCED
        Creates a new `Array_Proxy` from a length and a callback.
 
@@ -29,7 +32,7 @@ type Array_Proxy
              Vector.from_polyglot_array (Array_Proxy.new 10000000 (i -> i))
     new : Integer -> (Integer -> Any) -> Array
     new length at = Illegal_Argument.handle_java_exception <|
-        Array_Like_Helpers.new_builtin length at
+        Array_Like_Helpers.new_array_proxy_builtin length at
 
     ## PRIVATE
        ADVANCED

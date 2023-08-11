@@ -15,7 +15,6 @@ import java.util.function.IntFunction;
 
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.vector.ArrayOverBuffer;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -31,6 +30,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Set;
+
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 import com.oracle.truffle.api.dsl.Cached;
 
@@ -107,7 +108,7 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public ArrayOverBuffer readLastBytes(long n) throws IOException {
+  public EnsoObject readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
       int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
@@ -118,7 +119,7 @@ public final class EnsoFile implements TruffleObject {
       }
 
       buffer.flip();
-      return ArrayOverBuffer.wrapBuffer(buffer);
+      return ArrayLikeHelpers.wrapBuffer(buffer);
     }
   }
 
