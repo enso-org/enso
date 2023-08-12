@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -14,17 +15,25 @@ import org.enso.interpreter.runtime.error.DataflowError;
     description = "Returns an element of Vector at the specified index.")
 public class AtVectorNode extends Node {
   private @Child ArrayLikeAtNode at = ArrayLikeAtNode.create();
-  private @Child ArrayLikeLengthNode length = ArrayLikeLengthNode.create();
+  private @Child ArrayLikeLengthNode length;
 
   Object execute(Object arrayLike, long index) {
-    long len = length.executeLength(arrayLike);
     try {
-      long actualIndex = index < 0 ? index + len : index;
+      long actualIndex = index < 0 ? index + len(arrayLike) : index;
       return at.executeAt(arrayLike, actualIndex);
     } catch (InvalidArrayIndexException e) {
-      EnsoContext ctx = EnsoContext.get(this);
-      return DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeIndexOutOfBounds(index, len), this);
+      var len = len(arrayLike);
+      var ctx = EnsoContext.get(this);
+      var payload = ctx.getBuiltins().error().makeIndexOutOfBounds(index, len);
+      return DataflowError.withoutTrace(payload, this);
     }
+  }
+
+  private long len(Object arrayLike) {
+    if (length == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      length = ArrayLikeLengthNode.create();
+    }
+    return length.executeLength(arrayLike);
   }
 }
