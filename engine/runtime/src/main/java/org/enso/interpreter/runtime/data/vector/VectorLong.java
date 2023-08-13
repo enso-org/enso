@@ -20,10 +20,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
-final class LongVector implements EnsoObject {
+final class VectorLong implements EnsoObject {
   private final long[] storage;
 
-  private LongVector(long[] storage) {
+  private VectorLong(long[] storage) {
     this.storage = storage;
   }
 
@@ -66,8 +66,8 @@ final class LongVector implements EnsoObject {
     }
   }
 
-  static LongVector fromArray(long[] arr) {
-    return new LongVector(arr);
+  static VectorLong fromArray(long[] arr) {
+    return new VectorLong(arr);
   }
 
   /**
@@ -150,7 +150,7 @@ final class LongVector implements EnsoObject {
   }
 
   @ExportMessage
-  LongVector removeWarnings() {
+  VectorLong removeWarnings() {
     return this;
   }
 

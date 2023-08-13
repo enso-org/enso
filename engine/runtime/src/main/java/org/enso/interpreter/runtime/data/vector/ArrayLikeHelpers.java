@@ -88,7 +88,7 @@ public final class ArrayLikeHelpers {
     }
     var res = target.toArray();
     if (res instanceof long[] longs) {
-      return LongVector.fromArray(longs);
+      return VectorLong.fromArray(longs);
     }
     return Vector.fromArray(new Array((Object[])res));
   }
