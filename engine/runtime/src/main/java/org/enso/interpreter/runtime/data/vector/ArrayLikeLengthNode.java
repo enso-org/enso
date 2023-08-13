@@ -29,6 +29,16 @@ public abstract class ArrayLikeLengthNode extends Node {
   }
 
   @Specialization
+  static long vectorLongLength(Vector.Long self) {
+    return self.getArraySize();
+  }
+
+  @Specialization
+  static long vectorDoubleLength(Vector.Double self) {
+    return self.getArraySize();
+  }
+
+  @Specialization
   static long vectorLength(
       Vector.Generic self, @Exclusive @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {

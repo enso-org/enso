@@ -34,6 +34,16 @@ public abstract class ArrayLikeAtNode extends Node {
   }
 
   @Specialization
+  Object vectorLongAt(Vector.Long self, long index) throws InvalidArrayIndexException {
+    return self.readArrayElement(index);
+  }
+
+  @Specialization
+  Object vectorDoubleAt(Vector.Double self, long index) throws InvalidArrayIndexException {
+    return self.readArrayElement(index);
+  }
+
+  @Specialization
   Object vectorAt(
       Vector.Generic self,
       long index,
