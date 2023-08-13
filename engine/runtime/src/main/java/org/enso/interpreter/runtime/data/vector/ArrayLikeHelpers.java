@@ -88,19 +88,19 @@ public final class ArrayLikeHelpers {
     }
     var res = target.toArray();
     if (res instanceof long[] longs) {
-      return VectorLong.fromArray(longs);
+      return Vector.fromLongArray(longs);
     }
     if (res instanceof double[] doubles) {
-      return VectorDouble.fromArray(doubles);
+      return Vector.fromDoubleArray(doubles);
     }
-    return Vector.fromArray(new Array((Object[])res));
+    return Vector.fromInteropArray(new Array((Object[])res));
   }
 
   @Builtin.Method(
       name = "vector_to_array",
       description = "Returns an Array representation of this Vector.")
   public static Object vectorToArray(Object obj) {
-    if (obj instanceof Vector vector) {
+    if (obj instanceof Vector.Generic vector) {
       return vector.toArray();
     } else {
       return obj;
@@ -128,11 +128,11 @@ public final class ArrayLikeHelpers {
   }
 
   public static EnsoObject asVectorWithCheckAt(Object... arr) {
-    return Vector.fromArray(new Array((Object[]) arr));
+    return Vector.fromInteropArray(new Array((Object[]) arr));
   }
 
   public static EnsoObject asVectorFromArray(Object storage) {
-    return Vector.fromArray(storage);
+    return Vector.fromInteropArray(storage);
   }
 
   private static final class Array_Builder<T> {

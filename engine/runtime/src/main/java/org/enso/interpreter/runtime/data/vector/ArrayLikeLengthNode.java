@@ -29,7 +29,8 @@ public abstract class ArrayLikeLengthNode extends Node {
   }
 
   @Specialization
-  static long vectorLength(Vector self, @Exclusive @CachedLibrary(limit = "3") InteropLibrary iop) {
+  static long vectorLength(
+      Vector.Generic self, @Exclusive @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return self.getArraySize(iop);
     } catch (UnsupportedMessageException ex) {

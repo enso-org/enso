@@ -54,7 +54,7 @@ final class ArraySlice implements EnsoObject {
     } else {
       slice = new ArraySlice(storage, slice_start, slice_end);
     }
-    return Vector.fromArray(slice);
+    return Vector.fromInteropArray(slice);
   }
 
   /**

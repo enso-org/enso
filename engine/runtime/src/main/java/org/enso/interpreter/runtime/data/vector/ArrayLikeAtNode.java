@@ -35,7 +35,7 @@ public abstract class ArrayLikeAtNode extends Node {
 
   @Specialization
   Object vectorAt(
-      Vector self,
+      Vector.Generic self,
       long index,
       @Cached.Exclusive @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached.Exclusive @CachedLibrary(limit = "3") WarningsLibrary warnings,

@@ -31,7 +31,7 @@ public abstract class ArrayLikeCoerceToArrayNode extends Node {
   }
 
   @Specialization
-  Object[] doVector(Vector arr, @Cached ArrayLikeCoerceToArrayNode coerceArrayNode) {
+  Object[] doVector(Vector.Generic arr, @Cached ArrayLikeCoerceToArrayNode coerceArrayNode) {
     return coerceArrayNode.execute(arr.toArray());
   }
 
