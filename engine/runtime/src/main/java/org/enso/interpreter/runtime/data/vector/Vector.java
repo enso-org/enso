@@ -122,6 +122,64 @@ abstract class Vector implements EnsoObject {
     return new Double(arr);
   }
 
+  static Object fromEnsoOnlyArray(Object[] arr) {
+    return new EnsoOnly(arr);
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  @ExportLibrary(WarningsLibrary.class)
+  static final class EnsoOnly extends Vector {
+    private final Object[] storage;
+
+    private EnsoOnly(Object[] storage) {
+      this.storage = storage;
+    }
+
+    //
+    // messages for the InteropLibrary
+    //
+
+    @ExportMessage
+    long getArraySize() {
+      return storage.length;
+    }
+
+    @ExportMessage
+    EnsoObject readArrayElement(long index) throws InvalidArrayIndexException {
+      try {
+        return (EnsoObject) storage[Math.toIntExact(index)];
+      } catch (ArithmeticException | IndexOutOfBoundsException ex) {
+        throw InvalidArrayIndexException.create(index);
+      }
+    }
+
+    @ExportMessage
+    boolean isArrayElementReadable(long index) {
+      var size = storage.length;
+      return index < size && index >= 0;
+    }
+
+    @ExportMessage
+    boolean hasWarnings() {
+      return false;
+    }
+
+    @ExportMessage
+    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
+      return new Warning[0];
+    }
+
+    @ExportMessage
+    EnsoOnly removeWarnings() throws UnsupportedMessageException {
+      return this;
+    }
+
+    @ExportMessage
+    boolean isLimitReached() {
+      return false;
+    }
+  }
+
   @ExportLibrary(InteropLibrary.class)
   @ExportLibrary(WarningsLibrary.class)
   static final class Generic extends Vector {

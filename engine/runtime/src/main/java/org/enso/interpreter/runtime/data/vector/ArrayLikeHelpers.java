@@ -79,10 +79,14 @@ public final class ArrayLikeHelpers {
       @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode) {
     var len = Math.toIntExact(length);
     var target = new Array_Builder(len);
+    boolean nonTrivialEnsoValue = false;
     for (int i = 0; i < len; i++) {
       var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
       if (value instanceof DataflowError) {
         return value;
+      }
+      if (!(value instanceof EnsoObject)) {
+        nonTrivialEnsoValue = true;
       }
       target.add(value);
     }
@@ -93,7 +97,11 @@ public final class ArrayLikeHelpers {
     if (res instanceof double[] doubles) {
       return Vector.fromDoubleArray(doubles);
     }
-    return Vector.fromInteropArray(new Array((Object[])res));
+    if (nonTrivialEnsoValue) {
+      return Vector.fromInteropArray(new Array((Object[])res));
+    } else {
+      return Vector.fromEnsoOnlyArray((Object[])res);
+    }
   }
 
   @Builtin.Method(
