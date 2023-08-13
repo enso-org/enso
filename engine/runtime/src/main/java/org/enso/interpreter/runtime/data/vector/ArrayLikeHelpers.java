@@ -23,6 +23,17 @@ public final class ArrayLikeHelpers {
     return ArrayProxy.create(length, at);
   }
 
+  /** Checks whether an array like object is considered immutable.
+   * Immutable objects are instances of {@link EnsoObject} and can be safely cast
+   * to that interface.
+   *
+   * @param obj the object to check
+   * @return if the {@code obj} is already seen as immutable
+   */
+  public static boolean isImmutable(Object obj) {
+    return obj instanceof Vector;
+  }
+
   /**
    * Takes a slice from an array like object.
    *
@@ -74,8 +85,12 @@ public final class ArrayLikeHelpers {
   @Builtin.Method(
       name = "vector_to_array",
       description = "Returns an Array representation of this Vector.")
-  public static Object vectorToArray(Vector vector) {
-    return vector.toArray();
+  public static Object vectorToArray(Object obj) {
+    if (obj instanceof Vector vector) {
+      return vector.toArray();
+    } else {
+      return obj;
+    }
   }
 
   public static EnsoObject wrapBuffer(ByteBuffer buffer) {

@@ -19,7 +19,6 @@ import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -56,7 +55,6 @@ import org.enso.polyglot.data.TypeGraph;
   Ref.class,
   PanicException.class,
   PanicSentinel.class,
-  Vector.class,
   EnsoHashMap.class,
   Warning.class,
   EnsoFile.class,

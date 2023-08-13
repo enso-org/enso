@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
-public final class Vector implements EnsoObject {
+final class Vector implements EnsoObject {
   private final Object storage;
 
   private Vector(Object storage) {

@@ -8,7 +8,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.data.vector.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -31,8 +30,8 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
   }
 
   @Fallback
-  Vector doOther(Object arr) {
-    EnsoContext ctx = EnsoContext.get(this);
+  EnsoObject doOther(Object arr) {
+    var ctx = EnsoContext.get(this);
     throw new PanicException(
         ctx.getBuiltins().error().makeTypeError("polyglot array", arr, "array"), this);
   }
