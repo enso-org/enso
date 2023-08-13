@@ -90,6 +90,9 @@ public final class ArrayLikeHelpers {
     if (res instanceof long[] longs) {
       return VectorLong.fromArray(longs);
     }
+    if (res instanceof double[] doubles) {
+      return VectorDouble.fromArray(doubles);
+    }
     return Vector.fromArray(new Array((Object[])res));
   }
 
