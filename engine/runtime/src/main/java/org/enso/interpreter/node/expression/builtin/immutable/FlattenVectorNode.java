@@ -9,7 +9,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.vector.Array;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
@@ -51,7 +50,7 @@ public abstract class FlattenVectorNode extends Node {
         flattened_length += lengthNode.executeLength(item);
       }
 
-      Array result = ArrayLikeHelpers.allocate(flattened_length);
+      var result = ArrayLikeHelpers.allocate(flattened_length);
       long current_index = 0;
       for (long i = 0; i < length; i++) {
         var item = atNode.executeAt(storage, i);

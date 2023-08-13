@@ -42,10 +42,10 @@ public final class ArrayLikeHelpers {
    * returned to Enso.
    *
    * @param size the size of the created array.
-   * @return
+   * @return the array instance
    */
-  public static Array allocate(long size) {
-    var arr = new Object[(int) size];
+  public static EnsoObject allocate(long size) {
+    var arr = new Object[Math.toIntExact(size)];
     return new Array(arr);
   }
 

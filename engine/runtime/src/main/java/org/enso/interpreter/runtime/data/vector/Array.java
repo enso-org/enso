@@ -27,7 +27,7 @@ import org.graalvm.collections.EconomicSet;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
-public final class Array implements EnsoObject {
+final class Array implements EnsoObject {
   private final Object[] items;
   private Boolean withWarnings;
   private Warning[] cachedWarnings;

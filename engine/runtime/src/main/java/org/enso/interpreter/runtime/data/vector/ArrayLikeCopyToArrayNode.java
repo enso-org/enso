@@ -11,6 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class ArrayLikeCopyToArrayNode extends Node {
@@ -19,7 +20,7 @@ public abstract class ArrayLikeCopyToArrayNode extends Node {
   }
 
   public abstract Object execute(
-      Object src, long source_index, Array dest, long dest_index, long count);
+      Object src, long srcIndex, EnsoObject destArr, long destIndex, long count);
 
   @Specialization
   Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {
@@ -56,7 +57,7 @@ public abstract class ArrayLikeCopyToArrayNode extends Node {
   }
 
   @Fallback
-  Object doOther(Object src, long source_index, Array dest, long dest_index, long count) {
+  Object doOther(Object src, long source_index, EnsoObject dest, long dest_index, long count) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
   }
