@@ -29,7 +29,8 @@ object FrgaalJavaCompiler {
   val frgaal      = "org.frgaal" % "compiler" % "19.0.1" % "provided"
   val sourceLevel = "19"
 
-  val debugArg = "-J" + org.enso.build.WithDebugCommand.DEBUG_OPTION
+  val debugArg =
+    "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
 
   def compilers(
     classpath: sbt.Keys.Classpath,
