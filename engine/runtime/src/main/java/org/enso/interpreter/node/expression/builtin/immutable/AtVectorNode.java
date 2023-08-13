@@ -32,7 +32,7 @@ public class AtVectorNode extends Node {
   private long len(Object arrayLike) {
     if (length == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      length = ArrayLikeLengthNode.create();
+      length = insert(ArrayLikeLengthNode.create());
     }
     return length.executeLength(arrayLike);
   }
