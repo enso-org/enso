@@ -32,7 +32,6 @@ from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 
 polyglot java import java.lang.IndexOutOfBoundsException
-polyglot java import org.enso.base.Array_Builder
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -1047,7 +1046,7 @@ type Builder
 
              Vector.new_builder
     new : Integer -> Builder
-    new (capacity=10) = Builder.Value (Array_Builder.newBuilder capacity)
+    new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
