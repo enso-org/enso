@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 prep_json size =
     single = '{"foo": 543}, {"bar": false}'
@@ -9,8 +9,13 @@ prep_json size =
     str = "[" + (many.join ",") + "]"
     str
 
-bench =
-    large_json = prep_json 1000000
-    Bench.measure (Json.parse large_json) "parse json" 10 10
+options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
-main = bench
+collect_benches = Bench.build builder->
+    large_json = prep_json 1000000
+
+    builder.group "Json" options group_builder->
+        group_builder.specify "parse_json" <|
+            Json.parse large_json
+
+main = collect_benches . run_main
