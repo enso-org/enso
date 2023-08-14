@@ -19,40 +19,54 @@ type My_Comparator
 Comparable.from (_:My) = My_Comparator
 
 
+vector_size = 100000
+
+create_ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
+
+create_dates = create_ints.map x->
+    (Date_Time.new 1990 1 1) + (Duration.new seconds=x)
+
+create_objects = create_ints.map My.Data
+
+create_ints_table = Table.new [['ints', create_ints]]
+
+create_dates_table = Table.new [['dates', create_dates]]
+
+create_objects_table = Table.new [['objects', create_objects]]
+
+
+type Data
+    Value ~ints ~dates ~objects ~ints_table ~dates_table ~objects_table
+
+    create =
+        Data.Value create_ints create_dates create_objects create_ints_table create_dates_table create_objects_table
+
+
 options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
 
 collect_benches = Bench.build builder->
-    vector_size = 100000
-    ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
-    start = Date_Time.new 1990 1 1
-    dates = ints.map x->
-        start + (Duration.new seconds=x)
-    objects = ints.map My.Data
-
-    ints_table = Table.new [['ints', ints]]
-    dates_table = Table.new [['dates', dates]]
-    objects_table = Table.new [['objects', objects]]
+    data = Data.create
 
     builder.group "Table_Sorting" options group_builder->
         group_builder.specify "table_order_by_ints" <|
-            ints_table.order_by [Sort_Column.Index 0]
+            data.ints_table.order_by [Sort_Column.Index 0]
 
         group_builder.specify "table_order_by_dates" <|
-            dates_table.order_by [Sort_Column.Index 0]
+            data.dates_table.order_by [Sort_Column.Index 0]
 
         group_builder.specify "table_order_by_objects" <|
-            objects_table.order_by [Sort_Column.Index 0]
+            data.objects_table.order_by [Sort_Column.Index 0]
 
     builder.group "Vector_Sorting" options group_builder->
         group_builder.specify "vector_sort_ints" <|
-            ints.sort
+            data.ints.sort
 
         group_builder.specify "vector_sort_dates" <|
-            dates.sort
+            data.dates.sort
 
         group_builder.specify "vector_sort_objects" <|
-            objects.sort
+            data.objects.sort
 
 
 main = collect_benches . run_main

@@ -14,13 +14,19 @@ create_vector rows (seed=1646322139) =
 options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
 
+type Data
+    Value ~vector
+
+    create vec_size = Data.Value (create_vector vec_size)
+
+
 collect_benches = Bench.build builder->
     vector_size = 100000
-    vector = create_vector vector_size
+    data = Data.create vector_size
 
     builder.group "Count_Min_Max" options group_builder->
         group_builder.specify "count_min_max" <|
-            vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]
+            data.vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]
 
 
 main = collect_benches . run_main

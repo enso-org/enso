@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Runtime import Debug
 
 from Standard.Table import Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count, Sum
@@ -10,35 +9,43 @@ from Standard.Test import Bench, Faker, Phase_Conf
 options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
 
 
+seed = 1646322139
+
+
+create_table : Table
+create_table num_rows =
+    faker = Faker.new seed
+    sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+    stores = ["Brixton", "Chelsea", "Fulham", "Mayfair", "Notting Hill", "Peckham", "Richmond", "Westminster", "Whitechapel", "Wimbledon"]
+    types = ["Gravel", "Mountain", "Road"]
+    vgen v = 0.up_to num_rows . map _-> faker.vector_item v
+
+    size = ["size", vgen sizes]
+    store = ["store", vgen stores]
+    typ = ["type", vgen types]
+    price = ["price", 0.up_to num_rows . map _-> faker.decimal -200.0 200.0]
+
+    Table.new [size, store, typ, price]
+
+
+type Data
+    Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+
 collect_benches = Bench.build builder->
-    seed = 1646322139
     row_numbers = [25, 250, 2500, 25000]
-
-    create_table : Table
-    create_table num_rows =
-        faker = Faker.new seed
-        sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
-        stores = ["Brixton", "Chelsea", "Fulham", "Mayfair", "Notting Hill", "Peckham", "Richmond", "Westminster", "Whitechapel", "Wimbledon"]
-        types = ["Gravel", "Mountain", "Road"]
-        vgen v = 0.up_to num_rows . map _-> faker.vector_item v
-
-        size = ["size", vgen sizes]
-        store = ["store", vgen stores]
-        typ = ["type", vgen types]
-        price = ["price", 0.up_to num_rows . map _-> faker.decimal -200.0 200.0]
-
-        Table.new [size, store, typ, price]
 
 
     row_numbers.each num_rows->
-        table = create_table num_rows
+        data = Data.create num_rows
 
         builder.group ("CrossTab_" + num_rows.to_text) options group_builder->
             specify group_by name_column values=[Count] =
                 name = (group_by.join '_') + "_" + name_column + "_" + (values.map .to_text . join "_")
-                #Debug.breakpoint
                 group_builder.specify (normalize_name name) <|
-                    table.cross_tab group_by name_column values
+                    data.table.cross_tab group_by name_column values
 
             specify [] "size"
             specify [] "type"
