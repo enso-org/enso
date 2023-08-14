@@ -28,19 +28,13 @@ const logger = config.logger
 // === Project Import ===
 // ======================
 
-/** Information required to display a project bundle. */
-export interface BundleInfo {
-    name: string
-    id: string
-}
-
 /** Open a project from the given path. Path can be either a source file under the project root,
  * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
  * location.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  * @throws {Error} if the path does not belong to a valid project. */
-export function importProjectFromPath(openedPath: string): BundleInfo {
+export function importProjectFromPath(openedPath: string): string {
     if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
@@ -70,13 +64,25 @@ export function importProjectFromPath(openedPath: string): BundleInfo {
 /** Import the project from a bundle.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
-export function importBundle(bundlePath: string): BundleInfo {
+export function importBundle(bundlePath: string): string {
     logger.log(`Importing project '${bundlePath}' from bundle.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
-    const bundleRoot = directoryWithinBundle(bundlePath)
-    const target = generateDirectoryName(bundleRoot ?? bundlePath)
-    logger.log(`Importing project as '${target.name}'.`)
-    fs.mkdirSync(target.path, { recursive: true })
+    const bundlePrefix = prefixInBundle(bundlePath)
+    // We care about spurious '.' and '..' when stripping paths but not when generating name.
+    const normalizedBundlePrefix =
+        bundlePrefix != null
+            ? pathModule.normalize(bundlePrefix).replace(/[\\/]+$/, '') // Also strip trailing slash.
+            : null
+    const dirNameBase =
+        normalizedBundlePrefix != null &&
+        normalizedBundlePrefix !== '.' &&
+        normalizedBundlePrefix !== '..'
+            ? normalizedBundlePrefix
+            : bundlePath
+    logger.log(`Bundle normalized prefix: '${String(normalizedBundlePrefix)}'.`)
+    const targetPath = generateDirectoryName(dirNameBase)
+    logger.log(`Importing project as '${targetPath}'.`)
+    fs.mkdirSync(targetPath, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle,
     // we try to support both archives that:
     // * contain a single directory with the project files - that directory name will be used
@@ -86,47 +92,51 @@ export function importBundle(bundlePath: string): BundleInfo {
     // We try to tell apart these two cases by looking at the common prefix of the paths
     // of the files in the archive. If there is any, everything is under a single directory,
     // and we need to strip it.
+    //
+    // Additionally, we need to take into account that paths might be prefixed with `./` or not.
+    // Thus, we need to adjust the number of path components to strip accordingly.
+
+    logger.log(`Extracting bundle: '${bundlePath}' -> '${targetPath}'.`)
+
+    // Strip trailing separator and split the path into pieces.
+    const rootPieces = bundlePrefix != null ? bundlePrefix.split(/[\\/]/) : []
+
+    // If the last element is empty string (i.e. we had trailing separator), drop it.
+    if (rootPieces.length > 0 && rootPieces[rootPieces.length - 1] === '') {
+        rootPieces.pop()
+    }
+
     tar.extract({
         file: bundlePath,
-        cwd: target.path,
+        cwd: targetPath,
         sync: true,
-        strip: bundleRoot != null ? 1 : 0,
+        strip: rootPieces.length,
     })
-    updateName(target.path, target.name)
-    return { name: target.name, id: updateIdAndDate(target.path) }
+    return updateIdAndDate(targetPath)
 }
 
 /** Upload the project from a bundle. */
-export async function uploadBundle(bundle: stream.Readable): Promise<BundleInfo> {
+export async function uploadBundle(bundle: stream.Readable): Promise<string> {
     logger.log(`Uploading project from bundle.`)
-    let target = generateDirectoryName('Project')
-    fs.mkdirSync(target.path, { recursive: true })
+    const targetPath = generateDirectoryName('Project')
+    fs.mkdirSync(targetPath, { recursive: true })
     await new Promise<void>(resolve => {
-        bundle.pipe(tar.extract({ cwd: target.path })).on('finish', resolve)
+        bundle.pipe(tar.extract({ cwd: targetPath })).on('finish', resolve)
     })
-    const entries = fs.readdirSync(target.path)
+    const entries = fs.readdirSync(targetPath)
     const firstEntry = entries[0]
     // If the directory only contains one subdirectory, replace the directory with its sole
     // subdirectory.
     if (entries.length === 1 && firstEntry != null) {
-        if (fs.statSync(pathModule.join(target.path, firstEntry)).isDirectory()) {
+        if (fs.statSync(pathModule.join(targetPath, firstEntry)).isDirectory()) {
             const temporaryDirectoryName =
-                target.path + `_${crypto.randomUUID().split('-')[0] ?? ''}`
-            fs.renameSync(target.path, temporaryDirectoryName)
-            fs.renameSync(pathModule.join(temporaryDirectoryName, firstEntry), target.path)
+                targetPath + `_${crypto.randomUUID().split('-')[0] ?? ''}`
+            fs.renameSync(targetPath, temporaryDirectoryName)
+            fs.renameSync(pathModule.join(temporaryDirectoryName, firstEntry), targetPath)
             fs.rmdirSync(temporaryDirectoryName)
         }
     }
-    const projectName = tryGetName(target.path)
-    if (projectName != null) {
-        const oldPath = target.path
-        target = generateDirectoryName(projectName)
-        if (target.path !== oldPath) {
-            fs.renameSync(oldPath, target.path)
-        }
-    }
-    updateName(target.path, target.name)
-    return { name: target.name, id: updateIdAndDate(target.path) }
+    return updateIdAndDate(targetPath)
 }
 
 /** Import the project so it becomes visible to the Project Manager.
@@ -134,28 +144,27 @@ export async function uploadBundle(bundle: stream.Readable): Promise<BundleInfo>
  * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
  * @throws {Error} if a race condition occurs when generating a unique project directory name. */
-export function importDirectory(rootPath: string): BundleInfo {
+export function importDirectory(rootPath: string): string {
     if (isProjectInstalled(rootPath)) {
         // Project is already visible to Project Manager, so we can just return its ID.
         logger.log(`Project already installed at '${rootPath}'.`)
         const id = getProjectId(rootPath)
         if (id != null) {
-            return { name: getProjectName(rootPath), id }
+            return id
         } else {
             throw new Error(`Project already installed, but missing metadata.`)
         }
     } else {
         logger.log(`Importing a project copy from '${rootPath}'.`)
-        const target = generateDirectoryName(rootPath)
-        if (fs.existsSync(target.path)) {
-            throw new Error(`Project directory '${target.path}' already exists.`)
+        const targetPath = generateDirectoryName(rootPath)
+        if (fs.existsSync(targetPath)) {
+            throw new Error(`Project directory '${targetPath}' already exists.`)
         } else {
-            logger.log(`Copying: '${rootPath}' -> '${target.path}'.`)
-            fs.cpSync(rootPath, target.path, { recursive: true })
-            updateName(target.path, target.name)
+            logger.log(`Copying: '${rootPath}' -> '${targetPath}'.`)
+            fs.cpSync(rootPath, targetPath, { recursive: true })
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
-            return { name: target.name, id: updateIdAndDate(target.path) }
+            return updateIdAndDate(targetPath)
         }
     }
 }
@@ -247,45 +256,32 @@ export function updateMetadata(
 /** Check if the given path represents the root of an Enso project.
  * This is decided by the presence of the Project Manager's metadata. */
 export function isProjectRoot(candidatePath: string): boolean {
-    const packageYamlPath = pathModule.join(candidatePath, paths.BUNDLE_METADATA_RELATIVE)
     const projectJsonPath = pathModule.join(candidatePath, paths.PROJECT_METADATA_RELATIVE)
-    let isRoot = false
     try {
-        fs.accessSync(packageYamlPath, fs.constants.R_OK)
+        fs.accessSync(projectJsonPath, fs.constants.R_OK)
+        return true
     } catch {
-        try {
-            fs.accessSync(projectJsonPath, fs.constants.R_OK)
-            isRoot = true
-        } catch {
-            // No need to do anything, isRoot is already set to false
-        }
+        return false
     }
-    return isRoot
 }
 
 /** Check if this bundle is a compressed directory (rather than directly containing the project
- * files). If it is, we return the name of the directory. Otherwise, we return `null`. */
-export function directoryWithinBundle(bundlePath: string): string | null {
+ * files). If it is, we return the path to the directory. Otherwise, we return `null`. */
+export function prefixInBundle(bundlePath: string): string | null {
     // We need to look up the root directory among the tarball entries.
     let commonPrefix: string | null = null
     tar.list({
         file: bundlePath,
         sync: true,
         onentry: entry => {
-            // We normalize to get rid of leading `.` (if any).
-            const path = entry.path.normalize()
+            const path = entry.path
             commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
         },
     })
+
     // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return commonPrefix != null && commonPrefix !== '' ? pathModule.basename(commonPrefix) : null
-}
-
-/** An object containing the name and path of a project. */
-interface NameAndPath {
-    name: string
-    path: string
+    return commonPrefix != null && commonPrefix !== '' ? commonPrefix : null
 }
 
 /** Generate a name for a project using given base string. A suffix is added if there is a
@@ -295,7 +291,7 @@ interface NameAndPath {
  * If given a name like `Name_1` it will become `Name_2` if there is already a directory named
  * `Name_1`. If a path containing multiple components is given, only the last component is used
  * for the name. */
-export function generateDirectoryName(name: string): NameAndPath {
+export function generateDirectoryName(name: string): string {
     // Use only the last path component.
     name = pathModule.parse(name).name
 
@@ -311,16 +307,17 @@ export function generateDirectoryName(name: string): NameAndPath {
     }
 
     const projectsDirectory = getProjectsDirectory()
+    let finalPath: string
     while (true) {
         suffix++
         const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
         const candidatePath = pathModule.join(projectsDirectory, newName)
         if (!fs.existsSync(candidatePath)) {
-            // eslint-disable-next-line no-restricted-syntax
-            return { name: newName, path: candidatePath }
+            finalPath = candidatePath
+            break
         }
     }
-    // Unreachable.
+    return finalPath
 }
 
 /** Take a path to a file, presumably located in a project's subtree.Returns the path
@@ -351,33 +348,6 @@ export function isProjectInstalled(projectRoot: string): boolean {
     const projectRootParent = pathModule.dirname(projectRoot)
     // Should resolve symlinks and relative paths. Normalize before comparison.
     return pathModule.resolve(projectRootParent) === pathModule.resolve(projectsDirectory)
-}
-
-/** Get the name of the project from the bundle metadata (`package.yaml`). */
-export function getProjectName(projectRoot: string) {
-    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
-    const metadata = fs.readFileSync(metadataPath, 'utf-8')
-    return metadata.match(/^name: (.+)$/)?.[1] ?? ''
-}
-
-/** Update the name of the project in the bundle metadata (`package.yaml`). */
-export function updateName(projectRoot: string, newName: string) {
-    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
-    const oldMetadata = fs.readFileSync(metadataPath, 'utf-8')
-    const newMetadata = oldMetadata.replace(/^name: .+$/m, `name: ${newName}`)
-    fs.writeFileSync(metadataPath, newMetadata)
-}
-
-/** Gets the name of a bundle from the bundle metadata (`package.yaml`). */
-export function tryGetName(projectRoot: string) {
-    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
-    try {
-        const metadata = fs.readFileSync(metadataPath, 'utf-8')
-        return metadata.match(/^name: (.+)$/m)?.[1] ?? null
-    } catch {
-        /// The bundle metadata file was not found.
-        return null
-    }
 }
 
 // ==================

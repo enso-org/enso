@@ -175,7 +175,13 @@ function AppRouter(props: AppProps) {
     const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (shortcuts.handleKeyboardEvent(event)) {
+            const isTargetEditable =
+                event.target instanceof HTMLInputElement ||
+                (event.target instanceof HTMLElement && event.target.isContentEditable)
+            const shouldHandleEvent = isTargetEditable
+                ? !shortcutsModule.isTextInputEvent(event)
+                : true
+            if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
                 event.preventDefault()
             }
         }
