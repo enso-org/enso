@@ -30,8 +30,18 @@ export class LocalBackend extends backend.Backend {
     private readonly projectManager = projectManager.ProjectManager.default()
 
     /** Create a {@link LocalBackend}. */
-    constructor() {
+    constructor(projectStartupInfo: backend.ProjectStartupInfo | null) {
         super()
+        if (projectStartupInfo?.backendType === backend.BackendType.local) {
+            LocalBackend.currentlyOpenProjects.set(projectStartupInfo.project.projectId, {
+                projectName: projectManager.ProjectName(projectStartupInfo.project.name),
+                // The values are not important; fill with dummy values.
+                engineVersion: projectStartupInfo.project.engineVersion?.value ?? '',
+                projectNamespace: '',
+                languageServerBinaryAddress: { host: '', port: 0 },
+                languageServerJsonAddress: { host: '', port: 0 },
+            })
+        }
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -300,11 +310,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        const versions: [backend.Version, ...backend.Version[]] = [
-            engineVersionToVersion(engineVersions[0]),
-            ...engineVersions.map<backend.Version>(engineVersionToVersion),
-        ]
-        return versions
+        return engineVersions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===

@@ -97,4 +97,10 @@ impl<Parent> ChildBuilder<Parent> {
         self.built.node.ast_id = Some(id);
         self
     }
+
+    /// Set tree type for this node.
+    pub fn set_tree_type(mut self, r#type: Option<ast::TreeType>) -> Self {
+        self.built.node.tree_type = r#type;
+        self
+    }
 }

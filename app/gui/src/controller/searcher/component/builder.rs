@@ -286,7 +286,16 @@ impl<'a> Builder<'a> {
             None => WhenDisplayed::in_base_mode(&entry, group_id.is_some()),
         };
         let when_displayed = when_displayed.consider_tags(&entry);
-        let component = Component::new_from_database_entry(id, entry, group_id);
+        let label = match entry.kind {
+            suggestion_database::entry::Kind::Module if self.inside_module.is_none() =>
+                format!("{}", entry.defined_in).into(),
+            _ => match entry.self_type.as_ref() {
+                Some(self_type) if self.this_type.is_none() =>
+                    format!("{}.{}", self_type.alias_name(), entry.name).into(),
+                _ => entry.name.to_im_string(),
+            },
+        };
+        let component = Component::new_from_database_entry(id, entry, group_id, label);
         if matches!(when_displayed, WhenDisplayed::Always) {
             self.built_list.displayed_by_default.push(component.clone());
         }
@@ -479,6 +488,35 @@ mod tests {
             "SubModule2.fun5",
             "SubModule3",
             "SubModule3.fun6",
+        ]);
+    }
+
+    #[test]
+    fn building_main_module_content_list() {
+        let database = mock_database();
+        let groups = mock_groups();
+        let (module_id, _) = database
+            .lookup_by_qualified_name(&QualifiedName::from_text("test.Test").unwrap())
+            .unwrap();
+        let mut builder = Builder::new_inside_module(&database, &groups, module_id);
+
+        builder.add_components_from_db(database.keys());
+        let list = builder.build();
+
+        check_displayed_components(&list, vec!["TopModule1", "TopModule2"]);
+        check_groups(&list, vec![None, None]);
+        check_filterable_components(&list, vec![
+            "TopModule1",
+            "TopModule1.fun1",
+            "TopModule1.fun2",
+            "SubModule1",
+            "SubModule1.fun4",
+            "SubModule2",
+            "SubModule2.fun5",
+            "SubModule3",
+            "SubModule3.fun6",
+            "TopModule2",
+            "TopModule2.fun0",
         ]);
     }
 
