@@ -116,7 +116,7 @@ export default function Editor(props: EditorProps) {
                                 },
                             },
                             accessToken,
-                            { projectId: project.projectId }
+                            { projectId: project.projectId, projectSessionId: project.currentSessionId }
                         )
                     }
                     if (supportsLocalBackend) {

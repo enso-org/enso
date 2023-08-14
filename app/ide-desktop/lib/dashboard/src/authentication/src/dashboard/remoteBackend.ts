@@ -422,7 +422,7 @@ export class RemoteBackend extends backend.Backend {
         } else {
             const project = await response.json()
             const ideVersion =
-                project.ide_version ??
+                project.ideVersion ??
                 (
                     await this.listVersions({
                         versionType: backend.VersionType.ide,
@@ -435,7 +435,7 @@ export class RemoteBackend extends backend.Backend {
                 return {
                     ...project,
                     ideVersion,
-                    engineVersion: project.engine_version,
+                    engineVersion: project.engineVersion,
                     jsonAddress:
                         project.address != null ? backend.Address(`${project.address}json`) : null,
                     binaryAddress:

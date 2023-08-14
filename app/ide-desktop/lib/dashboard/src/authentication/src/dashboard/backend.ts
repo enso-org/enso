@@ -38,6 +38,10 @@ export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 
+/** Unique identifier for a user's project. */
+export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
+export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
+
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>
 export const FileId = newtype.newtypeConstructor<FileId>()
@@ -145,10 +149,9 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    ide_version: VersionNumber | null
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    engine_version: VersionNumber | null
+    ideVersion: VersionNumber | null
+    engineVersion: VersionNumber | null
+    currentSessionId: ProjectSessionId | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
@@ -156,6 +159,7 @@ export interface Project extends ListedProject {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+    currentSessionId: ProjectSessionId | null
 }
 
 /** Information required to open a project. */
