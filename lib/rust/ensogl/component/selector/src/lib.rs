@@ -72,10 +72,11 @@ pub use crate::frp::*;
 /// background that corresponds to the value relative in the range, for example, 0.0 would be not
 /// filled in, 128.0 would be about halfway filled in, and 128.0 would be completely filled in.
 /// The value can be changed by clicking and dragging on the shape.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct NumberPicker {
     /// Public FRP api of the Component.
     pub frp: Rc<number::Frp>,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -88,12 +89,6 @@ impl NumberPicker {
         frp.init(app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model }
-    }
-}
-
-impl display::Object for NumberPicker {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 
@@ -135,10 +130,11 @@ impl application::View for NumberPicker {
 /// would show the track covering the right half of the background. The selected range can be
 /// changed by clicking and dragging the track, which changes the whole range, but preserves the
 /// width, or the individual edges of the track which changes just the respective end of the range.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct NumberRangePicker {
     /// Public FRP api of the Component.
     pub frp: Rc<range::Frp>,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -151,12 +147,6 @@ impl NumberRangePicker {
         frp.init(app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model }
-    }
-}
-
-impl display::Object for NumberRangePicker {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 

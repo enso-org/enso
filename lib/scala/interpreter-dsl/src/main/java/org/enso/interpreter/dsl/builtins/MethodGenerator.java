@@ -14,14 +14,16 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
+import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.Builtin;
 
 public abstract class MethodGenerator {
   protected final boolean isStatic;
   protected final boolean isConstructor;
-  private final boolean convertToGuestValue;
+  protected final boolean convertToGuestValue;
   protected final TypeWithKind returnTpe;
+  protected final ProcessingEnvironment processingEnvironment;
 
   private static final WrapExceptionExtractor wrapExceptionsExtractor =
       new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
@@ -32,18 +34,19 @@ public abstract class MethodGenerator {
   }
 
   public MethodGenerator(
+      ProcessingEnvironment processingEnvironment,
       boolean isStatic,
       boolean isConstructor,
       boolean convertToGuestValue,
       TypeWithKind returnTpe) {
+    this.processingEnvironment = processingEnvironment;
     this.isStatic = isStatic;
     this.isConstructor = isConstructor;
     this.convertToGuestValue = convertToGuestValue;
     this.returnTpe = returnTpe;
   }
 
-  public abstract List<String> generate(
-      ProcessingEnvironment processingEnv, String name, String owner);
+  public abstract List<String> generate(String name, String owner);
 
   /**
    * Generate node's `execute` method definition (return type and necessary parameters). '
@@ -91,10 +94,13 @@ public abstract class MethodGenerator {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
-              throw new RuntimeException(
-                  "If intended, automatic conversion of value of type "
-                      + tpe.baseType()
-                      + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
+              processingEnvironment
+                  .getMessager()
+                  .printMessage(
+                      Kind.ERROR,
+                      "Automatic conversion of value of type "
+                          + tpe.baseType()
+                          + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
             }
             return "Object";
           }
@@ -111,14 +117,28 @@ public abstract class MethodGenerator {
    * @param v variable element representing the parameter
    * @return MethodParameter encapsulating the method's parameter info
    */
-  protected MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
+  protected MethodParameter fromVariableElementToMethodParameter(
+      ProcessingEnvironment processingEnv, int i, VariableElement v) {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
+    TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
+    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Parameter "
+                  + v
+                  + " is an array of host objects, which "
+                  + "is not supported by the MethodGenerator. Either use array of primitive, or valid guest objects, "
+                  + "or accept the array as Object and transform it in the method body.",
+              v);
+    }
     return new MethodParameter(
         i,
         ensoName,
         v.asType().toString(),
-        v.getAnnotationMirrors().stream().map(am -> am.toString()).collect(Collectors.toList()));
+        v.getAnnotationMirrors().stream().map(Object::toString).collect(Collectors.toList()));
   }
 
   protected abstract Optional<Integer> expandVararg(int paramsLen, int paramIndex);

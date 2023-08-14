@@ -14,7 +14,9 @@ import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.NoOpProblemAggregator;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
+import org.enso.table.problems.WithAggregatedProblems;
 import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
@@ -226,8 +228,8 @@ public class DelimitedReader {
   }
 
   /** Returns a list of currently reported problems encountered when parsing the input. */
-  private List<Problem> getReportedProblems(List<Problem> nameProblems) {
-    List<Problem> result = new ArrayList<>(nameProblems.size() + warnings.size() + 1);
+  private AggregatedProblems getReportedProblems(List<Problem> nameProblems) {
+    AggregatedProblems result = new AggregatedProblems(nameProblems.size() + warnings.size() + 1);
     result.addAll(nameProblems);
     result.addAll(warnings);
     if (invalidRowsCount > invalidRowsLimit) {
@@ -463,7 +465,7 @@ public class DelimitedReader {
    * <p>
    * It should only be called once.
    */
-  public WithProblems<Table> read(Reader input) {
+  public WithAggregatedProblems<Table> read(Reader input) {
     markUsed();
     Context context = Context.getCurrent();
     try {
@@ -490,20 +492,20 @@ public class DelimitedReader {
     }
 
     Column[] columns = new Column[builders.length];
+    AggregatedProblems[] problems = new AggregatedProblems[builders.length + 1];
     for (int i = 0; i < builders.length; i++) {
       String columnName = effectiveColumnNames[i];
       Storage<String> col = builders[i].seal();
 
-      WithProblems<Storage<?>> parseResult = valueParser.parseColumn(columnName, col);
-      for (var problem : parseResult.problems()) {
-        reportProblem(problem);
-      }
+      WithAggregatedProblems<Storage<?>> parseResult = valueParser.parseColumn(columnName, col);
       Storage<?> storage = parseResult.value();
-
+      problems[i] = parseResult.problems();
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }
-    return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
+
+    problems[builders.length] = getReportedProblems(headerProblems);
+    return new WithAggregatedProblems<>(new Table(columns), AggregatedProblems.merge(problems));
   }
 
   private boolean wasAlreadyUsed = false;

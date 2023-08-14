@@ -12,6 +12,7 @@ import org.enso.projectmanager.boot.configuration.{
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
+import org.enso.projectmanager.infrastructure.http.ProjectsEndpoint
 import org.enso.projectmanager.infrastructure.languageserver.{
   ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
@@ -29,6 +30,7 @@ import org.enso.projectmanager.protocol.{
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service._
+import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
@@ -43,7 +45,10 @@ class MainModule[
   computeExecutionContext: ExecutionContext
 )(implicit
   E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
-  E2: MonadError[F[ValidationFailure, *], ValidationFailure]
+  E2: MonadError[
+    F[ProjectNameValidator.ValidationFailure, *],
+    ProjectNameValidator.ValidationFailure
+  ]
 ) {
 
   implicit val system: ActorSystem =
@@ -61,7 +66,7 @@ class MainModule[
 
   lazy val gen = new SystemGenerator[F]
 
-  lazy val projectValidator = new MonadicProjectValidator[F]()
+  lazy val projectValidator = new ProjectNameValidator[F]()
 
   lazy val projectRepository =
     new ProjectFileRepository[F](
@@ -138,6 +143,11 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
+  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepository)
   lazy val server =
-    new JsonRpcServer(new JsonRpcProtocolFactory, clientControllerFactory)
+    new JsonRpcServer(
+      new JsonRpcProtocolFactory,
+      clientControllerFactory,
+      optionalEndpoints = List(projectsEndpoint)
+    )
 }

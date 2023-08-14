@@ -72,8 +72,7 @@ pub struct Parameters {
 
 impl Parameters {
     /// Applies the context parameters in the given context.
-    pub fn apply_parameters(self, context: &Context) {
-        let target = Context::TEXTURE_2D;
+    pub fn apply_parameters(self, context: &Context, target: GlEnum) {
         context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.min_filter as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_MAG_FILTER, *self.mag_filter as i32);
         context.tex_parameteri(*target, *Context::TEXTURE_WRAP_S, *self.wrap_s as i32);
@@ -258,6 +257,11 @@ where S: StorageRelation<I, T>
         &self.storage
     }
 
+    /// Texture target getter. See [`StorageRelation::target`].
+    pub fn target(&self) -> GlEnum {
+        S::target(&self.storage)
+    }
+
     /// Getter.
     pub fn parameters(&self) -> &Parameters {
         &self.parameters
@@ -319,7 +323,7 @@ where S: StorageRelation<I, T>
 
     /// Applies this textures' parameters in the given context.
     pub fn apply_texture_parameters(&self, context: &Context) {
-        self.parameters.apply_parameters(context);
+        self.parameters.apply_parameters(context, self.target());
     }
 }
 
@@ -330,23 +334,50 @@ where
     T: ItemType + JsBufferViewArr,
 {
     /// Reloads gpu texture with data from given slice.
-    pub fn reload_from_memory(&self, data: &[T], width: i32, height: i32) {
-        let target = Context::TEXTURE_2D;
+    pub fn reload_from_memory(&self, data: &[T], width: i32, height: i32, depth: i32) {
+        let target = self.target();
         let level = 0;
         let border = 0;
         let internal_format = Self::gl_internal_format();
         let format = Self::gl_format().into();
         let elem_type = Self::gl_elem_type();
+        let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
-        #[allow(unsafe_code)]
-        unsafe {
-            // We use unsafe array view which is used immediately, so no allocations should happen
-            // until we drop the view.
-            let view = data.js_buffer_view();
-            let result = self.context
-                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view
-                (*target,level,internal_format,width,height,border,format,elem_type,Some(&view));
-            result.unwrap();
+        match target {
+            Context::TEXTURE_2D => {
+                self.context
+                    .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                        *target,
+                        level,
+                        internal_format,
+                        width,
+                        height,
+                        border,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+            Context::TEXTURE_2D_ARRAY | Context::TEXTURE_3D => {
+                self.context
+                    .tex_image_3d_with_opt_u8_array(
+                        *target,
+                        level,
+                        internal_format,
+                        width,
+                        height,
+                        depth,
+                        border,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+            _ => {
+                panic!("Unsupported texture target: {target:?}");
+            }
         }
         self.apply_texture_parameters(&self.context);
     }
@@ -397,7 +428,7 @@ impl<
     fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
         self.with_item(|this| {
             let context = context.clone();
-            let target = Context::TEXTURE_2D;
+            let target = this.target();
             context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
             context.bind_texture(*target, Some(&this.gl_texture));
             context.active_texture(*Context::TEXTURE0);

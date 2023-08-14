@@ -111,7 +111,7 @@ mod overflow {
 // ===============================
 
 /// The slider model contains the visual elements of the slider component.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
     /// Background element
     pub background:            background::View,
@@ -138,15 +138,15 @@ pub struct Model {
     /// Animation component that smoothly adjusts the slider end value on large jumps.
     pub end_value_animation:   Animation<f32>,
     /// Root of the display object.
-    pub root:                  display::object::Instance,
+    display_object:            display::object::Instance,
     /// The display object containing the text value of the slider.
-    pub value:                 display::object::Instance,
+    value:                     display::object::Instance,
 }
 
 impl Model {
     /// Create a new slider model.
     pub fn new(app: &Application, frp_network: &frp::Network) -> Self {
-        let root = display::object::Instance::new();
+        let display_object = display::object::Instance::new();
         let value = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let value_text_left = app.new_view::<text::Text>();
@@ -162,10 +162,10 @@ impl Model {
         let overflow_upper = overflow::View::new();
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
-        root.add_child(&background);
-        root.add_child(&track);
-        root.add_child(&label);
-        root.add_child(&value);
+        display_object.add_child(&background);
+        display_object.add_child(&track);
+        display_object.add_child(&label);
+        display_object.add_child(&value);
         value.add_child(&value_text_left);
         value.add_child(&value_text_dot);
         value.add_child(&value_text_right);
@@ -184,7 +184,7 @@ impl Model {
             tooltip,
             start_value_animation,
             end_value_animation,
-            root,
+            display_object,
             value,
         };
         model.init(style)
@@ -284,18 +284,18 @@ impl Model {
     /// Set whether the lower overfow marker is visible.
     pub fn set_overflow_lower_visible(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.overflow_lower);
+            self.display_object.add_child(&self.overflow_lower);
         } else {
-            self.root.remove_child(&self.overflow_lower);
+            self.display_object.remove_child(&self.overflow_lower);
         }
     }
 
     /// Set whether the upper overfow marker is visible.
     pub fn set_overflow_upper_visible(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.overflow_upper);
+            self.display_object.add_child(&self.overflow_upper);
         } else {
-            self.root.remove_child(&self.overflow_upper);
+            self.display_object.remove_child(&self.overflow_upper);
         }
     }
 
@@ -331,18 +331,18 @@ impl Model {
     /// Set whether the slider value text is hidden.
     pub fn show_value(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.value);
+            self.display_object.add_child(&self.value);
         } else {
-            self.root.remove_child(&self.value);
+            self.display_object.remove_child(&self.value);
         }
     }
 
     /// Set whether the slider label is hidden.
     pub fn set_label_hidden(&self, hidden: bool) {
         if hidden {
-            self.root.remove_child(&self.label);
+            self.display_object.remove_child(&self.label);
         } else {
-            self.root.add_child(&self.label);
+            self.display_object.add_child(&self.label);
         }
     }
 
@@ -350,18 +350,18 @@ impl Model {
     /// field to enter a new value.
     pub fn set_edit_mode(&self, (editing, _precision): &(bool, f32)) {
         if *editing {
-            self.root.remove_child(&self.value);
-            self.root.add_child(&self.value_text_edit);
+            self.display_object.remove_child(&self.value);
+            self.display_object.add_child(&self.value_text_edit);
             self.value_text_edit.deprecated_focus();
             self.value_text_edit.add_cursor_at_front();
             self.value_text_edit.cursor_select_to_text_end();
         } else {
-            self.root.add_child(&self.value);
+            self.display_object.add_child(&self.value);
             // if *precision < 1.0 {
             //     self.root.add_child(&self.value_text_dot);
             //     self.root.add_child(&self.value_text_right);
             // }
-            self.root.remove_child(&self.value_text_edit);
+            self.display_object.remove_child(&self.value_text_edit);
             self.value_text_edit.deprecated_defocus();
             self.value_text_edit.remove_all_cursors();
         }
@@ -383,11 +383,5 @@ impl Model {
         self.value_text_left.set_property_default(property.into());
         self.value_text_dot.set_property_default(property.into());
         self.value_text_right.set_property_default(property.into());
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }

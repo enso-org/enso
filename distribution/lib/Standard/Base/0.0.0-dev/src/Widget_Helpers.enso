@@ -6,6 +6,12 @@ import project.Metadata.Widget
 from project.Metadata import make_single_choice
 
 ## PRIVATE
+   Creates a Regex / Text Widget for search and replace.
+make_regex_text_widget : Widget
+make_regex_text_widget =
+    make_single_choice [["Text", '""'], ["Regular Expression", '(Regex.compile "^$")']]
+
+## PRIVATE
    Creates a Single_Choice Widget for delimiters.
 make_delimiter_selector : Widget
 make_delimiter_selector =

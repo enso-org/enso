@@ -39,7 +39,7 @@ spec =
                 table.at "c" . to_vector . should_equal ["3"]
                 table.at "Column 2" . to_vector . should_equal ["4"]
                 table.at "d" . to_vector . should_equal ["5"]
-            problems = [Invalid_Output_Column_Names.Error [Nothing, Nothing]]
+            problems = [Invalid_Column_Names.Error [Nothing, Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should infer headers based on the first two rows" <|

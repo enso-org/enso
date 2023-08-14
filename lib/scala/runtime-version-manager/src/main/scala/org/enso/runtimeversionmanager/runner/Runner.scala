@@ -45,6 +45,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
+    normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
     authorEmail: Option[String],
@@ -57,13 +58,17 @@ class Runner(
         authorEmail.map(Seq("--new-project-author-email", _)).getOrElse(Seq())
       val templateOption =
         projectTemplate.map(Seq("--new-project-template", _)).getOrElse(Seq())
+      val normalizedNameOption =
+        normalizedName
+          .map(Seq("--new-project-normalized-name", _))
+          .getOrElse(Seq())
       val arguments =
         Seq(
           "--new",
           path.toAbsolutePath.normalize.toString,
           "--new-project-name",
           name
-        ) ++ templateOption ++ authorNameOption ++ authorEmailOption ++ additionalArguments
+        ) ++ templateOption ++ normalizedNameOption ++ authorNameOption ++ authorEmailOption ++ additionalArguments
       // TODO [RW] reporting warnings to the IDE (#1710)
       if (Engine.isNightly(engineVersion)) {
         Logger[Runner].warn(
@@ -130,6 +135,7 @@ class Runner(
       )
     }
 
+  final private val JVM_PATH_ENV_VAR    = "ENSO_JVM_PATH"
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 
   /** Runs an action giving it a command that can be used to launch the
@@ -186,10 +192,19 @@ class Runner(
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings
+
+      val javaHome: Option[String] = environment
+        .getEnvPath(JVM_PATH_ENV_VAR)
+        .map { p =>
+          Logger[Runner].info(
+            "Using explicit " + JVM_PATH_ENV_VAR + " JVM: " + p
+          )
+          p.toString()
+        }
+        .orElse(javaCommand.javaHomeOverride)
+
       val extraEnvironmentOverrides =
-        javaCommand.javaHomeOverride
-          .map("JAVA_HOME" -> _)
-          .toSeq ++ distributionSettings.toSeq
+        javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
       action(Command(command, extraEnvironmentOverrides))
     }

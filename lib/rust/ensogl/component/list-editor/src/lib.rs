@@ -338,11 +338,12 @@ ensogl_core::define_endpoints_2! { <T: ('static + Debug)>
     }
 }
 
-#[derive(Derivative, CloneRef, Debug, Deref)]
+#[derive(Derivative, CloneRef, Debug, Deref, display::Object)]
 #[derivative(Clone(bound = ""))]
 pub struct ListEditor<T: 'static + Debug> {
     #[deref]
     pub frp: Frp<T>,
+    #[display_object]
     root:    display::object::Instance,
     model:   SharedModel<T>,
 }
@@ -1200,11 +1201,5 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     /// The insertion point of the given vertical offset.
     fn insert_index(&self, x: f32, center_points: &[f32]) -> ItemOrPlaceholderIndex {
         center_points.iter().position(|t| x < *t).unwrap_or(self.items.len()).into()
-    }
-}
-
-impl<T: 'static + Debug> display::Object for ListEditor<T> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }

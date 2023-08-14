@@ -4,7 +4,12 @@ import * as React from 'react'
 import PlusCircledIcon from 'enso-assets/plus_circled.svg'
 import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
-import * as common from 'enso-common'
+import GeoImage from 'enso-assets/geo.png'
+import SpreadsheetsImage from 'enso-assets/spreadsheets.png'
+import VisualizeImage from 'enso-assets/visualize.png'
+
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 
 import Spinner, * as spinner from './spinner'
 
@@ -12,9 +17,6 @@ import Spinner, * as spinner from './spinner'
 // === Constants ===
 // =================
 
-/** The `localStorage` key used to store whether the {@link Templates} element should be
- * expanded by default. */
-const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
 /** The max width at which the bottom shadow should be visible. */
 const MAX_WIDTH_NEEDING_SCROLL = 1031
 /** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
@@ -37,9 +39,9 @@ enum ShadowClass {
     both = 'shadow-inset-v-lg',
 }
 
-// =================
-// === Templates ===
-// =================
+// =============
+// === Types ===
+// =============
 
 /** Template metadata. */
 export interface Template {
@@ -48,6 +50,10 @@ export interface Template {
     id: string
     background: string
 }
+
+// =================
+// === Constants ===
+// =================
 
 /** The full list of templates. */
 export const TEMPLATES: [Template, ...Template[]] = [
@@ -73,19 +79,19 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("/spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+        background: `url("${SpreadsheetsImage}") 50% 11% / 50% no-repeat, #479366`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") center / cover',
+        background: `url("${GeoImage}") 50% 0% / 186.7768% no-repeat, #181818`,
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("/visualize.png") center / cover',
+        background: `url("${VisualizeImage}") center / cover, #dddddd`,
     },
 ]
 
@@ -146,7 +152,7 @@ interface InternalTemplateButtonProps {
     template: Template
     onTemplateClick: (
         name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
     ) => void
 }
 
@@ -155,20 +161,25 @@ function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
+    const onSpinnerStateChange = React.useCallback(
+        (newSpinnerState: spinner.SpinnerState | null) => {
+            setSpinnerState(newSpinnerState)
+            if (newSpinnerState === spinner.SpinnerState.done) {
+                setTimeout(() => {
+                    setSpinnerState(null)
+                }, SPINNER_DONE_DURATION_MS)
+            }
+        },
+        []
+    )
+
     return (
         <button
             key={template.title}
             className="h-40 cursor-pointer"
             onClick={() => {
                 setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(template.id, newSpinnerState => {
-                    setSpinnerState(newSpinnerState)
-                    if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
-                            setSpinnerState(null)
-                        }, SPINNER_DONE_DURATION_MS)
-                    }
-                })
+                onTemplateClick(template.id, onSpinnerStateChange)
             }}
         >
             <div
@@ -229,6 +240,7 @@ function TemplatesRender(props: InternalTemplatesRenderProps) {
 
 /** Props for a {@link Templates}. */
 export interface TemplatesProps {
+    hidden: boolean
     onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
@@ -236,28 +248,15 @@ export interface TemplatesProps {
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
-function Templates(props: TemplatesProps) {
-    const { onTemplateClick } = props
-
+export default function Templates(props: TemplatesProps) {
+    const { hidden, onTemplateClick } = props
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [shadowClass, setShadowClass] = React.useState(
         window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
     )
-    const [isOpen, setIsOpen] = React.useState(() => {
-        /** This must not be in a `useEffect` as it would flash open for one frame.
-         * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
-         * this is slightly more performant. */
-        const savedIsOpen = localStorage.getItem(IS_TEMPLATES_OPEN_KEY)
-        let result = true
-        if (savedIsOpen != null) {
-            try {
-                result = JSON.parse(savedIsOpen) !== false
-            } catch {
-                // Ignored. This should only happen when a user manually sets invalid JSON into
-                // the `localStorage` key used by this component.
-            }
-        }
-        return result
-    })
+    const [isOpen, setIsOpen] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.isTemplatesListOpen) !== false
+    )
 
     // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -299,11 +298,11 @@ function Templates(props: TemplatesProps) {
     })
 
     React.useEffect(() => {
-        localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
-    }, [isOpen])
+        localStorage.set(localStorageModule.LocalStorageKey.isTemplatesListOpen, isOpen)
+    }, [isOpen, /* should never change */ localStorage])
 
     return (
-        <div className="mx-2">
+        <div className={`mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex items-center my-2">
                 <div className="w-4">
                     <div
@@ -331,4 +330,3 @@ function Templates(props: TemplatesProps) {
         </div>
     )
 }
-export default Templates

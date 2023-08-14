@@ -14,7 +14,7 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
-
+import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 
 /** Runs imports resolution. Starts from a given module and then recursively
@@ -23,7 +23,7 @@ import scala.collection.mutable
   * Each of the reachable modules will be parsed and will have imported modules
   * injected into its metadata. In effect, running this will bring every module
   * that could ever be necessary for the entry point compilation to at least
-  * the [[Module.CompilationStage.AFTER_IMPORT_RESOLUTION]] stage.
+  * the [[CompilationStage.AFTER_IMPORT_RESOLUTION]] stage.
   *
   * @param compiler the compiler instance for the compiling context.
   */
@@ -42,16 +42,18 @@ class ImportResolver(compiler: Compiler) {
   ): (List[Module], List[Module]) = {
 
     def analyzeModule(current: Module): List[Module] = {
-      val ir = current.getIr
+      val context = compiler.context
+      val ir      = context.getIr(current)
       val currentLocal = ir.unsafeGetMetadata(
         BindingAnalysis,
         "Non-parsed module used in ImportResolver"
       )
       // put the list of resolved imports in the module metadata
       if (
-        current.getCompilationStage
+        context
+          .getCompilationStage(current)
           .isBefore(
-            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+            CompilationStage.AFTER_IMPORT_RESOLUTION
           ) || !current.hasCrossModuleLinks
       ) {
         val importedModules: List[
@@ -64,12 +66,17 @@ class ImportResolver(compiler: Compiler) {
           }
         currentLocal.resolvedImports = importedModules.flatMap(_._2)
         val newIr = ir.copy(imports = importedModules.map(_._1))
-        current.unsafeSetIr(newIr)
-        if (!current.wasLoadedFromCache()) {
-          current.unsafeSetCompilationStage(
-            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-          )
-        }
+        context.updateModule(
+          current,
+          { u =>
+            u.ir(newIr)
+            if (!context.wasLoadedFromCache(current)) {
+              u.compilationStage(
+                CompilationStage.AFTER_IMPORT_RESOLUTION
+              )
+            }
+          }
+        )
       }
       currentLocal.resolvedImports
         .map(_.target.module.unsafeAsModule())

@@ -55,7 +55,7 @@ make_aggregate_column table aggregate new_name dialect infer_return_type problem
         Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
         Percentile p c _ ->
             op_kind = "PERCENTILE"
-            expression = SQL_Expression.Operation op_kind [SQL_Expression.Constant p, c.expression]
+            expression = SQL_Expression.Operation op_kind [SQL_Expression.Literal p.to_text, c.expression]
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value new_name sql_type_ref expression
         Mode c _ ->

@@ -31,8 +31,9 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   public TypedBuilder retypeTo(StorageType type) {
     if (Objects.equals(type, AnyObjectType.INSTANCE)) {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-      ObjectBuilder res = new ObjectBuilder(widenedData);
+      ObjectBuilder res = new MixedBuilder(widenedData);
       res.setCurrentSize(currentSize);
+      res.setPreExistingProblems(getProblems());
       return res;
     } else {
       throw new UnsupportedOperationException();

@@ -14,6 +14,7 @@ import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.test.CompilerTest
+import org.enso.interpreter.runtime.ModuleTestUtils
 
 class GlobalNamesTest extends CompilerTest {
 
@@ -81,7 +82,7 @@ class GlobalNamesTest extends CompilerTest {
                  |""".stripMargin
     val parsed       = code.toIrModule
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
-    ctx.module.unsafeSetIr(moduleMapped)
+    ModuleTestUtils.unsafeSetIr(ctx.module, moduleMapped)
 
     new ExportsResolution().run(List(ctx.module))
     val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)

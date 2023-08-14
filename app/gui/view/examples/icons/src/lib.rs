@@ -19,11 +19,11 @@ use ensogl::display::shape::Rectangle;
 use ensogl::display::world::World;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
+use ensogl_icons::icon;
+use ensogl_icons::SHRINK_AMOUNT;
+use ensogl_icons::SIZE;
 use ensogl_text_msdf::run_once_initialized;
 use ensogl_tooltip::Tooltip;
-use ide_view_component_list_panel_grid::entry::icon;
-use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
-use ide_view_component_list_panel_icons::SIZE;
 use ide_view_graph_editor::component::node::action_bar;
 
 
@@ -77,7 +77,7 @@ fn init() {
     let dark_green = color::Rgba(0.243, 0.541, 0.160, 1.0);
     let mut x = -300.0;
     icon::Id::for_each(|id| {
-        let shape = ide_view_component_list_panel_icons::any::View::new();
+        let shape = ensogl_icons::any::View::new();
         shape.icon.set(id.any_cached_shape_location());
         shape.r_component.set(dark_green.into());
         let hover_target = place_icon(&world, shape, x, 0.0);
@@ -113,21 +113,25 @@ fn init() {
     visibility2_icon.color_rgba.set(dark_green.into());
     place_icon(&world, visibility2_icon, -20.0, y);
 
+    let expand_icon = action_bar::icon::expand::View::new();
+    expand_icon.color_rgba.set(dark_green.into());
+    place_icon(&world, expand_icon, 0.0, y);
+
     let freeze_icon = action_bar::icon::freeze::View::new();
     freeze_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, freeze_icon, 0.0, y);
+    place_icon(&world, freeze_icon, 20.0, y);
 
     let skip_icon = action_bar::icon::skip::View::new();
     skip_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, skip_icon, 20.0, y);
+    place_icon(&world, skip_icon, 40.0, y);
 
     let disable_output_context_icon = action_bar::icon::disable_output_context::View::new();
     disable_output_context_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, disable_output_context_icon, 40.0, y);
+    place_icon(&world, disable_output_context_icon, 60.0, y);
 
     let enable_output_context_icon = action_bar::icon::enable_output_context::View::new();
     enable_output_context_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, enable_output_context_icon, 60.0, y);
+    place_icon(&world, enable_output_context_icon, 80.0, y);
 
     mem::forget(app);
 }

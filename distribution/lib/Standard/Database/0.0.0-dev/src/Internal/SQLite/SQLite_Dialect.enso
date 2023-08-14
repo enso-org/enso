@@ -4,12 +4,12 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
-import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
+import project.Data.Column.Column
 import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
@@ -28,6 +28,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
@@ -116,12 +117,6 @@ type SQLite_Dialect
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
         (text.contains "SELECT ") || (text.contains "EXEC ")
-
-    ## PRIVATE
-       Returns an utility that allows ensuring column names are valid for the
-       given backend.
-    get_naming_helpers : Naming_Helpers
-    get_naming_helpers self = Naming_Helpers
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
@@ -257,9 +252,23 @@ type SQLite_Dialect
         v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
         if v.is_empty then Nothing else v
 
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        _ = [period, operation_input_type]
+        Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
+
+    ## PRVIATE
+       Returns true if the `replace` parameters are suppoerted by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace]]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
@@ -396,6 +405,47 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
+
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+    e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    Set.from_vector e
+
+replace : Vector Builder -> Any -> Builder
+replace args metadata =
+    input = args.at 0
+    pattern = args.at 1
+    replacement = args.at 2
+
+    replace_params = metadata.at 1
+
+    expression = case replace_params.input_type == Text || replace_params.input_type == Column of
+        True ->
+            ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ -> Nothing
+                    _ ->
+                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        replace_only_first False input pattern replacement
+                    _ ->
+                        replace_only_first True input pattern replacement
+        False -> Nothing
+    case expression of
+        Nothing -> replace_params.throw_unsupported
+        _ -> expression
+
+replace_only_first case_sensitive t p r =
+    search_string = if case_sensitive then t else
+        Builder.code "LOWER(" ++ t ++ ")"
+    instr = Builder.code "INSTR(" ++ search_string ++ ", " ++ p ++ ")"
+    prefix = Builder.code "SUBSTR(" ++ t ++ ", 1," ++ instr ++ "-1)"
+    suffix = Builder.code "SUBSTR(" ++ t ++ "," ++ instr ++ "+LENGTH(" ++ p ++ "))"
+    concatenation = prefix ++ " || " ++ r ++ " || " ++ suffix
+    Builder.code "CASE WHEN " ++ instr ++ "= 0 THEN " ++ t ++ " ELSE " ++ concatenation ++ "END"
 
 ## PRIVATE
    It will return `Nothing` if the type does not require custom logic.

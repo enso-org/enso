@@ -14,6 +14,7 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Test;
 
 public class SerializerTest {
@@ -21,7 +22,7 @@ public class SerializerTest {
     Context ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
-            .allowIO(true)
+            .allowIO(IOAccess.ALL)
             .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
@@ -55,7 +56,7 @@ public class SerializerTest {
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
     var serializationManager = new SerializationManager(ensoContext.getCompiler());
-    var useThreadPool = compiler.context().getEnvironment().isCreateThreadAllowed();
+    var useThreadPool = compiler.context().isCreateThreadAllowed();
     var future = serializationManager.serializeModule(module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);

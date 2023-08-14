@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -161,7 +162,8 @@ public final class WithWarnings implements TruffleObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location, @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
+      Node location,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
     if (location != null) {
       return getReassignedWarnings(location, warningsLibrary);
     } else {
@@ -170,7 +172,8 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
-  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Object removeWarnings(
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     if (warnings.hasWarnings(value)) {
       return warnings.removeWarnings(value);

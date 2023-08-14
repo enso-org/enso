@@ -13,6 +13,7 @@ import org.enso.languageserver.event.{
 }
 import org.enso.languageserver.filemanager.{
   FileAttributes,
+  FileEvent,
   FileEventKind,
   FileManagerProtocol,
   FileNotFound,
@@ -242,16 +243,20 @@ class CollaborativeBuffer(
       )
 
     case AutoSave(clientId, clientVersion) =>
-      saveFile(
-        buffer,
-        clients,
-        lockHolder,
-        clientId,
-        clientVersion,
-        autoSave.removed(clientId),
-        isAutoSave = true,
-        onClose    = None
-      )
+      if (buffer.fileWithMetadata.isModifiedOnDisk) {
+        clients.foreach(_._2.rpcController ! FileModifiedOnDisk(bufferPath))
+      } else {
+        saveFile(
+          buffer,
+          clients,
+          lockHolder,
+          clientId,
+          clientVersion,
+          autoSave.removed(clientId),
+          isAutoSave = true,
+          onClose    = None
+        )
+      }
 
     case ForceSave(clientId) =>
       autoSave.get(clientId) match {
@@ -292,6 +297,81 @@ class CollaborativeBuffer(
         )
       )
 
+    case FileEvent(path, _) =>
+      fileManager ! FileManagerProtocol.InfoFile(path)
+      val timeoutCancellable = context.system.scheduler.scheduleOnce(
+        timingsConfig.requestTimeout,
+        self,
+        IOTimeout
+      )
+      context.become(
+        waitingOnFileEventContent(
+          path,
+          buffer,
+          timeoutCancellable,
+          clients,
+          lockHolder,
+          autoSave
+        )
+      )
+
+  }
+
+  private def waitingOnFileEventContent(
+    path: Path,
+    buffer: Buffer,
+    timeoutCancellable: Cancellable,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
+  ): Receive = {
+    case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
+      timeoutCancellable.cancel()
+      val newBuffer = buffer.fileWithMetadata.lastModifiedTime.map {
+        bufferLastModifiedTime =>
+          if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
+            clients.values.foreach {
+              _.rpcController ! FileModifiedOnDisk(path)
+            }
+            buffer
+              .withLastModifiedTime(attrs.lastModifiedTime)
+              .withModifiedOnDisk()
+          } else {
+            buffer
+          }
+      }
+      unstashAll()
+      context.become(
+        collaborativeEditing(
+          newBuffer.getOrElse(buffer),
+          clients,
+          lockHolder,
+          autoSave
+        )
+      )
+
+    case FileManagerProtocol.InfoFileResult(Left(err)) =>
+      timeoutCancellable.cancel()
+      logger.error("Failed to read file attributes for [{}]. {}", path, err)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case Status.Failure(ex) =>
+      logger.error("Failed to read file attributes for [{}].", path, ex)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case IOTimeout =>
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case _ => stash()
   }
 
   private def waitingOnReloadedContent(
@@ -596,7 +676,7 @@ class CollaborativeBuffer(
     expressionValue: String,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
-    applyEdits(buffer, lockHolder, clientId, change) match {
+    applyEdits(buffer, lockHolder, Some(clientId), change) match {
       case Left(failure) =>
         sender() ! failure
 
@@ -625,7 +705,7 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
-    clientId: ClientId,
+    clientId: Option[ClientId],
     change: FileEdit,
     execute: Boolean,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
@@ -636,20 +716,21 @@ class CollaborativeBuffer(
 
       case Right(modifiedBuffer) =>
         sender() ! ApplyEditSuccess
-        val subscribers = clients.filterNot(_._1 == clientId).values
+        val subscribers =
+          clients.filterNot(kv => clientId.contains(kv._1)).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
-        runtimeConnector ! Api.Request(
-          Api.EditFileNotification(
-            buffer.fileWithMetadata.file,
-            change.edits,
-            execute
+        clientId.foreach { _ =>
+          runtimeConnector ! Api.Request(
+            Api.EditFileNotification(
+              buffer.fileWithMetadata.file,
+              change.edits,
+              execute
+            )
           )
-        )
+        }
         val newAutoSave: Map[ClientId, (ContentVersion, Cancellable)] =
-          upsertAutoSaveTimer(
-            autoSave,
-            clientId,
-            modifiedBuffer.version
+          clientId.fold(autoSave)(
+            upsertAutoSaveTimer(autoSave, _, modifiedBuffer.version)
           )
         context.become(
           collaborativeEditing(modifiedBuffer, clients, lockHolder, newAutoSave)
@@ -660,7 +741,7 @@ class CollaborativeBuffer(
   private def applyEdits(
     buffer: Buffer,
     lockHolder: Option[JsonSession],
-    clientId: ClientId,
+    clientId: Option[ClientId],
     change: FileEdit
   ): Either[ApplyEditFailure, Buffer] = {
     for {
@@ -692,9 +773,10 @@ class CollaborativeBuffer(
 
   private def validateAccess(
     lockHolder: Option[JsonSession],
-    clientId: ClientId
+    clientId: Option[ClientId]
   ): Either[ApplyEditFailure, Unit] = {
-    val hasLock = lockHolder.exists(_.clientId == clientId)
+    val hasLock =
+      lockHolder.exists(session => clientId.forall(_ == session.clientId))
     if (hasLock) {
       Right(())
     } else {

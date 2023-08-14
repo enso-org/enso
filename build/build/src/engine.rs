@@ -5,7 +5,6 @@
 use crate::prelude::*;
 
 use crate::get_graal_version;
-use crate::get_java_major_version;
 use crate::paths::generated;
 
 use artifact::IsArtifact;
@@ -304,7 +303,6 @@ pub async fn deduce_graal(
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
         graal_version: get_graal_version(&build_sbt_content)?,
-        java_version: get_java_major_version(&build_sbt_content)?,
         os: TARGET_OS,
         arch: TARGET_ARCH,
     })

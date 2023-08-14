@@ -14,6 +14,7 @@ use crate::visualization::foreign::java_script::Sources;
 
 use super::binding;
 use super::instance::Instance;
+
 use ensogl::application::Application;
 use ensogl::system::web;
 use ensogl::system::web::Function;

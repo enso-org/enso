@@ -1,0 +1,45 @@
+from Standard.Base import all
+
+from Standard.Test import Bench, Faker
+
+## Bench Utilities ============================================================
+
+vector_size = 1000000
+iter_size = 100
+num_iterations = 10
+
+# The Benchmarks ==============================================================
+
+bench =
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    faker = Faker.new fixed_random_seed
+    funs = [["ceil", _.ceil], ["floor", _.floor], ["truncate", _.truncate]]
+
+    IO.println <| "Creating decimals"
+    decimals = Vector.new vector_size _-> faker.decimal -1000000000 1000000000
+    IO.println <| "Creating integers"
+    integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
+
+    funs.map pair->
+        name = pair.at 0
+        fun = pair.at 1
+        IO.println <| "Benchmarking decimal " + name
+        Bench.measure (decimals.map fun) name iter_size num_iterations
+
+    funs.map pair->
+        name = pair.at 0
+        fun = pair.at 1
+        IO.println <| "Benchmarking integer" + name
+        Bench.measure (integers.map fun) name iter_size num_iterations
+
+    [True, False].map use_bankers->
+        [0, -2, 2].map decimal_places->
+            name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
+            fun = _.round decimal_places use_bankers
+            IO.println <| "Benchmarking decimal " + name
+            Bench.measure (decimals.map fun) name iter_size num_iterations
+            IO.println <| "Benchmarking integer " + name
+            Bench.measure (integers.map fun) name iter_size num_iterations
+
+main = bench

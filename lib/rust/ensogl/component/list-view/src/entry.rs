@@ -71,9 +71,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// Resize the entry's view to fit a new width.
     fn set_max_width(&self, max_width_px: f32);
 
-    /// Set the layer of all [`text::Text`] components inside. The [`text::Text`] component is
-    /// handled in a special way, and is often in different layer than shapes. See TODO comment
-    /// in [`text::Text::add_to_scene_layer`] method.
+    /// Set the layer of all [`text::Text`] components inside.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
 }
 
@@ -86,7 +84,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 
 /// The [`Entry`] being a single text field displaying String.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Label {
     display_object:  display::object::Instance,
     pub label:       text::Text,
@@ -152,13 +150,7 @@ impl Entry for Label {
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {
-        self.label.add_to_scene_layer(label_layer);
-    }
-}
-
-impl display::Object for Label {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        label_layer.add(&self.label);
     }
 }
 
@@ -177,8 +169,9 @@ pub struct GlyphHighlightedLabelModel {
 
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct GlyphHighlightedLabel {
+    #[display_object]
     pub inner: Label,
     highlight: frp::Source<Vec<text::Range<text::Byte>>>,
 }
@@ -218,12 +211,6 @@ impl Entry for GlyphHighlightedLabel {
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.inner.set_label_layer(layer);
-    }
-}
-
-impl display::Object for GlyphHighlightedLabel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.inner.display_object()
     }
 }
 

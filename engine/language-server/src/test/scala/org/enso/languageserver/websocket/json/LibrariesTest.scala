@@ -608,7 +608,7 @@ class LibrariesTest extends BaseServerTest {
           PackageManager.Default
             .loadPackage(cachedLibraryRoot.location.toFile)
             .get
-        pkg.name shouldEqual "Bar"
+        pkg.module shouldEqual "Bar"
         pkg
           .listSources()
           .map(

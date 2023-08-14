@@ -87,6 +87,6 @@ impl std::str::FromStr for LanguageVersion {
 
 impl Display for LanguageVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "java{}", self.0)
+        write!(f, "jdk{}", self.0)
     }
 }

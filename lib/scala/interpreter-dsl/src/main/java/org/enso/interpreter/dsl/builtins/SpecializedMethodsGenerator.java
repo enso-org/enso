@@ -13,6 +13,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
+import javax.tools.Diagnostic;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
@@ -23,12 +24,17 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   private static final String WithWarningsClassName =
       "org.enso.interpreter.runtime.error.WithWarnings";
 
-  public SpecializedMethodsGenerator(List<ExecutableElement> elements) {
-    this(elements, elements.get(0));
+  public SpecializedMethodsGenerator(
+      ProcessingEnvironment processingEnvironment, List<ExecutableElement> elements) {
+    this(processingEnvironment, elements, elements.get(0));
   }
 
-  private SpecializedMethodsGenerator(List<ExecutableElement> elements, ExecutableElement first) {
+  private SpecializedMethodsGenerator(
+      ProcessingEnvironment processingEnvironment,
+      List<ExecutableElement> elements,
+      ExecutableElement first) {
     this(
+        processingEnvironment,
         elements,
         first.getModifiers().contains(Modifier.STATIC),
         first.getKind() == ElementKind.CONSTRUCTOR,
@@ -45,12 +51,13 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   }
 
   public SpecializedMethodsGenerator(
+      ProcessingEnvironment processingEnvironment,
       List<ExecutableElement> elements,
       boolean isStatic,
       boolean isConstructor,
       boolean convertToGuestValue,
       TypeWithKind returnTpe) {
-    super(isStatic, isConstructor, convertToGuestValue, returnTpe);
+    super(processingEnvironment, isStatic, isConstructor, convertToGuestValue, returnTpe);
     this.elements = elements;
   }
 
@@ -59,14 +66,14 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   }
 
   @Override
-  public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
-    SpecializationMeta meta = inferExecuteParameters();
+  public List<String> generate(String name, String owner) {
+    SpecializationMeta meta = inferExecuteParameters(processingEnvironment);
     List<String> result = new ArrayList<>();
 
     result.add(methodSigDef(owner, meta.execParams(), true));
     result.add("");
     result.addAll(
-        paramsOfSpecializedMethods(processingEnv, meta.diffParam)
+        paramsOfSpecializedMethods(processingEnvironment, meta.diffParam)
             .flatMap(
                 specializeMethod ->
                     specialize(owner, name, specializeMethod, meta.diffParam).stream())
@@ -98,7 +105,10 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                   return new SpecializeMethodInfo(
                       method,
                       IntStream.range(0, params.size())
-                          .mapToObj(i -> fromVariableElementToMethodParameter(i, params.get(i)))
+                          .mapToObj(
+                              i ->
+                                  fromVariableElementToMethodParameter(
+                                      processingEnv, i, params.get(i)))
                           .collect(Collectors.toList()),
                       wrapExceptions(processingEnv, method));
                 });
@@ -132,14 +142,17 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     return p.tpe().equals("java.lang.Object") || p.tpe().equals("java.lang.String");
   }
 
-  private SpecializationMeta inferExecuteParameters() {
+  private SpecializationMeta inferExecuteParameters(ProcessingEnvironment processingEnv) {
     Map<Integer, List<MethodParameter>> paramss =
         elements.stream()
             .flatMap(
                 method -> {
                   List<? extends VariableElement> params = method.getParameters();
                   return IntStream.range(0, params.size())
-                      .mapToObj(i -> fromVariableElementToMethodParameter(i, params.get(i)));
+                      .mapToObj(
+                          i ->
+                              fromVariableElementToMethodParameter(
+                                  processingEnv, i, params.get(i)));
                 })
             .collect(Collectors.groupingBy(p -> p.index()));
 
@@ -268,7 +281,24 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
               "  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));");
           break;
         default:
-          methodBody.add("  return " + qual + "." + name + "(" + paramsApplied + ");");
+          if (returnTpe.isValidGuestType()) {
+            methodBody.add("  return " + qual + "." + name + "(" + paramsApplied + ");");
+          } else if (convertToGuestValue) {
+            methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
+            methodBody.add("  return EnsoContext.get(this).getEnvironment().asGuestValue(result);");
+          } else {
+            processingEnvironment
+                .getMessager()
+                .printMessage(
+                    Diagnostic.Kind.ERROR,
+                    "Cannot convert return type of "
+                        + owner
+                        + "."
+                        + name
+                        + " to guest value."
+                        + " Specify @ReturningGuestValue annotation",
+                    methodInfo.origin);
+          }
       }
     }
 

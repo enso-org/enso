@@ -29,6 +29,9 @@ object FrgaalJavaCompiler {
   val frgaal      = "org.frgaal" % "compiler" % "19.0.1" % "provided"
   val sourceLevel = "19"
 
+  val debugArg =
+    "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
+
   def compilers(
     classpath: sbt.Keys.Classpath,
     sbtCompilers: xsbti.compile.Compilers,
@@ -65,7 +68,8 @@ object FrgaalJavaCompiler {
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
-  /** Helper method to launch programs. */
+  /** Helper method to launch programs.
+    */
   def launch(
     javaHome: Option[Path],
     compilerJar: Path,
@@ -77,8 +81,11 @@ object FrgaalJavaCompiler {
     source: Option[String],
     target: String
   ): Boolean = {
-    val (jArgs, nonJArgs) = options.partition(_.startsWith("-J"))
-    val outputOption      = CompilerArguments.outputOption(output)
+    val (jArgs, nonJArgs)     = options.partition(_.startsWith("-J"))
+    val debugAnotProcessorOpt = jArgs.contains(debugArg)
+    val strippedJArgs = jArgs
+      .map(_.stripPrefix("-J"))
+    val outputOption = CompilerArguments.outputOption(output)
     val sources = sources0 map { case x: PathBasedFile =>
       x.toPath.toAbsolutePath.toString
     }
@@ -211,11 +218,12 @@ object FrgaalJavaCompiler {
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
     withArgumentFile(allArguments) { argsFile =>
-      // Need to disable standard compiler tools that come with used jdk and replace them
-      // with the ones provided with Frgaal.
-      val forkArgs = (jArgs ++ Seq(
+      val limitModulesArgs = Seq(
         "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management",
+        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,org.graalvm.locator,java.desktop,java.net.http"
+      )
+      // strippedJArgs needs to be passed via cmd line, and not via the argument file
+      val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
         "-jar",
         compilerJar.toString
       )) :+
@@ -224,6 +232,14 @@ object FrgaalJavaCompiler {
       val cwd         = new File(new File(".").getAbsolutePath).getCanonicalFile
       val javacLogger = new JavacLogger(log, reporter, cwd)
       var exitCode    = -1
+      if (debugAnotProcessorOpt) {
+        log.info(
+          s"Frgaal compiler is about to be launched with $debugArg, which means that" +
+          " it will wait for a debugger to attach. The output from the compiler is by default" +
+          " redirected, therefore \"Listening to the debugger\" message will not be displayed." +
+          " You should attach the debugger now."
+        )
+      }
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {

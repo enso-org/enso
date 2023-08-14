@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -108,10 +109,27 @@ public final class EnsoDateTime implements TruffleObject {
     return dateTime.getSecond();
   }
 
-  @Builtin.Method(description = "Gets the nanosecond")
+  @Builtin.Method(description = "Gets the millisecond")
   @CompilerDirectives.TruffleBoundary
-  public long nanosecond() {
-    return dateTime.getNano();
+  public long millisecond() {
+    return dateTime.getNano() / 1000_000;
+  }
+
+  @Builtin.Method(description = "Gets the microsecond")
+  @CompilerDirectives.TruffleBoundary
+  public long microsecond() {
+    return (dateTime.getNano() / 1000) % 1000;
+  }
+
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
+  @CompilerDirectives.TruffleBoundary
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = dateTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "zone", description = "Gets the zone")
@@ -203,7 +221,7 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().dateTime();
   }
 

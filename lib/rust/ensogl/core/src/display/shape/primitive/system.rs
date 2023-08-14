@@ -612,7 +612,7 @@ impl<T: Storable> Parameter for T {
     type GpuType = T;
     type Variable = Var<T>;
 
-    default fn create_var(name: &str) -> Self::Variable {
+    fn create_var(name: &str) -> Self::Variable {
         name.into()
     }
 }
@@ -642,11 +642,11 @@ macro_rules! shape {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
             $(pointer_events_instanced = $inst_ptr;)?
+            $(alignment = $alignment;)?
             [$style] (
                 $([$inst_ptr] disable_pointer_events : f32,)?
                 $([true] $gpu_param : $gpu_param_type,)*
@@ -853,11 +853,11 @@ macro_rules! _shape {
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
         $(flavor = [$flavor:path];)?
-        $(alignment = $alignment:tt;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
         $(pointer_events_instanced = $pointer_events_instanced:tt;)?
+        $(alignment = $alignment:tt;)?
         [$style:ident]
         ($(
             $([true] $gpu_param:ident : $gpu_param_type:ty)?

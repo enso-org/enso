@@ -391,7 +391,6 @@ class RuntimeComponentsTest
       .value
       .extendedGroups
       .map(_.group) should contain theSameElementsAs Seq(
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
       GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
       GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
       GroupReference(LibraryName("Standard", "Base"), GroupName("Transform")),

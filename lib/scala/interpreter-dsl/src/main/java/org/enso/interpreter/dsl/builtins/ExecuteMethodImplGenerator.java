@@ -19,8 +19,12 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   private final boolean needsVarargExpansion;
 
   public ExecuteMethodImplGenerator(
-      ExecutableElement method, boolean convertToGuestValue, int expandedVarargs) {
+      ProcessingEnvironment processingEnvironment,
+      ExecutableElement method,
+      boolean convertToGuestValue,
+      int expandedVarargs) {
     this(
+        processingEnvironment,
         method,
         method.getReturnType().toString(),
         method.getModifiers().contains(Modifier.STATIC),
@@ -31,6 +35,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   }
 
   private ExecuteMethodImplGenerator(
+      ProcessingEnvironment processingEnvironment,
       ExecutableElement method,
       String returnTpe,
       boolean isStatic,
@@ -38,7 +43,12 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
       boolean convertToGuestValue,
       int expandedVarargs,
       boolean isVarargs) {
-    super(isStatic, isConstructor, convertToGuestValue, TypeWithKind.createFromTpe(returnTpe));
+    super(
+        processingEnvironment,
+        isStatic,
+        isConstructor,
+        convertToGuestValue,
+        TypeWithKind.createFromTpe(returnTpe));
     this.method = method;
     this.varargExpansion = expandedVarargs;
     this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
@@ -112,6 +122,15 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
           if (returnTpe.isValidGuestType()) {
             return new String[] {"  return " + qual + "." + name + "(" + paramsApplied + ");"};
           } else {
+            if (!convertToGuestValue) {
+              processingEnvironment
+                  .getMessager()
+                  .printMessage(
+                      javax.tools.Diagnostic.Kind.ERROR,
+                      "Cannot generate method body for "
+                          + method
+                          + " because it returns a host object and convertToGuestValue is false");
+            }
             return new String[] {
               "  return context",
               "      .getEnvironment()",
@@ -134,14 +153,16 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
   }
 
-  public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
-
-    SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
+  public List<String> generate(String name, String owner) {
+    SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnvironment, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;
     List<? extends VariableElement> rawParams = method.getParameters();
     List<MethodParameter> params =
         IntStream.range(0, method.getParameters().size())
-            .mapToObj(i -> fromVariableElementToMethodParameter(i, rawParams.get(i)))
+            .mapToObj(
+                i ->
+                    fromVariableElementToMethodParameter(
+                        processingEnvironment, i, rawParams.get(i)))
             .collect(Collectors.toList());
 
     String[] body = bodyBase(name, owner, params);

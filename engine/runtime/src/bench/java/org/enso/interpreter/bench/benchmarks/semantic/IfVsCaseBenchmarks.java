@@ -15,6 +15,7 @@ import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -53,7 +54,7 @@ public class IfVsCaseBenchmarks extends TestBase {
         .logHandler(out)
         .out(out)
         .err(out)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowExperimentalOptions(true)
         .option(
             "enso.languageHomeOverride",

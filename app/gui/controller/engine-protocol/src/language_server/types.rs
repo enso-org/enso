@@ -1177,6 +1177,7 @@ pub struct LibraryComponentGroup {
     pub color:   Option<String>,
     pub icon:    Option<String>,
     /// The list of components provided by this component group.
+    #[serde(default)]
     pub exports: Vec<LibraryComponent>,
 }
 

@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -106,7 +107,6 @@ public final class AtomConstructor implements TruffleObject {
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
    * @param varReads the expressions that read field values from local vars
-   * @param args the arguments this constructor will take
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
@@ -181,7 +181,8 @@ public final class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
   }
 
@@ -347,7 +348,7 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 }

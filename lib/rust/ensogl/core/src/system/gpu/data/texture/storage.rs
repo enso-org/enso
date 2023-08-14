@@ -2,6 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::system::gpu::Context;
+use crate::system::gpu::GlEnum;
+
 
 // ==============
 // === Export ===
@@ -31,6 +34,12 @@ pub type StorageOf<S, I, T> = <S as StorageRelation<I, T>>::Storage;
 pub trait StorageRelation<InternalFormat, ElemType>: Storage {
     /// The storage implementation.
     type Storage: Debug;
+
+    /// Texture bind target. Usually it is `TEXTURE_2D` or `TEXTURE_2D_ARRAY`.
+    fn target(storage: &Self::Storage) -> GlEnum {
+        let _ = storage;
+        Context::TEXTURE_2D
+    }
 }
 
 enso_shapely::define_singleton_enum! {

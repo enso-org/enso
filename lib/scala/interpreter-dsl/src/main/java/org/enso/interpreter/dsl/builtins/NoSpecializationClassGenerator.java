@@ -1,5 +1,6 @@
 package org.enso.interpreter.dsl.builtins;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 
 /** Generator for builtin method class with no specialization. */
@@ -7,8 +8,10 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
 
   ExecutableElement origin;
   int varArgExpansion;
+  private final ProcessingEnvironment processingEnvironment;
 
   public NoSpecializationClassGenerator(
+      ProcessingEnvironment processingEnvironment,
       ExecutableElement origin,
       ClassName builtinNode,
       ClassName ownerClazz,
@@ -17,20 +20,22 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
     super(builtinNode, ownerClazz, stdlibOwner);
     this.origin = origin;
     this.varArgExpansion = varArgExpansion;
+    this.processingEnvironment = processingEnvironment;
   }
 
   public NoSpecializationClassGenerator(
+      ProcessingEnvironment processingEnvironment,
       ExecutableElement origin,
       ClassName builtinNode,
       ClassName ownerClazz,
       ClassName stdlibOwner) {
-    this(origin, builtinNode, ownerClazz, stdlibOwner, 0);
+    this(processingEnvironment, origin, builtinNode, ownerClazz, stdlibOwner, 0);
   }
 
   @Override
   protected MethodGenerator methodsGen() {
     return new ExecuteMethodImplGenerator(
-        origin, needsGuestValueConversion(origin), varArgExpansion);
+        processingEnvironment, origin, needsGuestValueConversion(origin), varArgExpansion);
   }
 
   @Override

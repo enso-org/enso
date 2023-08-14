@@ -41,5 +41,6 @@ pub mod types {
     pub use scene::Scene;
 }
 
+pub use ensogl_derive::Object;
 pub use object::event;
 pub use types::*;

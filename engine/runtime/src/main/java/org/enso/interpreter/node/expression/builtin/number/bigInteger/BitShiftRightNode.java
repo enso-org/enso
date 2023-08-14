@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -21,13 +22,17 @@ public abstract class BitShiftRightNode extends Node {
 
   @Specialization
   Object doBigInteger(
-      EnsoBigInteger self, long that, @Cached("build()") BitShiftNode bitShiftNode) {
+      EnsoBigInteger self,
+      long that,
+      @Shared("bitShiftNode") @Cached("build()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(self, -1L * that);
   }
 
   @Specialization
   Object doBigInteger(
-      EnsoBigInteger self, EnsoBigInteger that, @Cached("build()") BitShiftNode bitShiftNode) {
+      EnsoBigInteger self,
+      EnsoBigInteger that,
+      @Shared("bitShiftNode") @Cached("build()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(self, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 

@@ -278,6 +278,36 @@ object DistributionPackage {
     exitCode == 0
   }
 
+  def runProjectManagerPackage(
+    engineRoot: File,
+    distributionRoot: File,
+    args: Seq[String],
+    log: Logger
+  ): Boolean = {
+    import scala.collection.JavaConverters._
+
+    val enso = distributionRoot / "bin" / "project-manager"
+    log.info(s"Executing $enso ${args.mkString(" ")}")
+    val pb  = new java.lang.ProcessBuilder()
+    val all = new java.util.ArrayList[String]()
+    all.add(enso.getAbsolutePath())
+    all.addAll(args.asJava)
+    pb.command(all)
+    pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
+    pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
+    if (args.contains("--debug")) {
+      all.remove("--debug")
+      pb.environment().put("ENSO_JVM_OPTS", WithDebugCommand.DEBUG_OPTION)
+    }
+    pb.inheritIO()
+    val p        = pb.start()
+    val exitCode = p.waitFor()
+    if (exitCode != 0) {
+      log.warn(enso + " finished with exit code " + exitCode)
+    }
+    exitCode == 0
+  }
+
   def fixLibraryManifest(
     packageRoot: File,
     targetVersion: String,
@@ -392,7 +422,6 @@ object DistributionPackage {
   sealed trait OS {
     def name:                String
     def hasSupportForSulong: Boolean
-    def graalName: String                    = name
     def executableName(base: String): String = base
     def archiveExt: String                   = ".tar.gz"
     def isUNIX: Boolean                      = true
@@ -405,7 +434,6 @@ object DistributionPackage {
     case object MacOS extends OS {
       override val name: String                 = "macos"
       override val hasSupportForSulong: Boolean = true
-      override def graalName: String            = "darwin"
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
@@ -428,10 +456,15 @@ object DistributionPackage {
 
   sealed trait Architecture {
     def name: String
+
+    /** Name of the architecture for GraalVM releases
+      */
+    def graalName: String
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String = "amd64"
+      override def name: String      = "amd64"
+      override def graalName: String = "x64"
     }
 
     val archs = Seq(X64)
@@ -536,9 +569,9 @@ object DistributionPackage {
         )
         val graalUrl =
           s"https://github.com/graalvm/graalvm-ce-builds/releases/download/" +
-          s"vm-$graalVersion/" +
-          s"graalvm-ce-java$graalJavaVersion-${os.graalName}-" +
-          s"${architecture.name}-$graalVersion${os.archiveExt}"
+          s"jdk-$graalJavaVersion/" +
+          s"graalvm-community-jdk-${graalJavaVersion}_${os.name}-" +
+          s"${architecture.graalName}_bin${os.archiveExt}"
         val exitCode = (url(graalUrl) #> archive).!
         if (exitCode != 0) {
           throw new RuntimeException(s"Graal download from $graalUrl failed.")
@@ -584,7 +617,7 @@ object DistributionPackage {
         extract(archive, packageDir)
 
         log.info("Installing components")
-        gu(log, os, extractedGraalDir, "install", "python", "R")
+        gu(log, os, extractedGraalDir, "install", "python")
 
         log.info(s"Re-creating $archive")
         IO.delete(archive)

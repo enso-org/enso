@@ -14,6 +14,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.AggregatedProblems;
 
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
@@ -108,7 +109,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity);
     } else {
-      currentBuilder = new ObjectBuilder(initialCapacity);
+      currentBuilder = new MixedBuilder(initialCapacity);
     }
     currentBuilder.appendNulls(currentSize);
   }
@@ -143,14 +144,15 @@ public class InferredBuilder extends Builder {
       }
     }
 
-    retypeToObject();
+    retypeToMixed();
     currentBuilder.append(o);
   }
 
-  private void retypeToObject() {
-    ObjectBuilder objectBuilder = new ObjectBuilder(initialSize);
+  private void retypeToMixed() {
+    ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
     currentBuilder.writeTo(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
+    objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
     currentBuilder = objectBuilder;
   }
 
@@ -171,5 +173,14 @@ public class InferredBuilder extends Builder {
   public StorageType getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
+  }
+
+  @Override
+  public AggregatedProblems getProblems() {
+    if (currentBuilder == null) {
+      return AggregatedProblems.of();
+    } else {
+      return currentBuilder.getProblems();
+    }
   }
 }

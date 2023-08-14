@@ -5,7 +5,12 @@ use super::component::*;
 use crate::prelude::*;
 use enso_generics::*;
 
+use crate::data::mix::from_space;
+use crate::data::mix::into_space;
+use crate::data::mix::Mixable;
+
 use super::component::HasComponents;
+
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 
@@ -343,5 +348,19 @@ impl<C> Alpha<C> {
     /// Modify the color's alpha channel.
     pub fn mod_alpha<F: FnOnce(&mut f32)>(&mut self, f: F) {
         f(&mut self.alpha)
+    }
+
+    /// Compute alpha overlay using alpha blending "over" operator. Assumes that both colors are
+    /// using straight alpha (not pre-multiplied).
+    ///
+    /// See: https://en.wikipedia.org/wiki/Alpha_compositing#Description
+    pub fn over(self, color_below: Color<Self>) -> Color<Self>
+    where Color<C>: Mixable + Copy {
+        let effective_b_alpha = color_below.alpha * (1.0 - self.alpha);
+        let alpha_out = self.alpha + effective_b_alpha;
+        let inv_alpha_out = 1.0 / alpha_out;
+        let a = into_space(self.opaque) * (self.alpha * inv_alpha_out);
+        let b = into_space(color_below.opaque) * (effective_b_alpha * inv_alpha_out);
+        Color(Alpha { alpha: alpha_out, opaque: from_space(a + b) })
     }
 }

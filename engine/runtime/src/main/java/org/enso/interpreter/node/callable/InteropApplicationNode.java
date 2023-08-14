@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
@@ -58,6 +59,7 @@ public abstract class InteropApplicationNode extends Node {
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
+  @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);
   }
@@ -71,7 +73,7 @@ public abstract class InteropApplicationNode extends Node {
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
     Object[] args = new Object[cachedArgsLength];
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
@@ -85,7 +87,7 @@ public abstract class InteropApplicationNode extends Node {
       Object state,
       Object[] arguments,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
     Object[] args = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);

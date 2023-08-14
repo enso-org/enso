@@ -30,6 +30,10 @@ public class Polyglot_Utils {
       return item.asTime();
     }
 
+    if (item.isException()) {
+      throw new WrappedDataflowError(item);
+    }
+
     return item.as(Object.class);
   }
 

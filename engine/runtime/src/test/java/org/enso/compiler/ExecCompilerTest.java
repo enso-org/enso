@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -20,7 +21,7 @@ public class ExecCompilerTest {
   public static void initEnsoContext() {
     ctx = Context.newBuilder()
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath()

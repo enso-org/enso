@@ -213,7 +213,7 @@ class LocalLibraryManager(
         case _ =>
       }
       GetPackageResponse(
-        libraryName     = LibraryName(config.namespace, config.name),
+        libraryName     = LibraryName(config.namespace, config.moduleName),
         license         = config.license,
         componentGroups = config.componentGroups.toOption,
         rawPackage      = config.originalJson

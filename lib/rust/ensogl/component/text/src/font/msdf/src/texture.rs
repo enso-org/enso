@@ -42,10 +42,15 @@ impl Texture {
         self.data.borrow().len() / Self::ROW_SIZE
     }
 
+    /// Number of glyphs in texture
+    pub fn glyphs(&self) -> u32 {
+        (self.rows() / Self::ONE_GLYPH_HEIGHT) as u32
+    }
+
     /// The size of the MSDF texture.
-    pub fn size() -> Vector2<f32> {
-        let width = Self::WIDTH as f32;
-        let height = Self::ONE_GLYPH_HEIGHT as f32;
+    pub fn size(&self) -> Vector2<u32> {
+        let width = Self::WIDTH as u32;
+        let height = Self::ONE_GLYPH_HEIGHT as u32;
         Vector2(width, height)
     }
 

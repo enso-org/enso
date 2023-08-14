@@ -28,6 +28,7 @@ enso-suggestion-database = { path = "suggestion-database" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/examples" }
 ensogl-component = { path = "../../lib/rust/ensogl/component" }
+ensogl-icons = { path = "../../lib/rust/ensogl/component/icons" }
 ensogl-dynamic-assets = { path = "../../lib/rust/ensogl/component/dynamic-assets" }
 ensogl-text-msdf = { path = "../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
@@ -54,6 +55,7 @@ semver = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { workspace = true }
 sha3 = { version = "0.8.2" }
+superslice = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 ordered-float = "3.4.0"
 # wasm-bindgen version 0.2.79 is causing issues with clippy.

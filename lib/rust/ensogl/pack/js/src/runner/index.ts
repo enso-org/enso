@@ -263,7 +263,7 @@ export class App {
     styleRoot() {
         const root = document.getElementById('root')
         if (root != null) {
-            root.style.backgroundColor = 'rgb(234,238,241)'
+            root.style.backgroundColor = 'rgb(255,255,255)'
         }
     }
 
@@ -428,9 +428,10 @@ export class App {
 
     /** Show a spinner. The displayed progress is constant. */
     showProgressIndicator(progress: number) {
-        if (this.progressIndicator == null) {
-            this.progressIndicator = new wasm.ProgressIndicator(this.config)
+        if (this.progressIndicator) {
+            this.hideProgressIndicator()
         }
+        this.progressIndicator = new wasm.ProgressIndicator(this.config)
         this.progressIndicator.set(progress)
     }
 

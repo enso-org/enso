@@ -14,6 +14,7 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
+use bytemuck::Pod;
 use bytemuck::Zeroable;
 use core::fmt::Debug;
 use core::marker::PhantomData;
@@ -75,6 +76,8 @@ macro_rules! define_zst {
 
             #[allow(unsafe_code)]
             unsafe impl <$($bounds)*> Zeroable for $name<$($params)*> {}
+            #[allow(unsafe_code)]
+            unsafe impl <$($bounds)*> Pod for $name<$($params)*> where Self: 'static {}
 
             impl<$($bounds)*> Debug for $name<$($params)*> {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {

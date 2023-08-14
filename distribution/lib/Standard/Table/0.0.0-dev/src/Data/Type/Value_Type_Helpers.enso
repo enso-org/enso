@@ -95,17 +95,49 @@ find_argument_type value = if Nothing == value then Nothing else
             if col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
 
 ## PRIVATE
+type Addition_Kind
+    ## PRIVATE
+    Numeric_Add
+
+    ## PRIVATE
+    Text_Concat
+
+## PRIVATE
    A helper which resolves if numeric addition or string concatenation should be
    used when the a `+` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
 resolve_addition_kind arg1 arg2 =
     type_1 = find_argument_type arg1
     type_2 = find_argument_type arg2
-    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then 'ADD_NUMBER' else
-        if type_1.is_text && (type_2.is_nothing || type_2.is_text) then 'ADD_TEXT' else
+    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Addition_Kind.Numeric_Add else
+        if type_1.is_text && (type_2.is_nothing || type_2.is_text) then Addition_Kind.Text_Concat else
             Error.throw <| Illegal_Argument.Error <|
                 if type_2.is_nothing then "Cannot perform addition on a value of type " + type_1.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
                     "Cannot perform addition on a pair of values of types " + type_1.to_display_text + " and " + type_2.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
+
+## PRIVATE
+type Subtraction_Kind
+    ## PRIVATE
+    Numeric_Subtract
+
+    ## PRIVATE
+    Date_Time_Difference
+
+## PRIVATE
+   A helper which resolves if numeric subtraction or date-time difference should
+   be used when the a `-` operator is used with the two provided types.
+   It will return an error if the provided types are incompatible.
+resolve_subtraction_kind arg1 arg2 =
+    type_1 = find_argument_type arg1
+    type_2 = find_argument_type arg2
+
+    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Subtraction_Kind.Numeric_Subtract else
+        case type_1.is_date_or_time of
+            True ->
+                if type_2.is_nothing || (type_2 == type_1) then Subtraction_Kind.Date_Time_Difference else
+                    raise_unexpected_type type_1 arg2
+            False ->
+                raise_unexpected_type "numeric or date/time" arg1
 
 ## PRIVATE
    Checks that both provided arguments have numeric type and runs the action

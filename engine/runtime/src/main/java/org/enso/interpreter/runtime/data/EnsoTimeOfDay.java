@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -66,9 +67,27 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return localTime.getSecond();
   }
 
-  @Builtin.Method(description = "Gets a value nanosecond")
-  public long nanosecond() {
-    return localTime.getNano();
+  @Builtin.Method(description = "Gets the millisecond")
+  @CompilerDirectives.TruffleBoundary
+  public long millisecond() {
+    return localTime.getNano() / 1000_000;
+  }
+
+  @Builtin.Method(description = "Gets the microsecond")
+  @CompilerDirectives.TruffleBoundary
+  public long microsecond() {
+    return (localTime.getNano() / 1000) % 1000;
+  }
+
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
+  @CompilerDirectives.TruffleBoundary
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = localTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
@@ -141,7 +160,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().timeOfDay();
   }
 

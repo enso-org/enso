@@ -2,6 +2,8 @@ package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -67,6 +69,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param arity number of arguments to pass to the function
    * @return instance of this node to handle a {@code arity}-arity function invocation
    */
+  @NeverDefault
   public static InvokeFunctionNode buildWithArity(int arity) {
     var schema = new CallArgumentInfo[arity];
     for (int idx = 0; idx < schema.length; idx++) {
@@ -78,6 +81,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
         InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
+  @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);
   }

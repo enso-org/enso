@@ -35,7 +35,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
-from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_time_format_selector
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -477,8 +477,9 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
      Regexp replace.
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
-Text.replace : Text | Regex  -> Text-> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
-Text.replace self term replacement case_sensitivity=Case_Sensitivity.Default only_first=False =
+@term make_regex_text_widget
+Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
     case term of
         _ : Text -> if term.is_empty then self else
             array_from_single_result result = case result of
@@ -496,11 +497,7 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Default onl
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
         _ : Regex ->
-            updated_regex = case case_sensitivity of
-                Case_Sensitivity.Default -> term
-                _ ->
-                    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                    term.recompile case_insensitive
+            updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
 
 ## ALIAS Get Words

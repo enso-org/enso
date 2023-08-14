@@ -69,11 +69,6 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public double getItemDouble(int idx) {
-    return (double) getItem(idx);
-  }
-
-  @Override
   public Long getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : data[idx];
   }

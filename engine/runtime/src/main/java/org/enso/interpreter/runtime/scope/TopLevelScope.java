@@ -136,7 +136,7 @@ public final class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName), null, context);
+      return Module.empty(QualifiedName.simpleName(moduleName), null);
     }
 
     @CompilerDirectives.TruffleBoundary
