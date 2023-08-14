@@ -920,9 +920,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux = true,
-        additionalOptions = Seq(
-          "-H:IncludeResources=.*logback.xml$"),
+        staticOnLinux     = true,
+        additionalOptions = Seq("-H:IncludeResources=.*logback.xml$"),
         initializeAtRuntime = Seq(
           "scala.util.Random",
           "zio.internal.ZScheduler$$anon$4",
@@ -1756,7 +1755,7 @@ lazy val `engine-runner` = project
           "sun.font",
           "java.awt",
           "com.sun.imageio",
-          "akka.http",
+          "akka.http"
         )
       )
       .dependsOn(installNativeImage)
@@ -1800,7 +1799,7 @@ lazy val launcher = project
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
           "-H:IncludeResources=.*logback.xml$"
-        ),
+        )
       )
       .dependsOn(installNativeImage)
       .dependsOn(assembly)
