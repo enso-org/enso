@@ -1,5 +1,6 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
+import * as reactDom from 'react-dom'
 
 import FindIcon from 'enso-assets/find.svg'
 
@@ -9,6 +10,13 @@ import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
+
+// =================
+// === Constants ===
+// =================
+
+/** The HTML ID of the container of the editor. */
+const EDITOR_ID = 'root'
 
 // ==============
 // === TopBar ===
@@ -33,7 +41,8 @@ export interface TopBarProps {
 }
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
- * because `searchVal` may change parent component's project list. */
+ * because `searchVal` may change parent component's project list.
+ * @throws {Error} when on the editor page, the editor element is not found. */
 export default function TopBar(props: TopBarProps) {
     const {
         supportsLocalBackend,
@@ -50,8 +59,14 @@ export default function TopBar(props: TopBarProps) {
         onSignOut,
     } = props
 
-    return (
-        <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-1">
+    const shouldShowInEditor = page === pageSwitcher.Page.editor
+
+    const element = (
+        <div
+            className={`text-primary relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-1 ${
+                !shouldShowInEditor ? '' : 'cursor-none pointer-events-none'
+            }`}
+        >
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
             {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
                 <BackendSwitcher setBackendType={setBackendType} />
@@ -89,4 +104,20 @@ export default function TopBar(props: TopBarProps) {
             </div>
         </div>
     )
+
+    if (!shouldShowInEditor) {
+        return element
+    } else {
+        const editor = document.getElementById(EDITOR_ID)
+        if (editor != null) {
+            return reactDom.createPortal(
+                <div className="enso-dashboard" style={{ position: 'absolute', top: 0 }}>
+                    {element}
+                </div>,
+                editor
+            )
+        } else {
+            throw new Error(`Editor element does not exist at '#${EDITOR_ID}'.`)
+        }
+    }
 }
