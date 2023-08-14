@@ -7,6 +7,11 @@ import project.Statistics.Count_Min_Max
 import project.Table.Aggregate
 import project.Table.Cross_Tab
 import project.Table.Sorting
+import project.Text.Build
+import project.Text.Compare
+import project.Text.Contains
+import project.Text.Pretty
+import project.Text.Reverse
 import project.Collections
 import project.Column_Numeric
 import project.Equality
@@ -32,6 +37,13 @@ all_benchmarks =
     builder.append Aggregate.collect_benches
     builder.append Cross_Tab.collect_benches
     builder.append Sorting.collect_benches
+
+    # Text
+    builder.append Build.collect_benches
+    builder.append Compare.collect_benches
+    builder.append Contains.collect_benches
+    builder.append Pretty.collect_benches
+    builder.append Reverse.collect_benches
 
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches

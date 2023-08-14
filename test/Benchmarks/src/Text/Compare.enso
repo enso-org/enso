@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench, Faker, Phase_Conf
+
 
 compare_all_adjacent text_vector =
     res = 1.up_to text_vector.length . fold False acc-> ix->
@@ -8,7 +9,11 @@ compare_all_adjacent text_vector =
         acc && compare_result
     res
 
-bench =
+
+options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
+
+
+collect_benches = Bench.build builder->
     ## The `Text` compare benchmarks check both scenarios where the Texts are
        short and very long - both checking the case where the difference appears
        early or late in the long string. This is to see well any overheads
@@ -40,13 +45,25 @@ bench =
         prefix = common_prefix.repeat 100000
         big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
-        Bench.measure (compare_all_adjacent very_short) suite_prefix+"very short" 10 10
-        Bench.measure (compare_all_adjacent medium) suite_prefix+"medium" 10 10
-        Bench.measure (compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
-        Bench.measure (compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
-        Bench.measure (compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
+        builder.group ("Text_Compare_" + suite_prefix) options group_builder->
+            group_builder.specify "very_short" <|
+                compare_all_adjacent very_short
 
-    bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
-    bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'
+            group_builder.specify "medium" <|
+                compare_all_adjacent medium
 
-main = bench
+            group_builder.specify "big_random" <|
+                compare_all_adjacent big_random
+
+            group_builder.specify "big_early_difference" <|
+                compare_all_adjacent big_early_difference
+
+            group_builder.specify "big_late_difference" <|
+                compare_all_adjacent big_late_difference
+
+
+    bench_strcmp "strcmp_Unicode" (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
+    bench_strcmp "strcmp_ASCII" Faker.upper_case_letters 'A'
+
+
+main = collect_benches . run_main

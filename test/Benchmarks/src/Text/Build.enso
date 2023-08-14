@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Prim_Text_Helper
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 polyglot java import java.lang.StringBuilder
 
@@ -10,15 +10,26 @@ build_long n =
     Prim_Text_Helper.optimize res
     res
 
+
 build_long_bldr n =
     bldr = StringBuilder.new
     1.up_to n . each n-> bldr.append n
     res = bldr.toString
     res
 
-bench =
-    n = 1000000
-    Bench.measure (build_long_bldr n) "string append bldr" 1 1
-    Bench.measure (build_long n) "string append" 1 1
 
-main = bench
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+
+
+collect_benches = Bench.build builder->
+    n = 1000000
+
+    builder.group "Text_Build" options group_builder->
+        group_builder.specify "string_append_bldr" <|
+            build_long_bldr n
+
+        group_builder.specify "string_append" <|
+            build_long n
+
+
+main = collect_benches . run_main
