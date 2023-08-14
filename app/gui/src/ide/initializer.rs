@@ -129,10 +129,17 @@ impl Initializer {
                 let controller = controller::ide::Desktop::new(project_manager, project_to_open);
                 Ok(Rc::new(controller.await?))
             }
-            LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
+            LanguageServer {
+                json_endpoint,
+                binary_endpoint,
+                namespace,
+                project_name,
+                displayed_name,
+            } => {
                 let json_endpoint = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
                 let namespace = namespace.clone();
+                let displayed_name = displayed_name.clone().into();
                 let project_name = project_name.clone().into();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
@@ -140,6 +147,7 @@ impl Initializer {
                 let controller = controller::ide::Plain::from_ls_endpoints(
                     namespace,
                     project_name,
+                    displayed_name,
                     version,
                     json_endpoint,
                     binary_endpoint,

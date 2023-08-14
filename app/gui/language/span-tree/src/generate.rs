@@ -344,8 +344,7 @@ fn generate_node_for_ast(
         match ast.shape() {
             ast::Shape::Prefix(_) =>
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
-            ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
-                tree_generate_node(tree, kind, context, ast.id),
+            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context, ast.id),
             ast::Shape::Block(block) => block_generate_node(block, kind, context, ast.id),
             _ => {
                 let size = (ast.repr_len().value as i32).byte_diff();
@@ -818,11 +817,44 @@ fn generate_trailing_expected_arguments(
     })
 }
 
+/// A single child node produced out of the lambda argument and the `->` token.
+#[derive(Debug)]
+struct FoldedLambdaArguments {
+    /// Both the lambda argument and the `->` token, as a single [`node::Kind::Token`] node.
+    child:          node::Child,
+    /// The number of tree nodes that were folded into the `child`.
+    nodes_replaced: usize,
+}
 
-
-// =========================
-// === SpanTree for Tree ===
-// =========================
+/// Fold the lambda arguments into a single [`node::Kind::Token`] node.
+/// It is needed to ignore lambda arguments as connection targets, but still generate a valid
+/// SpanTree from the lambda body.
+fn fold_lambda_arguments(tree: &ast::Tree<Ast>) -> FoldedLambdaArguments {
+    let is_arrow = |span_info| matches!(span_info, SpanSeed::Token(ast::SpanSeedToken { token }) if token == "->");
+    let arrow_index = tree.span_info.iter().cloned().position(is_arrow).unwrap_or(0);
+    let bytes_till_body = tree
+        .span_info
+        .iter()
+        .take(arrow_index + 1)
+        .map(|raw_span_info| match raw_span_info {
+            SpanSeed::Space(ast::SpanSeedSpace { space }) => ByteDiff::from(space),
+            SpanSeed::Token(ast::SpanSeedToken { token }) => ByteDiff::from(token.len()),
+            SpanSeed::Child(ast::SpanSeedChild { node }) => node.repr_len().to_diff(),
+        })
+        .sum::<ByteDiff>();
+    let size = bytes_till_body;
+    let kind = node::Kind::Token;
+    let node = Node::new().with_kind(kind).with_size(size);
+    let ast_crumbs = vec![TreeCrumb { index: 0 }.into()];
+    let nodes_replaced = arrow_index + 1;
+    let child = node::Child {
+        node,
+        parent_offset: ByteDiff::from(0),
+        sibling_offset: ByteDiff::from(0),
+        ast_crumbs,
+    };
+    FoldedLambdaArguments { child, nodes_replaced }
+}
 
 fn tree_generate_node(
     tree: &ast::Tree<Ast>,
@@ -846,7 +878,19 @@ fn tree_generate_node(
 
         let last_token_index =
             tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Token(_)));
-        for (index, raw_span_info) in tree.span_info.iter().enumerate() {
+
+        // If the node is a lambda, we fold the lambda arguments into a single child node,
+        // and then continue handling the lambda body as usual.
+        let skip = if tree.type_info == ast::TreeType::Lambda {
+            let FoldedLambdaArguments { child, nodes_replaced } = fold_lambda_arguments(tree);
+            parent_offset += child.node.size;
+            children.push(child);
+            nodes_replaced
+        } else {
+            0
+        };
+        for (index, raw_span_info) in tree.span_info.iter().skip(skip).enumerate() {
+            let index = index + skip;
             match raw_span_info {
                 SpanSeed::Space(ast::SpanSeedSpace { space }) => {
                     parent_offset += ByteDiff::from(space);
@@ -985,6 +1029,7 @@ mod test {
     use ast::Crumbs;
     use ast::IdMap;
     use parser::Parser;
+    use pretty_assertions::assert_eq;
 
 
     /// A helper function which removes information about expression id from thw tree rooted at
@@ -1150,6 +1195,10 @@ mod test {
     #[test]
     fn generating_span_tree_for_lambda() {
         let parser = Parser::new();
+
+
+        // === Simple lambda ===
+
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -1158,10 +1207,51 @@ mod test {
         let expected = TreeBuilder::new(13)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(3, BeforeArgument(0))
-            .add_leaf(4, 9, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .add_child(4, 9, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(4, 5, node::Kind::argument(), TreeCrumb { index: 3 })
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::argument(), InfixCrumb::LeftOperand)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+            .add_empty_child(3, BeforeArgument(1))
+            .add_leaf(4, 1, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_empty_child(5, Append)
+            .done()
+            .done()
             .add_empty_child(13, Append)
             .build();
+        assert_eq!(expected, tree);
 
+
+        // === Lambda with two arguments ===
+
+        let ast = parser.parse_line_ast("foo a->b-> a + b").unwrap();
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
+        clear_expression_ids(&mut tree.root);
+        clear_parameter_infos(&mut tree.root);
+
+        let expected = TreeBuilder::new(16)
+            .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
+            .add_empty_child(3, BeforeArgument(0))
+            .add_child(4, 12, node::Kind::prefix_argument(), PrefixCrumb::Arg)
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(3, 9, node::Kind::argument(), TreeCrumb { index: 2 })
+            .set_tree_type(Some(ast::TreeType::Lambda))
+            .add_leaf(0, 3, node::Kind::Token, TreeCrumb { index: 0 })
+            .add_child(4, 5, node::Kind::argument(), TreeCrumb { index: 3 })
+            .add_empty_child(0, BeforeArgument(0))
+            .add_leaf(0, 1, node::Kind::argument(), InfixCrumb::LeftOperand)
+            .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
+            .add_empty_child(3, BeforeArgument(1))
+            .add_leaf(4, 1, node::Kind::argument(), InfixCrumb::RightOperand)
+            .add_empty_child(5, Append)
+            .done()
+            .done()
+            .done()
+            .add_empty_child(16, Append)
+            .build();
         assert_eq!(expected, tree);
     }
 

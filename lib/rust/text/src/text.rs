@@ -942,7 +942,7 @@ impl From<Rope> for String {
 
 impl From<Rope> for ImString {
     fn from(t: Rope) -> Self {
-        ImString::new(t)
+        ImString::new(t.to_im_string())
     }
 }
 

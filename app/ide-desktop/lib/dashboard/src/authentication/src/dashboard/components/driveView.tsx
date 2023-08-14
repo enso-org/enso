@@ -100,10 +100,14 @@ export default function DriveView(props: DriveViewProps) {
     const setAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
             rawSetAssets(newAssets)
+            // The project name here might also be a string with project id, e.g. when opening
+            // a project file from explorer on Windows.
+            const isInitialProject = (asset: backendModule.AnyAsset) =>
+                asset.title === initialProjectName || asset.id === initialProjectName
             if (nameOfProjectToImmediatelyOpen != null) {
                 const projectToLoad = newAssets
                     .filter(backendModule.assetIsProject)
-                    .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
+                    .find(isInitialProject)
                 if (projectToLoad != null) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -115,7 +119,7 @@ export default function DriveView(props: DriveViewProps) {
             if (!initialized) {
                 setInitialized(true)
                 if (initialProjectName != null) {
-                    if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                    if (!newAssets.some(isInitialProject)) {
                         const errorMessage = `No project named '${initialProjectName}' was found.`
                         toastify.toast.error(errorMessage)
                         logger.error(`Error opening project on startup: ${errorMessage}`)
@@ -137,7 +141,7 @@ export default function DriveView(props: DriveViewProps) {
         if (initialized) {
             setAssets([])
         }
-        // `setAssets` is a callback, not a dependency.
+        // `setAssets` is a callback, not a dependency. `initialized` is not a dependency either.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend])
 

@@ -28,14 +28,16 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 /** Props for an {@link Editor}. */
 export interface EditorProps {
     hidden: boolean
+    supportsLocalBackend: boolean
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-    const { hidden, projectStartupInfo, appRunner } = props
+    const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
     const toastAndLog = hooks.useToastAndLog()
+    const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
     React.useEffect(() => {
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
@@ -69,10 +71,8 @@ export default function Editor(props: EditorProps) {
                 const binaryAddress = project.binaryAddress
                 if (jsonAddress == null) {
                     toastAndLog("Could not get the address of the project's JSON endpoint")
-                    return
                 } else if (binaryAddress == null) {
                     toastAndLog("Could not get the address of the project's binary endpoint")
-                    return
                 } else {
                     let assetsRoot: string
                     switch (backendType) {
@@ -123,15 +123,16 @@ export default function Editor(props: EditorProps) {
                             // Ignored.
                         }
                     }
-                    if (backendType === backendModule.BackendType.local) {
+                    if (supportsLocalBackend) {
                         await runNewProject()
-                        return
                     } else {
-                        const [style, script] = await Promise.all([
-                            load.loadStyle(`${assetsRoot}style.css`),
-                            load.loadScript(`${assetsRoot}index.js.gz`),
-                        ])
-                        script.remove()
+                        if (!initialized) {
+                            await Promise.all([
+                                load.loadStyle(`${assetsRoot}style.css`),
+                                load.loadScript(`${assetsRoot}index.js.gz`),
+                            ])
+                            setInitialized(true)
+                        }
                         const originalUrl = window.location.href
                         // The URL query contains commandline options when running in the desktop,
                         // which will break the entrypoint for opening a fresh IDE instance.
@@ -139,15 +140,14 @@ export default function Editor(props: EditorProps) {
                         await runNewProject()
                         // Restore original URL so that initialization works correctly on refresh.
                         history.replaceState(null, '', originalUrl)
-                        return () => {
-                            style.remove()
-                        }
                     }
                 }
             })()
             return () => {
                 appRunner.stopApp()
             }
+        } else {
+            return
         }
     }, [
         projectStartupInfo,

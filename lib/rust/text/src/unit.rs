@@ -5,6 +5,7 @@ use crate::index::*;
 use crate::prelude::*;
 
 use enso_types::unit;
+use std::iter::Sum;
 
 
 
@@ -115,6 +116,12 @@ impl AddAssign<Bytes> for ByteDiff {
 impl SubAssign<Bytes> for ByteDiff {
     fn sub_assign(&mut self, rhs: Bytes) {
         *self = *self - rhs
+    }
+}
+
+impl Sum<ByteDiff> for ByteDiff {
+    fn sum<I: Iterator<Item = ByteDiff>>(iter: I) -> Self {
+        iter.fold(ByteDiff(0), |acc, x| acc + x)
     }
 }
 
