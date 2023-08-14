@@ -261,7 +261,7 @@ spec =
             Meta.meta Integer . methods . sort . should_equal ['bit_shift_l', 'round', 'truncate']
 
         Test.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['bit_shift_l', 'parse', 'parse_builtin', 'round', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['bit_shift_l', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'truncate']
 
         Test.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
