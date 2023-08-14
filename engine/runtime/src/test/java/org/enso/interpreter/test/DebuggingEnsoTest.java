@@ -465,7 +465,7 @@ public class DebuggingEnsoTest {
         """);
     List<Integer> expectedLineNumbers = List.of(3, 4, 5);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
-    testStepping(src, "foo", new Object[]{}, steps, expectedLineNumbers);
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
   }
 
   /**
@@ -498,7 +498,7 @@ public class DebuggingEnsoTest {
     );
     List<Integer> expectedLineNumbers = mapLinesToLineNumbers(src, expectedLines);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
-    testStepping(src, "foo", new Object[]{}, steps, expectedLineNumbers);
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
   }
 
   @Test
@@ -515,7 +515,7 @@ public class DebuggingEnsoTest {
         Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
     );
 
-    testStepping(src, "foo", new Object[]{}, steps, expectedLineNumbers);
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
   }
 
   @Test
@@ -531,7 +531,7 @@ public class DebuggingEnsoTest {
     Queue<SuspendedCallback> steps = new ArrayDeque<>(
         Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
     );
-    testStepping(src, "foo", new Object[]{}, steps, expectedLineNumbers);
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
   }
 
   private static final class FrameEntry {
