@@ -29,7 +29,7 @@ export default function ChangePasswordModal() {
     const [isSubmitting, setIsSubmitting] = React.useState(false)
 
     return (
-        <Modal centered className="bg-opacity-30">
+        <Modal centered className="bg-dim">
             <div
                 onClick={event => {
                     event.stopPropagation()
