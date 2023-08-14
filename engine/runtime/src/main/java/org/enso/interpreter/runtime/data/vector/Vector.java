@@ -145,9 +145,9 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    EnsoObject readArrayElement(long index) throws InvalidArrayIndexException {
+    Object readArrayElement(long index) throws InvalidArrayIndexException {
       try {
-        return (EnsoObject) storage[Math.toIntExact(index)];
+        return storage[Math.toIntExact(index)];
       } catch (ArithmeticException | IndexOutOfBoundsException ex) {
         throw InvalidArrayIndexException.create(index);
       }

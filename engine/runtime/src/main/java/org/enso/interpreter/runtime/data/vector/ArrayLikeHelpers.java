@@ -12,9 +12,11 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.library.CachedLibrary;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
@@ -76,7 +78,9 @@ public final class ArrayLikeHelpers {
       long length,
       Function fun,
       State state,
-      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode) {
+      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode,
+      @CachedLibrary(limit="3") WarningsLibrary warnings
+    ) {
     var len = Math.toIntExact(length);
     var target = new Array_Builder(len);
     boolean nonTrivialEnsoValue = false;
@@ -85,8 +89,13 @@ public final class ArrayLikeHelpers {
       if (value instanceof DataflowError) {
         return value;
       }
-      if (!(value instanceof EnsoObject)) {
+      if (warnings.hasWarnings(value)) {
         nonTrivialEnsoValue = true;
+      } else {
+        var isEnsoValue = value instanceof EnsoObject || value instanceof Long || value instanceof Double;
+        if (!isEnsoValue) {
+          nonTrivialEnsoValue = true;
+        }
       }
       target.add(value);
     }
