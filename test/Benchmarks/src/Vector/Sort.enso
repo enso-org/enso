@@ -53,47 +53,59 @@ type Int
 
 # The Benchmarks ==============================================================
 
-options = Bench.options
+
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+
+
+type Data
+    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped
+
+    create vec_size =
+        Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v))
+
+    make_sorted_vec vec_size =
+        make_sorted_ascending_vec vec_size
+
+    make_random_vec vec_size =
+        Utils.make_random_vec vec_size
+
 
 collect_benches = Bench.build builder->
-    vector_size = 1000000
-    sorted_vec = make_sorted_ascending_vec vector_size
-    partially_sorted_vec = make_partially_sorted_vec vector_size
-    random_vec = Utils.make_random_vec vector_size
-    random_vec_wrapped = random_vec.map (v -> Int.Value v)
+    vector_size = 1000 * 1000
+    data = Data.create vector_size
     projection = x -> x % 10
     comparator = l -> r -> Ordering.compare l r
 
     builder.group "Vector_Sort" options group_builder->
         group_builder.specify "Already_Sorted" <|
-            sorted_vec.sort
+            data.sorted_vec.sort
 
         group_builder.specify "Sorted_in_Opposite_Order" <|
-            sorted_vec.sort Sort_Direction.Descending
+            data.sorted_vec.sort Sort_Direction.Descending
 
         group_builder.specify "Sorted_Runs_Ascending" <|
-            partially_sorted_vec.sort
+            data.partially_sorted_vec.sort
 
         group_builder.specify "Sorted_Runs_Descending" <|
-            partially_sorted_vec.sort Sort_Direction.Descending
+            data.partially_sorted_vec.sort Sort_Direction.Descending
 
         group_builder.specify "Random_Elements_Ascending" <|
-            random_vec.sort
+            data.random_vec.sort
 
         group_builder.specify "Random_Elements_Descending" <|
-            random_vec.sort Sort_Direction.Descending
+            data.random_vec.sort Sort_Direction.Descending
 
         group_builder.specify "Sorting_with_a_Custom_Projection" <|
-            random_vec.sort on=projection
+            data.random_vec.sort on=projection
 
         group_builder.specify "Sorting_with_an_identity_function" <|
-            random_vec_wrapped.sort on=(_.identity)
+            data.random_vec_wrapped.sort on=(_.identity)
 
         group_builder.specify "Sorting_with_an_unresolved_identity_function" <|
-            random_vec_wrapped.sort on=(.identity)
+            data.random_vec_wrapped.sort on=(.identity)
 
         group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
-            random_vec.sort by=comparator
+            data.random_vec.sort by=comparator
 
 
 main = collect_benches . run_main
