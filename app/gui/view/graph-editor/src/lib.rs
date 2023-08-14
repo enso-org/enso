@@ -723,7 +723,7 @@ ensogl::define_endpoints_2! {
 
         // === Copy-Paste ===
         node_copied(NodeId),
-        request_node_pasted(),
+        request_paste_node(),
 
         file_dropped     (ensogl_drop_manager::File,Vector2<f32>),
 
@@ -3028,7 +3028,7 @@ fn init_remaining_graph_editor_frp(
 
     frp::extend! { network
         out.node_copied <+ inputs.copy_selected_node.map(f_!(model.nodes.last_selected())).unwrap();
-        eval_ inputs.paste_node(model.paste_node());
+        out.request_paste_node <+ inputs.paste_node;
     }
 
 

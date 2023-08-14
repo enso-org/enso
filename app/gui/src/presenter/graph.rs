@@ -1,6 +1,7 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
+use crate::controller::graph::NewNodeInfo;
 use crate::prelude::*;
 use enso_web::traits::*;
 
@@ -443,6 +444,22 @@ impl Model {
         }
     }
 
+    fn paste_node(&self) {
+        let graph = self.controller.graph();
+        let expression = ensogl::system::web::clipboard::read_text(move |expression| {
+            console_log!("Pasting node: {expression}");
+            let info = NewNodeInfo {
+                expression:        expression.into(),
+                doc_comment:       None,
+                metadata:          None,
+                id:                None,
+                location_hint:     double_representation::graph::LocationHint::End,
+                introduce_pattern: true,
+            };
+            graph.add_node(info);
+        });
+    }
+
     /// Look through all graph's nodes in AST and set position where it is missing.
     #[profile(Debug)]
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
@@ -778,6 +795,7 @@ impl Graph {
 
             // === Dropping Files ===
 
+            eval_ view.request_paste_node(model.paste_node());
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }
