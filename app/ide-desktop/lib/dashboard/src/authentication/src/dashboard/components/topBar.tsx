@@ -28,7 +28,6 @@ export interface TopBarProps {
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
-    shouldShowCursor: boolean
     onSignOut: () => void
 }
 
@@ -46,7 +45,6 @@ export default function TopBar(props: TopBarProps) {
         setIsHelpChatOpen,
         query,
         setQuery,
-        shouldShowCursor,
         onSignOut,
     } = props
 
@@ -83,7 +81,6 @@ export default function TopBar(props: TopBarProps) {
                 <UserBar
                     isHelpChatOpen={isHelpChatOpen}
                     setIsHelpChatOpen={setIsHelpChatOpen}
-                    shouldShowCursor={shouldShowCursor}
                     onSignOut={onSignOut}
                 />
             </div>

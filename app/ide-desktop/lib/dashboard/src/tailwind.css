@@ -159,19 +159,8 @@ body {
     }
   }
 
-  .cursor-none-recursive,
-  .cursor-none-recursive * {
-    cursor: none;
-  }
-
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
-  }
-
-  /* The class is repeated to make this take precedence over most Tailwind classes. */
-  .cursor-none-recursive.cursor-none-recursive,
-  .cursor-none-recursive.cursor-none-recursive * {
-    cursor: none;
   }
 }

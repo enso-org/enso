@@ -197,7 +197,7 @@ export default function Dashboard(props: DashboardProps) {
             <div
                 className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
                     page === pageSwitcher.Page.editor
-                        ? 'cursor-none-recursive pointer-events-none'
+                        ? 'cursor-none pointer-events-none'
                         : ''
                 }`}
                 onContextMenu={event => {
@@ -217,7 +217,6 @@ export default function Dashboard(props: DashboardProps) {
                     setBackendType={setBackendType}
                     query={query}
                     setQuery={setQuery}
-                    shouldShowCursor={page !== pageSwitcher.Page.editor}
                     onSignOut={() => {
                         if (page === pageSwitcher.Page.editor) {
                             setPage(pageSwitcher.Page.drive)
