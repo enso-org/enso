@@ -12,6 +12,7 @@ import project.Text.Compare
 import project.Text.Contains
 import project.Text.Pretty
 import project.Text.Reverse
+import project.Time.Work_Days
 import project.Collections
 import project.Column_Numeric
 import project.Equality
@@ -44,6 +45,9 @@ all_benchmarks =
     builder.append Contains.collect_benches
     builder.append Pretty.collect_benches
     builder.append Reverse.collect_benches
+
+    # Time
+    builder.append Work_Days.collect_benches
 
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches

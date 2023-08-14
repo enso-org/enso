@@ -1,25 +1,34 @@
 from Standard.Base import all
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
-bench =
-    iter_size = 50
-    num_iterations = 10
+options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
 
+
+collect_benches = Bench.build builder->
     first_day = Date.new 2020 1 1
     dates = Vector.new 1000 (x -> first_day + (Period.new days=x))
     holidays = dates.take (Index_Sub_Range.Sample 100 100)
     shifts = [1, 5, 20, 100]
 
     shifts.each shift->
-        shifted_dates = dates.map (d -> d + (Period.new days=shift))
-        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2) "(Shift="+shift.to_text+") work_days_until" iter_size num_iterations
-        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays) "(Shift="+shift.to_text+") work_days_until with holidays" iter_size num_iterations
+        builder.group ("Time_Work_Days_Shift_" + shift.to_text) options group_builder->
+            shifted_dates = dates.map (d -> d + (Period.new days=shift))
 
-        Bench.measure (dates.map date-> date + (Period.new days=shift)) "(Shift="+shift.to_text+") add regular days" iter_size num_iterations
-        Bench.measure (dates.map date-> date.add_work_days shift) "(Shift="+shift.to_text+") add work days" iter_size num_iterations
-        Bench.measure (dates.map date-> date.add_work_days shift holidays=holidays) "(Shift="+shift.to_text+") add work days with holidays" iter_size num_iterations
+            group_builder.specify "work_days_until" <|
+                dates.zip shifted_dates d1-> d2-> d1.work_days_until d2
 
-    Nothing
+            group_builder.specify "work_days_until_with_holidays" <|
+                dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays
 
-main = bench
+            group_builder.specify "add_regular_days" <|
+                dates.map date-> date + (Period.new days=shift)
+
+            group_builder.specify "add_work_days" <|
+                dates.map date-> date.add_work_days shift
+
+            group_builder.specify "add_work_days_with_holidays" <|
+                dates.map date-> date.add_work_days shift holidays=holidays
+
+
+main = collect_benches . run_main
