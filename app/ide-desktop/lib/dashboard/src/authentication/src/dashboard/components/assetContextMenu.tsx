@@ -18,11 +18,11 @@ import * as assetsTable from './assetsTable'
 import * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
 import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
 import ManagePermissionsModal from './managePermissionsModal'
+import MenuEntry from './menuEntry'
 
 // ========================
 // === AssetContextMenu ===
@@ -72,7 +72,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
         <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
             <ContextMenu hidden={hidden}>
                 {item.type === backendModule.AssetType.project && (
-                    <ContextMenuEntry
+                    <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
                         doAction={() => {
@@ -86,7 +86,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 )}
                 {item.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.local && (
-                        <ContextMenuEntry
+                        <MenuEntry
                             hidden={hidden}
                             action={shortcuts.KeyboardAction.uploadToCloud}
                             doAction={async () => {
@@ -132,7 +132,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                             }}
                         />
                     )}
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled={
                         item.type !== backendModule.AssetType.project &&
@@ -147,7 +147,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         unsetModal()
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.snapshot}
@@ -155,7 +155,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.moveToTrash}
                     doAction={() => {
@@ -169,7 +169,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 />
                 <ContextMenuSeparator hidden={hidden} />
                 {managesThisAsset && (
-                    <ContextMenuEntry
+                    <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.share}
                         doAction={() => {
@@ -190,7 +190,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         }}
                     />
                 )}
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.label}
@@ -199,7 +199,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
                 <ContextMenuSeparator hidden={hidden} />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
@@ -207,7 +207,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.copy}
@@ -215,7 +215,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.cut}
@@ -223,7 +223,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.download}

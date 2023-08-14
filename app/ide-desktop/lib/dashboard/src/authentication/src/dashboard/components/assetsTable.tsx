@@ -29,9 +29,9 @@ import AssetContextMenu from './assetContextMenu'
 import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
+import MenuEntry from './menuEntry'
 import Table from './table'
 
 // =================
@@ -881,7 +881,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             <ContextMenus key={uniqueString.uniqueString()} event={event}>
                                 {innerSelectedKeys.size !== 0 && (
                                     <ContextMenu>
-                                        <ContextMenuEntry
+                                        <MenuEntry
                                             action={shortcuts.KeyboardAction.moveAllToTrash}
                                             doAction={doDeleteAll}
                                         />

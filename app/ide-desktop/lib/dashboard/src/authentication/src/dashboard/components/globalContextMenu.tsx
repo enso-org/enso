@@ -8,7 +8,7 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
+import MenuEntry from './menuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -49,7 +49,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }}
                 ></input>
             )}
-            <ContextMenuEntry
+            <MenuEntry
                 hidden={hidden}
                 action={shortcuts.KeyboardAction.uploadFiles}
                 doAction={() => {
@@ -76,7 +76,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }
                 }}
             />
-            <ContextMenuEntry
+            <MenuEntry
                 hidden={hidden}
                 action={shortcuts.KeyboardAction.newProject}
                 doAction={() => {
@@ -91,7 +91,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 }}
             />
             {backend.type !== backendModule.BackendType.local && (
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newFolder}
                     doAction={() => {
@@ -105,7 +105,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 />
             )}
             {backend.type !== backendModule.BackendType.local && (
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.newDataConnector}
