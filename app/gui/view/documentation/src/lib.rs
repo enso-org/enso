@@ -169,8 +169,8 @@ impl Model {
         self.dom.set_xy(dom_size / 2.0);
         self.overlay.set_size(visible_part);
         self.breadcrumbs.set_xy(Vector2(style.breadcrumbs_padding_x, size.y));
-        self.breadcrumbs.frp().set_size(Vector2(size.x, style.breadcrumbs_height));
-        self.background.set_size(size);
+        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, style.breadcrumbs_height));
+        self.background.set_size(visible_part);
     }
 
     /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
@@ -178,10 +178,8 @@ impl Model {
         let percentage = (1.0 - fraction) * 100.0;
         let clip_path =
             format!("inset(0 {percentage}% 0 0 round 0px 0px {0}px {0}px)", style.corner_radius);
-        self.dom.set_style_or_warn("clip-path", &clip_path);
-        self.style_container.set_style_or_warn("clip-path", &clip_path);
-        let actual_size = Vector2(size.x * fraction, size.y);
-        self.size_changed(actual_size, fraction, style);
+        self.dom.set_style_or_warn("clip-path", clip_path);
+        self.size_changed(size, fraction, style);
     }
 
     /// Display the documentation and scroll to default position.

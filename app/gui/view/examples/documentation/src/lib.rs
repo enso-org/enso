@@ -277,6 +277,7 @@ pub fn main() {
             panel_visible <- any(...);
             panel_visible <+ init.constant(true);
             current_state <- panel_visible.sample(&show_hide.events_deprecated.mouse_down);
+            panel_visible <+ current_state.not();
             panel.frp.set_visible <+ current_state.not();
 
             // === Disable navigator on hover ===
