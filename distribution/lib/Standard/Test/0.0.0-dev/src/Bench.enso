@@ -194,7 +194,7 @@ type Bench
             IO.println <| phase_name + " iterations: " + run_iters.to_text
             IO.println <| phase_name + " avg time: " + fmt + " ms"
 
-        empty_conf = Phase_Conf.Iterations 0
+        empty_conf = Phase_Conf.Iterations 1
         if dry_run then run_phase "dummy" empty_conf else
             warmup_durations = run_phase "Warmup" warmup_conf
             measure_durations = run_phase "Measurement" measure_conf
