@@ -22,6 +22,15 @@ type Phase_Conf
         Phase_Conf.Seconds secs -> secs.to_text + " seconds"
         Phase_Conf.Iterations iters -> iters.to_text + " iterations"
 
+    ## Validates the config and throws a Panic if it is invalid.
+    validate : Nothing
+    validate self = case self of
+        Phase_Conf.Seconds secs ->
+            if secs < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
+        Phase_Conf.Iterations iters ->
+            if iters < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
+
+
 ## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
    defined in the JMH benchmarking library. See the JMH documentation for more details:
    https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
@@ -37,7 +46,14 @@ type Bench_Options
     set_measure : Phase_Conf -> Bench_Options
     set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
-    to_text self = "[warmup=" + self.warmup.to_text + ", measurement=" + self.measure.to_text + "]"
+    to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
+
+    ## Validates the config and throws a Panic if it is invalid.
+    validate : Nothing
+    validate self =
+        self.warmup.validate
+        self.measure.validate
+
 
 type Bench_Builder
     ## PRIVATE
@@ -54,6 +70,10 @@ type Group_Builder
     ## PRIVATE
     Impl builder
 
+    ## Adds a benchmark specification to the group.
+
+       Arguments:
+       - name: The name of the benchmark. Must be a valid Java identifier.
     specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
         validate_name name
@@ -69,10 +89,31 @@ type Bench
     build fn =
         b = Vector.new_builder
         fn (Bench_Builder.Impl b)
-        Bench.All b.to_vector
+        groups_vec = b.to_vector
+        Bench.All groups_vec . validate
 
     options : Bench_Options
     options = Bench_Options.Impl (Phase_Conf.Seconds 3) (Phase_Conf.Seconds 3)
+
+    ## Validates the benchmark and throws a Panic if it is invalid. Returns self
+       if the benchmark is valid.
+    validate : Bench
+    validate self =
+        ensure_distinct_names names =
+            if names.length != names.distinct.length then Panic.throw (Illegal_Argument.Error ("Benchmark names must be unique, got: " + names.to_text))
+        case self of
+            Bench.All groups ->
+                group_names = groups.map (_.name)
+                ensure_distinct_names group_names
+                groups.each _.validate
+            Bench.Group name conf specs ->
+                validate_name name
+                conf.validate
+                ensure_distinct_names <| specs.map (_.name)
+            Bench.Spec name code ->
+                validate_name name
+                if code == Nothing then Panic.throw (Illegal_Argument.Error "Benchmark code must be specified")
+        self
 
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
