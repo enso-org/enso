@@ -160,22 +160,27 @@ impl AsRef<str> for CowString {
 // ================
 
 /// Immutable string implementation with a fast clone implementation.
-#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, CloneRef, Eq, Hash, PartialEq, Ord, PartialOrd)]
 #[derive(Deserialize, Serialize)]
 pub struct ImString {
-    content: Rc<String>,
+    content: Rc<str>,
 }
 
 impl ImString {
     /// Constructor.
-    pub fn new(content: impl Into<String>) -> Self {
-        let content = Rc::new(content.into());
-        Self { content }
+    pub fn new(content: impl Into<Rc<str>>) -> Self {
+        Self { content: content.into() }
     }
 
     /// Extract a string slice containing the entire string.
     pub fn as_str(&self) -> &str {
         &self.content
+    }
+}
+
+impl Default for ImString {
+    fn default() -> Self {
+        "".into()
     }
 }
 
@@ -204,12 +209,6 @@ impl AsRef<ImString> for ImString {
     }
 }
 
-impl AsRef<String> for ImString {
-    fn as_ref(&self) -> &String {
-        self.content.as_ref()
-    }
-}
-
 impl AsRef<str> for ImString {
     fn as_ref(&self) -> &str {
         self.content.as_ref()
@@ -222,9 +221,9 @@ impl Borrow<str> for ImString {
     }
 }
 
-impl Borrow<String> for ImString {
-    fn borrow(&self) -> &String {
-        &self.content
+impl From<Rc<str>> for ImString {
+    fn from(content: Rc<str>) -> Self {
+        Self { content }
     }
 }
 
@@ -236,13 +235,13 @@ impl From<String> for ImString {
 
 impl From<&String> for ImString {
     fn from(t: &String) -> Self {
-        Self::new(t)
+        Self::new(t.as_str())
     }
 }
 
 impl From<&&String> for ImString {
     fn from(t: &&String) -> Self {
-        Self::new(*t)
+        Self::new(t.as_str())
     }
 }
 
@@ -264,18 +263,21 @@ impl From<Cow<'_, str>> for ImString {
     }
 }
 
+impl From<ImString> for Rc<str> {
+    fn from(t: ImString) -> Self {
+        t.content
+    }
+}
+
 impl From<ImString> for String {
     fn from(value: ImString) -> Self {
-        match Rc::try_unwrap(value.content) {
-            Ok(str) => str,
-            Err(rc) => rc.deref().clone(),
-        }
+        value.as_str().into()
     }
 }
 
 impl PartialEq<&str> for ImString {
     fn eq(&self, other: &&str) -> bool {
-        self.content.as_ref().eq(other)
+        self.content.as_ref().eq(*other)
     }
 }
 
@@ -287,7 +289,7 @@ impl PartialEq<str> for ImString {
 
 impl PartialEq<ImString> for &str {
     fn eq(&self, other: &ImString) -> bool {
-        self.eq(other.content.as_ref())
+        self.eq(&other.content.as_ref())
     }
 }
 
@@ -406,12 +408,6 @@ macro_rules! im_string_newtype_without_serde {
 
         impl AsRef<ImString> for $name {
             fn as_ref(&self) -> &ImString {
-                self.content.as_ref()
-            }
-        }
-
-        impl AsRef<String> for $name {
-            fn as_ref(&self) -> &String {
                 self.content.as_ref()
             }
         }

@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
+import org.enso.text.Sha3_224VersionCalculator
 
 import java.util
 import java.util.{Collections, UUID}
@@ -50,14 +51,15 @@ final class JobExecutionEngine(
 
   private val runtimeContext =
     RuntimeContext(
-      executionService = interpreterContext.executionService,
-      contextManager   = interpreterContext.contextManager,
-      endpoint         = interpreterContext.endpoint,
-      truffleContext   = interpreterContext.truffleContext,
-      jobProcessor     = this,
-      jobControlPlane  = this,
-      locking          = locking,
-      state            = executionState
+      executionService  = interpreterContext.executionService,
+      contextManager    = interpreterContext.contextManager,
+      endpoint          = interpreterContext.endpoint,
+      truffleContext    = interpreterContext.truffleContext,
+      jobProcessor      = this,
+      jobControlPlane   = this,
+      locking           = locking,
+      state             = executionState,
+      versionCalculator = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc */
