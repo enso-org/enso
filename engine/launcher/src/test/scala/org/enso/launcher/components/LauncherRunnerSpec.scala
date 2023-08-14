@@ -1,8 +1,8 @@
 package org.enso.launcher.components
 
 import java.nio.file.{Files, Path}
+import java.net.URI
 import java.util.UUID
-import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.updater.EditionManager
@@ -10,7 +10,6 @@ import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
-//import org.enso.loggingservice.{LogLevel, TestLogger}
 import org.enso.logger.TestLogger
 import org.slf4j.event.Level
 
@@ -24,7 +23,7 @@ import scala.concurrent.Future
 class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
-  private val fakeUri = Uri("ws://test:1234/")
+  private val fakeUri = URI.create("ws://test:1234/")
 
   def makeFakeRunner(
     cwdOverride: Option[Path]     = None,

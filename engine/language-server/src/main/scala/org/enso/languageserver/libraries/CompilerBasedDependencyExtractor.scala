@@ -65,7 +65,7 @@ class CompilerBasedDependencyExtractor(logLevel: Level)
         RuntimeOptions.LOG_LEVEL,
         Converter.toJavaLevel(logLevel).getName
       )
-      .logHandler(new JavaLoggingForwarder(6000))
+      .logHandler(new JavaLoggingForwarder())
       .build
     new PolyglotContext(context)
   }

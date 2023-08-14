@@ -1,7 +1,6 @@
 package org.enso.logging
 
 import java.net.URI
-import scala.util.{Success, Try}
 import org.slf4j.event.Level
 import java.nio.file.Path
 import scala.concurrent.Future
@@ -32,15 +31,28 @@ object LoggingServiceManager {
     }
   }
 
-  def fallbackToLocalConsole(logLevel: Level): Try[Unit] = {
+  def setupConnection(logLevel: Level, uri: URI)(implicit
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    if (loggingService != null) {
+      throw new RuntimeException("logging service already setup")
+    } else {
+      currentLevel = logLevel
+      val client = new ExternalLogger(uri)
+      loggingService = client
+      Future {
+        client.connect()
+      }
+    }
+  }
+
+  def fallbackToLocalConsole(logLevel: Level, componentName: String): Unit = {
     if (loggingService != null) {
       loggingService.teardown()
     }
-    System.setProperty("logging-server.logLevel", logLevel.toString.toLowerCase)
-    System.setProperty("logging-server.appender", "console")
-
-    // TODO: start console appender
-    Success(())
+    val local = new Local(componentName)
+    loggingService = local
+    local.start(logLevel)
   }
 
   def teardown(): Unit = {

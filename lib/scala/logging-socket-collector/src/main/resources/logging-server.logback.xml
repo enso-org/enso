@@ -11,12 +11,12 @@
         <append>false</append>
         <immediateFlush>true</immediateFlush>
         <encoder>
-            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+            <pattern>[%level] [%d{yyyy-MM-dd'T'HH:mm:ssXXX, UTC}] [%logger] %msg%n</pattern>
         </encoder>
     </appender>
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+            <pattern>[%level] [%d{yyyy-MM-dd'T'HH:mm:ssXXX, UTC}] [%logger] %msg%n</pattern>
         </encoder>
     </appender>
 

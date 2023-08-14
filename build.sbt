@@ -921,6 +921,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .buildNativeImage(
         "project-manager",
         staticOnLinux = true,
+        additionalOptions = Seq(
+          "-H:IncludeResources=.*logback.xml$"),
         initializeAtRuntime = Seq(
           "scala.util.Random",
           "zio.internal.ZScheduler$$anon$4",
@@ -1734,6 +1736,7 @@ lazy val `engine-runner` = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
+          "-H:IncludeResources=.*logback.xml$",
           "--macro:truffle",
           "--language:js",
           //          "-g",
@@ -1744,19 +1747,16 @@ lazy val `engine-runner` = project
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
-          // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$",
           "org.jline.nativ.JLineLibrary",
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
-          //"org.enso.loggingservice",
           "zio.internal.ZScheduler$$anon$4",
           "sun.awt",
           "sun.java2d",
           "sun.font",
           "java.awt",
           "com.sun.imageio",
-          "akka.http"
+          "akka.http",
         )
       )
       .dependsOn(installNativeImage)
@@ -1775,7 +1775,7 @@ lazy val `engine-runner` = project
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
-//.dependsOn(`logging-service`)
+  .dependsOn(`logging-logback`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1798,12 +1798,9 @@ lazy val launcher = project
         staticOnLinux = true,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$"
+          "-H:IncludeResources=.*Main.enso$",
+          "-H:IncludeResources=.*logback.xml$"
         ),
-        initializeAtRuntime = Seq(
-          // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$"
-        )
       )
       .dependsOn(installNativeImage)
       .dependsOn(assembly)
@@ -1843,7 +1840,6 @@ lazy val launcher = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(`logging-socket-collector`)
-  //.dependsOn(`logging-service`)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -2088,7 +2084,6 @@ lazy val `library-manager-test` = project
   .dependsOn(`library-manager`)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
-//.dependsOn(`logging-service`)
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
@@ -2123,7 +2118,6 @@ lazy val `runtime-version-manager` = project
   )
   .dependsOn(pkg)
   .dependsOn(downloader)
-  //.dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
@@ -2147,7 +2141,6 @@ lazy val `runtime-version-manager-test` = project
       .value
   )
   .dependsOn(`runtime-version-manager`)
-  //.dependsOn(`logging-service`)
   .dependsOn(testkit)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)

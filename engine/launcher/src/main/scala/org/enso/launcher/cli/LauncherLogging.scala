@@ -5,6 +5,7 @@ import org.enso.launcher.distribution.DefaultManagers
 import org.slf4j.event.Level
 
 import org.enso.logging.LoggingCollectorHelper
+import org.enso.logging.LoggingServiceManager
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -35,10 +36,9 @@ object LauncherLogging extends LoggingCollectorHelper {
     */
   def prepareForUninstall(): Unit = { //colorMode: ColorMode): Unit = {
     // TODO
-    /*waitForSetup()
+    waitForSetup()
 
-    LoggingServiceManager.replaceWithFallback(printers =
-      Seq(stderrPrinter(colorMode, printExceptions = true))
-    )*/
+    // TODO: fetch actual log level
+    LoggingServiceManager.fallbackToLocalConsole(defaultLogLevel, "launcher")
   }
 }

@@ -1,6 +1,6 @@
 package org.enso.runner
 
-import akka.http.scaladsl.model.{IllegalUriException, Uri}
+import akka.http.scaladsl.model.{IllegalUriException}
 import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
@@ -15,13 +15,13 @@ import org.enso.languageserver.boot.{
 }
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
-//import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
 import java.io.File
+import java.net.URI
 import java.nio.file.{Path, Paths}
 import java.util.{HashMap, UUID}
 import scala.Console.err
@@ -1013,9 +1013,9 @@ object Main {
 
   /** Parses an URI that specifies the logging service connection.
     */
-  def parseUri(string: String): Uri =
+  def parseUri(string: String): URI =
     try {
-      Uri(string)
+      URI.create(string)
     } catch {
       case _: IllegalUriException =>
         System.err.println(s"`$string` is not a valid URI.")
@@ -1180,7 +1180,7 @@ object Main {
     }
   }
 
-  /** Checks whether IR caching should be enabled.o
+  /** Checks whether IR caching should be enabled.
     *
     * The (mutually exclusive) flags can control it explicitly, otherwise it
     * defaults to off in development builds and on in production builds.

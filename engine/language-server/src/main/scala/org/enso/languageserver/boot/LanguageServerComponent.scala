@@ -39,13 +39,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
 
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
-    val logConfig =
-      this.getClass.getResourceAsStream("/language-server.logback.xml")
-    if (logConfig != null) {
-      LoggerContextSetup.setupLogging(logLevel, "language-server", logConfig);
-    } else {
-      System.err.println("Unable to set up logging for Language Server.")
-    }
+    setupLogging()
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
     val module  = new MainModule(config, logLevel)
@@ -73,6 +67,16 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         )
       }
     } yield ComponentStarted
+  }
+
+  private def setupLogging(): Unit = {
+    val logConfig =
+      this.getClass.getResourceAsStream("/language-server.logback.xml")
+    if (logConfig != null) {
+      LoggerContextSetup.setup(logLevel, "language-server", logConfig);
+    } else {
+      System.err.println("Unable to set up logging for Language Server.")
+    }
   }
 
   /** Start the application sampling. */

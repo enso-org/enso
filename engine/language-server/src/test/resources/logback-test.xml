@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration>
+
+<configuration>
+
+    <appender name="console-test" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[%level] [%d{yyyy-MM-dd'T'HH:mm:ssXXX, UTC}] [%logger] %msg%n</pattern>
+        </encoder>
+    </appender>-->
+
+    <logger name="akka.actor" level="info"/>
+    <logger name="akka.event" level="error"/>
+    <logger name="akka.io" level="error"/>
+    <logger name="akka.stream" level="error"/>
+    <logger name="slick.jdbc.JdbcBackend.statement" level="info"/>
+    <logger name="slick" level="error"/>
+    <logger name="org.eclipse.jgit" level="error"/>
+    <logger name="io.methvin.watcher" level="error"/>
+
+    <root level="warn">
+        <appender-ref ref="console-test"/>
+    </root>
+</configuration>

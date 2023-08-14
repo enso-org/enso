@@ -215,5 +215,9 @@
   {
     "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
   }
 ]

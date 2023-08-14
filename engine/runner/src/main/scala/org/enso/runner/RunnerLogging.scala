@@ -1,16 +1,16 @@
 package org.enso.runner
 
-import akka.http.scaladsl.model.Uri
+import java.net.URI
 import com.typesafe.scalalogging.Logger
 import org.enso.logger.masking.Masking
 
 import scala.annotation.unused
-//import org.enso.loggingservice.printers.StderrPrinter
 import org.slf4j.event.Level
-//import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
+import scala.concurrent.Future
+import java.io.InputStream
+import org.enso.logger.LoggerContextSetup
 
 /** Manages setting up the logging service within the runner.
   */
@@ -27,22 +27,25 @@ object RunnerLogging {
     * @param logMasking switches log masking on and off
     */
   def setup(
-    connectionUri: Option[Uri],
+    connectionUri: Option[URI],
     logLevel: Level,
     logMasking: Boolean
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     Masking.setup(logMasking)
+    val loggingConfig = this.getClass.getResourceAsStream("/runner.logback.xml")
     val loggerSetup = connectionUri match {
       case Some(uri) =>
-        // TODO
-        /*LoggingServiceManager
-          .setup(
-            LoggerMode.Client(uri),
-            logLevel
-          )*/
-        Future
-          .successful(())
+        Future(
+          LoggerContextSetup.setup(
+            logLevel,
+            "runner",
+            loggingConfig,
+            "forward-via-socket",
+            uri.getHost(),
+            uri.getPort()
+          )
+        )
           .map { _ =>
             logger.trace("Connected to logging service at [{}].", uri)
           }
@@ -51,10 +54,10 @@ object RunnerLogging {
               "Failed to connect to the logging service server, " +
               "falling back to local logging."
             )
-            setupLocalLogger(logLevel)
+            setupLocalLogger(logLevel, loggingConfig)
           }
       case None =>
-        setupLocalLogger(logLevel)
+        setupLocalLogger(logLevel, loggingConfig)
     }
     loggerSetup.onComplete {
       case Failure(exception) =>
@@ -64,34 +67,27 @@ object RunnerLogging {
     }
   }
 
-  private def setupLocalLogger(@unused logLevel: Level): Future[Unit] = {
-    // TODO
-    Future.successful(())
+  private def setupLocalLogger(
+    @unused logLevel: Level,
+    logbackConfig: InputStream
+  ): Future[Unit] = {
+    Future.successful(
+      LoggerContextSetup.setup(
+        logLevel,
+        "runner",
+        logbackConfig,
+        "console",
+        null,
+        0
+      )
+    )
   }
-
-  /*LoggingServiceManager
-      .setup(
-        LoggerMode.Local(
-          Seq(StderrPrinter.create(printExceptions = true))
-        ),
-        logLevel
-      )*/
-
-  /*private def setupLocalLogger(logLevel: LogLevel): Future[Unit] =
-    LoggingServiceManager
-      .setup(
-        LoggerMode.Local(
-          Seq(StderrPrinter.create(printExceptions = true))
-        ),
-        logLevel
-      )*/
 
   private val logger = Logger[RunnerLogging.type]
 
   /** Shuts down the logging service gracefully.
     */
-  def tearDown(): Unit =
-    // TODO
-    ()
-  //LoggingServiceManager.tearDown()
+  def tearDown(): Unit = {
+    LoggerContextSetup.teardown()
+  }
 }

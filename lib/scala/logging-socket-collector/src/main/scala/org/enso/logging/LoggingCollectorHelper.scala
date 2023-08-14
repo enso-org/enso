@@ -14,6 +14,9 @@ import scala.util.{Failure, Success}
 import org.enso.logger.LoggerContextSetup
 import org.enso.logger.config.LoggingService
 
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+
 abstract class LoggingCollectorHelper(implicit
   executionContext: ExecutionContext
 ) {
@@ -93,7 +96,7 @@ abstract class LoggingCollectorHelper(implicit
               .map(conf =>
                 Boolean.unbox(
                   LoggerContextSetup
-                    .setupLogging(actualLogLevel, logComponentName, conf)
+                    .setup(actualLogLevel, logComponentName, conf)
                 )
               )
               .getOrElse(false)
@@ -114,7 +117,7 @@ abstract class LoggingCollectorHelper(implicit
         .map(conf =>
           Boolean.unbox(
             LoggerContextSetup
-              .setupLogging(actualLogLevel, logComponentName, conf)
+              .setup(actualLogLevel, logComponentName, conf)
           )
         )
         .getOrElse(false)
@@ -122,5 +125,9 @@ abstract class LoggingCollectorHelper(implicit
         System.err.println("Failed to set Logger Context")
       }
     }
+  }
+
+  def waitForSetup(): Unit = {
+    Await.ready(loggingServiceEndpointPromise.future, 5.seconds)
   }
 }

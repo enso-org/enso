@@ -309,7 +309,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(new JavaLoggingForwarder(6000))
+    .logHandler(new JavaLoggingForwarder())
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

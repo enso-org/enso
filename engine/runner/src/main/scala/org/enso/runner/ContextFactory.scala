@@ -87,7 +87,7 @@ class ContextFactory {
         RuntimeOptions.LOG_LEVEL,
         logLevelName
       )
-      .logHandler(new JavaLoggingForwarder(6000))
+      .logHandler(new JavaLoggingForwarder())
       .build
     new PolyglotContext(context)
   }

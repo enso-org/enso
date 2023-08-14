@@ -18,6 +18,7 @@ import java.net.Socket;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import org.enso.logger.config.LoggingService;
+import org.enso.logger.config.Server;
 
 /**
  * JavaLoggingForwarder will forward all java.util.logging.LogRecord to a Logback's appender.
@@ -29,6 +30,14 @@ public class JavaLoggingForwarder extends Handler {
 
   private ch.qos.logback.core.Appender<ILoggingEvent> appender;
   private boolean started;
+
+  public JavaLoggingForwarder() {
+    this(LoggingService.parseConfig().getServer());
+  }
+
+  public JavaLoggingForwarder(Server config) {
+    this(config.hostname(), config.port());
+  }
 
   public JavaLoggingForwarder(int port) {
     this("localhost", port);

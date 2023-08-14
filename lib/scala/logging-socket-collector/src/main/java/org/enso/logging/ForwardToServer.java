@@ -51,17 +51,6 @@ class ForwardToServer extends LoggingService {
     logServer.start();
   }
 
-  public void logToConsole(Level level) throws JoranException {
-    var lc = new LoggerContext();
-    var configurator = new JoranConfigurator();
-    configurator.setContext(lc);
-    System.setProperty("logging-server.logLevel", level.toString().toLowerCase());
-    System.setProperty("logging-server.appender", consoleAppender);
-    configurator.doConfigure(this.getClass().getResourceAsStream("/logging-server.logback.xml"));
-    logServer = new SimpleSocketServer(lc, port);
-    logServer.start();
-  }
-
   public boolean isSetup() {
     return logServer != null;
   }
