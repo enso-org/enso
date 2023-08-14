@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Runtime import State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
@@ -80,6 +81,9 @@ type Group_Builder
         self.builder.append <| Bench.Spec name (_ -> benchmark)
 
 
+type Collection_Time
+
+
 type Bench
     All (groups : Vector Bench)
     Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
@@ -88,9 +92,14 @@ type Bench
     build : (Bench_Builder -> Any) -> Bench
     build fn =
         b = Vector.new_builder
-        fn (Bench_Builder.Impl b)
-        groups_vec = b.to_vector
-        Bench.All groups_vec . validate
+        State.run Collection_Time System.nano_time <|
+            fn (Bench_Builder.Impl b)
+            collect_start_time = State.get Collection_Time
+            collect_end_time = System.nano_time
+            total_built_time_ms = (collect_end_time - collect_start_time) / 1000000
+            IO.println <| "[mylog] Total collect time ms: " + (total_built_time_ms.format "#.###")
+            groups_vec = b.to_vector
+            Bench.All groups_vec . validate
 
     options : Bench_Options
     options = Bench_Options.Impl (Phase_Conf.Seconds 3) (Phase_Conf.Seconds 3)
@@ -196,9 +205,8 @@ type Bench
 
         empty_conf = Phase_Conf.Iterations 1
         if dry_run then run_phase "dummy" empty_conf else
-            warmup_durations = run_phase "Warmup" warmup_conf
-            measure_durations = run_phase "Measurement" measure_conf
-            # TODO: Print some stats at the end of the phase
+            run_phase "Warmup" warmup_conf
+            run_phase "Measurement" measure_conf
             measure_end = System.nano_time
             measure_duration_ms = (measure_end - measure_start) / 1000000
             fmt_duration_ms = measure_duration_ms.format "#.###"
