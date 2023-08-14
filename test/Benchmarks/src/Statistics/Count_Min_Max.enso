@@ -2,25 +2,25 @@ from Standard.Base import IO, Integer, Vector
 from Standard.Base.Data.Statistics import all
 import Standard.Base.Data.Range
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench, Faker, Phase_Conf
 
-## Bench Utilities ============================================================
-
-vector_size = 10000000
-iter_size = 5
-num_iterations = 5
 
 create_vector : Integer -> Integer -> Vector
 create_vector rows (seed=1646322139) =
     faker = Faker.new seed
     0.up_to rows . map _-> faker.make_some_nothing (faker.integer 0 1000000)
 
-# The Benchmarks ==============================================================
-bench =
-    IO.println <| "Making data..."
+
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+
+
+collect_benches = Bench.build builder->
+    vector_size = 100000
     vector = create_vector vector_size
 
-    IO.println <| "Testing..."
-    Bench.measure (vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]) "Count Min Max" iter_size num_iterations
+    builder.group "Count_Min_Max" options group_builder->
+        group_builder.specify "count_min_max" <|
+            vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]
 
-main = bench
+
+main = collect_benches . run_main

@@ -3,23 +3,45 @@ import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
 import project.Vector.Operations
 import project.Vector.Sort
+import project.Statistics.Count_Min_Max
+import project.Table.Aggregate
+import project.Table.Cross_Tab
+import project.Table.Sorting
 import project.Collections
 import project.Column_Numeric
 import project.Equality
 import project.Json_Bench
 import project.Natural_Order_Sort
+import project.Number_Parse
+import project.Numeric
+import project.Sum
 
 all_benchmarks =
     builder = Vector.new_builder
+
+    # Vector
     builder.append Array_Proxy_Bench.collect_benches
     builder.append Distinct.collect_benches
     builder.append Operations.collect_benches
     builder.append Sort.collect_benches
+
+    # Statistics
+    builder.append Count_Min_Max.collect_benches
+
+    # Table
+    builder.append Aggregate.collect_benches
+    builder.append Cross_Tab.collect_benches
+    builder.append Sorting.collect_benches
+
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches
     builder.append Equality.collect_benches
-    builder.append Json.collect_benches
+    builder.append Json_Bench.collect_benches
     builder.append Natural_Order_Sort.collect_benches
+    builder.append Number_Parse.collect_benches
+    builder.append Numeric.collect_benches
+    builder.append Sum.collect_benches
+
     builder.to_vector
 
 main =

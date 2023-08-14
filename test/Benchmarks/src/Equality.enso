@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 polyglot java import org.graalvm.collections.Pair as Graal_Pair
 
@@ -39,12 +39,12 @@ count_entries_polyglot vector element expected_count=1 =
         IO.println msg
         Panic.throw (Illegal_State.Error msg)
 
-options = Bench.options
+
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+
 
 collect_benches = Bench.build builder->
     n = 100000
-    iter_size = 100
-    num_iterations = 10
 
     integer_vec = Vector.new n (ix -> ix)
     boolean_vec = integer_vec.map x->
