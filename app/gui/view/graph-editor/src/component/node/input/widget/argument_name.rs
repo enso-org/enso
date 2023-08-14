@@ -46,10 +46,13 @@ pub struct Widget {
 impl SpanWidget for Widget {
     type Config = Config;
 
+    const PRIORITY_OVER_OVERRIDE: bool = true;
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
-        let matches = ctx.info.subtree_connection.is_none() && kind.is_prefix_argument();
-        Score::allow_override_if(matches)
+        let matches = ctx.info.subtree_connection.is_none()
+            && ctx.info.nesting_level.is_primary()
+            && kind.is_prefix_argument();
+        Score::only_if(matches)
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {

@@ -344,6 +344,7 @@ export default function Dashboard(props: DashboardProps) {
                 )}
                 <Editor
                     visible={page === pageSwitcher.Page.editor}
+                    supportsLocalBackend={supportsLocalBackend}
                     projectStartupInfo={projectStartupInfo}
                     appRunner={appRunner}
                 />
