@@ -115,8 +115,15 @@ public class JavaLoggingForwarder extends Handler {
     LoggingEvent event = new LoggingEvent();
     event.setLoggerName(record.getLoggerName());
     event.setLevel(toLogbackLevel(record.getLevel()));
-    event.setMessage(record.getMessage());
-    event.setArgumentArray(record.getParameters());
+    // Replace jul-specific placeholders with ones used by everybody else
+    event.setMessage(record.getMessage().replaceAll("\\{\\d+\\}", "{}"));
+    Object[] args;
+    if (record.getParameters().length == 1 && record.getParameters()[0] instanceof Object[]) {
+      args = (Object[]) (record.getParameters()[0]);
+    } else {
+      args = record.getParameters();
+    }
+    event.setArgumentArray(args);
     event.setInstant(record.getInstant());
     if (record.getThrown() != null) {
       event.setThrowableProxy(new ThrowableProxy(record.getThrown()));

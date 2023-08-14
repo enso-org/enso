@@ -55,7 +55,11 @@ public class DebuggingEnsoTest {
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
-        .logHandler(OutputStream.nullOutputStream())
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                "FINEST"
+        )
+        .logHandler(System.out)//OutputStream.nullOutputStream())
         .build();
 
     context = Context.newBuilder()
