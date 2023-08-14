@@ -267,6 +267,14 @@ impl Docker {
         cmd.args(["push", image]);
         cmd.run_ok().await
     }
+
+    /// Prune, i.e. remove unused data.
+    pub async fn system_prune(&self, options: &PruneOptions) -> Result {
+        let mut cmd = self.cmd()?;
+        cmd.arg("system").arg("prune");
+        cmd.args(options.args());
+        cmd.run_ok().await
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -573,6 +581,42 @@ impl std::str::FromStr for ContainerId {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(ContainerId(s.into()))
+    }
+}
+
+/// `docker system prune` options.
+///
+/// See https://docs.docker.com/engine/reference/commandline/system_prune/
+#[derive(Clone, Debug, Default)]
+pub struct PruneOptions {
+    /// Remove all unused images not just dangling ones.
+    pub all:     bool,
+    /// Do not prompt for confirmation.
+    pub force:   bool,
+    /// Remove all unused local volumes.
+    pub volumes: bool,
+    /// Provide filter values (e.g. ‘label=<key>=<value>’).
+    pub filter:  Vec<String>,
+}
+
+impl PruneOptions {
+    /// Format CLI arguments for `docker system prune`.
+    pub fn args(&self) -> Vec<OsString> {
+        let mut ret = Vec::new();
+        if self.all {
+            ret.push("--all".into());
+        }
+        if self.force {
+            ret.push("--force".into());
+        }
+        if self.volumes {
+            ret.push("--volumes".into());
+        }
+        for filter in &self.filter {
+            ret.push("--filter".into());
+            ret.push(filter.into());
+        }
+        ret
     }
 }
 
