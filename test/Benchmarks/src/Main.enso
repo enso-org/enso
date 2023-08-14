@@ -7,6 +7,7 @@ import project.Collections
 import project.Column_Numeric
 import project.Equality
 import project.Json_Bench
+import project.Natural_Order_Sort
 
 all_benchmarks =
     builder = Vector.new_builder
@@ -18,6 +19,7 @@ all_benchmarks =
     builder.append Column_Numeric.collect_benches
     builder.append Equality.collect_benches
     builder.append Json.collect_benches
+    builder.append Natural_Order_Sort.collect_benches
     builder.to_vector
 
 main =
