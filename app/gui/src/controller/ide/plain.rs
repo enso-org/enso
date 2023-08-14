@@ -11,6 +11,7 @@ use crate::model::project::synchronized::Properties;
 
 use double_representation::name::project;
 use engine_protocol::project_manager::ProjectName;
+use engine_protocol::project_manager::ProjectNormalizedName;
 use parser::Parser;
 
 
@@ -60,7 +61,8 @@ impl Handle {
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
     pub async fn from_ls_endpoints(
         namespace: String,
-        project_name: ProjectName,
+        normalized_name: ProjectNormalizedName,
+        displayed_name: ProjectName,
         version: semver::Version,
         json_endpoint: String,
         binary_endpoint: String,
@@ -68,8 +70,9 @@ impl Handle {
         let properties = Properties {
             //TODO [ao]: this should be not the default; instead project model should not need the
             // id.    See https://github.com/enso-org/ide/issues/1572
-            id:             default(),
-            name:           project::QualifiedName::new(namespace, project_name),
+            id: default(),
+            project_name: project::QualifiedName::new(namespace, normalized_name),
+            displayed_name,
             engine_version: version,
         };
         let project = model::project::Synchronized::new_connected(

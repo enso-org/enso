@@ -8,7 +8,8 @@ import GeoImage from 'enso-assets/geo.png'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.png'
 import VisualizeImage from 'enso-assets/visualize.png'
 
-import * as common from 'enso-common'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 
 import Spinner, * as spinner from './spinner'
 
@@ -16,9 +17,6 @@ import Spinner, * as spinner from './spinner'
 // === Constants ===
 // =================
 
-/** The `localStorage` key used to store whether the {@link Templates} element should be
- * expanded by default. */
-const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
 /** The max width at which the bottom shadow should be visible. */
 const MAX_WIDTH_NEEDING_SCROLL = 1031
 /** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
@@ -252,26 +250,13 @@ export interface TemplatesProps {
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 export default function Templates(props: TemplatesProps) {
     const { hidden, onTemplateClick } = props
-
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [shadowClass, setShadowClass] = React.useState(
         window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
     )
-    const [isOpen, setIsOpen] = React.useState(() => {
-        /** This must not be in a `useEffect` as it would flash open for one frame.
-         * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
-         * this is slightly more performant. */
-        const savedIsOpen = localStorage.getItem(IS_TEMPLATES_OPEN_KEY)
-        let result = true
-        if (savedIsOpen != null) {
-            try {
-                result = JSON.parse(savedIsOpen) !== false
-            } catch {
-                // Ignored. This should only happen when a user manually sets invalid JSON into
-                // the `localStorage` key used by this component.
-            }
-        }
-        return result
-    })
+    const [isOpen, setIsOpen] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.isTemplatesListOpen) !== false
+    )
 
     // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -313,8 +298,8 @@ export default function Templates(props: TemplatesProps) {
     })
 
     React.useEffect(() => {
-        localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
-    }, [isOpen])
+        localStorage.set(localStorageModule.LocalStorageKey.isTemplatesListOpen, isOpen)
+    }, [isOpen, /* should never change */ localStorage])
 
     return (
         <div className={`mx-2 ${hidden ? 'hidden' : ''}`}>

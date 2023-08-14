@@ -1,10 +1,12 @@
 /** @file A styled button. */
 import * as React from 'react'
+import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
     active?: boolean
     disabled?: boolean
+    disabledOpacityClassName?: string
     image: string
     /** A title that is only shown when `disabled` is true. */
     error?: string | null
@@ -14,18 +16,24 @@ export interface ButtonProps {
 
 /** A styled button. */
 export default function Button(props: ButtonProps) {
-    const { active = false, disabled = false, image, error, className, onClick } = props
+    const {
+        active = false,
+        disabled = false,
+        disabledOpacityClassName,
+        image,
+        error,
+        className,
+        onClick,
+    } = props
 
     return (
-        <button
-            disabled={disabled}
+        <SvgMask
+            src={image}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`cursor-pointer disabled:cursor-default disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-100 ${
-                active ? '' : 'opacity-50'
+            className={`${active && !disabled ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
+                !disabled ? 'cursor-pointer hover:opacity-100 cursor-pointer' : 'cursor-not-allowed'
             } ${className ?? ''}`}
-            onClick={onClick}
-        >
-            <img src={image} />
-        </button>
+            {...(disabled ? {} : { onClick })}
+        />
     )
 }
