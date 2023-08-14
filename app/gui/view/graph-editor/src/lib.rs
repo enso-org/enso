@@ -536,7 +536,10 @@ ensogl::define_endpoints_2! {
         /// opposed to e.g. when loading a graph from a file).
         start_node_creation_from_port(),
 
-
+        // === Copy-Paste ===
+        copy_selected_node(),
+        paste_node(),
+        paste_node_with_code(ImString),
 
 
         /// Remove all selected nodes from the graph.
@@ -717,6 +720,10 @@ ensogl::define_endpoints_2! {
 
         node_being_edited (Option<NodeId>),
         node_editing (bool),
+
+        // === Copy-Paste ===
+        node_copied(NodeId),
+        request_node_pasted(),
 
         file_dropped     (ensogl_drop_manager::File,Vector2<f32>),
 
@@ -1903,6 +1910,18 @@ impl GraphEditorModel {
     }
 }
 
+// === Copy-paste ===
+impl GraphEditorModel {
+    pub fn copy_selected_node(&self) {
+        let selected_node = self.nodes.last_selected();
+        console_log!("Copy selected node");
+    }
+
+    pub fn paste_node(&self) {
+        console_log!("Paste node");
+    }
+}
+
 
 // === Remove ===
 
@@ -3002,6 +3021,14 @@ fn init_remaining_graph_editor_frp(
         eval inputs.set_node_context_switch(((id, context_switch))
             model.set_node_context_switch(*id, context_switch)
         );
+    }
+
+
+    // === Copy-Paste ===
+
+    frp::extend! { network
+        out.node_copied <+ inputs.copy_selected_node.map(f_!(model.nodes.last_selected())).unwrap();
+        eval_ inputs.paste_node(model.paste_node());
     }
 
 

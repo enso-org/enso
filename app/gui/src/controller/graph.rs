@@ -26,6 +26,7 @@ use double_representation::node::NodeAst;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
+use ensogl::system::web::clipboard;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
@@ -926,6 +927,15 @@ impl Handle {
 
         // It's fine if there were no metadata.
         let _ = self.module.remove_node_metadata(id);
+        Ok(())
+    }
+
+    pub fn copy_node(&self, id: ast::Id) -> FallibleResult {
+        let graph = GraphInfo::from_definition(self.definition()?.item);
+        let node = graph.locate_node(id)?;
+        let code = node.whole_expression().repr();
+        console_log!("Copying node {code}");
+        clipboard::write_text(code);
         Ok(())
     }
 

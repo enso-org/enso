@@ -291,6 +291,16 @@ impl Model {
         Some((node_id, config))
     }
 
+    fn node_copied(&self, id: ViewNodeId) {
+        self.log_action(
+            || {
+                let ast_id = self.state.update_from_view().copy_node(id)?;
+                Some(self.controller.graph().copy_node(ast_id))
+            },
+            "copy node",
+        )
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
@@ -751,6 +761,7 @@ impl Graph {
 
             // === Changes from the View ===
 
+            eval view.node_copied((node_id) model.node_copied(*node_id));
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
