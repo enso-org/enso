@@ -22,9 +22,9 @@ import SvgMask from '../../authentication/components/svgMask'
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL_MS = 5000
+export const CHECK_STATUS_INTERVAL_MS = 5000
 /** The interval between requests checking whether the VM is ready. */
-const CHECK_RESOURCES_INTERVAL_MS = 1000
+export const CHECK_RESOURCES_INTERVAL_MS = 1000
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
@@ -221,7 +221,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     setShouldOpenWhenReady(false)
                     void closeProject(false)
                 } else {
-                    setShouldOpenWhenReady(true)
+                    setShouldOpenWhenReady(event.shouldAutomaticallySwitchPage)
                     void openProject()
                 }
                 break

@@ -758,6 +758,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
+            case assetListEventModule.AssetListEventType.openProject: {
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.openProject,
+                    id: event.id,
+                    shouldAutomaticallySwitchPage: event.shouldAutomaticallySwitchPage,
+                })
+                break
+            }
             case assetListEventModule.AssetListEventType.delete: {
                 setItems(oldItems => oldItems.filter(item => item.id !== event.id))
                 itemDepthsRef.current.delete(event.id)
@@ -771,6 +779,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent({
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
+                shouldAutomaticallySwitchPage: true,
             })
         },
         [/* should never change */ dispatchAssetEvent]

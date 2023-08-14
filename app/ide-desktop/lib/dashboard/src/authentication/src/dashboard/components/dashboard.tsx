@@ -23,6 +23,7 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
+import * as projectIcon from './projectIcon'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import DriveView from './driveView'
@@ -91,28 +92,88 @@ export default function Dashboard(props: DashboardProps) {
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
         if (savedProjectStartupInfo != null) {
-            setProjectStartupInfo(savedProjectStartupInfo)
-            if (page !== pageSwitcher.Page.editor) {
-                // A workaround to hide the spinner, when the previous project is being loaded in
-                // the background. This `MutationObserver` is disconnected when the loader is
-                // removed from the DOM.
-                const observer = new MutationObserver(mutations => {
-                    for (const mutation of mutations) {
-                        for (const node of Array.from(mutation.addedNodes)) {
-                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                document.body.style.cursor = 'auto'
-                                node.style.display = 'none'
+            if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
+                if (session.accessToken != null) {
+                    if (backend.type === backendModule.BackendType.remote) {
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.openProject,
+                            id: savedProjectStartupInfo.project.projectId,
+                            shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
+                        })
+                    } else {
+                        const httpClient = new http.Client(
+                            new Headers([['Authorization', `Bearer ${session.accessToken}`]])
+                        )
+                        const remoteBackend = new remoteBackendModule.RemoteBackend(
+                            httpClient,
+                            logger
+                        )
+                        void (async () => {
+                            const projectId = savedProjectStartupInfo.project.projectId
+                            const projectName = savedProjectStartupInfo.project.packageName
+                            let project = await remoteBackend.getProjectDetails(
+                                projectId,
+                                projectName
+                            )
+                            if (
+                                project.state.type !== backendModule.ProjectState.openInProgress &&
+                                project.state.type !== backendModule.ProjectState.opened
+                            ) {
+                                await remoteBackend.openProject(projectId, null, projectName)
                             }
-                        }
-                        for (const node of Array.from(mutation.removedNodes)) {
-                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                document.body.style.cursor = 'auto'
-                                observer.disconnect()
+                            let nextCheckTimestamp = 0
+                            while (project.state.type !== backendModule.ProjectState.opened) {
+                                await new Promise<void>(resolve => {
+                                    const delayMs = nextCheckTimestamp - Number(new Date())
+                                    setTimeout(resolve, Math.max(0, delayMs))
+                                })
+                                nextCheckTimestamp =
+                                    Number(new Date()) + projectIcon.CHECK_STATUS_INTERVAL_MS
+                                project = await backend.getProjectDetails(projectId, projectName)
                             }
-                        }
+                            nextCheckTimestamp = 0
+                            while (true) {
+                                try {
+                                    await new Promise<void>(resolve => {
+                                        const delayMs = nextCheckTimestamp - Number(new Date())
+                                        setTimeout(resolve, Math.max(0, delayMs))
+                                    })
+                                    nextCheckTimestamp =
+                                        Number(new Date()) + projectIcon.CHECK_RESOURCES_INTERVAL_MS
+                                    await backend.checkResources(projectId, projectName)
+                                    break
+                                } catch {
+                                    // Ignored.
+                                }
+                            }
+                            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                        })()
                     }
-                })
-                observer.observe(document.body, { childList: true })
+                }
+            } else {
+                setProjectStartupInfo(savedProjectStartupInfo)
+                if (page !== pageSwitcher.Page.editor) {
+                    // A workaround to hide the spinner, when the previous project is being loaded in
+                    // the background. This `MutationObserver` is disconnected when the loader is
+                    // removed from the DOM.
+                    const observer = new MutationObserver(mutations => {
+                        for (const mutation of mutations) {
+                            for (const node of Array.from(mutation.addedNodes)) {
+                                if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                    document.body.style.cursor = 'auto'
+                                    node.style.display = 'none'
+                                }
+                            }
+                            for (const node of Array.from(mutation.removedNodes)) {
+                                if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                    document.body.style.cursor = 'auto'
+                                    observer.disconnect()
+                                }
+                            }
+                        }
+                    })
+                    observer.observe(document.body, { childList: true })
+                }
             }
         }
         // This MUST only run when the component is mounted.

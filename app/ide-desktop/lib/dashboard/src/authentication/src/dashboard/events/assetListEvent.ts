@@ -18,6 +18,7 @@ export enum AssetListEventType {
     newProject = 'new-project',
     uploadFiles = 'upload-files',
     newSecret = 'new-secret',
+    openProject = 'open-project',
     delete = 'delete',
 }
 
@@ -32,6 +33,7 @@ interface AssetListEvents {
     newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
     newSecret: AssetListNewSecretEvent
+    openProject: AssetListOpenProjectEvent
     delete: AssetListDeleteEvent
 }
 
@@ -74,6 +76,12 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
     parentId: backend.DirectoryId | null
     name: string
     value: string
+}
+
+/** A signal to open a project. */
+interface AssetListOpenProjectEvent extends AssetListBaseEvent<AssetListEventType.openProject> {
+    id: backend.ProjectId
+    shouldAutomaticallySwitchPage: boolean
 }
 
 /** A signal that a file has been deleted. This must not be called before the request is
