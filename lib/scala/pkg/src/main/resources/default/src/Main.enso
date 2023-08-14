@@ -4,4 +4,4 @@ from Standard.Database import all
 from Standard.AWS import all
 
 main =
-    operator1 = "Press TAB key to create a new node"
+    operator1 = "Press ENTER key to create a new node"

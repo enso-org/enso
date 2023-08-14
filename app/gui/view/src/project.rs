@@ -716,9 +716,13 @@ impl View {
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
         frp::extend! { network
-            // Searcher type to use for node creation
-            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion);
-            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser);
+            // Searcher type to use for node creation.
+            // Debounces are needed, because there are shortcut conflits with Component Browser's
+            // internals, causing CB being closed immediately after opening.
+            // TODO[ao] This is a hotfix, and the proper fix is tracked by
+            //          https://github.com/enso-org/enso/issues/7528
+            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion).debounce();
+            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser).debounce();
             searcher_type <- any(&ai_searcher, &component_browser_searcher);
 
             frp.source.searcher_type <+ searcher_type;
@@ -802,7 +806,7 @@ impl application::View for View {
             // is ready.
             (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
-            (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "!is_searcher_opened", "enter", "start_node_creation_with_component_browser"),
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),

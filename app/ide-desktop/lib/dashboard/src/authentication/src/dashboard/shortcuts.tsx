@@ -109,6 +109,27 @@ export const MODIFIERS =
         : // eslint-disable-next-line no-restricted-syntax
           (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
 
+// ========================
+// === isTextInputEvent ===
+// ========================
+
+/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
+ * keys. */
+const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
+
+/** Whether the modifiers match the event's modifier key states. */
+export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+    // Allow `alt` key to be pressed in case it is being used to enter special characters.
+    return (
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.metaKey &&
+        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
+            event.key === 'Backspace' ||
+            event.key === 'Delete')
+    )
+}
+
 // =============================
 // === makeKeyboardActionMap ===
 // =============================
