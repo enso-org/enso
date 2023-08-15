@@ -35,13 +35,13 @@ final class ArrayProxy implements EnsoObject {
       InteropLibrary interop = InteropLibrary.getUncached();
       if (!interop.isExecutable(at)) {
         var msg = "Array_Proxy needs executable function.";
-        throw ArrayPanics.unsupportedArgument(null, at, msg);
+        throw ArrayPanics.typeError(interop, at, msg);
       }
     }
 
     if (length < 0) {
       CompilerDirectives.transferToInterpreter();
-      throw ArrayPanics.unsupportedArgument(null, length, "Array_Proxy length cannot be negative.");
+      throw new IllegalArgumentException("Array_Proxy length cannot be negative.");
     }
 
     this.length = length;
