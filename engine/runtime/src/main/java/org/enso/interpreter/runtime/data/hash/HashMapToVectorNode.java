@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -12,13 +15,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-
-/**
- *
- * @author devel
- */
 @BuiltinMethod(
     type = "Map",
     name = "to_vector",
