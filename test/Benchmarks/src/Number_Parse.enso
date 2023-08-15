@@ -6,21 +6,35 @@ from Standard.Test import Bench, Faker, Phase_Conf
 options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
 
+type Data
+    Value ~decimal_strings ~int_strings
+
+    create vector_size faker =
+        Data.Value (create_decimal_strings vector_size faker) (create_int_strings vector_size faker)
+
+
+create_decimal_strings vector_size faker =
+    Vector.new vector_size _->(faker.decimal -1000000000 1000000000).to_text
+
+
+create_int_strings vector_size faker =
+    Vector.new vector_size _->(faker.integer -1000000000 1000000000).to_text
+
+
 collect_benches = Bench.build builder->
     vector_size = 1000000
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
 
-    decimal_strings = Vector.new vector_size _->(faker.decimal -1000000000 1000000000).to_text
-    int_strings = Vector.new vector_size _->(faker.integer -1000000000 1000000000).to_text
+    data = Data.create vector_size faker
 
     builder.group "Number_Parse" options group_builder->
         group_builder.specify "decimal_parse" <|
-            decimal_strings.map Decimal.parse
+            data.decimal_strings.map Decimal.parse
 
         group_builder.specify "integer_parse" <|
-            int_strings.map Integer.parse
+            data.int_strings.map Integer.parse
 
 
 main = collect_benches . run_main

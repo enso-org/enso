@@ -42,62 +42,91 @@ count_entries_polyglot vector element expected_count=1 =
 
 options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
+type Data
+    Value ~integer_vec ~boolean_vec ~text_vec ~date_vec ~datetime_vec ~uniform_atom_vec ~simple_variant_atom_vec ~complex_variant_atom_vec ~polyglot_vec
+
+    create vector_size =
+        Data.Value (create_int_vec vector_size) (create_boolean_vec vector_size) (create_text_vec vector_size) (create_date_vec vector_size) (create_datetime_vec vector_size) (create_uniform_atom_vec vector_size) (create_simple_variant_atom_vec vector_size) (create_complex_variant_atom_vec vector_size) (create_polyglot_vec vector_size)
+
+create_int_vec vector_size = Vector.new vector_size (ix -> ix)
+
+create_boolean_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        x % 5 == 0
+
+create_text_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map .to_text
+
+create_date_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    first_day = Date.new 1971
+    integer_vec.map x->
+        first_day + (Period.new days=x)
+
+create_datetime_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    first_dt = Date_Time.new 1971
+    integer_vec.map x->
+        first_dt + (Duration.new minutes=x)
+
+create_uniform_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        Uniform_Type.Only_Ctor (x + 10) (x * 2)
+
+create_simple_variant_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        if x % 5 == 0 then Simple_Sum_Type.Variant_A else Simple_Sum_Type.Variant_B
+
+create_complex_variant_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        if x % 5 == 0 then Sum_Type_With_Values.Ctor_A (x + 10) (x * 2) else Sum_Type_With_Values.Ctor_B x
+
+create_polyglot_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        Graal_Pair.create (x + 10) (x * 2)
+
 
 collect_benches = Bench.build builder->
     n = 100000
 
-    integer_vec = Vector.new n (ix -> ix)
-    boolean_vec = integer_vec.map x->
-        x % 5 == 0
-    text_vec = integer_vec.map .to_text
-
-    uniform_atom_vec = integer_vec.map x->
-        Uniform_Type.Only_Ctor (x + 10) (x * 2)
-    simple_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Simple_Sum_Type.Variant_A else Simple_Sum_Type.Variant_B
-    complex_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Sum_Type_With_Values.Ctor_A (x + 10) (x * 2) else Sum_Type_With_Values.Ctor_B x
-
-    polyglot_vec = integer_vec.map x->
-        Graal_Pair.create (x + 10) (x * 2)
-
-    first_day = Date.new 1971
-    date_vec = integer_vec.map x->
-        first_day + (Period.new days=x)
-    first_dt = Date_Time.new 1971
-    datetime_vec = integer_vec.map x->
-        first_dt + (Duration.new minutes=x)
+    data = Data.create n
 
     builder.group "Equality" options group_builder->
         group_builder.specify "Integer_Equality" <|
-            count_entries integer_vec 4567
+            count_entries data.integer_vec 4567
 
         group_builder.specify "Boolean_Equality" <|
-            count_entries boolean_vec True expected_count=(n . div 5)
+            count_entries data.boolean_vec True expected_count=(n . div 5)
 
         group_builder.specify "Text_Equality" <|
-            count_entries text_vec "4567"
+            count_entries data.text_vec "4567"
 
         group_builder.specify "Date_Equality" <|
-            count_entries date_vec (Date.new 1980 12 30)
+            count_entries data.date_vec (Date.new 1980 12 30)
 
         group_builder.specify "Date_Time_Equality" <|
-            count_entries datetime_vec (Date_Time.new 1971 1 2 12 30)
+            count_entries data.datetime_vec (Date_Time.new 1971 1 2 12 30)
 
         group_builder.specify "Custom_Atom_Equality_single_constructor" <|
-            count_entries uniform_atom_vec (Uniform_Type.Only_Ctor 110 200)
+            count_entries data.uniform_atom_vec (Uniform_Type.Only_Ctor 110 200)
 
         group_builder.specify "Custom_Atom_Equality_2_constructors_without_data" <|
-            count_entries simple_variant_atom_vec Simple_Sum_Type.Variant_A expected_count=(n . div 5)
+            count_entries data.simple_variant_atom_vec Simple_Sum_Type.Variant_A expected_count=(n . div 5)
 
         group_builder.specify "Custom_Atom_Equality_2_constructors_with_data" <|
-            count_entries complex_variant_atom_vec (Sum_Type_With_Values.Ctor_B 123)
+            count_entries data.complex_variant_atom_vec (Sum_Type_With_Values.Ctor_B 123)
 
         group_builder.specify "Java_Polyglot_double_equals" <|
-            count_entries polyglot_vec (Graal_Pair.create 110 200)
+            count_entries data.polyglot_vec (Graal_Pair.create 110 200)
 
         group_builder.specify "Java_Polyglot_dot_equals" <|
-            count_entries_polyglot polyglot_vec (Graal_Pair.create 110 200)
+            count_entries_polyglot data.polyglot_vec (Graal_Pair.create 110 200)
 
 
 main = collect_benches . run_main

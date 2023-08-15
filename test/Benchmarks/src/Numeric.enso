@@ -5,6 +5,20 @@ from Standard.Test import Bench, Faker, Phase_Conf
 
 options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
+type Data
+    Value ~decimals ~integers
+
+    create vector_size faker =
+        Data.Value (create_decimals vector_size faker) (create_integers vector_size faker)
+
+
+create_decimals vector_size faker =
+    Vector.new vector_size _-> faker.decimal -1000000000 1000000000
+
+
+create_integers vector_size faker =
+    Vector.new vector_size _-> faker.integer -1000000000 1000000000
+
 
 collect_benches = Bench.build builder->
     vector_size = 1000000
@@ -13,28 +27,28 @@ collect_benches = Bench.build builder->
     faker = Faker.new fixed_random_seed
     funs = [["ceil", _.ceil], ["floor", _.floor], ["truncate", _.truncate]]
 
-    decimals = Vector.new vector_size _-> faker.decimal -1000000000 1000000000
-    integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
+    data = Data.create vector_size faker
 
     builder.group "Numeric" options group_builder->
         funs.each pair->
             name = pair.at 0
             fun = pair.at 1
-            group_builder.specify ("decimal_" + name) (decimals.map fun)
+            group_builder.specify ("decimal_" + name) (data.decimals.map fun)
 
         funs.each pair->
             name = pair.at 0
             fun = pair.at 1
-            group_builder.specify ("integer_" + name) (integers.map fun)
+            group_builder.specify ("integer_" + name) (data.integers.map fun)
 
         [True, False].each use_bankers->
             [0, -2, 2].each decimal_places->
                 name = create_name "round_decimal_places_" decimal_places use_bankers
                 fun = _.round decimal_places use_bankers
-                group_builder.specify ("decimal_" + name) (decimals.map fun)
-                group_builder.specify ("integer_" + name) (integers.map fun)
+                group_builder.specify ("decimal_" + name) (data.decimals.map fun)
+                group_builder.specify ("integer_" + name) (data.integers.map fun)
 
 
+## Creates a valid name for the benchmark
 create_name : Text -> Integer -> Boolean -> Text
 create_name prefix dec_places use_bankers =
     use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)

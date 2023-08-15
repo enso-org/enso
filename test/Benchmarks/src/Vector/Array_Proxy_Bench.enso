@@ -11,39 +11,45 @@ sum arr =
 
 make_vector n =
     Vector.new n (i -> 3 + 5*i)
+
 make_computing_proxy n =
     Array_Proxy.new n (i -> 3 + 5*i)
+
 make_delegating_proxy n =
     Array_Proxy.from_proxy_object (make_vector n)
+
 make_computing_vector n =
     Vector.from_polyglot_array (make_computing_proxy n)
+
 make_delegating_vector n =
     Vector.from_polyglot_array (make_delegating_proxy n)
+
+type Data
+    Value ~vec ~computing_proxy ~delegating_proxy ~computing_proxied_vec ~delegating_proxied_vec
+
+    create vector_size =
+        Data.Value (make_vector vector_size) (make_computing_proxy vector_size) (make_delegating_proxy vector_size) (make_computing_vector vector_size) (make_delegating_vector vector_size)
 
 
 collect_benches = Bench.build builder->
     vector_size = 10000
-    vec = make_vector vector_size
-    computing_proxy = make_computing_proxy vector_size
-    delegating_proxy = make_delegating_proxy vector_size
-    computing_proxied_vec = make_computing_vector vector_size
-    delegating_proxied_vec = make_delegating_vector vector_size
+    data = Data.create vector_size
 
     builder.group "Vector_Array_Proxy" Bench.options group_builder->
         group_builder.specify "Sum_Vector" <|
-            sum vec
+            sum data.vec
 
         group_builder.specify "Sum_Computing_Proxy" <|
-            sum computing_proxy
+            sum data.computing_proxy
 
         group_builder.specify "Sum_Delegating_Proxy" <|
-            sum delegating_proxy
+            sum data.delegating_proxy
 
         group_builder.specify "Sum_Vector_relying_on_Computing_Proxy" <|
-            sum computing_proxied_vec
+            sum data.computing_proxied_vec
 
         group_builder.specify "Sum_Vector_relying_on_Delegating_Proxy" <|
-            sum delegating_proxied_vec
+            sum data.delegating_proxied_vec
 
 
 main = collect_benches . run_main

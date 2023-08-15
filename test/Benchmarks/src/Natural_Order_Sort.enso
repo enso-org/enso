@@ -4,20 +4,33 @@ from Standard.Test import Bench, Faker, Phase_Conf
 
 options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
-collect_benches = Bench.build builder->
-    vector_size = 10000
+
+type Data
+    Value ~unsorted
+
+    create vector_size faker =
+        Data.Value (create_unsorted vector_size faker)
+
+
+create_unsorted vector_size faker =
     l = Faker.upper_case_letters
     n = Faker.numbers
     template = [l, l, l, n, n, n, n, n, l]
+    0.up_to vector_size . map _->(faker.string_value template)
+
+
+collect_benches = Bench.build builder->
+    vector_size = 10000
 
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
 
-    unsorted = 0.up_to vector_size . map _->(faker.string_value template)
+    data = Data.create vector_size faker
 
     builder.group "Natural_Order_Sort" options group_builder->
         group_builder.specify "Natural_Order" <|
-            unsorted.sort by=Natural_Order.compare
+            data.unsorted.sort by=Natural_Order.compare
+
 
 main = collect_benches . run_main

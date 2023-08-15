@@ -11,11 +11,20 @@ prep_json size =
 
 options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
+
+type Data
+    Value ~large_json
+
+    create =
+        Data.Value (prep_json 1000*1000)
+
+
 collect_benches = Bench.build builder->
-    large_json = prep_json 1000000
+    data = Data.create
 
     builder.group "Json" options group_builder->
         group_builder.specify "parse_json" <|
-            Json.parse large_json
+            Json.parse data.large_json
+
 
 main = collect_benches . run_main
