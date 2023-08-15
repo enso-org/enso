@@ -22,14 +22,6 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     @Override
     public Storage<?> runTernaryMap(DoubleStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
-        if (decimalPlacesObject == null) {
-            throw new IllegalArgumentException("decimalPlacesObject must not be null");
-        }
-
-        if (useBankersObject == null) {
-            throw new IllegalArgumentException("useBankersObject must not be null");
-        }
-
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
