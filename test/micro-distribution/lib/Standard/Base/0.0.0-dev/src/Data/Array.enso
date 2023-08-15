@@ -1,4 +1,6 @@
+import project.Data.Vector.Vector
+
 @Builtin_Type
 type Array
-    at self index = @Builtin_Method "Array.at"
-    length self = @Builtin_Method "Array.length"
+    at self index = Vector.at self index
+    length self = Vector.length self
