@@ -12,48 +12,60 @@ import project.Data.Type.Value_Type.Value_Type
 
    It also performs validation and will throw errors if unexpected column types
    are encountered.
-make_filter_column source_column filter_condition on_problems = case filter_condition of
-    # Equality
-    Equal value ->
-        Warning.with_suspended source_column source_column->
-            Warning.with_suspended value value->
-                on_problems.escalate_warnings <|
-                    source_column == value
-    Not_Equal value ->
-        Warning.with_suspended source_column source_column->
-            Warning.with_suspended value value->
-                on_problems.escalate_warnings <|
-                    source_column != value
-    # Nothing
-    Is_Nothing -> source_column.is_nothing
-    Not_Nothing -> source_column.is_nothing.not
-    # Boolean
-    Is_True ->
-        Value_Type.expect_boolean source_column <| source_column
-    Is_False -> source_column.not
-    # Comparisons
-    Less value -> (source_column < value)
-    Equal_Or_Less value -> (source_column <= value)
-    Equal_Or_Greater value -> (source_column >= value)
-    Greater value -> (source_column > value)
-    Between lower upper -> source_column.between lower upper
-    # Text
-    Starts_With prefix case_sensitivity ->
-        source_column.starts_with prefix case_sensitivity
-    Ends_With suffix case_sensitivity ->
-        source_column.ends_with suffix case_sensitivity
-    Contains substring case_sensitivity ->
-        source_column.contains substring case_sensitivity
-    Not_Contains substring case_sensitivity ->
-        source_column.contains substring case_sensitivity . not
-    Is_Empty ->
-        source_column.is_empty
-    Not_Empty ->
-        source_column.is_empty.not
-    Like pattern ->
-        source_column.like pattern
-    Not_Like pattern ->
-        source_column.like pattern . not
-    # Vector
-    Is_In values -> source_column.is_in values
-    Not_In values -> source_column.is_in values . not
+make_filter_column source_column filter_condition on_problems =
+    rec fc = make_filter_column source_column fc on_problems
+
+    case filter_condition of
+        # Boolean operations
+        And a b -> (rec a) && (rec b)
+
+        # Boolean operations
+        Or a b -> (rec a) || (rec b)
+
+        # Boolean operations
+        Not condition -> (rec condition).not
+
+        # Equality
+        Equal value ->
+            Warning.with_suspended source_column source_column->
+                Warning.with_suspended value value->
+                    on_problems.escalate_warnings <|
+                        source_column == value
+        Not_Equal value ->
+            Warning.with_suspended source_column source_column->
+                Warning.with_suspended value value->
+                    on_problems.escalate_warnings <|
+                        source_column != value
+        # Nothing
+        Is_Nothing -> source_column.is_nothing
+        Not_Nothing -> source_column.is_nothing.not
+        # Boolean
+        Is_True ->
+            Value_Type.expect_boolean source_column <| source_column
+        Is_False -> source_column.not
+        # Comparisons
+        Less value -> (source_column < value)
+        Equal_Or_Less value -> (source_column <= value)
+        Equal_Or_Greater value -> (source_column >= value)
+        Greater value -> (source_column > value)
+        Between lower upper -> source_column.between lower upper
+        # Text
+        Starts_With prefix case_sensitivity ->
+            source_column.starts_with prefix case_sensitivity
+        Ends_With suffix case_sensitivity ->
+            source_column.ends_with suffix case_sensitivity
+        Contains substring case_sensitivity ->
+            source_column.contains substring case_sensitivity
+        Not_Contains substring case_sensitivity ->
+            source_column.contains substring case_sensitivity . not
+        Is_Empty ->
+            source_column.is_empty
+        Not_Empty ->
+            source_column.is_empty.not
+        Like pattern ->
+            source_column.like pattern
+        Not_Like pattern ->
+            source_column.like pattern . not
+        # Vector
+        Is_In values -> source_column.is_in values
+        Not_In values -> source_column.is_in values . not
