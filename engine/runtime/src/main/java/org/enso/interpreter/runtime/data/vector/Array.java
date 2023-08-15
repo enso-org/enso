@@ -70,7 +70,6 @@ final class Array implements EnsoObject {
    * Handles reading an element by index through the polyglot API.
    *
    * @param index the index to read
-   * @param errProfile
    * @return the element value at the provided index
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
