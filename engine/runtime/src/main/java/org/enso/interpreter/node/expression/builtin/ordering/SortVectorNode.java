@@ -11,6 +11,7 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -32,11 +34,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
@@ -248,7 +248,7 @@ public abstract class SortVectorNode extends Node {
         }
         resultVec.addAll(group.elems);
       }
-      var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
+      var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(resultVec.toArray());
       // Attach gathered warnings along with different comparators warning
       switch (problemBehavior) {
         case REPORT_ERROR -> {
@@ -290,7 +290,7 @@ public abstract class SortVectorNode extends Node {
   private Object sortPrimitiveVector(Object[] elems, DefaultSortComparator javaComparator)
       throws CompareException {
     Arrays.sort(elems, javaComparator);
-    var sortedVector = Vector.fromArray(new Array(elems));
+    var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(elems);
 
     if (javaComparator.hasWarnings()) {
       return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());

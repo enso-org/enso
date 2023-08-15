@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,12 +11,13 @@ import java.util.Optional;
 import java.util.Set;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
-public final class ModuleScope implements TruffleObject {
+public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols;

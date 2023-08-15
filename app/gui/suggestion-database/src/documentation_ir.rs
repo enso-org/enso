@@ -71,7 +71,7 @@ impl Default for EntryDocumentation {
 pub struct LinkedDocPage {
     /// The name of the liked entry. It is used to produce a unique ID for the link.
     pub name: Rc<QualifiedName>,
-    /// The intermediate reprentation of the linked entry's documentation.
+    /// The intermediate representation of the linked entry's documentation.
     pub page: EntryDocumentation,
 }
 

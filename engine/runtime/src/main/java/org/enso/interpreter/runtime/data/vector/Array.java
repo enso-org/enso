@@ -1,11 +1,10 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -15,6 +14,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -26,7 +27,7 @@ import org.graalvm.collections.EconomicSet;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
-public final class Array implements TruffleObject {
+final class Array implements EnsoObject {
   private final Object[] items;
   private Boolean withWarnings;
   private Warning[] cachedWarnings;
@@ -36,20 +37,9 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  public Array(Object... items) {
+  Array(Object... items) {
     assert noNulls(items);
     this.items = items;
-  }
-
-  /**
-   * Creates an uninitialized array of the given size. The values must be filled before the array is
-   * returned to Enso.
-   *
-   * @param size the size of the created array.
-   */
-  public static Array allocate(long size) {
-    var arr = new Object[(int) size];
-    return new Array(arr);
   }
 
   private static boolean noNulls(Object[] arr) {
@@ -62,7 +52,7 @@ public final class Array implements TruffleObject {
   }
 
   /** @return the elements of this array as a java array. */
-  public Object[] getItems() {
+  final Object[] getItems() {
     return items;
   }
 
@@ -72,7 +62,7 @@ public final class Array implements TruffleObject {
    * @return {@code true}
    */
   @ExportMessage
-  public boolean hasArrayElements() {
+  boolean hasArrayElements() {
     return true;
   }
 
@@ -84,7 +74,7 @@ public final class Array implements TruffleObject {
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
   @ExportMessage
-  public Object readArrayElement(
+  Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached BranchProfile errProfile,
@@ -108,27 +98,8 @@ public final class Array implements TruffleObject {
     return v;
   }
 
-  public long length() {
+  long length() {
     return items.length;
-  }
-
-  /** @return an empty array */
-  public static Array empty() {
-    return allocate(0);
-  }
-
-  /**
-   * Takes a slice from an array like object.
-   *
-   * @param self array like object
-   * @param start start of the slice
-   * @param end end of the slice
-   * @param len the length of the array
-   * @return an array-like object representing the slice
-   */
-  public static Object slice(Object self, long start, long end, long len) {
-    var slice = ArraySlice.createOrNull(self, start, len, end);
-    return slice == null ? self : slice;
   }
 
   /**
