@@ -12,6 +12,14 @@ import org.slf4j.event.Level;
 
 public class LoggerContextSetup {
 
+  public static Boolean setup(String componentName) {
+    var resource =
+        LoggerContextSetup.class.getResourceAsStream("/" + componentName + ".logback.xml");
+    return resource != null
+        ? setup(null, componentName, resource, LoggingService.parseConfig())
+        : false;
+  }
+
   public static Boolean setup(Level level, String componentName, InputStream customLogConfig) {
     return setup(level, componentName, customLogConfig, LoggingService.parseConfig());
   }
@@ -49,8 +57,10 @@ public class LoggerContextSetup {
       int port,
       Loggers loggers) {
     var context = (LoggerContext) LoggerFactory.getILoggerFactory();
-    var logbackLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel);
-    System.setProperty(componentName + ".logLevel", logbackLevel.toString().toLowerCase());
+    if (logLevel != null) {
+      var logbackLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel);
+      System.setProperty(componentName + ".logLevel", logbackLevel.toString().toLowerCase());
+    }
     if (appenderName != null) {
       System.setProperty(componentName + ".appender", appenderName);
     }

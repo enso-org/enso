@@ -33,28 +33,33 @@ class LibraryDownloadTest
             repo.testLib.version
           ) shouldBe empty
 
-          val (_, allLogs) = TestLogger.gather[Any, DownloadingLibraryCache](classOf[DownloadingLibraryCache], {
-            val libPath =
-              cache
-                .findOrInstallLibrary(
-                  repo.testLib.libraryName,
-                  repo.testLib.version,
-                  Editions
-                    .Repository("test_repo", s"http://localhost:$port/libraries")
-                )
-                .get
-            val pkg =
-              PackageManager.Default.loadPackage(libPath.location.toFile).get
-            pkg.normalizedName shouldEqual "Bar"
-            val sources = pkg.listSources()
-            sources should have size 1
-            sources.head.file.getName shouldEqual "Main.enso"
-            assert(
-              Files.notExists(libPath / "LICENSE.md"),
-              "The license file should not exist as it was not provided " +
+          val (_, allLogs) = TestLogger.gather[Any, DownloadingLibraryCache](
+            classOf[DownloadingLibraryCache], {
+              val libPath =
+                cache
+                  .findOrInstallLibrary(
+                    repo.testLib.libraryName,
+                    repo.testLib.version,
+                    Editions
+                      .Repository(
+                        "test_repo",
+                        s"http://localhost:$port/libraries"
+                      )
+                  )
+                  .get
+              val pkg =
+                PackageManager.Default.loadPackage(libPath.location.toFile).get
+              pkg.normalizedName shouldEqual "Bar"
+              val sources = pkg.listSources()
+              sources should have size 1
+              sources.head.file.getName shouldEqual "Main.enso"
+              assert(
+                Files.notExists(libPath / "LICENSE.md"),
+                "The license file should not exist as it was not provided " +
                 "in the repository."
-            )
-          })
+              )
+            }
+          )
           allLogs should contain(
             TestLogMessage(
               Level.WARN,
