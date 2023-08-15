@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -25,7 +26,7 @@ public abstract class FromArrayBuiltinVectorNode extends Node {
     return (EnsoObject) arr;
   }
 
-  @Specialization
+  @Fallback
   EnsoObject fromArrayLikeObject(Object arr, @Cached ArrayLikeCoerceToArrayNode coerce) {
     return ArrayLikeHelpers.asVectorWithCheckAt(coerce.execute(arr));
   }
