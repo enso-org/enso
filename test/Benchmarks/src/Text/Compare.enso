@@ -47,9 +47,8 @@ create_big_early_difference character_template faker =
         "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
 
 
-create_big_late_difference character_template faker common_prefix =
+create_big_late_difference common_prefix =
     big_a_codepoint = 65
-    big_template = create_big_template character_template
     prefix = common_prefix.repeat 100000
     Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
@@ -58,7 +57,7 @@ type Data
     Value ~very_short ~medium ~big_random ~big_early_difference ~big_late_difference
 
     create character_template faker common_prefix =
-        Data.Value (create_very_short character_template faker) (create_medium character_template faker) (create_big_random character_template faker) (create_big_early_difference character_template faker) (create_big_late_difference character_template faker common_prefix)
+        Data.Value (create_very_short character_template faker) (create_medium character_template faker) (create_big_random character_template faker) (create_big_early_difference character_template faker) (create_big_late_difference common_prefix)
 
 
 collect_benches = Bench.build builder->
