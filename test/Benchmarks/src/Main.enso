@@ -1,4 +1,5 @@
-from Standard.Base import Vector
+from Standard.Base import all
+from Standard.Test import Bench
 import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
 import project.Vector.Operations
@@ -21,7 +22,9 @@ import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
 import project.Sum
+from Standard.Base.Runtime import Debug
 
+all_benchmarks : Vector Bench.All
 all_benchmarks =
     builder = Vector.new_builder
 
@@ -63,3 +66,20 @@ all_benchmarks =
 main =
     all_benchmarks.each suite->
         suite.run_main
+
+
+## Prints all benchmarks along with their configuration
+list_names =
+    builder = Vector.new_builder
+    all_benchmarks.each suite->
+        suite.groups.each group->
+            group.specs.each spec->
+                bench_name = group.name + "." + spec.name
+                with_conf = bench_name + " " + group.configuration.to_text
+                builder.append with_conf
+    all_names = builder.to_vector
+
+    IO.println <| "Benchmarks: (count = " + all_names.length.to_text + ")"
+    all_names.each name->
+        IO.println <| "  " + name
+
