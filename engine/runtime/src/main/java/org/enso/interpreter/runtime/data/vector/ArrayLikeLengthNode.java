@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.dsl.Cached.Exclusive;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -45,7 +46,7 @@ public abstract class ArrayLikeLengthNode extends Node {
     }
   }
 
-  @Specialization
+  @Fallback
   long foreignLength(Object self, @Exclusive @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.getArraySize(self);
