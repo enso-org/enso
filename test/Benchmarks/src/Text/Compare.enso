@@ -10,7 +10,7 @@ compare_all_adjacent text_vector =
     res
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
+options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
 
 create_very_short_template character_template =
