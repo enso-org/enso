@@ -79,9 +79,11 @@ collect_benches = Bench.build builder->
         group_builder.specify "sum_tco_float" (sum_tco_decimal ten_mil)
         group_builder.specify "sum_tco" (sum_tco ten_mil)
         group_builder.specify "sum_tco_java" (sum_tco_java ten_mil)
-        group_builder.specify "sum_tco_eval" (sum_tco_eval ten_mil)
         group_builder.specify "sum_state" (sum_state ten_mil)
         group_builder.specify "sum_co_state" (sum_co_state ten_mil)
+        # This test is disabled because it fails when running from a common entry point.
+        # See the bug: https://www.pivotaltracker.com/story/show/183914580
+        #group_builder.specify "sum_tco_eval" (sum_tco_eval ten_mil)
 
 
 main = collect_benches . run_main
