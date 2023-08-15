@@ -28,21 +28,12 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Object values,
       @Cached ArrayLikeCopyToArrayNode copyNode,
       @Cached ArrayLikeLengthNode lengthNode) {
-    return insertBuiltin(vec, index, values, copyNode, lengthNode);
-  }
-
-  private static EnsoObject insertBuiltin(
-      Object current,
-      long index,
-      Object values,
-      ArrayLikeCopyToArrayNode copyNode,
-      ArrayLikeLengthNode lengthNode) {
-    long currentLength = lengthNode.executeLength(current);
+    long currentLength = lengthNode.executeLength(vec);
     long valuesLength = lengthNode.executeLength(values);
     var result = ArrayLikeHelpers.allocate(currentLength + valuesLength);
-    copyNode.execute(current, 0, result, 0, index);
+    copyNode.execute(vec, 0, result, 0, index);
     copyNode.execute(values, 0, result, index, valuesLength);
-    copyNode.execute(current, index, result, index + valuesLength, currentLength - index);
+    copyNode.execute(vec, index, result, index + valuesLength, currentLength - index);
     return ArrayLikeHelpers.asVectorFromArray(result);
   }
 }
