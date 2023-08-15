@@ -16,19 +16,20 @@ import project.Data.Type.Enso_Types
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Cast_Helpers
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
-import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Auto, Value_Type
-from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, No_Index_Set_Error, Invalid_Column_Names
+from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1250,13 +1251,19 @@ type Column
 
                 do_replace index input =
                     term = term_fn index
-                    if term.is_nothing || (term.is_a Text && term.is_empty) then input else
+                    if term.is_nothing || (term.is_a Text && term.is_empty) || input.is_nothing then input else
                         replace = new_text_fn index
                         input.replace term replace case_sensitivity only_first
 
-                self_vec = self.to_vector
-                mapped = self_vec.map_with_index do_replace
-                Column.from_vector new_name mapped
+                length = self.length
+                storage = self.java_column.getStorage
+
+                builder = StringBuilder.new length
+                0.up_to length . each i->
+                    replaced = do_replace i (storage.getItem i)
+                    builder.append replaced
+
+                Column.from_storage new_name builder.seal
 
     ## Gets the year as a number from the date stored in the column.
 
