@@ -478,11 +478,6 @@ spec =
             Number.nan . equals 0 . should_fail_with Incomparable_Values
 
     Test.group "rounding" <|
-        Test.specify "Handles incorrect argument types" <|
-            Test.expect_panic_with (123 . round "two") Type_Error
-            Test.expect_panic_with (123 . round use_bankers="no") Type_Error
-            Test.expect_panic_with (123 . round use_bankers=0) Type_Error
-
         Test.specify "Returns the correct type" <|
             231 . round 1 . should_be_a Integer
             231 . round 0 . should_be_a Integer

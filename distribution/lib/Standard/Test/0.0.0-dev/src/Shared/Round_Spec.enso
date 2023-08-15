@@ -284,4 +284,9 @@ spec prefix round_fun =
             round_fun -12250 -2 use_bankers=True . should_equal -12200
             round_fun -12251 -2 use_bankers=True . should_equal -12300
 
+        Test.specify "Handles incorrect argument types" <|
+            Test.expect_panic_with (round_fun 123 "two") Type_Error
+            Test.expect_panic_with (round_fun 123 use_bankers="no") Type_Error
+            Test.expect_panic_with (round_fun 123 use_bankers=0) Type_Error
+
 main = Test_Suite.run_main (spec "Number " .round)
