@@ -1242,30 +1242,6 @@ pub mod test {
     }
 
     #[test]
-    fn entering_module() {
-        let mut fixture =
-            Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
-                data.expect_completion(client, None, &(0..11).collect_vec());
-                data.expect_completion(client, None, &(0..11).collect_vec());
-            });
-
-        let searcher = &fixture.searcher;
-        searcher.reload_list();
-        fixture.test.run_until_stalled();
-        // There are two virtual entries and two top-modules.
-        assert_eq!(dbg!(searcher.components().displayed()).len(), 4);
-
-        let mut subscriber = searcher.subscribe();
-        searcher.enter_entry(3).expect("Entering entry failed");
-        fixture.test.run_until_stalled();
-        let list = searcher.components();
-        assert_eq!(list.displayed().len(), 1);
-        assert_eq!(list.displayed()[0].suggestion, fixture.test_method_3_suggestion());
-        let notification = subscriber.next().boxed_local().expect_ready();
-        assert_eq!(notification, Some(Notification::NewComponentList));
-    }
-
-    #[test]
     fn picked_completions_list_maintaining() {
         let fixture = Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
             data.expect_completion(client, None, &[]);

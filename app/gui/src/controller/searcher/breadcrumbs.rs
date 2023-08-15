@@ -37,7 +37,7 @@ impl Breadcrumbs {
         let mut borrowed = self.list.borrow_mut();
         *borrowed = breadcrumbs;
         let len = borrowed.len();
-        self.select(len - 1);
+        self.select(len.saturating_sub(1));
     }
 
     /// A list of breadcrumbs' text labels to be displayed in the panel.
