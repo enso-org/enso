@@ -239,7 +239,12 @@ define_themes! { [light:0, dark:1]
                 width = 406.0, 406.0;
                 height = 380.0, 380.0;
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
-                corner_radius = 14.0, 14.0;
+                corner_radius = 20.0, 20.0;
+                breadcrumbs {
+                    padding_y = 8.0, 8.0;
+                    padding_x = 10.0, 10.0;
+                    height = 40.0, 40.0;
+                }
             }
             component_list_panel {
                 width = 190.0, 190.0;

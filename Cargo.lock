@@ -2113,6 +2113,7 @@ dependencies = [
  "enso-profiler",
  "enso-reflect",
  "lexpr",
+ "pretty_assertions",
 ]
 
 [[package]]

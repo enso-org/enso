@@ -1,5 +1,4 @@
-//! Documentation view visualization generating and presenting Enso Documentation under
-//! the documented node.
+//! Documentation view presenting the documentation in the Component Browser.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -65,10 +64,16 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width:         f32,
-    height:        f32,
-    background:    color::Rgba,
-    corner_radius: f32,
+    width:                 f32,
+    height:                f32,
+    background:            color::Rgba,
+    corner_radius:         f32,
+    #[theme_path = "theme::breadcrumbs::height"]
+    breadcrumbs_height:    f32,
+    #[theme_path = "theme::breadcrumbs::padding_x"]
+    breadcrumbs_padding_x: f32,
+    #[theme_path = "theme::breadcrumbs::padding_y"]
+    breadcrumbs_padding_y: f32,
 }
 
 
@@ -81,12 +86,13 @@ pub struct Style {
 #[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:       DomSymbol,
-    inner_dom:       DomSymbol,
+    style_container: DomSymbol,
+    dom:             DomSymbol,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay:         Rectangle,
+    background:      Rectangle,
     display_object:  display::object::Instance,
     event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
@@ -96,10 +102,11 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let outer_div = web::document.create_div_or_panic();
-        let outer_dom = DomSymbol::new(&outer_div);
-        let inner_div = web::document.create_div_or_panic();
-        let inner_dom = DomSymbol::new(&inner_div);
+        let style_div = web::document.create_div_or_panic();
+        let style_container = DomSymbol::new(&style_div);
+        let div = web::document.create_div_or_panic();
+        let dom = DomSymbol::new(&div);
+        let background = Rectangle::new();
         let overlay = Rectangle::new().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
@@ -108,28 +115,26 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        outer_dom.dom().set_style_or_warn("white-space", "normal");
-        outer_dom.dom().set_style_or_warn("overflow-y", "auto");
-        outer_dom.dom().set_style_or_warn("overflow-x", "auto");
-        outer_dom.dom().set_style_or_warn("pointer-events", "auto");
+        dom.dom().set_attribute_or_warn("class", "scrollable");
+        dom.dom().set_style_or_warn("white-space", "normal");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("overflow-x", "auto");
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
-        inner_dom.dom().set_attribute_or_warn("class", "scrollable");
-        inner_dom.dom().set_style_or_warn("white-space", "normal");
-        inner_dom.dom().set_style_or_warn("overflow-y", "auto");
-        inner_dom.dom().set_style_or_warn("overflow-x", "auto");
-        inner_dom.dom().set_style_or_warn("pointer-events", "auto");
-
-        display_object.add_child(&outer_dom);
-        outer_dom.add_child(&inner_dom);
+        display_object.add_child(&background);
+        display_object.add_child(&style_container);
+        display_object.add_child(&dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.node_searcher.manage(&outer_dom);
-        scene.dom.layers.node_searcher.manage(&inner_dom);
+
+        scene.dom.layers.node_searcher.manage(&style_container);
+        scene.dom.layers.node_searcher.manage(&dom);
 
         Model {
-            outer_dom,
-            inner_dom,
+            style_container,
+            dom,
             breadcrumbs,
             overlay,
+            background,
             display_object,
             event_handlers: default(),
         }
@@ -141,12 +146,12 @@ impl Model {
         self
     }
 
-    /// Add `<style>` tag with the stylesheet to the `outer_dom`.
+    /// Add `<style>` tag with the stylesheet to the `style_container`.
     fn load_css_stylesheet(&self) {
         let stylesheet = include_str!("../assets/styles.css");
         let element = web::document.create_element_or_panic("style");
         element.set_inner_html(stylesheet);
-        self.outer_dom.append_or_warn(&element);
+        self.style_container.append_or_warn(&element);
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -156,35 +161,35 @@ impl Model {
     }
 
     /// Set size of the documentation view.
-    fn size_changed(&self, size: Vector2, fraction: f32) {
-        let visible_part = Vector2(size.x * fraction, size.y);
-        self.outer_dom.set_xy(size / 2.0);
+    fn size_changed(&self, size: Vector2, width_fraction: f32, style: &Style) {
+        let visible_part = Vector2(size.x * width_fraction, size.y);
+        let dom_size =
+            Vector2(size.x, size.y - style.breadcrumbs_height - style.breadcrumbs_padding_y);
+        self.dom.set_dom_size(dom_size);
+        self.dom.set_xy(dom_size / 2.0);
         self.overlay.set_size(visible_part);
-        self.outer_dom.set_dom_size(Vector2(size.x, size.y));
-        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
-        self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
-        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, 32.0));
+        self.breadcrumbs.set_xy(Vector2(style.breadcrumbs_padding_x, size.y));
+        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, style.breadcrumbs_height));
+        self.background.set_size(visible_part);
     }
 
     /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
     fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
         let percentage = (1.0 - fraction) * 100.0;
-        let clip_path = format!("inset(0 {percentage}% 0 0 round {}px)", style.corner_radius);
-        self.inner_dom.set_style_or_warn("clip-path", &clip_path);
-        self.outer_dom.set_style_or_warn("clip-path", &clip_path);
-        let actual_size = Vector2(size.x * fraction, size.y);
-        self.overlay.set_size(actual_size);
-        self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
+        let clip_path =
+            format!("inset(0 {percentage}% 0 0 round 0px 0px {0}px {0}px)", style.corner_radius);
+        self.dom.set_style_or_warn("clip-path", clip_path);
+        self.size_changed(size, fraction, style);
     }
 
-    /// Display the documentation and scroll to the qualified name if needed.
+    /// Display the documentation and scroll to default position.
     fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
         let linked_pages = docs.linked_doc_pages();
         let html = html::render(&docs);
-        self.inner_dom.dom().set_inner_html(&html);
+        self.dom.dom().set_inner_html(&html);
         self.set_link_handlers(linked_pages, display_doc);
         // Scroll to the top of the page.
-        self.inner_dom.dom().set_scroll_top(0);
+        self.dom.dom().set_scroll_top(0);
     }
 
     /// Setup event handlers for links on the documentation page.
@@ -212,16 +217,16 @@ impl Model {
     /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
-        self.inner_dom.dom().set_inner_html(spinner)
+        self.dom.dom().set_inner_html(spinner)
     }
 
     fn update_style(&self, style: Style) {
         // Size is updated separately in [`size_changed`] method.
         self.overlay.set_corner_radius(style.corner_radius);
-        self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        let bg_color = style.background.to_javascript_string();
-        self.outer_dom.set_style_or_warn("background-color", bg_color);
+        self.dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
+
+        self.background.set_color(style.background);
+        self.background.set_corner_radius(style.corner_radius);
     }
 }
 
@@ -272,15 +277,6 @@ pub struct View {
 }
 
 impl View {
-    /// Definition of this visualization.
-    pub fn definition() -> visualization::Definition {
-        let path = visualization::Path::builtin("Documentation View");
-        visualization::Definition::new(
-            visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |app| Ok(Self::new(app).into()),
-        )
-    }
-
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
@@ -319,7 +315,6 @@ impl View {
             // === Size ===
 
             size <- style.map(|s| Vector2(s.width, s.height));
-            _eval <- size.map2(&width_anim.value, f!((&s, &f) model.size_changed(s, f)));
 
 
             // === Style ===
@@ -331,7 +326,8 @@ impl View {
 
             width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
             width_anim.skip <+ frp.skip_animation;
-            _eval <- width_anim.value.map3(&size, &style, f!((&f, &sz, st) model.width_animation_changed(st, sz, f)));
+            size_change <- all3(&width_anim.value, &size, &style);
+            eval size_change(((f, sz, st)) model.width_animation_changed(st, *sz, *f));
 
 
             // === Activation ===
@@ -371,6 +367,11 @@ impl View {
 
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
-        Self::new(&t, &t.visualization_frp, &t.frp.network, Some(t.model.outer_dom.clone_ref()))
+        Self::new(
+            &t,
+            &t.visualization_frp,
+            &t.frp.network,
+            Some(t.model.style_container.clone_ref()),
+        )
     }
 }
