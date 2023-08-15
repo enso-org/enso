@@ -16,9 +16,6 @@ object TestLogger {
 
     logger.addAppender(appender)
     appender.start()
-    println(
-      "Found logs; " + appender.size() + " appender: " + appender.isStarted()
-    )
     val result = action
     (result, appender.allEvents())
   }

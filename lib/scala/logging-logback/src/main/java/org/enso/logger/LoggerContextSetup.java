@@ -51,7 +51,9 @@ public class LoggerContextSetup {
     var context = (LoggerContext) LoggerFactory.getILoggerFactory();
     var logbackLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel);
     System.setProperty(componentName + ".logLevel", logbackLevel.toString().toLowerCase());
-    System.setProperty(componentName + ".appender", appenderName);
+    if (appenderName != null) {
+      System.setProperty(componentName + ".appender", appenderName);
+    }
     if (hostname != null) {
       System.setProperty("logging-server.host", hostname);
     }
@@ -67,15 +69,20 @@ public class LoggerContextSetup {
       configurator.doConfigure(customLogConfig);
       var rootLogger = context.getLogger("root");
       var appender = rootLogger.getAppender(appenderName);
-      if (appender == null) {
-        System.err.println(
-            "Failed to apply custom log levels for application loggers' in " + appenderName);
-      } else {
+      if (appender != null) {
         if (loggers != null) {
           var filter = ApplicationFilter.fromLoggers(loggers);
           appender.addFilter(filter);
         }
       }
+      /*
+      // TODO: report if cannot customize the appender
+      else if (appenderName != null) {
+        //System.err.println(
+        //        "Failed to apply custom log levels for application loggers' in " + appenderName + " for " + componentName);
+      }
+       */
+
       return true;
     } catch (JoranException je) {
       je.printStackTrace();

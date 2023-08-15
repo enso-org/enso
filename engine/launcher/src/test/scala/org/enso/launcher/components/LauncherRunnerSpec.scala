@@ -196,7 +196,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             .get
         }
       )
-      println("ALL LOGS: " + logs.size)
       assert(
         logs.exists(msg =>
           msg.level == Level.WARN && msg.msg.contains(

@@ -1,10 +1,11 @@
 package org.enso.launcher.cli
 
-import akka.http.scaladsl.model.Uri
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
 import org.enso.logger.ColorMode.{Always, Auto, Never}
 import org.enso.logger.ColorMode
+
+import java.net.URI
 
 //import org.enso.loggingservice.ColorMode.{Always, Auto, Never}
 //import org.enso.loggingservice.{ColorMode, LogLevel}
@@ -27,7 +28,7 @@ case class GlobalCLIOptions(
   autoConfirm: Boolean,
   hideProgress: Boolean,
   useJSON: Boolean,
-  colorMode: ColorMode,
+  colorMode: ColorMode, // TODO: no longer supported
   internalOptions: InternalOptions
 )
 
@@ -42,7 +43,7 @@ object GlobalCLIOptions {
     */
   case class InternalOptions(
     launcherLogLevel: Option[Level],
-    loggerConnectUri: Option[Uri],
+    loggerConnectUri: Option[URI],
     logMaskingDisabled: Boolean
   ) {
 

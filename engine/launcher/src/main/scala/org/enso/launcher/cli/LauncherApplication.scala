@@ -1,6 +1,5 @@
 package org.enso.launcher.cli
 
-import akka.http.scaladsl.model.Uri
 import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
@@ -16,13 +15,13 @@ import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
 import org.enso.logger.ColorMode
-//import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.runtimeversionmanager.runner.LanguageServerOptions
 import org.slf4j.event.Level
 
 import java.nio.file.Path
 import java.util.UUID
+import java.net.URI
 
 /** Defines the CLI commands and options for the program.
   *
@@ -611,11 +610,11 @@ object LauncherApplication {
     val logLevel = Opts.optionalParameter[Level](
       GlobalCLIOptions.LOG_LEVEL,
       "(error | warning | info | debug | trace)",
-      "Sets logging verbosity for the launcher. If not provided, defaults to" +
+      "Sets logging verbosity for the launcher. If not provided, defaults to " +
       s"${LauncherLogging.defaultLogLevel}."
     )
     val connectLogger = Opts
-      .optionalParameter[Uri](
+      .optionalParameter[URI](
         GlobalCLIOptions.CONNECT_LOGGER,
         "URI",
         "Instead of starting its own logging service, " +
@@ -684,13 +683,13 @@ object LauncherApplication {
 
         internalOptsCallback(globalCLIOptions)
         LauncherUpgrader.setCLIOptions(globalCLIOptions)
-        /*LauncherLogging.setup(
+        LauncherLogging.setup(
           logLevel,
           connectLogger,
-          globalCLIOptions.colorMode,
           !disableLogMasking,
           None
-        )*/
+        )
+        LauncherLogging.waitForSetup()
         initializeApp()
 
         if (version) {

@@ -20,6 +20,8 @@
         </encoder>
     </appender>
 
+    <logger name="ch.qos.logback.classic.net.SimpleSocketServer" level="error" />
+
     <root level="${logging-server.logLevel}">
         <appender-ref ref="${logging-server.appender:-console}"/>
     </root>

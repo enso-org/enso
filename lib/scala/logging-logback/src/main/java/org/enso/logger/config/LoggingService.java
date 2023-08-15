@@ -57,4 +57,16 @@ public class LoggingService {
   public Server getServer() {
     return server;
   }
+
+  @Override
+  public String toString() {
+    return "Loggers: "
+        + loggers
+        + ", appender: "
+        + appender
+        + ", testLogLevel: "
+        + testLogLevel.orElseGet(() -> "unknown")
+        + ", server: "
+        + server;
+  }
 }

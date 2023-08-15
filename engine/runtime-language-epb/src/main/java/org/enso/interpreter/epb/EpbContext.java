@@ -63,7 +63,7 @@ public class EpbContext {
       return;
     }
     var log = environment.getLogger(EpbContext.class);
-    log.log(Level.FINE, "Initializing languages {}", langs);
+    log.log(Level.FINE, "Initializing languages {0}", langs);
     var cdl = new CountDownLatch(1);
     var run =
         (Consumer<TruffleContext>)

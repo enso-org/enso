@@ -49,6 +49,13 @@ abstract class LoggingCollectorHelper(implicit
     @unused profilingLog: Option[Path]
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
+    logConfiguration()
+      .map(conf =>
+        Boolean.unbox(
+          LoggerContextSetup
+            .setup(actualLogLevel, logComponentName, conf, null, null, 0, null)
+        )
+      )
     val loggingService = LoggingService.parseConfig()
     //TODO: Masking.setup(logMasking)
     val (host, port, serverNeedsInitialization) =
@@ -101,7 +108,7 @@ abstract class LoggingCollectorHelper(implicit
               )
               .getOrElse(false)
             if (!result) {
-              System.err.println("Failed to set Logger Context")
+              System.err.println("Failed to set Logger Context1")
             }
             loggingServiceEndpointPromise.success(Some(uri))
         }
@@ -122,12 +129,17 @@ abstract class LoggingCollectorHelper(implicit
         )
         .getOrElse(false)
       if (!result) {
-        System.err.println("Failed to set Logger Context")
+        System.err.println("Failed to set Logger Context2")
       }
     }
+    Thread.sleep(1000)
   }
 
   def waitForSetup(): Unit = {
     Await.ready(loggingServiceEndpointPromise.future, 5.seconds)
+  }
+
+  def tearDown(): Unit = {
+    LoggingServiceManager.teardown()
   }
 }
