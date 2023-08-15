@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Test.Shared.Round_Spec
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
@@ -23,6 +24,8 @@ spec =
     almost_max_long_times_three_decimal = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     very_negative = -99223372036854775808
+
+    Round_Spec.spec "Number " .round
 
     Test.group "Integers" <|
 
