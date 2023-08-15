@@ -37,6 +37,7 @@ type Bench_Builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
 
+
 type Group_Builder
     ## PRIVATE
     Impl builder
@@ -131,13 +132,12 @@ type Bench
 
         run_phase (phase_name:Text) (seconds:Integer) =
             phase_start = System.nano_time
-            durations =
-                stop_ns = phase_start + seconds * 1000000000
-                go = durations -> cur_ns ->
-                    if cur_ns  > stop_ns then durations else
-                        dur = single_call Nothing
-                        @Tail_Call go (durations + [dur]) (cur_ns + dur)
-                go [] phase_start
+            stop_ns = phase_start + seconds * 1000000000
+            go = durations -> cur_ns ->
+                if cur_ns  > stop_ns then durations else
+                    dur = single_call Nothing
+                    @Tail_Call go (durations + [dur]) (cur_ns + dur)
+            durations = go [] phase_start
             sum = durations.reduce (_ + _)
             run_iters = durations.length
             avg = sum / run_iters
