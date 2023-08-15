@@ -2,9 +2,7 @@ package org.enso.interpreter.runtime.data.vector;
 
 import java.util.Arrays;
 
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -125,9 +123,7 @@ final class ArrayBuilder implements EnsoObject {
       }
       throw new ArrayIndexOutOfBoundsException();
     } catch (IndexOutOfBoundsException e) {
-      var ctx = EnsoContext.get(node);
-      var err = ctx.getBuiltins().error().makeIndexOutOfBounds(index, getSize());
-      throw new PanicException(err, node);
+      throw ArrayPanics.indexOutOfBounds(node, index, size);
     }
   }
 

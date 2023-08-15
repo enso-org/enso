@@ -15,7 +15,6 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -35,15 +34,14 @@ final class ArrayProxy implements EnsoObject {
     if (CompilerDirectives.inInterpreter()) {
       InteropLibrary interop = InteropLibrary.getUncached();
       if (!interop.isExecutable(at)) {
-        throw new PanicException(
-            EnsoContext.get(interop).getBuiltins().error().makeTypeError("Function", at, "at"),
-            interop);
+        var msg = "Array_Proxy needs executable function.";
+        throw ArrayPanics.unsupportedArgument(null, at, msg);
       }
     }
 
     if (length < 0) {
       CompilerDirectives.transferToInterpreter();
-      throw new IllegalArgumentException("Array_Proxy length cannot be negative.");
+      throw ArrayPanics.unsupportedArgument(null, length, "Array_Proxy length cannot be negative.");
     }
 
     this.length = length;

@@ -10,10 +10,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class ArrayLikeCoerceToArrayNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);
@@ -43,13 +39,9 @@ public abstract class ArrayLikeCoerceToArrayNode extends Node {
     try {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
-      throw new PanicException(err, this);
+      throw ArrayPanics.typeError(this, arr, "arr");
     } catch (InvalidArrayIndexException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeInvalidArrayIndex(arr, e.getInvalidIndex()), this);
+      throw ArrayPanics.invalidIndex(this, arr, e);
     }
   }
 
@@ -65,8 +57,6 @@ public abstract class ArrayLikeCoerceToArrayNode extends Node {
 
   @Fallback
   Object[] doOther(Object arr) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    Atom error = builtins.error().makeTypeError("array", arr, "arr");
-    throw new PanicException(error, this);
+    throw ArrayPanics.typeError(this, arr, "arr");
   }
 }

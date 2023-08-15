@@ -10,9 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class ArrayLikeCopyToArrayNode extends Node {
   public static ArrayLikeCopyToArrayNode build() {
@@ -46,19 +44,13 @@ public abstract class ArrayLikeCopyToArrayNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Unreachable");
     } catch (InvalidArrayIndexException e) {
-      throw new PanicException(
-          EnsoContext.get(this)
-              .getBuiltins()
-              .error()
-              .makeInvalidArrayIndex(src, e.getInvalidIndex()),
-          this);
+      throw ArrayPanics.invalidIndex(this, src, e);
     }
     return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Fallback
   Object doOther(Object src, long source_index, EnsoObject dest, long dest_index, long count) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
+    throw ArrayPanics.typeError(this, src, "src");
   }
 }

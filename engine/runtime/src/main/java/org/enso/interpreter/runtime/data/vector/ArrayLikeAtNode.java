@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data.vector;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -54,7 +53,7 @@ public abstract class ArrayLikeAtNode extends Node {
     try {
       return self.readArrayElement(index, interop, warnings, convert);
     } catch (UnsupportedMessageException ex) {
-      throw CompilerDirectives.shouldNotReachHere(ex);
+      throw ArrayPanics.notAnArrayPanic(this, self);
     }
   }
 
@@ -69,7 +68,7 @@ public abstract class ArrayLikeAtNode extends Node {
       var element = interop.readArrayElement(self, index);
       return convert.execute(element);
     } catch (UnsupportedMessageException ex) {
-      throw CompilerDirectives.shouldNotReachHere(ex);
+      throw ArrayPanics.notAnArrayPanic(this, self);
     }
   }
 }
