@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Test.Shared.Round_Spec
 
 from Standard.Table import Value_Type
 from Standard.Table.Data.Type.Value_Type import Bits
@@ -29,6 +30,8 @@ spec setup =
         result = table.at "x" |> op
         result.to_vector.at 0
     do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+    Round_Spec.spec prefix do_round
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).

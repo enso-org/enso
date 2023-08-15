@@ -12,7 +12,7 @@ import Standard.Test.Extensions
 polyglot java import java.math.BigInteger
 
 spec prefix round_fun =
-    Test.group prefix+"Rounding numeric tests" <|
+    Test.group prefix+"Rounding numeric testsasdfasdf" <|
         Test.specify "Can round positive decimals correctly" <|
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
