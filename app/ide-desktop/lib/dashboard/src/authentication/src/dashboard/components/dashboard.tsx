@@ -97,13 +97,25 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        let currentBackend = backend
+        if (
+            supportsLocalBackend &&
+            session.type !== authProvider.UserSessionType.offline &&
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
+                backendModule.BackendType.local
+        ) {
+            currentBackend = new localBackend.LocalBackend(
+                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
+            )
+            setBackend(currentBackend)
+        }
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
         if (savedProjectStartupInfo != null) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
-                    if (backend.type === backendModule.BackendType.remote) {
+                    if (currentBackend.type === backendModule.BackendType.remote) {
                         // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
                         setPage(pageSwitcher.Page.drive)
                         setQueuedAssetEvents([
@@ -142,7 +154,10 @@ export default function Dashboard(props: DashboardProps) {
                                 })
                                 nextCheckTimestamp =
                                     Number(new Date()) + projectIcon.CHECK_STATUS_INTERVAL_MS
-                                project = await backend.getProjectDetails(projectId, projectName)
+                                project = await remoteBackend.getProjectDetails(
+                                    projectId,
+                                    projectName
+                                )
                             }
                             nextCheckTimestamp = 0
                             while (true) {
@@ -153,7 +168,7 @@ export default function Dashboard(props: DashboardProps) {
                                     })
                                     nextCheckTimestamp =
                                         Number(new Date()) + projectIcon.CHECK_RESOURCES_INTERVAL_MS
-                                    await backend.checkResources(projectId, projectName)
+                                    await remoteBackend.checkResources(projectId, projectName)
                                     break
                                 } catch {
                                     // Ignored.
@@ -223,23 +238,6 @@ export default function Dashboard(props: DashboardProps) {
             document.removeEventListener('click', onClick)
         }
     }, [/* should never change */ unsetModal])
-
-    React.useEffect(() => {
-        if (
-            supportsLocalBackend &&
-            session.type !== authProvider.UserSessionType.offline &&
-            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
-                backendModule.BackendType.local
-        ) {
-            setBackend(
-                new localBackend.LocalBackend(
-                    localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
-                )
-            )
-        }
-        // This hook MUST only run once, on mount.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
 
     React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
