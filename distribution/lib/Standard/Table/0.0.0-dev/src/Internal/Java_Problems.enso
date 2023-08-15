@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter, Loss_Of_Integer_Precision
+from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Loss_Of_Integer_Precision, Unquoted_Characters_In_Output, Unquoted_Delimiter
 
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
@@ -17,6 +17,7 @@ polyglot java import org.enso.table.problems.AggregatedProblems
 polyglot java import org.enso.table.problems.WithAggregatedProblems
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
+
 ## PRIVATE
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
