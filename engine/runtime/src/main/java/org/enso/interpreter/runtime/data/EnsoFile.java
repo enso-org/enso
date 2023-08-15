@@ -10,7 +10,9 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
 import java.util.function.IntFunction;
+
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -28,6 +30,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Set;
+
+import com.oracle.truffle.api.dsl.Cached;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -340,7 +344,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().file();
   }
 }

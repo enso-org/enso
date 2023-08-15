@@ -194,6 +194,7 @@ define_themes! { [light:0, dark:1]
 
         top_bar {
             padding_left = 19.0, 19.0;
+            padding_top = 9.0, 9.0;
             gap = 16.0, 16.0;
             background {
                 color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
@@ -658,7 +659,7 @@ define_themes! { [light:0, dark:1]
             /// Additional space around the triangle shape that will detect mouse hover.
             triangle_offset = Vector2(0.0, -7.0);
             dropdown_offset = Vector2(0.0, -20.0);
-            dropdown_max_size = Vector2(300.0, 500.0);
+            dropdown_max_size = Vector2(800.0, 600.0);
             dropdown_tint = Rgba(0.0,0.0,0.0,0.1);
         }
         list_view {

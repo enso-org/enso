@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -240,7 +241,7 @@ public final class Warning implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
   }
 }

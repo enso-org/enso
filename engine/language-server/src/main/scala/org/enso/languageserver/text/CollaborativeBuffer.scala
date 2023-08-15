@@ -676,7 +676,7 @@ class CollaborativeBuffer(
     expressionValue: String,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
-    applyEdits(buffer, lockHolder, clientId, change) match {
+    applyEdits(buffer, lockHolder, Some(clientId), change) match {
       case Left(failure) =>
         sender() ! failure
 
@@ -705,7 +705,7 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
-    clientId: ClientId,
+    clientId: Option[ClientId],
     change: FileEdit,
     execute: Boolean,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
@@ -716,20 +716,21 @@ class CollaborativeBuffer(
 
       case Right(modifiedBuffer) =>
         sender() ! ApplyEditSuccess
-        val subscribers = clients.filterNot(_._1 == clientId).values
+        val subscribers =
+          clients.filterNot(kv => clientId.contains(kv._1)).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
-        runtimeConnector ! Api.Request(
-          Api.EditFileNotification(
-            buffer.fileWithMetadata.file,
-            change.edits,
-            execute
+        clientId.foreach { _ =>
+          runtimeConnector ! Api.Request(
+            Api.EditFileNotification(
+              buffer.fileWithMetadata.file,
+              change.edits,
+              execute
+            )
           )
-        )
+        }
         val newAutoSave: Map[ClientId, (ContentVersion, Cancellable)] =
-          upsertAutoSaveTimer(
-            autoSave,
-            clientId,
-            modifiedBuffer.version
+          clientId.fold(autoSave)(
+            upsertAutoSaveTimer(autoSave, _, modifiedBuffer.version)
           )
         context.become(
           collaborativeEditing(modifiedBuffer, clients, lockHolder, newAutoSave)
@@ -740,7 +741,7 @@ class CollaborativeBuffer(
   private def applyEdits(
     buffer: Buffer,
     lockHolder: Option[JsonSession],
-    clientId: ClientId,
+    clientId: Option[ClientId],
     change: FileEdit
   ): Either[ApplyEditFailure, Buffer] = {
     for {
@@ -772,9 +773,10 @@ class CollaborativeBuffer(
 
   private def validateAccess(
     lockHolder: Option[JsonSession],
-    clientId: ClientId
+    clientId: Option[ClientId]
   ): Either[ApplyEditFailure, Unit] = {
-    val hasLock = lockHolder.exists(_.clientId == clientId)
+    val hasLock =
+      lockHolder.exists(session => clientId.forall(_ == session.clientId))
     if (hasLock) {
       Right(())
     } else {

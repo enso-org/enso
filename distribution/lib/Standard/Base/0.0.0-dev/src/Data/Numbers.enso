@@ -9,7 +9,9 @@ import project.Function.Function
 import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
+
 from project.Data.Boolean import Boolean, False, True
+from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -613,10 +615,12 @@ type Decimal
 
             2.5 . round use_bankers=True == 2
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
-        Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
-            decimal_result = Core_Math_Utils.roundDouble self decimal_places use_bankers
-            if decimal_places > 0 then decimal_result else decimal_result.truncate
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+        report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+        Panic.catch Unsupported_Argument_Types handler=report_unsupported
+            Decimal.round_decimal_builtin self decimal_places use_bankers
+
+    round_decimal_builtin n decimal_places use_bankers = @Builtin_Method "Decimal.round"
 
     ## Compute the negation of this.
 
@@ -919,25 +923,15 @@ type Integer
 
             12250 . round -2 use_bankers=True == 12200
     round : Integer -> Boolean -> Integer ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
-        ## It's already an integer so unless decimal_places is
-           negative, the value is unchanged.
-        if decimal_places >= 0 then self else
-            Rounding_Helpers.check_decimal_places decimal_places <| Rounding_Helpers.check_round_input self <|
-                scale = 10 ^ -decimal_places
-                halfway = scale.div 2
-                remainder = self % scale
-                scaled_down = self.div scale
-                result_unnudged = scaled_down * scale
-                case self >= 0 of
-                    True ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
-                        round_up = if half_goes_up then remainder >= halfway else remainder > halfway
-                        if round_up  then result_unnudged + scale else result_unnudged
-                    False ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else False
-                        round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
-                        if round_up then result_unnudged - scale else result_unnudged
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+        ## We reject values outside the range of `long` here, so we don't also
+           do this check in the Java.
+        Rounding_Helpers.check_round_input self <|
+            report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+            Panic.catch Unsupported_Argument_Types handler=report_unsupported
+                Integer.round_integer_builtin self decimal_places use_bankers
+
+    round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 
     ## Compute the negation of this.
 

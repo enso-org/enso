@@ -49,13 +49,10 @@ collect_benches group_builder =
        State.put s+x
     bench_measure (State.run Number 0 <| random_vec.each stateful_fun) "Each"
 
-bench =
-    options = Bench.options . size iter_size . iter num_iterations
+options = Bench.options . size iter_size . iter num_iterations
 
-    all = Bench.build builder->
-        builder.group "Vector Operations" options group_builder->
-            collect_benches group_builder
+all = Bench.build builder->
+    builder.group "Vector Operations" options group_builder->
+        collect_benches group_builder
 
-    all . run_main
-
-main = bench
+main = all . run_main

@@ -110,12 +110,59 @@ type Column_Naming_Helper
        to display every part.
     concat : Vector Text -> Boolean -> Text
     concat self texts add_spaces=True =
-        # TODO truncate parts smarter way
         separator = if add_spaces then " " else ""
         joined = texts.join separator
         case self.naming_properties.size_limit of
             Nothing  -> joined
-            max_size -> self.naming_properties.truncate joined max_size
+            max_size ->
+                base_size = self.naming_properties.encoded_size joined
+                # If it still fits the limit, we are ok.
+                if base_size <= max_size then joined else
+                    # If not, we need to truncate.
+                    separator_size = case add_spaces of
+                        False -> 0
+                        True -> self.naming_properties.encoded_size separator
+
+                    # Estimate the space left for each part to be concatenated.
+                    remaining_space = max_size - (separator_size * (texts.length - 1))
+                    min_bytes_per_part = 5
+
+                    ## If there are so many parts, each of them has very little space,
+                       we cannot fit all of them - so we just keep the first few and the last one.
+                    parts_to_include = case remaining_space <= min_bytes_per_part * texts.length of
+                        # If there is too little space, we will just pick a few parts:
+                        True ->
+                            mid = Math.min (texts.length-1) (remaining_space.div min_bytes_per_part)
+                            texts.take (First 1+mid) + texts.take (Last 1)
+                        False -> texts
+                    new_remaining_space = max_size - (separator_size * (parts_to_include.length - 1))
+                    initial_size_per_part = new_remaining_space.div parts_to_include.length
+
+                    # Now we compute how many parts will fit the initial_size_per_part without truncating - these shorter parts fit as a whole.
+                    part_sizes = parts_to_include.map self.naming_properties.encoded_size
+                    needs_truncating = part_sizes.map (size-> size > initial_size_per_part)
+                    non_truncated_parts_size = part_sizes.zip needs_truncating (size-> is_truncated-> if is_truncated then 0 else size) . fold 0 (+)
+                    truncated_parts_count = needs_truncating.fold 0 acc-> is_truncated->
+                        if is_truncated then acc+1 else acc
+
+                    ## Now having accounted for the parts that do not need truncation,
+                       we distribute the remaining space among the ones that do.
+                    truncated_part_size = (new_remaining_space - non_truncated_parts_size).div truncated_parts_count
+                    truncated_suffix = "..."
+                    truncated_suffix_size = self.naming_properties.encoded_size truncated_suffix
+                    transformed_parts = parts_to_include.zip needs_truncating part-> is_truncated->
+                        case is_truncated of
+                            False -> part
+                            True ->
+                                ## Caveat: we now have more space for each part than when computing `needs_truncating`,
+                                   so some parts may no longer need to be truncated if they were just slightly over the limit.
+                                still_needs_truncation = self.naming_properties.encoded_size part > truncated_part_size
+                                if still_needs_truncation.not then part else
+                                    self.naming_properties.truncate part (truncated_part_size - truncated_suffix_size) + truncated_suffix
+                    new_joined = transformed_parts.join separator
+
+                    # Just to be sure, we still truncate the end result.
+                    self.naming_properties.truncate new_joined max_size
 
     ## PRIVATE
        A `Column_Naming_Helper` for the in-memory backend - having no length limits.

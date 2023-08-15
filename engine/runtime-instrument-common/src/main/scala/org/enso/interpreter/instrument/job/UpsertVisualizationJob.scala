@@ -22,7 +22,6 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
-//import org.enso.polyglot.runtime.Runtime.Api.
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level

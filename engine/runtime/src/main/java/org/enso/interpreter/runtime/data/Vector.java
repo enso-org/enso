@@ -111,9 +111,9 @@ public final class Vector implements TruffleObject {
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
-    var v = interop.readArrayElement(storage, index);
-    if (warnings.hasWarnings(this)) {
-      Warning[] extracted = warnings.getWarnings(this, null);
+    var v = interop.readArrayElement(this.storage, index);
+    if (warnings.hasWarnings(this.storage)) {
+      Warning[] extracted = warnings.getWarnings(this.storage, null);
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
@@ -196,7 +196,7 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 

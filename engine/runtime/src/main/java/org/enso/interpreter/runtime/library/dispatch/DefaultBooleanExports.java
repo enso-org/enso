@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.library.dispatch;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -14,7 +15,10 @@ public class DefaultBooleanExports {
   }
 
   @ExportMessage
-  static Type getType(Boolean receiver, @CachedLibrary("receiver") TypesLibrary thisLib) {
+  static Type getType(
+      Boolean receiver,
+      @CachedLibrary("receiver") TypesLibrary thisLib,
+      @Cached(value = "1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().bool().getType();
   }
 }

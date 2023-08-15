@@ -20,11 +20,6 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   public abstract BitSet getIsMissing();
 
-  @Override
-  public double getItemDouble(int idx) {
-    return (double) getItem(idx);
-  }
-
   private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
   @Override
