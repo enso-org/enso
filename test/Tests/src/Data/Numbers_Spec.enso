@@ -883,10 +883,7 @@ spec =
                 [x, y, z, w].each b->
                     a+b . should_equal 20
 
-
-
 main = Test_Suite.run_main spec
-
 
 foreign js to_js_bigint n = """
     return BigInt(n)
