@@ -383,6 +383,8 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
+                            icon_x_offset = 2.0, 2.0;
+                            icon_y_offset = 6.0, 6.0;
                             selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
                             greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
