@@ -68,10 +68,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const managesThisAsset =
         self?.permission === backendModule.PermissionAction.own ||
         self?.permission === backendModule.PermissionAction.admin
+    const isRunningProject =
+        item.type === backendModule.AssetType.project &&
+        (item.projectState.type === backendModule.ProjectState.openInProgress ||
+            item.projectState.type === backendModule.ProjectState.opened)
     return (
         <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
             <ContextMenu hidden={hidden}>
-                {item.type === backendModule.AssetType.project && (
+                {item.type === backendModule.AssetType.project && !isRunningProject && (
                     <ContextMenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
@@ -79,6 +83,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                             unsetModal()
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
+                                id: item.id,
+                            })
+                        }}
+                    />
+                )}
+                {item.type === backendModule.AssetType.project && isRunningProject && (
+                    <ContextMenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.close}
+                        doAction={() => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.closeProject,
                                 id: item.id,
                             })
                         }}

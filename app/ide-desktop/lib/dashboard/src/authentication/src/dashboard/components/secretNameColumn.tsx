@@ -53,6 +53,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.downloadSelected:

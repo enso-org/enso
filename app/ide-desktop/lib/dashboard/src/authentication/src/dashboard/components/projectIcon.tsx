@@ -219,6 +219,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.closeProject: {
+                if (event.id === item.id) {
+                    setShouldOpenWhenReady(false)
+                    void closeProject(false)
+                }
+                break
+            }
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 setShouldOpenWhenReady(false)
                 onSpinnerStateChange?.(null)

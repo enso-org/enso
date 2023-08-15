@@ -190,6 +190,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
