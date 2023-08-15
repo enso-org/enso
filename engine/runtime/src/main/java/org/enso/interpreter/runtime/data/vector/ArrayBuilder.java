@@ -1,22 +1,25 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import java.util.Arrays;
-import java.util.List;
 
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 
 @ExportLibrary(InteropLibrary.class)
 final class ArrayBuilder implements EnsoObject {
-  private static final String[] MEMBERS = new String[] { "isEmpty", "add", "get", "getSize", "toArray" };
+  private static final String[] MEMBERS = new String[] { "isEmpty", "add", "appendTo", "get", "getSize", "toArray" };
   private static final Object[] EMPTY_ARRAY = new Object[0];
   private final int initialCapacity;
   private int size;
@@ -109,25 +112,22 @@ final class ArrayBuilder implements EnsoObject {
   /**
    * Obtains an element from the builder
    */
-  Object get(int index) {
-    if (objectArray != null) {
-      return objectArray[index];
-    } else if (primitiveArray instanceof long[] longArray) {
-      return longArray[index];
-    } else if (primitiveArray instanceof double[] doubleArray) {
-      return doubleArray[index];
-    } else {
+  private Object get(int index, Node node) {
+    try {
+      if (index >= 0 && index < size) {
+        if (objectArray != null) {
+          return objectArray[index];
+        } else if (primitiveArray instanceof long[] longArray) {
+          return longArray[index];
+        } else if (primitiveArray instanceof double[] doubleArray) {
+          return doubleArray[index];
+        }
+      }
       throw new ArrayIndexOutOfBoundsException();
-    }
-  }
-
-  /**
-   * A temporary workaround to be able to efficiently append an array to
-   * `ArrayList`.
-   */
-  void appendTo(List<?> list) {
-    for (var obj : list) {
-      add(obj);
+    } catch (IndexOutOfBoundsException e) {
+      var ctx = EnsoContext.get(node);
+      var err = ctx.getBuiltins().error().makeIndexOutOfBounds(index, getSize());
+      throw new PanicException(err, node);
     }
   }
 
@@ -161,6 +161,18 @@ final class ArrayBuilder implements EnsoObject {
         add(args[0]);
         yield this;
       }
+      case "appendTo" -> {
+        long len = iop.getArraySize(args[0]);
+        for (var i = 0; i < len; i++) {
+          try {
+            var e = iop.readArrayElement(args[0], i);
+            add(e);
+          } catch (InvalidArrayIndexException ex) {
+            throw UnsupportedTypeException.create(args);
+          }
+        }
+        yield this;
+      }
       case "get" -> {
         if (!iop.isNumber(args[0])) {
           throw UnsupportedTypeException.create(args);
@@ -169,7 +181,7 @@ final class ArrayBuilder implements EnsoObject {
           throw UnsupportedTypeException.create(args);
         }
         var index = iop.asInt(args[0]);
-        yield get(index);
+        yield get(index, iop);
       }
       case "getSize" -> getSize();
       case "toArray" -> {

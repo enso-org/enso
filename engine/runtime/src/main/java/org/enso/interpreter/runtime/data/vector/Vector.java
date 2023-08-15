@@ -281,7 +281,6 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportLibrary(value = InteropLibrary.class)
-  @ExportLibrary(value = TypesLibrary.class)
   @ExportLibrary(value = WarningsLibrary.class)
   static final class Double extends Vector {
     private final double[] storage;
