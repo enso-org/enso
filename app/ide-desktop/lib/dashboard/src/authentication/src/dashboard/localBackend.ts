@@ -308,9 +308,7 @@ export class LocalBackend extends backend.Backend {
                 value: version.version,
                 lifecycle: backend.detectVersionLifecycle(version.version),
             },
-            // The names come from a third-party API and cannot be changed.
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            version_type: params.versionType,
+            versionType: params.versionType,
         })
         return engineVersions.map(engineVersionToVersion)
     }

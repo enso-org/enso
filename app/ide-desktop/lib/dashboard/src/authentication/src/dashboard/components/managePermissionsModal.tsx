@@ -61,13 +61,13 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         [permissions, self.permission]
     )
     const usernamesOfUsersWithPermission = React.useMemo(
-        () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
+        () => new Set(item.permissions?.map(userPermission => userPermission.user.userName)),
         [item.permissions]
     )
     const emailsOfUsersWithPermission = React.useMemo(
         () =>
             new Set<string>(
-                item.permissions?.map(userPermission => userPermission.user.user_email)
+                item.permissions?.map(userPermission => userPermission.user.userEmail)
             ),
         [item.permissions]
     )
@@ -77,7 +77,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             permissions.every(
                 permission =>
                     permission.permission !== backendModule.PermissionAction.own ||
-                    permission.user.user_email === organization?.email
+                    permission.user.userEmail === organization?.email
             ),
         [organization?.email, permissions, self.permission]
     )
@@ -147,14 +147,10 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                 setUsers([])
                 const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
                     user: {
-                        // The names come from a third-party API and cannot be
-                        // changed.
-                        /* eslint-disable @typescript-eslint/naming-convention */
-                        organization_id: organization.id,
+                        organizationId: organization.id,
                         pk: newUser.id,
-                        user_email: newUser.email,
-                        user_name: newUser.name,
-                        /* eslint-enable @typescript-eslint/naming-convention */
+                        userEmail: newUser.email,
+                        userName: newUser.name,
                     },
                     permission: action,
                 }))
@@ -188,7 +184,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         ].sort(backendModule.compareUserPermissions)
                     )
                     const usernames = addedUsersPermissions.map(
-                        userPermissions => userPermissions.user.user_name
+                        userPermissions => userPermissions.user.userName
                     )
                     toastAndLog(`Unable to set permissions for ${usernames.join(', ')}`, error)
                 }
@@ -221,7 +217,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             )
                         )
                     }
-                    toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
+                    toastAndLog(`Unable to set permissions of '${userToDelete.userEmail}'`, error)
                 }
             }
         }

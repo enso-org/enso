@@ -48,7 +48,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
             setUserPermissions(userPermissions)
             outerSetUserPermission(userPermissions)
             toastAndLog(
-                `Unable to set permissions of '${newUserPermissions.user.user_email}'`,
+                `Unable to set permissions of '${newUserPermissions.user.userEmail}'`,
                 error
             )
         }
@@ -79,7 +79,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
                     doDelete(userPermissions.user)
                 }}
             />
-            <span className="leading-170 h-6 py-px">{userPermissions.user.user_name}</span>
+            <span className="leading-170 h-6 py-px">{userPermissions.user.userName}</span>
         </div>
     )
 }

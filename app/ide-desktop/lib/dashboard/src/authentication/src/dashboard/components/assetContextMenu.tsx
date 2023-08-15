@@ -63,7 +63,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const self = item.permissions?.find(
-        permission => permission.user.user_email === organization?.email
+        permission => permission.user.userEmail === organization?.email
     )
     const managesThisAsset =
         self?.permission === backendModule.PermissionAction.own ||

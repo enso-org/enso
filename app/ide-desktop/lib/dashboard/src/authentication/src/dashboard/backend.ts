@@ -171,10 +171,8 @@ export interface ProjectStartupInfo {
 
 /** Metadata describing an uploaded file. */
 export interface File {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_id: FileId
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    file_name: string | null
+    fileId: FileId
+    fileName: string | null
     path: S3FilePath
 }
 
@@ -214,14 +212,12 @@ export enum TagObjectType {
 
 /** A file tag or project tag. */
 export interface Tag {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    organization_id: UserOrOrganizationId
+    organizationId: UserOrOrganizationId
     id: TagId
     name: string
     value: string
-    object_type: TagObjectType
-    object_id: string
-    /* eslint-enable @typescript-eslint/naming-convention */
+    objectType: TagObjectType
+    objectId: string
 }
 
 /** Metadata uniquely identifying a file tag or project tag. */
@@ -260,10 +256,7 @@ export interface Version {
     number: VersionNumber
     ami: Ami | null
     created: dateTime.Rfc3339DateTime
-    // This does not follow our naming convention because it's defined this way in the backend,
-    // so we need to match it.
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    version_type: VersionType
+    versionType: VersionType
 }
 
 /** Resource usage of a VM. */
@@ -280,9 +273,9 @@ export interface ResourceUsage {
 export interface User {
     /* eslint-disable @typescript-eslint/naming-convention */
     pk: Subject
-    user_name: string
-    user_email: EmailAddress
-    organization_id: UserOrOrganizationId
+    userName: string
+    userEmail: EmailAddress
+    organizationId: UserOrOrganizationId
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -460,10 +453,10 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
     if (relativePermissionPrecedence !== 0) {
         return relativePermissionPrecedence
     } else {
-        const aName = a.user.user_name
-        const bName = b.user.user_name
-        const aEmail = a.user.user_email
-        const bEmail = b.user.user_email
+        const aName = a.user.userName
+        const bName = b.user.userName
+        const aEmail = a.user.userEmail
+        const bEmail = b.user.userEmail
         return aName < bName
             ? COMPARE_LESS_THAN
             : aName > bName

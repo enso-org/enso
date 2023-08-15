@@ -160,7 +160,7 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 
     return (
         <PermissionDisplay key={user.user.pk} action={permissions}>
-            {user.user.user_name}
+            {user.user.userName}
         </PermissionDisplay>
     )
 }
@@ -180,7 +180,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
     const { setModal } = modalProvider.useSetModal()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = item.permissions?.find(
-        permission => permission.user.user_email === session.organization?.email
+        permission => permission.user.userEmail === session.organization?.email
     )
     const managesThisAsset =
         self?.permission === backend.PermissionAction.own ||
@@ -196,7 +196,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
             }}
         >
             {(item.permissions ?? []).map(user => (
-                <UserPermissionDisplay key={user.user.user_email} user={user} />
+                <UserPermissionDisplay key={user.user.userEmail} user={user} />
             ))}
             {managesThisAsset && isHovered && (
                 <button
