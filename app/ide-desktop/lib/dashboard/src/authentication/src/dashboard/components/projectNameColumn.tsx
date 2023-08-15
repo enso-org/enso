@@ -101,6 +101,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
                             id: createdProject.projectId,
+                            shouldAutomaticallySwitchPage: true,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
@@ -200,6 +201,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: item.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 } else if (
                     eventModule.isSingleClick(event) &&

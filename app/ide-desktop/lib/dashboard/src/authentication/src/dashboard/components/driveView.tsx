@@ -24,6 +24,9 @@ export interface DriveViewProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
@@ -43,6 +46,7 @@ export default function DriveView(props: DriveViewProps) {
         page,
         hidden,
         initialProjectName,
+        queuedAssetEvents: rawQueuedAssetEvents,
         query,
         assetListEvents,
         dispatchAssetListEvent,
@@ -66,6 +70,15 @@ export default function DriveView(props: DriveViewProps) {
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
+        []
+    )
+
+    React.useEffect(() => {
+        if (rawQueuedAssetEvents.length !== 0) {
+            setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
+        }
+    }, [rawQueuedAssetEvents])
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -111,9 +124,16 @@ export default function DriveView(props: DriveViewProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
+            }
+            if (queuedAssetEvents.length !== 0) {
+                for (const event of queuedAssetEvents) {
+                    dispatchAssetEvent(event)
+                }
+                setQueuedAssetEvents([])
             }
             if (!initialized) {
                 setInitialized(true)
@@ -131,6 +151,7 @@ export default function DriveView(props: DriveViewProps) {
             initialProjectName,
             logger,
             nameOfProjectToImmediatelyOpen,
+            queuedAssetEvents,
             /* should never change */ setNameOfProjectToImmediatelyOpen,
             /* should never change */ dispatchAssetEvent,
         ]

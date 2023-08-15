@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
@@ -62,12 +63,16 @@ export default function Dashboard(props: DashboardProps) {
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [initialized, setInitialized] = React.useState(false)
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+    )
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
+        []
     )
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
@@ -84,6 +89,10 @@ export default function Dashboard(props: DashboardProps) {
         backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
+        setInitialized(true)
+    }, [])
+
+    React.useEffect(() => {
         unsetModal()
     }, [page, /* should never change */ unsetModal])
 
@@ -95,11 +104,15 @@ export default function Dashboard(props: DashboardProps) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
                     if (backend.type === backendModule.BackendType.remote) {
-                        dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.openProject,
-                            id: savedProjectStartupInfo.project.projectId,
-                            shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
-                        })
+                        // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
+                        setPage(pageSwitcher.Page.drive)
+                        setQueuedAssetEvents([
+                            {
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: savedProjectStartupInfo.project.projectId,
+                                shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
+                            },
+                        ])
                     } else {
                         const httpClient = new http.Client(
                             new Headers([['Authorization', `Bearer ${session.accessToken}`]])
@@ -181,15 +194,18 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        if (projectStartupInfo != null) {
-            localStorage.set(
-                localStorageModule.LocalStorageKey.projectStartupInfo,
-                projectStartupInfo
-            )
+        if (initialized) {
+            if (projectStartupInfo != null) {
+                localStorage.set(
+                    localStorageModule.LocalStorageKey.projectStartupInfo,
+                    projectStartupInfo
+                )
+            } else {
+                localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+            }
         }
-        return () => {
-            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
-        }
+        // `initialized` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
@@ -385,6 +401,7 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
+                            queuedAssetEvents={queuedAssetEvents}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             query={query}
