@@ -237,9 +237,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 break
             }
             case assetEventModule.AssetEventType.openProject: {
-                if (event.id !== item.id && !isRunningInBackground) {
-                    setShouldOpenWhenReady(false)
-                    void closeProject(false)
+                if (event.id !== item.id) {
+                    if (!isRunningInBackground) {
+                        setShouldOpenWhenReady(false)
+                        void closeProject(false)
+                    }
                 } else {
                     setShouldOpenWhenReady(!event.runInBackground)
                     setIsRunningInBackground(event.runInBackground)
