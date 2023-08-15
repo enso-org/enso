@@ -14,6 +14,7 @@ import DuplicateIcon from 'enso-assets/duplicate.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PenIcon from 'enso-assets/pen.svg'
 import PeopleIcon from 'enso-assets/people.svg'
+import Play2Icon from 'enso-assets/play2.svg'
 import ScissorsIcon from 'enso-assets/scissors.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
@@ -35,6 +36,9 @@ export const ICON_SIZE_PX = 16
 
 /** All possible mouse actions for which shortcuts can be registered. */
 export enum MouseAction {
+    open = 'open',
+    /** Run without opening the editor. */
+    run = 'run',
     editName = 'edit-name',
     selectAdditional = 'select-additional',
     selectRange = 'select-range',
@@ -44,6 +48,8 @@ export enum MouseAction {
 /** All possible keyboard actions for which shortcuts can be registered. */
 export enum KeyboardAction {
     open = 'open',
+    /** Run without opening the editor. */
+    run = 'run',
     uploadToCloud = 'upload-to-cloud',
     rename = 'rename',
     snapshot = 'snapshot',
@@ -95,6 +101,7 @@ export interface KeyboardShortcut extends Modifiers {
 export interface MouseShortcut extends Modifiers {
     button: MouseButton
     action: MouseAction
+    clicks: number
 }
 
 /** All possible modifier keys. */
@@ -138,6 +145,7 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
     return {
         [KeyboardAction.open]: make(),
+        [KeyboardAction.run]: make(),
         [KeyboardAction.uploadToCloud]: make(),
         [KeyboardAction.rename]: make(),
         [KeyboardAction.snapshot]: make(),
@@ -258,7 +266,11 @@ export class ShortcutRegistry {
         shortcut: MouseShortcut,
         event: MouseEvent | React.MouseEvent
     ) {
-        return shortcut.button === event.button && modifiersMatchEvent(shortcut, event)
+        return (
+            shortcut.button === event.button &&
+            event.detail >= shortcut.clicks &&
+            modifiersMatchEvent(shortcut, event)
+        )
     }
 
     /** Return `true` if the action is being triggered by the keyboard event. */
@@ -366,11 +378,13 @@ function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string):
 function mousebind(
     action: MouseAction,
     modifiers: ModifierKey[],
-    button: MouseButton
+    button: MouseButton,
+    clicks: number
 ): MouseShortcut {
     return {
         button,
         action,
+        clicks,
         ctrl: modifiers.includes('Ctrl'),
         alt: modifiers.includes('Alt'),
         shift: modifiers.includes('Shift'),
@@ -391,6 +405,7 @@ const DELETE = detect.platform() === detect.Platform.macOS ? 'Backspace' : 'Dele
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
     [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
@@ -415,6 +430,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
+    [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
     [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
     [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
     [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
@@ -445,12 +461,14 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
 
 /** The default mouse shortcuts. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
-    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left)],
+    [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
+    [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
+    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],
     [MouseAction.selectAdditional]: [
-        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left),
+        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left, 1),
     ],
-    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left)],
+    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left, 1)],
     [MouseAction.selectAdditionalRange]: [
-        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left),
+        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left, 1),
     ],
 }

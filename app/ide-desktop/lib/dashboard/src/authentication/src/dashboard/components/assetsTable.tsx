@@ -771,6 +771,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent({
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
+                runInBackground: false,
             })
         },
         [/* should never change */ dispatchAssetEvent]

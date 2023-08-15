@@ -23,6 +23,7 @@ const STATUS_SERVER_ERROR = 500
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backend.OpenProjectRequestBody = {
     forceCreate: false,
+    executeAsync: false,
 }
 
 // ========================

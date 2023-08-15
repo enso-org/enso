@@ -101,6 +101,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
                             id: createdProject.projectId,
+                            runInBackground: false,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
@@ -195,11 +196,23 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 getDepth(key)
             )}`}
             onClick={event => {
-                if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
-                    // It is a double click; open the project.
+                if (
+                    !rowState.isEditingName &&
+                    shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)
+                ) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: item.id,
+                        runInBackground: false,
+                    })
+                } else if (
+                    !rowState.isEditingName &&
+                    shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)
+                ) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: item.id,
+                        runInBackground: true,
                     })
                 } else if (
                     eventModule.isSingleClick(event) &&

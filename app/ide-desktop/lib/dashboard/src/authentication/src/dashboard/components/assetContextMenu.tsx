@@ -80,10 +80,26 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
                                 id: item.id,
+                                runInBackground: false,
                             })
                         }}
                     />
                 )}
+                {item.type === backendModule.AssetType.project &&
+                    backend.type === backendModule.BackendType.remote && (
+                        <ContextMenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.run}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.openProject,
+                                    id: item.id,
+                                    runInBackground: true,
+                                })
+                            }}
+                        />
+                    )}
                 {item.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.local && (
                         <ContextMenuEntry

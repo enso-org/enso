@@ -111,6 +111,7 @@ export default function DriveView(props: DriveViewProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
+                        runInBackground: false,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
