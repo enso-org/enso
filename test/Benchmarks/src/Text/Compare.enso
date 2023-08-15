@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench, Faker, Phase_Conf
 
 
 compare_all_adjacent text_vector =
@@ -10,7 +10,7 @@ compare_all_adjacent text_vector =
     res
 
 
-options = Bench.options . set_warmup 5 . set_measure 3
+options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
 
 create_very_short_template character_template =

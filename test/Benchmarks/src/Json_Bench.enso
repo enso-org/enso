@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 prep_json size =
     single = '{"foo": 543}, {"bar": false}'
@@ -9,7 +9,7 @@ prep_json size =
     str = "[" + (many.join ",") + "]"
     str
 
-options = Bench.options . set_warmup 5 . set_measure 3
+options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
 
 
 type Data

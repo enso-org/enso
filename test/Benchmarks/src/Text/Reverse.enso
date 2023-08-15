@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench, Faker, Phase_Conf
 
 
 type Data
@@ -36,11 +36,11 @@ collect_benches = Bench.build builder->
 
     data = Data.create Faker.new
 
-    builder.group "Text_Reverse_Short" (Bench.options.set_warmup 2 . set_measure 2) group_builder->
+    builder.group "Text_Reverse_Short" (Bench.options.set_warmup (Phase_Conf.Iterations 100*1000) . set_measure (Phase_Conf.Iterations 100*1000)) group_builder->
         group_builder.specify "very_short_random" <|
             data.very_short_random.reverse
 
-    builder.group "Text_Reverse_Big" (Bench.options.set_warmup 3 . set_measure 3) group_builder->
+    builder.group "Text_Reverse_Big" (Bench.options.set_warmup (Phase_Conf.Iterations 100) . set_measure (Phase_Conf.Iterations 100)) group_builder->
         group_builder.specify "big_random" <|
             data.big_random.reverse
 

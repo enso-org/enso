@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Prim_Text_Helper
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 polyglot java import java.lang.StringBuilder
 
@@ -18,7 +18,7 @@ build_long_bldr n =
     res
 
 
-options = Bench.options . set_warmup 3 . set_measure 3
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
 
 collect_benches = Bench.build builder->

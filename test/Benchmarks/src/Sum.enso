@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Debug
 import Standard.Base.Runtime.State
 
-from Standard.Test import Bench
+from Standard.Test import Bench, Phase_Conf
 
 polyglot java import java.lang.Long
 
@@ -69,7 +69,7 @@ sum_co n =
     res = sum_co_2 n 0
     res
 
-options = Bench.options . set_warmup 3 . set_measure 3
+options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
 
 collect_benches = Bench.build builder->
     ten_mil = 10000000
