@@ -20,6 +20,21 @@ spec setup =
     test_selection = setup.test_selection
     take_drop_by_pending = if test_selection.take_drop.not then
         "TODO: take/drop are not yet supported by this backend."
+
+    Test.group "asdfasdf" <|
+        table = table_builder [["cs", ["b", "c", "a", "f", "e", "d"]], ["ns", [5, 4, 3, 2, 1, 0]]]
+        IO.println "AAA"
+        table.print
+        #table . order_by "cs" . add_row_number . print
+        #table . order_by "ns" . add_row_number . print
+        #table.add_row_number . print
+        c = table.order_by "cs" . add_row_number
+        c.print
+        t2 = table.set (c.at "Row")
+        t2.print
+        c.filter "Row" (Filter_Condition.Between 3 5) . print
+        c.filter "Row" (Filter_Condition.Less 5) . print
+
     Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
