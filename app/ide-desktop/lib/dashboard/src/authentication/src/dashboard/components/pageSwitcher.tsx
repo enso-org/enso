@@ -51,6 +51,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
         <div className="flex items-center shrink-0 gap-4">
             {PAGE_DATA.map(pageData => {
                 const isDisabled =
+                    pageData.page === page ||
                     pageData.page === Page.home ||
                     (pageData.page === Page.editor && isEditorDisabled)
                 return (
