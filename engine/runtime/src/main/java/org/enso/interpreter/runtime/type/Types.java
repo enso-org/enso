@@ -8,9 +8,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ArrayOverBuffer;
-import org.enso.interpreter.runtime.data.ArrayProxy;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
@@ -20,7 +17,6 @@ import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -53,16 +49,12 @@ import org.enso.polyglot.data.TypeGraph;
   DataflowError.class,
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
-  Array.class,
-  ArrayProxy.class,
-  ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
   Ref.class,
   PanicException.class,
   PanicSentinel.class,
-  Vector.class,
   EnsoHashMap.class,
   Warning.class,
   EnsoFile.class,

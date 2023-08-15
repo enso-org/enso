@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -16,15 +15,16 @@ import java.util.Arrays;
 import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
 @ExportLibrary(TypesLibrary.class)
-public final class Warning implements TruffleObject {
+public final class Warning implements EnsoObject {
   private final Object value;
   private final Object origin;
   private final ArrayRope<Reassignment> reassignments;
@@ -62,9 +62,9 @@ public final class Warning implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets the list of locations where the warnings was reassigned.")
-  public Array getReassignments() {
+  public EnsoObject getReassignments() {
     Warning.Reassignment[] reassignmentsArray = reassignments.toArray(Warning.Reassignment[]::new);
-    return new Array(Arrays.copyOf(reassignmentsArray, reassignmentsArray.length, Object[].class));
+    return ArrayLikeHelpers.wrapEnsoObjects(reassignmentsArray);
   }
 
   @Builtin.Method(
@@ -92,10 +92,10 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
+  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib);
     sortArray(warnings);
-    return new Array((Object[]) warnings);
+    return ArrayLikeHelpers.wrapEnsoObjects(warnings);
   }
 
   @Builtin.Method(
@@ -103,17 +103,17 @@ public final class Warning implements TruffleObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static Array getAll(Object value, WarningsLibrary warnings) {
+  public static EnsoObject getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
         Warning[] arr = warnings.getWarnings(value, null);
         sortArray(arr);
-        return new Array((Object[]) arr);
+        return ArrayLikeHelpers.wrapEnsoObjects(arr);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      return new Array();
+      return ArrayLikeHelpers.empty();
     }
   }
 
@@ -190,7 +190,7 @@ public final class Warning implements TruffleObject {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  public static final class Reassignment implements TruffleObject {
+  public static final class Reassignment implements EnsoObject {
     private final String methodName;
     private final SourceSection location;
 

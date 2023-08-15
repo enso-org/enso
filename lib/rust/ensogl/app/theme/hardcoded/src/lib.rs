@@ -239,7 +239,12 @@ define_themes! { [light:0, dark:1]
                 width = 406.0, 406.0;
                 height = 380.0, 380.0;
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
-                corner_radius = 14.0, 14.0;
+                corner_radius = 20.0, 20.0;
+                breadcrumbs {
+                    padding_y = 8.0, 8.0;
+                    padding_x = 10.0, 10.0;
+                    height = 40.0, 40.0;
+                }
             }
             component_list_panel {
                 width = 190.0, 190.0;
@@ -383,6 +388,8 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
+                            icon_x_offset = 2.0, 2.0;
+                            icon_y_offset = 6.0, 6.0;
                             selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
                             greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
@@ -657,7 +664,7 @@ define_themes! { [light:0, dark:1]
             /// Additional space around the triangle shape that will detect mouse hover.
             triangle_offset = Vector2(0.0, -7.0);
             dropdown_offset = Vector2(0.0, -20.0);
-            dropdown_max_size = Vector2(300.0, 500.0);
+            dropdown_max_size = Vector2(800.0, 600.0);
             dropdown_tint = Rgba(0.0,0.0,0.0,0.1);
         }
         list_view {

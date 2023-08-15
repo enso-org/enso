@@ -14,7 +14,8 @@
   --enso-docs-example-background-color: #e6f1f8;
   --enso-docs-background-color: #eaeaea;
   --enso-docs-text-color: #434343;
-  --enso-docs-tag-background-color: #f5f5f5;
+  --enso-docs-tag-background-color: #dcd8d8;
+  --enso-docs-code-background-color: #dddcde;
   --enso-docs-caption-background-color: #0077f6;
 }
 
@@ -23,32 +24,30 @@
   font-size: 11.5px;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 4px;
 }
 
-/* It's better to use `.unordered-list` class here instead of `ul`, but it will break the keyed lists that a provided by the engine.
- * We need a separate way to represent keyed lists without embedded HTML tags. */
-.enso-docs ul {
+.enso-docs .unordered-list {
   margin: 0;
   padding: 0;
   list-style-type: none;
   list-style-position: inside;
 }
 
-.enso-docs ul li:before {
+.enso-docs .unordered-list li:before {
   content: "•";
   font-size: 13px;
   font-weight: 700;
   margin-right: 3px;
 }
 
-.enso-docs ul li.type-item:before {
+.enso-docs .unordered-list li.type-item:before {
   color: var(--enso-docs-type-name-color);
 }
 
-.enso-docs ul li.method-item:before {
+.enso-docs .unordered-list li.method-item:before {
   color: var(--enso-docs-method-name-color);
 }
 
@@ -87,18 +86,16 @@
   opacity: 0.34;
 }
 
+.enso-docs .argument {
+  font-weight: 600;
+}
+
 .enso-docs .section-content {
-  padding-left: 1.25rem;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* Headers. */
-
-.enso-docs .header-top {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--enso-docs-type-name-color);
-  margin: 0.5rem 0;
-}
 
 div.enso-docs .header-icon {
   align-self: start;
@@ -116,6 +113,8 @@ div.enso-docs .header-icon {
 }
 
 .enso-docs .header-container {
+  padding-left: 8px;
+  margin-top: 16px;
   display: flex;
   align-items: center;
 }
@@ -201,6 +200,14 @@ div.enso-docs .marked-icon-info {
   margin: 0.05rem 0.1rem;
 }
 
+/* Code. The words emphasized with backticks. */
+
+.enso-docs code {
+  background-color: var(--enso-docs-code-background-color);
+  border-radius: 4px;
+  padding: 2px;
+}
+
 /* Tags */
 
 .enso-docs .tags-container {
@@ -210,9 +217,13 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs .tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
   background-color: var(--enso-docs-tag-background-color);
-  border-radius: 0.5rem;
-  padding: 0.15rem 0.5rem;
-  margin-bottom: 0.25rem;
-  margin-right: 0.5rem;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-bottom: 1px;
+  margin-right: 2px;
 }

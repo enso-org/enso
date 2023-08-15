@@ -56,6 +56,7 @@ pub struct ApplicationData {
     pub suggestion_id:  Option<usize>,
     pub icon_name:      Option<ImString>,
     pub self_in_access: bool,
+    pub is_prefix:      bool,
 }
 
 

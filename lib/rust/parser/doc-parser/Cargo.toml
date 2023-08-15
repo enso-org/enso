@@ -19,3 +19,4 @@ enso-reflect = { path = "../../reflect" }
 enso-metamodel = { path = "../../metamodel", features = ["rust"] }
 enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
 lexpr = "0.2.6"
+pretty_assertions = "1.4"

@@ -4,13 +4,15 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 1000000
+vector_size = 100000
 iter_size = 100
 num_iterations = 10
 
 # The Benchmarks ==============================================================
 
-bench =
+collect_benches group_builder =
+    bench_measure ~act name = group_builder.specify name act
+
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
@@ -25,21 +27,26 @@ bench =
         name = pair.at 0
         fun = pair.at 1
         IO.println <| "Benchmarking decimal " + name
-        Bench.measure (decimals.map fun) name iter_size num_iterations
+        bench_measure (decimals.map fun) name
 
     funs.map pair->
         name = pair.at 0
         fun = pair.at 1
         IO.println <| "Benchmarking integer" + name
-        Bench.measure (integers.map fun) name iter_size num_iterations
+        bench_measure (integers.map fun) name
 
     [True, False].map use_bankers->
         [0, -2, 2].map decimal_places->
-            name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
+            name = "round decimal_places=" + (decimal_places.to_text.replace '-' '_') + " use_bankers=" + use_bankers.to_text
             fun = _.round decimal_places use_bankers
-            IO.println <| "Benchmarking decimal " + name
-            Bench.measure (decimals.map fun) name iter_size num_iterations
-            IO.println <| "Benchmarking integer " + name
-            Bench.measure (integers.map fun) name iter_size num_iterations
+            bench_measure (decimals.map fun) "decimal "+name
+            bench_measure (integers.map fun) "integer "+name
 
-main = bench
+bench =
+    options = Bench.options . size iter_size . iter num_iterations
+
+    Bench.build builder->
+        builder.group "Numbers" options group_builder->
+            collect_benches group_builder
+
+main = bench . run_main
