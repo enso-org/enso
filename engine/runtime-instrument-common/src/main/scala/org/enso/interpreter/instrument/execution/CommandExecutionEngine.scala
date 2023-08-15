@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.execution
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
 import org.enso.polyglot.RuntimeOptions
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -48,14 +49,15 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
 
   private val runtimeContext =
     RuntimeContext(
-      executionService = interpreterContext.executionService,
-      contextManager   = interpreterContext.contextManager,
-      endpoint         = interpreterContext.endpoint,
-      truffleContext   = interpreterContext.truffleContext,
-      jobProcessor     = jobExecutionEngine,
-      jobControlPlane  = jobExecutionEngine,
-      locking          = locking,
-      state            = executionState
+      executionService  = interpreterContext.executionService,
+      contextManager    = interpreterContext.contextManager,
+      endpoint          = interpreterContext.endpoint,
+      truffleContext    = interpreterContext.truffleContext,
+      jobProcessor      = jobExecutionEngine,
+      jobControlPlane   = jobExecutionEngine,
+      locking           = locking,
+      state             = executionState,
+      versionCalculator = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc */

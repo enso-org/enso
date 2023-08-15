@@ -68,11 +68,6 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public double getItemDouble(int idx) {
-    return getItem(idx);
-  }
-
-  @Override
   public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }

@@ -62,6 +62,30 @@ impl DocParser {
 /// Text rendered as HTML (may contain HTML tags).
 pub type HtmlString = String;
 
+/// A description of a single argument in the documentation. The name is delimited from the
+/// description using a colon.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct Argument {
+    /// Name of the argument.
+    pub name:        String,
+    /// Description of the argument.
+    pub description: HtmlString,
+}
+
+impl Argument {
+    /// Convert the given string to the argument description.
+    pub fn new(text: &str) -> Self {
+        // We split by the first colon or space, whatever comes first.
+        // Typically a colon must be used as a separator, but in some documentation snippets we
+        // have there is no colon and the name of the argument is simply the first word.
+        let split = text.splitn(2, |c| c == ':' || c == ' ');
+        let (name, description) = split.collect_tuple().unwrap_or((text, ""));
+        let name = name.trim().to_string();
+        let description = description.trim().to_string();
+        Self { name, description }
+    }
+}
+
 /// A single section of the documentation.
 #[derive(Hash, Debug, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -78,6 +102,10 @@ pub enum DocSection {
         /// The elements that make up this paragraph.
         body: HtmlString,
     },
+    /// A list of items. Each item starts with a dash (`-`).
+    List { items: Vec<HtmlString> },
+    /// A list of items, but each item is an [`Argument`]. Starts with `Arguments:` keyword.
+    Arguments { args: Vec<Argument> },
     /// The section that starts with the key followed by the colon and the body.
     Keyed {
         /// The section key.
@@ -106,7 +134,9 @@ pub enum DocSection {
 struct DocSectionCollector {
     sections:             Vec<DocSection>,
     in_secondary_section: bool,
+    inside_arguments:     bool,
     current_body:         String,
+    current_list:         Vec<String>,
 }
 
 impl DocSectionCollector {
@@ -118,6 +148,7 @@ impl DocSectionCollector {
             Some(DocSection::Paragraph { body, .. })
             | Some(DocSection::Keyed { body, .. })
             | Some(DocSection::Marked { body, .. }) => *body = text,
+            Some(DocSection::List { .. }) | Some(DocSection::Arguments { .. }) => (),
             Some(DocSection::Tag { .. }) | None =>
                 self.sections.push(DocSection::Paragraph { body: text }),
         }
@@ -127,13 +158,16 @@ impl DocSectionCollector {
         self.finish_section();
         let result = self.sections.drain(..).collect();
         let current_body = std::mem::take(&mut self.current_body);
+        let current_list = std::mem::take(&mut self.current_list);
         let sections = std::mem::take(&mut self.sections);
         *self = Self {
             // Reuse the (empty) buffers.
             current_body,
+            current_list,
             sections,
             // Reset the rest of state.
             in_secondary_section: Default::default(),
+            inside_arguments: Default::default(),
         };
         result
     }
@@ -155,6 +189,9 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
     fn enter_keyed_section(&mut self, header: Span<'_, L>) {
         self.finish_section();
         let key = header.to_string();
+        if key.eq_ignore_ascii_case("Arguments") {
+            self.inside_arguments = true;
+        }
         let body = Default::default();
         self.sections.push(DocSection::Keyed { key, body });
     }
@@ -164,12 +201,10 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
     }
 
     fn start_list(&mut self) {
-        self.current_body.push_str("<ul>");
+        self.current_list.clear();
     }
 
-    fn start_list_item(&mut self) {
-        self.current_body.push_str("<li>");
-    }
+    fn start_list_item(&mut self) {}
 
     fn start_paragraph(&mut self) {
         let first_content = !self.in_secondary_section && self.current_body.is_empty();
@@ -203,8 +238,19 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
 
     fn end(&mut self, scope: ScopeType) {
         match scope {
-            ScopeType::List => self.current_body.push_str("</ul>"),
-            ScopeType::ListItem => (),
+            ScopeType::List => {
+                let items = mem::take(&mut self.current_list);
+                if self.inside_arguments {
+                    let args = items.iter().map(|arg| Argument::new(arg)).collect();
+                    self.sections.push(DocSection::Arguments { args });
+                    self.inside_arguments = false;
+                } else {
+                    self.sections.push(DocSection::List { items })
+                }
+            }
+            ScopeType::ListItem => {
+                self.current_list.push(self.current_body.drain(..).collect());
+            }
             ScopeType::Paragraph => (),
             ScopeType::Raw => self.current_body.push_str("</pre>"),
         }

@@ -788,6 +788,25 @@ type_spec name alter = Test.group name <|
         Warning.limit_reached sorted . should_equal True
 
 spec =
+    Test.group "Vector builder" <|
+        Test.specify "empty builder.get" <|
+            b = Vector.new_builder
+            e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
+                err.payload
+            Meta.type_of e . should_equal Index_Out_Of_Bounds
+            e.index . should_equal 0
+            e.length . should_equal 0
+
+        Test.specify "one number builder.get" <|
+            b = Vector.new_builder
+            b.append 32
+            e = Panic.catch Index_Out_Of_Bounds (b.at 1) err->
+                err.payload
+            Meta.type_of e . should_equal Index_Out_Of_Bounds
+            e.index . should_equal 1
+            e.length . should_equal 1
+            b.at 0 . should_equal 32
+
     Test.group "Vector/Array equality" <|
         v1 = [1, 2, 3]
         a1 = v1.to_array

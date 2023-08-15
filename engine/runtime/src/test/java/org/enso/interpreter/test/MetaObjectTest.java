@@ -96,6 +96,7 @@ public class MetaObjectTest extends TestBase {
         expecting.add(s);
       }
     }
+    expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);

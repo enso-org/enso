@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
@@ -33,7 +33,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
  * </ul>
  */
 @ExportLibrary(InteropLibrary.class)
-public class DebugLocalScope implements TruffleObject {
+public class DebugLocalScope implements EnsoObject {
   private final EnsoRootNode rootNode;
 
   /** All the bindings, including the parent scopes. */
@@ -262,7 +262,7 @@ public class DebugLocalScope implements TruffleObject {
 
   /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
-  static final class ScopeMembers implements TruffleObject {
+  static final class ScopeMembers implements EnsoObject {
     private final List<String> memberNames;
 
     ScopeMembers(List<String> memberNames) {
