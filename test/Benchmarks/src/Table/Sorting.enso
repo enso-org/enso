@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column
 
-from Standard.Test import Bench, Phase_Conf
+from Standard.Test import Bench
 
 type My
     Data x
@@ -42,7 +42,7 @@ type Data
         Data.Value create_ints create_dates create_objects create_ints_table create_dates_table create_objects_table
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+options = Bench.options . set_warmup 3 . set_measure 3
 
 
 collect_benches = Bench.build builder->

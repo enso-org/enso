@@ -2,14 +2,14 @@ from Standard.Base import all
 import Standard.Base.Runtime.State
 import Standard.Base
 
-from Standard.Test import Bench, Phase_Conf
+from Standard.Test import Bench
 
 import project.Vector.Utils
 
 polyglot java import java.util.Random as Java_Random
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
+options = Bench.options . set_warmup 2 . set_measure 2
 
 
 collect_benches = Bench.build builder->

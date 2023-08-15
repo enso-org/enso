@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Test import Bench, Faker, Phase_Conf
+from Standard.Test import Bench, Faker
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 5) . set_measure (Phase_Conf.Seconds 3)
+options = Bench.options . set_warmup 5 . set_measure 3
 
 
 type Data

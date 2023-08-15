@@ -3,7 +3,7 @@ from Standard.Base import all hiding First, Last
 from Standard.Table import Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
-from Standard.Test import Bench, Faker, Phase_Conf
+from Standard.Test import Bench, Faker
 
 
 create_table : Integer -> Integer -> Table
@@ -19,7 +19,7 @@ create_table rows (seed=1646322139) =
     Table.new [key1, key2, key3, value1, value2, text1, text2]
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+options = Bench.options . set_warmup 3 . set_measure 3
 
 
 type Data

@@ -2,7 +2,7 @@ from Standard.Base import IO, Integer, Vector
 from Standard.Base.Data.Statistics import all
 import Standard.Base.Data.Range
 
-from Standard.Test import Bench, Faker, Phase_Conf
+from Standard.Test import Bench, Faker
 
 
 create_vector : Integer -> Integer -> Vector
@@ -11,7 +11,7 @@ create_vector rows (seed=1646322139) =
     0.up_to rows . map _-> faker.make_some_nothing (faker.integer 0 1000000)
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+options = Bench.options . set_warmup 3 . set_measure 3
 
 
 type Data
