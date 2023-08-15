@@ -199,7 +199,7 @@ class DistributionUninstaller(
       dataRoot.toAbsolutePath.normalize
     )
     if (logsInsideData) {
-      LauncherLogging.prepareForUninstall() //globalCLIOptions.colorMode)
+      LauncherLogging.prepareForUninstall(globalCLIOptions.internalOptions.launcherLogLevel) //globalCLIOptions.colorMode)
     }
 
     for (dirName <- knownDataDirectories) {

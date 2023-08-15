@@ -34,11 +34,9 @@ object LauncherLogging extends LoggingCollectorHelper {
     * This is necessary on Windows to ensure that the logs file is closed, so
     * that the log directory can be removed.
     */
-  def prepareForUninstall(): Unit = { //colorMode: ColorMode): Unit = {
-    // TODO
+  def prepareForUninstall(logLevel: Option[Level]): Unit = {
     waitForSetup()
-
-    // TODO: fetch actual log level
-    LoggingServiceManager.fallbackToLocalConsole(defaultLogLevel, "launcher")
+    val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
+    LoggingServiceManager.fallbackToLocalConsole(actualLogLevel, "launcher")
   }
 }
