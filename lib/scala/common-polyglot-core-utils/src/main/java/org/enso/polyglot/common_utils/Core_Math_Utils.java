@@ -32,6 +32,7 @@ public class Core_Math_Utils {
    * @throws IllegalArgumentException if `decimalPlaces` is outside the allowed range.
    */
   public static double roundDouble(double n, int decimalPlaces, boolean useBankers) {
+
     if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
       String msg =
           "round: decimalPlaces must be between "

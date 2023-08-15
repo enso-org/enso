@@ -1,21 +1,22 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/directory.svg'
+import DirectoryIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
-
-import * as backendProvider from '../../providers/backend'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =====================
 // === DirectoryName ===
@@ -37,8 +38,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -54,9 +56,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
+            case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
@@ -66,7 +68,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createDirectory: {
+            case assetEventModule.AssetEventType.newFolder: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Folders cannot be created on the local backend')
@@ -106,10 +108,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -122,12 +121,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
-                        doToggleDirectoryExpansion(item, key)
+                        doToggleDirectoryExpansion(item.id, key, item.title)
                     }
                 }
             }}
         >
-            <img src={DirectoryIcon} />
+            <SvgMask src={DirectoryIcon} className="m-1" />
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {

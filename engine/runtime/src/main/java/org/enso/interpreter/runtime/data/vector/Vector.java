@@ -1,14 +1,5 @@
 package org.enso.interpreter.runtime.data.vector;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -18,6 +9,16 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -223,9 +224,9 @@ abstract class Vector implements EnsoObject {
         @CachedLibrary(limit = "3") WarningsLibrary warnings,
         @Cached HostValueToEnsoNode toEnso)
         throws InvalidArrayIndexException, UnsupportedMessageException {
-      var v = interop.readArrayElement(storage, index);
-      if (warnings.hasWarnings(this)) {
-        Warning[] extracted = warnings.getWarnings(this, null);
+      var v = interop.readArrayElement(this.storage, index);
+      if (warnings.hasWarnings(this.storage)) {
+        Warning[] extracted = warnings.getWarnings(this.storage, null);
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }

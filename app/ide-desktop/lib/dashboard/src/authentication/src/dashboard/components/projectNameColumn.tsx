@@ -9,7 +9,8 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
 import * as column from '../column'
@@ -44,8 +45,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             getDepth,
         },
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     const doRename = async (newName: string) => {
         try {
@@ -67,8 +69,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newFolder:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
@@ -78,7 +80,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
@@ -116,19 +118,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
-                            /** Information required to display a bundle. */
-                            interface BundleInfo {
-                                name: string
-                                id: string
-                            }
-                            // This non-standard property is defined in Electron.
-                            let info: BundleInfo
+                            let id: string
                             if (
                                 'backendApi' in window &&
+                                // This non-standard property is defined in Electron.
                                 'path' in file &&
                                 typeof file.path === 'string'
                             ) {
-                                info = await window.backendApi.importProjectFromPath(file.path)
+                                id = await window.backendApi.importProjectFromPath(file.path)
                             } else {
                                 const response = await fetch('./api/upload-project', {
                                     method: 'POST',
@@ -138,15 +135,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                     // work on `http://localhost`.
                                     body: await file.arrayBuffer(),
                                 })
-                                // This is SAFE, as the types of this API are statically known.
-                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                                info = await response.json()
+                                id = await response.text()
                             }
+                            const listedProject = await backend.getProjectDetails(
+                                backendModule.ProjectId(id),
+                                null
+                            )
                             rowState.setPresence(presence.Presence.present)
                             setItem({
                                 ...item,
-                                title: info.name,
-                                id: backendModule.ProjectId(info.id),
+                                title: listedProject.packageName,
+                                id: backendModule.ProjectId(id),
                             })
                         } else {
                             const fileName = item.title
@@ -205,10 +204,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,

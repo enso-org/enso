@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
@@ -659,9 +660,9 @@ spec =
             3.1 . round -16 . should_fail_with Illegal_Argument
 
         Test.specify "NaN/Inf" <|
-            Number.nan . round . should_fail_with Arithmetic_Error
-            Number.positive_infinity . round . should_fail_with Arithmetic_Error
-            Number.negative_infinity . round . should_fail_with Arithmetic_Error
+            Number.nan . round . should_fail_with Illegal_Argument
+            Number.positive_infinity . round . should_fail_with Illegal_Argument
+            Number.negative_infinity . round . should_fail_with Illegal_Argument
 
         Test.specify "Floating point imperfect representation counter-examples" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
@@ -762,6 +763,11 @@ spec =
             -12250 . round -2 use_bankers=True . should_equal -12200
             -12251 . round -2 use_bankers=True . should_equal -12300
 
+        Test.specify "Handles incorrect argument types" <|
+            Test.expect_panic_with (123 . round "two") Type_Error
+            Test.expect_panic_with (123 . round use_bankers="no") Type_Error
+            Test.expect_panic_with (123 . round use_bankers=0) Type_Error
+
         Test.specify "Returns the correct type" <|
             231 . round 1 . should_be_a Integer
             231 . round 0 . should_be_a Integer
@@ -771,14 +777,22 @@ spec =
         Test.specify "Input out of range" <|
             100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
+            100000000000000 . round . should_fail_with Illegal_Argument
+            -100000000000000 . round . should_fail_with Illegal_Argument
+            100000000000000 . round 1 . should_fail_with Illegal_Argument
+            -100000000000000 . round 1 . should_fail_with Illegal_Argument
+            99999999999999 . round . should_equal 99999999999999
+            -99999999999999 . round . should_equal -99999999999999
             99999999999999 . round -2 . should_equal 100000000000000
             -99999999999999 . round -2 . should_equal -100000000000000
 
-        Test.specify "Input out of range is ignored when the implementation returns its argument immediately" <|
-            100000000000000 . round . should_equal 100000000000000
-            -100000000000000 . round . should_equal -100000000000000
-            100000000000000 . round 1 . should_equal 100000000000000
-            -100000000000000 . round 1 . should_equal -100000000000000
+        Test.specify "Reject bigints before reaching the Java" <|
+            922337203685477580700000 . round . should_fail_with Illegal_Argument
+            -922337203685477580700000 . round . should_fail_with Illegal_Argument
+
+        Test.specify "Can handle small numbers computed from bigints" <|
+            (922337203685477580712345 - 922337203685477580700000) . round . should_equal 12345
+            ((99999999999998 * 1000).div 1000) . round . should_equal 99999999999998
 
     Test.group "Decimal.truncate"
 
