@@ -9,6 +9,7 @@ from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
+polyglot java import java.lang.OutOfMemoryError
 polyglot java import org.enso.base.CompareException
 
 ## An error indicating that no value was found.
@@ -380,3 +381,20 @@ type Dry_Run_Operation
        Convert the Dry_Run_Operation to a human-readable format.
     to_display_text : Text
     to_display_text self = self.message
+
+type Out_Of_Memory
+    ## PRIVATE
+       An error when Enso run's out of memory
+    Error operation
+
+    ## PRIVATE
+       Convert the Out_Of_Memory to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Enso ran out of memory performing the "+self.operation+" operation."
+
+    ## PRIVATE
+       ADVANCED
+       Catches possible `OutOfMemoryError` and throws an `Out_Of_Memory` error.
+    handle_java_exception operation ~function =
+        Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
+            function

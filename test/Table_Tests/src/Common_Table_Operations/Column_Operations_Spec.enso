@@ -1167,7 +1167,9 @@ spec setup =
                         True -> column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
                         False -> column.replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
                 False ->
-                    column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
+                    result = column.replace term new_text case_sensitivity only_first
+                    result.value_type . should_equal Value_Type.Char
+                    result . to_vector . should_equal expected
 
         Test.group prefix+"replace: literal text pattern and replacement" <|
             col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
@@ -1230,6 +1232,15 @@ spec setup =
 
             Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
                 do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+        Test.group prefix+"replace: empty table and nothings" <|
+            Test.specify "should work on empty tables" <|
+                col = table_builder [["x", ['hello Hello']]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
+                do_replace col 'hello' 'bye' expected=[]
+
+            Test.specify "should work on Nothing text column" <|
+                col = table_builder [["x", ['hello Hello', Nothing]]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
+                do_replace col 'hello' 'bye' expected=[Nothing]
 
         if setup.is_database then
             col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
