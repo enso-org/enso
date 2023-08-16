@@ -34,13 +34,6 @@ import TheModal from './theModal'
 import TopBar from './topBar'
 
 // =================
-// === Constants ===
-// =================
-
-/** The `id` attribute of the loading spinner element. */
-const LOADER_ELEMENT_ID = 'loader'
-
-// =================
 // === Dashboard ===
 // =================
 
@@ -126,6 +119,7 @@ export default function Dashboard(props: DashboardProps) {
                             },
                         ])
                     } else {
+                        setPage(pageSwitcher.Page.drive)
                         const httpClient = new http.Client(
                             new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                         )
@@ -175,33 +169,14 @@ export default function Dashboard(props: DashboardProps) {
                                 }
                             }
                             setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                            if (page === pageSwitcher.Page.editor) {
+                                setPage(page)
+                            }
                         })()
                     }
                 }
             } else {
                 setProjectStartupInfo(savedProjectStartupInfo)
-                if (page !== pageSwitcher.Page.editor) {
-                    // A workaround to hide the spinner, when the previous project is being loaded in
-                    // the background. This `MutationObserver` is disconnected when the loader is
-                    // removed from the DOM.
-                    const observer = new MutationObserver(mutations => {
-                        for (const mutation of mutations) {
-                            for (const node of Array.from(mutation.addedNodes)) {
-                                if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                    document.body.style.cursor = 'auto'
-                                    node.style.display = 'none'
-                                }
-                            }
-                            for (const node of Array.from(mutation.removedNodes)) {
-                                if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                    document.body.style.cursor = 'auto'
-                                    observer.disconnect()
-                                }
-                            }
-                        }
-                    })
-                    observer.observe(document.body, { childList: true })
-                }
             }
         }
         // This MUST only run when the component is mounted.
