@@ -28,6 +28,8 @@ use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
 use ensogl::system::web::clipboard;
 use parser::Parser;
+use serde::Deserialize;
+use serde::Serialize;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::Context as SpanTreeContext;
@@ -414,6 +416,16 @@ impl EndpointInfo {
     pub fn erase(&self) -> FallibleResult<Ast> {
         self.span_tree_node()?.erase(&self.ast)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct CopiedNode {
+    expression: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+enum ClipboardContent {
+    Node(CopiedNode),
 }
 
 
@@ -930,12 +942,42 @@ impl Handle {
         Ok(())
     }
 
+    /// TODO: add docs
     pub fn copy_node(&self, id: ast::Id) -> FallibleResult {
         let graph = GraphInfo::from_definition(self.definition()?.item);
         let node = graph.locate_node(id)?;
-        let code = node.whole_expression().repr();
-        console_log!("Copying node {code}");
-        clipboard::write_text(code);
+        let expression = node.whole_expression().repr();
+        console_log!("Copying node {expression}");
+        let content = ClipboardContent::Node(CopiedNode { expression });
+        let text_repr = serde_json::to_string(&content)?;
+        clipboard::write(text_repr);
+        Ok(())
+    }
+
+    /// TODO: add docs
+    pub fn paste_node(&self) -> FallibleResult {
+        let this = self.clone_ref();
+        clipboard::read(move |content| {
+            if let Ok(content) = serde_json::from_str(&content) {
+                match content {
+                    ClipboardContent::Node(node) => {
+                        let expression = node.expression;
+                        console_log!("Pasting node: {expression}");
+                        let info = NewNodeInfo {
+                            expression:        expression.into(),
+                            doc_comment:       None,
+                            metadata:          None,
+                            id:                None,
+                            location_hint:     double_representation::graph::LocationHint::End,
+                            introduce_pattern: true,
+                        };
+                        this.add_node(info);
+                    }
+                }
+            } else {
+                todo!()
+            }
+        });
         Ok(())
     }
 

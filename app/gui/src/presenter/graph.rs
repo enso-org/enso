@@ -445,19 +445,9 @@ impl Model {
     }
 
     fn paste_node(&self) {
-        let graph = self.controller.graph();
-        let expression = ensogl::system::web::clipboard::read_text(move |expression| {
-            console_log!("Pasting node: {expression}");
-            let info = NewNodeInfo {
-                expression:        expression.into(),
-                doc_comment:       None,
-                metadata:          None,
-                id:                None,
-                location_hint:     double_representation::graph::LocationHint::End,
-                introduce_pattern: true,
-            };
-            graph.add_node(info);
-        });
+        if let Err(err) = self.controller.graph().paste_node() {
+            error!("Error when pasting the node: {err}");
+        }
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.

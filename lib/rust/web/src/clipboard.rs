@@ -26,6 +26,29 @@ extern "C" {
 
     #[allow(unsafe_code)]
     fn readText(closure: &ReadTextClosure);
+
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = "write")]
+    fn write_js(data: String);
+
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = "read")]
+    fn read_js(closure: &ReadTextClosure);
+}
+
+pub fn write(data: String) {
+    write_js(data);
+}
+
+pub fn read(callback: impl Fn(String) + 'static) {
+    let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
+    let handler_clone = handler.clone_ref();
+    let closure: Closure<dyn Fn(String)> = Closure::new(move |result| {
+        *handler_clone.borrow_mut() = None;
+        callback(result);
+    });
+    *handler.borrow_mut() = Some(closure);
+    read_js(handler.borrow().as_ref().unwrap());
 }
 
 /// Write the provided text to the clipboard. Please note that:
