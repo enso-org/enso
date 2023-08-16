@@ -7,14 +7,12 @@ package org.enso.benchmarks;
 public interface PhaseConfig {
 
   /**
-   * Number of seconds to run the phase for.
-   * @return null if only iterations are configured.
+   * Number of iterations to run the phase for.
    */
-  Integer seconds();
+  long iterations();
 
   /**
-   * Number of iterations to run the phase for.
-   * @return null if only seconds are configured.
+   * Number of minimal amount of seconds per iterations.
    */
-  Integer iterations();
+  long seconds();
 }

@@ -296,24 +296,30 @@ public class BenchProcessor extends AbstractProcessor {
 
   private String getWarmupAnnotationForGroup(BenchGroup group) {
     var warmupConf = group.configuration().warmup();
-    if (warmupConf.iterations() != null) {
-      return "@Warmup(iterations = " + warmupConf.iterations() + ")";
-    }
-    if (warmupConf.seconds() != null) {
-      return "@Warmup(time = " + warmupConf.seconds() + ", timeUnit = TimeUnit.SECONDS)";
-    }
-    throw new IllegalArgumentException("Invalid warmup configuration: " + warmupConf);
+    return """
+    @Warmup(
+      iterations = $1,
+      time = $2,
+      timeUnit = TimeUnit.SECONDS
+    )
+    """
+      .strip()
+      .replace("$1", Long.toString(warmupConf.iterations()))
+      .replace("$2", Long.toString(warmupConf.seconds()));
   }
 
   private String getMeasureAnnotationForGroup(BenchGroup group) {
     var measureConf = group.configuration().measure();
-    if (measureConf.iterations() != null) {
-      return "@Measurement(iterations = " + measureConf.iterations() + ")";
-    }
-    if (measureConf.seconds() != null) {
-      return "@Measurement(time = " + measureConf.seconds() + ", timeUnit = TimeUnit.SECONDS)";
-    }
-    throw new IllegalArgumentException("Invalid measurement configuration: " + measureConf);
+    return """
+    @Measurement(
+      iterations = $1,
+      time = $2,
+      timeUnit = TimeUnit.SECONDS
+    )
+    """
+      .strip()
+      .replace("$1", Long.toString(measureConf.iterations()))
+      .replace("$2", Long.toString(measureConf.seconds()));
   }
 
   /**

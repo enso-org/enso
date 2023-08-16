@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Test import Bench, Phase_Conf
+from Standard.Test import Bench
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
 
 
 type Data

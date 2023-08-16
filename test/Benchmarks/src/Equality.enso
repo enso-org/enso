@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test import Bench, Phase_Conf
+from Standard.Test import Bench
 
 polyglot java import org.graalvm.collections.Pair as Graal_Pair
 
@@ -40,7 +40,7 @@ count_entries_polyglot vector element expected_count=1 =
         Panic.throw (Illegal_State.Error msg)
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 3) . set_measure (Phase_Conf.Seconds 3)
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
 type Data
     Value ~integer_vec ~boolean_vec ~text_vec ~date_vec ~datetime_vec ~uniform_atom_vec ~simple_variant_atom_vec ~complex_variant_atom_vec ~polyglot_vec

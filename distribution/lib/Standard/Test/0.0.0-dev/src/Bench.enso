@@ -3,32 +3,21 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
-    ## The minimal number of seconds for which the phase should run.
-    Seconds (secs:Integer)
-    ## Number of iterations of the phase.
-    Iterations (iters:Integer)
+    ## PRIVATE
 
-    iterations : Integer|Nothing
-    iterations self = case self of
-        Phase_Conf.Seconds _ -> Nothing
-        Phase_Conf.Iterations iters -> iters
+       Arguments:
+       - iterations: The number of iterations of the phase.
+       - seconds: The minimal number of seconds per one iteration.
+    Impl (iterations:Integer) (seconds:Integer)
 
-    seconds : Integer|Nothing
-    seconds self = case self of
-        Phase_Conf.Seconds secs -> secs
-        Phase_Conf.Iterations _ -> Nothing
-
-    to_text self = case self of
-        Phase_Conf.Seconds secs -> secs.to_text + " seconds"
-        Phase_Conf.Iterations iters -> iters.to_text + " iterations"
+    to_text self =
+        self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
 
     ## Validates the config and throws a Panic if it is invalid.
     validate : Nothing
-    validate self = case self of
-        Phase_Conf.Seconds secs ->
-            if secs < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
-        Phase_Conf.Iterations iters ->
-            if iters < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
+    validate self =
+        if self.seconds < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
+        if self.iterations < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
 
 
 ## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
@@ -94,7 +83,19 @@ type Bench
         Bench.All groups_vec . validate
 
     options : Bench_Options
-    options = Bench_Options.Impl (Phase_Conf.Seconds 3) (Phase_Conf.Seconds 3)
+    options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
+
+    ## Returns the default phase configuration.
+
+       The default used for the JMH library are 5 iterations for 10 seconds
+       each. However, our defaults are lower to make the benchmarks run faster.
+
+       Arguments:
+       - iterations: The number of iterations of the phase.
+       - seconds: The minimal number of seconds per one iteration.
+    phase_conf : Integer -> Integer -> Phase_Conf
+    phase_conf iterations=2 seconds=3 =
+        Phase_Conf.Impl iterations seconds
 
     ## Validates the benchmark and throws a Panic if it is invalid. Returns self
        if the benchmark is valid.
@@ -129,7 +130,7 @@ type Bench
         self.fold Nothing _-> g-> s->
             c = g.configuration
             bench_name = g.name + "." + s.name
-            IO.println <| "Benchmarking '" + bench_name + "' configuration: " + c.to_text
+            IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
             Bench.measure bench_name c.warmup c.measure (s.code 0)
 
     ## Measure the amount of time it takes to execute a given computation.
@@ -152,48 +153,58 @@ type Bench
     measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
     measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
-        measure_start = System.nano_time
+        case dry_run of
+            True ->
+                duration_ns = Bench.single_call act
+                duration_ms = duration_ns / 1000000
+                fmt_duration_ms = duration_ms.format "#.###"
+                IO.println <| "[DRY-RUN] Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
+            False ->
+                measure_start = System.nano_time
+                Bench.run_phase "Warmup" warmup_conf act
+                Bench.run_phase "Measurement" measure_conf act
+                measure_end = System.nano_time
+                measure_duration_ms = (measure_end - measure_start) / 1000000
+                fmt_duration_ms = measure_duration_ms.format "#.###"
+                IO.println <| "Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
 
-        single_call = _ ->
-            x1 = System.nano_time
-            Runtime.no_inline act
-            x2 = System.nano_time
-            x2 - x1
 
-        run_phase (phase_name:Text) (conf:Phase_Conf) =
-            phase_start = System.nano_time
-            durations = case conf of
-                Phase_Conf.Seconds secs ->
-                    stop_ns = phase_start + secs * 1000000000
-                    go = durations -> cur_ns ->
-                        if cur_ns  > stop_ns then durations else
-                            dur = single_call Nothing
-                            @Tail_Call go (durations + [dur]) (cur_ns + dur)
-                    go [] phase_start
-                Phase_Conf.Iterations iters ->
-                    go = durations -> cur_iter ->
-                        if cur_iter >= iters then durations else
-                            dur = single_call Nothing
-                            @Tail_Call go (durations + [dur]) (cur_iter + 1)
-                    go [] 0
-            sum = durations.reduce (_ + _)
-            run_iters = durations.length
-            avg = sum / run_iters
-            fmt = (avg / 1000000).format "#.###"
-            phase_end = System.nano_time
-            phase_duration_ms = (phase_end - phase_start) / 1000000
-            IO.println <| phase_name + " duration: " + phase_duration_ms.to_text + " ms"
-            IO.println <| phase_name + " iterations: " + run_iters.to_text
-            IO.println <| phase_name + " avg time: " + fmt + " ms"
+    ## Measure the amount of time in ns it takes to execute a given suspended
+       computation.
+    single_call ~act =
+        start = System.nano_time
+        Runtime.no_inline act
+        end = System.nano_time
+        end - start
 
-        empty_conf = Phase_Conf.Iterations 1
-        if dry_run then run_phase "dummy" empty_conf else
-            run_phase "Warmup" warmup_conf
-            run_phase "Measurement" measure_conf
-            measure_end = System.nano_time
-            measure_duration_ms = (measure_end - measure_start) / 1000000
-            fmt_duration_ms = measure_duration_ms.format "#.###"
-            IO.println <| "Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
+    ## Run a single phase of the benchmark.
+
+       The total run time of the phase is computed as `conf.seconds * conf.iterations`,
+       so that it is the same as in JMH.
+
+       Arguments:
+       - phase_name: The name of the phase.
+       - conf: The phase configuration.
+       - act: Method that should be measured - benchmark body.
+    run_phase : Text -> Phase_Conf -> (Any -> Any) -> Nothing
+    run_phase (phase_name:Text) (conf:Phase_Conf) ~act =
+        duration_ns = conf.iterations * conf.seconds * 1000000000
+        phase_start = System.nano_time
+        stop_ns = phase_start + duration_ns
+        go = durations -> cur_ns ->
+            if cur_ns  > stop_ns then durations else
+                dur = Bench.single_call act
+                @Tail_Call go (durations + [dur]) (cur_ns + dur)
+        durations = go [] phase_start
+        sum = durations.reduce (_ + _)
+        run_iters = durations.length
+        avg = sum / run_iters
+        fmt = (avg / 1000000).format "#.###"
+        phase_end = System.nano_time
+        phase_duration_ms = (phase_end - phase_start) / 1000000
+        IO.println <| phase_name + " duration:    " + phase_duration_ms.to_text + " ms"
+        IO.println <| phase_name + " invocations: " + run_iters.to_text
+        IO.println <| phase_name + " avg time:    " + fmt + " ms"
 
 ## PRIVATE
 

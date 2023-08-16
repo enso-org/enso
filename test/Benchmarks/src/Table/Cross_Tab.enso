@@ -3,10 +3,10 @@ from Standard.Base import all
 from Standard.Table import Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count, Sum
 
-from Standard.Test import Bench, Faker, Phase_Conf
+from Standard.Test import Bench, Faker
 
 
-options = Bench.options . set_warmup (Phase_Conf.Seconds 2) . set_measure (Phase_Conf.Seconds 2)
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
 
 
 seed = 1646322139
