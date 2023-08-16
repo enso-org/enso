@@ -957,7 +957,7 @@ impl Handle {
     }
 
     /// TODO: add docs
-    pub fn paste_node(&self) -> FallibleResult {
+    pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
         let this = self.clone_ref();
         clipboard::read(move |content| {
             if let Ok(content) = serde_json::from_str(&content) {
@@ -974,7 +974,9 @@ impl Handle {
                             location_hint: double_representation::graph::LocationHint::End,
                             introduce_pattern: true,
                         };
-                        this.add_node(info);
+                        if let Ok(ast_id) = this.add_node(info) {
+                            this.set_node_position(ast_id, cursor_pos);
+                        }
                     }
                 }
             } else {

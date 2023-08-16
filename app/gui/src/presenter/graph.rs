@@ -444,8 +444,8 @@ impl Model {
         }
     }
 
-    fn paste_node(&self) {
-        if let Err(err) = self.controller.graph().paste_node() {
+    fn paste_node(&self, cursor_pos: Vector2) {
+        if let Err(err) = self.controller.graph().paste_node(cursor_pos) {
             error!("Error when pasting the node: {err}");
         }
     }
@@ -785,7 +785,7 @@ impl Graph {
 
             // === Dropping Files ===
 
-            eval_ view.request_paste_node(model.paste_node());
+            eval view.request_paste_node((pos) model.paste_node(*pos));
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }
