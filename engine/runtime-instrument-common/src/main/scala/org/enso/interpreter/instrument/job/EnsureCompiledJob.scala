@@ -304,10 +304,7 @@ final class EnsureCompiledJob(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
         invalidateExpressionsCommand,
-        Set(
-          CacheInvalidation.IndexSelector.Weights,
-          CacheInvalidation.IndexSelector.Calls
-        )
+        Set(CacheInvalidation.IndexSelector.Weights)
       ),
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,

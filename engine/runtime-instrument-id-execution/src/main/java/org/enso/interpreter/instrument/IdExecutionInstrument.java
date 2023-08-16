@@ -276,6 +276,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       passExpressionValueToCallback(expressionValue);
       if (isPanic) {
+        // We mark the node as executed so that it is not reported as not executed call after the
+        // program execution is complete. If we clear the call from the cache instead, it will mess
+        // up the `typeChanged` field of the expression update.
+        callsCache.setExecuted(nodeId);
         throw context.createUnwind(result);
       }
     }
