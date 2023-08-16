@@ -6,7 +6,7 @@ from Standard.Test import Bench, Faker
 ## Bench Utilities ============================================================
 
 vector_size = 1000000
-iter_size = 100
+iter_size = 10
 num_iterations = 10
 
 # The Benchmarks ==============================================================
@@ -24,9 +24,6 @@ bench =
     ints_vec = Vector.new vector_size _->(faker.integer -1000000000 1000000000)
     ints = Column.from_vector "ints" ints_vec
 
-    IO.println <| ".round floats"
-    Bench.measure floats.round "Column.round floats" iter_size num_iterations
-
     IO.println <| ".truncate floats"
     Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
     IO.println <| ".ceil floats"
@@ -34,13 +31,21 @@ bench =
     IO.println <| ".floor floats"
     Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
 
-    IO.println <| ".round ints"
-    Bench.measure ints.round "Column.round ints" iter_size num_iterations
     IO.println <| ".truncate ints"
     Bench.measure ints.truncate "Column.truncate ints" iter_size num_iterations
     IO.println <| ".ceil ints"
     Bench.measure ints.ceil "Column.ceil ints" iter_size num_iterations
     IO.println <| ".floor ints"
     Bench.measure ints.floor "Column.floor ints" iter_size num_iterations
+
+    [True, False].map use_bankers->
+        [0, -2, 2].map decimal_places->
+            name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
+            fun x = x.round decimal_places use_bankers
+
+            IO.println <| ".round floats"
+            Bench.measure (fun floats) "float "+name iter_size num_iterations
+            IO.println <| ".round ints"
+            Bench.measure (fun ints) "int "+name iter_size num_iterations
 
 main = bench

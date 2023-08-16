@@ -10,6 +10,7 @@ import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -41,6 +42,17 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runBinaryMap(name, this, argument, problemBuilder);
+  }
+
+  @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 
   @Override
@@ -156,6 +168,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                 return a;
               }
             })
+        .add(new LongRoundOp(Maps.ROUND))
         .add(
             new LongNumericOp(Storage.Maps.DIV, true) {
               @Override

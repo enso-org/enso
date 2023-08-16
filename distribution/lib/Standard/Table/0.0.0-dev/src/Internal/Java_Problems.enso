@@ -7,6 +7,7 @@ from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplica
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
@@ -26,6 +27,8 @@ translate_problem p = case p of
         Error.throw err
     _ : ArithmeticError ->
         Arithmetic_Error.Error p.getMessage
+    _ : IllegalArgumentError ->
+        Illegal_Argument.Error p.getMessage
     _ : FloatingPointGrouping ->
         Floating_Point_Equality.Error p.getLocationName
     _ : LossOfIntegerPrecision ->

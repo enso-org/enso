@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
@@ -767,40 +768,10 @@ type Column
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False =
-        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            # If it's an integer column and decimal_places >=0 then it's a no-op.
+    round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) = Value_Type.expect_numeric self <|
+        Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
-            is_integer = self.inferred_precise_value_type.is_integer
-            if is_integer && decimal_places >= 0 then self.rename new_name else
-                should_cast_to_integer = decimal_places <= 0 || is_integer
-                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
-                result = self.check_round_input col->
-                    scale = 10 ^ decimal_places
-                    scaled = col * scale
-                    round_base = scaled.floor
-                    round_midpoint = (round_base + 0.5) / scale
-                    even_is_up = (col >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-                    half_goes_up = if use_bankers then even_is_up else col >= 0
-                    do_round_up = half_goes_up.iif (col >= round_midpoint) (col > round_midpoint)
-                    result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-                    cast_if_needed result_float target_value_type
-                result.rename new_name
-
-    ## PRIVATE
-       Restrict allowed range of input to rounding methods.
-    check_round_input : (Column -> Column) -> Any ! Illegal_Argument
-    check_round_input self action =
-        min = Rounding_Helpers.round_min_long
-        max = Rounding_Helpers.round_max_long
-        within_range = if self.value_type.is_floating_point.not then self.between min max else
-            self.is_nan || self.is_infinite || self.between min max
-
-        any_issues = within_range.to_vector . any (== False)
-        if any_issues.not then action self else
-            warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
-            result = action (within_range.iif self Nothing)
-            Warning.attach warning result
+            run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
 
     ## ALIAS int
 
@@ -2118,6 +2089,34 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
             rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                 s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
             Column.Value (Java_Column.new effective_new_name rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+
+   Executes a vectorized ternary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - operand0: The first operand to apply to the function after `column`.
+   - operand1: The second operand to apply to the function after `column`.
+   - new_name: The name of the column created as the result of this operation.
+   - expected_result_type: The expected result type of the operation.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Value_Type -> Boolean -> Column
+run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
+    effective_new_name = new_name.if_nothing <|
+        naming_helper.function_name name [column, operand0, operand1]
+    problem_builder = MapOperationProblemBuilder.new column.name
+    storage_type = resolve_storage_type expected_result_type
+    s1 = column.java_column.getStorage
+    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+        s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
+    result = Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
