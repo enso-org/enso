@@ -421,6 +421,7 @@ impl EndpointInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct CopiedNode {
     expression: String,
+    metadata:   Option<NodeMetadata>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -947,8 +948,9 @@ impl Handle {
         let graph = GraphInfo::from_definition(self.definition()?.item);
         let node = graph.locate_node(id)?;
         let expression = node.whole_expression().repr();
+        let metadata = self.module.node_metadata(id).ok();
         console_log!("Copying node {expression}");
-        let content = ClipboardContent::Node(CopiedNode { expression });
+        let content = ClipboardContent::Node(CopiedNode { expression, metadata });
         let text_repr = serde_json::to_string(&content)?;
         clipboard::write(text_repr);
         Ok(())
@@ -962,13 +964,14 @@ impl Handle {
                 match content {
                     ClipboardContent::Node(node) => {
                         let expression = node.expression;
+                        let metadata = node.metadata;
                         console_log!("Pasting node: {expression}");
                         let info = NewNodeInfo {
-                            expression:        expression.into(),
-                            doc_comment:       None,
-                            metadata:          None,
-                            id:                None,
-                            location_hint:     double_representation::graph::LocationHint::End,
+                            expression,
+                            doc_comment: None,
+                            metadata,
+                            id: None,
+                            location_hint: double_representation::graph::LocationHint::End,
                             introduce_pattern: true,
                         };
                         this.add_node(info);
