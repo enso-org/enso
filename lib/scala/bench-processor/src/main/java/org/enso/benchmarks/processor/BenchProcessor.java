@@ -109,7 +109,7 @@ public class BenchProcessor extends AbstractProcessor {
                 + "' specified in the annotation does not exist or is not readable");
       }
       try (var ctx =
-          Context.newBuilder()
+          Context.newBuilder(LanguageInfo.ID)
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
@@ -236,7 +236,7 @@ public class BenchProcessor extends AbstractProcessor {
         "      throw new IllegalStateException(\"Project root directory does not exist or cannot be read: \" + Objects.toString(projectRootDir));");
     out.println("    }");
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
-    out.println("    var ctx = Context.newBuilder()");
+    out.println("    var ctx = Context.newBuilder(LanguageInfo.ID)");
     out.println("      .allowExperimentalOptions(true)");
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
