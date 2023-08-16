@@ -1,0 +1,85 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges, sort_and_merge_ranges
+
+import project.Data.Table.Table
+
+type Take_Drop
+    Take
+    Drop
+
+take_drop_helper : Take_Drop -> Table -> (Index_Sub_Range | Range | Integer) -> Table
+take_drop_helper take_drop table selector =
+    ## Generate ranges
+    length = table.row_count
+    invert_maybe ranges = case take_drop of
+        Take_Drop.Take -> ranges
+        Take_Drop.Drop ->
+            # TODO remove special case?
+            if ranges.is_empty then [Range.new 0 length] else
+                inverted = Index_Sub_Range_Module.invert_range_selection ranges length False
+                sort_and_merge_ranges (resolve_ranges (normalize_ranges inverted) length)
+    ranges = invert_maybe <| to_ranges length selector
+
+    # Filter on row column. Add the row column at the start, remove it at the end.
+    row_column_name = Table.make_temp_column_name
+    table_with_row_number = table.add_row_number name=row_column_name from=0
+    filter_condition = generate_filter_condition ranges
+    filtered = table_with_row_number.filter row_column_name filter_condition
+    filtered.remove_columns row_column_name
+
+## PRIVATE
+   Converts ints, ranges, and Index_Sub_Ranges to a sorted list of non-overlapping ranges.
+to_ranges : Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
+to_ranges length descriptor =
+  to_ranges_unchecked length descriptor |> (rs-> resolve_ranges rs length) |> normalize_ranges |> sort_and_merge_ranges
+
+## PRIVATE
+   Converts ints, ranges, and Index_Sub_Ranges to a sorted list of ranges.
+
+   Does not do bounds/sanity checking.
+
+   Does not support While or Sample.
+to_ranges_unchecked : Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
+to_ranges_unchecked length descriptor =
+    unsupported =
+        msg = descriptor.to_text + " is not supported in to_ranges_unchecked. This is a bug in the Database library."
+        Error.throw <| Illegal_Argument.Error msg
+    case descriptor of
+        i : Integer -> i.up_to i+1
+        r : Range -> [r]
+        Index_Sub_Range.First count -> 0.up_to (length.min count)
+        Index_Sub_Range.Last count -> (length-count).up_to length
+        Index_Sub_Range.While _ -> unsupported
+        Index_Sub_Range.By_Index indexes -> case indexes of
+            _ : Vector -> indexes.map (to_ranges_unchecked length) . flatten
+            descriptor -> to_ranges_unchecked length descriptor
+        Index_Sub_Range.Sample _ _ -> unsupported
+        Index_Sub_Range.Every step first -> Range.new first (estimate_end first length step) step
+
+## PRIVATE
+   Convert a vector of ranges to a `Filter_Condition`. Each range becomes a
+   `Bewteen`, which are and-ed together.
+generate_filter_condition : Vector Range -> Filter_Condition
+generate_filter_condition ranges =
+    range_to_condition range = case range of
+        Range.Between start end step ->
+            assert (step == 1)
+            assert (end > start)
+            Filter_Condition.Between start end-1
+    Filter_Condition.or (ranges.map range_to_condition)
+
+## PRIVATE
+   Calculate the end of the range that fits inside a sequence of length `length`.
+   Does not assume `step` has been checked.
+estimate_end : Integer -> Integer -> Integer -> Integer
+estimate_end first:Integer length:Integer step:Integer =
+    if step <= 0 then Panic.throw (Illegal_Argument.Error "Range step must be positive.") else
+        (length-first).div step
+
+assert : Boolean -> Nothing
+assert b =
+    if b==True then Nothing else
+      Panic.throw Nothing

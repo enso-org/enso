@@ -25,6 +25,12 @@ make_filter_column source_column filter_condition on_problems =
         # Boolean operations
         Not condition -> (rec condition).not
 
+        ## Boolean constant true
+        Constant_True -> source_column.const True
+
+        ## Boolean constant false
+        Constant_False -> source_column.const False
+
         # Equality
         Equal value ->
             Warning.with_suspended source_column source_column->

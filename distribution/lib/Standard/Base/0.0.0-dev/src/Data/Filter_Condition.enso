@@ -26,6 +26,12 @@ type Filter_Condition
     ## Boolaen NOT
     Not condition:Filter_Condition
 
+    ## Boolean constant true
+    Constant_True
+
+    ## Boolean constant false
+    Constant_False
+
     ## Is less than a value (or another column, in case of Table operations)?
     Less than:Any
 
@@ -208,6 +214,16 @@ type Filter_Condition
         Not_In values ->
             set = Set.from_vector values
             elem -> set.contains elem . not
+
+    and : Vector Filter_Condition -> Filter_Condition
+    and filter_conditions =
+        if filter_conditions.is_empty then Filter_Condition.Constant_True else
+            filter_conditions . drop 1 . reduce (Filter_Condition.And) (filter_conditions.at 0)
+
+    or : Vector Filter_Condition -> Filter_Condition
+    or filter_conditions =
+        if filter_conditions.is_empty then Filter_Condition.Constant_False else
+            filter_conditions . drop 1 . reduce (Filter_Condition.Or) (filter_conditions.at 0)
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.

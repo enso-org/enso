@@ -40,6 +40,7 @@ import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Take_Drop_Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -53,6 +54,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Data.Take_Drop_Helpers import Take_Drop
 from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
 
 polyglot java import java.sql.JDBCType
@@ -598,10 +600,8 @@ type Table
        - range: The selection of rows from the table to return.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
-    take self range=(First 1) =
-        _ = range
-        msg = "`Table.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    take self (range:(Index_Sub_Range | Range | Integer)=(First 1)) =
+        Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
@@ -612,9 +612,7 @@ type Table
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        _ = range
-        msg = "`Table.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## ALIAS rank, record id, add index column
        Adds a new column to the table enumerating the rows.
@@ -838,6 +836,9 @@ type Table
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
+
+    make_temp_column_name : Text
+    make_temp_column_name = ("Temp_" + UUID.randomUUID.to_text)
 
     ## Returns the vector of columns contained in this table.
     columns : Vector Column
