@@ -25,37 +25,26 @@ spec setup =
         table = table_builder [["cs", ["b", "c", "a", "f", "e", "d"]], ["ns", [5, 4, 3, 2, 1, 0]]]
         IO.println "AAA"
         table.print
-        #table . order_by "cs" . add_row_number . print
-        #table . order_by "ns" . add_row_number . print
-        #table.add_row_number . print
-        c = table.order_by "cs" . add_row_number
-        #c.print
-        t2 = table.order_by "cs" . set (c.at "Row")
-        t2.print
-        t3 = c . set (c.at "Row")
-        t3.print
 
-        t2 . filter "Row" (Filter_Condition.Greater 4) . print
+        rnn = table.order_by "cs" . add_row_number
+        yeah fc =
+            tab = rnn.filter "Row" fc
+            IO.println '----'
+            IO.println fc
+            tab.print
 
-        ##
-            yeah fc =
-                tab = t2.filter "Row" fc
-                IO.println '----'
-                IO.println fc
-                tab.print
+        yeah <| Filter_Condition.Between 3 5
+        yeah <| Filter_Condition.Less 5
 
-            yeah <| Filter_Condition.Between 3 5
-            yeah <| Filter_Condition.Less 5
+        yeah <| Filter_Condition.Or (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
+        yeah <| Filter_Condition.And (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
+        yeah <| Filter_Condition.And (Filter_Condition.Greater 2) (Filter_Condition.Less 4)
+        yeah <| Filter_Condition.And (Filter_Condition.Greater 1) (Filter_Condition.Less 5)
 
-            yeah <| Filter_Condition.Or (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
-            yeah <| Filter_Condition.And (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
-            yeah <| Filter_Condition.And (Filter_Condition.Greater 2) (Filter_Condition.Less 4)
-            yeah <| Filter_Condition.And (Filter_Condition.Greater 1) (Filter_Condition.Less 5)
-
-            yeah <| Filter_Condition.Not <| Filter_Condition.Or (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
-            yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
-            yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Greater 2) (Filter_Condition.Less 4)
-            yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Greater 1) (Filter_Condition.Less 5)
+        yeah <| Filter_Condition.Not <| Filter_Condition.Or (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
+        yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Less 2) (Filter_Condition.Greater 4)
+        yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Greater 2) (Filter_Condition.Less 4)
+        yeah <| Filter_Condition.Not <| Filter_Condition.And (Filter_Condition.Greater 1) (Filter_Condition.Less 5)
 
     Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
         table =

@@ -684,7 +684,8 @@ type Table
             rebuild_table columns =
                 self.updated_columns (columns.map .as_internal)
             renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-            renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+            updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+            updated_table.as_subquery
 
 
     ## UNSTABLE
@@ -2025,6 +2026,12 @@ type Table
             Table.Value self.name self.connection new_columns new_ctx
         False ->
             Table.Value self.name self.connection internal_columns ctx
+
+    ## PRIVATE
+       Nests a table as a subquery, using `updated_context_and_columns`, which
+       causes its columns to be referenced as names rather than expressions.
+    as_subquery : Table
+    as_subquery self = self.updated_context_and_columns self.context self.internal_columns True
 
     ## PRIVATE
        Checks if this table is a 'trivial query'.
