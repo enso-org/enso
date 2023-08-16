@@ -46,22 +46,23 @@ macro_rules! ln {
 pub struct CodeGenerator {
     embeds:      String,
     definitions: String,
+    features:    String,
 }
 
 impl CodeGenerator {
     fn add_font_data(&mut self, file_name: &str) {
-        ln!(1, &mut self.embeds, "map.insert(\"{file_name}\", include_bytes!(\"{file_name}\"));");
+        ln!(1, &mut self.embeds, "fonts.insert(\"{file_name}\", include_bytes!(\"{file_name}\"));");
     }
 
     fn add_variable_font_definition(&mut self, family: &str, file: &str) {
         let key = format!("\"{family}\".into()");
         let family_def = format!("family::VariableDefinition::new(\"{file}\")");
         let value = format!("family::FontFamily::Variable({family_def})");
-        ln!(1, &mut self.definitions, "map.insert({key},{value});");
+        ln!(1, &mut self.definitions, "families.insert({key}, {value});");
     }
 
     fn add_non_variable_font_definition(&mut self, family_name: &str, def: &NonVariableDefinition) {
-        ln!(1, &mut self.definitions, "map.insert(\"{family_name}\".into(),");
+        ln!(1, &mut self.definitions, "families.insert(\"{family_name}\".into(),");
         let fam_def = "family::FontFamily::NonVariable";
         ln!(2, &mut self.definitions, "{}(family::NonVariableDefinition::from_iter([", fam_def);
         for variation in def.variations() {
@@ -80,21 +81,32 @@ impl CodeGenerator {
         ln!(1, &mut self.definitions, ");");
     }
 
+    fn add_font_features(&mut self, family: &str, features: &[&str]) {
+        ln!(1, &mut self.features, "features.insert(\"{family}\".into(), {features:?}.to_vec());");
+    }
+
     fn body(&self) -> String {
         let mut body = String::new();
         ln!(0, body, "/// Mapping between file name and embedded fonts data.");
         ln!(0, body, "pub fn embedded_fonts_data() -> HashMap<&'static str, &'static [u8]> {{");
-        ln!(1, body, "let mut map = HashMap::<&'static str, &'static [u8]>::new();");
+        ln!(1, body, "let mut fonts = HashMap::<&'static str, &'static [u8]>::new();");
         write!(body, "{}", self.embeds).ok();
-        ln!(1, body, "map");
+        ln!(1, body, "fonts");
         ln!(0, body, "}}");
         ln!(0, body, "");
         ln!(0, body, "/// Definitions of embedded font families.");
         ln!(0, body, "pub fn embedded_family_definitions()");
         ln!(0, body, "-> HashMap<family::Name, family::FontFamily> {{");
-        ln!(1, body, "let mut map = HashMap::new();");
+        ln!(1, body, "let mut families = HashMap::new();");
         write!(body, "{}", self.definitions).ok();
-        ln!(1, body, "map");
+        ln!(1, body, "families");
+        ln!(0, body, "}}");
+        ln!(0, body, "/// Feature settings to be used when rendering embedded families.");
+        ln!(0, body, "pub fn embedded_family_features()");
+        ln!(0, body, "-> HashMap<family::Name, Vec<&'static str>> {{");
+        ln!(1, body, "let mut features = HashMap::new();");
+        write!(body, "{}", self.features).ok();
+        ln!(1, body, "features");
         ln!(0, body, "}}");
         body
     }
@@ -107,13 +119,17 @@ impl CodeGenerator {
 // =================
 
 pub async fn load_enso_font(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
+    let family_name = enso_enso_font::ENSO_FONT_FAMILY_NAME;
     let font_family = enso_enso_font::enso_font();
     let package = enso_build::ide::web::fonts::get_enso_font_package().await?;
     enso_enso_font::extract_fonts(&font_family, package, &out_dir).await?;
-    code_gen.add_non_variable_font_definition(enso_enso_font::ENSO_FONT_FAMILY_NAME, &font_family);
+    code_gen.add_non_variable_font_definition(family_name, &font_family);
     for file in font_family.files() {
         code_gen.add_font_data(file);
     }
+    // The Enso Font has ligatures, but `ensogl_text` does not support them.
+    let disable_ligatures = format!("-{}", enso_enso_font::feature::LIGATURES);
+    code_gen.add_font_features(family_name, &[&disable_ligatures]);
     Ok(())
 }
 

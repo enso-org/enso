@@ -55,6 +55,12 @@ pub const PACKAGE_URL: &str =
     "https://github.com/enso-org/font/releases/download/1.0/enso-font-1.0.tar.gz";
 const PACKAGE_FONTS_PREFIX: &str = "ttf";
 
+/// Font features.
+pub mod feature {
+    /// The flag identifying the ligature feature in this font.
+    pub const LIGATURES: &str = "liga";
+}
+
 
 
 // =================

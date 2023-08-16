@@ -265,7 +265,7 @@ pub trait Family {
 #[derive(Debug)]
 pub struct NonVariableFamily {
     pub definition: family::NonVariableDefinition,
-    pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, Face>>>,
+    pub faces:      RefCell<HashMap<NonVariableFaceHeader, Face>>,
 }
 
 /// A variable font family. Contains font family definition and the font face. The face is kept in
@@ -276,21 +276,21 @@ pub struct NonVariableFamily {
 #[derive(Debug)]
 pub struct VariableFamily {
     pub definition: family::VariableDefinition,
-    pub face:       Rc<RefCell<Option<Face>>>,
+    pub face:       RefCell<Option<Face>>,
     /// Most recent axes used to generate MSDF textures. If axes change, MSDFgen parameters need to
     /// be updated, which involves a non-zero cost (mostly due to Rust <> JS interop). Thus, we
     /// want to refresh them only when needed. This field is a cache allowing us to check if
     /// axes changed.
-    pub last_axes:  Rc<RefCell<Option<VariationAxes>>>,
+    pub last_axes:  RefCell<Option<VariationAxes>>,
 }
 
 impl NonVariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
-    fn load_all_faces(&self, embedded: &EmbeddedData) {
+    fn load_all_faces(&mut self, embedded: &EmbeddedData) {
         for variation in self.definition.variations() {
             if let Some(face) = embedded.load_face(variation.file) {
-                self.faces.borrow_mut().insert(variation.header, face);
+                self.faces.get_mut().insert(variation.header, face);
             }
         }
     }
@@ -328,7 +328,7 @@ impl NonVariableFamily {
 impl VariableFamily {
     /// Load all font faces from the embedded font data. Corrupted faces will be reported and
     /// ignored.
-    fn load_all_faces(&self, embedded: &EmbeddedData) {
+    fn load_all_faces(&mut self, embedded: &EmbeddedData) {
         if let Some(face) = embedded.load_face(&self.definition.file_name) {
             // Set default variation axes during face initialization. This is needed to make some
             // fonts appear on the screen. In case some axes are not found, warnings will be
@@ -336,7 +336,7 @@ impl VariableFamily {
             VariationAxes::with_default_axes_values(|axis| {
                 face.msdf.set_variation_axis(axis.tag, axis.value.into_inner() as f64).ok();
             });
-            self.face.borrow_mut().replace(face);
+            *self.face.get_mut() = Some(face);
         }
     }
 }
@@ -630,6 +630,14 @@ impl Font {
             Font::Variable(font) => font.family.with_borrowed_face(&default(), f),
         }
     }
+
+    /// Return the base set of feature settings to be used when rendering this font in EnsoGL.
+    pub fn feature_settings(&self) -> &[rustybuzz::Feature] {
+        match self {
+            Font::NonVariable(font) => &font.features,
+            Font::Variable(font) => &font.features,
+        }
+    }
 }
 
 
@@ -651,10 +659,11 @@ pub struct FontTemplate<F: Family> {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontTemplateData<F: Family> {
-    pub name:   Name,
-    pub family: F,
-    pub atlas:  msdf::Texture,
-    pub cache:  RefCell<HashMap<F::Variations, FontDataCache>>,
+    pub name:     Name,
+    pub family:   F,
+    pub features: Vec<rustybuzz::Feature>,
+    pub atlas:    msdf::Texture,
+    pub cache:    RefCell<HashMap<F::Variations, FontDataCache>>,
 }
 
 /// A cache for common glyph properties, used to layout glyphs.
@@ -673,11 +682,11 @@ impl<F: Family> From<FontTemplateData<F>> for FontTemplate<F> {
 
 impl<F: Family> FontTemplate<F> {
     /// Constructor.
-    pub fn new(name: Name, family: impl Into<F>) -> Self {
+    pub fn new(name: Name, family: impl Into<F>, features: Vec<rustybuzz::Feature>) -> Self {
         let atlas = default();
         let cache = default();
         let family = family.into();
-        let data = FontTemplateData { name, family, atlas, cache };
+        let data = FontTemplateData { name, family, features, atlas, cache };
         Self { rc: Rc::new(data) }
     }
 
@@ -933,7 +942,7 @@ type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 #[cfg(not(target_arch = "wasm32"))]
 type AtlasTexture = f32;
 
-/// A font with an associated GPU-stored data.
+/// A font with associated GPU-stored data.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct FontWithGpuData {
@@ -1098,27 +1107,31 @@ impl Default for Hinting {
 pub struct Embedded {
     definitions: HashMap<Name, family::FontFamily>,
     data:        EmbeddedData,
+    features:    HashMap<Name, Vec<rustybuzz::Feature>>,
 }
 
 impl Embedded {
     /// Load a font from the registry.
     pub fn load_font(&self, name: Name) -> Option<Font> {
-        self.definitions.get(&name).map(|definition| self.data.load_font(name.clone(), definition))
+        let features = self.features.get(&name).cloned().unwrap_or_default();
+        let definition = self.definitions.get(&name);
+        definition.map(|def| self.data.load_font(name.clone(), def, features))
     }
 
     /// Load and return all fonts from the registry.
     pub fn into_fonts(self) -> impl Iterator<Item = (Name, Font)> {
-        let data = self.data;
-        self.definitions
-            .into_iter()
-            .map(move |(name, definition)| (name.clone(), data.load_font(name, &definition)))
+        let Self { definitions, data, mut features } = self;
+        definitions.into_iter().map(move |(name, definition)| {
+            let features = features.remove(&name).unwrap_or_default();
+            (name.clone(), data.load_font(name, &definition, features))
+        })
     }
 }
 
 impl Default for Embedded {
     fn default() -> Self {
-        let ensogl_text_embedded_fonts::Embedded { definitions, data } = default();
-        Self { definitions, data: EmbeddedData { data } }
+        let ensogl_text_embedded_fonts::Embedded { definitions, data, features } = default();
+        Self { definitions, data: EmbeddedData { data }, features }
     }
 }
 
@@ -1132,13 +1145,18 @@ pub struct EmbeddedData {
 }
 
 impl EmbeddedData {
-    fn load_font(&self, name: Name, definition: &family::FontFamily) -> Font {
+    fn load_font(
+        &self,
+        name: Name,
+        definition: &family::FontFamily,
+        features: Vec<rustybuzz::Feature>,
+    ) -> Font {
         match definition {
             family::FontFamily::NonVariable(definition) => {
-                let family = NonVariableFamily::from(definition);
+                let mut family = NonVariableFamily::from(definition);
                 family.load_all_faces(self);
                 let cache = PREBUILT_ATLASES.with_borrow_mut(|atlases| atlases.get(&name).cloned());
-                let font = NonVariableFont::new(name, family);
+                let font = NonVariableFont::new(name, family, features);
                 if let Some(cache) = cache {
                     font.load_cache(&cache)
                         .unwrap_or_else(|e| error!("Failed to load cached font data: {e}."));
@@ -1146,23 +1164,54 @@ impl EmbeddedData {
                 font.into()
             }
             family::FontFamily::Variable(definition) => {
-                let family = VariableFamily::from(definition);
+                let mut family = VariableFamily::from(definition);
                 family.load_all_faces(self);
-                VariableFont::new(name, family).into()
+                VariableFont::new(name, family, features).into()
             }
         }
     }
 
     /// Load the font face from memory. Corrupted faces will be reported.
     fn load_face(&self, name: &str) -> Option<Face> {
-        let result = self.load_face_internal(name);
+        let result = self.try_load_face(name);
         result.map_err(|err| error!("Error parsing font: {}", err)).ok()
     }
 
-    fn load_face_internal(&self, name: &str) -> anyhow::Result<Face> {
+    fn try_load_face(&self, name: &str) -> anyhow::Result<Face> {
         let data = self.data.get(name).ok_or_else(|| anyhow!("Font '{}' not found", name))?;
         let ttf = ttf::OwnedFace::from_vec((**data).into(), TTF_FONT_FACE_INDEX)?;
         let msdf = msdf::OwnedFace::load_from_memory(data)?;
         Ok(Face { msdf, ttf })
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enso_font_ligatures_disabled() {
+        let registry: HashMap<_, _> = Embedded::default().into_fonts().collect();
+        let font = registry.get(&"enso".into()).unwrap();
+        font.with_borrowed_face(NonVariableFaceHeader::default(), |face| {
+            let face = face.ttf.as_face_ref().clone();
+            let face = rustybuzz::Face::from_face(face).unwrap();
+            let features = font.feature_settings();
+            // If the font's ligatures are used, these two characters will correspond to one
+            // glyph. `ensogl_text` doesn't support ligatures, so its shaped length must be the
+            // same as its character count.
+            let test_str = "fi";
+            let mut buffer = rustybuzz::UnicodeBuffer::new();
+            buffer.push_str(test_str);
+            let shaped = rustybuzz::shape(&face, features, buffer);
+            assert_eq!(shaped.len(), test_str.chars().count());
+        })
+        .unwrap();
     }
 }

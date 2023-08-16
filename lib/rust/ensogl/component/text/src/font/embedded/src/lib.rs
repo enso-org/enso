@@ -47,13 +47,21 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 pub struct Embedded {
     pub definitions: HashMap<family::Name, family::FontFamily>,
     pub data:        HashMap<&'static str, &'static [u8]>,
+    pub features:    HashMap<family::Name, Vec<rustybuzz::Feature>>,
 }
 
 impl Default for Embedded {
     fn default() -> Self {
         let data = embedded_fonts_data();
         let definitions = embedded_family_definitions();
-        Self { data, definitions }
+        let features = embedded_family_features()
+            .into_iter()
+            .map(|(family, feats)| {
+                // Safe to `unwrap` because the input is compile-time constant.
+                (family, feats.into_iter().map(|feat| feat.parse().unwrap()).collect())
+            })
+            .collect();
+        Self { data, definitions, features }
     }
 }
 
