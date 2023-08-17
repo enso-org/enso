@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.AggregatedProblems;
 
 import java.util.Arrays;
 
@@ -126,5 +127,16 @@ public class ObjectBuilder extends TypedBuilder {
 
   protected void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
+  }
+
+  private AggregatedProblems preExistingProblems = AggregatedProblems.of();
+
+  public void setPreExistingProblems(AggregatedProblems preExistingProblems) {
+    this.preExistingProblems = preExistingProblems;
+  }
+
+  @Override
+  public AggregatedProblems getProblems() {
+    return preExistingProblems;
   }
 }

@@ -55,7 +55,9 @@ type Column
            type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
         expected_storage_type = Nothing
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            Column.Value (Java_Column.fromItems name items expected_storage_type)
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+                Java_Column.fromItems name items expected_storage_type
+            Column.Value java_column
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -75,7 +77,9 @@ type Column
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromRepeatedItems name items repeats)
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+                Java_Column.fromRepeatedItems name items repeats
+            Column.Value java_column
 
     ## PRIVATE
 
@@ -688,7 +692,8 @@ type Column
                         error = Illegal_State.Error "`iif` got a storage "+s.to_display_text+" that does not support the `iif` operation. This is a bug in the Table library."
                         Panic.throw error
                 rs = Panic.catch No_Such_Method handler=handle_no_iif <|
-                    s.iif true_val false_val storage_type
+                    Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+                        s.iif true_val false_val storage_type
                 Column.Value (Java_Column.new new_name rs)
 
     ## PRIVATE
@@ -1502,13 +1507,10 @@ type Column
 
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
-            new_storage_and_problems = parser.parseColumn self.name storage
 
-            new_storage = new_storage_and_problems.value
-            problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
-
-            output = Column.Value (Java_Column.new self.name new_storage)
-            on_problems.attach_problems_after output problems
+            new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
+                parser.parseColumn self.name storage
+            Column.Value (Java_Column.new self.name new_storage)
 
     ## Format a `Column` using a format string (or `Column` of format strings).
 

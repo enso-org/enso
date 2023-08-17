@@ -16,7 +16,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     if (storage instanceof DateTimeStorage dateTimeStorage) {
       return dateTimeStorage;
     } else if (storage instanceof DateStorage dateStorage) {
-      return convertDateStorage(dateStorage);
+      return convertDateStorage(dateStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -42,6 +42,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -49,7 +50,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return date.atStartOfDay().atZone(ZoneId.systemDefault());
   }
 
-  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage) {
+  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
     for (int i = 0; i < dateStorage.size(); i++) {
@@ -57,6 +58,8 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       builder.append(convertDate(date));
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

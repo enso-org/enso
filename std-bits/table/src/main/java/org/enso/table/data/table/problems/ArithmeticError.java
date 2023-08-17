@@ -1,7 +1,5 @@
 package org.enso.table.data.table.problems;
 
-import java.util.stream.Collectors;
-
 public class ArithmeticError extends ColumnAggregatedProblems {
     private final String message;
 
