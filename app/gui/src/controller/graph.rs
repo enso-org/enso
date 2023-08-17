@@ -952,16 +952,17 @@ impl Handle {
         console_log!("Copying node {expression}");
         let content = ClipboardContent::Node(CopiedNode { expression, metadata });
         let text_repr = serde_json::to_string(&content)?;
-        clipboard::write(text_repr);
+        clipboard::write(text_repr.as_bytes(), "web application/enso".to_string());
         Ok(())
     }
 
     /// TODO: add docs
     pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
         let this = self.clone_ref();
-        clipboard::read(move |content| {
+        clipboard::read("web application/enso".to_string(), move |content| {
             let _transaction = this.module.get_or_open_transaction("Paste node");
-            if let Ok(content) = serde_json::from_str(&content) {
+            let string = String::from_utf8(content).unwrap();
+            if let Ok(content) = serde_json::from_str(&string) {
                 match content {
                     ClipboardContent::Node(node) => {
                         let expression = node.expression;

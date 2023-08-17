@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use js_sys::Uint8Array;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::prelude::Closure;
 
@@ -11,7 +12,10 @@ use wasm_bindgen::prelude::Closure;
 // === Types ===
 // =============
 
+pub type MimeType = String;
+pub type BinaryData<'a> = &'a [u8];
 type ReadTextClosure = Closure<dyn Fn(String)>;
+type ReadClosure = Closure<dyn Fn(Vec<u8>)>;
 
 
 
@@ -29,26 +33,27 @@ extern "C" {
 
     #[allow(unsafe_code)]
     #[wasm_bindgen(js_name = "write")]
-    fn write_js(data: String);
+    fn write_js(data: Uint8Array, mime_type: String);
 
     #[allow(unsafe_code)]
     #[wasm_bindgen(js_name = "read")]
-    fn read_js(closure: &ReadTextClosure);
+    fn read_js(expected_mime_type: String, closure: &ReadClosure);
 }
 
-pub fn write(data: String) {
-    write_js(data);
+pub fn write(data: BinaryData<'_>, mime_type: MimeType) {
+    let data = Uint8Array::from(data);
+    write_js(data, mime_type);
 }
 
-pub fn read(callback: impl Fn(String) + 'static) {
-    let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
+pub fn read(expected_mime_type: MimeType, callback: impl Fn(Vec<u8>) + 'static) {
+    let handler: Rc<RefCell<Option<ReadClosure>>> = default();
     let handler_clone = handler.clone_ref();
-    let closure: Closure<dyn Fn(String)> = Closure::new(move |result| {
+    let closure: ReadClosure = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;
         callback(result);
     });
     *handler.borrow_mut() = Some(closure);
-    read_js(handler.borrow().as_ref().unwrap());
+    read_js(expected_mime_type, handler.borrow().as_ref().unwrap());
 }
 
 /// Write the provided text to the clipboard. Please note that:
@@ -92,7 +97,7 @@ pub fn write_text(text: impl Into<String>) {
 pub fn read_text(callback: impl Fn(String) + 'static) {
     let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
     let handler_clone = handler.clone_ref();
-    let closure: Closure<dyn Fn(String)> = Closure::new(move |result| {
+    let closure: ReadTextClosure = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;
         callback(result);
     });
