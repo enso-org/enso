@@ -1026,7 +1026,6 @@ impl Registry {
         let fonts = fonts
             .into_iter()
             .map(|(name, font)| {
-                debug!("Loading font: {:?}", name);
                 let hinting = Hinting::for_font(&name, scene_shape);
                 (name, FontWithGpuData::new(font, hinting, &context))
             })
