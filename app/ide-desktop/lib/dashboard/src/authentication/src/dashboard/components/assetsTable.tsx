@@ -178,7 +178,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            toastAndLog('Unable to delete project', error)
+            toastAndLog(`Unable to delete ${backendModule.ASSET_TYPE_NAME[item.type]}`, error)
         }
     }, [backend, dispatchAssetListEvent, item, key, toastAndLog])
 
@@ -225,7 +225,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         })
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
-                        toastAndLog('Unable to delete project', error)
+                        toastAndLog(
+                            `Unable to delete ${backendModule.ASSET_TYPE_NAME[item.type]}`,
+                            error
+                        )
                     }
                 }
                 break
@@ -892,8 +895,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         <div ref={scrollContainerRef} className="flex-1 overflow-auto">
             <div className="flex flex-col w-min min-w-full h-full">
                 {backend.type !== backendModule.BackendType.local && (
-                    <div className="h-0">
-                        <div className="block sticky right-0 px-2 py-1 ml-auto mt-1.25 w-29 z-10">
+                    <div className="sticky top-0 h-0">
+                        <div className="block sticky right-0 ml-auto mt-1.25 w-29 p-2 z-10">
                             <div className="inline-flex gap-3">
                                 {columnModule.EXTRA_COLUMNS.map(column => (
                                     <Button
