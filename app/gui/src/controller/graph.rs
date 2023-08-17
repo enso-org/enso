@@ -960,6 +960,7 @@ impl Handle {
     pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
         let this = self.clone_ref();
         clipboard::read(move |content| {
+            let _transaction = this.module.get_or_open_transaction("Paste node");
             if let Ok(content) = serde_json::from_str(&content) {
                 match content {
                     ClipboardContent::Node(node) => {
