@@ -946,41 +946,50 @@ type AtlasTexture = f32;
 
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct FontWithGpuData {
-    #[deref]
     pub font:             Font,
-    /// The glyph atlas.
+    // context-dependent values, but not context-dependent variables
     pub atlas:            gpu::Uniform<AtlasTexture>,
     pub opacity_increase: gpu::Uniform<f32>,
     pub opacity_exponent: gpu::Uniform<f32>,
-    context:              Rc<RefCell<Context>>,
+    context:              Option<Context>,
 }
 
 impl FontWithGpuData {
-    fn new(font: Font, hinting: Hinting, context: &Context) -> Self {
+    fn new(font: Font, hinting: Hinting, context: Context) -> Self {
         let Hinting { opacity_increase, opacity_exponent } = hinting;
-        let texture = get_texture(context, default(), default());
+        let texture = get_texture(&context, default(), default());
         let atlas = gpu::Uniform::new(texture);
         let opacity_increase = gpu::Uniform::new(opacity_increase);
         let opacity_exponent = gpu::Uniform::new(opacity_exponent);
-        let context = Rc::new(RefCell::new(context.clone()));
+        let context = Some(context);
         Self { font, atlas, opacity_exponent, opacity_increase, context }
     }
 
     #[cfg(target_arch = "wasm32")]
     fn set_context(&self, context: Option<&Context>) {
-        if let Some(context) = context {
-            *self.context.borrow_mut() = context.clone();
-            let glyph_size = self.font.msdf_texture().size();
-            let num_glyphs = self.font.msdf_texture().glyphs();
-            let texture = get_texture(context, glyph_size, num_glyphs);
-            self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            self.atlas.set(texture);
-        }
+        self.context = context.cloned();
+        self.update_atlas();
     }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn set_context(&self, _context: Option<&Context>) {}
+
+    fn update_atlas(&self) {
+        if let Some(context) = self.context.as_ref() {
+            let num_glyphs = self.font.msdf_texture().glyphs();
+            let gpu_tex_glyphs = self.atlas.with_item(|texture| texture.storage().layers);
+            let texture_changed = gpu_tex_glyphs != num_glyphs;
+            if texture_changed {
+                let glyph_size = self.font.msdf_texture().size();
+                let num_glyphs = self.font.msdf_texture().glyphs();
+                let texture = get_texture(context, glyph_size, num_glyphs);
+                self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+                self.atlas.set(texture);
+            }
+        }
+    }
 }
 
 
@@ -1021,13 +1030,14 @@ impl Registry {
         scene: &ensogl_core::display::Scene,
         fonts: impl IntoIterator<Item = (Name, Font)>,
     ) -> Self {
-        let context = get_context(&scene);
+        let context = scene.context.borrow();
+        let context = context.as_ref().unwrap();
         let scene_shape = scene.shape().value();
         let fonts = fonts
             .into_iter()
             .map(|(name, font)| {
                 let hinting = Hinting::for_font(&name, scene_shape);
-                (name, FontWithGpuData::new(font, hinting, &context))
+                (name, FontWithGpuData::new(font, hinting, context.clone()))
             })
             .collect();
         let fonts = Rc::new(fonts);
@@ -1067,10 +1077,6 @@ fn get_texture(_context: &Context, _glyph_size: Vector2<u32>, _num_glyphs: u32) 
 #[cfg(target_arch = "wasm32")]
 fn get_texture(context: &Context, glyph_size: Vector2<u32>, num_glyphs: u32) -> AtlasTexture {
     gpu::Texture::new(context, ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs as i32))
-}
-
-fn get_context(scene: &scene::Scene) -> Context {
-    scene.context.borrow().as_ref().unwrap().clone_ref()
 }
 
 

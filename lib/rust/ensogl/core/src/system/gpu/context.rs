@@ -116,6 +116,13 @@ impl ContextData {
 /// extension plans.
 pub type DeviceContextHandler = web::HtmlCanvasElement;
 
+
+// === Context loss ===
+
+/// Error type returned to indicate that an operation failed due to context loss.
+#[derive(Debug, Copy, Clone)]
+pub struct ContextLost;
+
 /// Handler for closures taking care of context restoration. After dropping this handler and losing
 /// the context, the context will not be restored automatically.
 #[derive(Debug)]
@@ -174,8 +181,8 @@ pub fn init_webgl_2_context<D: Display + 'static>(
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(native) => {
             let context = Context::from_native(native.clone());
-            type Handler = web::JsEventHandler<web_sys::Event>;
             display.set_context(Some(&context));
+            type Handler = web::JsEventHandler<web_sys::Event>;
             let lost: Handler = Closure::new(f!([display] (e: web_sys::Event)
                 warn!("Lost the WebGL context.");
                 display.set_context(None);
@@ -183,7 +190,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
             ));
             let restored: Handler = Closure::new(f_!([display, native]
                 warn!("Trying to restore the WebGL context.");
-                let new_context = Context::from_native(native);
+                let new_context = Context::from_native(native.clone());
                 display.set_context(Some(&new_context))
             ));
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);

@@ -23,7 +23,6 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
-use font::Context;
 use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;
@@ -89,7 +88,7 @@ pub struct ShapeData {
 impl ShapeData {
     fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
         let mut hasher = DefaultHasher::new();
-        std::hash::Hash::hash(&self.font.name(), &mut hasher);
+        std::hash::Hash::hash(&self.font.font.name(), &mut hasher);
         display::shape::system::ShapeSystemFlavor { flavor: hasher.finish() }
     }
 }
@@ -123,7 +122,7 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
-        let size = font.msdf_texture().size();
+        let size = font.font.msdf_texture().size();
         let sprite_system = &data.model.sprite_system;
         let symbol = sprite_system.symbol();
 
@@ -173,8 +172,6 @@ pub struct GlyphData {
     pub attached_to_cursor: Cell<bool>,
     glyph_id:               Cell<GlyphId>,
     display_object:         display::object::Instance,
-    #[cfg_attr(not(target_arg = "wasm32"), allow(unused))]
-    context:                Rc<RefCell<Context>>,
     properties:             Cell<font::family::NonVariableFaceHeader>,
     variations:             RefCell<VariationAxes>,
 }
@@ -323,7 +320,7 @@ impl Glyph {
     pub fn set_font_size(&self, size: Size) {
         let size = size.value;
         self.view.font_size.set(size);
-        let opt_glyph_info = self.view.data.borrow().font.glyph_info(
+        let opt_glyph_info = self.view.data.borrow().font.font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
@@ -344,8 +341,11 @@ impl Glyph {
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
         let variations = self.variations.borrow();
-        let opt_glyph_info =
-            self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
+        let opt_glyph_info = self.view.data.borrow().font.font.glyph_info(
+            self.properties.get(),
+            &variations,
+            glyph_id,
+        );
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id);
             self.update_atlas();
@@ -369,24 +369,8 @@ impl Glyph {
     }
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
-    #[cfg(not(target_arch = "wasm32"))]
-    fn update_atlas(&self) {}
-    #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
-        let data = self.view.data.borrow();
-        let font = &data.font;
-        let glyph_size = data.font.msdf_texture().size();
-        let num_glyphs = data.font.msdf_texture().glyphs() as i32;
-        let gpu_tex_glyphs = font.atlas.with_item(|texture| texture.storage().layers);
-        let texture_changed = gpu_tex_glyphs != num_glyphs;
-        if texture_changed {
-            let texture = Texture::new(
-                &*self.context.borrow(),
-                ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs),
-            );
-            font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            font.atlas.set(texture);
-        }
+        self.view.data.borrow().font.update_atlas();
     }
 }
 
@@ -443,7 +427,6 @@ impl System {
     /// may be set.
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
-        let context = Rc::clone(&self.font.context);
         let display_object = display::object::Instance::new_no_debug();
         let font = self.font.clone_ref();
         let glyph_id = default();
@@ -460,7 +443,6 @@ impl System {
             data: Rc::new(GlyphData {
                 view,
                 display_object,
-                context,
                 glyph_id,
                 line_byte_offset,
                 properties,

@@ -10,6 +10,7 @@ use crate::display::symbol::geometry::primitive::mesh;
 use crate::display::uniform::UniformScopeData;
 use crate::system::gpu;
 use crate::system::gpu::context::native::ContextOps;
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::buffer::IsBuffer;
 use crate::system::gpu::data::texture::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
@@ -124,25 +125,10 @@ impl TextureBinding {
 
 /// A safe wrapper for WebGL VertexArrayObject. It releases the VAO from GPU memory as soon as all
 /// references to this object are dropped.
-#[derive(Clone, Debug, Deref)]
-pub struct VertexArrayObject {
-    rc: Rc<VertexArrayObjectData>,
-}
-
-impl VertexArrayObject {
-    /// Constructor
-    pub fn new(context: &Context) -> Self {
-        let rc = Rc::new(VertexArrayObjectData::new(context));
-        Self { rc }
-    }
-}
-
-
-// === Data ===
-
-/// Internal representation for `VertexArrayObject`.
+// NOTE: This type must not derive `Clone`, as the resulting shared `vao` would be deleted when
+// either instance is dropped.
 #[derive(Debug)]
-pub struct VertexArrayObjectData {
+pub struct VertexArrayObject {
     context: Context,
     vao:     WebGlVertexArrayObject,
 }
@@ -150,19 +136,19 @@ pub struct VertexArrayObjectData {
 
 // === Public API ===
 
-impl VertexArrayObjectData {
-    /// Creates a new VAO instance.
-    pub fn new(context: &Context) -> Self {
+impl VertexArrayObject {
+    /// Creates a new VAO instance, if the context is valid.
+    pub fn new(context: &Context) -> Result<Self, ContextLost> {
         let context = context.clone();
-        let vao = context.create_vertex_array().unwrap();
-        Self { context, vao }
+        let vao = context.create_vertex_array().ok_or(ContextLost)?;
+        Ok(Self { context, vao })
     }
 }
 
 
 // === Private API ===
 
-impl VertexArrayObjectData {
+impl VertexArrayObject {
     fn bind(&self) {
         self.context.bind_vertex_array(Some(&self.vao));
     }
@@ -175,7 +161,7 @@ impl VertexArrayObjectData {
 
 // === Instances ===
 
-impl Drop for VertexArrayObjectData {
+impl Drop for VertexArrayObject {
     fn drop(&mut self) {
         // Delete the object, unless it's from a previous context.
         if self.context.is_valid() && self.context.is_vertex_array(Some(&self.vao)) {
@@ -296,7 +282,7 @@ pub type WeakShaderDirty = dirty::WeakSharedBool<Box<dyn Fn()>>;
 // === Bindings ====
 
 /// All attributes and uniforms bindings of symbol with the associated Vertex Array Object.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Bindings {
     vao:      Option<VertexArrayObject>,
     uniforms: Vec<UniformBinding>,
@@ -527,7 +513,7 @@ impl WeakElement for WeakSymbol {
 // ==================
 
 /// Internal representation of [`Symbol`]
-#[derive(Debug, Clone, display::Object)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct SymbolData {
     pub label:          &'static str,
@@ -645,7 +631,7 @@ impl SymbolData {
             });
             let max_texture_units = max_texture_units.as_f64().unwrap() as u32;
             let mut texture_unit_iter = 0..max_texture_units;
-            self.bindings.borrow_mut().vao = Some(VertexArrayObject::new(context));
+            self.bindings.borrow_mut().vao = VertexArrayObject::new(context).ok();
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
             assert_eq!(program.context, context.id);
