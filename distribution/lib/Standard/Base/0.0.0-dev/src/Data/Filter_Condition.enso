@@ -218,12 +218,12 @@ type Filter_Condition
     and : Vector Filter_Condition -> Filter_Condition
     and filter_conditions =
         if filter_conditions.is_empty then Filter_Condition.Constant_True else
-            filter_conditions . drop 1 . reduce (Filter_Condition.And) (filter_conditions.at 0)
+            filter_conditions . reduce (Filter_Condition.And)
 
     or : Vector Filter_Condition -> Filter_Condition
     or filter_conditions =
         if filter_conditions.is_empty then Filter_Condition.Constant_False else
-            filter_conditions . drop 1 . reduce (Filter_Condition.Or) (filter_conditions.at 0)
+            filter_conditions . reduce (Filter_Condition.Or)
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.

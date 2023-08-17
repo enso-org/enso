@@ -600,12 +600,11 @@ type Table
        - range: The selection of rows from the table to return.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
-    take self (range:(Index_Sub_Range | Range | Integer)=(First 1)) =
+    take self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
-
 
        Arguments:
        - range: The selection of rows from the table to remove.
@@ -613,6 +612,11 @@ type Table
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
+
+    ## PRIVATE
+       Filter out all rows.
+    remove_all_rows : Table
+    remove_all_rows self = self.filter_by_expression "0=1"
 
     ## ALIAS rank, record id, add index column
        Adds a new column to the table enumerating the rows.

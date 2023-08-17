@@ -12,12 +12,22 @@ import Standard.Test.Extensions
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
+import Standard.Database.Data.Table.Table as DB_Table
+import Standard.Test.Test_Result.Test_Result
+
 main = run_default_backend spec
+
+DB_Table.should_equal : Any -> Integer -> Test_Result
+DB_Table.should_equal self expected frames_to_skip=0 =
+    t0 = self.read
+    t1 = expected.read
+    t0 . should_equal t1 frames_to_skip
 
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     test_selection = setup.test_selection
+    db_take_drop_by_pending = if setup.is_database.not then Nothing else "Database backends do not support Index_Sub_Range.While or .Sample."
     take_drop_by_pending = if test_selection.take_drop.not then
         "TODO: take/drop are not yet supported by this backend."
 
@@ -26,17 +36,22 @@ spec setup =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
             table_builder [col1, col2] . order_by "alpha"
-        #empty = table_builder [["alpha", []], ["beta", []]]
+        #empty = table . filter "alpha" (Filter_Condition.Constant_False)
 
-        Test.specify "should allow selecting first or last N rows" <|
-            table.take (First 0) . at "alpha" . to_vector . should_equal []
+        Test.specify "should allow selecting first or last N rows" pending=db_take_drop_by_pending <|
+            one = table_builder [["X", ["a"]]]
+            two = table_builder [["X", ["a", "a"]]]
+            three = table_builder [["X", ["a", "a", "a"]]] . order_by "X"
+            empty = one.remove_all_rows
+            three.take (Sample 0) . should_equal empty
+            three.take (Sample 1) . should_equal one
 
-    Test.group prefix+"Table.take/dropasdfasdf" pending=take_drop_by_pending <|
+    Test.group prefix+"Table.take/drop asdfasdf" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
             table_builder [col1, col2] . order_by "alpha"
-        empty = table_builder [["alpha", []], ["beta", []]]
+        empty = table.remove_all_rows
 
         Test.specify "should allow selecting first or last N rows" <|
             IO.println 'QQQ'
@@ -166,11 +181,11 @@ spec setup =
             table.drop (Every 0) . should_fail_with Illegal_Argument
             empty.drop (Every 0) . should_fail_with Illegal_Argument
 
-        Test.specify "should allow sampling rows" <|
-            empty = table_builder [["X", []]]
-            one = table_builder [["X", ["a"]]]
-            two = table_builder [["X", ["a", "a"]]]
-            three = table_builder [["X", ["a", "a", "a"]]]
+        Test.specify "should allow sampling rows" pending=db_take_drop_by_pending <|
+            one = table_builder [["X", ["a"]]] . order_by "X"
+            two = table_builder [["X", ["a", "a"]]] . order_by "X"
+            three = table_builder [["X", ["a", "a", "a"]]] . order_by "X"
+            empty = one.remove_all_rows
             three.take (Sample 0) . should_equal empty
             empty.take (Sample 0) . should_equal empty
             empty.take (Sample 1) . should_equal empty
@@ -191,7 +206,7 @@ spec setup =
             rnd.at "alpha" . to_vector . should_equal alpha_sample
             rnd.at "beta" . to_vector . should_equal beta_sample
 
-        Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending=db_take_drop_by_pending <|
             t = table_builder [["a", [1, 2, 3, 4]], ["b", [5, 6, 7, 8]]]
 
             t2 = t.take (While (row -> row.at "a" < 3))
@@ -328,11 +343,11 @@ spec setup =
             beta.drop (Every 0) . should_fail_with Illegal_Argument
             empty_beta.drop (Every 0) . should_fail_with Illegal_Argument
 
-        Test.specify "should allow sampling rows" <|
+        Test.specify "should allow sampling rows"  pending=db_take_drop_by_pending <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"
             two = table_builder [["X", ["a", "a"]]] . at "X"
             one = table_builder [["X", ["a"]]] . at "X"
-            empty = table_builder [["X", []]] . at "X"
+            empty = one.remove_all_rows
 
             three.take (First 2) . should_equal two
             three.take First . should_equal one
@@ -360,13 +375,13 @@ spec setup =
             sample = alpha.take (Index_Sub_Range.By_Index random_indices)
             rnd.should_equal sample
 
-        Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending=db_take_drop_by_pending <|
             col = table_builder [["X", [1, 3, 5, 6, 8, 9, 10, 11, 13]]] . at "X"
             col.take (While (x-> x%2 == 1)) . to_vector . should_equal [1, 3, 5]
             col.drop (While (x-> x%2 == 1)) . to_vector . should_equal [6, 8, 9, 10, 11, 13]
 
             three = table_builder [["X", [1, 2, 3]]] . at "X"
-            empty = table_builder [["X", []]] . at "X"
+            empty = three.remove_all_rows
             three.take (While (_ > 10)) . should_equal empty
             three.take (While (_ < 10)) . should_equal three
 
