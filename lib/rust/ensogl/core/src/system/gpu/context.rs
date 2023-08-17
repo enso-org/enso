@@ -117,7 +117,7 @@ impl ContextData {
 pub type DeviceContextHandler = web::HtmlCanvasElement;
 
 /// Handler for closures taking care of context restoration. After dropping this handler and losing
-/// the context, the context will not be restored automaticaly.
+/// the context, the context will not be restored automatically.
 #[derive(Debug)]
 pub struct ContextLostHandler {
     on_lost:     web::EventListenerHandle,
@@ -173,7 +173,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
     match opt_context {
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(native) => {
-            let context = Context::from_native(native);
+            let context = Context::from_native(native.clone());
             type Handler = web::JsEventHandler<web_sys::Event>;
             display.set_context(Some(&context));
             let lost: Handler = Closure::new(f!([display] (e: web_sys::Event)
@@ -181,12 +181,10 @@ pub fn init_webgl_2_context<D: Display + 'static>(
                 display.set_context(None);
                 e.prevent_default();
             ));
-            let restored: Handler = Closure::new(f_!([display]
+            let restored: Handler = Closure::new(f_!([display, native]
                 warn!("Trying to restore the WebGL context.");
-                let hdc = display.device_context_handler();
-                let native = hdc.get_webgl2_context().unwrap();
-                let context = Context::from_native(native);
-                display.set_context(Some(&context))
+                let new_context = Context::from_native(native);
+                display.set_context(Some(&new_context))
             ));
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);
             let on_restored = web::add_event_listener(hdc, "webglcontextrestored", restored);
