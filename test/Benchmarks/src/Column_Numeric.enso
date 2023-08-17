@@ -33,33 +33,33 @@ collect_benches = Bench.build builder->
     data = Data.create vector_size faker
 
     builder.group "Column_Numeric" options group_builder->
-        group_builder.specify "Column_round_floats" <|
+        group_builder.specify "round_floats" <|
             data.floats.round
 
-        group_builder.specify "Column_truncate_floats" <|
+        group_builder.specify "truncate_floats" <|
             data.floats.truncate
 
-        group_builder.specify "Column_ceil_floats" <|
+        group_builder.specify "ceil_floats" <|
             data.floats.ceil
 
-        group_builder.specify "Column_floor_floats" <|
+        group_builder.specify "floor_floats" <|
             data.floats.floor
 
-        group_builder.specify "Column_round_ints" <|
+        group_builder.specify "round_ints" <|
             data.ints.round
 
-        group_builder.specify "Column_truncate_ints" <|
+        group_builder.specify "truncate_ints" <|
             data.ints.truncate
 
-        group_builder.specify "Column_ceil_ints" <|
+        group_builder.specify "ceil_ints" <|
             data.ints.ceil
 
-        group_builder.specify "Column_floor_ints" <|
+        group_builder.specify "floor_ints" <|
             data.ints.floor
 
         [True, False].each use_bankers->
             [0, -2, 2].map decimal_places->
-                name = ...
+                name = create_name "round_decimal_places_" decimal_places use_bankers
                 fun x = x.round decimal_places use_bankers
 
                 group_builder.specify ("floats_" + name) <|
@@ -67,6 +67,15 @@ collect_benches = Bench.build builder->
 
                 group_builder.specify ("ints_" + name) <|
                     fun data.ints
+
+
+## Creates a valid name for the benchmark
+create_name : Text -> Integer -> Boolean -> Text
+create_name prefix dec_places use_bankers =
+    use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)
+    case dec_places >= 0 of
+        True -> prefix + dec_places.to_text + use_bankers_str
+        False -> prefix + "minus_" + (dec_places.abs.to_text) + use_bankers_str
 
 
 main = collect_benches . run_main
