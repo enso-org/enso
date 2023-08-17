@@ -157,6 +157,10 @@ object Runtime {
         name  = "projectRenamed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ProjectRenameFailed],
+        name  = "projectRenameFailed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.RenameSymbol],
         name  = "renameSymbol"
       ),
@@ -1639,9 +1643,21 @@ object Runtime {
     /** Signals that project has been renamed.
       *
       * @param namespace the namespace of the project
-      * @param newName the new project name
+      * @param normalizedName the new normalized name of the project
+      * @param name the new name of the project
       */
-    final case class ProjectRenamed(namespace: String, newName: String)
+    final case class ProjectRenamed(
+      namespace: String,
+      normalizedName: String,
+      name: String
+    ) extends ApiResponse
+
+    /** Signals that project has been renamed.
+      *
+      * @param oldName the old name of the project
+      * @param newName the new name of the project
+      */
+    final case class ProjectRenameFailed(oldName: String, newName: String)
         extends ApiResponse
 
     /** A request for symbol renaming.
