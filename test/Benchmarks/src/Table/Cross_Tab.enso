@@ -5,10 +5,12 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count, Sum
 
 from Standard.Test import Bench, Faker
 
-## Bench Utilities ============================================================
 
-num_iterations = 10
-seed=1646322139
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
+
+
+seed = 1646322139
+
 
 create_table : Table
 create_table num_rows =
@@ -25,36 +27,38 @@ create_table num_rows =
 
     Table.new [size, store, typ, price]
 
-# The Benchmarks ==============================================================
-collect_benches group_builder num_rows =
-        bench_measure ~act name = group_builder.specify name act
-        table = create_table num_rows
 
-        measure group_by name_column values=[Count] =
-            name = num_rows.to_text + "__" + (group_by.join '_') + "__" + name_column + "_" + (values.map .to_text . join "_")
-            bench_measure (table.cross_tab group_by name_column values) name
+type Data
+    Value ~table
 
-        measure [] "size"
-        measure [] "type"
-        measure [] "store"
-        measure ["type"] "size"
-        measure ["store"] "size"
-        measure ["size"] "store"
-        measure ["size"] "store" values=[Count, Sum "price"]
+    create num_rows = Data.Value (create_table num_rows)
 
-bench =
-    counts = [[25, 1000], [250, 1000], [2500, 100], [25000, 10]]
 
-    all = Bench.build builder->
-        counts.map c->
-            num_rows = c.at 0
-            iter_size = c.at 1
+collect_benches = Bench.build builder->
+    row_numbers = [25, 250, 2500, 25000]
 
-            group_name = "CrossTab_" + num_rows.to_text + "_" + iter_size.to_text
-            options = Bench.options . size iter_size . iter num_iterations
-            builder.group group_name options group_builder->
-                collect_benches group_builder num_rows
 
-    all . run_main
+    row_numbers.each num_rows->
+        data = Data.create num_rows
 
-main = bench
+        builder.group ("CrossTab_" + num_rows.to_text) options group_builder->
+            specify group_by name_column values=[Count] =
+                name = (group_by.join '_') + "_" + name_column + "_" + (values.map .to_text . join "_")
+                group_builder.specify (normalize_name name) <|
+                    data.table.cross_tab group_by name_column values
+
+            specify [] "size"
+            specify [] "type"
+            specify [] "store"
+            specify ["type"] "size"
+            specify ["store"] "size"
+            specify ["size"] "store"
+            specify ["size"] "store" values=[Count, Sum "price"]
+
+
+normalize_name : Text -> Text
+normalize_name name =
+    name.replace "(" "" |> _.replace ")" "" |> _.replace " " "_" |> _.replace "'" ""
+
+
+main = collect_benches . run_main

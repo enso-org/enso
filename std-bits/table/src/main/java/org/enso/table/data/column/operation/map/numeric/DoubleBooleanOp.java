@@ -4,6 +4,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -74,12 +75,18 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
         context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
-    } else if (arg instanceof LongStorage v) {
+    } else if (arg instanceof AbstractLongStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          if (doDouble(storage.getItem(i), v.getItemDouble(i))) {
+          double left = storage.getItem(i);
+          long right = v.getItem(i);
+          // We convert from long to double here. This may lose precision, but we do not report
+          // LossOfIntegerPrecision, because it is expected that numeric operations involving floating point columns
+          // are inherently imprecise.
+          double rightConverted = (double) right;
+          if (doDouble(left, rightConverted)) {
             newVals.set(i);
           }
         } else {

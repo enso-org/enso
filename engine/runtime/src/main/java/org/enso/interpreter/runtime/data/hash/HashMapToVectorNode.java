@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -11,9 +14,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Vector;
-
 
 @BuiltinMethod(
     type = "Map",
@@ -48,7 +48,7 @@ public abstract class HashMapToVectorNode extends Node {
 
   @Fallback
   Object fallback(Object object) {
-    return Vector.fromArray(HashEntriesVector.createEmpty());
+    return ArrayLikeHelpers.asVectorWithCheckAt(HashEntriesVector.createEmpty());
   }
 
   private static Object createEntriesVectorFromForeignMap(
@@ -67,7 +67,7 @@ public abstract class HashMapToVectorNode extends Node {
         values[arrIdx] = iteratorInterop.readArrayElement(keyValueArr, 1);
         arrIdx++;
       }
-      return Vector.fromArray(
+      return ArrayLikeHelpers.asVectorFromArray(
           HashEntriesVector.createFromKeysAndValues(keys, values)
       );
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {

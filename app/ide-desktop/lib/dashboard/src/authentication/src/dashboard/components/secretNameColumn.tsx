@@ -11,10 +11,12 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ==================
 // === SecretName ===
@@ -36,27 +38,30 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     } = props
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
     // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-    const doRename = async (/* _newName: string */) => {
+    const doRename = async () => {
         await Promise.resolve(null)
     }
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to secrets.
-                // `deleteMultiple` is handled by `AssetRow`.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createSecret: {
+            case assetEventModule.AssetEventType.newSecret: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Secrets cannot be created on the local backend')
@@ -97,10 +102,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -109,7 +111,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <img src={SecretIcon} />{' '}
+            <SvgMask src={SecretIcon} />{' '}
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

@@ -13,6 +13,7 @@ import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 
 import Spinner, * as spinner from './spinner'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =================
 // === Constants ===
@@ -204,12 +205,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by
-                // `ProjectNameColumn`. `deleteMultiple` is handled by `AssetRow`.
+                // `ProjectNameColumn`. `deleteMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {
@@ -230,7 +234,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 void closeProject(false)
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 if (event.placeholderId === key) {
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
@@ -382,7 +386,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(item.id)
                     }}
                 >
-                    <img src={PlayIcon} />
+                    <SvgMask src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -399,7 +403,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     <div className="relative h-0">
                         <Spinner size={24} state={spinnerState} />
                     </div>
-                    <img src={StopIcon} />
+                    <SvgMask src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -416,7 +420,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <img src={StopIcon} />
+                        <SvgMask src={StopIcon} />
                     </button>
                     <button
                         className="w-6"
@@ -426,7 +430,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             openIde()
                         }}
                     >
-                        <img src={ArrowUpIcon} />
+                        <SvgMask src={ArrowUpIcon} />
                     </button>
                 </>
             )

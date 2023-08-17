@@ -9,15 +9,11 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Time_Utils
 
 
-
 ## Bench Utilities ============================================================
-
-vector_size = 1000000
-iter_size = 100
-num_iterations = 10
 
 make_sorted_ascending_vec : Integer -> Vector
 make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
+
 
 make_partially_sorted_vec : Integer -> Vector
 make_partially_sorted_vec n =
@@ -57,23 +53,59 @@ type Int
 
 # The Benchmarks ==============================================================
 
-bench =
-    sorted_vec = make_sorted_ascending_vec vector_size
-    partially_sorted_vec = make_partially_sorted_vec vector_size
-    random_vec = Utils.make_random_vec vector_size
-    random_vec_wrapped = random_vec.map (v -> Int.Value v)
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+
+type Data
+    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped
+
+    create vec_size =
+        Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v))
+
+    make_sorted_vec vec_size =
+        make_sorted_ascending_vec vec_size
+
+    make_random_vec vec_size =
+        Utils.make_random_vec vec_size
+
+
+collect_benches = Bench.build builder->
+    vector_size = 1000 * 1000
+    data = Data.create vector_size
     projection = x -> x % 10
     comparator = l -> r -> Ordering.compare l r
 
-    Bench.measure (sorted_vec.sort) "Already Sorted" iter_size num_iterations
-    Bench.measure (sorted_vec.sort Sort_Direction.Descending) "Sorted in Opposite Order" iter_size num_iterations
-    Bench.measure (partially_sorted_vec.sort) "Sorted Runs Ascending" iter_size num_iterations
-    Bench.measure (partially_sorted_vec.sort Sort_Direction.Descending) "Sorted Runs Descending" iter_size num_iterations
-    Bench.measure (random_vec.sort) "Random Elements Ascending" iter_size num_iterations
-    Bench.measure (random_vec.sort Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
-    Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" iter_size num_iterations
-    Bench.measure (random_vec_wrapped.sort on=(_.identity)) "Sorting with an identity function" iter_size num_iterations
-    Bench.measure (random_vec_wrapped.sort on=(.identity)) "Sorting with an (unresolved) identity function" iter_size num_iterations
-    Bench.measure (random_vec.sort by=comparator) "Sorting with the Default_Ordered_Comparator" iter_size num_iterations
+    builder.group "Vector_Sort" options group_builder->
+        group_builder.specify "Already_Sorted" <|
+            data.sorted_vec.sort
 
-main = bench
+        group_builder.specify "Sorted_in_Opposite_Order" <|
+            data.sorted_vec.sort Sort_Direction.Descending
+
+        group_builder.specify "Sorted_Runs_Ascending" <|
+            data.partially_sorted_vec.sort
+
+        group_builder.specify "Sorted_Runs_Descending" <|
+            data.partially_sorted_vec.sort Sort_Direction.Descending
+
+        group_builder.specify "Random_Elements_Ascending" <|
+            data.random_vec.sort
+
+        group_builder.specify "Random_Elements_Descending" <|
+            data.random_vec.sort Sort_Direction.Descending
+
+        group_builder.specify "Sorting_with_a_Custom_Projection" <|
+            data.random_vec.sort on=projection
+
+        group_builder.specify "Sorting_with_an_identity_function" <|
+            data.random_vec_wrapped.sort on=(_.identity)
+
+        group_builder.specify "Sorting_with_an_unresolved_identity_function" <|
+            data.random_vec_wrapped.sort on=(.identity)
+
+        group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
+            data.random_vec.sort by=comparator
+
+
+main = collect_benches . run_main

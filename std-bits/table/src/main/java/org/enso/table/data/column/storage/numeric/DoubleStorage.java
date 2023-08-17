@@ -12,6 +12,7 @@ import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -68,11 +69,6 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public double getItemDouble(int idx) {
-    return getItem(idx);
-  }
-
-  @Override
   public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
@@ -108,6 +104,17 @@ public final class DoubleStorage extends NumericStorage<Double> {
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runBinaryMap(name, this, argument, problemBuilder);
+  }
+
+  @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 
   @Override
@@ -289,6 +296,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 return (long) Math.floor(a);
               }
             })
+        .add(new DoubleRoundOp(Maps.ROUND))
         .add(
             new DoubleComparison(Maps.LT) {
               @Override

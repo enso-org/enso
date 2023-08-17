@@ -19,4 +19,10 @@ trait PendingEdits {
     * @return the list of pending edits
     */
   def dequeue(file: File): Seq[PendingEdit]
+
+  /** List files with pending edits.
+    *
+    * @return the list of files with pending edits
+    */
+  def files: Seq[File]
 }

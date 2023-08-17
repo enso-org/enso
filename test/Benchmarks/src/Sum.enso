@@ -69,26 +69,21 @@ sum_co n =
     res = sum_co_2 n 0
     res
 
-bench =
-    hundred_mil = 100000000
-    IO.println "Measuring Sum TCO Corecursive"
-    Bench.measure (sum_co hundred_mil) "sum_tco_corecursive" 100 10
-    IO.println "Measuring Sum TCO Decimal"
-    Bench.measure (sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
-    IO.println "Measuring SumTCO"
-    Bench.measure (sum_tco hundred_mil) "sum_tco" 100 10
-    IO.println "Measuring SumTCO Java"
-    Bench.measure (sum_tco_java hundred_mil) "sum_tco_java" 100 10
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
-    ## This test is disabled because it fails when running from a common entry point.
-       See the bug: https://www.pivotaltracker.com/story/show/183914580
-    # IO.println "Measuring SumTCO Eval"
-    # Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
+collect_benches = Bench.build builder->
+    ten_mil = 10000000
 
-    IO.println "Measuring State"
-    Bench.measure (sum_state hundred_mil) "sum_state" 100 10
-    IO.println "Measuring Co-State"
-    Bench.measure (sum_co_state hundred_mil) "sum_co_state" 100 10
-    IO.println "Bye."
+    builder.group "Sum" options group_builder->
+        group_builder.specify "sum_tco_corecursive" (sum_tco ten_mil)
+        group_builder.specify "sum_tco_float" (sum_tco_decimal ten_mil)
+        group_builder.specify "sum_tco" (sum_tco ten_mil)
+        group_builder.specify "sum_tco_java" (sum_tco_java ten_mil)
+        group_builder.specify "sum_state" (sum_state ten_mil)
+        group_builder.specify "sum_co_state" (sum_co_state ten_mil)
+        # This test is disabled because it fails when running from a common entry point.
+        # See the bug: https://www.pivotaltracker.com/story/show/183914580
+        #group_builder.specify "sum_tco_eval" (sum_tco_eval ten_mil)
 
-main = bench
+
+main = collect_benches . run_main

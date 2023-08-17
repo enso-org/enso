@@ -7,7 +7,10 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -20,8 +23,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
@@ -30,7 +34,7 @@ import org.enso.polyglot.MethodNames;
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class Function implements TruffleObject {
+public final class Function implements EnsoObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
@@ -264,7 +268,7 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(MethodNames.Function.EQUALS);
+    return ArrayLikeHelpers.wrapStrings(MethodNames.Function.EQUALS);
   }
 
   /**
@@ -380,7 +384,7 @@ public final class Function implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value = "1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 
