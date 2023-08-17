@@ -173,6 +173,7 @@ pub struct GlyphData {
     pub attached_to_cursor: Cell<bool>,
     glyph_id:               Cell<GlyphId>,
     display_object:         display::object::Instance,
+    #[cfg_attr(not(target_arg = "wasm32"), allow(unused))]
     context:                Rc<RefCell<Context>>,
     properties:             Cell<font::family::NonVariableFaceHeader>,
     variations:             RefCell<VariationAxes>,

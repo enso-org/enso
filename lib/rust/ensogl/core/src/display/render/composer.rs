@@ -13,40 +13,39 @@ use crate::display::scene::UpdateStatus;
 // === Composer ===
 // ================
 
-shared! { Composer
 /// Render composer is a render pipeline bound to a specific context.
 #[derive(Debug)]
-pub struct ComposerModel {
-    pipeline : Pipeline,
-    passes : Vec<ComposerPass>,
-    variables : UniformScope,
-    context : Context,
-    width : i32,
-    height : i32,
-    pixel_ratio : f32,
+pub struct Composer {
+    pipeline:    Pipeline,
+    passes:      Vec<ComposerPass>,
+    variables:   UniformScope,
+    context:     Context,
+    width:       i32,
+    height:      i32,
+    pixel_ratio: f32,
 }
 
-impl {
+impl Composer {
     /// Constructor
-    pub fn new
-    ( pipeline: &Pipeline
-    , context: &Context
-    , variables: &UniformScope
-    , width: i32
-    , height: i32
-    , pixel_ratio: f32
+    pub fn new(
+        pipeline: &Pipeline,
+        context: &Context,
+        variables: &UniformScope,
+        width: i32,
+        height: i32,
+        pixel_ratio: f32,
     ) -> Self {
-        let pipeline  = pipeline.clone_ref();
-        let passes    = default();
-        let context   = context.clone();
+        let pipeline = pipeline.clone_ref();
+        let passes = default();
+        let context = context.clone();
         let variables = variables.clone_ref();
-        let mut this  = Self {pipeline, passes, variables, context, width, height, pixel_ratio};
+        let mut this = Self { pipeline, passes, variables, context, width, height, pixel_ratio };
         this.init_passes();
         this
     }
 
     /// Set a new pipeline for this composer.
-    pub fn set_pipeline(&mut self, pipeline:&Pipeline) {
+    pub fn set_pipeline(&mut self, pipeline: &Pipeline) {
         self.pipeline = pipeline.clone_ref();
         self.init_passes();
     }
@@ -69,12 +68,12 @@ impl {
 
     /// Initialize all pass definitions from the [`Pipeline`].
     fn init_passes(&mut self) {
-        let ctx    = &self.context;
-        let vars   = &self.variables;
-        let width  = self.width;
+        let ctx = &self.context;
+        let vars = &self.variables;
+        let width = self.width;
         let height = self.height;
         let pixel_ratio = self.pixel_ratio;
-        let defs   = self.pipeline.passes_clone();
+        let defs = self.pipeline.passes_clone();
         let passes = defs
             .into_iter()
             .map(|pass| ComposerPass::new(ctx, vars, pass, width, height, pixel_ratio));
@@ -87,7 +86,7 @@ impl {
             pass.run(update_status);
         }
     }
-}}
+}
 
 
 

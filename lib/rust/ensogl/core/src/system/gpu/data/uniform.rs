@@ -8,7 +8,6 @@ use enum_dispatch::*;
 
 use crate::system::gpu::Context;
 
-use enso_shapely::shared;
 use upload::UniformUpload;
 use web_sys::WebGlTexture;
 use web_sys::WebGlUniformLocation;
@@ -158,68 +157,63 @@ impl UniformScopeData {
 //       Please note that currently a special uniform 'zoom' is modified in the render loop. See
 //       the `scene::View` implementation to learn more.
 
-shared! { Uniform
-
 /// An uniform value.
-#[derive(Debug)]
-pub struct UniformData<Value> {
-    value: Value,
+#[derive(Debug, CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Uniform<Value> {
+    value: Rc<RefCell<Value>>,
     // dirty: bool,
 }
 
-impl<Value> {
+impl<Value> Uniform<Value> {
     /// Constructor.
-    pub fn new(value:Value) -> Self {
+    pub fn new(value: Value) -> Self {
+        let value = Rc::new(RefCell::new(value));
         // let dirty = true;
-        Self {value}
+        Self { value }
     }
 
     /// Sets the value of this uniform.
-    pub fn set(&mut self, value:Value) {
+    pub fn set(&self, value: Value) {
         // self.set_dirty();
-        self.value = value;
+        *self.value.borrow_mut() = value;
     }
 
     /// Modifies the value of this uniform.
-    pub fn modify(&mut self, f: impl FnOnce(&mut Value)) {
-        f(&mut self.value);
+    pub fn modify(&self, f: impl FnOnce(&mut Value)) {
+        f(&mut *self.value.borrow_mut());
     }
 
-//    /// Checks whether the uniform was changed and not yet updated.
-//    pub fn check_dirty(&self) -> bool {
-//        self.dirty
-//    }
+    //    /// Checks whether the uniform was changed and not yet updated.
+    //    pub fn check_dirty(&self) -> bool {
+    //        self.dirty
+    //    }
 
-//    /// Sets the dirty flag.
-//    pub fn set_dirty(&mut self) {
-//        self.dirty = true;
-//    }
-//
-//    /// Clears the dirty flag.
-//    pub fn unset_dirty(&mut self) {
-//        self.dirty = false;
-//    }
+    //    /// Sets the dirty flag.
+    //    pub fn set_dirty(&mut self) {
+    //        self.dirty = true;
+    //    }
+    //
+    //    /// Clears the dirty flag.
+    //    pub fn unset_dirty(&mut self) {
+    //        self.dirty = false;
+    //    }
 }
 
-impl<Value:Clone> {
+impl<Value: Clone> Uniform<Value> {
     /// Reads the value of this uniform.
     pub fn get(&self) -> Value {
-        self.value.clone()
+        self.value.borrow().clone()
     }
-}}
+}
 
 impl<Value> Uniform<Value> {
     pub fn swap(&self, that: &Self) {
-        self.rc.borrow_mut().swap(&mut *that.rc.borrow_mut())
+        if !Rc::ptr_eq(&self.value, &that.value) {
+            mem::swap(&mut *self.value.borrow_mut(), &mut *that.value.borrow_mut())
+        }
     }
 }
-
-impl<Value> UniformData<Value> {
-    pub fn swap(&mut self, that: &mut Self) {
-        mem::swap(self, that)
-    }
-}
-
 
 impl<T> From<T> for Uniform<T> {
     fn from(t: T) -> Self {
@@ -239,7 +233,7 @@ impl<T> HasItem for Uniform<T> {
 
 impl<T> WithItemRef for Uniform<T> {
     fn with_item<R>(&self, f: impl FnOnce(&Self::Item) -> R) -> R {
-        f(&self.rc.borrow().value)
+        f(&self.value.borrow())
     }
 }
 
@@ -284,13 +278,7 @@ pub trait AnyPrimUniformOps {
 
 impl<Value: UniformUpload> AnyPrimUniformOps for Uniform<Value> {
     fn upload(&self, context: &Context, location: &WebGlUniformLocation) {
-        self.rc.borrow().upload(context, location)
-    }
-}
-
-impl<Value: UniformUpload> AnyPrimUniformOps for UniformData<Value> {
-    fn upload(&self, context: &Context, location: &WebGlUniformLocation) {
-        self.value.upload_uniform(context, location)
+        self.value.borrow().upload_uniform(context, location)
     }
 }
 
