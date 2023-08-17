@@ -254,11 +254,12 @@ impl<'a> ApplicationBase<'a> {
         ApplicationBase { function_name, ..self }
     }
 
-    fn raw_node_data(&self) -> crate::node::ApplicationData {
+    fn raw_node_data(&self, is_prefix: bool) -> crate::node::ApplicationData {
         crate::node::ApplicationData {
-            suggestion_id:  None,
-            icon_name:      None,
+            suggestion_id: None,
+            icon_name: None,
             self_in_access: self.uses_method_notation,
+            is_prefix,
         }
     }
 }
@@ -312,11 +313,12 @@ impl ResolvedApplication {
         self.chain_arguments.push_front(argument)
     }
 
-    fn node_data(&self) -> crate::node::ApplicationData {
+    fn node_data(&self, is_prefix: bool) -> crate::node::ApplicationData {
         crate::node::ApplicationData {
-            suggestion_id:  self.suggestion_id,
-            icon_name:      self.icon_name.clone(),
+            suggestion_id: self.suggestion_id,
+            icon_name: self.icon_name.clone(),
             self_in_access: self.argument_in_access.is_some(),
+            is_prefix,
         }
     }
 }
@@ -381,8 +383,9 @@ impl SpanTreeGenerator for GeneralizedInfix {
         let kind = kind.into();
         let mut app_base = ApplicationBase::from_infix(self);
         let mut application = app_base.resolve(context);
-        let node_application =
-            application.as_ref().map_or_else(|| app_base.raw_node_data(), |r| r.node_data());
+        let node_application = application
+            .as_ref()
+            .map_or_else(|| app_base.raw_node_data(false), |r| r.node_data(false));
         if app_base.uses_method_notation {
             // This is a standalone method access chain, missing method parameters needs to be
             // handled here. It is guaranteed that no existing prefix arguments are present, as
@@ -558,7 +561,7 @@ fn generate_node_for_prefix_chain(
     let fallback_call_id = app_base.call_id;
     let mut application = app_base.resolve(context);
     let node_application =
-        application.as_ref().map_or_else(|| app_base.raw_node_data(), |r| r.node_data());
+        application.as_ref().map_or_else(|| app_base.raw_node_data(true), |r| r.node_data(true));
 
     // When using method notation, expand the infix access chain manually to maintain correct method
     // application info and avoid generating expected arguments twice. We cannot use the
@@ -800,7 +803,7 @@ fn generate_expected_argument(
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
     arg_node.node.set_port_id(port_id);
-    gen.into_node(node::Kind::chained_infix(), None).with_extended_ast_id(extended_ast_id)
+    gen.into_node(node::Kind::ChainedPrefix, None).with_extended_ast_id(extended_ast_id)
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
@@ -1340,7 +1343,7 @@ mod test {
             sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained_infix(), Crumbs::default())
+            .add_child(0, 8, node::Kind::ChainedPrefix, Crumbs::default())
             .add_child(0, 8, node::Kind::ChainedPrefix, Crumbs::default())
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 4, node::Kind::prefix_argument().removable().indexed(0), PrefixCrumb::Arg)
@@ -1372,7 +1375,7 @@ mod test {
             sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained_infix(), Crumbs::default())
+            .add_child(0, 8, node::Kind::ChainedPrefix, Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, Crumbs::default())
             .add_leaf(0, 4, node::Kind::argument(), InfixCrumb::LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, InfixCrumb::Operator)

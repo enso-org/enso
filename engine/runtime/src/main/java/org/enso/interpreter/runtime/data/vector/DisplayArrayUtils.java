@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -7,7 +7,8 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class DisplayArrayUtils {
+final class DisplayArrayUtils {
+  private DisplayArrayUtils() {}
 
   @CompilerDirectives.TruffleBoundary
   public static String toDisplayString(

@@ -1,25 +1,26 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
-public final class ArraySlice implements TruffleObject {
+final class ArraySlice implements EnsoObject {
   private final Object storage;
   private final long start;
   private final long end;
@@ -47,13 +48,13 @@ public final class ArraySlice implements TruffleObject {
     long slice_end = Math.min(this_length, end);
     Object slice;
     if (slice_start >= slice_end) {
-      slice = Array.allocate(0);
+      slice = ArrayLikeHelpers.allocate(0);
     } else if ((slice_start == 0) && (slice_end == this_length)) {
       return null;
     } else {
       slice = new ArraySlice(storage, slice_start, slice_end);
     }
-    return Vector.fromArray(slice);
+    return Vector.fromInteropArray(slice);
   }
 
   /**

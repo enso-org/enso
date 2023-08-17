@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.mutable;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -10,17 +10,15 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.data.EnsoObject;
 
-public abstract class CopyNode extends Node {
-  public static CopyNode build() {
-    return CopyNodeGen.create();
+public abstract class ArrayLikeCopyToArrayNode extends Node {
+  public static ArrayLikeCopyToArrayNode build() {
+    return ArrayLikeCopyToArrayNodeGen.create();
   }
 
   public abstract Object execute(
-      Object src, long source_index, Array dest, long dest_index, long count);
+      Object src, long srcIndex, EnsoObject destArr, long destIndex, long count);
 
   @Specialization
   Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {
@@ -46,19 +44,13 @@ public abstract class CopyNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Unreachable");
     } catch (InvalidArrayIndexException e) {
-      throw new PanicException(
-          EnsoContext.get(this)
-              .getBuiltins()
-              .error()
-              .makeInvalidArrayIndex(src, e.getInvalidIndex()),
-          this);
+      throw ArrayPanics.invalidIndex(this, src, e);
     }
     return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Fallback
-  Object doOther(Object src, long source_index, Array dest, long dest_index, long count) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
+  Object doOther(Object src, long source_index, EnsoObject dest, long dest_index, long count) {
+    throw ArrayPanics.typeError(this, src, "src");
   }
 }

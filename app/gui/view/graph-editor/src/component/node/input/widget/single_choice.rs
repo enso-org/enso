@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::component::node;
 use crate::component::node::input::widget::label;
+use crate::component::node::input::widget::StableSpanIdentity;
 
 use ensogl::display::object::event;
 use ensogl::display::shape::SimpleTriangle;
@@ -75,10 +76,11 @@ pub struct ChoiceArgConfig {
 
 ensogl::define_endpoints_2! {
     Input {
-        set_entries    (Rc<Vec<Choice>>),
-        selected_entry  (Option<Choice>),
-        current_crumbs (span_tree::Crumbs),
-        is_connected   (bool),
+        set_entries      (Rc<Vec<Choice>>),
+        set_arrow_target (Option<object::WeakInstance>),
+        selected_entry   (Option<Choice>),
+        current_crumbs   (span_tree::Crumbs),
+        is_connected     (bool),
     }
 }
 
@@ -181,15 +183,17 @@ impl SpanWidget for Widget {
         input.selected_entry(selected_entry);
         input.is_connected(ctx.info.subtree_connection.is_some());
 
-        if !config.arguments.is_empty() && let Some(index) = entry_idx.filter(|i| *i < usize::MAX) {
+        let call_node = find_call_node(ctx.span_node.clone());
+        let call_id = call_node.as_ref().and_then(|node| node.ast_id.or(node.extended_ast_id));
+
+        if !config.arguments.is_empty()
+            && let Some(call_id) = call_id
+            && let Some(index) = entry_idx.filter(|i| *i < usize::MAX) {
             let start = config.arguments.partition_point(|arg| arg.choice_index < index);
             let end = config.arguments.partition_point(|arg| arg.choice_index <= index);
-            let choice_args = &config.arguments[start..end];
-            if !choice_args.is_empty() && let Some(call_id) = find_call_id(&ctx.span_node) {
-                for arg in choice_args {
-                    let key = OverrideKey { call_id, argument_name: arg.name.clone() };
-                    ctx.builder.set_local_override(key, arg.configuration.clone())
-                }
+            for argument in &config.arguments[start..end] {
+                let key = OverrideKey { call_id, argument_name: argument.name.clone() };
+                ctx.builder.set_local_override(key, argument.configuration.clone())
             }
         }
 
@@ -197,27 +201,52 @@ impl SpanWidget for Widget {
             ctx.modify_extension::<label::Extension>(|ext| ext.bold = true);
         }
 
+        // Find a child node around which the arrow should be centered. It is either the first child
+        // of the prefix chain or the call node itself.
+        let arrow_target_identity = call_node.map_or(ctx.info.identity.main, |mut node| {
+            let mut use_first_child = !node.children.is_empty()
+                && (node.extended_ast_id.is_some()
+                    || node.application.as_ref().map_or(false, |a| a.is_prefix));
+            while use_first_child {
+                node = node.child(0).expect("Node must have at least one child");
+                use_first_child = !node.children.is_empty()
+                    && matches!(node.kind, span_tree::node::Kind::ChainedPrefix);
+            }
+            StableSpanIdentity::from_node(&node)
+        });
+
         let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
+
+        // Pick the innermost widget that is built from the selected span node. This is usually
+        // the widget that has the most defined visual representation and boundaries, so it is
+        // better to center the arrow around it.
+        let arrow_target_widget =
+            ctx.builder.iter_built_widgets_of_span(arrow_target_identity).next_back();
+        let arrow_target_display_object =
+            arrow_target_widget.map(|w| w.display_object().downgrade());
+        input.set_arrow_target(arrow_target_display_object);
+
         self.content_wrapper.replace_children(&[child.root_object]);
     }
 }
 
-/// Find an unambiguous single node with attached application within a given subtree and return its
-/// AST ID. It represents the call ID that can have its arguments's configuration overridden
-/// depending on currently selected dropdown choice.
+/// Find an unambiguous single node with attached application within a given subtree and return it.
+/// It represents the call that can have its arguments's configuration overridden depending on
+/// currently selected dropdown choice.
 ///
 /// Currently handled cases:
 /// - `foo` - where `foo` is a resolved application with potential placeholders arguments.
 /// - `foo bar` - the node itself is an application with specified arguments.
 /// - `(<any previous case>)` - the node is a group with an singular child with an unambiguous
 ///   application.
-fn find_call_id(node: &span_tree::Node) -> Option<ast::Id> {
-    if node.application.is_some() {
-        node.ast_id.or(node.extended_ast_id)
-    } else if let Some(ast::TreeType::Group) = &node.tree_type
-           && let [a, b, c] = &node.children[..] && a.is_token() && c.is_token()
+fn find_call_node(span: SpanRef) -> Option<SpanRef> {
+    if span.application.is_some() {
+        Some(span)
+    } else if let Some(ast::TreeType::Group) = &span.tree_type
+           && let [a, _b, c] = &span.children[..] && a.is_token() && c.is_token()
     {
-        find_call_id(&b.node)
+        // Recurse into the second node of a group - node between parentheses.
+        find_call_node(span.child(1).ok()?)
     } else {
         None
     }
@@ -304,8 +333,10 @@ impl Widget {
         let network = &self.config_frp.network;
         let config_frp = &self.config_frp;
         let widgets_frp = ctx.frp();
+        let hover_area = &self.hover_area;
         let display_object = &self.display_object;
         let triangle = &self.triangle;
+        let triangle_wrapper = &self.triangle_wrapper;
         let focus_receiver = &self.dropdown_wrapper;
 
         frp::extend! { network
@@ -320,17 +351,16 @@ impl Widget {
 
             let mouse_down = display_object.on_event::<mouse::Down>();
             let mouse_dropdown_down = focus_receiver.on_event::<mouse::Down>();
-            let mouse_enter = display_object.on_event::<mouse::Enter>();
-            let mouse_leave = display_object.on_event::<mouse::Leave>();
+            let mouse_enter = hover_area.on_event::<mouse::Enter>();
+            let mouse_leave = hover_area.on_event::<mouse::Leave>();
 
             mouse_dropdown_down_delayed <- mouse_dropdown_down.debounce();
             handling_dropdown_down <- bool(&mouse_dropdown_down_delayed, &mouse_dropdown_down);
-            mouse_down <- mouse_down.gate(&widgets_frp.allow_interaction);
-            clicked <- mouse_down.filter(mouse::is_primary);
+            is_hovered <- bool(&mouse_leave, &mouse_enter).and(&widgets_frp.allow_interaction);
+            clicked <- mouse_down.gate(&is_hovered).filter(mouse::is_primary);
             eval clicked([] (event) event.stop_propagation());
             clicked <- clicked.gate_not(&handling_dropdown_down);
 
-            is_hovered <- bool(&mouse_leave, &mouse_enter).and(&widgets_frp.allow_interaction);
 
             let triangle_color = color::Animation::new(network);
             triangle_color.target <+ is_connected.all_with3(style, &is_hovered,
@@ -344,6 +374,32 @@ impl Widget {
             eval set_focused([focus_receiver](focus) match focus {
                 true => focus_receiver.focus(),
                 false => focus_receiver.blur(),
+            });
+
+            arrow_target <- config_frp.set_arrow_target.on_change();
+            target_transformed <- arrow_target.flat_map(|weak| {
+                let target = weak.clone().and_then(|t| t.upgrade());
+                match target {
+                    None => frp::Source::<()>::new().into(),
+                    Some(target) => target.on_transformed.clone(),
+                }
+            });
+            arrow_x_position <- all_with(&arrow_target, &target_transformed,
+                f!([display_object] (weak, _) {
+                    let target = weak.clone()?.upgrade()?;
+                    let offset = target.global_position() - display_object.global_position();
+                    let size = target.computed_size();
+                    Some(offset.x + size.x * 0.5)
+                })
+            ).on_change();
+
+            eval arrow_x_position([triangle_wrapper] (position) {
+                if let Some(position) = *position {
+                    triangle_wrapper.set_alignment(default());
+                    triangle_wrapper.set_x(position);
+                } else {
+                    triangle_wrapper.set_alignment_center_bottom();
+                }
             });
         }
     }

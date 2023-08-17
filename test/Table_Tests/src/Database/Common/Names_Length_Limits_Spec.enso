@@ -317,25 +317,34 @@ spec prefix connection =
                         Problems.assume_no_problems r4
 
             Test.specify "should truncate the column name if the resulting operation-generated name is too long, without warnings" <|
-                long_name = "a" * max_column_name_length
-                src = Table.new [[long_name, [1, 2, 3]]]
+                name_a = "a" * max_column_name_length
+                name_b = "b" * max_column_name_length
+                src = Table.new [[name_a, [1]], [name_b, [2]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
-                c0 = db_table.at long_name
 
-                c1 = c0 + 10
-                c1.to_vector . should_equal [11, 12, 13]
-                # truncated
-                c1.name . should_equal ("[" + long_name.drop 1)
+                a = db_table.at name_a
+                b = db_table.at name_b
+                c1 = a + b
+                Problems.assume_no_problems c1
+                # The column names should be truncated so that prefixes of both names and the operator all fit:
+                c1.name . should_contain "+"
+                c1.name . should_contain "..."
+                c1.name . should_contain "aaa"
+                c1.name . should_contain "bbb"
 
-                c2 = c0.ceil
-                c2.to_vector . should_equal [1, 2, 3]
-                # truncated
-                c2.name . should_equal (("ceil([" + long_name).take max_column_name_length)
+                c2 = (a == b).iif b 0
+                Problems.assume_no_problems c2
+                c2.name . should_start_with "if [[aaa"
+                c2.name . should_contain " then [bbb"
+                c2.name . should_contain "bb... else 0"
 
-                c3 = c1.cast Value_Type.Char . ends_with "1"
-                c3.to_vector . should_equal [True, False, False]
-                c3.name.length . should_equal max_column_name_length
-                c3.name . should_contain "ends_with"
+                # We repeat the argument maaany times.
+                args = Vector.new (max_column_name_length * 2) _-> b
+                c3 = a.max args
+                Problems.assume_no_problems c3
+                c3.name.should_start_with "max([aaa"
+                c3.name.should_contain "..., "
+                c3.name.should_contain ")"
 
             Test.specify "raise an error if name provided by the user in aggregate is too long" <|
                 src = Table.new [["X", [1, 2, 3]]]

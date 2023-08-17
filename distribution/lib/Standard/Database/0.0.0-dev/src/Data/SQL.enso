@@ -158,23 +158,23 @@ optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder
     go elem =
-        last_part = State.get SQL_Fragment.Code_Part
+        last_part = State.get SQL_Fragment
         case elem of
             SQL_Fragment.Code_Part code ->
                 new_part = case last_part of
                     Nothing -> SQL_Fragment.Code_Part code
                     SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
-                State.put SQL_Fragment.Code_Part new_part
+                State.put SQL_Fragment new_part
             SQL_Fragment.Interpolation _ ->
                 case last_part of
                     Nothing -> Nothing
                     SQL_Fragment.Code_Part _ ->
                         builder.append last_part
-                        State.put SQL_Fragment.Code_Part Nothing
+                        State.put SQL_Fragment Nothing
                 builder.append elem
-    State.run SQL_Fragment.Code_Part Nothing <|
+    State.run SQL_Fragment Nothing <|
         fragments.each go
-        last_part = State.get SQL_Fragment.Code_Part
+        last_part = State.get SQL_Fragment
         case last_part of
             Nothing -> Nothing
             SQL_Fragment.Code_Part _ -> builder.append last_part

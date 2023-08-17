@@ -8,9 +8,10 @@ import java.util.Set;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -22,7 +23,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -37,7 +37,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public abstract class Atom implements TruffleObject {
+public abstract class Atom implements EnsoObject {
   final AtomConstructor constructor;
   private Integer hashCode;
 
@@ -140,7 +140,7 @@ public abstract class Atom implements TruffleObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public Array getMembers(boolean includeInternal) {
+  public EnsoObject getMembers(boolean includeInternal) {
     Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
@@ -150,8 +150,8 @@ public abstract class Atom implements TruffleObject {
     if (members != null) {
       allMembers.addAll(members.keySet());
     }
-    Object[] mems = allMembers.toArray();
-    return new Array(mems);
+    String[] mems = allMembers.toArray(new String[0]);
+    return ArrayLikeHelpers.wrapStrings(mems);
   }
 
   @ExportMessage

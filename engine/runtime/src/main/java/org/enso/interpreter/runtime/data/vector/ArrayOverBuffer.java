@@ -1,14 +1,14 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.ByteBuffer;
+import org.enso.interpreter.runtime.data.EnsoObject;
 
 @ExportLibrary(InteropLibrary.class)
-public final class ArrayOverBuffer implements TruffleObject {
+final class ArrayOverBuffer implements EnsoObject {
   private final ByteBuffer buffer;
 
   private ArrayOverBuffer(ByteBuffer buffer) {
@@ -39,7 +39,7 @@ public final class ArrayOverBuffer implements TruffleObject {
     return buffer.remaining();
   }
 
-  public static ArrayOverBuffer wrapBuffer(ByteBuffer buffer) {
+  static ArrayOverBuffer wrapBuffer(ByteBuffer buffer) {
     return new ArrayOverBuffer(buffer);
   }
 
