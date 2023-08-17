@@ -63,6 +63,11 @@ all_benchmarks =
 
     builder.to_vector
 
+
+single_benchmark =
+    [Distinct.collect_benches]
+
+
 main =
     all_benchmarks.each suite->
         suite.run_main
