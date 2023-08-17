@@ -147,7 +147,7 @@ impl SpanWidget for Widget {
 
         let ext = ctx.get_extension_or_default::<Extension>();
         let bold = ext.bold || is_placeholder;
-        let text_weight = bold.then_some(text::Weight::Bold);
+        let text_weight = bold.then_some(text::Weight::ExtraBold);
 
         let input = &self.frp.public.input;
         input.content(content);

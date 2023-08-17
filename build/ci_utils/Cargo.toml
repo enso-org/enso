@@ -71,6 +71,7 @@ symlink = "0.1.0"
 syn = { workspace = true }
 sysinfo = "0.26.2"
 tar = "0.4.37"
+tokio-tar = "0.3.1"
 tempfile = "3.2.0"
 tokio = { workspace = true }
 tokio-stream = { workspace = true }

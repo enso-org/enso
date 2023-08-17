@@ -33,6 +33,8 @@ handlebars = "4.3.5"
 heck = "0.4.0"
 humantime = "2.1.0"
 enso-build-base = { path = "../base" }
+enso-enso-font = { path = "../../lib/rust/enso-font" }
+enso-font = { path = "../../lib/rust/font" }
 ensogl-pack = { path = "../../lib/rust/ensogl/pack" }
 ide-ci = { path = "../ci_utils" }
 indexmap = "1.7.0"

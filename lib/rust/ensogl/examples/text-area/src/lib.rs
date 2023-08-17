@@ -225,7 +225,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
     let scene = scene.clone_ref();
     let area = area.clone_ref();
     let div = div.clone();
-    let mut fonts_cycle = ["dejavusans", "dejavusansmono", "mplus1p"].iter().cycle();
+    let mut fonts_cycle = ["enso", "mplus1p"].iter().cycle();
     let closure = move |val: web::Event| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {

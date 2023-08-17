@@ -9,6 +9,7 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-bitmap = { path = "../../../bitmap" }
+enso-font = { path = "../../../font" }
 enso-frp = { path = "../../../frp" }
 enso-prelude = { path = "../../../prelude" }
 enso-shapely = { path = "../../../shapely" }
@@ -24,7 +25,6 @@ bincode = { workspace = true }
 serde = { version = "1", features = ["rc"] }
 serde_json = { workspace = true }
 ordered-float = { workspace = true }
-ensogl-text-font-family = { path = "src/font/family" }
 rustybuzz = { workspace = true }
 
 [dev-dependencies]
