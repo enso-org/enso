@@ -471,7 +471,7 @@ pub fn backend() -> Result<Workflow> {
 }
 
 pub fn engine_benchmark() -> Result<Workflow> {
-    benchmark("Benchmark Engine", "backend benchmark engine", Some(4 * 60))
+    benchmark("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
