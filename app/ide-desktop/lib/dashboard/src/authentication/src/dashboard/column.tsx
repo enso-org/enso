@@ -88,12 +88,12 @@ export const COLUMN_NAME: Record<Column, string> = {
 } as const
 
 const COLUMN_CSS_CLASSES =
-    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-4 py-1 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0 pt-1 pb-1.5'
+const NORMAL_COLUMN_CSS_CLASSES = `px-4 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: `min-w-60 px-1.5 py-2 rounded-l-full ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.name]: `min-w-60 px-1.5 rounded-l-full ${COLUMN_CSS_CLASSES}`,
     [Column.modified]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.sharedWith]: `min-w-36 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.tags]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,

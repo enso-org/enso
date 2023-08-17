@@ -219,21 +219,6 @@ export default function DriveView(props: DriveViewProps) {
         }
     }, [page])
 
-    const assetsTable = (
-        <AssetsTable
-            items={assets}
-            filter={assetFilter}
-            isLoading={isLoadingAssets}
-            appRunner={appRunner}
-            assetEvents={assetEvents}
-            dispatchAssetEvent={dispatchAssetEvent}
-            assetListEvents={assetListEvents}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            doOpenIde={doOpenEditor}
-            doCloseIde={doCloseEditor}
-        />
-    )
-
     return (
         <div
             className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
@@ -253,16 +238,25 @@ export default function DriveView(props: DriveViewProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
-            {backend.type === backendModule.BackendType.remote ? (
-                <div className="flex gap-3">
-                    <div className="flex flex-col gap-4">
+            <div className="flex flex-1 gap-3 overflow-hidden">
+                {backend.type === backendModule.BackendType.remote && (
+                    <div className="flex flex-col gap-4 py-1">
                         <CategorySwitcher />
                     </div>
-                    {assetsTable}
-                </div>
-            ) : (
-                assetsTable
-            )}
+                )}
+                <AssetsTable
+                    items={assets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    appRunner={appRunner}
+                    assetEvents={assetEvents}
+                    dispatchAssetEvent={dispatchAssetEvent}
+                    assetListEvents={assetListEvents}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    doOpenIde={doOpenEditor}
+                    doCloseIde={doCloseEditor}
+                />
+            </div>
             {isFileBeingDragged &&
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (
