@@ -23,6 +23,7 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
+use font::Context;
 use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;
@@ -170,11 +171,11 @@ pub struct GlyphData {
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
     pub attached_to_cursor: Cell<bool>,
-    glyph_id:           Cell<GlyphId>,
-    display_object:     display::object::Instance,
-    context:            Context,
-    properties:         Cell<font::family::NonVariableFaceHeader>,
-    variations:         RefCell<VariationAxes>,
+    glyph_id:               Cell<GlyphId>,
+    display_object:         display::object::Instance,
+    context:                Rc<RefCell<Context>>,
+    properties:             Cell<font::family::NonVariableFaceHeader>,
+    variations:             RefCell<VariationAxes>,
 }
 
 
@@ -372,7 +373,7 @@ impl Glyph {
         let texture_changed = gpu_tex_glyphs != num_glyphs;
         if texture_changed {
             let texture = Texture::new(
-                &self.context,
+                &*self.context.borrow(),
                 ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs),
             );
             font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
@@ -413,31 +414,10 @@ impl WeakGlyph {
 // === System ===
 // ==============
 
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, CloneRef, Debug, Default)]
-#[allow(missing_copy_implementations)]
-/// Mocked version of WebGL context.
-pub struct Context;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &Scene) -> Context {
-    Context
-}
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::display::world::Context;
-
-#[cfg(target_arch = "wasm32")]
-fn get_context(scene: &Scene) -> Context {
-    scene.context.borrow().as_ref().unwrap().clone_ref()
-}
-
-
 /// A system for displaying glyphs.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct System {
-    context:  Context,
     pub font: FontWithGpuData,
 }
 
@@ -448,15 +428,14 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let context = get_context(scene);
-        Self { context, font }
+        Self { font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
-        let context = self.context.clone();
+        let context = Rc::clone(&self.font.context);
         let display_object = display::object::Instance::new_no_debug();
         let font = self.font.clone_ref();
         let glyph_id = default();

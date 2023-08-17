@@ -66,7 +66,7 @@ pub struct ContextData {
     native:          native::ContextWithExtensions,
     pub profiler:    profiler::Profiler,
     shader_compiler: shader::Compiler,
-    pub(crate) id:              u32,
+    pub(crate) id:   u32,
 }
 
 static CURRENT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
@@ -89,8 +89,7 @@ impl Context {
 
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
-        let prev_id =
-            CURRENT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
+        let prev_id = CURRENT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
         let id = prev_id + 1;
         warn!("Current context: {id}");
         let native = native::ContextWithExtensions::from_native(native);

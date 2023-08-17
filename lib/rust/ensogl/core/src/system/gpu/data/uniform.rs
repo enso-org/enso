@@ -472,8 +472,7 @@ macro_rules! generate_prim_type_downcasts {
 crate::with_all_prim_types!([[generate_prim_type_downcasts][]]);
 
 
-impl<'t, I: InternalFormat, T: ItemType> TryFrom<&'t AnyUniform>
-    for &'t Uniform<Texture<I, T>>
+impl<'t, I: InternalFormat, T: ItemType> TryFrom<&'t AnyUniform> for &'t Uniform<Texture<I, T>>
 where &'t Uniform<Texture<I, T>>: TryFrom<&'t AnyTextureUniform, Error = TypeMismatch>
 {
     type Error = TypeMismatch;

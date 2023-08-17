@@ -199,8 +199,11 @@ impl WebglLoseContext {
 
     pub fn lose_context(&self) {
         if let Err(err) = self.lose_context.call0(&self.ext) {
-            warn!("Failed to lose the WebGL context: {:?}. \
-                This is expected to occur if the context was already lost.", err);
+            warn!(
+                "Failed to lose the WebGL context: {:?}. \
+                This is expected to occur if the context was already lost.",
+                err
+            );
         }
     }
 

@@ -943,7 +943,7 @@ impl Frp {
 // === Extension ===
 // =================
 
-pub trait Extension: 'static + CloneRef {
+pub trait Extension: 'static + CloneRef + Any {
     fn init(scene: &Scene) -> Self;
 }
 
@@ -982,7 +982,8 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Debug, display::Object)]
+#[derive(Derivative, display::Object)]
+#[derivative(Debug)]
 pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
@@ -1011,6 +1012,8 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
+    #[derivative(Debug = "ignore")]
+    context_listeners: RefCell<Vec<Box<dyn FnMut(Option<&Context>)>>>,
 }
 
 impl SceneData {
@@ -1057,6 +1060,7 @@ impl SceneData {
         let pointer_position_changed = default();
         let shader_compiler = default();
         let initial_shader_compilation = default();
+        let context_listeners = default();
         Self {
             display_object,
             display_mode,
@@ -1079,6 +1083,7 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
+            context_listeners,
         }
         .init()
     }
@@ -1240,6 +1245,10 @@ impl SceneData {
             default()
         }
     }
+
+    pub fn add_context_listener(&self, f: impl 'static + FnMut(Option<&Context>)) {
+        self.context_listeners.borrow_mut().push(Box::new(f));
+    }
 }
 
 
@@ -1397,6 +1406,9 @@ impl system::gpu::context::Display for Rc<SceneData> {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
+        for listener in &mut *self.context_listeners.borrow_mut() {
+            listener(context);
+        }
     }
 }
 
