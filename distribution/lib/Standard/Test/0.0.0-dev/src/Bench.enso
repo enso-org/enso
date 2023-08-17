@@ -1,18 +1,48 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+## Configuration for a measurement phase or a warmup phase of a benchmark.
+type Phase_Conf
+    ## PRIVATE
+
+       Arguments:
+       - iterations: The number of iterations of the phase.
+       - seconds: The minimal number of seconds per one iteration.
+    Impl (iterations:Integer) (seconds:Integer)
+
+    to_text self =
+        self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
+
+    ## Validates the config and throws a Panic if it is invalid.
+    validate : Nothing
+    validate self =
+        if self.seconds < 0 then Panic.throw (Illegal_Argument.Error "Seconds must be positive")
+        if self.iterations < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
 
 
+## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
+   defined in the JMH benchmarking library. See the JMH documentation for more details:
+   https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
 type Bench_Options
     ## PRIVATE
-    Impl iter_size num_iters
+    Impl (warmup:Phase_Conf) (measure:Phase_Conf)
 
-    size : Integer -> Bench_Options
-    size self v = Bench_Options.Impl v self.num_iters
+    ## Sets the warmup phase.
+    set_warmup : Phase_Conf -> Bench_Options
+    set_warmup self (warm:Phase_Conf) = Bench_Options.Impl warm self.measure
 
-    iter : Integer -> Bench_Options
-    iter self v = Bench_Options.Impl self.iter_size v
+    ## Sets the measurement phase.
+    set_measure : Phase_Conf -> Bench_Options
+    set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
-    to_text self = "[iter_size=" + self.iter_size.to_text + ", num_iters=" + self.num_iters.to_text + "]"
+    to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
+
+    ## Validates the config and throws a Panic if it is invalid.
+    validate : Nothing
+    validate self =
+        self.warmup.validate
+        self.measure.validate
+
 
 type Bench_Builder
     ## PRIVATE
@@ -20,16 +50,23 @@ type Bench_Builder
 
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
+        validate_name name
         b = Vector.new_builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
+
 
 type Group_Builder
     ## PRIVATE
     Impl builder
 
+    ## Adds a benchmark specification to the group.
+
+       Arguments:
+       - name: The name of the benchmark. Must be a valid Java identifier.
     specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
+        validate_name name
         self.builder.append <| Bench.Spec name (_ -> benchmark)
 
 
@@ -42,10 +79,43 @@ type Bench
     build fn =
         b = Vector.new_builder
         fn (Bench_Builder.Impl b)
-        Bench.All b.to_vector
+        groups_vec = b.to_vector
+        Bench.All groups_vec . validate
 
     options : Bench_Options
-    options = Bench_Options.Impl -1 -1
+    options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
+
+    ## Returns the default phase configuration.
+
+       The default used for the JMH library are 5 iterations for 10 seconds
+       each. However, our defaults are lower to make the benchmarks run faster.
+
+       Arguments:
+       - iterations: The number of iterations of the phase.
+       - seconds: The minimal number of seconds per one iteration.
+    phase_conf : Integer -> Integer -> Phase_Conf
+    phase_conf iterations=2 seconds=3 =
+        Phase_Conf.Impl iterations seconds
+
+    ## Validates the benchmark and throws a Panic if it is invalid. Returns self
+       if the benchmark is valid.
+    validate : Bench
+    validate self =
+        ensure_distinct_names names =
+            if names.length != names.distinct.length then Panic.throw (Illegal_Argument.Error ("Benchmark names must be unique, got: " + names.to_text))
+        case self of
+            Bench.All groups ->
+                group_names = groups.map (_.name)
+                ensure_distinct_names group_names
+                groups.each _.validate
+            Bench.Group name conf specs ->
+                validate_name name
+                conf.validate
+                ensure_distinct_names <| specs.map (_.name)
+            Bench.Spec name code ->
+                validate_name name
+                if code == Nothing then Panic.throw (Illegal_Argument.Error "Benchmark code must be specified")
+        self
 
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
@@ -59,26 +129,17 @@ type Bench
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
-            IO.println <| "Benchmarking  " + s.name + " configuration: " + c.to_text
-            Bench.measure (s.code 0) s.name c.iter_size c.num_iters
-            IO.println <| "Benchmarking of " + s.name + " finished"
+            bench_name = g.name + "." + s.name
+            IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
+            Bench.measure bench_name c.warmup c.measure (s.code 0)
 
     ## Measure the amount of time it takes to execute a given computation.
 
        Arguments:
        - act: The action to perform.
-       - label: A name for the measurement.
-       - iter_size: The number of runs per iteration.
-       - num_iters: The number of iterations per measurement.
-       - run_gc_between_iterations: Whether to try running the garbage collector
-         between iterations. Defaults to False. This is helpful when testing
-         memory intensive operations, to ensure that GC runs between iterations
-         and not _during_ iterations. The time taken to run the requested
-         garbage collection will not be counted into the iteration time, however
-         there is no guarantee that the JVM will actually accept the GC hint and
-         it is still possible the JVM may run GC during an iteration. But
-         setting this option to True should make it less likely for GC to
-         interrupt measurements.
+       - label: A name for the benchmark.
+       - warmup_conf: Warmup phase configuration.
+       - measure_conf: Measurement phase configuration.
 
        > Example
          Measure a computation called "foo" with an iteration size of 2 and a number
@@ -88,95 +149,71 @@ type Bench
              from Standard.Test import Bench
 
              example_measure =
-                 Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
-    measure : Any -> Text -> Integer -> Integer -> Boolean -> Nothing
-    measure ~act label iter_size num_iters run_gc_between_iterations=False =
+                 Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
+    measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
+    measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
-        result = Ref.new 0.0
-        single_call = _ ->
-            x1 = System.nano_time
-            Runtime.no_inline act
-            x2 = System.nano_time
-            x2 - x1
-        iteration = it_size -> it_num ->
-            if run_gc_between_iterations then
-                Runtime.gc
-            act_it_num = num_iters - it_num
-            res = times it_size single_call
-            avg = avg_list res
-            fmt = (avg / 1000000).format "#.##"
-            result.put (result.get + avg)
-            case dry_run of
-                False ->
-                    IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
-                True ->
-                    IO.println (label + "/dry-run: " + fmt)
-        if dry_run then times 1 (iteration 1) else
-            times num_iters (iteration iter_size)
-            fmt_avg = (result.get / (1000000*num_iters)).format "#.##"
-            IO.println (label + " average: " + fmt_avg + "ms")
+        case dry_run of
+            True ->
+                duration_ns = Bench.single_call act
+                duration_ms = duration_ns / 1000000
+                fmt_duration_ms = duration_ms.format "#.###"
+                IO.println <| "[DRY-RUN] Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
+            False ->
+                measure_start = System.nano_time
+                Bench.run_phase "Warmup" warmup_conf act
+                Bench.run_phase "Measurement" measure_conf act
+                measure_end = System.nano_time
+                measure_duration_ms = (measure_end - measure_start) / 1000000
+                fmt_duration_ms = measure_duration_ms.format "#.###"
+                IO.println <| "Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
+
+
+    ## Measure the amount of time in ns it takes to execute a given suspended
+       computation.
+    single_call ~act =
+        start = System.nano_time
+        Runtime.no_inline act
+        end = System.nano_time
+        end - start
+
+    ## Run a single phase of the benchmark.
+
+       The total run time of the phase is computed as `conf.seconds * conf.iterations`,
+       so that it is the same as in JMH.
+
+       Arguments:
+       - phase_name: The name of the phase.
+       - conf: The phase configuration.
+       - act: Method that should be measured - benchmark body.
+    run_phase : Text -> Phase_Conf -> (Any -> Any) -> Nothing
+    run_phase (phase_name:Text) (conf:Phase_Conf) ~act =
+        duration_ns = conf.iterations * conf.seconds * 1000000000
+        phase_start = System.nano_time
+        stop_ns = phase_start + duration_ns
+        go = durations -> cur_ns ->
+            if cur_ns  > stop_ns then durations else
+                dur = Bench.single_call act
+                @Tail_Call go (durations + [dur]) (cur_ns + dur)
+        durations = go [] phase_start
+        sum = durations.reduce (_ + _)
+        run_iters = durations.length
+        avg = sum / run_iters
+        fmt = (avg / 1000000).format "#.###"
+        phase_end = System.nano_time
+        phase_duration_ms = (phase_end - phase_start) / 1000000
+        IO.println <| phase_name + " duration:    " + phase_duration_ms.to_text + " ms"
+        IO.println <| phase_name + " invocations: " + run_iters.to_text
+        IO.println <| phase_name + " avg time:    " + fmt + " ms"
 
 ## PRIVATE
 
-   Reverses the provided list.
-
-   Arguments:
-   - list: The list to reverse.
-reverse_list : List -> List
-reverse_list list =
-    go = list -> acc -> case list of
-        List.Cons h t -> @Tail_Call go t (List.Cons h acc)
-        List.Nil -> acc
-    res = go list List.Nil
-    res
-
-## PRIVATE
-
-   Sums the elements of the list.
-
-   Arguments:
-   - list: The list of numbers to sum.
-sum_list : List -> Number
-sum_list list =
-    go = list -> acc -> case list of
-        List.Cons a b -> @Tail_Call go b (acc + a)
-        List.Nil -> acc
-
-    res = go list 0
-    res
-
-## PRIVATE
-
-   Calculate the average of the elements of a numeric list.
-
-   Arguments:
-   - list: The list of numbers to calculate the average of.
-avg_list : List -> Number
-avg_list list = sum_list list / len_list list
-
-## PRIVATE
-
-   Calculates the length of the provided list.
-
-   Arguments:
-   - list: The list to calculate the length of.
-len_list : List -> Integer
-len_list list =
-    go = list -> acc -> case list of
-        List.Cons _ b -> @Tail_Call go b (acc + 1)
-        List.Nil -> acc
-    res = go list 0
-    res
-
-## PRIVATE
-
-   Perform an action a number of times.
-
-   Arguments:
-   - act: The action to perform `count` number of times.
-times : Integer -> (Integer -> Any) -> List Any
-times count act =
-    go = results -> number -> if number == 0 then results else
-        @Tail_Call go (List.Cons (act number) results) number-1
-    res = reverse_list (go List.Nil count)
-    res
+   Checks whether the given name is a valid benchmark name - either group name
+   or a spec name. The name should be a valid Java identifier.
+   Throw a Panic error if the validation fails.
+validate_name : Text -> Nothing
+validate_name name =
+    # Cannot start with a digit
+    valid_java_identifier_regex = Regex.compile "[A-Za-z_$][a-zA-Z0-9_$]*"
+    if valid_java_identifier_regex.matches name then Nothing else
+        Panic.throw (Illegal_Argument.Error ("Invalid benchmark name: '" + name + "'"))
