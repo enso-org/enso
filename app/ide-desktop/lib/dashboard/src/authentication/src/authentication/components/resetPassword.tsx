@@ -133,7 +133,7 @@ export default function ResetPassword() {
                                     name="new_password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_ERROR}
+                                    error={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />

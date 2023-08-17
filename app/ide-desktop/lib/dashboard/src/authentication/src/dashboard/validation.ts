@@ -1,6 +1,17 @@
 /** @file Validation patterns for text inputs. */
 
-/** Regex pattern for valid AWS Cognito passwords. */
+/** Regex pattern for valid AWS Cognito passwords. 
+ * A fully correct regex is here: https://stackoverflow.com/a/58767981/3323231.
+ * Official documentation is here: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-policies.html.
+ * However, non-ASCII passwords are allowed, contrary to the official documentation. Further
+ * investigation may be needed.
+ *
+ * Each of the four lookaheads in the regex below check for, respectively:
+ * - a digit
+ * - a Basic Latin uppercase character
+ * - a Basic Latin lowercase character, and
+ * - an ASCII symbol.
+ */
 export const PASSWORD_PATTERN =
     '(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[ ^$*.\\[\\]\\{\\}\\(\\)?"!@#%&\\/,><\':;\\|_~`=+\\-]).{6,256}'
 /** Human readable explanation of password requirements. */
