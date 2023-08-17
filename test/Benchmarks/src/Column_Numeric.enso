@@ -57,5 +57,16 @@ collect_benches = Bench.build builder->
         group_builder.specify "Column_floor_ints" <|
             data.ints.floor
 
+        [True, False].each use_bankers->
+            [0, -2, 2].map decimal_places->
+                name = ...
+                fun x = x.round decimal_places use_bankers
+
+                group_builder.specify ("floats_" + name) <|
+                    fun data.floats
+
+                group_builder.specify ("ints_" + name) <|
+                    fun data.ints
+
 
 main = collect_benches . run_main
