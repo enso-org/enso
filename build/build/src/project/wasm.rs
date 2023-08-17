@@ -38,7 +38,7 @@ pub mod test;
 
 
 
-pub const BINARYEN_VERSION_TO_INSTALL: u32 = 108;
+pub const BINARYEN_VERSION_TO_INSTALL: u32 = 114;
 
 pub const DEFAULT_INTEGRATION_TESTS_WASM_TIMEOUT: Duration = Duration::from_secs(300);
 
