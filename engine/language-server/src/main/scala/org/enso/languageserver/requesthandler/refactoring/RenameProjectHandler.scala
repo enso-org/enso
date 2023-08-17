@@ -4,11 +4,11 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.refactoring.ProjectRenamedNotification
 import org.enso.languageserver.refactoring.RefactoringApi.{
   ProjectRenameFailed,
   RenameProject
 }
+import org.enso.languageserver.refactoring.RefactoringProtocol
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -56,7 +56,9 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       context.stop(self)
 
     case Api.Response(_, Api.ProjectRenamed(_, _, name)) =>
-      context.system.eventStream.publish(ProjectRenamedNotification(name))
+      context.system.eventStream.publish(
+        RefactoringProtocol.ProjectRenamedNotification(name)
+      )
       replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)
