@@ -975,7 +975,7 @@ impl FontWithGpuData {
     fn update_atlas(&self) {
         if let Some(context) = self.context.borrow().as_ref() {
             let num_glyphs = self.font.msdf_texture().glyphs();
-            let gpu_tex_glyphs = self.atlas.with_item(|texture| texture.layers);
+            let gpu_tex_glyphs = self.atlas.with_item(|texture| texture.layers());
             let texture_changed = gpu_tex_glyphs as u32 != num_glyphs;
             if texture_changed {
                 let glyph_size = self.font.msdf_texture().size();

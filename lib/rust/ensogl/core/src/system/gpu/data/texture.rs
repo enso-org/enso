@@ -65,16 +65,42 @@ impl Drop for TextureBindGuard {
 
 
 // ==================
+// === GpuTexture ===
+// ==================
+
+/// Wraps a [`WebGlTexture`] to delete it when dropped.
+#[derive(Debug, Deref, AsRef)]
+struct GpuTexture {
+    context: Context,
+    #[deref]
+    #[as_ref]
+    gl_texture: WebGlTexture,
+}
+
+impl Drop for GpuTexture {
+    fn drop(&mut self) {
+        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
+        // previous context.
+        if self.context.is_valid() && self.context.is_texture(Some(&self.gl_texture)) {
+            self.context.delete_texture(Some(&self.gl_texture));
+        }
+    }
+}
+
+
+
+// ==================
 // === Parameters ===
 // ==================
 
 /// Helper struct to specify texture parameters that need to be set when binding a texture.
 ///
-/// The essential parameters that need to be set are about how the texture will be samples, i.e.,
+/// The essential parameters that need to be set are about how the texture will be sampled, i.e.,
 /// how the values of the texture are interpolated at various resolutions, and how out of bounds
 /// samples are handled.
 ///
-/// For more background see: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texParameter
+/// For more background see:
+/// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texParameter
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Parameters {
     /// Specifies the setting for the texture minification filter (`Context::TEXTURE_MIN_FILTER`).
@@ -196,9 +222,9 @@ impl Default for Wrap {
 /// Texture bound to GL context.
 #[derive(Debug)]
 pub struct Texture<InternalFormat, ItemType> {
-    pub width:  i32,
-    pub height: i32,
-    pub layers: i32,
+    width:           i32,
+    height:          i32,
+    layers:          i32,
     gl_texture:      WebGlTexture,
     context:         Context,
     parameters:      Parameters,
@@ -267,6 +293,18 @@ impl<I, T> Texture<I, T> {
     pub fn parameters(&self) -> &Parameters {
         &self.parameters
     }
+
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
+    pub fn layers(&self) -> i32 {
+        self.layers
+    }
 }
 
 
@@ -288,19 +326,6 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
         let this = Self::new_uninitialized(context, provider);
         this.reload();
         this
-    }
-}
-
-
-// === Destructor ===
-
-impl<I, T> Drop for Texture<I, T> {
-    fn drop(&mut self) {
-        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
-        // previous context.
-        if self.context.is_valid() && self.context.is_texture(Some(&self.gl_texture)) {
-            self.context.delete_texture(Some(&self.gl_texture));
-        }
     }
 }
 
