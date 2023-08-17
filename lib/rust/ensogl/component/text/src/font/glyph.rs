@@ -21,8 +21,6 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu::texture;
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::gpu::Texture;
 use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;

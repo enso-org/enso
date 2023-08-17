@@ -196,21 +196,14 @@ impl Default for Wrap {
 /// Texture bound to GL context.
 #[derive(Debug)]
 pub struct Texture<InternalFormat, ItemType> {
-    storage:         GpuData,
+    pub width:  i32,
+    pub height: i32,
+    pub layers: i32,
     gl_texture:      WebGlTexture,
     context:         Context,
     parameters:      Parameters,
     internal_format: PhantomData<InternalFormat>,
     item_type:       PhantomData<ItemType>,
-}
-
-
-// === Traits ===
-
-/// Reloading functionality for textured. It is also used for initial data population.
-pub trait TextureReload {
-    /// Loads or re-loads the texture data from provided source.
-    fn reload(&self);
 }
 
 
@@ -262,19 +255,9 @@ impl<I, T> Texture<I, T> {
         &self.gl_texture
     }
 
-    /// Getter.
-    pub fn context(&self) -> &Context {
-        &self.context
-    }
-
-    /// Getter.
-    pub fn storage(&self) -> &GpuData {
-        &self.storage
-    }
-
     /// Texture target getter.
     pub fn target(&self) -> GlEnum {
-        match self.storage.layers {
+        match self.layers {
             0 => Context::TEXTURE_2D,
             _ => Context::TEXTURE_2D_ARRAY,
         }
@@ -299,9 +282,7 @@ impl<I, T> Texture<I, T> {
 
 // === Constructors ===
 
-impl<I: InternalFormat, T: ItemType> Texture<I, T>
-where Self: TextureReload
-{
+impl<I: InternalFormat, T: ItemType> Texture<I, T> {
     /// Constructor.
     pub fn new<P: Into<GpuData>>(context: &Context, provider: P) -> Self {
         let this = Self::new_uninitialized(context, provider);
@@ -311,7 +292,7 @@ where Self: TextureReload
 }
 
 
-// === Destructos ===
+// === Destructor ===
 
 impl<I, T> Drop for Texture<I, T> {
     fn drop(&mut self) {
@@ -330,13 +311,13 @@ impl<I, T> Texture<I, T> {
     /// New, uninitialized constructor. If you are not implementing a custom texture format, you
     /// should probably use `new` instead.
     pub fn new_uninitialized<X: Into<GpuData>>(context: &Context, storage: X) -> Self {
-        let storage = storage.into();
+        let GpuData { width, height, layers } = storage.into();
         let context = context.clone();
         let gl_texture = context.create_texture().unwrap();
         let parameters = default();
         let internal_format = default();
         let item_type = default();
-        Self { storage, gl_texture, context, parameters, internal_format, item_type }
+        Self { width, height, layers, gl_texture, context, parameters, internal_format, item_type }
     }
 
     /// Applies this textures' parameters in the given context.
@@ -504,9 +485,9 @@ impl GpuData {
     }
 }
 
-impl<I: InternalFormat, T: ItemType> TextureReload for Texture<I, T> {
+impl<I: InternalFormat, T: ItemType> Texture<I, T> {
+    /// Loads or re-loads the texture data.
     fn reload(&self) {
-        let GpuData { width, height, layers } = *self.storage();
         let level = 0;
         let border = 0;
         let internal_format = Self::gl_internal_format();
@@ -514,16 +495,16 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<I, T> {
         let elem_type = Self::gl_elem_type();
 
         let target = self.target();
-        self.context().bind_texture(*target, Some(self.gl_texture()));
+        self.context.bind_texture(*target, Some(self.gl_texture()));
         match target {
             Context::TEXTURE_2D => {
-                self.context()
+                self.context
                     .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
                         *target,
                         level,
                         internal_format,
-                        width,
-                        height,
+                        self.width,
+                        self.height,
                         border,
                         format,
                         elem_type,
@@ -532,14 +513,14 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<I, T> {
                     .unwrap();
             }
             Context::TEXTURE_2D_ARRAY | Context::TEXTURE_3D => {
-                self.context()
+                self.context
                     .tex_image_3d_with_opt_u8_array(
                         *target,
                         level,
                         internal_format,
-                        width,
-                        height,
-                        layers,
+                        self.width,
+                        self.height,
+                        self.layers,
                         border,
                         format,
                         elem_type,
@@ -552,7 +533,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<I, T> {
             }
         }
 
-        self.apply_texture_parameters(self.context());
+        self.apply_texture_parameters(&self.context);
     }
 }
 
@@ -560,7 +541,6 @@ impl<I: InternalFormat, T: ItemType + JsBufferViewArr> Texture<I, T> {
     /// Reload texture with given content. The data will be copied to gpu, but the texture will not
     /// take ownership.
     pub fn reload_with_content(&self, data: &[T]) {
-        let GpuData { width, height, layers } = *self.storage();
-        self.reload_from_memory(data, width, height, layers);
+        self.reload_from_memory(data, self.width, self.height, self.layers);
     }
 }
