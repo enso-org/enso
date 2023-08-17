@@ -128,6 +128,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
         try {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.willDelete,
+                key,
+            })
             if (
                 item.type === backendModule.AssetType.project &&
                 backend.type === backendModule.BackendType.local
@@ -756,6 +760,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     placeholderId: placeholderItem.id,
                     value: event.value,
                 })
+                break
+            }
+            case assetListEventModule.AssetListEventType.willDelete: {
+                if (selectedKeys.has(event.key)) {
+                    setSelectedKeys(oldSelectedKeys => {
+                        const newSelectedKeys = new Set(oldSelectedKeys)
+                        newSelectedKeys.delete(event.key)
+                        return newSelectedKeys
+                    })
+                }
                 break
             }
             case assetListEventModule.AssetListEventType.delete: {
