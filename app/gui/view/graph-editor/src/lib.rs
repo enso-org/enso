@@ -43,8 +43,6 @@ pub mod data;
 pub mod execution_environment;
 pub mod new_node_position;
 #[warn(missing_docs)]
-pub mod profiling;
-#[warn(missing_docs)]
 pub mod view;
 
 mod layers;
@@ -88,7 +86,6 @@ use span_tree::PortId;
 // === Export ===
 // ==============
 
-pub use crate::node::profiling::Status as NodeProfilingStatus;
 pub use layers::GraphLayers;
 
 
@@ -552,9 +549,9 @@ ensogl::define_endpoints_2! {
         /// Collapse the selected nodes into a new node.
         collapse_selected_nodes(),
         /// Indicate whether this node had an error or not.
-        set_node_error_status(NodeId,Option<node::error::Error>),
+        set_node_error_status(NodeId, Option<node::error::Error>),
         /// Indicate whether this node has finished execution.
-        set_node_profiling_status(NodeId,node::profiling::Status),
+        set_node_pending_status(NodeId, bool),
 
 
         // === Visualization ===
@@ -1759,16 +1756,6 @@ impl GraphEditorModel {
             node.set_read_only <+ self.frp.input.set_read_only;
 
 
-            // === Profiling ===
-
-            let profiling_min_duration              = &self.profiling_statuses.min_duration;
-            node.set_profiling_min_global_duration <+ self.profiling_statuses.min_duration;
-            node.set_profiling_min_global_duration(profiling_min_duration.value());
-            let profiling_max_duration              = &self.profiling_statuses.max_duration;
-            node.set_profiling_max_global_duration <+ self.profiling_statuses.max_duration;
-            node.set_profiling_max_global_duration(profiling_max_duration.value());
-
-
             // === Execution Environment ===
 
             node.set_execution_environment <+ self.frp.output.execution_environment;
@@ -1809,7 +1796,6 @@ pub struct GraphEditorModel {
     visualizations:       Visualizations,
     frp:                  api::Private,
     frp_public:           api::Public,
-    profiling_statuses:   profiling::Statuses,
     styles_frp:           StyleWatchFrp,
     selection_controller: selection::Controller,
 }
@@ -1831,7 +1817,6 @@ impl GraphEditorModel {
         let app = app.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
         let tooltip = Tooltip::new(&app);
-        let profiling_statuses = profiling::Statuses::new();
         let add_node_button = Rc::new(component::add_node_button::AddNodeButton::new(&app));
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
@@ -1858,7 +1843,6 @@ impl GraphEditorModel {
             touch_state,
             visualizations,
             navigator,
-            profiling_statuses,
             add_node_button,
             frp: frp.private.clone_ref(),
             frp_public: frp.public.clone_ref(),
@@ -3020,17 +3004,12 @@ fn init_remaining_graph_editor_frp(
 
     }
 
-
-    // === Profiling ===
-
+    // === Set Node Pending ===
     frp::extend! { network
 
-        eval inputs.set_node_profiling_status([model]((node_id,status)) {
-            model.with_node(*node_id, |node| {
-                model.profiling_statuses.set(*node_id,*status);
-                node.set_profiling_status(status);
-            })
-        });
+    eval inputs.set_node_pending_status([model]((node_id, is_pending)) {
+        model.with_node(*node_id, |n| n.set_pending.emit(is_pending))
+    });
 
     }
 
@@ -3287,7 +3266,6 @@ fn init_remaining_graph_editor_frp(
     eval out.node_selected   ((id) model.nodes.select(id));
     eval out.node_deselected ((id) model.nodes.deselect(id));
     eval out.node_removed    ((id) model.remove_node(*id));
-    model.profiling_statuses.remove <+ out.node_removed;
     out.on_visualization_select <+ out.node_removed.map(|&id| Switch::Off(id));
 
     // === Remove implementation ===
