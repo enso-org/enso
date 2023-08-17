@@ -8,6 +8,11 @@ all_benchmarks =
     numeric = Numeric.bench
     [vec_ops, vec_distinct, numeric]
 
+
+single_benchmark =
+    [Distinct.collect_benches]
+
+
 main =
     all_benchmarks.each suite->
         suite.run_main

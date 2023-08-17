@@ -11,7 +11,8 @@ import org.openjdk.jmh.runner.RunnerException;
  */
 @GenerateBenchSources(
     projectRootPath = "test/Benchmarks",
-    moduleName = "local.Benchmarks.Main"
+    moduleName = "local.Benchmarks.Main",
+    variableName = "single_benchmark"
 )
 public class LibBenchRunner {
 
