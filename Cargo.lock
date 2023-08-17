@@ -1197,16 +1197,6 @@ dependencies = [
 [[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if 1.0.0",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
 source = "git+https://github.com/enso-org/console_error_panic_hook#cdd73b81709475104b9ebfe6271c6914ff71b7b2"
 dependencies = [
  "cfg-if 1.0.0",
@@ -2609,7 +2599,7 @@ name = "enso-web"
 version = "0.1.0"
 dependencies = [
  "async-std",
- "console_error_panic_hook 0.1.7 (git+https://github.com/enso-org/console_error_panic_hook)",
+ "console_error_panic_hook",
  "derivative",
  "enso-debug-api",
  "enso-logging",
@@ -7489,7 +7479,7 @@ version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6db36fc0f9fb209e88fb3642590ae0205bb5a56216dabd963ba15879fe53a30b"
 dependencies = [
- "console_error_panic_hook 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "console_error_panic_hook",
  "js-sys",
  "scoped-tls",
  "wasm-bindgen",
