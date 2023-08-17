@@ -10,9 +10,9 @@ use span_tree::node::Kind;
 
 
 
-/// =============
-/// === Style ===
-/// =============
+// =============
+// === Style ===
+// =============
 
 #[derive(Clone, Debug, Default, PartialEq, FromTheme)]
 #[base_path = "theme::widget::label"]
@@ -25,6 +25,7 @@ struct Style {
     disabled_weight:    f32,
     placeholder_color:  color::Rgba,
     placeholder_weight: f32,
+    pending_alpha:      f32,
 }
 
 // ==============
@@ -39,6 +40,7 @@ ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(ColorState),
+        text_pending(bool),
         text_weight(Option<text::Weight>),
         text_sdf_weight(f32),
     }
@@ -90,9 +92,10 @@ impl SpanWidget for Widget {
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             parent_port_hovered <- parent_port_hovered.on_change();
             text_color <- frp.text_color.on_change();
-            label_color <- all_with3(
-                &style, &text_color, &parent_port_hovered,
-                |style, state, hovered| state.to_color(*hovered, style)
+            text_pending <- frp.text_pending.on_change();
+            label_color <- all_with4(
+                &style, &text_color, &parent_port_hovered, &text_pending,
+                |style, state, hovered, text_pending| state.to_color(*hovered, style, *text_pending)
             ).debounce().on_change();
             color_anim.target <+ label_color;
             eval color_anim.value((color) label.set_property_default(color));
@@ -147,8 +150,9 @@ impl SpanWidget for Widget {
         let text_weight = bold.then_some(text::Weight::Bold);
 
         let input = &self.frp.public.input;
-        input.content.emit(content);
-        input.text_color.emit(color_state);
+        input.content(content);
+        input.text_color(color_state);
+        input.text_pending(ctx.info.pending);
         input.text_weight(text_weight);
     }
 }
@@ -201,14 +205,18 @@ impl ColorState {
             text::Weight::from(weight_num as u16)
         })
     }
-    fn to_color(self, is_hovered: bool, style: &Style) -> color::Lcha {
-        match self {
+
+    fn to_color(self, is_hovered: bool, style: &Style, text_pending: bool) -> color::Lcha {
+        let base_color = color::Lcha::from(match self {
             _ if is_hovered => style.connected_color,
             ColorState::Base => style.base_color,
             ColorState::Connected => style.connected_color,
             ColorState::Disabled => style.disabled_color,
             ColorState::Placeholder => style.placeholder_color,
+        });
+        match text_pending {
+            true => base_color.multiply_alpha(style.pending_alpha),
+            false => base_color,
         }
-        .into()
     }
 }
