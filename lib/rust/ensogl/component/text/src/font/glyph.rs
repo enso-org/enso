@@ -182,45 +182,52 @@ pub struct GlyphData {
 
 // === Face Header Properties Getters and Setters ===
 
-#[allow(missing_docs)]
+/// For each property, such as `Weight(Thin, ExtraLight, ...)` defines:
+/// ```text
+/// pub fn weight(&self) -> Weight { ... }
+/// pub fn set_weight(&self, weight: Weight) { ... }
+/// ...
+/// ```
+///
+/// It also defines:
+///
+/// ``text
+/// pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) { ... }
+/// ```
+macro_rules! define_prop_setters_and_getters {
+    ($($prop:ident),*$(,)?) => { paste! {
+
+        /// Set `NonVariableFaceHeader` of the glyph.
+        pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
+            self.properties.set(props.clone());
+            $(
+                self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
+            )*
+            self.refresh();
+        }
+
+        $(
+            #[doc = "Setter of the glyph `"]
+            #[doc = stringify!($prop)]
+            #[doc = "` property."]
+            pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
+                self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
+                self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
+                self.refresh();
+            }
+
+            #[doc = "Gets the current `"]
+            #[doc = stringify!($prop)]
+            #[doc = "` property value.`"]
+            pub fn [<$prop:snake:lower>](&self) -> $prop {
+                self.properties.get().[<$prop:snake:lower>]
+            }
+        )*
+    }};
+}
+
 impl Glyph {
-    pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
-        self.properties.set(props.clone());
-        self.variations.borrow_mut().set_weight(props.weight);
-        self.variations.borrow_mut().set_style(props.style);
-        self.variations.borrow_mut().set_width(props.width);
-        self.refresh();
-    }
-
-    pub fn set_weight(&self, value: Weight) {
-        self.properties.modify(|p| p.weight = value);
-        self.variations.borrow_mut().set_weight(value);
-        self.refresh();
-    }
-
-    pub fn weight(&self) -> Weight {
-        self.properties.get().weight
-    }
-
-    pub fn set_style(&self, value: Style) {
-        self.properties.modify(|p| p.style = value);
-        self.variations.borrow_mut().set_style(value);
-        self.refresh();
-    }
-
-    pub fn style(&self) -> Style {
-        self.properties.get().style
-    }
-
-    pub fn set_width(&self, value: Width) {
-        self.properties.modify(|p| p.width = value);
-        self.variations.borrow_mut().set_width(value);
-        self.refresh();
-    }
-
-    pub fn width(&self) -> Width {
-        self.properties.get().width
-    }
+    define_prop_setters_and_getters![Weight, Style, Width];
 }
 
 
