@@ -5,6 +5,8 @@ Script for downloading Engine benchmark results into a single static web page
 that visualizes all the benchmarks. Without any options, downloads and
 visualizes benchmark data for the last 14 days.
 
+The generated website is placed under "generated_site" directory
+
 It downloads the data synchronously and uses a cache directory by default.
 It is advised to use `-v|--verbose` option all the time.
 
@@ -68,8 +70,10 @@ BENCH_WORKFLOW_ID = 29450898
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 """ Date format as returned from responses in GH API"""
 ENSO_COMMIT_BASE_URL = "https://github.com/enso-org/enso/commit/"
-JINJA_TEMPLATE = "template_jinja.html"
+JINJA_TEMPLATE = "templates/template_jinja.html"
 """ Path to the Jinja HTML template """
+TEMPLATES_DIR = "templates"
+GENERATED_SITE_DIR = "generated_site"
 
 
 @dataclass
@@ -155,6 +159,8 @@ class TemplateBenchData:
     """ Data for one benchmark label (with a unique name and ID) """
     id: str
     """ ID of the benchmark, must not contain dots """
+    name: str
+    """ Human readable name of the benchmark """
     branches_datapoints: Dict[str, List[BenchDatapoint]]
     """ Mapping of branches to datapoints for that branch """
 
@@ -565,6 +571,7 @@ def create_template_data(
         logging.debug(f"Template data for benchmark {bench_label} created")
         template_bench_datas.append(TemplateBenchData(
             id=_label_to_id(bench_label),
+            name=_label_to_name(bench_label),
             branches_datapoints=branch_datapoints,
         ))
     return template_bench_datas
@@ -572,6 +579,22 @@ def create_template_data(
 
 def _label_to_id(label: str) -> str:
     return label.replace(".", "_")
+
+
+def _label_to_name(label: str) -> str:
+    items = label.split(".")
+    assert len(items) >= 2
+    filtered_items = \
+        [item for item in items if item not in (
+            "org",
+            "enso",
+            "benchmark",
+            "benchmarks",
+            "semantic",
+            "interpreter",
+            "bench"
+        )]
+    return "_".join(filtered_items)
 
 
 def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
@@ -818,8 +841,24 @@ if __name__ == '__main__':
     )
 
     # Render Jinja template with jinja_data
-    render_html(jinja_data, JINJA_TEMPLATE, "index.html")
-    index_html_path = os.path.join(os.getcwd(), "index.html")
+    if not path.exists(GENERATED_SITE_DIR):
+        os.mkdir(GENERATED_SITE_DIR)
 
-    print(f"The generated HTML is in {index_html_path}")
-    print(f"Open file://{index_html_path} in the browser")
+    render_html(
+        jinja_data,
+        JINJA_TEMPLATE,
+        path.join(GENERATED_SITE_DIR, "index.html")
+    )
+    # Copy rest of the static site content
+    logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
+    #shutil.copy(
+        #path.join(TEMPLATES_DIR, "styles.css"),
+        #path.join(GENERATED_SITE_DIR, "styles.css")
+    #)
+    index_html_abs_path = path.join(
+        os.getcwd(),
+        GENERATED_SITE_DIR,
+        "index.html"
+    )
+    print(f"The generated HTML is in {index_html_abs_path}")
+    print(f"Open file://{index_html_abs_path} in the browser")
