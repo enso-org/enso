@@ -61,6 +61,7 @@ interface InternalBaseTableRowProps<T, State = never, RowState = never, Key exte
     columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     selected: boolean
     setSelected: (selected: boolean) => void
+    isSoleSelectedItem: boolean
     allowContextMenu: boolean
     onClick: (props: TableRowInnerProps<T, State, RowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
@@ -94,6 +95,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         columns,
         selected,
         setSelected,
+        isSoleSelectedItem,
         // This prop is unused here, but is useful for components wrapping this component.
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         allowContextMenu,
@@ -165,6 +167,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                             setItem={setItem}
                             selected={selected}
                             setSelected={setSelected}
+                            isSoleSelectedItem={isSoleSelectedItem}
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.
                              * See the type definitions of {@link TableRowProps} and

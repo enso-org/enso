@@ -23,6 +23,7 @@ import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
+import * as assetSettingsPanel from './assetSettingsPanel'
 import StatelessSpinner, * as statelessSpinner from './statelessSpinner'
 import TableRow, * as tableRow from './tableRow'
 import AssetContextMenu from './assetContextMenu'
@@ -104,12 +105,19 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         item: rawItem,
         initialRowState,
         selected,
+        isSoleSelectedItem,
         allowContextMenu,
         onContextMenu,
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetListEvent, getDepth } = state
+    const {
+        assetEvents,
+        dispatchAssetEvent,
+        dispatchAssetListEvent,
+        getDepth,
+        setAssetSettingsPanelProps,
+    } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
@@ -124,6 +132,21 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
+    React.useEffect(() => {
+        if (isSoleSelectedItem) {
+            setAssetSettingsPanelProps({
+                item,
+                setItem,
+                dispatchAssetEvent,
+            })
+        }
+    }, [
+        item,
+        isSoleSelectedItem,
+        /* should never change */ setAssetSettingsPanelProps,
+        /* should never change */ dispatchAssetEvent,
+    ])
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
@@ -309,6 +332,9 @@ export interface AssetsTableState {
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     getDepth: (id: backendModule.AssetId) => number
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.DirectoryId,
@@ -344,6 +370,9 @@ export interface AssetsTableProps {
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
 }
@@ -359,6 +388,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent,
         assetListEvents,
         dispatchAssetListEvent,
+        setAssetSettingsPanelProps,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
@@ -401,6 +431,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         (id: backendModule.AssetId) => itemDepthsRef.current.get(id) ?? 0,
         []
     )
+
+    React.useEffect(() => {
+        if (selectedKeys.size !== 1) {
+            setAssetSettingsPanelProps(null)
+        }
+    }, [selectedKeys.size, /* should never change */ setAssetSettingsPanelProps])
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -791,6 +827,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent,
             dispatchAssetListEvent,
             getDepth,
+            setAssetSettingsPanelProps,
             doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
@@ -804,6 +841,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
             getDepth,
             doToggleDirectoryExpansion,
+            /* should never change */ setAssetSettingsPanelProps,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
         ]

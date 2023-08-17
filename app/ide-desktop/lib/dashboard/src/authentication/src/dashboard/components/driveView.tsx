@@ -11,6 +11,7 @@ import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as string from '../../string'
 
+import * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
@@ -31,6 +32,9 @@ export interface DriveViewProps {
     doOpenEditor: (project: backendModule.ProjectAsset) => void
     doCloseEditor: () => void
     appRunner: AppRunner | null
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -50,6 +54,7 @@ export default function DriveView(props: DriveViewProps) {
         doOpenEditor,
         doCloseEditor,
         appRunner,
+        setAssetSettingsPanelProps,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -246,6 +251,7 @@ export default function DriveView(props: DriveViewProps) {
                 dispatchAssetEvent={dispatchAssetEvent}
                 assetListEvents={assetListEvents}
                 dispatchAssetListEvent={dispatchAssetListEvent}
+                setAssetSettingsPanelProps={setAssetSettingsPanelProps}
                 doOpenIde={doOpenEditor}
                 doCloseIde={doCloseEditor}
             />

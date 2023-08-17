@@ -235,6 +235,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
     ) : (
         items.map(item => {
             const key = getKey(item)
+            const isSelected = selectedKeys.has(key)
+            const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
             return (
                 <RowComponent
                     {...rowProps}
@@ -248,20 +250,17 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     key={key}
                     keyProp={key}
                     item={item}
-                    selected={selectedKeys.has(key)}
+                    selected={isSelected}
                     setSelected={selected => {
                         setSelectedKeys(oldSelectedKeys =>
                             set.withPresence(oldSelectedKeys, key, selected)
                         )
                     }}
-                    allowContextMenu={
-                        selectedKeys.size === 0 ||
-                        !selectedKeys.has(key) ||
-                        (selectedKeys.size === 1 && selectedKeys.has(key))
-                    }
+                    isSoleSelectedItem={isSoleSelectedItem}
+                    allowContextMenu={selectedKeys.size === 0 || !isSelected || isSoleSelectedItem}
                     onClick={onRowClick}
                     onContextMenu={(_innerProps, event) => {
-                        if (!selectedKeys.has(key)) {
+                        if (!isSelected) {
                             event.preventDefault()
                             event.stopPropagation()
                             setPreviouslySelectedKey(key)

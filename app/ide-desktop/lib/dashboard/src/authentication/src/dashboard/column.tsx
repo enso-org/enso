@@ -169,8 +169,18 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 // === SharedWithColumn ===
 // ========================
 
+/** The type of the `state` prop of a {@link SharedWithColumn}. */
+interface SharedWithColumnStateProp {
+    dispatchAssetEvent: AssetColumnProps<backend.AnyAsset>["state"]["dispatchAssetEvent"]
+}
+
+/** Props for a {@link SharedWithColumn}. */
+export interface SharedWithColumnProps extends Pick<AssetColumnProps<backend.AnyAsset>, 'item' | 'setItem'> {
+    state: SharedWithColumnStateProp
+}
+
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
+export function SharedWithColumn(props: SharedWithColumnProps) {
     const {
         item,
         setItem,

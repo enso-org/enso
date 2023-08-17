@@ -16,6 +16,7 @@ import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 
+import * as pageSwitcher from './pageSwitcher'
 import Twemoji from './twemoji'
 
 // ================
@@ -333,7 +334,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             </div>
             <div className="relative text-sm font-semibold">
                 <div
-                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-10 ${
+                    className={`grid absolute shadow-soft clip-path-bottom-shadow bg-ide-bg backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-10 ${
                         isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                     }`}
                 >
@@ -373,6 +374,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
+    page: pageSwitcher.Page
     /** This should only be false when the panel is closing. */
     isOpen: boolean
     doClose: () => void
@@ -380,7 +382,7 @@ export interface ChatProps {
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-    const { isOpen, doClose } = props
+    const { page, isOpen, doClose } = props
     const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
 
@@ -693,7 +695,9 @@ export default function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-10"
+                className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-10 ${
+                    page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
+                }`}
             >
                 <ChatHeader
                     threads={threads}

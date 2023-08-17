@@ -20,13 +20,15 @@ export interface TopBarProps {
     supportsLocalBackend: boolean
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
-    asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
+    canToggleSettingsPanel: boolean
+    isSettingsPanelVisible: boolean
+    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
     onSignOut: () => void
 }
 
@@ -37,13 +39,15 @@ export default function TopBar(props: TopBarProps) {
         supportsLocalBackend,
         page,
         setPage,
-        asset,
         isEditorDisabled,
         setBackendType,
         isHelpChatOpen,
         setIsHelpChatOpen,
         query,
         setQuery,
+        canToggleSettingsPanel,
+        isSettingsPanelVisible,
+        setIsSettingsPanelVisible,
         onSignOut,
     } = props
 
@@ -76,7 +80,11 @@ export default function TopBar(props: TopBarProps) {
                 </>
             )}
             <div className="flex gap-2">
-                <AssetInfoBar asset={asset} />
+                <AssetInfoBar
+                    canToggleSettingsPanel={canToggleSettingsPanel}
+                    isSettingsPanelVisible={isSettingsPanelVisible}
+                    setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+                />
                 <UserBar
                     isHelpChatOpen={isHelpChatOpen}
                     setIsHelpChatOpen={setIsHelpChatOpen}
