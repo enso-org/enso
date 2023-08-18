@@ -10,31 +10,12 @@
 //! loading different faces from the same file with the `@font-face` rule
 //! (https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face).
 
-// === Features ===
-#![allow(incomplete_features)]
-#![feature(associated_type_defaults)]
-#![feature(cell_update)]
-#![feature(const_type_id)]
-#![feature(drain_filter)]
-#![feature(entry_insert)]
-#![feature(fn_traits)]
-#![feature(marker_trait_attr)]
-#![feature(specialization)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
-#![feature(trace_macros)]
-#![feature(const_trait_impl)]
-#![feature(slice_as_chunks)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
-#![allow(clippy::option_map_unit_fn)]
-#![allow(clippy::precedence)]
-#![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -46,7 +27,7 @@
 
 use derive_more::Deref;
 use derive_more::Display;
-use std::collections::HashMap;
+
 
 
 // ==============
@@ -99,15 +80,15 @@ impl From<String> for Name {
 
 
 
-// ==================
-// === Definition ===
-// ==================
+// ===================
+// === Font Family ===
+// ===================
 
 /// Definition of a font family. Font family consist of one font face in case of variable fonts or
 /// multiple font faces in case of non-variable ones.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Definition {
+pub enum FontFamily {
     Variable(VariableDefinition),
     NonVariable(NonVariableDefinition),
 }
@@ -147,26 +128,65 @@ impl VariableDefinition {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NonVariableDefinition {
-    pub map: HashMap<NonVariableFaceHeader, String>,
+    variations: std::collections::HashMap<NonVariableFaceHeader, String>,
 }
 
 impl NonVariableDefinition {
-    /// Constructor.
-    pub fn new(map: HashMap<NonVariableFaceHeader, String>) -> Self {
-        Self { map }
-    }
-
     /// All weights defined in this font family.
     pub fn possible_weights(&self) -> Vec<Weight> {
-        self.map.keys().map(|header| header.weight).collect()
+        let mut weights: Vec<_> = self.variations().map(|var| var.header.weight).collect();
+        weights.sort_unstable_by_key(|w| w.to_number());
+        weights.dedup();
+        weights
+    }
+
+    /// Return an iterator over the filenames associated with fonts in this family.
+    pub fn files(&self) -> impl Iterator<Item = &str> {
+        self.variations().map(|v| v.file)
+    }
+
+    /// Return an iterator over the fonts in this family.
+    pub fn variations(&self) -> impl Iterator<Item = NonVariableVariation> {
+        self.variations
+            .iter()
+            .map(|(header, file)| NonVariableVariation { header: *header, file: file.as_str() })
+    }
+
+    /// Return the font in this family that exactly matches the given parameters, if any.
+    pub fn get(&self, header: NonVariableFaceHeader) -> Option<NonVariableVariation> {
+        self.variations.get(&header).map(|file| NonVariableVariation { header, file })
     }
 }
 
 impl FromIterator<(NonVariableFaceHeader, String)> for NonVariableDefinition {
     fn from_iter<T>(iter: T) -> Self
     where T: IntoIterator<Item = (NonVariableFaceHeader, String)> {
-        Self::new(iter.into_iter().collect())
+        let map = iter.into_iter().collect();
+        Self { variations: map }
     }
+}
+
+impl<'a> FromIterator<NonVariableVariation<'a>> for NonVariableDefinition {
+    fn from_iter<T>(iter: T) -> Self
+    where T: IntoIterator<Item = NonVariableVariation<'a>> {
+        let map = iter.into_iter().map(|v| (v.header, v.file.to_owned())).collect();
+        Self { variations: map }
+    }
+}
+
+
+
+// ============================
+// === NonVariableVariation ===
+// ============================
+
+/// The parameters of a font, and the filename where it should be found.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NonVariableVariation<'a> {
+    /// The parameters of the font.
+    pub header: NonVariableFaceHeader,
+    /// The filename for the font.
+    pub file:   &'a str,
 }
 
 
@@ -189,78 +209,5 @@ impl NonVariableFaceHeader {
     /// Constructor.
     pub const fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
-    }
-
-    /// Distance between two font variations. It is used to find the closest variations if the
-    /// provided is not available.
-    pub fn similarity_distance(&self, other: NonVariableFaceHeader) -> usize {
-        let width_weight = 10;
-        let weight_weight = 100;
-        let style_weight = 1;
-
-        let self_width = self.width.to_number() as usize;
-        let self_weight = self.weight.to_number() as usize;
-        let self_style: usize = match self.style {
-            Style::Normal => 0,
-            Style::Italic => 1,
-            Style::Oblique => 2,
-        };
-
-        let other_width = other.width.to_number() as usize;
-        let other_weight = other.weight.to_number() as usize;
-        let other_style: usize = match other.style {
-            Style::Normal => 0,
-            Style::Italic => 1,
-            Style::Oblique => 2,
-        };
-
-        let width = self_width.abs_diff(other_width) * width_weight;
-        let weight = self_weight.abs_diff(other_weight) * weight_weight;
-        let style = self_style.abs_diff(other_style) * style_weight;
-        width + weight + style
-    }
-}
-
-
-
-// ==================================
-// === NonVariableFaceHeaderMatch ===
-// ==================================
-
-/// Indicates whether the provided variation was an exact match or a closest match was found.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(missing_docs)]
-pub enum NonVariableFaceHeaderMatchType {
-    Exact,
-    Closest,
-}
-
-/// Result of finding a closest font variation for a non-variable font family.
-#[derive(Debug, Copy, Clone)]
-#[allow(missing_docs)]
-pub struct NonVariableFaceHeaderMatch {
-    pub variations: NonVariableFaceHeader,
-    pub match_type: NonVariableFaceHeaderMatchType,
-}
-
-impl NonVariableFaceHeaderMatch {
-    /// Constructor.
-    pub fn exact(variations: NonVariableFaceHeader) -> Self {
-        Self { variations, match_type: NonVariableFaceHeaderMatchType::Exact }
-    }
-
-    /// Constructor.
-    pub fn closest(variations: NonVariableFaceHeader) -> Self {
-        Self { variations, match_type: NonVariableFaceHeaderMatchType::Closest }
-    }
-
-    /// Checks whether the match was exact.
-    pub fn was_exact(&self) -> bool {
-        self.match_type == NonVariableFaceHeaderMatchType::Exact
-    }
-
-    /// Checks whether the match was closest.
-    pub fn was_closest(&self) -> bool {
-        self.match_type == NonVariableFaceHeaderMatchType::Closest
     }
 }

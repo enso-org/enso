@@ -2,51 +2,59 @@ from Standard.Base import all
 
 from Standard.Test import Bench, Faker
 
-## Bench Utilities ============================================================
 
-vector_size = 100000
-iter_size = 100
-num_iterations = 10
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
-# The Benchmarks ==============================================================
+type Data
+    Value ~decimals ~integers
 
-collect_benches group_builder =
-    bench_measure ~act name = group_builder.specify name act
+    create vector_size faker =
+        Data.Value (create_decimals vector_size faker) (create_integers vector_size faker)
 
+
+create_decimals vector_size faker =
+    Vector.new vector_size _-> faker.decimal -1000000000 1000000000
+
+
+create_integers vector_size faker =
+    Vector.new vector_size _-> faker.integer -1000000000 1000000000
+
+
+collect_benches = Bench.build builder->
+    vector_size = 1000000
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
     funs = [["ceil", _.ceil], ["floor", _.floor], ["truncate", _.truncate]]
 
-    IO.println <| "Creating decimals"
-    decimals = Vector.new vector_size _-> faker.decimal -1000000000 1000000000
-    IO.println <| "Creating integers"
-    integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
+    data = Data.create vector_size faker
 
-    funs.map pair->
-        name = pair.at 0
-        fun = pair.at 1
-        IO.println <| "Benchmarking decimal " + name
-        bench_measure (decimals.map fun) name
+    builder.group "Numeric" options group_builder->
+        funs.each pair->
+            name = pair.at 0
+            fun = pair.at 1
+            group_builder.specify ("decimal_" + name) (data.decimals.map fun)
 
-    funs.map pair->
-        name = pair.at 0
-        fun = pair.at 1
-        IO.println <| "Benchmarking integer" + name
-        bench_measure (integers.map fun) name
+        funs.each pair->
+            name = pair.at 0
+            fun = pair.at 1
+            group_builder.specify ("integer_" + name) (data.integers.map fun)
 
-    [True, False].map use_bankers->
-        [0, -2, 2].map decimal_places->
-            name = "round decimal_places=" + (decimal_places.to_text.replace '-' '_') + " use_bankers=" + use_bankers.to_text
-            fun = _.round decimal_places use_bankers
-            bench_measure (decimals.map fun) "decimal "+name
-            bench_measure (integers.map fun) "integer "+name
+        [True, False].each use_bankers->
+            [0, -2, 2].each decimal_places->
+                name = create_name "round_decimal_places_" decimal_places use_bankers
+                fun = _.round decimal_places use_bankers
+                group_builder.specify ("decimal_" + name) (data.decimals.map fun)
+                group_builder.specify ("integer_" + name) (data.integers.map fun)
 
-bench =
-    options = Bench.options . size iter_size . iter num_iterations
 
-    Bench.build builder->
-        builder.group "Numbers" options group_builder->
-            collect_benches group_builder
+## Creates a valid name for the benchmark
+create_name : Text -> Integer -> Boolean -> Text
+create_name prefix dec_places use_bankers =
+    use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)
+    case dec_places >= 0 of
+        True -> prefix + dec_places.to_text + use_bankers_str
+        False -> prefix + "minus_" + (dec_places.abs.to_text) + use_bankers_str
 
-main = bench . run_main
+
+main = collect_benches . run_main

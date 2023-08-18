@@ -234,9 +234,13 @@ export default function ManagePermissionsModal<
         return (
             <Modal
                 centered={eventTarget == null}
-                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10"
+                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
             >
                 <div
+                    ref={element => {
+                        element?.focus()
+                    }}
+                    tabIndex={-1}
                     style={
                         position != null
                             ? {
@@ -252,6 +256,11 @@ export default function ManagePermissionsModal<
                     onContextMenu={mouseEvent => {
                         mouseEvent.stopPropagation()
                         mouseEvent.preventDefault()
+                    }}
+                    onKeyDown={event => {
+                        if (event.key !== 'Escape') {
+                            event.stopPropagation()
+                        }
                     }}
                 >
                     <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />

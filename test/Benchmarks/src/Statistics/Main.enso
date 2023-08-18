@@ -1,6 +1,0 @@
-import project.Statistics.Count_Min_Max
-
-bench =
-    Count_Min_Max.bench
-
-main = bench

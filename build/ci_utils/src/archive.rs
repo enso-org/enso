@@ -149,22 +149,22 @@ pub async fn extract_item(
     let item_path = item_path.as_ref().to_path_buf();
     let output_path = output_path.as_ref().to_path_buf();
 
-    let extract_task = match format {
+    match format {
         Format::Zip => {
             let mut archive = zip::open(&archive_path)?;
             tokio::task::spawn_blocking(move || {
                 zip::extract_subtree(&mut archive, item_path, output_path)
             })
+            .instrument(Span::current())
+            .await??;
         }
         Format::Tar(Some(Compression::Gzip)) => {
-            let mut archive = tar::open_tar_gz(&archive_path)?;
-            tokio::task::spawn_blocking(move || {
-                tar::extract_subtree(&mut archive, item_path, output_path)
-            })
+            let archive = tar::Archive::open_tar_gz(&archive_path).await?;
+            archive.extract_subtree(item_path, output_path).await?;
         }
         _ => todo!(),
     };
-    extract_task.instrument(Span::current()).await??;
+
     Ok(())
 }
 

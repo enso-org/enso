@@ -40,7 +40,7 @@ import Table from './table'
 // =================
 
 /** The number of pixels the header bar should shrink when the extra tab selector is visible. */
-const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 142
+const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 274
 /** The value returned when {@link Array.findIndex} fails. */
 const NOT_FOUND = -1
 /** The user-facing name of this asset type. */
@@ -896,7 +896,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             <div className="flex flex-col w-min min-w-full h-full">
                 {backend.type !== backendModule.BackendType.local && (
                     <div className="sticky top-0 h-0">
-                        <div className="block sticky right-0 ml-auto mt-1.25 w-29 p-2 z-10">
+                        <div className="block sticky right-0 ml-auto w-29 p-2 z-1">
                             <div className="inline-flex gap-3">
                                 {columnModule.EXTRA_COLUMNS.map(column => (
                                     <Button

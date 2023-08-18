@@ -237,7 +237,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr ref={headerRowRef} className="sticky top-2">
+        <tr ref={headerRowRef} className="sticky">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
@@ -310,7 +310,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <table
-            className="grow rounded-rows self-start table-fixed border-collapse mt-2"
+            className="grow rounded-rows self-start table-fixed border-collapse"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}

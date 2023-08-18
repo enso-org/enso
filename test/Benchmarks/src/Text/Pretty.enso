@@ -2,36 +2,51 @@ from Standard.Base import all
 
 from Standard.Test import Bench, Faker
 
-# Benchmarks ##################################################################
 
 cycle_character_template num character_templates =
   character_templates.at (num % (character_templates.length))
 
-bench =
-    ## The `Text.pretty` benchmarks check both scenarios where the Texts are
-       short and very long. This is to verify that making a single pass over
-       the text is in fact faster than multiple passes.
-    bench_pretty suite_prefix =
-        faker = Faker.new
 
-        regular_characters = (Faker.upper_case_letters + Faker.lower_case_letters)
-        # Keep this up to date with the special characters in Text.java
-        special_characters = '\\\'\n\t\u{7}\u{8}\u{c}\r\u{b}\u{1b}'.char_vector
+type Data
+    Value ~very_short_random ~big_random
 
-        # 20% special, 80% regular
-        make_template length =
-          r = regular_characters
-          s = special_characters
-          Vector.new length ix-> cycle_character_template ix [r, r, s, s, r]
+    create faker =
+        Data.Value (create_very_short_random faker) (create_big_random faker)
 
-        very_short_template = make_template 4
-        very_short_random = faker.string_value very_short_template
-        big_template = make_template 100000
-        big_random = faker.string_value big_template
 
-        Bench.measure (very_short_random.pretty) suite_prefix+" 4" 10 10
-        Bench.measure (big_random.pretty) suite_prefix+" 100000" 10 10
+# 20% special, 80% regular
+create_template length =
+    regular_characters = (Faker.upper_case_letters + Faker.lower_case_letters)
+    # Keep this up to date with the special characters in Text.java
+    special_characters = '\\\'\n\t\u{7}\u{8}\u{c}\r\u{b}\u{1b}'.char_vector
+    r = regular_characters
+    s = special_characters
+    Vector.new length ix-> cycle_character_template ix [r, r, s, s, r]
 
-    bench_pretty "Text.pretty"
 
-main = bench
+create_very_short_random faker =
+    very_short_template = create_template 40
+    faker.string_value very_short_template
+
+
+create_big_random faker =
+    big_template = create_template 100000
+    faker.string_value big_template
+
+
+## The `Text.pretty` benchmarks check both scenarios where the Texts are
+   short and very long. This is to verify that making a single pass over
+   the text is in fact faster than multiple passes.
+collect_benches = Bench.build builder->
+    data = Data.create Faker.new
+
+    builder.group "Text_Pretty_Short" (Bench.options.set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)) group_builder->
+        group_builder.specify "very_short_random" <|
+            data.very_short_random.pretty
+
+    builder.group "Text_Pretty_Big" (Bench.options.set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)) group_builder->
+        group_builder.specify "big_random" <|
+            data.big_random.pretty
+
+
+main = collect_benches . run_main

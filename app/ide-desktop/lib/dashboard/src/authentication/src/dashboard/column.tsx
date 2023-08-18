@@ -88,12 +88,12 @@ export const COLUMN_NAME: Record<Column, string> = {
 } as const
 
 const COLUMN_CSS_CLASSES =
-    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
+const NORMAL_COLUMN_CSS_CLASSES = `px-2 pt-1 pb-1.5 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
-/** CSS classes for every column. Currently only used to set the widths. */
+/** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 ${COLUMN_CSS_CLASSES}`,
+    [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
     [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.tags]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
@@ -177,7 +177,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`w-max ${isHovered ? '' : 'invisible'}`}
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
@@ -197,7 +197,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                         )
                     }}
                 >
-                    <img src={PlusIcon} />
+                    <img className="w-4.5 h-4.5" src={PlusIcon} />
                 </button>
             )}
         </div>
@@ -217,7 +217,11 @@ export const COLUMN_HEADING: Record<
     Column,
     (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
 > = {
-    [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
+    [Column.name]: () => (
+        <div className="flex items-center gap-2 pt-1 pb-1.5">
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.name]}</span>
+        </div>
+    ),
     [Column.modified]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={TimeIcon} />
