@@ -386,9 +386,9 @@ pub struct TextFileModifiedOnDisk {
 
 
 
-// ====================================
+// =================================
 // === Refactoring Notifications ===
-// ====================================
+// =================================
 
 /// The `refactoring/projectRenamed` notification parameters.
 #[derive(Clone, Debug, PartialEq, Eq)]

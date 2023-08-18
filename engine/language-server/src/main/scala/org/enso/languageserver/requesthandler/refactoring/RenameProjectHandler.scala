@@ -1,6 +1,5 @@
 package org.enso.languageserver.requesthandler.refactoring
 
-import java.util.UUID
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
@@ -12,6 +11,8 @@ import org.enso.languageserver.refactoring.RefactoringProtocol
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+
+import java.util.UUID
 
 import scala.concurrent.duration.FiniteDuration
 
