@@ -138,16 +138,15 @@ export function useSetAsset<T extends backendModule.AnyAsset>(
 ) {
     return React.useCallback(
         (valueOrUpdater: React.SetStateAction<T>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setNode(oldNode => ({
-                    ...oldNode,
-                    // This is SAFE, because it is a mistake for an item to change type.
-                    // eslint-disable-next-line no-restricted-syntax
-                    item: valueOrUpdater(oldNode.item as T),
-                }))
-            } else {
-                setNode(oldNode => ({ ...oldNode, item: valueOrUpdater }))
-            }
+            setNode(oldNode => {
+                const item =
+                    typeof valueOrUpdater === 'function'
+                        ? // This is SAFE, because it is a mistake for an item to change type.
+                          // eslint-disable-next-line no-restricted-syntax
+                          valueOrUpdater(oldNode.item as T)
+                        : valueOrUpdater
+                return { ...oldNode, item }
+            })
         },
         [/* should never change */ setNode]
     )

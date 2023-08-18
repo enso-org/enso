@@ -58,6 +58,11 @@ export default function AssetRow(props: AssetRowProps) {
         ...initialRowState,
         setPresence,
     }))
+    React.useEffect(() => {
+        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
+        // parent.
+        rawItem.item = asset
+    }, [asset, rawItem])
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
