@@ -38,7 +38,18 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
 
     return (
         <Modal centered className="bg-dim">
-            <div className="relative rounded-2xl pointer-events-auto">
+            <div
+                ref={element => {
+                    element?.focus()
+                }}
+                tabIndex={-1}
+                className="relative rounded-2xl pointer-events-auto"
+                onKeyDown={event => {
+                    if (event.key !== 'Escape') {
+                        event.stopPropagation()
+                    }
+                }}
+            >
                 <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
                 <form
                     onClick={event => {

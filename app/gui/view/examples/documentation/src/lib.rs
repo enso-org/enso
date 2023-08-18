@@ -87,9 +87,8 @@ fn database() -> SuggestionDatabase {
         #[with_doc_section(doc_section!("It also contains the autobiography of the author of \
                                          this code."))]
         #[with_doc_section(doc_section!("And a long list of his cats."))]
-        #[with_doc_section(doc_section!(
-            "Here it is" => "<ul><li>Tom</li><li>Garfield</li><li>Mr. Bigglesworth</li></ul>"
-        ))]
+        #[with_doc_section(doc_section!("Here it is" => ""))]
+        #[with_doc_section(doc_section!(- "Tom"; - "Garfield"; - "Mr. Bigglesworth"))]
         #[with_doc_section(doc_section!(! "Important", "Important sections are used to warn the \
                                                    reader about the dangers of using the module."))]
         #[with_doc_section(doc_section!(? "Info", "Info sections provide some insights."))]
@@ -99,21 +98,22 @@ fn database() -> SuggestionDatabase {
             type Delimited_Format (a) {
                 #[with_doc_section(doc_section!("Some constructor."))]
                 #[with_doc_section(doc_section!(> "Example", "Some 1"))]
-                #[with_doc_section(doc_section!("Documentation for the Some(a) constructor."))]
+                #[with_doc_section(doc_section!("Documentation for the <code>Some(a)</code> constructor."))]
                 Some (a);
-                #[with_doc_section(doc_section!("Documentation for the None constructor."))]
+                #[with_doc_section(doc_section!("Documentation for the <code>None</code> constructor."))]
                 None;
 
-                #[with_doc_section(doc_section!("Documentation for the is_some() method."))]
-                #[with_doc_section(doc_section!("Arguments" => "<ul><li>self</li></ul>"))]
+                #[with_doc_section(doc_section!("Documentation for the <code>is_some()</code> method."))]
+                #[with_doc_section(doc_section!("Arguments" => ""))]
+                #[with_doc_section(doc_section!(- "self", "Self argument"))]
                 #[with_doc_section(doc_section!(! "Important", "This method is important."))]
                 fn is_some(self) -> Standard.Base.Boolean;
 
-                #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
+                #[with_doc_section(doc_section!("Documentation for the <code>Maybe.map()</code> method."))]
                 fn comment_all_characters (self) -> Standard.Base.Maybe;
             }
 
-            #[with_doc_section(doc_section!("Documentation for the foo method."))]
+            #[with_doc_section(doc_section!("Documentation for the <code>foo</code> method."))]
             fn foo(a: Standard.Base.Maybe) -> Standard.Base.Boolean;
 
             #[with_doc_section(doc_section!(> "Example", "Get the names of all of the items from \
@@ -135,7 +135,9 @@ fn database() -> SuggestionDatabase {
     let args = vec![Argument::new("a", "Standard.Base.Boolean")];
     builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
         e.with_doc_sections(vec![
-            DocSection::Paragraph { body: "Documentation for the bar function.".into() },
+            DocSection::Paragraph {
+                body: "Documentation for the <code>bar</code> function.".into(),
+            },
             DocSection::Tag { tag: Tag::Deprecated, body: default() },
             DocSection::Marked {
                 mark:   Mark::Example,
@@ -147,7 +149,9 @@ fn database() -> SuggestionDatabase {
 
     builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
         e.with_doc_sections(vec![
-            DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
+            DocSection::Paragraph {
+                body: "Documentation for the <code>local1</code> variable.".into(),
+            },
             DocSection::Tag { tag: Tag::Advanced, body: default() },
         ])
     });
@@ -273,6 +277,7 @@ pub fn main() {
             panel_visible <- any(...);
             panel_visible <+ init.constant(true);
             current_state <- panel_visible.sample(&show_hide.events_deprecated.mouse_down);
+            panel_visible <+ current_state.not();
             panel.frp.set_visible <+ current_state.not();
 
             // === Disable navigator on hover ===

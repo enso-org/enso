@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -14,9 +13,10 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -32,7 +32,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
-public final class EnsoHashMap implements TruffleObject {
+public final class EnsoHashMap implements EnsoObject {
   private final EnsoHashMapBuilder mapBuilder;
   /**
    * Size of this Map. Basically an index into {@link EnsoHashMapBuilder}'s storage. See {@link
@@ -83,7 +83,8 @@ public final class EnsoHashMap implements TruffleObject {
         }
       }
       cachedVectorRepresentation =
-          Vector.fromArray(HashEntriesVector.createFromKeysAndValues(keys, values));
+          ArrayLikeHelpers.asVectorFromArray(
+              HashEntriesVector.createFromKeysAndValues(keys, values));
     }
     return cachedVectorRepresentation;
   }

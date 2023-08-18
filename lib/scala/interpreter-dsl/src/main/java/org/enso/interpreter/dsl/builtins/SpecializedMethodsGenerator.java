@@ -278,7 +278,13 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
           break;
         case ARRAY:
           methodBody.add(
-              "  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));");
+              "  return ArrayLikeHelpers.wrapObjects("
+                  + qual
+                  + "."
+                  + name
+                  + "("
+                  + paramsApplied
+                  + "));");
           break;
         default:
           if (returnTpe.isValidGuestType()) {

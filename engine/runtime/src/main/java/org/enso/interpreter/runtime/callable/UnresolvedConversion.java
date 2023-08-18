@@ -11,12 +11,13 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public final class UnresolvedConversion implements TruffleObject {
+public final class UnresolvedConversion implements EnsoObject {
   private final ModuleScope scope;
 
   /**

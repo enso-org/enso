@@ -1,14 +1,15 @@
 package org.enso.interpreter.runtime.callable.atom.unboxing;
 
 import com.oracle.truffle.api.exception.AbstractTruffleException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
+
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -55,7 +56,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     }
   }
 
-  private static final class SuspendedException implements TruffleObject {
+  private static final class SuspendedException implements EnsoObject {
     final AbstractTruffleException ex;
 
     SuspendedException(AbstractTruffleException ex) {

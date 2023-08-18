@@ -12,11 +12,11 @@ import java.io.OutputStream;
 import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
 public class System {
 
@@ -72,7 +72,7 @@ public class System {
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
-      @Cached CoerceArrayNode coerce,
+      @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
     Object[] arrArguments = coerce.execute(arguments);

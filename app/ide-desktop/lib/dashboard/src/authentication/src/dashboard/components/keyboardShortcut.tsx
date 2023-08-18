@@ -23,25 +23,39 @@ const ICON_SIZE_PX = 13
 const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Partial<Record<shortcutsModule.ModifierKey, React.ReactNode>> =
-    detect.platform() === detect.Platform.macOS
-        ? // The names are intentionally not in `camelCase`.
-          /* eslint-disable @typescript-eslint/naming-convention */
-          {
-              Meta: <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
-              Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
-              Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
-              Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
-          }
-        : {
-              // TODO[sb]: These are required, otherwise the entry for "New Data Connector" will
-              // span across two lines. These should be replaced with proper Windows equivalents.
-              Meta: <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
-              Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
-              Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
-              Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CommandKeyIcon} />,
-          }
-/* eslint-enable @typescript-eslint/naming-convention */
+const MODIFIER_MAPPINGS: Record<
+    detect.Platform,
+    Partial<Record<shortcutsModule.ModifierKey, React.ReactNode>>
+> = {
+    // The names are intentionally not in `camelCase`, as they are case-sensitive.
+    /* eslint-disable @typescript-eslint/naming-convention */
+    [detect.Platform.macOS]: {
+        Meta: <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
+        Shift: <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
+        Alt: <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
+        Ctrl: <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
+    },
+    [detect.Platform.windows]: {
+        Meta: <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
+    },
+    [detect.Platform.linux]: {
+        Meta: (
+            <span key="Meta" className="leading-170 h-6 py-px">
+                Super
+            </span>
+        ),
+    },
+    [detect.Platform.unknown]: {
+        // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
+        // the "Super" key.
+        Meta: (
+            <span key="Meta" className="leading-170 h-6 py-px">
+                Super
+            </span>
+        ),
+    },
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
 
 /** Props for a {@link KeyboardShortcut} */
 export interface KeyboardShortcutProps {
@@ -57,10 +71,10 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         return null
     } else {
         return (
-            <div className="flex items-center h-6 gap-0.5">
+            <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
                 {shortcutsModule.getModifierKeysOfShortcut(shortcut).map(
                     modifier =>
-                        MODIFIER_MAPPINGS[modifier] ?? (
+                        MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
                             <span key={modifier} className="leading-170 h-6 py-px">
                                 {modifier}
                             </span>

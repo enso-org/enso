@@ -11,6 +11,7 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
@@ -81,6 +82,7 @@ export default function ResetPassword() {
                                     <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="email"
                                     type="email"
                                     name="email"
@@ -102,6 +104,7 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="code"
                                     type="text"
                                     name="code"
@@ -123,12 +126,14 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_ERROR}
+                                    error={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />
@@ -146,10 +151,14 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password_confirm"
                                     type="password"
                                     name="new_password_confirm"
                                     placeholder="Confirm New Password"
+                                    pattern={string.regexEscape(newPassword)}
+                                    error={validation.CONFIRM_PASSWORD_ERROR}
                                     value={newPasswordConfirm}
                                     setValue={setNewPasswordConfirm}
                                 />

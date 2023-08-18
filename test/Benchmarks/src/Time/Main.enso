@@ -1,6 +1,0 @@
-import project.Time.Work_Days
-
-bench =
-    Work_Days.bench
-
-main = bench

@@ -12,7 +12,7 @@ from project.Errors.Common import Uninitialized_State
 
    Arguments:
    - key: The key to associate your local_state with in the environment.
-     It is recommended that types be used as keys.
+     Use types as keys.
    - local_state: The value to associate with key.
    - computation: The computation to execute in the local state
      environment.

@@ -87,6 +87,11 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         unsetModal()
+        if (page === pageSwitcher.Page.editor) {
+            document.body.style.cursor = 'none'
+        } else {
+            document.body.style.cursor = 'auto'
+        }
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
@@ -397,6 +402,7 @@ export default function Dashboard(props: DashboardProps) {
                 )}
                 <Editor
                     visible={page === pageSwitcher.Page.editor}
+                    supportsLocalBackend={supportsLocalBackend}
                     projectStartupInfo={projectStartupInfo}
                     appRunner={appRunner}
                 />
