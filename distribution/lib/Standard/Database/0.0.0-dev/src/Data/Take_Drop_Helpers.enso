@@ -18,17 +18,7 @@ take_drop_helper : Take_Drop -> Table -> (Index_Sub_Range | Range | Integer) -> 
 take_drop_helper take_drop table selector =
     check_supported selector <|
         length = table.row_count
-        at x = [Range.new x x+1]
-        single_slice s e = [Range.new s e]
-        slice_ranges selectors =
-            slice_range selector = case selector of
-                i : Integer -> Range.new i i+1
-                r : Range -> r
-            selectors.map slice_range
-        unclean_ranges = case take_drop of
-            Take_Drop.Take -> Index_Sub_Range_Module.take_helper length at single_slice slice_ranges selector
-            Take_Drop.Drop -> Index_Sub_Range_Module.drop_helper length at single_slice slice_ranges selector
-        ranges = cleanup_ranges unclean_ranges
+        ranges = cleanup_ranges (collect_ranges take_drop length selector)
 
         if ranges.is_empty then table.remove_all_rows else
             # Filter on row column. Add the row column at the start, remove it at the end.
@@ -39,6 +29,21 @@ take_drop_helper take_drop table selector =
                 generate_subquery table_with_row_number row_column_name range
             combined = subqueries.reduce (a-> b-> a.union b)
             combined.remove_columns row_column_name
+
+## PRIVATE
+   Turn the selector into a vector of ranges
+collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
+collect_ranges take_drop length selector =
+    at x = [Range.new x x+1]
+    single_slice s e = [Range.new s e]
+    slice_ranges selectors =
+        slice_range selector = case selector of
+            i : Integer -> Range.new i i+1
+            r : Range -> r
+        selectors.map slice_range
+    case take_drop of
+        Take_Drop.Take -> Index_Sub_Range_Module.take_helper length at single_slice slice_ranges selector
+        Take_Drop.Drop -> Index_Sub_Range_Module.drop_helper length at single_slice slice_ranges selector
 
 ## PRIVATE
    Throw Unsupported_Database_Operation for selectors that are not supported by database backends.
