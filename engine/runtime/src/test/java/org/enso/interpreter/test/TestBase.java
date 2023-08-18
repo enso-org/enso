@@ -39,8 +39,8 @@ public abstract class TestBase {
     return context;
   }
 
-  protected static Context.Builder defaultContextBuilder() {
-    return Context.newBuilder()
+  protected static Context.Builder defaultContextBuilder(String... languages) {
+    return Context.newBuilder(languages)
         .allowExperimentalOptions(true)
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
