@@ -1229,6 +1229,11 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
+    ## PRIVATE
+       Filter out all rows.
+    remove_all_rows : Table
+    remove_all_rows self = self.filter_by_expression "0=1"
+
     ## ALIAS rank, record id, add index column
        Adds a new column to the table enumerating the rows.
 

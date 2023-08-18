@@ -195,12 +195,14 @@ spec setup =
             r3.should_fail_with Illegal_Argument
             r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
-        Test.specify "error on unordered table" <|
+        Test.specify "unordered table" <|
             unordered_table =
                 col1 = ["alpha", [1,2,3,4,5,6,7,8]]
                 col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
                 table_builder [col1, col2]
-            unordered_table.take . should_fail_with Illegal_Argument
+            case setup.is_database of
+                True -> unordered_table.take . should_fail_with Illegal_Argument
+                False -> unordered_table.take . at "alpha" . to_vector . should_equal [1]
 
     Test.group prefix+"Column.take/drop asdfasdf" pending=take_drop_by_pending <|
         table =
@@ -317,8 +319,9 @@ spec setup =
         Test.specify "should allow sampling rows"  pending=db_take_drop_by_pending <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"
             two = table_builder [["X", ["a", "a"]]] . at "X"
-            one = table_builder [["X", ["a"]]] . at "X"
-            empty = one.remove_all_rows
+            one_table = table_builder [["X", ["a"]]]
+            one = one_table . at "X"
+            empty = one_table.remove_all_rows . at "X"
 
             three.take (First 2) . should_equal two
             three.take First . should_equal one
@@ -351,8 +354,9 @@ spec setup =
             col.take (While (x-> x%2 == 1)) . to_vector . should_equal [1, 3, 5]
             col.drop (While (x-> x%2 == 1)) . to_vector . should_equal [6, 8, 9, 10, 11, 13]
 
-            three = table_builder [["X", [1, 2, 3]]] . at "X"
-            empty = three.remove_all_rows
+            three_table = table_builder [["X", [1, 2, 3]]]
+            three = three_table . at "X"
+            empty = three_table.remove_all_rows . at "X"
             three.take (While (_ > 10)) . should_equal empty
             three.take (While (_ < 10)) . should_equal three
 
@@ -376,9 +380,11 @@ spec setup =
             r3.should_fail_with Illegal_Argument
             r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
-        Test.specify "error on unordered column" <|
+        Test.specify "unordered table" <|
             unordered_table =
                 col1 = ["alpha", [1,2,3,4,5,6,7,8]]
                 col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
                 table_builder [col1, col2]
-            unordered_table.at "alpha" . take . should_fail_with Illegal_Argument
+            case setup.is_database of
+                True -> unordered_table.at "alpha" . take . should_fail_with Illegal_Argument
+                False -> unordered_table.at "alpha" . take . to_vector . should_equal [1]
