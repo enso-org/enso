@@ -3,7 +3,6 @@
 
 name: Benchmark Standard Libraries
 on:
-  pull_request:
   schedule:
     - cron: 0 0 * * *
   workflow_dispatch:
