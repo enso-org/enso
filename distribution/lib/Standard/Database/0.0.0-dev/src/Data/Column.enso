@@ -1010,9 +1010,8 @@ type Column
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
-        _ = range
-        msg = "`Column.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        IO.println "UUU0"
+        self.to_table.take range . at self.name
 
     ## Creates a new Column from the input with the specified range of rows
        removed.
@@ -1021,10 +1020,7 @@ type Column
        - range: The selection of rows from the table to remove.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
-    drop self range=(First 1) =
-        _ = range
-        msg = "`Column.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    drop self range=(First 1) = self.to_table.drop range . at self.name
 
     ## Checks for each element of the column if it starts with `other`.
 
