@@ -72,6 +72,4 @@ generate_subquery table row_column_name range =
             filter_condition = Filter_Condition.Between range.start range.end-1
             table.filter row_column_name filter_condition
         False ->
-            is_in_stepped_range = (((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end)
-            table.with_temporary_column is_in_stepped_range name-> table->
-                table.filter name Filter_Condition.Is_True
+            table.filter_on_predicate_column ((((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end))

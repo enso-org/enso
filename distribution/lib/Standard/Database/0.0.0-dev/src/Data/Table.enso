@@ -855,6 +855,14 @@ type Table
         modified_table = f new_column_name with_new_column
         modified_table.remove_columns new_column_name
 
+    ## PRIVATE
+       Filter a table on a boolean column. The column does not have to be part
+       of the table, but it must be derived from it and share a context.
+    filter_on_predicate_column : Column -> Table
+    filter_on_predicate_column self predicate_column =
+        self.with_temporary_column predicate_column name-> table->
+            table.filter name Filter_Condition.Is_True
+
     ## Returns the vector of columns contained in this table.
     columns : Vector Column
     columns self = Vector.from_polyglot_array <|

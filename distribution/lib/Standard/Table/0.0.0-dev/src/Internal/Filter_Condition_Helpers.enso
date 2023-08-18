@@ -13,8 +13,6 @@ import project.Data.Type.Value_Type.Value_Type
    It also performs validation and will throw errors if unexpected column types
    are encountered.
 make_filter_column source_column filter_condition on_problems =
-    rec fc = make_filter_column source_column fc on_problems
-
     case filter_condition of
         # Equality
         Equal value ->
