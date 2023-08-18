@@ -68,22 +68,36 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 // === insertAssetTreeNodeChildren ===
 // ===================================
 
-/** Return a a directory, with new children added into its list of children.
+/** Return a list of nodes, plus new nodes created from a list of assets.
+ * The list of children MUST be all of one specific asset type. */
+function insertChildrenIntoAssetTreeNodeArray(
+    nodes: assetTreeNode.AssetTreeNode[],
+    children: backendModule.AnyAsset[],
+    depth: number
+) {
+    const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
+    return array.splicedBefore(
+        nodes.filter(node => node.item.type !== backendModule.AssetType.specialEmpty),
+        children.map(asset => assetTreeNode.assetTreeNodeFromAsset(asset, depth)),
+        innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+    )
+}
+
+/** Return a directory, with new children added into its list of children.
  * The list of children MUST be all of one specific asset type. */
 function insertAssetTreeNodeChildren(
     item: assetTreeNode.AssetTreeNode,
     children: backendModule.AnyAsset[]
 ): assetTreeNode.AssetTreeNode {
-    const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
     const newDepth = item.depth + 1
     return {
         ...item,
-        children: array.splicedBefore(
+        children: insertChildrenIntoAssetTreeNodeArray(
             (item.children ?? []).filter(
                 node => node.item.type !== backendModule.AssetType.specialEmpty
             ),
-            children.map(asset => assetTreeNode.assetTreeNodeFromAsset(asset, newDepth)),
-            innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+            children,
+            newDepth
         ),
     }
 }
@@ -479,11 +493,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
-                        item.key !== event.parentKey
-                            ? item
-                            : insertAssetTreeNodeChildren(item, [placeholderItem])
-                    )
+                    event.parentKey == null
+                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        : assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                              item.key !== event.parentKey
+                                  ? item
+                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                          )
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newFolder,
@@ -511,11 +527,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
-                        item.key !== event.parentKey
-                            ? item
-                            : insertAssetTreeNodeChildren(item, [placeholderItem])
-                    )
+                    event.parentKey == null
+                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        : assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                              item.key !== event.parentKey
+                                  ? item
+                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                          )
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newProject,
@@ -560,14 +578,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
-                        item.key !== event.parentKey
-                            ? item
-                            : insertAssetTreeNodeChildren(
-                                  insertAssetTreeNodeChildren(item, placeholderFiles),
-                                  placeholderProjects
-                              )
-                    )
+                    event.parentKey == null
+                        ? insertChildrenIntoAssetTreeNodeArray(
+                              insertChildrenIntoAssetTreeNodeArray(
+                                  oldAssetTree,
+                                  placeholderFiles,
+                                  0
+                              ),
+                              placeholderProjects,
+                              0
+                          )
+                        : assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                              item.key !== event.parentKey
+                                  ? item
+                                  : insertAssetTreeNodeChildren(
+                                        insertAssetTreeNodeChildren(item, placeholderFiles),
+                                        placeholderProjects
+                                    )
+                          )
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.uploadFiles,
@@ -601,11 +629,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
-                        item.key !== event.parentKey
-                            ? item
-                            : insertAssetTreeNodeChildren(item, [placeholderItem])
-                    )
+                    event.parentKey == null
+                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        : assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                              item.key !== event.parentKey
+                                  ? item
+                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                          )
                 )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newSecret,
