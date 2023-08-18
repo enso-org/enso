@@ -71,7 +71,7 @@ impl Drop for TextureBindGuard {
 /// Wraps a [`WebGlTexture`] to delete it when dropped.
 #[derive(Debug, Deref, AsRef)]
 struct GpuTexture {
-    context: Context,
+    context:    Context,
     #[deref]
     #[as_ref]
     gl_texture: WebGlTexture,
@@ -251,9 +251,9 @@ where
     }
 
     /// Internal format of this texture as `GlEnum`.
-    pub fn gl_internal_format() -> i32 {
+    pub fn gl_internal_format() -> u32 {
         let GlEnum(u) = Self::internal_format().to_gl_enum();
-        u as i32
+        u
     }
 
     /// Format of this texture as `GlEnum`.
@@ -324,8 +324,36 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
     /// Constructor.
     pub fn new<P: Into<GpuData>>(context: &Context, provider: P) -> Self {
         let this = Self::new_uninitialized(context, provider);
-        this.reload();
+        this.allocate();
         this
+    }
+
+    /// Allocates GPU memory for the texture.
+    fn allocate(&self) {
+        let levels = 1;
+        let internal_format = Self::gl_internal_format();
+        let target = self.target();
+        self.context.bind_texture(*target, Some(self.gl_texture()));
+        match self.layers {
+            1 => {
+                self.context
+                    .tex_storage_2d(*target, levels, internal_format, self.width, self.height)
+                    .unwrap();
+            }
+            _ => {
+                self.context
+                    .tex_storage_3d(
+                        *target,
+                        levels,
+                        internal_format,
+                        self.width,
+                        self.height,
+                        self.layers,
+                    )
+                    .unwrap();
+            }
+        }
+        self.apply_texture_parameters(&self.context);
     }
 }
 
@@ -497,75 +525,5 @@ impl From<((i32, i32), i32)> for GpuData {
     fn from(t: ((i32, i32), i32)) -> Self {
         let ((width, height), layers) = t;
         Self { width, height, layers }
-    }
-}
-
-
-
-// === API ===
-
-impl GpuData {
-    fn new(width: i32, height: i32) -> Self {
-        Self { width, height, layers: 0 }
-    }
-}
-
-impl<I: InternalFormat, T: ItemType> Texture<I, T> {
-    /// Loads or re-loads the texture data.
-    fn reload(&self) {
-        let level = 0;
-        let border = 0;
-        let internal_format = Self::gl_internal_format();
-        let format = Self::gl_format().into();
-        let elem_type = Self::gl_elem_type();
-
-        let target = self.target();
-        self.context.bind_texture(*target, Some(self.gl_texture()));
-        match target {
-            Context::TEXTURE_2D => {
-                self.context
-                    .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                        *target,
-                        level,
-                        internal_format,
-                        self.width,
-                        self.height,
-                        border,
-                        format,
-                        elem_type,
-                        None,
-                    )
-                    .unwrap();
-            }
-            Context::TEXTURE_2D_ARRAY | Context::TEXTURE_3D => {
-                self.context
-                    .tex_image_3d_with_opt_u8_array(
-                        *target,
-                        level,
-                        internal_format,
-                        self.width,
-                        self.height,
-                        self.layers,
-                        border,
-                        format,
-                        elem_type,
-                        None,
-                    )
-                    .unwrap();
-            }
-            _ => {
-                panic!("Unsupported texture target: {target:?}");
-            }
-        }
-
-        self.apply_texture_parameters(&self.context);
-    }
-}
-
-impl<I: InternalFormat, T: ItemType + JsBufferViewArr> Texture<I, T> {
-    /// Reload texture with given content. The data will be copied to gpu, but the texture will not
-    /// take ownership.
-    pub fn reload_with_content(&self, data: &[T]) {
-        self.reload_from_memory(data, self.width, self.height, self.layers);
     }
 }
