@@ -120,6 +120,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         ((state: spinner.SpinnerState | null) => void) | null
     >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
+    const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
 
     const openProject = React.useCallback(async () => {
@@ -221,7 +222,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     setShouldOpenWhenReady(false)
                     void closeProject(false)
                 } else {
-                    setShouldOpenWhenReady(event.shouldAutomaticallySwitchPage)
+                    setShouldOpenWhenReady(true)
+                    setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
                     void openProject()
                 }
                 break
@@ -246,11 +248,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
 
     React.useEffect(() => {
-        if (state === backendModule.ProjectState.opened) {
-            openIde(shouldOpenWhenReady)
+        if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
+            openIde(shouldSwitchPage)
             setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenWhenReady, state, openIde])
+    }, [shouldOpenWhenReady, shouldSwitchPage, state, openIde])
 
     React.useEffect(() => {
         switch (checkState) {
