@@ -131,8 +131,8 @@ ensogl::define_endpoints_2! {
         set_edit_ready_mode  (bool),
         set_read_only        (bool),
         set_view_mode        (crate::view::Mode),
-        set_profiling_status (crate::node::profiling::Status),
         set_disabled         (bool),
+        set_pending          (bool),
         node_base_color      (color::Lcha),
         node_port_color      (color::Lcha),
     }
@@ -579,7 +579,6 @@ pub struct WidgetsFrp {
     /// combination of `set_read_only`, `set_edit_ready_mode` and `set_ports_visible` signals.
     pub(super) allow_interaction:      frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
-    pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) hovered_port_children:  frp::Sampler<HashSet<WidgetIdentity>>,
     /// Remove given tree node's reference from the widget tree, and send its only remaining strong
     /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
@@ -647,7 +646,6 @@ impl Tree {
             set_edit_ready_mode <- frp.set_edit_ready_mode.sampler();
             set_read_only <- frp.set_read_only.sampler();
             set_view_mode <- frp.set_view_mode.sampler();
-            set_profiling_status <- frp.set_profiling_status.sampler();
             node_base_color <- frp.node_base_color.sampler();
             node_port_color <- frp.node_port_color.sampler();
             on_port_hover <- any(...);
@@ -679,7 +677,6 @@ impl Tree {
             set_read_only,
             allow_interaction,
             set_view_mode,
-            set_profiling_status,
             transfer_ownership,
             value_changed,
             request_import,
@@ -721,10 +718,15 @@ impl Tree {
         self.notify_dirty(self.model.set_disabled(disabled));
     }
 
+    /// Set pending status for given span tree node. The pending nodes will be semi-transparent.
+    /// The widgets might change behavior depending on the pending status.
+    pub fn set_pending(&self, pending: bool) {
+        self.notify_dirty(self.model.set_pending(pending));
+    }
 
     /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
     /// external to the span-tree is provided, using `set_config_override`, `set_usage_type`,
-    /// `set_connections` or `set_disabled` methods of the widget tree.
+    /// `set_connections`, `set_disabled`, or `set_pending` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
         tree: &span_tree::SpanTree,
@@ -949,6 +951,7 @@ struct TreeModel {
     connected_map:  Rc<RefCell<HashMap<PortId, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
+    node_pending:   Cell<bool>,
     tree_dirty:     Cell<bool>,
 }
 
@@ -968,6 +971,7 @@ impl TreeModel {
             app,
             display_object,
             node_disabled: default(),
+            node_pending: default(),
             nodes_map: default(),
             hierarchy: default(),
             ports_map: default(),
@@ -1016,6 +1020,12 @@ impl TreeModel {
     fn set_disabled(&self, disabled: bool) -> bool {
         let prev_disabled = self.node_disabled.replace(disabled);
         self.mark_dirty_flag(prev_disabled != disabled)
+    }
+
+    /// Set the execution status under given widget. It may cause the tree to be marked as dirty.
+    fn set_pending(&self, pending: bool) -> bool {
+        let prev_pending = self.node_pending.replace(pending);
+        self.mark_dirty_flag(prev_pending != pending)
     }
 
     /// Get parent of a node under given pointer, if exists.
@@ -1106,6 +1116,7 @@ impl TreeModel {
         let usage_type_map = self.usage_type_map.borrow();
         let old_nodes = self.nodes_map.take();
         let node_disabled = self.node_disabled.get();
+        let node_pending = self.node_pending.get();
 
         // Old hierarchy is not used during the rebuild, so we might as well reuse the allocation.
         let mut hierarchy = self.hierarchy.take();
@@ -1117,6 +1128,7 @@ impl TreeModel {
             app,
             frp,
             node_disabled,
+            node_pending,
             node_expression,
             layers,
             styles,
@@ -1184,6 +1196,8 @@ pub struct NodeInfo {
     /// Whether the node is disabled, i.e. its expression is not currently used in the computation.
     /// Widgets of disabled nodes are usually grayed out.
     pub disabled:           bool,
+    /// Whether the node is awaiting execution completion.
+    pub pending:            bool,
     /// Inferred type of Enso expression at this node's span. May differ from the definition type
     /// stored in the span tree.
     pub usage_type:         Option<crate::Type>,
@@ -1524,6 +1538,7 @@ struct TreeBuilder<'a> {
     app:             Application,
     frp:             WidgetsFrp,
     node_disabled:   bool,
+    node_pending:    bool,
     node_expression: &'a str,
     layers:          &'a GraphLayers,
     styles:          &'a StyleWatchFrp,
@@ -1657,6 +1672,7 @@ impl<'a> TreeBuilder<'a> {
         });
 
         let disabled = self.node_disabled;
+        let pending = self.node_pending;
 
         let info = NodeInfo {
             identity: widget_id,
@@ -1665,6 +1681,7 @@ impl<'a> TreeBuilder<'a> {
             connection,
             subtree_connection,
             disabled,
+            pending,
             usage_type,
         };
 

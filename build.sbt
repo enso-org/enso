@@ -1828,10 +1828,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % Benchmark,
-      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
+      "org.openjdk.jmh" % "jmh-core"                 % jmhVersion                % Benchmark,
+      "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
+      "org.graalvm.sdk" % "graal-sdk"                % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=

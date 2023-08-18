@@ -7,15 +7,15 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 enso-prelude = { path = "../../../../../../prelude" }
-ensogl-text-font-family = { path = "../../font/family" }
+enso-font = { path = "../../../../../../font" }
+rustybuzz = { workspace = true }
 
 [build-dependencies]
+enso-enso-font = { path = "../../../../../../enso-font" }
+enso-font = { path = "../../../../../../font" }
 ide-ci = { path = "../../../../../../../../build/ci_utils" }
 enso-build = { path = "../../../../../../../../build/build" }
-enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
-tokio = { workspace = true }
-zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 owned_ttf_parser = { workspace = true }
+tokio = { workspace = true }

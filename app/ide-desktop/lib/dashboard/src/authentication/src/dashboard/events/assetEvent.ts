@@ -71,7 +71,7 @@ export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFo
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId | backendModule.ProjectId, File>
+    files: Map<backendModule.AssetId, File>
 }
 
 /** A signal to create a secret. */

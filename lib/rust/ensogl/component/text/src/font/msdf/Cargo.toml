@@ -24,7 +24,7 @@ enso-web = { path = "../../../../../../web" }
 wasm-bindgen-test = { workspace = true }
 futures = { workspace = true }
 ensogl-text-embedded-fonts = { path = "../../../src/font/embedded" }
-ensogl-text-font-family = { path = "../../../src/font/family" }
+enso-font = { path = "../../../../../../font" }
 
 [build-dependencies]
 ide-ci = { path = "../../../../../../../../build/ci_utils" }

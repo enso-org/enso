@@ -22,15 +22,33 @@ build_map size =
     rand = Java_Random.new
     0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
-bench =
-    mil = 1000000
-    list = gen_list mil
-    vec = Vector.new mil (ix -> ix + 1)
-    vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench.measure (sum_list_meta list) "list meta-fold" 1000 10
-    Bench.measure (list.fold 0 (+)) "list fold" 1000 10
-    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
-    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
-    Bench.measure (build_map 10000) "build a map" 100 10
+options = Bench.options
 
-main = bench
+type Data
+    Value ~list ~vec ~vec_decimal
+
+    create =
+        Data.Value (gen_list 1000*1000) (Vector.new 1000*1000 (ix -> ix + 1)) (Vector.new 1000*1000 (ix -> ix + 0.0))
+
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Collections" options group_builder->
+        group_builder.specify "list_meta_fold" <|
+            sum_list_meta data.list
+
+        group_builder.specify "list_fold" <|
+            data.list.fold 0 (+)
+
+        group_builder.specify "vector_fold" <|
+            data.vec.fold 0 (+)
+
+        group_builder.specify "vector_decimal_fold" <|
+            data.vec_decimal.fold 0 (+)
+
+        group_builder.specify "build_map" <|
+            build_map 10000
+
+
+main = collect_benches . run_main

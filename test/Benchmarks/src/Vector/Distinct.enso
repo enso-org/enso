@@ -5,23 +5,44 @@ from Standard.Test import Bench
 import project.Vector.Utils
 
 
-options = Bench.options . size 100 . iter 20
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
-random_vec = Utils.make_random_vec 100000
-uniform_vec = Vector.fill 100000 1
-random_text_vec = random_vec.map .to_text
-uniform_text_vec = random_vec.map .to_text
+
+type Data
+    Value ~random_vec ~uniform_vec ~random_text_vec ~uniform_text_vec
+
+    create =
+        Data.Value create_random_vec create_uniform_vec create_random_text_vec create_uniform_text_vec
+
+
+create_random_vec = Utils.make_random_vec 100000
+
+
+create_uniform_vec = Vector.fill 100000 1
+
+
+create_random_text_vec =
+    random_vec = create_random_vec
+    random_vec.map .to_text
+
+
+create_uniform_text_vec =
+    uniform_vec = create_uniform_vec
+    uniform_vec.map .to_text
+
 
 collect_benches = Bench.build builder->
-    builder.group "Vector Distinct" options group_builder->
-        group_builder.specify "Random Integer Vector Distinct" <|
-            random_vec.distinct
-        group_builder.specify "Uniform Integer Vector Distinct" <|
-            uniform_vec.distinct
-        group_builder.specify "Random Text Vector Distinct" <|
-            random_text_vec.distinct
-        group_builder.specify "Uniform Text Vector Distinct" <|
-            uniform_text_vec.distinct
+    data = Data.create
+
+    builder.group "Vector_Distinct" options group_builder->
+        group_builder.specify "Random_Integer_Vector_Distinct" <|
+            data.random_vec.distinct
+        group_builder.specify "Uniform_Integer_Vector_Distinct" <|
+            data.uniform_vec.distinct
+        group_builder.specify "Random_Text_Vector_Distinct" <|
+            data.random_text_vec.distinct
+        group_builder.specify "Uniform_Text_Vector_Distinct" <|
+            data.uniform_text_vec.distinct
 
 
 main = collect_benches . run_main

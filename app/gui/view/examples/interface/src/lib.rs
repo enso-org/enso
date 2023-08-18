@@ -1,7 +1,3 @@
-//! NOTE
-//! This file is under a heavy development. It contains commented lines of code and some code may
-//! be of poor quality. Expect drastic changes.
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -17,7 +13,6 @@
 
 use ensogl::prelude::*;
 
-use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
@@ -30,7 +25,6 @@ use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;
 use ide_view::graph_editor::GraphEditor;
-use ide_view::graph_editor::NodeProfilingStatus;
 use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
@@ -50,26 +44,6 @@ pub fn main() {
         init(&app);
         mem::forget(app);
     });
-}
-
-
-fn _fence<T, Out>(network: &frp::Network, trigger: T) -> (frp::Stream, frp::Stream<bool>)
-where
-    T: frp::HasOutput<Output = Out>,
-    T: Into<frp::Stream<Out>>,
-    Out: frp::Data, {
-    let trigger = trigger.into();
-    frp::extend! { network
-        def trigger_ = trigger.constant(());
-        def runner   = source::<()>();
-        def switch   = any_mut();
-        switch.attach(&trigger_);
-        def triggered = trigger.map(f_!(runner.emit(())));
-        switch.attach(&triggered);
-        def condition = switch.toggle_true();
-    }
-    let runner = runner.into();
-    (runner, condition)
 }
 
 
@@ -178,18 +152,22 @@ fn init(app: &Application) {
     let dummy_node_added_id = graph_editor.model.add_node();
     let dummy_node_edited_id = graph_editor.model.add_node();
     let dummy_node_unchanged_id = graph_editor.model.add_node();
+    let dummy_node_pending_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((dummy_node_added_id, Vector2(-450.0, 50.0)));
     graph_editor.frp.set_node_position.emit((dummy_node_edited_id, Vector2(-450.0, 125.0)));
     graph_editor.frp.set_node_position.emit((dummy_node_unchanged_id, Vector2(-450.0, 200.0)));
+    graph_editor.frp.set_node_position.emit((dummy_node_pending_id, Vector2(-450.0, 275.0)));
 
     let dummy_node_added_expr = expression_mock_string("This node was added.");
     let dummy_node_edited_expr = expression_mock_string("This node was edited.");
     let dummy_node_unchanged_expr = expression_mock_string("This node was not changed.");
+    let dummy_node_pending_expr = expression_mock_string("This node is pending.");
 
     graph_editor.frp.set_node_expression.emit((dummy_node_added_id, dummy_node_added_expr));
     graph_editor.frp.set_node_expression.emit((dummy_node_edited_id, dummy_node_edited_expr));
     graph_editor.frp.set_node_expression.emit((dummy_node_unchanged_id, dummy_node_unchanged_expr));
+    graph_editor.frp.set_node_expression.emit((dummy_node_pending_id, dummy_node_pending_expr));
 
     graph_editor.frp.set_node_vcs_status.emit((dummy_node_added_id, Some(vcs::Status::Edited)));
     graph_editor.frp.set_node_vcs_status.emit((dummy_node_edited_id, Some(vcs::Status::Added)));
@@ -197,6 +175,7 @@ fn init(app: &Application) {
         .frp
         .set_node_vcs_status
         .emit((dummy_node_unchanged_id, Some(vcs::Status::Unchanged)));
+    graph_editor.frp.set_node_pending_status.emit((dummy_node_pending_id, true));
 
 
     // === Types (Port Coloring) ===
@@ -230,16 +209,6 @@ fn init(app: &Application) {
             graph_editor.frp.set_expression_usage_type.emit((node2_id, expr_id, dummy_type));
         }
     });
-
-
-    // === Profiling ===
-
-    let node1_status = NodeProfilingStatus::Finished { duration: 500.0 };
-    graph_editor.set_node_profiling_status(node1_id, node1_status);
-    let node2_status = NodeProfilingStatus::Finished { duration: 1000.0 };
-    graph_editor.set_node_profiling_status(node2_id, node2_status);
-    let node3_status = NodeProfilingStatus::Finished { duration: 1500.0 };
-    graph_editor.set_node_profiling_status(node3_id, node3_status);
 
 
     // === Execution Modes ===
