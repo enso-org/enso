@@ -16,20 +16,6 @@ import Standard.Database.Data.Column.Column as DB_Column
 import Standard.Database.Data.Table.Table as DB_Table
 import Standard.Test.Test_Result.Test_Result
 
-main = run_default_backend spec
-
-DB_Table.should_equal : DB_Table -> Integer -> Test_Result
-DB_Table.should_equal self expected frames_to_skip=0 =
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
-
-DB_Column.should_equal : DB_Column -> Integer -> Test_Result
-DB_Column.should_equal self expected frames_to_skip=0 =
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
-
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
@@ -388,3 +374,5 @@ spec setup =
             case setup.is_database of
                 True -> unordered_table.at "alpha" . take . should_fail_with Illegal_Argument
                 False -> unordered_table.at "alpha" . take . to_vector . should_equal [1]
+
+main = run_default_backend spec
