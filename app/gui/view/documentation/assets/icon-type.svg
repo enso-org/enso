@@ -1,7 +1,0 @@
-<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-<path d="M8 16C3.58172 16 1.93129e-07 12.4183 0 8C-1.93129e-07 3.58172 3.58172 1.93129e-07 8 0H24C28.4183 -1.93129e-07 32 3.58172 32 8V24C32 28.4183 28.4183 32 24 32C19.5817 32 16 28.4183 16 24C16 19.5817 12.4183 16 8 16Z" fill="#9640DA" fill-opacity="0.3"/>
-<ellipse cx="24" cy="24" rx="4" ry="4" transform="rotate(-90 24 24)" fill="#9640DA"/>
-<ellipse cx="24" cy="8" rx="4" ry="4" transform="rotate(-90 24 8)" fill="#9640DA"/>
-<ellipse cx="8" cy="8" rx="4" ry="4" transform="rotate(-90 8 8)" fill="#9640DA"/>
-<circle cx="8" cy="24" r="5" transform="rotate(-90 8 24)" fill="#9640DA" fill-opacity="0.5"/>
-</svg>

@@ -544,13 +544,14 @@ impl Handle {
 
     /// Returns information about all the nodes currently present in this graph.
     pub fn nodes(&self) -> FallibleResult<Vec<Node>> {
-        let node_infos = self.all_node_infos()?;
-        let mut nodes = Vec::new();
-        for info in node_infos {
-            let metadata = self.module.node_metadata(info.id()).ok();
-            nodes.push(Node { info, metadata })
-        }
-        Ok(nodes)
+        Ok(self
+            .all_node_infos()?
+            .into_iter()
+            .map(|info| {
+                let metadata = self.module.node_metadata(info.id()).ok();
+                Node { info, metadata }
+            })
+            .collect())
     }
 
     /// Returns information about all the connections between graph's nodes.

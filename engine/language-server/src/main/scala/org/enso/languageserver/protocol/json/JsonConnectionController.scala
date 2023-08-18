@@ -57,6 +57,7 @@ import org.enso.languageserver.requesthandler.visualization.{
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.runtime.VisualizationApi.{
   AttachVisualization,
   DetachVisualization,
@@ -582,6 +583,10 @@ class JsonConnectionController(
         libraryConfig.publishedLibraryCache
       ),
       RenameSymbol -> RenameSymbolHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
         requestTimeout,
         runtimeConnector
       )

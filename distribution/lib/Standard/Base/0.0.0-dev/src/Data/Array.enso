@@ -18,6 +18,7 @@ import project.Errors.Unimplemented.Unimplemented
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Internal.Array_Like_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
@@ -42,7 +43,7 @@ type Array
 
              [1, 2, 3].to_array.at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = @Builtin_Method "Array.at"
+    at self index = Array_Like_Helpers.at self index
 
     ## Returns the number of elements stored in this array.
 
@@ -51,7 +52,7 @@ type Array
 
              [1, 2, 3, 4].to_array.length
     length : Integer
-    length self = @Builtin_Method "Array.length"
+    length self = Array_Like_Helpers.length self
 
     ## Identity.
        This method is implemented purely for completeness with the runtime's

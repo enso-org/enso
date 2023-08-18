@@ -64,8 +64,8 @@ export default function ChangePasswordModal() {
                                     type="password"
                                     name="old_password"
                                     placeholder="Old Password"
-                                    pattern={validation.PREVIOUS_PASSWORD_PATTERN}
-                                    error={validation.PREVIOUS_PASSWORD_ERROR}
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    error={validation.PASSWORD_ERROR}
                                     value={oldPassword}
                                     setValue={setOldPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-2xl w-full py-2 focus:outline-none focus:border-blue-400"

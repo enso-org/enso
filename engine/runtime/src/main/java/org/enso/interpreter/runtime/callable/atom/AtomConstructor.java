@@ -6,7 +6,6 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -27,6 +26,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -36,7 +36,7 @@ import org.enso.pkg.QualifiedName;
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class AtomConstructor implements TruffleObject {
+public final class AtomConstructor implements EnsoObject {
 
   private final String name;
   private final ModuleScope definitionScope;
@@ -51,12 +51,13 @@ public final class AtomConstructor implements TruffleObject {
   private final Type type;
 
   /**
-   * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
+   * Creates a new Atom constructor for a given name.The constructor is not valid until {@link
    * AtomConstructor#initializeFields(EnsoLanguage, LocalScope, ExpressionNode[], ExpressionNode[],
-   * Annotation[], ArgumentDefinition...)} is called.
+   * Annotation[], ArgumentDefinition[])} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
+   * @param type
    */
   public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
     this(name, definitionScope, type, false);

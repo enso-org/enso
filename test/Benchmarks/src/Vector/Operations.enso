@@ -8,51 +8,79 @@ import project.Vector.Utils
 
 polyglot java import java.util.Random as Java_Random
 
-## Bench Utilities ============================================================
 
-vector_size = 1000000
-iter_size = 100
-num_iterations = 10
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
 
-# The Benchmarks ==============================================================
 
-collect_benches group_builder =
+collect_benches = Bench.build builder->
+    vector_size = 1000000
     random_vec = Utils.make_random_vec vector_size
     random_vec_2 = Utils.make_random_vec 100000
     random_gen = Java_Random.new 123456
-
-    bench_measure ~act name = group_builder.specify name act
-
-    bench_measure (Base.Vector.new vector_size i->i) "New Vector"
-    bench_measure (Base.Vector.new vector_size _->42) "New Constant"
-    bench_measure (Base.Vector.new vector_size _->random_gen.nextLong) "New Random"
-    bench_measure (Base.Vector.fill vector_size 42) "Fill Constant"
-    bench_measure (Base.Vector.fill vector_size random_gen.nextLong) "Fill Random (constant)"
-    bench_measure (random_vec + [1]) "Append Single"
-    bench_measure (random_vec + random_vec_2) "Append Large"
-    bench_measure (random_vec.reduce (Math.max)) "Max"
-    bench_measure (random_vec.reduce (+)) "Sum"
-    bench_measure ((random_vec.drop (First 20)).reduce (+)) "Drop First 20 and Sum"
-    bench_measure ((random_vec.drop (Last 20)).reduce (+)) "Drop Last 20 and Sum"
-    bench_measure (random_vec.filter (x -> x % 3 == 1)) "Filter"
-    bench_measure (random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)) "Filter With Index"
-    bench_measure (random_vec.compute Statistic.Maximum) "Max (Stats)"
-    bench_measure (random_vec.compute Statistic.Sum) "Sum (Stats)"
-    bench_measure (random_vec.compute Statistic.Variance) "Variance (Stats)"
-
-    bench_measure (random_vec . map (x -> x +  random_gen.nextLong) . filter (x -> x % 3 == 1)) "Map & Filter"
-    bench_measure (random_vec.partition (x -> x % 3 == 1)) "Partition"
-    bench_measure (random_vec.partition_with_index (i-> x-> (i+x) % 3 == 1)) "Partition With Index"
-
     stateful_fun x =
        s = State.get Number
        State.put s+x
-    bench_measure (State.run Number 0 <| random_vec.each stateful_fun) "Each"
 
-options = Bench.options . size iter_size . iter num_iterations
+    builder.group "Vector_Operations" options group_builder->
+        group_builder.specify "New_Vector" <|
+            Base.Vector.new vector_size i->i
 
-all = Bench.build builder->
-    builder.group "Vector Operations" options group_builder->
-        collect_benches group_builder
+        group_builder.specify "New_Constant" <|
+            Base.Vector.new vector_size _->42
 
-main = all . run_main
+        group_builder.specify "New_Random" <|
+            Base.Vector.new vector_size _->random_gen.nextLong
+
+        group_builder.specify "Fill_Constant" <|
+            Base.Vector.fill vector_size 42
+
+        group_builder.specify "Fill_Random_constant" <|
+            Base.Vector.fill vector_size random_gen.nextLong
+
+        group_builder.specify "Append_Single" <|
+            random_vec + [1]
+
+        group_builder.specify "Append_Large" <|
+            random_vec + random_vec_2
+
+        group_builder.specify "Max" <|
+            random_vec.reduce (Math.max)
+
+        group_builder.specify "Sum" <|
+            random_vec.reduce (+)
+
+        group_builder.specify "Drop_First_20_and_Sum" <|
+            (random_vec.drop (First 20)).reduce (+)
+
+        group_builder.specify "Drop_Last_20_and_Sum" <|
+            (random_vec.drop (Last 20)).reduce (+)
+
+        group_builder.specify "Filter" <|
+            random_vec.filter (x -> x % 3 == 1)
+
+        group_builder.specify "Filter_With_Index" <|
+            random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)
+
+        group_builder.specify "Max_Stats" <|
+            random_vec.compute Statistic.Maximum
+
+        group_builder.specify "Sum_Stats" <|
+            random_vec.compute Statistic.Sum
+
+        group_builder.specify "Variance_Stats" <|
+            random_vec.compute Statistic.Variance
+
+        group_builder.specify "Map_and_Filter" <|
+            random_vec . map (x -> x +  random_gen.nextLong) . filter (x -> x % 3 == 1)
+
+        group_builder.specify "Partition" <|
+            random_vec.partition (x -> x % 3 == 1)
+
+        group_builder.specify "Partition_With_Index" <|
+            random_vec.partition_with_index (i-> x-> (i+x) % 3 == 1)
+
+        group_builder.specify "Each" <|
+            State.run Number 0 <| random_vec.each stateful_fun
+
+
+main = collect_benches . run_main

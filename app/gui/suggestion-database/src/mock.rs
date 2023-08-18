@@ -425,6 +425,18 @@ macro_rules! doc_section_mark {
 /// doc_section!(> "Marked as example");
 /// doc_section!(> "Optional header", "Marked as example");
 /// ```
+///
+/// ### [`DocSection::List`]
+/// ```
+/// # use enso_suggestion_database::doc_section;
+/// doc_section!(- "Item 1"; - "Item 2"; -"Item 3");
+/// ```
+///
+/// ### [`DocSection::Arguments`]
+/// ```
+/// # use enso_suggestion_database::doc_section;
+/// doc_section!(- "arg_name", "Description"; - "arg_name2", "Description2");
+/// ```
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:ident, $body:expr) => {
@@ -432,6 +444,16 @@ macro_rules! doc_section {
             tag:  $crate::mock::enso_doc_parser::Tag::$tag,
             body: $body.into(),
         }
+    };
+    ($(- $body:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::List { items: vec![
+            $($body.into()),*
+        ]}
+    };
+    ($(- $name:expr, $desc:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::Arguments { args: vec![
+            $($crate::mock::enso_doc_parser::Argument { name: $name.into(), description: $desc.into() }),*
+        ]}
     };
     ($mark:tt $body:expr) => {
         $crate::mock::enso_doc_parser::DocSection::Marked {

@@ -80,6 +80,7 @@ public abstract class Storage<T> {
     public static final String TRUNCATE = "truncate";
     public static final String CEIL = "ceil";
     public static final String FLOOR = "floor";
+    public static final String ROUND = "round";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
@@ -118,6 +119,17 @@ public abstract class Storage<T> {
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
   public abstract Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder);
+
+  /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
+  public boolean isTernaryOpVectorized(String name) {
+    return false;
+  }
+
+  /** Runs a vectorized operation on this storage, taking two scalar arguments. */
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    throw new IllegalArgumentException("Unsupported ternary operation: " + name);
+  }
 
   /**
    * Runs a vectorized operation on this storage, taking a storage as the right argument -
@@ -279,6 +291,34 @@ public abstract class Storage<T> {
     } else {
       checkFallback(fallback, expectedResultType, name);
       return binaryMap(fallback, argument, skipNulls, expectedResultType);
+    }
+  }
+
+  /**
+   * Runs a ternary operation with two scalar arguments.
+   *
+   * <p>Does not take a fallback function.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param argument0 the first argument to pass to each run of the function
+   * @param argument1 the second argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedTernaryMap(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      Object argument0,
+      Object argument1,
+      boolean skipNulls,
+      StorageType expectedResultType) {
+    if (isTernaryOpVectorized(name)) {
+      return runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+    } else {
+      throw new IllegalArgumentException("Unsupported ternary operation: " + name);
     }
   }
 

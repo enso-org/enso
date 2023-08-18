@@ -6,7 +6,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     name = "primitive_get_attached_stack_trace",
     description = "Gets the stack trace attached to the throwable.")
 public class GetAttachedStackTraceNode extends Node {
-  Array execute(@AcceptsError Object error) {
+  EnsoObject execute(@AcceptsError Object error) {
     if (error instanceof Throwable) {
       return GetStackTraceNode.stackTraceToArray((Throwable) error);
     } else {

@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -12,6 +13,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -35,7 +39,7 @@ public abstract class RunStateNode extends Node {
   Object doExisting(
       VirtualFrame frame,
       State state,
-      Object key,
+      Type key,
       Object local,
       Object computation,
       @Bind("state.getContainer()") State.Container data,
@@ -54,7 +58,7 @@ public abstract class RunStateNode extends Node {
   Object doFresh(
       VirtualFrame frame,
       State state,
-      Object key,
+      Type key,
       Object local,
       Object computation,
       @Bind("state.getContainer()") State.Container data,
@@ -66,5 +70,12 @@ public abstract class RunStateNode extends Node {
     } finally {
       objects.removeKey(data, key);
     }
+  }
+
+  @Fallback
+  Object doNonType(State state, Object key, Object local, Object computation) {
+    var b = EnsoContext.get(this).getBuiltins();
+    var payload = b.error().makeUnsupportedArgumentsError(new Object[] {key}, "Use type as a key.");
+    throw new PanicException(payload, this);
   }
 }

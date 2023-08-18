@@ -2,11 +2,12 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -14,14 +15,14 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.polyglot.RuntimeOptions;
+
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
-public final class WithWarnings implements TruffleObject {
+public final class WithWarnings implements EnsoObject {
 
   private final EconomicSet<Warning> warnings;
   private final Object value;
