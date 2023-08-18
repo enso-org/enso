@@ -112,7 +112,7 @@ impl pass::Definition for CacheShapesPass {
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
         let texture =
             instance.new_texture(&output, self.texture_size_device.x, self.texture_size_device.y);
-        self.framebuffer = Some(instance.new_framebuffer(&[&texture]));
+        self.framebuffer = instance.new_framebuffer(&[&texture]).ok();
         self.texture = Some(texture);
     }
 

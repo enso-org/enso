@@ -247,11 +247,6 @@ impl<I, T> Texture<I, T> where I: InternalFormat, T: ItemType {
 // === Getters ===
 
 impl<I, T> Texture<I, T> {
-    /// Getter.
-    pub fn gl_texture(&self) -> &WebGlTexture {
-        &self.gl_texture
-    }
-
     /// Texture target getter.
     pub fn target(&self) -> GlEnum {
         match self.layers {
@@ -315,7 +310,7 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
         let levels = 1;
         let internal_format = Self::gl_internal_format();
         let target = self.target();
-        self.context.bind_texture(*target, Some(self.gl_texture()));
+        self.context.bind_texture(*target, Some(&self.gl_texture));
         match self.layers {
             0 => {
                 self.context.tex_storage_2d(

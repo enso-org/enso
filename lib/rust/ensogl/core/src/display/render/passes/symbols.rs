@@ -10,7 +10,7 @@ use crate::display::scene::UpdateStatus;
 use crate::display::symbol::MaskComposer;
 use crate::display::symbol::OverlayComposer;
 use crate::display::world;
-
+use crate::system::gpu::context::ContextLost;
 
 
 // =========================
@@ -25,8 +25,34 @@ struct Framebuffers {
 }
 
 impl Framebuffers {
-    fn new(composed: pass::Framebuffer, mask: pass::Framebuffer, layer: pass::Framebuffer) -> Self {
-        Self { composed, mask, layer }
+    fn new(instance: &pass::Instance) -> Result<Self, ContextLost> {
+        let rgba = texture::Rgba8;
+        let tex_type = texture::item_type::u8;
+        let id_params = texture::Parameters {
+            min_filter: texture::MinFilter::NEAREST,
+            mag_filter: texture::MagFilter::NEAREST,
+            ..default()
+        };
+
+        let out_color = pass::OutputDefinition::new_rgba("color");
+        let out_id = pass::OutputDefinition::new("id", rgba, tex_type, id_params);
+        let tex_color = instance.new_screen_texture(&out_color);
+        let tex_id = instance.new_screen_texture(&out_id);
+        let composed = instance.new_framebuffer(&[&tex_color, &tex_id])?;
+
+        let out_mask_color = pass::OutputDefinition::new_rgba("mask_color");
+        let out_mask_id = pass::OutputDefinition::new("mask_id", rgba, tex_type, id_params);
+        let tex_mask_color = instance.new_screen_texture(&out_mask_color);
+        let tex_mask_id = instance.new_screen_texture(&out_mask_id);
+        let mask = instance.new_framebuffer(&[&tex_mask_color, &tex_mask_id])?;
+
+        let out_layer_color = pass::OutputDefinition::new_rgba("layer_color");
+        let out_layer_id = pass::OutputDefinition::new("layer_id", rgba, tex_type, id_params);
+        let tex_layer_color = instance.new_screen_texture(&out_layer_color);
+        let tex_layer_id = instance.new_screen_texture(&out_layer_id);
+        let layer = instance.new_framebuffer(&[&tex_layer_color, &tex_layer_id])?;
+
+        Ok(Self { composed, mask, layer })
     }
 }
 
@@ -53,40 +79,14 @@ impl SymbolsRenderPass {
 
 impl pass::Definition for SymbolsRenderPass {
     fn initialize(&mut self, instance: &pass::Instance) {
-        let rgba = texture::Rgba8;
-        let tex_type = texture::item_type::u8;
-        let id_params = texture::Parameters {
-            min_filter: texture::MinFilter::NEAREST,
-            mag_filter: texture::MagFilter::NEAREST,
-            ..default()
-        };
-
-        let out_color = pass::OutputDefinition::new_rgba("color");
-        let out_id = pass::OutputDefinition::new("id", rgba, tex_type, id_params);
-        let tex_color = instance.new_screen_texture(&out_color);
-        let tex_id = instance.new_screen_texture(&out_id);
-        let composed_fb = instance.new_framebuffer(&[&tex_color, &tex_id]);
-
-        let out_mask_color = pass::OutputDefinition::new_rgba("mask_color");
-        let out_mask_id = pass::OutputDefinition::new("mask_id", rgba, tex_type, id_params);
-        let tex_mask_color = instance.new_screen_texture(&out_mask_color);
-        let tex_mask_id = instance.new_screen_texture(&out_mask_id);
-        let mask_fb = instance.new_framebuffer(&[&tex_mask_color, &tex_mask_id]);
-
-        let out_layer_color = pass::OutputDefinition::new_rgba("layer_color");
-        let out_layer_id = pass::OutputDefinition::new("layer_id", rgba, tex_type, id_params);
-        let tex_layer_color = instance.new_screen_texture(&out_layer_color);
-        let tex_layer_id = instance.new_screen_texture(&out_layer_id);
-        let layer_fb = instance.new_framebuffer(&[&tex_layer_color, &tex_layer_id]);
-
-        self.framebuffers = Some(Framebuffers::new(composed_fb, mask_fb, layer_fb));
+        self.framebuffers = Framebuffers::new(instance).ok();
     }
 
     fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
         if update_status.scene_was_dirty {
-            let framebuffers = self.framebuffers.as_ref().unwrap();
-
-            framebuffers.composed.bind();
+            if let Some(framebuffers) = self.framebuffers.as_ref() {
+                framebuffers.composed.bind();
+            }
 
             let arr = vec![0.0, 0.0, 0.0, 0.0];
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
@@ -158,17 +158,19 @@ impl SymbolsRenderPass {
             let zero = [0.0, 0.0, 0.0, 0.0];
 
             if !inverted {
-                let framebuffers = self.framebuffers.as_ref().unwrap();
-                framebuffers.mask.bind();
+                if let Some(framebuffers) = self.framebuffers.as_ref() {
+                    framebuffers.mask.bind();
+                }
                 instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
                 instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
                 self.render_layer(instance, layer, scissor_stack, was_ever_masked, override_blend);
             }
 
-            let framebuffers = self.framebuffers.as_ref().unwrap();
-            framebuffers.layer.bind();
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
+            if let Some(framebuffers) = self.framebuffers.as_ref() {
+                framebuffers.layer.bind();
+                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
+                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
+            }
         }
 
         if has_symbols {
@@ -189,15 +191,17 @@ impl SymbolsRenderPass {
         if let Some(layer::Mask { layer: mask_layer, inverted: true }) = layer_mask.as_ref() {
             let blend = layer::BlendMode::ALPHA_CUTOUT;
             self.render_layer(instance, mask_layer, scissor_stack, was_ever_masked, Some(blend));
-            let framebuffers = self.framebuffers.as_ref().unwrap();
-            framebuffers.composed.bind();
-            layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
-            self.overlay_composer.render();
+            if let Some(framebuffers) = self.framebuffers.as_ref() {
+                framebuffers.composed.bind();
+                layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
+                self.overlay_composer.render();
+            }
         } else if is_masked {
-            let framebuffers = self.framebuffers.as_ref().unwrap();
-            framebuffers.composed.bind();
-            layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
-            self.mask_composer.render();
+            if let Some(framebuffers) = self.framebuffers.as_ref() {
+                framebuffers.composed.bind();
+                layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
+                self.mask_composer.render();
+            }
         }
 
         if scissor_box_changed {

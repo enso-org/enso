@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::system::gpu::*;
 
 use crate::display::scene::UpdateStatus;
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::texture::TextureOps;
 
 
@@ -90,9 +91,12 @@ impl Instance {
     }
 
     /// Create a new framebuffer from the provided textures.
-    pub fn new_framebuffer(&self, textures: &[&AnyTextureUniform]) -> Framebuffer {
+    pub fn new_framebuffer(
+        &self,
+        textures: &[&AnyTextureUniform],
+    ) -> Result<Framebuffer, ContextLost> {
         let context = self.context.clone();
-        let native = self.context.create_framebuffer().unwrap();
+        let native = self.context.create_framebuffer()?;
         let target = Context::FRAMEBUFFER;
         let draw_buffers = js_sys::Array::new();
         context.bind_framebuffer(*target, Some(&native));
@@ -117,7 +121,7 @@ impl Instance {
         if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
             warn!("Framebuffer incomplete (status: {framebuffer_status}).")
         }
-        Framebuffer { context, native }
+        Ok(Framebuffer { context, native })
     }
 
     /// Run a closure with different viewport set in context.

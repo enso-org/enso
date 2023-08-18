@@ -132,6 +132,16 @@ pub struct ContextLostHandler {
 }
 
 
+// === Wrappers ===
+
+#[allow(missing_docs)]
+impl ContextData {
+    pub fn create_framebuffer(&self) -> Result<web_sys::WebGlFramebuffer, ContextLost> {
+        self.native.create_framebuffer().ok_or(ContextLost)
+    }
+}
+
+
 
 // ===============
 // === Display ===
