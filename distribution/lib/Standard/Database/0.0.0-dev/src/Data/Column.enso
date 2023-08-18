@@ -1009,9 +1009,7 @@ type Column
        - range: The selection of rows from the table to return.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
-    take self range=(First 1) =
-        IO.println "UUU0"
-        self.to_table.take range . at self.name
+    take self range=(First 1) = self.to_table.take range . at self.name
 
     ## Creates a new Column from the input with the specified range of rows
        removed.

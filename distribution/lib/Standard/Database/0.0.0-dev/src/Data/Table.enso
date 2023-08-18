@@ -601,7 +601,6 @@ type Table
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        IO.println "UUU1"
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## Creates a new Table from the input with the specified range of rows

@@ -20,14 +20,12 @@ main = run_default_backend spec
 
 DB_Table.should_equal : DB_Table -> Integer -> Test_Result
 DB_Table.should_equal self expected frames_to_skip=0 =
-    IO.println "SEEE"
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip
 
 DB_Column.should_equal : DB_Column -> Integer -> Test_Result
 DB_Column.should_equal self expected frames_to_skip=0 =
-    IO.println "SEEEC"
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip
@@ -40,49 +38,6 @@ spec setup =
     take_drop_by_pending = if test_selection.take_drop.not then
         "TODO: take/drop are not yet supported by this backend."
 
-    Test.group "asdfasdf" <|
-        table =
-            col1 = ["alpha", [1,2,3,4,5,6,7,8]]
-            col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
-            table_builder [col1, col2] . order_by "alpha"
-        alpha = table.at "alpha"
-        beta = table.at "beta"
-
-        empty_table = table.remove_all_rows
-        empty_alpha = empty_table.at "alpha"
-        empty_beta = empty_table.at "beta"
-
-        ##
-            Test.specify "should allow selecting first or last N rows" <|
-                table.take (First 100) . should_equal table
-            Test.specify "should allow selecting first or last N rows2" <|
-                IO.println 'ZZZ'
-                #table.print
-                #alpha.print
-                t = alpha.to_table
-                #t.print
-                t2 = t.take (First 100)
-                #t2.print
-                c2 = t2.at "alpha"
-                c2.print
-                c3 = alpha.to_table.take (First 100) . at "alpha"
-                c3.print
-                c4 = alpha.take (First 100)
-                c4.print
-                gah c isr = c.to_table.take isr . at (c.name)
-                c5 = gah alpha (First 100)
-                c5.print
-                IO.println 'ZZZ2'
-                rc5 = c5.read
-                rc5.print
-                ralpha = alpha.read
-                ralpha.print
-                rc5.should_equal ralpha
-                c5.should_equal alpha
-
-            #self.to_table.take range . at self.name
-            #alpha.take (First 100) . should_equal alpha
-
     Test.group prefix+"Table.take/drop asdfasdf" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
@@ -91,66 +46,38 @@ spec setup =
         empty = table.remove_all_rows
 
         Test.specify "should allow selecting first or last N rows" <|
-            IO.println 'QQQ'
             table.take.at "alpha" . to_vector . should_equal [1]
-            IO.println 'QQQ'
             table.take.at "beta" . to_vector . should_equal ["A"]
-            IO.println 'QQQ'
             table.drop.at "alpha" . to_vector . should_equal [2,3,4,5,6,7,8]
 
-            IO.println 'QQQ'
             table.take (First 4) . at "alpha" . to_vector . should_equal [1,2,3,4]
-            IO.println 'QQQ'
-            IO.println 'QQQ'
             table.take (First 0) . at "alpha" . to_vector . should_equal []
-            IO.println 'QQQ'
             table.take (First -1) . at "alpha" . to_vector . should_equal []
-            IO.println 'QQQ'
             table.take (First 100) . should_equal table
 
-            IO.println 'QQQ'
             table.drop (First 2) . at "beta" . to_vector . should_equal ["C","D","E","F","G","H"]
-            IO.println 'QQQ'
             table.drop (First 0) . should_equal table
-            IO.println 'QQQ'
             table.drop (First -1) . should_equal table
-            IO.println 'QQQ'
             table.drop (First 100) . should_equal empty
 
-            IO.println 'QQQ'
             table.take 4 . at "alpha" . to_vector . should_equal [1,2,3,4]
-            IO.println 'QQQ'
             table.take 0 . at "alpha" . to_vector . should_equal []
-            IO.println 'QQQ'
             table.take -1 . at "alpha" . to_vector . should_equal []
-            IO.println 'QQQ'
             table.take 100 . should_equal table
 
-            IO.println 'QQQ'
             table.drop 2 . at "beta" . to_vector . should_equal ["C","D","E","F","G","H"]
-            IO.println 'QQQ'
             table.drop 0 . should_equal table
-            IO.println 'QQQ'
             table.drop -1 . should_equal table
-            IO.println 'QQQ'
             table.drop 100 . should_equal empty
 
-            IO.println 'QQQ'
             table.take (Last 4) . at "beta" . to_vector . should_equal ["E","F","G","H"]
-            IO.println 'QQQ'
             table.take (Last 0) . should_equal empty
-            IO.println 'QQQ'
             table.take (Last -1) . should_equal empty
-            IO.println 'QQQ'
             table.take (Last 100) . should_equal table
 
-            IO.println 'QQQ'
             table.drop (Last 2) . at "alpha" . to_vector . should_equal [1,2,3,4,5,6]
-            IO.println 'QQQ'
             table.drop (Last 0) . should_equal table
-            IO.println 'QQQ'
             table.drop (Last -1) . should_equal table
-            IO.println 'QQQ'
             table.drop (Last 100) . should_equal empty
 
         Test.specify "should allow selecting rows by ranges or indices" <|

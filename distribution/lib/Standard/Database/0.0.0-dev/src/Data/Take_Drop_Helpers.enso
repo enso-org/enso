@@ -28,15 +28,7 @@ take_drop_helper take_drop table selector =
         unclean_ranges = case take_drop of
             Take_Drop.Take -> Index_Sub_Range_Module.take_helper length at single_slice slice_ranges selector
             Take_Drop.Drop -> Index_Sub_Range_Module.drop_helper length at single_slice slice_ranges selector
-        #a = normalize_ranges unnormalized_ranges
-        #b = resolve_ranges (normalize_ranges unnormalized_ranges) length
-        #ranges = sort_and_merge_ranges (resolve_ranges (normalize_ranges unnormalized_ranges) length)
-        IO.println 'YYY'
-        IO.println unclean_ranges
         ranges = cleanup_ranges unclean_ranges
-        #IO.println a
-        #IO.println b
-        IO.println ranges
 
         if ranges.is_empty then table.remove_all_rows else
             # Filter on row column. Add the row column at the start, remove it at the end.
@@ -45,19 +37,11 @@ take_drop_helper take_drop table selector =
 
             subqueries = ranges.map range->
                 generate_subquery table_with_row_number row_column_name range
-                #filter_condition = generate_filter_condition [range]
-                #table_with_row_number.filter row_column_name filter_condition
-            IO.println 'SSS'
-            IO.println subqueries
             combined = subqueries.reduce (a-> b-> a.union b)
             combined.remove_columns row_column_name
-            ##
-                filter_condition = generate_filter_condition ranges
-                IO.println 'fc'
-                IO.println filter_condition
-                filtered = table_with_row_number.filter row_column_name filter_condition
-                filtered.remove_columns row_column_name
 
+## PRIVATE
+   Throw Unsupported_Database_Operation for selectors that are not supported by database backends.
 check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
 check_supported selector ~cont =
     err =
@@ -69,57 +53,12 @@ check_supported selector ~cont =
         Index_Sub_Range.Sample _ _ -> err
         _ -> cont
 
-cleanup_ranges ranges =
+## PRIVATE
+   Remove empty ranges.
+cleanup_ranges : Vector Range -> Vector Range
+cleanup_ranges ranges:(Vector Range) =
     ok range = range.end > range.start
     ranges.filter ok
-
-take_drop_helper_ take_drop table selector =
-    ## Generate ranges
-    length = table.row_count
-    invert_maybe ranges = case take_drop of
-        Take_Drop.Take -> ranges
-        Take_Drop.Drop ->
-            # TODO remove special case?
-            if ranges.is_empty then [Range.new 0 length] else
-                inverted = Index_Sub_Range_Module.invert_range_selection ranges length False
-                sort_and_merge_ranges (resolve_ranges (normalize_ranges inverted) length)
-    ranges = invert_maybe <| to_ranges length selector
-
-    # Filter on row column. Add the row column at the start, remove it at the end.
-    row_column_name = Table.make_temp_column_name
-    table_with_row_number = table.add_row_number name=row_column_name from=0
-    filter_condition = generate_filter_condition ranges
-    filtered = table_with_row_number.filter row_column_name filter_condition
-    filtered.remove_columns row_column_name
-
-## PRIVATE
-   Converts ints, ranges, and Index_Sub_Ranges to a sorted list of non-overlapping ranges.
-to_ranges : Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
-to_ranges length descriptor =
-  to_ranges_unchecked length descriptor |> (rs-> resolve_ranges rs length) |> normalize_ranges |> sort_and_merge_ranges
-
-## PRIVATE
-   Converts ints, ranges, and Index_Sub_Ranges to a sorted list of ranges.
-
-   Does not do bounds/sanity checking.
-
-   Does not support While or Sample.
-to_ranges_unchecked : Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
-to_ranges_unchecked length descriptor =
-    unsupported =
-        msg = descriptor.to_text + " is not supported in to_ranges_unchecked. This is a bug in the Database library."
-        Error.throw <| Illegal_Argument.Error msg
-    case descriptor of
-        i : Integer -> i.up_to i+1
-        r : Range -> [r]
-        Index_Sub_Range.First count -> 0.up_to (length.min count)
-        Index_Sub_Range.Last count -> (length-count).up_to length
-        Index_Sub_Range.While _ -> unsupported
-        Index_Sub_Range.By_Index indexes -> case indexes of
-            _ : Vector -> indexes.map (to_ranges_unchecked length) . flatten
-            descriptor -> to_ranges_unchecked length descriptor
-        Index_Sub_Range.Sample _ _ -> unsupported
-        Index_Sub_Range.Every step first -> Range.new first (estimate_end first length step) step
 
 with_temporary_column : Table -> Column -> (Text -> Table -> Table) -> Table
 with_temporary_column table:Table new_column:Column f:(Text -> Table -> Table) =
@@ -138,31 +77,3 @@ generate_subquery table row_column_name range =
             is_in_stepped_range = (((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end)
             with_temporary_column table is_in_stepped_range name-> table->
                 table.filter name Filter_Condition.Is_True
-
-## PRIVATE
-   Convert a vector of ranges to a `Filter_Condition`. Each range becomes a
-   `Bewteen`, which are and-ed together.
-generate_filter_condition : Vector Range -> Filter_Condition
-generate_filter_condition ranges =
-    range_to_condition range = case range of
-        Range.Between start end step ->
-            assert (step == 1)
-            if end == start then [] else
-                [Filter_Condition.Between start end-1]
-    IO.println 'HHH'
-    IO.println (ranges.map range_to_condition . flatten)
-    IO.println (Filter_Condition.or (ranges.map range_to_condition . flatten))
-    Filter_Condition.or (ranges.map range_to_condition . flatten)
-
-## PRIVATE
-   Calculate the end of the range that fits inside a sequence of length `length`.
-   Does not assume `step` has been checked.
-estimate_end : Integer -> Integer -> Integer -> Integer
-estimate_end first:Integer length:Integer step:Integer =
-    if step <= 0 then Panic.throw (Illegal_Argument.Error "Range step must be positive.") else
-        (length-first).div step
-
-assert : Boolean -> Nothing
-assert b =
-    if b==True then Nothing else
-      Panic.throw Nothing
