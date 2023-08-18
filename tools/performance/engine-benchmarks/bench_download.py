@@ -171,6 +171,8 @@ class JinjaData:
     branches: List[str]
     since: datetime
     until: datetime
+    display_since: datetime
+    """ The date from which all the datapoints are first displayed """
 
 
 def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
@@ -613,12 +615,7 @@ def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
 def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
     jinja_template = jinja_env.get_template(template_file)
-    generated_html = jinja_template.render({
-        "since": jinja_data.since,
-        "until": jinja_data.until,
-        "bench_datas": jinja_data.bench_datas,
-        "branches": jinja_data.branches
-    })
+    generated_html = jinja_template.render(jinja_data.__dict__)
     with open(html_out_fname, "w") as html_file:
         html_file.write(generated_html)
 
@@ -675,8 +672,8 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
 
 
 if __name__ == '__main__':
-    default_since: date = (datetime.now() - timedelta(days=14)).date()
-    default_until: date = datetime.now().date()
+    default_since: datetime = (datetime.now() - timedelta(days=14))
+    default_until: datetime = datetime.now()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
@@ -685,14 +682,14 @@ if __name__ == '__main__':
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
                             metavar="SINCE_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
                             help=f"The date from which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is 14 days before")
     arg_parser.add_argument("-u", "--until", action="store",
                             default=default_until,
                             metavar="UNTIL_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
@@ -835,6 +832,7 @@ if __name__ == '__main__':
 
     jinja_data = JinjaData(
         since=since,
+        display_since=max(until - timedelta(days=30), since),
         until=until,
         bench_datas=template_bench_datas,
         branches=branches,
@@ -851,10 +849,10 @@ if __name__ == '__main__':
     )
     # Copy rest of the static site content
     logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
-    #shutil.copy(
-        #path.join(TEMPLATES_DIR, "styles.css"),
-        #path.join(GENERATED_SITE_DIR, "styles.css")
-    #)
+    shutil.copy(
+        path.join(TEMPLATES_DIR, "styles.css"),
+        path.join(GENERATED_SITE_DIR, "styles.css")
+    )
     index_html_abs_path = path.join(
         os.getcwd(),
         GENERATED_SITE_DIR,

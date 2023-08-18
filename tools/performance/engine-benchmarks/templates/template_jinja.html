@@ -33,6 +33,29 @@
       const dateColIdx = 0;
       const branchNames = ['{{ branches|join('\',\n  \'') }}'];
       const tooltipColIdx = branchNames.length + 1;
+      // Availability of the data.
+      const sinceDate = new Date(
+          {{ since.year }},
+          {{ since.month - 1 }},
+          {{ since.day }},
+          {{ since.hour }},
+          {{ since.minute }}
+      );
+      const untilDate = new Date(
+          {{ until.year }},
+          {{ until.month - 1 }},
+          {{ until.day }},
+          {{ until.hour }},
+          {{ until.minute }}
+      );
+      // This var will be rewritten once a filter is applied
+      let displaySinceDate = new Date(
+          {{ display_since.year }},
+          {{ display_since.month - 1 }},
+          {{ display_since.day }},
+          {{ display_since.hour }},
+          {{ display_since.minute }}
+      );
 
       /**
        * A helper function, not used in the production code.
@@ -53,19 +76,6 @@
         }
         return dataTableString;
       }
-
-      /**
-       * Strips the given benchmark name or benchmark ID of the unnecessary prefix.
-       * For example, removes 'org.enso.benchmark.benchmarks' prefix.
-       * @param {string} name
-       * @returns {string} Stripped name
-       */
-      function stripPrefixFromName(name) {
-        let items = name.split(new RegExp("[\._]"));
-        console.assert(items.length >= 2);
-
-      }
-
 
       {% for bench_data in bench_datas %}
       let chart_{{ bench_data.id }} = null;
@@ -105,27 +115,36 @@
         {% endfor %}
       };
 
+      /**
+       * Draws a chart for {{ bench_data.id }} benchmark.
+       */
       function draw_{{ bench_data.id }}() {
-        chart_{{ bench_data.id }} = new google.visualization.LineChart(document.getElementById('{{ bench_data.id }}'));
-        data_table_{{ bench_data.id }} = new google.visualization.DataTable();
-        data_table_{{ bench_data.id }}.addColumn('datetime', 'commit_timestamp');
-        for (let branchName of branchNames) {
-          data_table_{{ bench_data.id }}.addColumn({type: "number", role:"data", label:branchName});
+        if (data_table_{{ bench_data.id }} === null) {
+          data_table_{{ bench_data.id }} = new google.visualization.DataTable();
+          data_table_{{ bench_data.id }}.addColumn('datetime', 'commit_timestamp');
+          for (let branchName of branchNames) {
+            data_table_{{ bench_data.id }}.addColumn({type: "number", role:"data", label:branchName});
+          }
+          data_table_{{ bench_data.id }}.addColumn({type:'string', role:'tooltip'});
+        } else {
+          // Clear data_table
+          let rowNum = data_table_{{ bench_data.id }}.getNumberOfRows();
+          data_table_{{ bench_data.id }}.removeRows(0, rowNum);
         }
-        data_table_{{ bench_data.id }}.addColumn({type:'string', role:'tooltip'});
         for (let branchName of branchNames) {
           bench_data_{{ bench_data.id }}[branchName].forEach(function (benchRowData) {
-            let branchColIdx = data_table_{{ bench_data.id }}.getColumnIndex(branchName)
-            let row = new Array(2 + branchNames.length);
-            row.fill(null);
-            row[dateColIdx] = benchRowData["date"]
-            row[tooltipColIdx] = benchRowData["tooltip"]
-            row[branchColIdx] = benchRowData["score"]
-            data_table_{{ bench_data.id }}.addRow(row)
+            if (benchRowData["date"] > displaySinceDate) {
+              let branchColIdx = data_table_{{ bench_data.id }}.getColumnIndex(branchName)
+              let row = new Array(2 + branchNames.length);
+              row.fill(null);
+              row[dateColIdx] = benchRowData["date"]
+              row[tooltipColIdx] = benchRowData["tooltip"]
+              row[branchColIdx] = benchRowData["score"]
+              data_table_{{ bench_data.id }}.addRow(row)
+            }
           })
         }
         let options = {
-          'title': '{{ bench_data.id }}',
           // So that points are visible, with pointSize=0, there is only a line
           'pointSize': 5,
           'explorer': {
@@ -133,16 +152,14 @@
             'actions': ['dragToZoom', 'rightClickToReset']
           }
         };
-        chart_{{ bench_data.id }}.draw(data_table_{{ bench_data.id }}, options);
-        // Attach selection event listener to the chart
-        google.visualization.events.addListener(chart_{{ bench_data.id }}, 'select', select_callback_{{ bench_data.id }});
-      }
-
-      function redraw_{{ bench_data.id }}(startDate) {
-        if (chart_{{ bench_data.id }} !== null) {
-          // TODO: ...
+        if (chart_{{ bench_data.id }} === null) {
+          chart_{{ bench_data.id }} = new google.visualization.LineChart(document.getElementById('{{ bench_data.id }}'));
+          // Attach selection event listener to the chart
+          google.visualization.events.addListener(chart_{{ bench_data.id }}, 'select', select_callback_{{ bench_data.id }});
+        } else {
+          chart_{{ bench_data.id }}.clearChart();
         }
-        chart_{{ bench_data.id }}.draw(data_table_{{ bench_data.id }});
+        chart_{{ bench_data.id }}.draw(data_table_{{ bench_data.id }}, options);
       }
 
       function select_callback_{{ bench_data.id }}() {
@@ -198,12 +215,27 @@
       google.charts.setOnLoadCallback(draw_{{ bench_data.id }});
       {# end of bench_data #}
       {% endfor %}
+
+      function sinceDateClickHandler() {
+        let val = document.getElementById("since-date-input").value;
+        if (val !== null && val !== "") {
+          let date = new Date(val);
+          displaySinceDate = date;
+          console.log("sinceDateClickHandler: new sinceDate set to: ", date);
+          // Iterate all the redraw charts
+          {% for bench_data in bench_datas %}
+          draw_{{ bench_data.id }}();
+          {% endfor %}
+          document.getElementById("applied-since-filter").innerHTML = date.toString();
+        }
+      }
+
     </script>
   </head>
 
   <body>
     <h1 class="text-center">Engine benchmark results</h1>
-    <h2 class="text-center">Since {{ since }} until {{ until }}</h2>
+    <h2 class="text-center">Since {{ since.date() }} until {{ until.date() }}</h2>
 
     <div id="description">
       <p>
@@ -242,67 +274,89 @@
       Generated by the <code>bench_download.py</code> script.
     </div>
 
-    <div id="main-container" class="container-fluid">
-      <div id="side-nav-panel" class="col-2">
-        Side Navigation Panel:
+
+    <div id="top-panel" class="container">
+      <h3 class="text-center">Filters</h3>
+      <form class="row">
+        <label for="since-date-input" class="form-label">Since date:</label>
+        <input
+            type="date"
+            id="since-date-input"
+            class="form-control form-control-lg"
+            name="since-date"
+            min="{{ since.date() }}"
+            max="{{ until.date() }}"
+        />
+      </form>
+      <button
+          id="reset-since-date-btn"
+          class="row btn btn-primary"
+          style="margin-top:10px"
+          onclick="sinceDateClickHandler()"
+      >Apply filters</button>
+      <div style="margin-top:15px">
+        Applied filters:
         <ul>
-          {% for bench_data in bench_datas %}
           <li>
-            <a href="#{{ bench_data.id }}">{{ bench_data.name }}</a>
+            Since date:
+            <span
+              id="applied-since-filter"
+              class="fs-3"
+            >{{ display_since.date() }}</span>
           </li>
-          {% endfor %}
         </ul>
       </div>
+    </div>
 
-      <div id="benchmarks-container" class="col-10">
-        {% for bench_data in bench_datas %}
-        <div class="bench-container card">
-          <h3>{{ bench_data.name }}</h3>
-          <div id="{{ bench_data.id }}"></div>
-          <!-- selection-info div will be shown once user selects a point in the chart -->
-          <div class="selection-info">
-            <dl class="row">
-              <dt class="col-sm-3">Score</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Score difference</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Score difference percentage</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff-perc">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Commit date</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-date">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Commit author</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-author">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Commit message</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-msg">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Commit ID</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-id">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Commit URL</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-url">
-                No selection
-              </dd>
-              <dt class="col-sm-3">Bench run URL</dt>
-              <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-bench-url">
-                No selection
-              </dd>
-            </dl>
-          </div>
+    <div id="benchmarks-container" class="container-fluid">
+      {% for bench_data in bench_datas %}
+      <div class="bench-container card">
+        <h3 class="card-header text-center">{{ bench_data.id }}</h3>
+        <!-- This is a placeholder div for a bench chart -->
+        <div id="{{ bench_data.id }}" class="bench-chart"></div>
+        <!-- selection-info div will be shown once user selects a point in the chart -->
+        <div class="selection-info card-body">
+          <dl class="row card-text">
+            <dt class="col-sm-3">Score</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Score difference</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Score difference percentage</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff-perc">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Commit date</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-date">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Commit author</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-author">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Commit message</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-msg">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Commit ID</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-com-id">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Commit URL</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-url">
+              No selection
+            </dd>
+            <dt class="col-sm-3">Bench run URL</dt>
+            <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-bench-url">
+              No selection
+            </dd>
+          </dl>
         </div>
-        {% endfor %}
       </div>
+      {% endfor %}
     </div>
   </body>
 </html>
