@@ -82,7 +82,7 @@ export interface ProjectIconProps {
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
     appRunner: AppRunner | null
-    openIde: () => void
+    openIde: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
@@ -246,8 +246,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
 
     React.useEffect(() => {
-        if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
-            openIde()
+        if (state === backendModule.ProjectState.opened) {
+            openIde(shouldOpenWhenReady)
             setShouldOpenWhenReady(false)
         }
     }, [shouldOpenWhenReady, state, openIde])
@@ -427,7 +427,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         onClick={clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
-                            openIde()
+                            openIde(true)
                         }}
                     >
                         <SvgMask src={ArrowUpIcon} />

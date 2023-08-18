@@ -222,8 +222,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
-                openIde={() => {
-                    doOpenIde(item)
+                openIde={(switchPage: boolean) => {
+                    doOpenIde(item, switchPage)
                 }}
                 onClose={doCloseIde}
             />

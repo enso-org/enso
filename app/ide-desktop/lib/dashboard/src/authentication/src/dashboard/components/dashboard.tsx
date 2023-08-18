@@ -289,8 +289,10 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const openEditor = React.useCallback(
-        async (newProject: backendModule.ProjectAsset) => {
-            setPage(pageSwitcher.Page.editor)
+        async (newProject: backendModule.ProjectAsset, switchPage: boolean) => {
+            if (switchPage) {
+                setPage(pageSwitcher.Page.editor)
+            }
             if (projectStartupInfo?.project.projectId !== newProject.id) {
                 setProjectStartupInfo({
                     project: await backend.getProjectDetails(newProject.id, newProject.title),

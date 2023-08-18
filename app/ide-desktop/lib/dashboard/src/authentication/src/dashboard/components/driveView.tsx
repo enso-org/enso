@@ -31,7 +31,7 @@ export interface DriveViewProps {
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
     doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (project: backendModule.ProjectAsset) => void
+    doOpenEditor: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseEditor: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean

@@ -316,7 +316,7 @@ export interface AssetsTableState {
     ) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
+    doOpenIde: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseIde: () => void
 }
 
@@ -344,7 +344,7 @@ export interface AssetsTableProps {
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
+    doOpenIde: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseIde: () => void
 }
 
