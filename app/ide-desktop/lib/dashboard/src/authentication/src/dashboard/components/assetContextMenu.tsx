@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -29,13 +30,12 @@ import ManagePermissionsModal from './managePermissionsModal'
 // ========================
 
 /** Props for a {@link AssetContextMenu}. */
-export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
+export interface AssetContextMenuProps {
     hidden?: boolean
     innerProps: tableRow.TableRowInnerProps<
-        T,
+        assetTreeNode.AssetTreeNode,
         assetsTable.AssetsTableState,
-        assetsTable.AssetRowState,
-        T['id']
+        assetsTable.AssetRowState
     >
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
@@ -43,11 +43,10 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
-export default function AssetContextMenu(props: AssetContextMenuProps<backendModule.AnyAsset>) {
+export default function AssetContextMenu(props: AssetContextMenuProps) {
     const {
         hidden = false,
         innerProps: {
-            key,
             item,
             setItem,
             state: { dispatchAssetEvent, dispatchAssetListEvent },
@@ -62,16 +61,30 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const self = item.permissions?.find(
+    const asset = item.item
+    const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
     const managesThisAsset =
         self?.permission === backendModule.PermissionAction.own ||
         self?.permission === backendModule.PermissionAction.admin
+    const setAsset = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: valueOrUpdater(oldItem.item),
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
     return (
-        <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
+        <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
-                {item.type === backendModule.AssetType.project && (
+                {asset.type === backendModule.AssetType.project && (
                     <ContextMenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
@@ -79,12 +92,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                             unsetModal()
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
-                                id: item.id,
+                                id: asset.id,
                             })
                         }}
                     />
                 )}
-                {item.type === backendModule.AssetType.project &&
+                {asset.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.local && (
                         <ContextMenuEntry
                             hidden={hidden}
@@ -104,7 +117,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                             logger
                                         )
                                         const projectResponse = await fetch(
-                                            `./api/project-manager/projects/${item.id}/enso-project`
+                                            `./api/project-manager/projects/${asset.id}/enso-project`
                                         )
                                         // This DOES NOT update the cloud assets list when it
                                         // completes, as the current backend is not the remote
@@ -113,7 +126,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                         // uncommon enough that it is not worth the added complexity.
                                         await remoteBackend.uploadFile(
                                             {
-                                                fileName: `${item.title}.enso-project`,
+                                                fileName: `${asset.title}.enso-project`,
                                                 fileId: null,
                                                 parentDirectoryId: null,
                                             },
@@ -135,8 +148,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 <ContextMenuEntry
                     hidden={hidden}
                     disabled={
-                        item.type !== backendModule.AssetType.project &&
-                        item.type !== backendModule.AssetType.directory
+                        asset.type !== backendModule.AssetType.project &&
+                        asset.type !== backendModule.AssetType.directory
                     }
                     action={shortcuts.KeyboardAction.rename}
                     doAction={() => {
@@ -161,7 +174,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     doAction={() => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`the ${item.type} '${item.title}'`}
+                                description={`the ${asset.type} '${asset.title}'`}
                                 doDelete={doDelete}
                             />
                         )
@@ -175,14 +188,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         doAction={() => {
                             setModal(
                                 <ManagePermissionsModal
-                                    item={item}
-                                    setItem={setItem}
+                                    item={asset}
+                                    setItem={setAsset}
                                     self={self}
                                     eventTarget={eventTarget}
                                     doRemoveSelf={() => {
                                         dispatchAssetEvent({
                                             type: assetEventModule.AssetEventType.removeSelf,
-                                            id: item.id,
+                                            id: asset.id,
                                         })
                                     }}
                                 />
@@ -232,13 +245,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
             </ContextMenu>
-            {item.type === backendModule.AssetType.directory ? (
+            {asset.type === backendModule.AssetType.directory ? (
                 <GlobalContextMenu
                     hidden={hidden}
                     // This is SAFE, as this only exists when the item is a directory.
                     // eslint-disable-next-line no-restricted-syntax
-                    directoryKey={key as backendModule.DirectoryId}
-                    directoryId={item.id}
+                    directoryKey={item.key as backendModule.DirectoryId}
+                    directoryId={asset.id}
                     dispatchAssetListEvent={dispatchAssetListEvent}
                 />
             ) : null}

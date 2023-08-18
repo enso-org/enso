@@ -51,8 +51,9 @@ interface InternalNoSelectedKeysProps {
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
     footer?: JSX.Element
-    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
     items: T[]
+    filter?: ((item: T) => boolean) | null
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
@@ -88,6 +89,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         footer,
         rowComponent: RowComponent = TableRow,
         items,
+        filter,
         getKey,
         selectedKeys: rawSelectedKeys,
         setSelectedKeys: rawSetSelectedKeys,
@@ -248,6 +250,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     key={key}
                     keyProp={key}
                     item={item}
+                    hidden={filter != null ? !filter(item) : false}
                     selected={selectedKeys.has(key)}
                     setSelected={selected => {
                         setSelectedKeys(oldSelectedKeys =>
