@@ -27,7 +27,7 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
         <div
             className={`whitespace-nowrap first:rounded-t-2xl last:rounded-b-2xl px-4 py-2 ${
                 disabled ? 'opacity-50' : ''
-            } ${onClick ? 'hover:bg-blue-500 hover:text-white' : ''} ${
+            } ${onClick && !disabled ? 'hover:bg-black-a10' : ''} ${
                 onClick != null && !disabled ? 'cursor-pointer' : ''
             }`}
             onClick={onClick}
@@ -68,7 +68,7 @@ export default function UserMenu(props: UserMenuProps) {
 
     return (
         <div
-            className="absolute bg-frame-selected right-2.25 top-11 z-10 flex flex-col rounded-2xl bg-white border"
+            className="absolute bg-frame-selected backdrop-blur-3xl right-2.25 top-11 z-1 flex flex-col rounded-2xl"
             onClick={event => {
                 event.stopPropagation()
             }}

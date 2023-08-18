@@ -48,7 +48,7 @@ export default function TopBar(props: TopBarProps) {
     } = props
 
     return (
-        <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-10">
+        <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-1">
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
             {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
                 <BackendSwitcher setBackendType={setBackendType} />

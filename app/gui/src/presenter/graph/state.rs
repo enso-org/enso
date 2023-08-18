@@ -24,7 +24,7 @@ use ide_view::graph_editor::EdgeEndpoint;
 
 /// A single node data.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Node {
     pub view_id:        Option<ViewNodeId>,
     pub position:       Vector2,
@@ -33,27 +33,12 @@ pub struct Node {
     pub is_frozen:      bool,
     pub context_switch: Option<ContextSwitchExpression>,
     pub error:          Option<node_view::Error>,
+    pub is_pending:     bool,
     pub visualization:  Option<visualization_view::Path>,
 
     /// Indicate whether this node view is updated automatically by changes from the controller
     /// or view, or will be explicitly updated..
-    expression_auto_update: bool,
-}
-
-impl Default for Node {
-    fn default() -> Self {
-        Self {
-            view_id:                None,
-            position:               Vector2::default(),
-            expression:             node_view::Expression::default(),
-            is_skipped:             false,
-            is_frozen:              false,
-            context_switch:         None,
-            error:                  None,
-            visualization:          None,
-            expression_auto_update: true,
-        }
-    }
+    disable_expression_auto_update: bool,
 }
 
 /// The set of node states.
@@ -293,12 +278,19 @@ impl State {
         // When node is in process of being created, it is not yet present in the state. In that
         // case the initial expression update needs to be processed. Otherwise the node would be
         // created without any expression.
-        self.nodes.borrow().get(node).map_or(true, |node| node.expression_auto_update)
+        let auto_update_disabled = self
+            .nodes
+            .borrow()
+            .get(node)
+            .map_or_default(|node| node.disable_expression_auto_update);
+        !auto_update_disabled
     }
 
     /// Set the flag that indicates if the node should be synced with its AST automatically.
     pub fn allow_expression_auto_updates(&self, node: ast::Id, allow: bool) {
-        self.nodes.borrow_mut().get_mut(node).for_each(|node| node.expression_auto_update = allow);
+        if let Some(node) = self.nodes.borrow_mut().get_mut(node) {
+            node.disable_expression_auto_update = !allow;
+        }
     }
 }
 
@@ -447,6 +439,22 @@ impl<'a> ControllerChange<'a> {
         if displayed.error != new_error {
             displayed.error = new_error.clone();
             Some((displayed.view_id?, new_error))
+        } else {
+            None
+        }
+    }
+
+    /// Set whether this node is currently awaiting completion of execution.
+    pub fn set_node_pending(
+        &self,
+        node_id: ast::Id,
+        is_pending: bool,
+    ) -> Option<(ViewNodeId, bool)> {
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut(node_id)?;
+        if displayed.is_pending != is_pending {
+            displayed.is_pending = is_pending;
+            Some((displayed.view_id?, is_pending))
         } else {
             None
         }

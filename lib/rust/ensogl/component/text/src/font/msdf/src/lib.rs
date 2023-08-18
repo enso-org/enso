@@ -323,65 +323,74 @@ mod tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
+    const TEST_PARAMETERS: MsdfParameters = MsdfParameters {
+        width: 32,
+        height: 32,
+        edge_coloring_angle_threshold: 3.0,
+        range: 2.0,
+        max_scale: 2.0,
+        edge_threshold: 1.001,
+        overlap_support: true,
+    };
+
+    #[derive(Debug, PartialEq)]
+    struct OutputValueChecks {
+        word0:       f32,
+        word10:      f32,
+        last_word:   f32,
+        translation: Vector2<f64>,
+        scale:       Vector2<f64>,
+        advance:     f64,
+    }
+
+    /// Check some values to test Rust-JS interface.
+    fn check_outputs(msdf: &Msdf, data: &[f32]) {
+        let computed = OutputValueChecks {
+            word0:       data[0],
+            word10:      data[10],
+            last_word:   data[data.len() - 1],
+            translation: msdf.translation,
+            scale:       msdf.scale,
+            advance:     msdf.advance,
+        };
+        let expected = OutputValueChecks {
+            word0:       0.053712357,
+            word10:      0.125,
+            last_word:   -3.9244988,
+            translation: Vector2::new(1.2421875, 1.0),
+            scale:       Vector2::new(2.0, 2.0),
+            advance:     10.921875,
+        };
+        assert_eq!(computed, expected);
+    }
+
     #[wasm_bindgen_test(async)]
     async fn generate_msdf_for_capital_a() {
         initialized().await;
         // given
-        let font_base = Embedded::init_and_load_embedded_fonts();
-        let font_name = "DejaVuSansMono-Bold.ttf";
+        let font_base = Embedded::default();
+        let font_name = "Enso-Regular.ttf";
         let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
-        let params = MsdfParameters {
-            width: 32,
-            height: 32,
-            edge_coloring_angle_threshold: 3.0,
-            range: 2.0,
-            max_scale: 2.0,
-            edge_threshold: 1.001,
-            overlap_support: true,
-        };
+        let params = TEST_PARAMETERS;
         // when
         let msdf = Msdf::generate(&font, 'A' as u32, &params);
         // then
-        let data: Vec<f32> = msdf.data.iter().collect();
-        assert_eq!(-0.9408906, data[0]); // Note [asserts]
-        assert_eq!(0.2, data[10]);
-        assert_eq!(-4.3035655, data[data.len() - 1]);
-        assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
-        assert_eq!(Vector2::new(1.25, 1.25), msdf.scale);
-        assert_eq!(19.265625, msdf.advance);
+        let data = msdf.data.iter().collect_vec();
+        check_outputs(&msdf, &data);
     }
 
     #[wasm_bindgen_test(async)]
     async fn generate_msdf_for_capital_a_by_index() {
         initialized().await;
         // given
-        let font_base = Embedded::init_and_load_embedded_fonts();
-        let font_name = "DejaVuSansMono-Bold.ttf";
+        let font_base = Embedded::default();
+        let font_name = "Enso-Regular.ttf";
         let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
-        let params = MsdfParameters {
-            width: 32,
-            height: 32,
-            edge_coloring_angle_threshold: 3.0,
-            range: 2.0,
-            max_scale: 2.0,
-            edge_threshold: 1.001,
-            overlap_support: true,
-        };
+        let params = TEST_PARAMETERS;
         // when
-        let msdf = Msdf::generate_by_index(&font, 36, &params);
+        let msdf = Msdf::generate_by_index(&font, 2, &params);
         // then
-        let data: Vec<f32> = msdf.data.iter().collect();
-        assert_eq!(-0.9408906, data[0]); // Note [asserts]
-        assert_eq!(0.2, data[10]);
-        assert_eq!(-4.3035655, data[data.len() - 1]);
-        assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
-        assert_eq!(Vector2::new(1.25, 1.25), msdf.scale);
-        assert_eq!(19.265625, msdf.advance);
+        let data = msdf.data.iter().collect_vec();
+        check_outputs(&msdf, &data);
     }
-
-    /* Note [asserts]
-     *
-     * we're checking rust - js interface only, so there is no need to check
-     * all values
-     */
 }

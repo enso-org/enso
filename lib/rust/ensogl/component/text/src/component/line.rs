@@ -243,7 +243,7 @@ pub struct View {
     pub glyphs:         VecIndexedBy<Glyph, Column>,
     /// Division points between glyphs. There is always the beginning division point (0.0). If
     /// there are any glyphs, this also contains the last division point, which is the glyph
-    /// right hand side + `x_advance`, where `a_advance` is the space to the next glyph place.
+    /// right hand side + `x_advance`, where `x_advance` is the space to the next glyph place.
     pub divs:           NonEmptyVec<f32>,
     /// Centers between division points. Used for glyph selection with mouse cursor.
     pub centers:        Vec<f32>,
@@ -344,9 +344,7 @@ impl View {
     /// Set the division points (offsets between letters). Also updates center points.
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn set_divs(&mut self, divs: NonEmptyVec<f32>) {
-        let div_iter = divs.iter();
-        let div_iter_skipped = divs.iter().skip(1);
-        self.centers = div_iter.zip(div_iter_skipped).map(|(t, s)| (t + s) / 2.0).collect();
+        self.centers = divs.as_slice().array_windows().map(|[t, s]| (t + s) / 2.0).collect();
         self.divs = divs;
     }
 

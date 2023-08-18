@@ -75,6 +75,7 @@ export const theme = {
             '42': '10.5rem',
             '54': '13.5rem',
             '57.5': '14.375rem',
+            '62': '15.5rem',
             '70': '17.5rem',
             '83.5': '20.875rem',
             '98.25': '24.5625rem',
@@ -93,6 +94,9 @@ export const theme = {
         },
         opacity: {
             '1/3': '.33333333',
+        },
+        zIndex: {
+            '1': '1',
         },
         backdropBlur: {
             xs: '2px',

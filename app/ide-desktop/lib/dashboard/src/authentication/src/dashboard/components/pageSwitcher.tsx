@@ -60,7 +60,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                         active={page === pageData.page}
                         disabled={isDisabled}
                         error={ERRORS[pageData.page]}
-                        className="pointer-events-auto"
+                        className="cursor-default pointer-events-auto"
                         onClick={() => {
                             setPage(pageData.page)
                         }}

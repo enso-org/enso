@@ -754,7 +754,7 @@ mod tests {
             Marked {
                 mark: Example,
                 header: Some("Example".into()), 
-                body: "<p>Parse the text \"20220216\" into an integer number.<pre>\nInteger.parse \"20220216\"</pre>".into()
+                body: "<p>Parse the text \"20220216\" into an integer number.<div class=\"example\">\nInteger.parse \"20220216\"</div>".into()
             }].to_vec();
         assert_eq!(res, expected);
     }

@@ -1,13 +1,85 @@
+from Standard.Base import all
+from Standard.Test import Bench
+import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
 import project.Vector.Operations
+import project.Vector.Sort
+import project.Statistics.Count_Min_Max
+import project.Table.Aggregate
+import project.Table.Cross_Tab
+import project.Table.Sorting
+import project.Text.Build
+import project.Text.Compare
+import project.Text.Contains
+import project.Text.Pretty
+import project.Text.Reverse
+import project.Time.Work_Days
+import project.Collections
+import project.Column_Numeric
+import project.Equality
+import project.Json_Bench
+import project.Natural_Order_Sort
+import project.Number_Parse
 import project.Numeric
+import project.Sum
+from Standard.Base.Runtime import Debug
 
+all_benchmarks : Vector Bench.All
 all_benchmarks =
-    vec_ops = Operations.all
-    vec_distinct = Distinct.collect_benches
-    numeric = Numeric.bench
-    [vec_ops, vec_distinct, numeric]
+    builder = Vector.new_builder
+
+    # Vector
+    builder.append Array_Proxy_Bench.collect_benches
+    builder.append Distinct.collect_benches
+    builder.append Operations.collect_benches
+    builder.append Sort.collect_benches
+
+    # Statistics
+    builder.append Count_Min_Max.collect_benches
+
+    # Table
+    builder.append Aggregate.collect_benches
+    builder.append Cross_Tab.collect_benches
+    builder.append Sorting.collect_benches
+
+    # Text
+    builder.append Build.collect_benches
+    builder.append Compare.collect_benches
+    builder.append Contains.collect_benches
+    builder.append Pretty.collect_benches
+    builder.append Reverse.collect_benches
+
+    # Time
+    builder.append Work_Days.collect_benches
+
+    builder.append Collections.collect_benches
+    builder.append Column_Numeric.collect_benches
+    builder.append Equality.collect_benches
+    builder.append Json_Bench.collect_benches
+    builder.append Natural_Order_Sort.collect_benches
+    builder.append Number_Parse.collect_benches
+    builder.append Numeric.collect_benches
+    builder.append Sum.collect_benches
+
+    builder.to_vector
 
 main =
     all_benchmarks.each suite->
         suite.run_main
+
+
+## Prints all benchmarks along with their configuration
+list_names =
+    builder = Vector.new_builder
+    all_benchmarks.each suite->
+        suite.groups.each group->
+            group.specs.each spec->
+                bench_name = group.name + "." + spec.name
+                with_conf = bench_name + " " + group.configuration.to_text
+                builder.append with_conf
+    all_names = builder.to_vector
+
+    IO.println <| "Benchmarks: (count = " + all_names.length.to_text + ")"
+    all_names.each name->
+        IO.println <| "  " + name
+
