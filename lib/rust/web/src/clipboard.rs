@@ -32,28 +32,45 @@ extern "C" {
     fn readText(closure: &ReadTextClosure);
 
     #[allow(unsafe_code)]
-    #[wasm_bindgen(js_name = "write")]
-    fn write_js(data: Uint8Array, mime_type: String);
+    fn writeCustom(mime_type: String, data: Uint8Array);
 
     #[allow(unsafe_code)]
-    #[wasm_bindgen(js_name = "read")]
-    fn read_js(expected_mime_type: String, closure: &ReadClosure);
+    fn readCustom(
+        expected_mime_type: String,
+        when_expected: &ReadClosure,
+        plain_text_fallback: &ReadTextClosure,
+    );
 }
 
 pub fn write(data: BinaryData<'_>, mime_type: MimeType) {
     let data = Uint8Array::from(data);
-    write_js(data, mime_type);
+    writeCustom(mime_type, data);
 }
 
-pub fn read(expected_mime_type: MimeType, callback: impl Fn(Vec<u8>) + 'static) {
-    let handler: Rc<RefCell<Option<ReadClosure>>> = default();
-    let handler_clone = handler.clone_ref();
-    let closure: ReadClosure = Closure::new(move |result| {
+pub fn read(
+    expected_mime_type: MimeType,
+    when_expected: impl Fn(Vec<u8>) + 'static,
+    plain_text_fallback: impl Fn(String) + 'static,
+) {
+    let when_expected_handler: Rc<RefCell<Option<ReadClosure>>> = default();
+    let handler_clone = when_expected_handler.clone_ref();
+    let when_expected: ReadClosure = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;
-        callback(result);
+        when_expected(result);
     });
-    *handler.borrow_mut() = Some(closure);
-    read_js(expected_mime_type, handler.borrow().as_ref().unwrap());
+    *when_expected_handler.borrow_mut() = Some(when_expected);
+    let fallback_handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
+    let handler_clone = fallback_handler.clone_ref();
+    let plain_text_fallback: ReadTextClosure = Closure::new(move |result| {
+        *handler_clone.borrow_mut() = None;
+        plain_text_fallback(result);
+    });
+    *fallback_handler.borrow_mut() = Some(plain_text_fallback);
+    readCustom(
+        expected_mime_type,
+        when_expected_handler.borrow().as_ref().unwrap(),
+        fallback_handler.borrow().as_ref().unwrap(),
+    );
 }
 
 /// Write the provided text to the clipboard. Please note that:

@@ -959,32 +959,51 @@ impl Handle {
     /// TODO: add docs
     pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
         let this = self.clone_ref();
-        clipboard::read("web application/enso".to_string(), move |content| {
-            let _transaction = this.module.get_or_open_transaction("Paste node");
-            let string = String::from_utf8(content).unwrap();
-            if let Ok(content) = serde_json::from_str(&string) {
-                match content {
-                    ClipboardContent::Node(node) => {
-                        let expression = node.expression;
-                        let metadata = node.metadata;
-                        console_log!("Pasting node: {expression}");
-                        let info = NewNodeInfo {
-                            expression,
-                            doc_comment: None,
-                            metadata,
-                            id: None,
-                            location_hint: double_representation::graph::LocationHint::End,
-                            introduce_pattern: true,
-                        };
-                        if let Ok(ast_id) = this.add_node(info) {
-                            this.set_node_position(ast_id, cursor_pos);
+        let that = self.clone_ref();
+        clipboard::read(
+            "web application/enso".to_string(),
+            move |content| {
+                let _transaction = this.module.get_or_open_transaction("Paste node");
+                let string = String::from_utf8(content).unwrap();
+                if let Ok(content) = serde_json::from_str(&string) {
+                    match content {
+                        ClipboardContent::Node(node) => {
+                            let expression = node.expression;
+                            let metadata = node.metadata;
+                            console_log!("Pasting node: {expression}");
+                            let info = NewNodeInfo {
+                                expression,
+                                doc_comment: None,
+                                metadata,
+                                id: None,
+                                location_hint: double_representation::graph::LocationHint::End,
+                                introduce_pattern: true,
+                            };
+                            if let Ok(ast_id) = this.add_node(info) {
+                                this.set_node_position(ast_id, cursor_pos);
+                            }
                         }
                     }
+                } else {
+                    todo!()
                 }
-            } else {
-                todo!()
-            }
-        });
+            },
+            move |text| {
+                let expression = text;
+                console_log!("Pasting node: {expression}");
+                let info = NewNodeInfo {
+                    expression,
+                    doc_comment: None,
+                    metadata: None,
+                    id: None,
+                    location_hint: double_representation::graph::LocationHint::End,
+                    introduce_pattern: true,
+                };
+                if let Ok(ast_id) = that.add_node(info) {
+                    that.set_node_position(ast_id, cursor_pos);
+                }
+            },
+        );
         Ok(())
     }
 
