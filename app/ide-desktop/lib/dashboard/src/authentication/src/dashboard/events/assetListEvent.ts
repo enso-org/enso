@@ -89,7 +89,7 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 /** A signal that a file has been deleted. This must not be called before the request is
  * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
-    id: backend.AssetId
+    key: backend.AssetId
 }
 
 /** A signal for a file to remove itself from the asset list, without being deleted. */

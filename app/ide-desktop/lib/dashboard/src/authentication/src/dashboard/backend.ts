@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as permissions from './permissions'
+import * as uniqueString from '../uniqueString'
 
 // =============
 // === Types ===
@@ -384,7 +385,7 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: dateTime.Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime
     /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
@@ -414,8 +415,36 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
+    return {
+        type: AssetType.specialLoading,
+        title: '',
+        id: LoadingAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
 export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
+    return {
+        type: AssetType.specialEmpty,
+        title: '',
+        id: EmptyAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =

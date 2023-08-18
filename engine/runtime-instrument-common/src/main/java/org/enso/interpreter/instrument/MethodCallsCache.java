@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +17,7 @@ public final class MethodCallsCache {
   private final Set<UUID> callsExecuted = new HashSet<>();
 
   /** Save the executed method call. */
+  @CompilerDirectives.TruffleBoundary
   public void setExecuted(UUID call) {
     callsExecuted.add(call);
   }
