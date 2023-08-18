@@ -50,7 +50,7 @@ const PRELOAD_VARIATIONS: &[font::NonVariableFaceHeader] = &[
 ];
 
 /// The typefaces for which atlases should be pre-built.
-const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_FONT_MONO, font::DEFAULT_FONT];
+const PRELOAD_TYPEFACES: &[&str] = &[font::DEFAULT_CODE_FONT, font::DEFAULT_FONT];
 
 /// Path within the asset directory to store the glyph atlas image.
 const ATLAS_FILE: &str = "atlas.ppm";
@@ -132,7 +132,7 @@ impl TryFrom<JsValue> for Atlas {
 
 /// Generate MSDF data for a font.
 fn build_atlas(name: &str) -> anyhow::Result<Atlas> {
-    let fonts = font::Embedded::new();
+    let fonts = font::Embedded::default();
     let font = fonts.load_font(name.into()).ok_or_else(|| anyhow!("Failed to load font."))?;
     let font = match font {
         Font::NonVariable(font) => font,
