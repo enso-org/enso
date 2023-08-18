@@ -1,8 +1,7 @@
 package org.enso.polyglot;
 
-import java.util.Arrays;
-
 import com.oracle.truffle.api.source.Source;
+import java.util.Arrays;
 
 /** Lists all the languages supported in polyglot eval. */
 public enum ForeignLanguage {
