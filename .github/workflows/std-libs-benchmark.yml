@@ -55,7 +55,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend benchmark std-libs
+      - run: ./run backend benchmark enso-jmh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
