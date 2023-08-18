@@ -626,7 +626,7 @@ type Column
 
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False =
+    round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
                 self.short_circuit_special_floating_point <|
@@ -650,7 +650,7 @@ type Column
         not_bankers = use_bankers.not
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
-        # Don't use for floating-point inputs if deciaml_places != 0, for Postgres
+        # Don't use for floating-point inputs if decimal_places != 0, for Postgres
         dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating_point && decimal_places != 0).not
         not_bankers && negative_dp_ok && dp_param_ok
 

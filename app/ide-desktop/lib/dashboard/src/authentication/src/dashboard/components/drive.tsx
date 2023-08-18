@@ -16,6 +16,7 @@ import * as string from '../../string'
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
+import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'
 
 // =============
@@ -268,18 +269,25 @@ export default function Drive(props: DriveProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
-            <AssetsTable
-                items={assets}
-                filter={assetFilter}
-                isLoading={isLoadingAssets}
-                appRunner={appRunner}
-                assetEvents={assetEvents}
-                dispatchAssetEvent={dispatchAssetEvent}
-                assetListEvents={assetListEvents}
-                dispatchAssetListEvent={dispatchAssetListEvent}
-                doOpenIde={doOpenEditor}
-                doCloseIde={doCloseEditor}
-            />
+            <div className="flex flex-1 gap-3 overflow-hidden">
+                {backend.type === backendModule.BackendType.remote && (
+                    <div className="flex flex-col gap-4 py-1">
+                        <CategorySwitcher />
+                    </div>
+                )}
+                <AssetsTable
+                    items={assets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    appRunner={appRunner}
+                    assetEvents={assetEvents}
+                    dispatchAssetEvent={dispatchAssetEvent}
+                    assetListEvents={assetListEvents}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    doOpenIde={doOpenEditor}
+                    doCloseIde={doCloseEditor}
+                />
+            </div>
             {isFileBeingDragged &&
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (

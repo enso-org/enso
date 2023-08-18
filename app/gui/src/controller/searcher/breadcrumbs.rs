@@ -6,6 +6,7 @@ use crate::model::suggestion_database;
 
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
+use ensogl_icons::icon;
 use model::suggestion_database::Entry;
 
 
@@ -32,9 +33,11 @@ impl Breadcrumbs {
 
     /// Set the list of breadcrumbs to be displayed in the breadcrumbs panel.
     pub fn set_content(&self, breadcrumbs: impl Iterator<Item = BreadcrumbEntry>) {
+        let breadcrumbs: Vec<_> = breadcrumbs.collect();
         let mut borrowed = self.list.borrow_mut();
-        *borrowed = breadcrumbs.collect();
-        self.select(borrowed.len());
+        *borrowed = breadcrumbs;
+        let len = borrowed.len();
+        self.select(len.saturating_sub(1));
     }
 
     /// A list of breadcrumbs' text labels to be displayed in the panel.
@@ -60,12 +63,8 @@ impl Breadcrumbs {
     /// Returns a currently selected breadcrumb id. Returns [`None`] if the top level breadcrumb
     /// is selected.
     pub fn selected(&self) -> Option<suggestion_database::entry::Id> {
-        if self.is_top_module() {
-            None
-        } else {
-            let index = self.selected.get();
-            self.list.borrow().get(index - 1).map(BreadcrumbEntry::id)
-        }
+        let index = self.selected.get();
+        self.list.borrow().get(index).map(BreadcrumbEntry::id)
     }
 }
 
@@ -81,6 +80,7 @@ pub struct BreadcrumbEntry {
     displayed_name: ImString,
     component_id:   suggestion_database::entry::Id,
     qualified_name: QualifiedName,
+    icon:           Option<icon::Id>,
 }
 
 impl BreadcrumbEntry {
@@ -98,16 +98,31 @@ impl BreadcrumbEntry {
     pub fn qualified_name(&self) -> &QualifiedName {
         &self.qualified_name
     }
+
+    /// An icon of the entry.
+    pub fn icon(&self) -> Option<icon::Id> {
+        self.icon
+    }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name and icon.
+    pub fn view_without_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), None)
+    }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name but no icon.
+    pub fn view_with_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), self.icon())
+    }
 }
 
 impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
     fn from((component_id, entry): (suggestion_database::entry::Id, Rc<Entry>)) -> Self {
         let qualified_name = entry.qualified_name();
         let displayed_name = entry.name.clone();
-        BreadcrumbEntry { displayed_name, component_id, qualified_name }
+        let icon = Some(entry.as_ref().icon());
+        BreadcrumbEntry { displayed_name, component_id, qualified_name, icon }
     }
 }
-
 
 
 // ===============

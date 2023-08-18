@@ -50,7 +50,8 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     return (
         <div className="flex items-center shrink-0 gap-4">
             {PAGE_DATA.map(pageData => {
-                const isDisabled = pageData.page === Page.editor && isEditorDisabled
+                const isDisabled =
+                    pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
                 return (
                     <Button
                         key={pageData.page}
@@ -58,7 +59,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                         active={page === pageData.page}
                         disabled={isDisabled}
                         error={ERRORS[pageData.page]}
-                        className="pointer-events-auto"
+                        className="cursor-default pointer-events-auto"
                         onClick={() => {
                             setPage(pageData.page)
                         }}
