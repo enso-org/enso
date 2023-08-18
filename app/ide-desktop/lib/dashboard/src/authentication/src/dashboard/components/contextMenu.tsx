@@ -1,6 +1,8 @@
 /** @file A context menu. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 // ===================
 // === ContextMenu ===
 // ===================
@@ -20,7 +22,9 @@ export default function ContextMenu(props: ContextMenuProps) {
         <div className="relative rounded-2xl pointer-events-auto">
             <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
             <div
-                className="relative flex flex-col rounded-2xl w-57.5 p-2"
+                className={`relative flex flex-col rounded-2xl ${
+                    detect.isOnMacOS() ? 'w-57.5' : 'w-62'
+                } p-2`}
                 onClick={clickEvent => {
                     clickEvent.stopPropagation()
                 }}

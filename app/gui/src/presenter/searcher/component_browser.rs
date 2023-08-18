@@ -86,10 +86,7 @@ impl Model {
     ) -> Option<(ViewNodeId, text::Range<text::Byte>, ImString)> {
         let new_code = self.controller.use_suggestion_by_index(id);
         match new_code {
-            Ok(text::Change { range, text }) => {
-                self.update_breadcrumbs();
-                Some((self.input_view, range, text.into()))
-            }
+            Ok(text::Change { range, text }) => Some((self.input_view, range, text.into())),
             Err(err) => {
                 error!("Error while applying suggestion: {err}.");
                 None
@@ -101,20 +98,23 @@ impl Model {
         self.controller.select_breadcrumb(id);
     }
 
-    fn update_breadcrumbs(&self) {
-        let names = self.controller.breadcrumbs().into_iter();
-        let browser = &self.view;
-        // We only update the breadcrumbs starting from the second element because the first
-        // one is reserved as a section name.
-        let from = 1;
-        let breadcrumbs_from = (names.map(Into::into).collect(), from);
-        browser.model().documentation.breadcrumbs.set_entries_from(breadcrumbs_from);
+    fn module_entered(&self, entry: component_grid::EntryId) {
+        if let Err(error) = self.controller.enter_entry(entry) {
+            error!("Failed to enter entry in Component Browser: {error}")
+        }
     }
 
-    fn module_entered(&self, entry: component_grid::EntryId) {
-        match self.controller.enter_entry(entry) {
-            Ok(()) => self.update_breadcrumbs(),
-            Err(error) => error!("Failed to enter entry in Component Browser: {error}"),
+    fn update_breadcrumbs(&self, target_entry: component_grid::EntryId) {
+        let breadcrumbs = self.controller.update_breadcrumbs(target_entry);
+        if let Some(breadcrumbs) = breadcrumbs {
+            let browser = &self.view;
+            let breadcrumbs_count = breadcrumbs.len();
+            let without_icon =
+                breadcrumbs[0..breadcrumbs_count - 1].iter().map(|crumb| crumb.view_without_icon());
+            let with_icon =
+                breadcrumbs[breadcrumbs_count - 1..].iter().map(|crumb| crumb.view_with_icon());
+            let all = without_icon.chain(with_icon).collect_vec();
+            browser.model().documentation.breadcrumbs.set_entries(all);
         }
     }
 
@@ -138,8 +138,18 @@ impl Model {
         self.controller.documentation_for_entry(id)
     }
 
+    fn docs_for_breadcrumb(&self) -> Option<EntryDocumentation> {
+        self.controller.documentation_for_selected_breadcrumb()
+    }
+
     fn should_select_first_entry(&self) -> bool {
         self.controller.is_filtering() || self.controller.is_input_empty()
+    }
+
+    fn on_entry_for_docs_selected(&self, id: Option<component_grid::EntryId>) {
+        if let Some(id) = id {
+            self.update_breadcrumbs(id);
+        }
     }
 }
 
@@ -267,12 +277,17 @@ impl ComponentBrowserSearcher {
             docs <- docs_params.filter_map(f!([model]((_, entry)) {
                 entry.map(|entry_id| model.documentation_of_component(entry_id))
             }));
+            docs_from_breadcrumbs <- breadcrumbs.selected.map(f!((selected){
+                model.breadcrumb_selected(*selected);
+                model.docs_for_breadcrumb()
+            })).unwrap();
+            docs <- any(docs,docs_from_breadcrumbs);
             documentation.frp.display_documentation <+ docs;
+            eval grid.active ((entry) model.on_entry_for_docs_selected(*entry));
 
             eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
             eval grid.active((entry) model.suggestion_selected(*entry));
             eval grid.module_entered((id) model.module_entered(*id));
-            eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
         }
 
         let weak_model = Rc::downgrade(&model);

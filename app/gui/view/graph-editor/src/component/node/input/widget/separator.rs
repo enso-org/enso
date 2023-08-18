@@ -43,13 +43,14 @@ pub struct Widget {
 impl SpanWidget for Widget {
     type Config = Config;
 
+    const PRIORITY_OVER_OVERRIDE: bool = true;
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
         let matches = ctx.info.nesting_level.is_primary()
             && (kind.is_expected_argument()
                 || kind.is_prefix_argument()
                 || kind.is_named_argument());
-        Score::allow_override_if(matches)
+        Score::only_if(matches)
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
@@ -83,12 +84,6 @@ impl SpanWidget for Widget {
         ctx.builder.manage_child_margins();
         let level = ctx.info.nesting_level;
 
-        // Request separator children widgets to have argument name displayed. This configuration
-        // will only apply to nodes that need it, as the `argument_name` widget will only match
-        // relevant nodes.
-        let argument_name_config = super::argument_name::Widget::default_config(&ctx).into_dyn();
-        let child_config = Some(&argument_name_config);
-
         // NOTE: In order to have proper port behavior for named arguments, the separator widget
         // must handle the named argument nodes, and create a child only for the value part. It is
         // the argument value node that receives the port, and we want that port to be displayed
@@ -98,9 +93,11 @@ impl SpanWidget for Widget {
             let _name_node = child_iter.next();
             let _token = child_iter.next();
             let Some(arg_node) = child_iter.next() else { return };
-            ctx.builder.child_widget_of_type(arg_node, level, child_config)
+            // Make sure to not create another layer of separator for that nested node.
+            ctx.builder.forbid_widget_kind(&arg_node, KindFlags::Separator);
+            ctx.builder.child_widget(arg_node, level)
         } else {
-            ctx.builder.child_widget_of_type(ctx.span_node, level, child_config)
+            ctx.builder.child_widget(ctx.span_node, level)
         };
 
         let separator = self.separator.display_object();

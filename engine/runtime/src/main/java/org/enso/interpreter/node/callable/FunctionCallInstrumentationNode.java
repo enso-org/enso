@@ -16,12 +16,15 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
 import java.util.Arrays;
 import java.util.UUID;
+
 import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
@@ -56,7 +59,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
 
   /** A simple value class for function call information. */
   @ExportLibrary(InteropLibrary.class)
-  public static final class FunctionCall implements TruffleObject {
+  public static final class FunctionCall implements EnsoObject {
     private final Function function;
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;

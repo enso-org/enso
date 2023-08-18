@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::breadcrumbs::BreadcrumbEntry;
 use crate::model::execution_context::GroupQualifiedName;
 use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
@@ -354,16 +355,7 @@ impl Searcher {
     }
 
     /// Enter the specified module. The displayed content of the browser will be updated.
-    pub fn enter_entry(&self, entry: usize) -> FallibleResult {
-        let id = {
-            let data = self.data.borrow();
-            let error = || NoSuchComponent { index: entry };
-            let component = data.components.displayed().get(entry).ok_or_else(error)?;
-            component.id().ok_or(NotEnterable { index: entry })?
-        };
-        let bc_builder = breadcrumbs::Builder::new(&self.database);
-        let breadcrumbs = bc_builder.build(id);
-        self.breadcrumbs.set_content(breadcrumbs);
+    pub fn enter_entry(&self, _entry: usize) -> FallibleResult {
         self.reload_list();
         Ok(())
     }
@@ -374,11 +366,43 @@ impl Searcher {
         self.breadcrumbs.names()
     }
 
-    /// Select the breadcrumb with the index [`id`]. The displayed content of the browser will be
-    /// updated.
+    /// Set the selected breadcrumb. The `id` is the index of the breadcrumb from left to right.
     pub fn select_breadcrumb(&self, id: usize) {
         self.breadcrumbs.select(id);
-        self.reload_list();
+    }
+
+    /// Set the breadcrumbs to match the component at the given `index`. The index refers to the
+    /// displayed list of components. Returns the full breadcrumb for the entry, if there is one.
+    pub fn update_breadcrumbs(&self, index: usize) -> Option<Vec<BreadcrumbEntry>> {
+        let data = self.data.borrow();
+        if let Some(component) = data.components.displayed().get(index) {
+            if let Some(id) = component.id() {
+                let bc_builder = breadcrumbs::Builder::new(&self.database);
+                let breadcrumbs = bc_builder.build(id).collect_vec();
+                assert!(breadcrumbs.iter().all(|e| self.database.lookup(e.id()).is_ok()));
+                self.breadcrumbs.set_content(breadcrumbs.clone().into_iter());
+                Some(breadcrumbs)
+            } else {
+                warn!(
+                    "Cannot update breadcrumbs with component that has no suggestion database \
+                entry. Invalid component: {:?}",
+                    component
+                );
+                None
+            }
+        } else {
+            warn!("Update breadcrumbs called with invalid index: {}", index);
+            None
+        }
+    }
+
+    /// Return the documentation for the breadcrumb.
+    pub fn documentation_for_selected_breadcrumb(&self) -> Option<EntryDocumentation> {
+        let selected = self.breadcrumbs.selected();
+        let component = selected?;
+        assert!(self.database.lookup(component).is_ok());
+        let docs = self.database.documentation_for_entry(component);
+        Some(docs)
     }
 
     /// Set the Searcher Input.
@@ -1213,30 +1237,6 @@ pub mod test {
         assert_eq!(components.len(), 4);
         assert_eq!(components[0].suggestion, fixture.test_function_1_suggestion());
         assert_eq!(components[1].suggestion, fixture.test_function_2_suggestion());
-        let notification = subscriber.next().boxed_local().expect_ready();
-        assert_eq!(notification, Some(Notification::NewComponentList));
-    }
-
-    #[test]
-    fn entering_module() {
-        let mut fixture =
-            Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
-                data.expect_completion(client, None, &(0..11).collect_vec());
-                data.expect_completion(client, None, &(0..11).collect_vec());
-            });
-
-        let searcher = &fixture.searcher;
-        searcher.reload_list();
-        fixture.test.run_until_stalled();
-        // There are two virtual entries and two top-modules.
-        assert_eq!(searcher.components().displayed().len(), 4);
-
-        let mut subscriber = searcher.subscribe();
-        searcher.enter_entry(3).expect("Entering entry failed");
-        fixture.test.run_until_stalled();
-        let list = searcher.components();
-        assert_eq!(list.displayed().len(), 1);
-        assert_eq!(list.displayed()[0].suggestion, fixture.test_method_3_suggestion());
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewComponentList));
     }

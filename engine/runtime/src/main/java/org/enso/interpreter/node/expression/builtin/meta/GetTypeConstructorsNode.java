@@ -8,8 +8,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -23,24 +24,24 @@ public abstract class GetTypeConstructorsNode extends Node {
     return GetTypeConstructorsNodeGen.create();
   }
 
-  abstract Array execute(Object type, Object factory);
+  abstract EnsoObject execute(Object type, Object factory);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Array allConstructors(Type type, AtomConstructor factory) {
+  EnsoObject allConstructors(Type type, AtomConstructor factory) {
     var rawConstructors = type.getConstructors().values();
-    var rawResult = new Object[rawConstructors.size()];
+    var rawResult = new EnsoObject[rawConstructors.size()];
     int at = 0;
     for (var cons : rawConstructors) {
       var metaCons = factory.newInstance(cons);
       rawResult[at++] = metaCons;
     }
-    return new Array(rawResult);
+    return ArrayLikeHelpers.wrapEnsoObjects(rawResult);
   }
 
   @Fallback
   @CompilerDirectives.TruffleBoundary
-  Array empty(Object type, Object factory) {
+  EnsoObject empty(Object type, Object factory) {
     var ctx = EnsoContext.get(this);
     var builtins = ctx.getBuiltins();
     Atom payload;

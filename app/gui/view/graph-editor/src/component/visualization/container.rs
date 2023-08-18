@@ -377,7 +377,10 @@ impl ContainerModel {
         view_state: ViewState,
         screen_shape: &Shape,
     ) -> Vector2 {
-        let max_size = Vector2::from(screen_shape).component_mul(&MAX_PORTION_OF_SCREEN);
+        let mut max_size = Vector2::from(screen_shape).component_mul(&MAX_PORTION_OF_SCREEN);
+        // For tiny window dimensions, the `max_size` can become less than `MIN_SIZE`.
+        max_size.x = max_size.x.max(MIN_SIZE.x);
+        max_size.y = max_size.y.max(MIN_SIZE.y);
         new_size.x = new_size.x.clamp(MIN_SIZE.x, max_size.x);
         new_size.y = new_size.y.clamp(MIN_SIZE.y, max_size.y);
         self.update_layout(new_size, view_state);

@@ -215,8 +215,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         let frp = visualization::instance::Frp::new(&network);
         let model = Rc::new(Model::new(app));
         let fonts_loaded_notifier = FontLoadedNotifier::new(&network);
-
-
         Self { model, frp, network, fonts_loaded_notifier }
     }
 
@@ -235,13 +233,14 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         self.init_text_grid_api(&init, &on_data_update);
 
         self.init_scrolling(&init, text_provider, &on_data_update);
-        self.init_style(&init);
+        self.init_style(&init, &on_data_update);
 
         init.emit(());
     }
 
-    fn init_style(&self, init: &frp::Source) {
+    fn init_style(&self, init: &frp::Source, on_data_update: &frp::Stream) {
         let init = init.clone_ref();
+        let on_data_update = on_data_update.clone_ref();
 
         let scene = &self.model.app.display.default_scene;
         let style_watch = StyleWatchFrp::new(&scene.style_sheet);
@@ -267,9 +266,16 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     grid_view_entry::Params { parent }
                 })
             );
-
-            item_width_update <- all(init, fonts_loaded, font_name, font_size);
-            item_width <- item_width_update.map(f!([]((_, _, font_name, font_size)) {
+            // In order for the layout to be correct, we need to ensure that we know the correct
+            // width of a rendered chunk. That means we have to update our measurement, when the
+            // font family or size change, but also when we update the text. While it seems that
+            // the font properties alone should be enough to ensure the chunk width does not
+            // change, that is incorrect. The text might be rendered differently because of
+            // external changes (e.g., which fonts are loaded). Tracking these is difficult
+            // and thus we need to just measure before we set new text.
+            item_width_update <- all5(&init, &on_data_update, &fonts_loaded, &font_name,
+                &font_size);
+            item_width <- item_width_update.map(f!([]((_, _, _, font_name, font_size)) {
                 let font_size = *font_size;
                 let char_width = measure_character_width(font_name, font_size);
                 CHARS_PER_CHUNK as f32 * char_width
@@ -290,7 +296,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
         frp::extend! { network
             text_grid.request_model_for_visible_entries <+ any(on_data_update,init);
-
 
             requested_entry <- text_grid.model_for_entry_needed.map2(&text_grid.grid_size,
                  f!([model]((row, col), _grid_size) {

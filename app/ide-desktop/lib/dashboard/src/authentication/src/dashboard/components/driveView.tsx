@@ -10,6 +10,7 @@ import * as hooks from '../../hooks'
 
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
+import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'
 
 // =================
@@ -127,21 +128,28 @@ export default function DriveView(props: DriveViewProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
-            <AssetsTable
-                query={query}
-                appRunner={appRunner}
-                initialProjectName={initialProjectName}
-                assetEvents={assetEvents}
-                dispatchAssetEvent={dispatchAssetEvent}
-                assetListEvents={assetListEvents}
-                dispatchAssetListEvent={dispatchAssetListEvent}
-                doOpenIde={doOpenEditor}
-                doCloseIde={doCloseEditor}
-                loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-            />
+            <div className="flex flex-1 gap-3 overflow-hidden">
+                {backend.type === backendModule.BackendType.remote && (
+                    <div className="flex flex-col gap-4 py-1">
+                        <CategorySwitcher />
+                    </div>
+                )}
+                <AssetsTable
+                    query={query}
+                    appRunner={appRunner}
+                    initialProjectName={initialProjectName}
+                    assetEvents={assetEvents}
+                    dispatchAssetEvent={dispatchAssetEvent}
+                    assetListEvents={assetListEvents}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    doOpenIde={doOpenEditor}
+                    doCloseIde={doCloseEditor}
+                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
+                />
+            </div>
             {isFileBeingDragged &&
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (

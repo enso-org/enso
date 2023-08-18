@@ -182,6 +182,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/getPackage`](#librarygetpackage)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
+- [Runtime Operations](#runtime-operations)
+  - [`runtime/getComponentGroups`](#runtime-getcomponentgroups)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -3888,12 +3890,10 @@ null;
 Sent from the client to the server to get the list of component groups available
 in runtime.
 
-The engine is started with an empty list of libraries loaded. It means that the
-request should be sent after the first
-[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
-notification indicating that all the libraries are loaded, and the component
-group list is populated. If the request is sent before the first notification,
-the response may be empty or not contain all available components.
+#### Deprecated
+
+The request is deprecated in favor of
+[`runtime/getComponentGroups`](#runtime-getcomponentgroups).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -5332,6 +5332,43 @@ null;
   dependencies.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
+
+## Runtime Operations
+
+### `runtime/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+The engine is started with an empty list of libraries loaded. It means that the
+request should be sent after the first
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+notification indicating that all the libraries are loaded, and the component
+group list is populated. If the request is sent before the first notification,
+the response may be empty or not contain all available components.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+None
 
 ## Errors
 

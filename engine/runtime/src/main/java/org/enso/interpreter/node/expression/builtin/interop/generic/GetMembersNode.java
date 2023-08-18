@@ -5,7 +5,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 @BuiltinMethod(
     type = "Polyglot",
@@ -20,7 +20,7 @@ public class GetMembersNode extends Node {
     try {
       return library.getMembers(object);
     } catch (UnsupportedMessageException e) {
-      return Array.empty();
+      return ArrayLikeHelpers.empty();
     }
   }
 }

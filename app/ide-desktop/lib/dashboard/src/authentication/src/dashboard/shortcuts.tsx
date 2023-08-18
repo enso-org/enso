@@ -179,12 +179,21 @@ export interface ShortcutInfo {
 /** Extracts the list of active {@link ModifierKey}s in an event.
  * This is useful for displaying the modifier keys in the UI. */
 export function getModifierKeysOfShortcut(event: KeyboardShortcut | MouseShortcut): ModifierKey[] {
-    return [
-        ...(event.meta === true ? (['Meta'] satisfies ModifierKey[]) : []),
-        ...(event.shift === true ? (['Shift'] satisfies ModifierKey[]) : []),
-        ...(event.alt === true ? (['Alt'] satisfies ModifierKey[]) : []),
-        ...(event.ctrl === true ? (['Ctrl'] satisfies ModifierKey[]) : []),
-    ]
+    return detect.isOnMacOS()
+        ? [
+              // The order SHOULD be Control, Option, Shift, Command. See:
+              // https://developer.apple.com/design/human-interface-guidelines/keyboards#Custom-keyboard-shortcuts
+              ...(event.meta === true ? (['Meta'] satisfies ModifierKey[]) : []),
+              ...(event.shift === true ? (['Shift'] satisfies ModifierKey[]) : []),
+              ...(event.alt === true ? (['Alt'] satisfies ModifierKey[]) : []),
+              ...(event.ctrl === true ? (['Ctrl'] satisfies ModifierKey[]) : []),
+          ]
+        : [
+              ...(event.ctrl === true ? (['Ctrl'] satisfies ModifierKey[]) : []),
+              ...(event.shift === true ? (['Shift'] satisfies ModifierKey[]) : []),
+              ...(event.alt === true ? (['Alt'] satisfies ModifierKey[]) : []),
+              ...(event.meta === true ? (['Meta'] satisfies ModifierKey[]) : []),
+          ]
 }
 
 // ===========================
@@ -383,10 +392,10 @@ function mousebind(
 // =================
 
 /** The equivalent of the `Control` key for the current platform. */
-const CTRL = (detect.platform() === detect.Platform.macOS ? 'Meta' : 'Ctrl') satisfies ModifierKey
+const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 
 /** The key known as the `Delete` key for the current platform. */
-const DELETE = detect.platform() === detect.Platform.macOS ? 'Backspace' : 'Delete'
+const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
