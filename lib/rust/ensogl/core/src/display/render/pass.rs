@@ -103,7 +103,7 @@ impl Instance {
         for (index, texture) in textures.iter().enumerate() {
             let texture_target = Context::TEXTURE_2D;
             let attachment_point = *Context::COLOR_ATTACHMENT0 + index as u32;
-            let gl_texture = texture.gl_texture();
+            let gl_texture = texture.gl_texture(&context)?;
             let gl_texture = Some(&gl_texture);
             let level = 0;
             draw_buffers.push(&attachment_point.into());

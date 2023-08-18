@@ -139,6 +139,10 @@ impl ContextData {
     pub fn create_framebuffer(&self) -> Result<web_sys::WebGlFramebuffer, ContextLost> {
         self.native.create_framebuffer().ok_or(ContextLost)
     }
+
+    pub fn create_buffer(&self) -> Result<web_sys::WebGlBuffer, ContextLost> {
+        self.native.create_buffer().ok_or(ContextLost)
+    }
 }
 
 

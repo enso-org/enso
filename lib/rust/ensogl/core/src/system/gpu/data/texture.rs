@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::system::gpu::data::gl_enum::traits::*;
 use crate::system::gpu::data::gl_enum::*;
 
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::Context;
 
@@ -20,7 +21,6 @@ use web_sys::WebGlTexture;
 pub mod types;
 
 pub use types::*;
-
 
 
 /// Provides smart scope for item types.
@@ -419,8 +419,9 @@ pub trait TextureOps {
     /// Bind texture to a specific unit.
     fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard;
 
-    /// Accessor.
-    fn gl_texture(&self) -> WebGlTexture;
+    /// Return the texture. If it has not been allocated yet, or its allocation is from a previous
+    /// context, it will be newly allocated.
+    fn gl_texture(&self, context: &Context) -> Result<WebGlTexture, ContextLost>;
 
     /// Accessor.
     fn get_format(&self) -> AnyFormat;
@@ -441,8 +442,8 @@ impl<P: WithItemRef<Item = Texture<I, T>>, I: InternalFormat, T: ItemType> Textu
         })
     }
 
-    fn gl_texture(&self) -> WebGlTexture {
-        self.with_item(|this| this.gl_texture.clone())
+    fn gl_texture(&self, context: &Context) -> Result<WebGlTexture, ContextLost> {
+        Ok(self.with_item(|this| this.gl_texture.clone()))
     }
 
     fn get_format(&self) -> AnyFormat {

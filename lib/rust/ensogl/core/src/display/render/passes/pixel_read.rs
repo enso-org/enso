@@ -6,12 +6,12 @@ use crate::system::js::*;
 
 use crate::display::render::pass;
 use crate::display::scene::UpdateStatus;
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::texture::TextureOps;
 
 use web_sys::WebGlBuffer;
 use web_sys::WebGlFramebuffer;
 use web_sys::WebGlSync;
-
 
 
 // =========================
@@ -98,45 +98,47 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         self.threshold.clone()
     }
 
-    fn init_if_fresh(&mut self, context: &Context, variables: &uniform::UniformScopeData) {
-        if self.data.is_none() {
-            let buffer = context.create_buffer().unwrap();
-            let js_array = JsTypedArray::<T>::new_with_length(4);
-            let target = Context::PIXEL_PACK_BUFFER;
-            let usage = Context::DYNAMIC_READ;
-            context.bind_buffer(*target, Some(&buffer));
-            context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
-            context.bind_buffer(*target, None);
+    /// Initialize the pass data, unless the context is invalid.
+    fn try_init(
+        &mut self,
+        context: &Context,
+        variables: &uniform::UniformScopeData,
+    ) -> Result<PixelReadPassData<T>, ContextLost> {
+        let buffer = context.create_buffer()?;
+        let js_array = JsTypedArray::<T>::new_with_length(4);
+        let target = Context::PIXEL_PACK_BUFFER;
+        let usage = Context::DYNAMIC_READ;
+        context.bind_buffer(*target, Some(&buffer));
+        context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
+        context.bind_buffer(*target, None);
 
-            let texture = match variables.get("pass_id").unwrap() {
-                AnyUniform::Texture(t) => t,
-                _ => panic!("Pass internal error. Unmatched types."),
-            };
-            let format = texture.get_format();
-            let item_type = texture.get_item_type();
-            let gl_texture = texture.gl_texture();
-            let framebuffer = context.create_framebuffer().unwrap();
-            let target = Context::FRAMEBUFFER;
-            let texture_target = Context::TEXTURE_2D;
-            let attachment_point = Context::COLOR_ATTACHMENT0;
-            let gl_texture = Some(&gl_texture);
-            let level = 0;
-            context.bind_framebuffer(*target, Some(&framebuffer));
-            context.framebuffer_texture_2d(
-                *target,
-                *attachment_point,
-                *texture_target,
-                gl_texture,
-                level,
-            );
-            context.bind_framebuffer(*target, None);
-            let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
-            if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
-                warn!("Framebuffer incomplete (status: {framebuffer_status}).")
-            }
-            let data = PixelReadPassData::new(buffer, framebuffer, format, item_type, js_array);
-            self.data = Some(data);
+        let texture = match variables.get("pass_id").unwrap() {
+            AnyUniform::Texture(t) => t,
+            _ => panic!("Pass internal error. Unmatched types."),
+        };
+        let format = texture.get_format();
+        let item_type = texture.get_item_type();
+        let gl_texture = texture.gl_texture(context)?;
+        let framebuffer = context.create_framebuffer()?;
+        let target = Context::FRAMEBUFFER;
+        let texture_target = Context::TEXTURE_2D;
+        let attachment_point = Context::COLOR_ATTACHMENT0;
+        let gl_texture = Some(&gl_texture);
+        let level = 0;
+        context.bind_framebuffer(*target, Some(&framebuffer));
+        context.framebuffer_texture_2d(
+            *target,
+            *attachment_point,
+            *texture_target,
+            gl_texture,
+            level,
+        );
+        context.bind_framebuffer(*target, None);
+        let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
+        if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
+            warn!("Framebuffer incomplete (status: {framebuffer_status}).")
         }
+        Ok(PixelReadPassData::new(buffer, framebuffer, format, item_type, js_array))
     }
 
     #[profile(Detail)]
@@ -190,7 +192,9 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             self.since_last_read += 1;
         } else {
             self.since_last_read = 0;
-            self.init_if_fresh(&instance.context, &*instance.variables.borrow());
+            if self.data.is_none() {
+                self.data = self.try_init(&instance.context, &*instance.variables.borrow()).ok();
+            }
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
             }

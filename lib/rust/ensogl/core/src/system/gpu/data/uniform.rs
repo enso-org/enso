@@ -321,9 +321,10 @@ macro_rules! define_any_texture_uniform {
                 }
             }
 
-            fn gl_texture(&self) -> WebGlTexture {
+            fn gl_texture(&self, context: &Context)
+                -> Result<WebGlTexture, $crate::system::gpu::context::ContextLost> {
                 match self {
-                    $(Self::[<$internal_format _ $item_type >](t) => t.gl_texture()),*
+                    $(Self::[<$internal_format _ $item_type >](t) => t.gl_texture(context)),*
                 }
             }
 
