@@ -195,6 +195,13 @@ spec setup =
             r3.should_fail_with Illegal_Argument
             r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
+        Test.specify "error on unordered table" <|
+            unordered_table =
+                col1 = ["alpha", [1,2,3,4,5,6,7,8]]
+                col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
+                table_builder [col1, col2]
+            unordered_table.take . should_fail_with Illegal_Argument
+
     Test.group prefix+"Column.take/drop asdfasdf" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
@@ -368,3 +375,10 @@ spec setup =
             r3 = c.take (Index_Sub_Range.First _)
             r3.should_fail_with Illegal_Argument
             r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+
+        Test.specify "error on unordered column" <|
+            unordered_table =
+                col1 = ["alpha", [1,2,3,4,5,6,7,8]]
+                col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
+                table_builder [col1, col2]
+            unordered_table.at "alpha" . take . should_fail_with Illegal_Argument
