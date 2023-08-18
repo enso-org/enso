@@ -225,8 +225,17 @@
           // Iterate all the redraw charts
           {% for bench_data in bench_datas %}
           draw_{{ bench_data.id }}();
+          document.getElementById("{{ bench_data.id }}-sel-info-score").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-score-diff").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-score-diff-perc").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-date").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-author").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-com-msg").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-com-id").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-url").innerHTML = "No selection";
+          document.getElementById("{{ bench_data.id }}-sel-info-bench-url").innerHTML = "No selection";
           {% endfor %}
-          document.getElementById("applied-since-filter").innerHTML = date.toString();
+          document.getElementById("applied-since-filter").innerHTML = date.toDateString();
         }
       }
 
