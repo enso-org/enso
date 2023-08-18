@@ -94,6 +94,9 @@ export const theme = {
         opacity: {
             '1/3': '.33333333',
         },
+        zIndex: {
+            '1': '1',
+        },
         backdropBlur: {
             xs: '2px',
         },
