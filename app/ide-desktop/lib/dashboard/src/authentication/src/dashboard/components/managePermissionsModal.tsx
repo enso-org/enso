@@ -229,7 +229,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         return (
             <Modal
                 centered={eventTarget == null}
-                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10"
+                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
             >
                 <div
                     style={
