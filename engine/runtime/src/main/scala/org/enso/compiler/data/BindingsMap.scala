@@ -954,11 +954,11 @@ object BindingsMap {
     def qualifiedName: org.enso.pkg.QualifiedName =
       symbol.qualifiedName.createChild(name)
     def toAbstract: org.enso.compiler.data.BindingsMap.ResolvedName =
-      throw new IllegalStateException()
+      ResolvedPolyglotField(symbol.toAbstract, name)
     def toConcrete(
       moduleMap: org.enso.compiler.PackageRepository.ModuleMap
     ): Option[org.enso.compiler.data.BindingsMap.ResolvedName] =
-      throw new IllegalStateException()
+      symbol.toConcrete(moduleMap).map(ResolvedPolyglotField(_, name))
   }
 
   /** A representation of an error during name resolution.

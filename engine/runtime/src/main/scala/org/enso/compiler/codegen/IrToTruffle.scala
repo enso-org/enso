@@ -1,6 +1,7 @@
 package org.enso.compiler.codegen
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -1233,17 +1234,27 @@ class IrToTruffle(
                       )
                     ) =>
                   val mod = typ.module
-                  val polyglotSymbol = mod
+                  val polyClass = mod
                     .unsafeAsModule()
                     .getScope
                     .getPolyglotSymbols
-                    .get(symbol)
+                    .get(typ.symbol.name)
+
+                  val polyValue =
+                    if (polyClass == null) null
+                    else
+                      try {
+                        val iop = InteropLibrary.getUncached()
+                        iop.readMember(polyClass, symbol)
+                      } catch {
+                        case _: Throwable => null
+                      }
                   Either.cond(
-                    polyglotSymbol != null,
+                    polyValue != null,
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
-                        polyglotSymbol,
+                        polyValue,
                         branch.terminalBranch
                       ),
                     BadPatternMatch.NonVisiblePolyglotSymbol(symbol)
