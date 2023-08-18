@@ -9,6 +9,7 @@ polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
+polyglot java import java.lang.Thread.State
 polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
@@ -65,5 +66,12 @@ spec =
             april1st.year.should_equal 2022
             april1st.month.should_equal 4
             april1st.day.should_equal 1
+
+    Test.group "Java case of" <|
+        Test.specify "case on Thread.State" <|
+            match x = case x of
+                State.NEW -> "new"
+                _ -> "unknown"
+            match State.NEW . should_equal "new"
 
 main = Test_Suite.run_main spec
