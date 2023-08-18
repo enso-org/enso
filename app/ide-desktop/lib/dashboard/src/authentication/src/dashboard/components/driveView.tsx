@@ -1,6 +1,5 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -8,8 +7,6 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
-import * as string from '../../string'
 
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
@@ -56,26 +53,11 @@ export default function DriveView(props: DriveViewProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
-    const logger = loggerProvider.useLogger()
-    const { organization, accessToken } = authProvider.useNonPartialUserSession()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const [initialized, setInitialized] = React.useState(false)
-    const [assets, rawSetAssets] = React.useState<backendModule.AnyAsset[]>([])
-    const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
-    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        React.useState(initialProjectName)
-
-    const assetFilter = React.useMemo(() => {
-        if (query === '') {
-            return null
-        } else {
-            const regex = new RegExp(string.regexEscape(query), 'i')
-            return (asset: backendModule.AnyAsset) => regex.test(asset.title)
-        }
-    }, [query])
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -86,98 +68,6 @@ export default function DriveView(props: DriveViewProps) {
             window.removeEventListener('blur', onBlur)
         }
     }, [])
-
-    React.useEffect(() => {
-        setIsLoadingAssets(true)
-    }, [backend])
-
-    React.useEffect(() => {
-        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
-            setIsLoadingAssets(false)
-        }
-    }, [loadingProjectManagerDidFail, backend.type])
-
-    const setAssets = React.useCallback(
-        (newAssets: backendModule.AnyAsset[]) => {
-            rawSetAssets(newAssets)
-            // The project name here might also be a string with project id, e.g. when opening
-            // a project file from explorer on Windows.
-            const isInitialProject = (asset: backendModule.AnyAsset) =>
-                asset.title === initialProjectName || asset.id === initialProjectName
-            if (nameOfProjectToImmediatelyOpen != null) {
-                const projectToLoad = newAssets
-                    .filter(backendModule.assetIsProject)
-                    .find(isInitialProject)
-                if (projectToLoad != null) {
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.openProject,
-                        id: projectToLoad.id,
-                    })
-                }
-                setNameOfProjectToImmediatelyOpen(null)
-            }
-            if (!initialized) {
-                setInitialized(true)
-                if (initialProjectName != null) {
-                    if (!newAssets.some(isInitialProject)) {
-                        const errorMessage = `No project named '${initialProjectName}' was found.`
-                        toastify.toast.error(errorMessage)
-                        logger.error(`Error opening project on startup: ${errorMessage}`)
-                    }
-                }
-            }
-        },
-        [
-            initialized,
-            initialProjectName,
-            logger,
-            nameOfProjectToImmediatelyOpen,
-            /* should never change */ setNameOfProjectToImmediatelyOpen,
-            /* should never change */ dispatchAssetEvent,
-        ]
-    )
-
-    React.useEffect(() => {
-        if (initialized) {
-            setAssets([])
-        }
-        // `setAssets` is a callback, not a dependency. `initialized` is not a dependency either.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [backend])
-
-    hooks.useAsyncEffect(
-        null,
-        async signal => {
-            switch (backend.type) {
-                case backendModule.BackendType.local: {
-                    if (!isListingLocalDirectoryAndWillFail) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
-                        if (!signal.aborted) {
-                            setIsLoadingAssets(false)
-                            setAssets(newAssets)
-                        }
-                    }
-                    break
-                }
-                case backendModule.BackendType.remote: {
-                    if (
-                        !isListingRemoteDirectoryAndWillFail &&
-                        !isListingRemoteDirectoryWhileOffline
-                    ) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
-                        if (!signal.aborted) {
-                            setIsLoadingAssets(false)
-                            setAssets(newAssets)
-                        }
-                    } else {
-                        setIsLoadingAssets(false)
-                    }
-                    break
-                }
-            }
-        },
-        [accessToken, organization, backend]
-    )
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -245,16 +135,19 @@ export default function DriveView(props: DriveViewProps) {
                     </div>
                 )}
                 <AssetsTable
-                    items={assets}
-                    filter={assetFilter}
-                    isLoading={isLoadingAssets}
+                    query={query}
                     appRunner={appRunner}
+                    initialProjectName={initialProjectName}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}
                     dispatchAssetListEvent={dispatchAssetListEvent}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
+                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
             </div>
             {isFileBeingDragged &&
