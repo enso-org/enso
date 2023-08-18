@@ -249,7 +249,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                         {matchingItems.map((item, index) => (
                             <div
                                 key={itemToKey(item)}
-                                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
+                                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-1 ${
                                     index === selectedIndex
                                         ? 'bg-black-a5'
                                         : valuesSet.has(item)

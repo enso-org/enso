@@ -23,6 +23,7 @@ use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
 
+use enso_font::NonVariableFaceHeader;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use enso_frp::stream::ValueProvider;
@@ -35,7 +36,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
-use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
 
 
@@ -177,7 +177,8 @@ impl Text {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let data = TextModel::new(app, &frp);
+        let scene = app.display.default_scene.clone_ref();
+        let data = TextModel::new(scene, &frp);
         Self { data, frp }.init()
     }
 }
@@ -414,8 +415,7 @@ impl Text {
         let m = &self.data;
         let network = self.frp.network();
         let input = &self.frp.input;
-        let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp_deprecated;
+        let mouse = &m.scene.mouse.frp_deprecated;
 
         let buf = &m.buffer.frp;
 
@@ -423,10 +423,10 @@ impl Text {
 
             // === Setting Cursors ===
 
-            loc_on_set <- input.set_cursor.map(f!([m](t) t.expand(&m)));
-            loc_on_add <- input.add_cursor.map(f!([m](t) t.expand(&m)));
+            loc_on_set <- input.set_cursor.map(f!([m](t) t.expand(&m.buffer)));
+            loc_on_add <- input.add_cursor.map(f!([m](t) t.expand(&m.buffer)));
             shape_on_select <- input.select.map(
-                f!([m]((s, e)) buffer::selection::Shape(s.expand(&m), e.expand(&m)))
+                f!([m]((s, e)) buffer::selection::Shape(s.expand(&m.buffer), e.expand(&m.buffer)))
             );
 
             mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
@@ -435,12 +435,16 @@ impl Text {
             loc_on_mouse_add <- mouse_on_add.map(f!((p) m.screen_to_text_location(*p)));
 
             loc_on_set_at_front <- input.set_cursor_at_text_start.constant(default());
-            loc_on_set_at_end <- input.set_cursor_at_text_end.map(f_!(m.last_line_last_location()));
+            loc_on_set_at_end <- input.set_cursor_at_text_end.map(
+                f_!(m.buffer.last_line_last_location())
+            );
             loc_on_add_at_front <- input.add_cursor_at_front.constant(default());
-            loc_on_add_at_end <- input.add_cursor_at_end.map(f_!(m.last_line_last_location()));
+            loc_on_add_at_end <- input.add_cursor_at_end.map(
+                f_!(m.buffer.last_line_last_location())
+            );
 
-            loc_on_set <- any(loc_on_set,loc_on_mouse_set,loc_on_set_at_front,loc_on_set_at_end);
-            loc_on_add <- any(loc_on_add,loc_on_mouse_add,loc_on_add_at_front,loc_on_add_at_end);
+            loc_on_set <- any(loc_on_set, loc_on_mouse_set, loc_on_set_at_front, loc_on_set_at_end);
+            loc_on_add <- any(loc_on_add, loc_on_mouse_add, loc_on_add_at_front, loc_on_add_at_end);
 
             buf.set_cursor <+ loc_on_set;
             buf.add_cursor <+ loc_on_add;
@@ -497,16 +501,14 @@ impl Text {
     /// Get current text location under the mouse cursor within this text area.
     pub fn location_at_mouse_position(&self) -> Location {
         let m = &self.data;
-        let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp_deprecated;
+        let mouse = &m.scene.mouse.frp_deprecated;
         let position = mouse.position.value();
         m.screen_to_text_location(position)
     }
 
     fn init_selections(&self) {
         let m = &self.data;
-        let scene = &m.app.display.default_scene;
-        let mouse = &scene.mouse.frp_deprecated;
+        let mouse = &m.scene.mouse.frp_deprecated;
         let network = self.frp.network();
         let input = &self.frp.input;
 
@@ -519,9 +521,9 @@ impl Text {
                 m.on_modified_selection(sels, None)
             );
 
-            selecting <- bool
-                ( &input.stop_newest_selection_end_follow_mouse
-                , &input.start_newest_selection_end_follow_mouse
+            selecting <- bool(
+                &input.stop_newest_selection_end_follow_mouse,
+                &input.start_newest_selection_end_follow_mouse
             );
 
             sel_end_1 <- mouse.position.gate(&selecting);
@@ -548,8 +550,8 @@ impl Text {
 
             eval_ copy_whole_lines (m.buffer.frp.cursors_select(Transform::Line));
             sels_on_copy_whole_lines <- copy_whole_lines.map(f_!(m.buffer.selections_contents()));
-            text_chubks_to_copy <- any(&sels_on_copy_whole_lines, &copy_regions_only);
-            eval text_chubks_to_copy ((s) m.copy(s));
+            text_chunks_to_copy <- any(&sels_on_copy_whole_lines, &copy_regions_only);
+            eval text_chunks_to_copy ((s) m.copy(s));
 
             // === Cut ===
 
@@ -574,7 +576,7 @@ impl Text {
 
     fn init_edits(&self) {
         let m = &self.data;
-        let scene = &m.app.display.default_scene;
+        let scene = &m.scene;
         let network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;
@@ -649,11 +651,11 @@ impl Text {
 
             // === Style ===
 
-            new_prop <- input.set_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m)),*p)));
+            new_prop <- input.set_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m.buffer)),*p)));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ([m](t) t.1.map(|p| m.set_property(&t.0, p)));
 
-            mod_prop <- input.mod_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m)),*p)));
+            mod_prop <- input.mod_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m.buffer)),*p)));
             m.buffer.frp.mod_property <+ mod_prop;
             eval mod_prop ([m](t) t.1.map(|p| m.mod_property(&t.0, p)));
         }
@@ -703,11 +705,10 @@ pub struct TextModel {
 }
 
 /// Internal representation of `Text`.
-#[derive(Debug, Deref, display::Object)]
+#[derive(Debug, display::Object)]
 pub struct TextModelData {
-    #[deref]
     buffer:         buffer::Buffer,
-    app:            Application,
+    scene:          display::Scene,
     frp:            WeakFrp,
     display_object: display::object::Instance,
     glyph_system:   RefCell<glyph::System>,
@@ -721,22 +722,17 @@ pub struct TextModelData {
 
 impl TextModel {
     /// Constructor.
-    pub fn new(app: &Application, frp: &Frp) -> Self {
-        let app = app.clone_ref();
-        let scene = &app.display.default_scene;
+    fn new(scene: display::Scene, frp: &Frp) -> Self {
         let selection_map = default();
         let display_object = display::object::Instance::new_named("Text");
-        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
+        let glyph_system = font::glyph::System::new(&scene, font::DEFAULT_CODE_FONT);
         frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
         let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
 
         let default_size = buffer.formatting.font_size().default.value;
-        let first_line = Self::new_line_helper(
-            &app.display.default_scene.frp.frame_time,
-            &display_object,
-            default_size,
-        );
+        let first_line =
+            Self::new_line_helper(&scene.frp.frame_time, &display_object, default_size);
         first_line.set_baseline((-default_size).round());
         first_line.skip_baseline_animation();
 
@@ -747,7 +743,7 @@ impl TextModel {
 
         let frp = frp.downgrade();
         let data = TextModelData {
-            app,
+            scene,
             frp,
             buffer,
             display_object,
@@ -793,7 +789,7 @@ impl TextModel {
 
     fn new_line(&self) -> line::View {
         let line = Self::new_line_helper(
-            &self.app.display.default_scene.frp.frame_time,
+            &self.scene.frp.frame_time,
             &self.display_object,
             self.buffer.formatting.font_size().default.value,
         );
@@ -824,7 +820,7 @@ impl TextModel {
         let inv_object_matrix = self.transformation_matrix().try_inverse();
         let Some(inv_object_matrix) = inv_object_matrix else { return Vector2::zero() };
 
-        let shape = self.app.display.default_scene.frp.shape.value();
+        let shape = self.scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
@@ -954,8 +950,8 @@ impl TextModel {
 
     /// Recompute the shape of the provided byte range.
     fn shape_range(&self, range: Range<Byte>) -> Vec<ShapedGlyphSet> {
-        let line_style = self.sub_style(range.clone());
-        let rope = self.rope.sub(range);
+        let line_style = self.buffer.sub_style(range.clone());
+        let rope = self.buffer.rope.sub(range);
         let content = rope.to_string();
         let glyph_system = self.glyph_system.borrow();
         let font = &glyph_system.font;
@@ -985,7 +981,8 @@ impl TextModel {
                 let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
                 let mut buffer = rustybuzz::UnicodeBuffer::new();
                 buffer.push_str(&content[range.start.value..range.end.value]);
-                let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+                let features = font.feature_settings();
+                let shaped = rustybuzz::shape(&buzz_face, features, buffer);
                 let variable_variations = default();
                 let glyphs = shaped
                     .glyph_positions()
@@ -1037,12 +1034,14 @@ impl TextModel {
     /// Recompute the shape of the provided line index.
     #[profile(Debug)]
     pub fn shape_line(&self, line: Line) -> ShapedLine {
-        let line_range = self.line_range_snapped(line);
+        let line_range = self.buffer.line_range_snapped(line);
         let glyph_sets = self.shape_range(line_range.clone());
         match NonEmptyVec::try_from(glyph_sets) {
             Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
             Err(_) => {
-                if let Some(prev_grapheme_off) = self.rope.prev_grapheme_offset(line_range.start) {
+                if let Some(prev_grapheme_off) =
+                    self.buffer.rope.prev_grapheme_offset(line_range.start)
+                {
                     let prev_char_range = prev_grapheme_off..line_range.start;
                     let prev_glyph_sets = self.shape_range(prev_char_range);
                     let last_glyph_set = prev_glyph_sets.into_iter().last();
@@ -1233,7 +1232,7 @@ impl TextModel {
                 selection.set_width_and_flip_sides_if_needed(width, start_pos.x);
                 selection
             } else {
-                let frame_time = &self.app.display.default_scene.frp.frame_time;
+                let frame_time = &self.scene.frp.frame_time;
                 let selection = Selection::new(frame_time, do_edit);
                 let network = selection.network();
                 let out = &self.frp.private.output;
@@ -1262,11 +1261,7 @@ impl TextModel {
 
     /// Constrain the selection to values fitting inside the current text buffer. This can be needed
     /// when using the API and providing invalid values.
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn limit_selection_to_known_values(
-        &self,
-        selection: buffer::selection::Selection,
-    ) -> buffer::selection::Selection {
+    fn limit_selection_to_known_values(&self, selection: buffer::Selection) -> buffer::Selection {
         let start_location = Location::from_in_context_snapped(&self.buffer, selection.start);
         let end_location = Location::from_in_context_snapped(&self.buffer, selection.end);
         let start = self.buffer.snap_location(start_location);
@@ -1730,9 +1725,7 @@ impl TextModel {
 
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) -> glyph::System {
-        let app = &self.app;
-        let scene = &app.display.default_scene;
-        let glyph_system = font::glyph::System::new(scene, font_name);
+        let glyph_system = font::glyph::System::new(&self.scene, font_name);
         self.glyph_system.replace(glyph_system.clone());
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();

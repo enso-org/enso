@@ -2,13 +2,65 @@ from Standard.Base import all
 
 from Standard.Test import Bench, Faker
 
+
 compare_all_adjacent text_vector =
     res = 1.up_to text_vector.length . fold False acc-> ix->
         compare_result = (text_vector.at ix-1) < (text_vector.at ix)
         acc && compare_result
     res
 
-bench =
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 5) . set_measure (Bench.phase_conf 1 3)
+
+
+create_very_short_template character_template =
+    Vector.new 4 _-> character_template
+
+
+create_very_short character_template faker =
+    very_short_template = create_very_short_template character_template
+    Vector.new 100000 _-> '🤩' + faker.string_value very_short_template
+
+
+create_medium_template character_template =
+    Vector.new 64 _-> character_template
+
+
+create_medium character_template faker =
+    medium_template = create_medium_template character_template
+    Vector.new 10000 _-> faker.string_value medium_template
+
+
+create_big_template character_template =
+    Vector.new 100000 _-> character_template
+
+
+create_big_random character_template faker =
+    big_template = create_big_template character_template
+    Vector.new 100 _-> faker.string_value big_template
+
+
+create_big_early_difference character_template faker =
+    big_a_codepoint = 65
+    big_template = create_big_template character_template
+    Vector.new 100 ix->
+        "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
+
+
+create_big_late_difference common_prefix =
+    big_a_codepoint = 65
+    prefix = common_prefix.repeat 100000
+    Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
+
+
+type Data
+    Value ~very_short ~medium ~big_random ~big_early_difference ~big_late_difference
+
+    create character_template faker common_prefix =
+        Data.Value (create_very_short character_template faker) (create_medium character_template faker) (create_big_random character_template faker) (create_big_early_difference character_template faker) (create_big_late_difference common_prefix)
+
+
+collect_benches = Bench.build builder->
     ## The `Text` compare benchmarks check both scenarios where the Texts are
        short and very long - both checking the case where the difference appears
        early or late in the long string. This is to see well any overheads
@@ -22,31 +74,32 @@ bench =
        performance of handling more complex Unicode characters.
     bench_strcmp suite_prefix character_template common_prefix =
         faker = Faker.new
-        ## Warning: this relies on the fact that Faker will treat the accent
-           codepoint `\u{301}` as a separate code unit. We rely on this to add
-           accents randomly to neighboring characters. If the implementation of
-           Faker is changed, this must be modified accordingly.
-        make_alpha_template length = Vector.new length _-> character_template
-        very_short_template = make_alpha_template 4
-        very_short = Vector.new 100000 _-> '🤩' + faker.string_value very_short_template
-        medium_template = make_alpha_template 64
-        medium = Vector.new 10000 _-> faker.string_value medium_template
 
-        big_a_codepoint = 65
-        big_template = make_alpha_template 100000
-        big_random = Vector.new 100 _-> faker.string_value big_template
-        big_early_difference = Vector.new 100 ix->
-            "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
-        prefix = common_prefix.repeat 100000
-        big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
+        data = Data.create character_template faker common_prefix
 
-        Bench.measure (compare_all_adjacent very_short) suite_prefix+"very short" 10 10
-        Bench.measure (compare_all_adjacent medium) suite_prefix+"medium" 10 10
-        Bench.measure (compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
-        Bench.measure (compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
-        Bench.measure (compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
+        builder.group ("Text_Compare_" + suite_prefix) options group_builder->
+            group_builder.specify "very_short" <|
+                compare_all_adjacent data.very_short
 
-    bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
-    bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'
+            group_builder.specify "medium" <|
+                compare_all_adjacent data.medium
 
-main = bench
+            group_builder.specify "big_random" <|
+                compare_all_adjacent data.big_random
+
+            group_builder.specify "big_early_difference" <|
+                compare_all_adjacent data.big_early_difference
+
+            group_builder.specify "big_late_difference" <|
+                compare_all_adjacent data.big_late_difference
+
+
+    ## Warning: this relies on the fact that Faker will treat the accent
+       codepoint `\u{301}` as a separate code unit. We rely on this to add
+       accents randomly to neighboring characters. If the implementation of
+       Faker is changed, this must be modified accordingly.
+    bench_strcmp "strcmp_Unicode" (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
+    bench_strcmp "strcmp_ASCII" Faker.upper_case_letters 'A'
+
+
+main = collect_benches . run_main

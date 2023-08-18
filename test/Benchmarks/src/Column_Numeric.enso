@@ -3,49 +3,79 @@ from Standard.Base import all
 from Standard.Table import Column
 from Standard.Test import Bench, Faker
 
-## Bench Utilities ============================================================
 
-vector_size = 1000000
-iter_size = 10
-num_iterations = 10
+options = Bench.options
 
-# The Benchmarks ==============================================================
 
-bench =
+type Data
+    Value ~ints ~floats
+
+    create vector_size faker =
+        Data.Value (create_ints vector_size faker) (create_floats vector_size faker)
+
+
+create_ints vector_size faker =
+    ints_vec = Vector.new vector_size _->(faker.integer -1000000000 1000000000)
+    Column.from_vector "ints" ints_vec
+
+
+create_floats vector_size faker =
+    floats_vec = Vector.new vector_size _->(faker.decimal -1000000000 1000000000)
+    Column.from_vector "floats" floats_vec
+
+
+collect_benches = Bench.build builder->
+    vector_size = 1000000
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
 
-    IO.println <| "Creating floats"
-    floats_vec = Vector.new vector_size _->(faker.decimal -1000000000 1000000000)
-    floats = Column.from_vector "floats" floats_vec
+    data = Data.create vector_size faker
 
-    IO.println <| "Creating integers"
-    ints_vec = Vector.new vector_size _->(faker.integer -1000000000 1000000000)
-    ints = Column.from_vector "ints" ints_vec
+    builder.group "Column_Numeric" options group_builder->
+        group_builder.specify "round_floats" <|
+            data.floats.round
 
-    IO.println <| ".truncate floats"
-    Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
-    IO.println <| ".ceil floats"
-    Bench.measure floats.ceil "Column.ceil floats" iter_size num_iterations
-    IO.println <| ".floor floats"
-    Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
+        group_builder.specify "truncate_floats" <|
+            data.floats.truncate
 
-    IO.println <| ".truncate ints"
-    Bench.measure ints.truncate "Column.truncate ints" iter_size num_iterations
-    IO.println <| ".ceil ints"
-    Bench.measure ints.ceil "Column.ceil ints" iter_size num_iterations
-    IO.println <| ".floor ints"
-    Bench.measure ints.floor "Column.floor ints" iter_size num_iterations
+        group_builder.specify "ceil_floats" <|
+            data.floats.ceil
 
-    [True, False].map use_bankers->
-        [0, -2, 2].map decimal_places->
-            name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
-            fun x = x.round decimal_places use_bankers
+        group_builder.specify "floor_floats" <|
+            data.floats.floor
 
-            IO.println <| ".round floats"
-            Bench.measure (fun floats) "float "+name iter_size num_iterations
-            IO.println <| ".round ints"
-            Bench.measure (fun ints) "int "+name iter_size num_iterations
+        group_builder.specify "round_ints" <|
+            data.ints.round
 
-main = bench
+        group_builder.specify "truncate_ints" <|
+            data.ints.truncate
+
+        group_builder.specify "ceil_ints" <|
+            data.ints.ceil
+
+        group_builder.specify "floor_ints" <|
+            data.ints.floor
+
+        [True, False].each use_bankers->
+            [0, -2, 2].map decimal_places->
+                name = create_name "round_decimal_places_" decimal_places use_bankers
+                fun x = x.round decimal_places use_bankers
+
+                group_builder.specify ("floats_" + name) <|
+                    fun data.floats
+
+                group_builder.specify ("ints_" + name) <|
+                    fun data.ints
+
+
+## Creates a valid name for the benchmark
+create_name : Text -> Integer -> Boolean -> Text
+create_name prefix dec_places use_bankers =
+    use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)
+    case dec_places >= 0 of
+        True -> prefix + dec_places.to_text + use_bankers_str
+        False -> prefix + "minus_" + (dec_places.abs.to_text) + use_bankers_str
+
+
+main = collect_benches . run_main

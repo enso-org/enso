@@ -12,6 +12,7 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
@@ -411,6 +412,15 @@ impl Model {
         self.state.update_from_controller().set_node_error_from_payload(expression, payload)
     }
 
+    fn refresh_node_pending(&self, expression: ast::Id) -> Option<(ViewNodeId, bool)> {
+        let registry = self.controller.computed_value_info_registry();
+        let is_pending = registry
+            .get(&expression)
+            .map(|info| matches!(info.payload, ExpressionUpdatePayload::Pending { .. }))
+            .unwrap_or_default();
+        self.state.update_from_controller().set_node_pending(expression, is_pending)
+    }
+
     /// Extract the expression's current type from controllers.
     fn expression_type(&self, id: ast::Id) -> Option<view::graph_editor::Type> {
         let registry = self.controller.computed_value_info_registry();
@@ -746,6 +756,7 @@ impl Graph {
             update_expression <= update_expressions;
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
+            view.set_node_pending_status <+ update_expression.filter_map(f!((id) model.refresh_node_pending(*id)));
 
             self.init_widgets(reset_node_types, update_expression.clone_ref());
 

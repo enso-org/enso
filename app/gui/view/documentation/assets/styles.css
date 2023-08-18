@@ -29,6 +29,10 @@
   padding-bottom: 4px;
 }
 
+.enso-docs code {
+  font-family: EnsoRegular;
+}
+
 .enso-docs .unordered-list {
   margin: 0;
   padding: 0;
@@ -195,6 +199,7 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs .example {
+  font-family: EnsoRegular;
   white-space: pre;
   overflow-x: auto;
   margin: 0.05rem 0.1rem;
