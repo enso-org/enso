@@ -52,7 +52,8 @@ class RefactoringTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "refactoring/projectRenamed",
             "params": {
-              "newName": "Project1"
+              "normalizedName": $newName,
+              "name": $newName
             }
           }
           """)

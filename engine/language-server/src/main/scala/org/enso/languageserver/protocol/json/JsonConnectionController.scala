@@ -162,6 +162,12 @@ class JsonConnectionController(
       )
       handler.forward(req)
 
+    case req @ Request(RenameProject, _, _) =>
+      val handler = context.actorOf(
+        RenameProjectHandler.props(requestTimeout, runtimeConnector)
+      )
+      handler.forward(req)
+
     case req @ Request(
           InitProtocolConnection,
           _,
@@ -418,10 +424,10 @@ class JsonConnectionController(
         )
       }
 
-    case RefactoringProtocol.ProjectRenamedNotification(newName) =>
+    case RefactoringProtocol.ProjectRenamedNotification(normalizedName, name) =>
       webActor ! Notification(
         RefactoringApi.ProjectRenamed,
-        RefactoringApi.ProjectRenamed.Params(newName)
+        RefactoringApi.ProjectRenamed.Params(normalizedName, name)
       )
 
     case Api.ProgressNotification(payload) =>

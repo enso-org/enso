@@ -29,7 +29,7 @@ object RefactoringApi {
 
   case object ProjectRenamed extends Method("refactoring/projectRenamed") {
 
-    case class Params(newName: String)
+    case class Params(normalizedName: String, name: String)
 
     implicit val hasParams: HasParams.Aux[this.type, ProjectRenamed.Params] =
       new HasParams[this.type] {

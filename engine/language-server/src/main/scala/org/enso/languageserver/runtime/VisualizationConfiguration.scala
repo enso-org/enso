@@ -13,8 +13,6 @@ import java.util.UUID
   * @param executionContextId an execution context of the visualization
   * @param expression an expression that creates a visualization
   * @param visualizationModule the name of a module to execute expression at
-  * @param executionContextId an execution context of the visualization
-  * @param expression an expression that creates a visualization
   */
 case class VisualizationConfiguration(
   executionContextId: UUID,
@@ -26,7 +24,8 @@ case class VisualizationConfiguration(
   override def toLogString(shouldMask: Boolean): String =
     s"VisualizationConfiguration(" +
     s"executionContextId=$executionContextId," +
-    s"expression=${expression.toLogString(shouldMask)})"
+    s"expression=${expression.toLogString(shouldMask)}," +
+    s"visualizationModule=$visualizationModule)"
 
   /** Convert to corresponding [[Api]] message. */
   def toApi: Api.VisualizationConfiguration =
