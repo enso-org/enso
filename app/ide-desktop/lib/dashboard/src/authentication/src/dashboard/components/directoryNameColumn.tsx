@@ -5,6 +5,7 @@ import DirectoryIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
@@ -23,29 +24,35 @@ import SvgMask from '../../authentication/components/svgMask'
 // =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps
-    extends column.AssetColumnProps<backendModule.DirectoryAsset> {}
+export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.DirectoryAsset}. */
+/** The icon and name of a {@link backendModule.DirectoryAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
+ * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
         setSelected,
-        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion, getDepth },
+        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion },
         rowState,
         setRowState,
     } = props
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const asset = item.item
+    if (asset.type !== backendModule.AssetType.directory) {
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error('`DirectoryNameColumn` can only display directory assets.')
+    }
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
             try {
-                await backend.updateDirectory(item.id, { title: newName }, item.title)
+                await backend.updateDirectory(asset.id, { title: newName }, asset.title)
                 return
             } catch (error) {
                 toastAndLog('Error renaming folder', error)
@@ -69,26 +76,25 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 break
             }
             case assetEventModule.AssetEventType.newFolder: {
-                if (key === event.placeholderId) {
+                if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Folders cannot be created on the local backend')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
                             const createdDirectory = await backend.createDirectory({
-                                parentId: item.parentId,
-                                title: item.title,
+                                parentId: asset.parentId,
+                                title: asset.title,
                             })
                             rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.DirectoryAsset = {
-                                ...item,
+                            setAsset({
+                                ...asset,
                                 ...createdDirectory,
-                            }
-                            setItem(newItem)
+                            })
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
+                                key: item.key,
                             })
                             toastAndLog('Error creating new folder', error)
                         }
@@ -102,7 +108,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     return (
         <div
             className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
-                getDepth(key)
+                item.depth
             )}`}
             onClick={event => {
                 if (
@@ -121,7 +127,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
-                        doToggleDirectoryExpansion(item.id, key, item.title)
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
                     }
                 }
             }}
@@ -134,13 +140,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         ...oldRowState,
                         isEditingName: false,
                     }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
+                    if (newTitle !== asset.title) {
+                        const oldTitle = asset.title
+                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -152,7 +158,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }}
                 className="cursor-pointer bg-transparent grow px-2"
             >
-                {item.title}
+                {asset.title}
             </EditableSpan>
         </div>
     )

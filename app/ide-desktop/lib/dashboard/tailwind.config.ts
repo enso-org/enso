@@ -19,7 +19,11 @@ export const theme = {
     extend: {
         colors: {
             /** The default color of all text. */
+            // This should be named "regular".
             primary: 'rgba(0, 0, 0, 0.60)',
+            'not-selected': 'rgba(0, 0, 0, 0.40)',
+            'icon-selected': 'rgba(0, 0, 0, 0.50)',
+            'icon-not-selected': 'rgba(0, 0, 0, 0.30)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
@@ -62,7 +66,6 @@ export const theme = {
             '1.75': '0.4375rem',
             '2.25': '0.5625rem',
             '3.25': '0.8125rem',
-            '3.5': '0.875rem',
             '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '6.5': '1.625rem',
