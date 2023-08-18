@@ -6,7 +6,6 @@ use crate::prelude::*;
 use ensogl_core::display::scene;
 use ensogl_core::display::world::Context;
 use ensogl_core::system::gpu;
-#[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
@@ -938,11 +937,7 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 // === FontWithGpuData ===
 // =======================
 
-#[cfg(target_arch = "wasm32")]
-type AtlasTexture = gpu::Texture<texture::Rgb, u8>;
-
-#[cfg(not(target_arch = "wasm32"))]
-type AtlasTexture = f32;
+type AtlasTexture = gpu::Texture<texture::Rgb8, u8>;
 
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
@@ -971,7 +966,6 @@ impl FontWithGpuData {
         self.update_atlas();
     }
 
-    #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
         if let Some(context) = self.context.borrow().as_ref() {
             let num_glyphs = self.font.msdf_texture().glyphs();
@@ -985,22 +979,10 @@ impl FontWithGpuData {
             }
         }
     }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn update_atlas(&self) {}
 }
 
-
-// === Context helpers ===
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_texture(_context: &Context, _glyph_size: Vector2<u32>, _num_glyphs: u32) -> AtlasTexture {
-    0.0
-}
-
-#[cfg(target_arch = "wasm32")]
 fn get_texture(context: &Context, glyph_size: Vector2<u32>, num_glyphs: u32) -> AtlasTexture {
-    gpu::Texture::new(context, ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs as i32))
+    gpu::Texture::new(context, glyph_size.x() as i32, glyph_size.y() as i32, num_glyphs as i32)
 }
 
 

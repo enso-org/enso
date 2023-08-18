@@ -81,12 +81,11 @@ impl Instance {
         let context = &self.context;
         let variables = &self.variables;
         let name = format!("pass_{}", output.name);
-        let args = (width, height);
         let format = output.internal_format;
         let item_type = output.item_type;
         let params = Some(output.texture_parameters);
         uniform::get_or_add_gpu_texture_dyn(
-            context, variables, &name, format, item_type, args, params,
+            context, variables, &name, format, item_type, width, height, 0, params,
         )
     }
 

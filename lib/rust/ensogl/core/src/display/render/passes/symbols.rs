@@ -53,7 +53,7 @@ impl SymbolsRenderPass {
 
 impl pass::Definition for SymbolsRenderPass {
     fn initialize(&mut self, instance: &pass::Instance) {
-        let rgba = texture::Rgba;
+        let rgba = texture::Rgba8;
         let tex_type = texture::item_type::u8;
         let id_params = texture::Parameters {
             min_filter: texture::MinFilter::NEAREST,

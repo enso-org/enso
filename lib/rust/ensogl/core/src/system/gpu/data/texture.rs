@@ -65,31 +65,6 @@ impl Drop for TextureBindGuard {
 
 
 // ==================
-// === GpuTexture ===
-// ==================
-
-/// Wraps a [`WebGlTexture`] to delete it when dropped.
-#[derive(Debug, Deref, AsRef)]
-struct GpuTexture {
-    context:    Context,
-    #[deref]
-    #[as_ref]
-    gl_texture: WebGlTexture,
-}
-
-impl Drop for GpuTexture {
-    fn drop(&mut self) {
-        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
-        // previous context.
-        if self.context.is_valid() && self.context.is_texture(Some(&self.gl_texture)) {
-            self.context.delete_texture(Some(&self.gl_texture));
-        }
-    }
-}
-
-
-
-// ==================
 // === Parameters ===
 // ==================
 
@@ -219,7 +194,7 @@ impl Default for Wrap {
 // === Texture ===
 // ===============
 
-/// Texture bound to GL context.
+/// Texture which may be bound to GL context.
 #[derive(Debug)]
 pub struct Texture<InternalFormat, ItemType> {
     width:           i32,
@@ -235,11 +210,7 @@ pub struct Texture<InternalFormat, ItemType> {
 
 // === Type Level Utils ===
 
-impl<I, T> Texture<I, T>
-where
-    I: InternalFormat,
-    T: ItemType,
-{
+impl<I, T> Texture<I, T> where I: InternalFormat, T: ItemType {
     /// Internal format instance of this texture.
     pub fn internal_format() -> AnyInternalFormat {
         <I>::default().into()
@@ -322,8 +293,19 @@ impl<I, T> Texture<I, T> {
 
 impl<I: InternalFormat, T: ItemType> Texture<I, T> {
     /// Constructor.
-    pub fn new<P: Into<GpuData>>(context: &Context, provider: P) -> Self {
-        let this = Self::new_uninitialized(context, provider);
+    pub fn new(context: &Context, mut width: i32, mut height: i32, layers: i32) -> Self {
+        if width == 0 {
+            width = 1;
+        }
+        if height == 0 {
+            height = 1;
+        }
+        let context = context.clone();
+        let gl_texture = context.create_texture().unwrap();
+        let parameters = default();
+        let internal_format = default();
+        let item_type = default();
+        let this = Self { width, height, layers, gl_texture, context, parameters, internal_format, item_type };
         this.allocate();
         this
     }
@@ -335,22 +317,24 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
         let target = self.target();
         self.context.bind_texture(*target, Some(self.gl_texture()));
         match self.layers {
-            1 => {
-                self.context
-                    .tex_storage_2d(*target, levels, internal_format, self.width, self.height)
-                    .unwrap();
+            0 => {
+                self.context.tex_storage_2d(
+                    *target,
+                    levels,
+                    internal_format,
+                    self.width,
+                    self.height,
+                );
             }
             _ => {
-                self.context
-                    .tex_storage_3d(
-                        *target,
-                        levels,
-                        internal_format,
-                        self.width,
-                        self.height,
-                        self.layers,
-                    )
-                    .unwrap();
+                self.context.tex_storage_3d(
+                    *target,
+                    levels,
+                    internal_format,
+                    self.width,
+                    self.height,
+                    self.layers,
+                );
             }
         }
         self.apply_texture_parameters(&self.context);
@@ -361,18 +345,6 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
 // === Internal API ===
 
 impl<I, T> Texture<I, T> {
-    /// New, uninitialized constructor. If you are not implementing a custom texture format, you
-    /// should probably use `new` instead.
-    pub fn new_uninitialized<X: Into<GpuData>>(context: &Context, storage: X) -> Self {
-        let GpuData { width, height, layers } = storage.into();
-        let context = context.clone();
-        let gl_texture = context.create_texture().unwrap();
-        let parameters = default();
-        let internal_format = default();
-        let item_type = default();
-        Self { width, height, layers, gl_texture, context, parameters, internal_format, item_type }
-    }
-
     /// Applies this textures' parameters in the given context.
     pub fn apply_texture_parameters(&self, context: &Context) {
         self.parameters.apply_parameters(context, self.target());
@@ -385,49 +357,42 @@ where
     T: ItemType + JsBufferViewArr,
 {
     /// Reloads gpu texture with data from given slice.
-    pub fn reload_from_memory(&self, data: &[T], width: i32, height: i32, depth: i32) {
+    pub fn reload_with_content(&self, data: &[T]) {
         let target = self.target();
         let level = 0;
-        let border = 0;
-        let internal_format = Self::gl_internal_format();
+        let (xoffset, yoffset, zoffset) = default();
         let format = Self::gl_format().into();
         let elem_type = Self::gl_elem_type();
         let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
-        match target {
-            Context::TEXTURE_2D => {
-                self.context
-                    .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                        *target,
-                        level,
-                        internal_format,
-                        width,
-                        height,
-                        border,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .unwrap();
-            }
-            Context::TEXTURE_2D_ARRAY | Context::TEXTURE_3D => {
-                self.context
-                    .tex_image_3d_with_opt_u8_array(
-                        *target,
-                        level,
-                        internal_format,
-                        width,
-                        height,
-                        depth,
-                        border,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .unwrap();
+        match self.layers {
+            0 => {
+                self.context.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+                    *target,
+                    level,
+                    xoffset,
+                    yoffset,
+                    self.width,
+                    self.height,
+                    format,
+                    elem_type,
+                    Some(data),
+                ).unwrap();
             }
             _ => {
-                panic!("Unsupported texture target: {target:?}");
+                self.context.tex_sub_image_3d_with_opt_u8_array(
+                    *target,
+                    level,
+                    xoffset,
+                    yoffset,
+                    zoffset,
+                    self.width,
+                    self.height,
+                    self.layers,
+                    format,
+                    elem_type,
+                    Some(data),
+                ).unwrap();
             }
         }
         self.apply_texture_parameters(&self.context);
@@ -494,36 +459,12 @@ impl<P: WithItemRef<Item = Texture<I, T>>, I: InternalFormat, T: ItemType> Textu
     }
 }
 
-
-
-// ===============
-// === GpuData ===
-// ===============
-
-/// Sized, uninitialized texture.
-#[derive(Clone, Copy, Debug)]
-pub struct GpuData {
-    /// Texture width.
-    pub width:  i32,
-    /// Texture height.
-    pub height: i32,
-    /// Number of texture layers. When the texture is not layered, this value is 0.
-    pub layers: i32,
-}
-
-
-// === Instances ===
-
-impl From<(i32, i32)> for GpuData {
-    fn from(t: (i32, i32)) -> Self {
-        let (width, height) = t;
-        Self { width, height, layers: 0 }
-    }
-}
-
-impl From<((i32, i32), i32)> for GpuData {
-    fn from(t: ((i32, i32), i32)) -> Self {
-        let ((width, height), layers) = t;
-        Self { width, height, layers }
+impl<I, T> Drop for Texture<I, T> {
+    fn drop(&mut self) {
+        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
+        // previous context.
+        if self.context.is_valid() && self.context.is_texture(Some(&self.gl_texture)) {
+            self.context.delete_texture(Some(&self.gl_texture));
+        }
     }
 }

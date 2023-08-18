@@ -364,20 +364,21 @@ macro_rules! define_any_texture_uniform {
 
 macro_rules! define_get_or_add_gpu_texture_dyn {
     ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
-        pub fn get_or_add_gpu_texture_dyn<P:Into<GpuData>>
+        pub fn get_or_add_gpu_texture_dyn
         ( context         : &Context
         , scope           : &UniformScope
         , name            : &str
         , internal_format : AnyInternalFormat
         , item_type       : AnyItemType
-        , provider        : P
+        , width           : i32
+        , height          : i32
+        , depth           : i32
         , parameters      : Option<Parameters>
         ) -> AnyTextureUniform {
-            let provider = provider.into();
             match (internal_format,item_type) {
                 $((AnyInternalFormat::$internal_format, AnyItemType::$item_type) => {
                     let mut texture =
-                        Texture::<$internal_format,$item_type>::new(&context,provider);
+                        Texture::<$internal_format,$item_type>::new(&context, width, height, depth);
                     if let Some(parameters) = parameters {
                         texture.set_parameters(parameters);
                     }
