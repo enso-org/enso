@@ -17,21 +17,6 @@ from project.Metadata import make_single_choice, Widget
 polyglot java import org.enso.base.Regex_Utils
 
 type Filter_Condition
-    ## Boolaen AND
-    And a:Filter_Condition b:Filter_Condition
-
-    ## Boolaen OR
-    Or a:Filter_Condition b:Filter_Condition
-
-    ## Boolaen NOT
-    Not condition:Filter_Condition
-
-    ## Boolean constant true
-    Constant_True
-
-    ## Boolean constant false
-    Constant_False
-
     ## Is less than a value (or another column, in case of Table operations)?
     Less than:Any
 
@@ -214,16 +199,6 @@ type Filter_Condition
         Not_In values ->
             set = Set.from_vector values
             elem -> set.contains elem . not
-
-    and : Vector Filter_Condition -> Filter_Condition
-    and filter_conditions =
-        if filter_conditions.is_empty then Filter_Condition.Constant_True else
-            filter_conditions . reduce (Filter_Condition.And)
-
-    or : Vector Filter_Condition -> Filter_Condition
-    or filter_conditions =
-        if filter_conditions.is_empty then Filter_Condition.Constant_False else
-            filter_conditions . reduce (Filter_Condition.Or)
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.
