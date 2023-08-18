@@ -369,6 +369,10 @@ class IrToTruffle(
                     throw new CompilerError(
                       "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
                     )
+                  case BindingsMap.ResolvedPolyglotField(_, _) =>
+                    throw new CompilerError(
+                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                    )
                   case _: BindingsMap.ResolvedMethod =>
                     throw new CompilerError(
                       "Impossible here, should be caught by MethodDefinitions pass."
@@ -730,6 +734,10 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
           )
+        case BindingsMap.ResolvedPolyglotField(_, _) =>
+          throw new CompilerError(
+            "Impossible polyglot field, should be caught by MethodDefinitions pass."
+          )
         case _: BindingsMap.ResolvedMethod =>
           throw new CompilerError(
             "Impossible here, should be caught by MethodDefinitions pass."
@@ -861,6 +869,7 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+            case BindingsMap.ResolvedPolyglotField(_, _)  =>
           }
         }
       case _ => throw new CompilerError("Unreachable")
@@ -1220,6 +1229,27 @@ class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
+                        BindingsMap.ResolvedPolyglotField(typ, symbol)
+                      )
+                    ) =>
+                  val mod = typ.module
+                  val polyglotSymbol = mod
+                    .unsafeAsModule()
+                    .getScope
+                    .getPolyglotSymbols
+                    .get(symbol)
+                  Either.cond(
+                    polyglotSymbol != null,
+                    ObjectEqualityBranchNode
+                      .build(
+                        branchCodeNode.getCallTarget,
+                        polyglotSymbol,
+                        branch.terminalBranch
+                      ),
+                    BadPatternMatch.NonVisiblePolyglotSymbol(symbol)
+                  )
+                case Some(
+                      BindingsMap.Resolution(
                         BindingsMap.ResolvedMethod(_, _)
                       )
                     ) =>
@@ -1569,6 +1599,14 @@ class IrToTruffle(
               .getScope
               .getPolyglotSymbols
               .get(symbol.name)
+          )
+        case BindingsMap.ResolvedPolyglotField(symbol, name) =>
+          ConstantObjectNode.build(
+            symbol.module
+              .unsafeAsModule()
+              .getScope
+              .getPolyglotSymbols
+              .get(name)
           )
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(

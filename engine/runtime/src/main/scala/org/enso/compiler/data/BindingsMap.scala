@@ -212,6 +212,9 @@ case class BindingsMap(
         }
       }
       currentScope.resolveExportedSymbol(finalItem)
+    case s @ ResolvedPolyglotSymbol(_, _) =>
+      val found = s.findExportedSymbolFor(finalItem)
+      Right(found)
     case _ => Left(ResolutionNotFound)
   }
 
@@ -937,6 +940,25 @@ object BindingsMap {
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(symbol.name)
+
+    def findExportedSymbolFor(
+      name: String
+    ): org.enso.compiler.data.BindingsMap.ResolvedName =
+      ResolvedPolyglotField(this, name)
+  }
+
+  case class ResolvedPolyglotField(symbol: ResolvedPolyglotSymbol, name: String)
+      extends ResolvedName {
+    def module: org.enso.compiler.data.BindingsMap.ModuleReference =
+      symbol.module
+    def qualifiedName: org.enso.pkg.QualifiedName =
+      symbol.qualifiedName.createChild(name)
+    def toAbstract: org.enso.compiler.data.BindingsMap.ResolvedName =
+      throw new IllegalStateException()
+    def toConcrete(
+      moduleMap: org.enso.compiler.PackageRepository.ModuleMap
+    ): Option[org.enso.compiler.data.BindingsMap.ResolvedName] =
+      throw new IllegalStateException()
   }
 
   /** A representation of an error during name resolution.
@@ -962,6 +984,8 @@ object BindingsMap {
           s"    The module ${module.getName};"
         case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
           s"    The imported polyglot symbol ${symbol.name};"
+        case BindingsMap.ResolvedPolyglotField(_, name) =>
+          s"    The imported polyglot symbol ${name};"
         case BindingsMap.ResolvedMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
         case BindingsMap.ResolvedType(module, typ) =>
