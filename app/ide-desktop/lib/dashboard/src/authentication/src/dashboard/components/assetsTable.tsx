@@ -813,7 +813,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         <div className="flex-1 overflow-auto">
             <div className="flex flex-col w-min min-w-full h-full">
                 <div className="h-0">
-                    <div className="block sticky right-0 px-2 py-1 ml-auto mt-3.5 w-29 z-1">
+                    <div className="block sticky right-0 px-2 py-1 ml-auto mt-0.5 w-29 z-1">
                         <div className="inline-flex gap-3">
                             {columnModule.EXTRA_COLUMNS.map(column => (
                                 <Button
