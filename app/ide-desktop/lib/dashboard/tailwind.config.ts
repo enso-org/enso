@@ -91,6 +91,7 @@ export const theme = {
         },
         minWidth: {
             '20': '5rem',
+            '32': '8rem',
             '36': '9rem',
             '40': '10rem',
             '60': '15rem',

@@ -79,13 +79,17 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                     </span>
                 </div>
             </div>
-            <div>
+            <div className="flex flex-col items-start gap-2">
                 <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
                 <table>
                     <tbody>
                         <tr>
-                            <td className="w-32">Shared with</td>
-                            <td>
+                            <td className="min-w-32 px-0 py-1">
+                                <span className="inline-block leading-170 h-6 py-px">
+                                    Shared with
+                                </span>
+                            </td>
+                            <td className="p-0 w-full">
                                 <column.SharedWithColumn
                                     item={item}
                                     setItem={setItem}

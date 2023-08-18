@@ -144,10 +144,10 @@ body {
     }
 
     .h-templates-custom {
-      height: 21.5rem;
+      height: 21rem;
 
-      @media screen and (min-width: 110.6875rem) {
-        height: 11rem;
+      @container (min-width: 110.6875rem) {
+        height: 10.5rem;
       }
     }
 

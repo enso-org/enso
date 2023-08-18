@@ -324,8 +324,6 @@ export default function Templates(props: TemplatesProps) {
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
-                {/* Spacing. */}
-                <div className="col-span-full h-2" />
             </div>
         </div>
     )
