@@ -12,15 +12,10 @@ import Standard.Test.Extensions
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
-import Standard.Database.Data.Column.Column as DB_Column
-import Standard.Database.Data.Table.Table as DB_Table
-import Standard.Test.Test_Result.Test_Result
-
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     test_selection = setup.test_selection
-    db_take_drop_by_pending = if setup.is_database.not then Nothing else "Database backends do not support Index_Sub_Range.While or .Sample."
     take_drop_by_pending = if test_selection.take_drop.not then
         "TODO: take/drop are not yet supported by this backend."
 
@@ -131,38 +126,40 @@ spec setup =
             table.drop (Every 0) . should_fail_with Illegal_Argument
             empty.drop (Every 0) . should_fail_with Illegal_Argument
 
-        Test.specify "should allow sampling rows" pending=db_take_drop_by_pending <|
-            one = table_builder [["X", ["a"]]] . order_by "X"
-            two = table_builder [["X", ["a", "a"]]] . order_by "X"
-            three = table_builder [["X", ["a", "a", "a"]]] . order_by "X"
-            empty = one.remove_all_rows
-            three.take (Sample 0) . should_equal empty
-            empty.take (Sample 0) . should_equal empty
-            empty.take (Sample 1) . should_equal empty
-            three.take (Sample 1) . should_equal one
-            three.take (Sample 100) . should_equal three
+        if setup.is_database.not then
+            Test.specify "should allow sampling rows" <|
+                one = table_builder [["X", ["a"]]] . order_by "X"
+                two = table_builder [["X", ["a", "a"]]] . order_by "X"
+                three = table_builder [["X", ["a", "a", "a"]]] . order_by "X"
+                empty = one.remove_all_rows
+                three.take (Sample 0) . should_equal empty
+                empty.take (Sample 0) . should_equal empty
+                empty.take (Sample 1) . should_equal empty
+                three.take (Sample 1) . should_equal one
+                three.take (Sample 100) . should_equal three
 
-            three.drop (Sample 0) . should_equal three
-            empty.drop (Sample 0) . should_equal empty
-            empty.drop (Sample 1) . should_equal empty
-            one.drop (Sample 1) . should_equal empty
-            three.drop (Sample 1) . should_equal two
-            three.drop (Sample 100) . should_equal empty
+                three.drop (Sample 0) . should_equal three
+                empty.drop (Sample 0) . should_equal empty
+                empty.drop (Sample 1) . should_equal empty
+                one.drop (Sample 1) . should_equal empty
+                three.drop (Sample 1) . should_equal two
+                three.drop (Sample 100) . should_equal empty
 
-            rnd = table.take (Sample 3 seed=42)
-            random_indices = [5, 6, 2]
-            alpha_sample = random_indices.map (table.at "alpha" . to_vector . at)
-            beta_sample = random_indices.map (table.at "beta" . to_vector . at)
-            rnd.at "alpha" . to_vector . should_equal alpha_sample
-            rnd.at "beta" . to_vector . should_equal beta_sample
+                rnd = table.take (Sample 3 seed=42)
+                random_indices = [5, 6, 2]
+                alpha_sample = random_indices.map (table.at "alpha" . to_vector . at)
+                beta_sample = random_indices.map (table.at "beta" . to_vector . at)
+                rnd.at "alpha" . to_vector . should_equal alpha_sample
+                rnd.at "beta" . to_vector . should_equal beta_sample
 
-        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending=db_take_drop_by_pending <|
-            t = table_builder [["a", [1, 2, 3, 4]], ["b", [5, 6, 7, 8]]]
+        if setup.is_database.not then
+            Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+                t = table_builder [["a", [1, 2, 3, 4]], ["b", [5, 6, 7, 8]]]
 
-            t2 = t.take (While (row -> row.at "a" < 3))
-            t2.row_count . should_equal 2
-            t2.at "a" . to_vector . should_equal [1, 2]
-            t2.at "b" . to_vector . should_equal [5, 6]
+                t2 = t.take (While (row -> row.at "a" < 3))
+                t2.row_count . should_equal 2
+                t2.at "a" . to_vector . should_equal [1, 2]
+                t2.at "b" . to_vector . should_equal [5, 6]
 
         Test.specify "should gracefully handle missing constructor arguments" <|
             t = table_builder [["X", [1, 2, 3]]]
@@ -302,52 +299,54 @@ spec setup =
             beta.drop (Every 0) . should_fail_with Illegal_Argument
             empty_beta.drop (Every 0) . should_fail_with Illegal_Argument
 
-        Test.specify "should allow sampling rows"  pending=db_take_drop_by_pending <|
-            three = table_builder [["X", ["a", "a", "a"]]] . at "X"
-            two = table_builder [["X", ["a", "a"]]] . at "X"
-            one_table = table_builder [["X", ["a"]]]
-            one = one_table . at "X"
-            empty = one_table.remove_all_rows . at "X"
+        if setup.is_database.not then
+            Test.specify "should allow sampling rows" <|
+                three = table_builder [["X", ["a", "a", "a"]]] . at "X"
+                two = table_builder [["X", ["a", "a"]]] . at "X"
+                one_table = table_builder [["X", ["a"]]]
+                one = one_table . at "X"
+                empty = one_table.remove_all_rows . at "X"
 
-            three.take (First 2) . should_equal two
-            three.take First . should_equal one
-            three.take (First 0) . should_equal empty
+                three.take (First 2) . should_equal two
+                three.take First . should_equal one
+                three.take (First 0) . should_equal empty
 
-            three.take 2 . should_equal two
-            three.take . should_equal one
-            three.take 0 . should_equal empty
+                three.take 2 . should_equal two
+                three.take . should_equal one
+                three.take 0 . should_equal empty
 
-            three.take (Sample 0) . should_equal empty
-            empty.take (Sample 0) . should_equal empty
-            empty.take (Sample 1) . should_equal empty
-            three.take (Sample 1) . should_equal one
-            three.take (Sample 100) . should_equal three
+                three.take (Sample 0) . should_equal empty
+                empty.take (Sample 0) . should_equal empty
+                empty.take (Sample 1) . should_equal empty
+                three.take (Sample 1) . should_equal one
+                three.take (Sample 100) . should_equal three
 
-            three.drop (Sample 0) . should_equal three
-            empty.drop (Sample 0) . should_equal empty
-            empty.drop (Sample 1) . should_equal empty
-            one.drop (Sample 1) . should_equal empty
-            three.drop (Sample 1) . should_equal two
-            three.drop (Sample 100) . should_equal empty
+                three.drop (Sample 0) . should_equal three
+                empty.drop (Sample 0) . should_equal empty
+                empty.drop (Sample 1) . should_equal empty
+                one.drop (Sample 1) . should_equal empty
+                three.drop (Sample 1) . should_equal two
+                three.drop (Sample 100) . should_equal empty
 
-            rnd = alpha.take (Sample 3 seed=42)
-            random_indices = [5, 6, 2]
-            sample = alpha.take (Index_Sub_Range.By_Index random_indices)
-            rnd.should_equal sample
+                rnd = alpha.take (Sample 3 seed=42)
+                random_indices = [5, 6, 2]
+                sample = alpha.take (Index_Sub_Range.By_Index random_indices)
+                rnd.should_equal sample
 
-        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending=db_take_drop_by_pending <|
-            col = table_builder [["X", [1, 3, 5, 6, 8, 9, 10, 11, 13]]] . at "X"
-            col.take (While (x-> x%2 == 1)) . to_vector . should_equal [1, 3, 5]
-            col.drop (While (x-> x%2 == 1)) . to_vector . should_equal [6, 8, 9, 10, 11, 13]
+        if setup.is_database.not then
+            Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+                col = table_builder [["X", [1, 3, 5, 6, 8, 9, 10, 11, 13]]] . at "X"
+                col.take (While (x-> x%2 == 1)) . to_vector . should_equal [1, 3, 5]
+                col.drop (While (x-> x%2 == 1)) . to_vector . should_equal [6, 8, 9, 10, 11, 13]
 
-            three_table = table_builder [["X", [1, 2, 3]]]
-            three = three_table . at "X"
-            empty = three_table.remove_all_rows . at "X"
-            three.take (While (_ > 10)) . should_equal empty
-            three.take (While (_ < 10)) . should_equal three
+                three_table = table_builder [["X", [1, 2, 3]]]
+                three = three_table . at "X"
+                empty = three_table.remove_all_rows . at "X"
+                three.take (While (_ > 10)) . should_equal empty
+                three.take (While (_ < 10)) . should_equal three
 
-            three.drop (While (_ > 10)) . should_equal three
-            three.drop (While (_ < 10)) . should_equal empty
+                three.drop (While (_ > 10)) . should_equal three
+                three.drop (While (_ < 10)) . should_equal empty
 
         Test.specify "should gracefully handle missing constructor arguments" <|
             c = table_builder [["X", [1, 2, 3]]] . at "X"

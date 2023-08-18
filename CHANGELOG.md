@@ -553,6 +553,7 @@
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 - [Expose `Text.normalize`.][7425]
+- [Added `take` and `drop` to database tables.][7615]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -786,6 +787,7 @@
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
+[7615]: https://github.com/enso-org/enso/pull/7615
 
 #### Enso Compiler
 
