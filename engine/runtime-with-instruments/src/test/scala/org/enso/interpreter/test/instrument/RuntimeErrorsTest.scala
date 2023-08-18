@@ -2158,4 +2158,93 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual Seq()
   }
 
+  it should "not return cached method pointer when node panics" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val operator1Id = metadata.addItem(54, 17)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = Main.function1 42
+        |    operator1
+        |
+        |function1 x = x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        operator1Id,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, moduleName, "function1")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 29), model.Position(3, 30)),
+              "2"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, operator1Id),
+      TestMessages.panic(
+        contextId,
+        operator1Id,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Method `function2` of type Main could not be found.",
+          Seq(operator1Id)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
 }

@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as assetEvent from '../events/assetEvent'
-import * as backend from '../backend'
 
+import * as assetTreeNode from '../assetTreeNode'
 import * as column from '../column'
 import AssetInfoBar from './assetInfoBar'
 import UserBar from './userBar'
@@ -14,8 +14,8 @@ import UserBar from './userBar'
 
 /** The subset of {@link AssetSettingsPanelProps} that are required to be supplied by the row. */
 export interface AssetSettingsPanelRequiredProps {
-    item: backend.AnyAsset
-    setItem: React.Dispatch<React.SetStateAction<backend.AnyAsset>>
+    item: assetTreeNode.AssetTreeNode
+    setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
     /** This must be supplied by the row as the dashboard container does not have access to it. */
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -41,7 +41,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     } = props
     const [item, innerSetItem] = React.useState(rawItem)
     const setItem = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
+        (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
             innerSetItem(valueOrUpdater)
             rawSetItem(valueOrUpdater)
         },

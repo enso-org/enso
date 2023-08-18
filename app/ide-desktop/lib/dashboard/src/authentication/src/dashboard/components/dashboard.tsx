@@ -385,7 +385,7 @@ export default function Dashboard(props: DashboardProps) {
                 >
                     {assetSettingsPanelProps && (
                         <AssetSettingsPanel
-                            key={assetSettingsPanelProps.item.id}
+                            key={assetSettingsPanelProps.item.item.id}
                             {...assetSettingsPanelProps}
                             isHelpChatOpen={isHelpChatOpen}
                             setIsHelpChatOpen={setIsHelpChatOpen}
