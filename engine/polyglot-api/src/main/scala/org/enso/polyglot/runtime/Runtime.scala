@@ -1642,14 +1642,14 @@ object Runtime {
 
     /** Signals that project has been renamed.
       *
-      * @param namespace the namespace of the project
-      * @param normalizedName the new normalized name of the project
-      * @param name the new name of the project
+      * @param oldNormalizedName old normalized name of the project
+      * @param newNormalizedName new normalized name of the project
+      * @param newName new display name of the project
       */
     final case class ProjectRenamed(
-      namespace: String,
-      normalizedName: String,
-      name: String
+      oldNormalizedName: String,
+      newNormalizedName: String,
+      newName: String
     ) extends ApiResponse
 
     /** Signals that project has been renamed.

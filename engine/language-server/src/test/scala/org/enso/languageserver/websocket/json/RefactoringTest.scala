@@ -39,7 +39,7 @@ class RefactoringTest extends BaseServerTest {
       }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.ProjectRenamed(namespace, newName, newName)
+        Api.ProjectRenamed(oldName, newName, newName)
       )
 
       client.expectJson(json"""
@@ -52,8 +52,9 @@ class RefactoringTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "refactoring/projectRenamed",
             "params": {
-              "normalizedName": $newName,
-              "name": $newName
+              "oldNormalizedName": $oldName,
+              "newNormalizedName": $newName,
+              "newName": $newName
             }
           }
           """)

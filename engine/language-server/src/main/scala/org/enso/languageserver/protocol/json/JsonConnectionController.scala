@@ -424,10 +424,18 @@ class JsonConnectionController(
         )
       }
 
-    case RefactoringProtocol.ProjectRenamedNotification(normalizedName, name) =>
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
       webActor ! Notification(
         RefactoringApi.ProjectRenamed,
-        RefactoringApi.ProjectRenamed.Params(normalizedName, name)
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
       )
 
     case Api.ProgressNotification(payload) =>

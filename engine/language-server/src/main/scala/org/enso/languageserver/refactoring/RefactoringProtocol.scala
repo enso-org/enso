@@ -4,8 +4,13 @@ object RefactoringProtocol {
 
   /** Notification signaling about the project being renamed.
     *
-    * @param normalizedName the new normalized project name
-    * @param name the new name of the project
+    * @param oldNormalizedName old normalized name of the project
+    * @param newNormalizedName new normalized name of the project
+    * @param newName new display name of the project
     */
-  case class ProjectRenamedNotification(normalizedName: String, name: String)
+  case class ProjectRenamedNotification(
+    oldNormalizedName: String,
+    newNormalizedName: String,
+    newName: String
+  )
 }

@@ -225,6 +225,20 @@ async fn reload_module_on_file_change(
     Ok(())
 }
 
+/// Update internal state when the `refactoring/projectRenamed` notification received.
+#[profile(Detail)]
+fn rename_project_on_notification(
+    project_renamed: language_server::types::ProjectRenamed,
+    properties: Rc<RefCell<Properties>>,
+    execution_contexts: Rc<ExecutionContextsRegistry>,
+) {
+    let mut properties = properties.borrow_mut();
+    properties.displayed_name = project_renamed.new_name.into();
+    properties.project_name.project = project_renamed.new_normalized_name.clone().into();
+    execution_contexts
+        .rename_project(project_renamed.old_normalized_name, project_renamed.new_normalized_name);
+}
+
 
 
 // =============
@@ -522,10 +536,13 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
+        let properties = self.properties.clone_ref();
+        let execution_contexts = self.execution_contexts.clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
         let execution_update_handler = self.execution_update_handler();
+
         move |event| {
             debug!("Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
@@ -617,6 +634,11 @@ impl Project {
                         update.expression_id,
                         update.message
                     );
+                }
+                Event::Notification(Notification::ProjectRenamed(project_renamed)) => {
+                    let properties = properties.clone_ref();
+                    let execution_contexts = execution_contexts.clone_ref();
+                    rename_project_on_notification(project_renamed, properties, execution_contexts);
                 }
                 Event::Closed => {
                     error!("Lost JSON-RPC connection with the Language Server!");

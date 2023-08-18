@@ -45,6 +45,8 @@ class RenameProjectCmd(
         .getOrElse(throw new RenameProjectCmd.MainProjectPackageNotFound)
       val projectModules =
         packageRepository.getModulesForLibrary(mainPackage.libraryName)
+
+      val oldConfig = mainPackage.getConfig()
       val newConfig = mainPackage
         .reloadConfig()
         .fold(
@@ -82,7 +84,7 @@ class RenameProjectCmd(
 
       reply(
         Api.ProjectRenamed(
-          newConfig.namespace,
+          oldConfig.moduleName,
           newConfig.moduleName,
           newConfig.name
         )
