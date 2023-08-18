@@ -79,18 +79,20 @@ export default function TopBar(props: TopBarProps) {
                     <div className="grow" />
                 </>
             )}
-            <div className="flex gap-2">
-                <AssetInfoBar
-                    canToggleSettingsPanel={canToggleSettingsPanel}
-                    isSettingsPanelVisible={isSettingsPanelVisible}
-                    setIsSettingsPanelVisible={setIsSettingsPanelVisible}
-                />
-                <UserBar
-                    isHelpChatOpen={isHelpChatOpen}
-                    setIsHelpChatOpen={setIsHelpChatOpen}
-                    onSignOut={onSignOut}
-                />
-            </div>
+            {!isSettingsPanelVisible && (
+                <div className="flex gap-2">
+                    <AssetInfoBar
+                        canToggleSettingsPanel={canToggleSettingsPanel}
+                        isSettingsPanelVisible={isSettingsPanelVisible}
+                        setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+                    />
+                    <UserBar
+                        isHelpChatOpen={isHelpChatOpen}
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        onSignOut={onSignOut}
+                    />
+                </div>
+            )}
         </div>
     )
 }

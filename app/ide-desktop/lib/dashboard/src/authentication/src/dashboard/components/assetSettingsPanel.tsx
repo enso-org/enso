@@ -31,27 +31,44 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
 /** A panel containing the description and settings for an asset. */
 export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const {
-        item,
-        setItem,
+        item: rawItem,
+        setItem: rawSetItem,
         isHelpChatOpen,
         setIsHelpChatOpen,
         setIsSettingsPanelVisible,
         onSignOut,
         dispatchAssetEvent,
     } = props
+    const [item, innerSetItem] = React.useState(rawItem)
+    const setItem = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
+            innerSetItem(valueOrUpdater)
+            rawSetItem(valueOrUpdater)
+        },
+        [/* should never change */ rawSetItem]
+    )
     return (
-        <div className="flex flex-col border-black-a12 border-l-2 gap-8 w-130.75 pl-3 pr-4">
-            <div>
-                <AssetInfoBar
-                    canToggleSettingsPanel={true}
-                    isSettingsPanelVisible={true}
-                    setIsSettingsPanelVisible={setIsSettingsPanelVisible}
-                />
-                <UserBar
-                    isHelpChatOpen={isHelpChatOpen}
-                    setIsHelpChatOpen={setIsHelpChatOpen}
-                    onSignOut={onSignOut}
-                />
+        <div
+            className="absolute flex flex-col h-full border-black-a12 border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
+            onClick={event => {
+                event.stopPropagation()
+            }}
+        >
+            <div className="flex">
+                {/* Spacing. */}
+                <div className="grow" />
+                <div className="flex gap-2">
+                    <AssetInfoBar
+                        canToggleSettingsPanel={true}
+                        isSettingsPanelVisible={true}
+                        setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+                    />
+                    <UserBar
+                        isHelpChatOpen={isHelpChatOpen}
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        onSignOut={onSignOut}
+                    />
+                </div>
             </div>
             <div className="flex flex-col items-start gap-1">
                 <span className="text-lg leading-144.5 h-7 py-px">Description</span>

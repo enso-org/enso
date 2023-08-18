@@ -8,13 +8,14 @@ body {
 }
 
 .Toastify--animate {
-  animation-duration: 0.2s;
+  animation-duration: 200ms;
 }
 
 .enso-dashboard {
   position: absolute;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 /* These styles MUST still be copied
@@ -146,11 +147,15 @@ body {
     }
 
     .search-bar.search-bar {
-      @media screen and (max-width: 59rem) {
+      @container (max-width: 59rem) {
         position: unset;
         transform: unset;
         left: unset;
       }
+    }
+
+    .container-size {
+      container-type: size;
     }
   }
 

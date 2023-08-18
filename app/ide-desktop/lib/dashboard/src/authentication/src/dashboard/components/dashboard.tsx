@@ -75,9 +75,7 @@ export default function Dashboard(props: DashboardProps) {
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
-    /** The actual props used to display the currently visible {@link AssetSettingsPanel}. */
-    const [actualAssetSettingsPanelProps, setActualAssetSettingsPanelProps] =
-        React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
+    const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(false)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -91,24 +89,6 @@ export default function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         unsetModal()
     }, [page, /* should never change */ unsetModal])
-
-    const setIsAssetSettingsPanelVisible = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<boolean>) => {
-            let visible: boolean
-            if (typeof valueOrUpdater === 'function') {
-                visible = valueOrUpdater(actualAssetSettingsPanelProps != null)
-            } else {
-                visible = valueOrUpdater
-            }
-            if (visible) {
-                // FIXME: actually this MUST update when `item` updates.
-                setActualAssetSettingsPanelProps(assetSettingsPanelProps)
-            } else {
-                setActualAssetSettingsPanelProps(null)
-            }
-        },
-        [assetSettingsPanelProps, actualAssetSettingsPanelProps]
-    )
 
     React.useEffect(() => {
         const savedProjectStartupInfo = localStorage.get(
@@ -290,9 +270,9 @@ export default function Dashboard(props: DashboardProps) {
     const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
         <>
-            <div className="flex text-primary text-xs gap-3.25">
+            <div className="flex text-primary text-xs">
                 <div
-                    className={`flex flex-col grow relative gap-2 h-screen pb-2 select-none ${
+                    className={`relative flex flex-col grow container-size gap-2 overflow-hidden h-screen pb-2 select-none ${
                         page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
                     }`}
                     onContextMenu={event => {
@@ -310,10 +290,8 @@ export default function Dashboard(props: DashboardProps) {
                         setBackendType={setBackendType}
                         query={query}
                         setQuery={setQuery}
-                        canToggleSettingsPanel={
-                            actualAssetSettingsPanelProps != null || assetSettingsPanelProps != null
-                        }
-                        isSettingsPanelVisible={actualAssetSettingsPanelProps != null}
+                        canToggleSettingsPanel={assetSettingsPanelProps != null}
+                        isSettingsPanelVisible={isAssetSettingsPanelVisible}
                         setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
                         onSignOut={onSignOut}
                     />
@@ -393,15 +371,23 @@ export default function Dashboard(props: DashboardProps) {
                         }}
                     />
                 )}
-                {actualAssetSettingsPanelProps != null && (
-                    <AssetSettingsPanel
-                        {...actualAssetSettingsPanelProps}
-                        isHelpChatOpen={isHelpChatOpen}
-                        setIsHelpChatOpen={setIsHelpChatOpen}
-                        setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
-                        onSignOut={onSignOut}
-                    />
-                )}
+                <div
+                    className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
+                        isAssetSettingsPanelVisible && assetSettingsPanelProps != null
+                            ? 'min-w-120'
+                            : 'min-w-0'
+                    }`}
+                >
+                    {assetSettingsPanelProps && (
+                        <AssetSettingsPanel
+                            {...assetSettingsPanelProps}
+                            isHelpChatOpen={isHelpChatOpen}
+                            setIsHelpChatOpen={setIsHelpChatOpen}
+                            setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                            onSignOut={onSignOut}
+                        />
+                    )}
+                </div>
             </div>
             <div className="text-xs text-primary select-none">
                 <TheModal />

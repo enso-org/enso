@@ -27,6 +27,9 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
             className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto ${
                 backend.type === backendModule.BackendType.remote ? '' : 'invisible'
             }`}
+            onClick={event => {
+                event.stopPropagation()
+            }}
         >
             <Button
                 active={false}
