@@ -87,12 +87,12 @@
 				},
 				{
 					"contentName": "string.quoted.triple.begin",
-					"begin": "^(\\s*)\"\"\"",
+					"begin": "^(\\s*)(\"\"\"|''')",
 					"end": "^(?!\\1\\s+)(?!\\s*$)"
 				},
 				{
 					"contentName": "string.quoted.triple.middle",
-					"begin": "^(\\s*)[^\\s].*\"\"\"",
+					"begin": "^(\\s*)[^\\s].*(\"\"\"|''')",
 					"end": "^(?!\\1\\s+)(?!\\s*$)"
 				},
 				{
