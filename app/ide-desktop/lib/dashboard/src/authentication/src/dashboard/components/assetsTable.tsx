@@ -204,32 +204,20 @@ export default function AssetsTable(props: AssetsTableProps) {
             let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
             switch (sortColumn) {
                 case columnModule.Column.name: {
-                    compare = (a, b) => {
-                        const typeOrder =
-                            backendModule.ASSET_TYPE_ORDER[a.item.type] -
-                            backendModule.ASSET_TYPE_ORDER[b.item.type]
-                        return typeOrder !== 0
-                            ? typeOrder
-                            : multiplier *
-                                  (a.item.title > b.item.title
-                                      ? 1
-                                      : a.item.title < b.item.title
-                                      ? COMPARE_LESS_THAN
-                                      : 0)
-                    }
+                    compare = (a, b) =>
+                        multiplier *
+                        (a.item.title > b.item.title
+                            ? 1
+                            : a.item.title < b.item.title
+                            ? COMPARE_LESS_THAN
+                            : 0)
+
                     break
                 }
                 case columnModule.Column.modified: {
-                    compare = (a, b) => {
-                        const typeOrder =
-                            backendModule.ASSET_TYPE_ORDER[a.item.type] -
-                            backendModule.ASSET_TYPE_ORDER[b.item.type]
-                        return typeOrder !== 0
-                            ? typeOrder
-                            : multiplier *
-                                  (Number(new Date(a.item.modifiedAt)) -
-                                      Number(new Date(b.item.modifiedAt)))
-                    }
+                    compare = (a, b) =>
+                        multiplier *
+                        (Number(new Date(a.item.modifiedAt)) - Number(new Date(b.item.modifiedAt)))
                     break
                 }
             }
