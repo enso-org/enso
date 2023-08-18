@@ -14,6 +14,8 @@ type Take_Drop
     Take
     Drop
 
+## PRIVATE
+   Apply `take` or `drop` to a table, returning the specified by the selector.
 take_drop_helper : Take_Drop -> Table -> (Index_Sub_Range | Range | Integer) -> Table
 take_drop_helper take_drop table selector =
     check_supported selector <|
@@ -65,6 +67,8 @@ cleanup_ranges ranges:(Vector Range) =
     ok range = range.end > range.start
     ranges.filter ok
 
+## PRIVATE
+   Filter a table with a single range. Returns only those rows whose row column fall within the range.
 generate_subquery : Table -> Text -> Range -> Table
 generate_subquery table row_column_name range =
     case range.step == 1 of

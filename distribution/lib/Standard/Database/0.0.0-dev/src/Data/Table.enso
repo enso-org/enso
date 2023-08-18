@@ -596,8 +596,15 @@ type Table
     ## Creates a new Table with the specified range of rows from the input
        Table.
 
+       Does not support `While` or `Sample`.
+
        Arguments:
        - range: The selection of rows from the table to return.
+
+       > Example
+         Take first 10 rows of the table.
+
+             table.take (First 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
@@ -606,8 +613,15 @@ type Table
     ## Creates a new Table from the input with the specified range of rows
        removed.
 
+       Does not support `While` or `Sample`.
+
        Arguments:
        - range: The selection of rows from the table to remove.
+
+       > Example
+         Drop first 10 rows of the table.
+
+             table.drop (First 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
