@@ -2,27 +2,50 @@ from Standard.Base import all
 
 from Standard.Test import Bench, Faker
 
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+
 check_all text_vector pattern_vector mode =
     text_vector.fold 0 acc-> text->
         pattern_vector.fold acc acc-> pattern->
             result = text.contains pattern mode
             acc + if result then 1 else 0
 
-bench =
-    bench_contains suite_prefix character_template =
-        faker = Faker.new
-        ## Warning: this relies on the fact that Faker will treat the accent
-           codepoint `\u{301}` as a separate code unit. We rely on this to add
-           accents randomly to neighboring characters. If the implementation of
-           Faker is changed, this must be modified accordingly.
-        make_alpha_template length = Vector.new length _-> character_template
 
-        big_template = make_alpha_template 10000
-        big_random = Vector.new 200 _-> faker.string_value big_template
+type Data
+    Value ~big_random
 
-        Bench.measure (check_all big_random ["AAAAAA"] Case_Sensitivity.Sensitive) suite_prefix+" exact" 10 10
-        Bench.measure (check_all big_random ["AAAAAA"] Case_Sensitivity.Insensitive) suite_prefix+" case-insensitive" 10 10
+    create character_template faker =
+        Data.Value (create_big_random character_template faker)
 
-    bench_contains "Text.contains " (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.char_vector)
 
-main = bench
+## Warning: this relies on the fact that Faker will treat the accent
+   codepoint `\u{301}` as a separate code unit. We rely on this to add
+   accents randomly to neighboring characters. If the implementation of
+   Faker is changed, this must be modified accordingly.
+create_alpha_template character_template length =
+    Vector.new length _-> character_template
+
+
+create_big_random character_template faker =
+    big_template = create_alpha_template character_template 10000
+    Vector.new 200 _-> faker.string_value big_template
+
+
+collect_benches = Bench.build builder->
+    bench_contains group_name character_template =
+
+        data = Data.create character_template Faker.new
+
+        builder.group group_name options group_builder->
+            group_builder.specify "exact" <|
+                check_all data.big_random ["AAAAAA"] Case_Sensitivity.Sensitive
+
+            group_builder.specify "case_insensitive" <|
+                check_all data.big_random ["AAAAAA"] Case_Sensitivity.Insensitive
+
+    bench_contains "Text_Contains" (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.char_vector)
+
+
+main = collect_benches . run_main

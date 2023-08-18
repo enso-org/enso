@@ -13,8 +13,13 @@ body {
 
 .enso-dashboard {
   position: absolute;
+  pointer-events: none;
   width: 100%;
   height: 100%;
+}
+
+.enso-dashboard > * {
+  pointer-events: auto;
 }
 
 /* These styles MUST still be copied
@@ -157,11 +162,5 @@ body {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
-  }
-
-  /* The class is repeated to make this take precedence over most Tailwind classes. */
-  .cursor-none-recursive.cursor-none-recursive,
-  .cursor-none-recursive.cursor-none-recursive * {
-    cursor: none;
   }
 }

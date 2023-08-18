@@ -219,8 +219,11 @@ impl Model {
         background_height: f32,
         background_y_offset: f32,
     ) {
-        let background_size = Vector2::new(content_size.x, background_height);
-        self.background.set_size(background_size + Vector2(2.0 * background_padding_x, 0.0));
+        let background_x = content_size.x + 2.0 * background_padding_x;
+        let background_x = background_x.min(size.x);
+        let background_size = Vector2::new(background_x, background_height);
+
+        self.background.set_size(background_size);
         self.background.set_corner_radius(background_size.y / 2.0);
         self.background
             .set_y(-background_height / 2.0 - content_size.y / 2.0 - background_y_offset);

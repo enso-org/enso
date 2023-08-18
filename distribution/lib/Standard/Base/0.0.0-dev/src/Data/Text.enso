@@ -155,7 +155,7 @@ type Text
          Normalize a string.
 
              'aśb'.normalize == 'as\u0301b'
-    normalize : Text -> Normalization -> Text
+    normalize : Normalization -> Text
     normalize self normalization=Normalization.NFD =
         mode = normalization.get_java_mode
         name = normalization.get_mode_name

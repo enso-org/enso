@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from project.Errors import Invalid_Column_Names, Clashing_Column_Name
+from project.Errors import Clashing_Column_Name, Invalid_Column_Names
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils

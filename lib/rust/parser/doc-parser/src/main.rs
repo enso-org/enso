@@ -1,4 +1,4 @@
-//! Prints a debug representation of Enso documentation found in the given Enso sourec file(s).
+//! Prints a debug representation of Enso documentation found in the given Enso source file(s).
 
 #![recursion_limit = "256"]
 // === Features ===
