@@ -278,7 +278,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
     ZIO
       .attempt {
-        Logging.setup(Some(level), None, logMasking, profilingLog)
+        Logging.initLogger(Some(level))
+        Logging.setupServerAndForwardLogs(Some(level), logMasking, profilingLog)
         ()
       }
       .catchAll { exception =>

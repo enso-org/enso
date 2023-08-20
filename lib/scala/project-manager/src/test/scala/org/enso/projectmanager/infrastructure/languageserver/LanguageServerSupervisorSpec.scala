@@ -3,13 +3,11 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
+import org.enso.logger.LoggerSetup
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
-import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{
-  Reject,
-  ReplyWith
-}
+import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{Reject, ReplyWith}
 import org.enso.projectmanager.infrastructure.languageserver.StepParent.ChildTerminated
 import org.enso.projectmanager.infrastructure.net.Tcp
 import org.enso.testkit.FlakySpec
@@ -105,6 +103,8 @@ class LanguageServerSupervisorSpec
   }
 
   trait TestCtx {
+
+    LoggerSetup.setup()
 
     val VerificationTimeout = 120000
 

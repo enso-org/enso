@@ -64,6 +64,8 @@ import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+import org.enso.logger.LoggerSetup
+
 class BaseServerTest
     extends JsonRpcServerTestKit
     with EitherValue
@@ -74,6 +76,8 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
+
+  LoggerSetup.setup()
 
   def isFileWatcherEnabled: Boolean = false
 

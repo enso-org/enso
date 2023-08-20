@@ -4,7 +4,7 @@ import org.enso.editions.LibraryName
 import org.enso.libraryupload.DependencyExtractor
 import org.enso.logger.Converter
 
-import org.enso.logger.JavaLoggingForwarder
+import org.enso.logger.JulHandler
 import org.enso.pkg.Package
 import org.enso.pkg.SourceFile
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
@@ -65,7 +65,7 @@ class CompilerBasedDependencyExtractor(logLevel: Level)
         RuntimeOptions.LOG_LEVEL,
         Converter.toJavaLevel(logLevel).getName
       )
-      .logHandler(new JavaLoggingForwarder())
+      .logHandler(new JulHandler())
       .build
     new PolyglotContext(context)
   }

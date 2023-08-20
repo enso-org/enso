@@ -14,11 +14,8 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-
 import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
 import org.slf4j.event.Level
-import org.enso.logger.LoggerContextSetup
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
@@ -39,7 +36,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
 
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
-    setupLogging()
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
     val module  = new MainModule(config, logLevel)
@@ -67,16 +63,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         )
       }
     } yield ComponentStarted
-  }
-
-  private def setupLogging(): Unit = {
-    val logConfig =
-      this.getClass.getResourceAsStream("/language-server.logback.xml")
-    if (logConfig != null) {
-      LoggerContextSetup.setup(logLevel, "language-server", logConfig);
-    } else {
-      System.err.println("Unable to set up logging for Language Server.")
-    }
   }
 
   /** Start the application sampling. */

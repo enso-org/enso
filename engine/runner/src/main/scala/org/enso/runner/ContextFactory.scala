@@ -1,6 +1,7 @@
 package org.enso.runner
 
-import org.enso.logger.{Converter, JavaLoggingForwarder}
+import org.enso.logger.Converter
+import org.enso.logger.JulHandler
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
@@ -87,7 +88,7 @@ class ContextFactory {
         RuntimeOptions.LOG_LEVEL,
         logLevelName
       )
-      .logHandler(new JavaLoggingForwarder())
+      .logHandler(new JulHandler())
       .build
     new PolyglotContext(context)
   }

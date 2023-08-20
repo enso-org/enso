@@ -9,8 +9,8 @@ import org.slf4j.event.Level
 
 import scala.util.{Failure, Success}
 import scala.concurrent.Future
-import java.io.InputStream
-import org.enso.logger.LoggerContextSetup
+import org.enso.logger.LoggerSetup
+import org.enso.logger.config.LoggingServiceConfig
 
 /** Manages setting up the logging service within the runner.
   */
@@ -33,24 +33,26 @@ object RunnerLogging {
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     Masking.setup(logMasking)
-    val loggingConfig = this.getClass.getResourceAsStream("/runner.logback.xml")
+    val loggingConfig = LoggingServiceConfig.parseConfig()
     val loggerSetup = connectionUri match {
       case Some(uri) =>
-        Future(
-          LoggerContextSetup.setup(
+        Future {
+          LoggerSetup.setupSocketAppender(
             logLevel,
-            "runner",
-            loggingConfig,
-            "forward-via-socket",
             uri.getHost(),
-            uri.getPort()
+            uri.getPort(),
+            loggingConfig
           )
-        )
+        }
+          .map(success =>
+            if (success) ()
+            else throw new RuntimeException("setup failed")
+          )
           .map { _ =>
             logger.trace("Connected to logging service at [{}].", uri)
           }
           .recoverWith { _ =>
-            logger.error(
+            System.err.println(
               "Failed to connect to the logging service server, " +
               "falling back to local logging."
             )
@@ -61,7 +63,6 @@ object RunnerLogging {
     }
     loggerSetup.onComplete {
       case Failure(exception) =>
-        System.err.println(s"Failed to initialize logging: $exception")
         exception.printStackTrace()
       case Success(_) =>
     }
@@ -69,16 +70,12 @@ object RunnerLogging {
 
   private def setupLocalLogger(
     @unused logLevel: Level,
-    logbackConfig: InputStream
+    config: LoggingServiceConfig
   ): Future[Unit] = {
     Future.successful(
-      LoggerContextSetup.setup(
+      LoggerSetup.setupConsoleAppender(
         logLevel,
-        "runner",
-        logbackConfig,
-        "console",
-        null,
-        0
+        config
       )
     )
   }
@@ -88,6 +85,6 @@ object RunnerLogging {
   /** Shuts down the logging service gracefully.
     */
   def tearDown(): Unit = {
-    LoggerContextSetup.teardown()
+    LoggerSetup.teardown()
   }
 }

@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.LoggerContextSetup
+import org.enso.logger.LoggerSetup
 import org.enso.cli.CLIOutput
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.upgrade.LauncherUpgrader
@@ -9,12 +9,8 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 /** Defines the entry point for the launcher.
   */
 object Main {
-  private def setup(): Unit = {
-    System.setProperty(
-      "org.apache.commons.logging.Log",
-      "org.apache.commons.logging.impl.NoOpLog"
-    )
-    LoggerContextSetup.setup("launcher")
+  private def initLogger(): Unit = {
+    LoggerSetup.setupNoOpAppender()
   }
 
   private def runAppHandlingParseErrors(args: Array[String]): Int =
@@ -32,7 +28,7 @@ object Main {
   /** Entry point of the application.
     */
   def main(args: Array[String]): Unit = {
-    setup()
+    initLogger()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {

@@ -16,8 +16,7 @@ import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
-//import org.enso.loggingservice.printers.StderrPrinterWithColors
-//import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
@@ -237,17 +236,13 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    setupEditions()
-
     if (debugLogs) {
-      // TODO
-      /*LoggingServiceManager.setup(
-        LoggerMode.Local(
-          Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
-        ),
-        LogLevel.Trace
-      )*/
+      LoggerSetup.setup(Level.TRACE)
+    } else {
+      LoggerSetup.setup()
     }
+
+    setupEditions()
 
     engineToInstall.foreach(preInstallEngine)
   }

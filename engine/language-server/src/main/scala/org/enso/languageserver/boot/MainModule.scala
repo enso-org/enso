@@ -45,7 +45,7 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.Converter
 import org.enso.logger.masking.{MaskedPath, Masking}
-import org.enso.logger.JavaLoggingForwarder
+import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
@@ -309,7 +309,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(new JavaLoggingForwarder())
+    .logHandler(new JulHandler())
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

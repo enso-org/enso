@@ -8,13 +8,11 @@ import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
 import org.enso.distribution.config.DefaultVersion
 import org.enso.distribution.config.DefaultVersion._
-import org.enso.launcher.cli.LauncherColorMode.argument
 import org.enso.launcher.distribution.DefaultManagers._
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
-import org.enso.logger.ColorMode
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.runtimeversionmanager.runner.LanguageServerOptions
 import org.slf4j.event.Level
@@ -628,17 +626,6 @@ object LauncherApplication {
       "variable.",
       showInUsage = false
     )
-    val colorMode =
-      Opts
-        .aliasedOptionalParameter[ColorMode](
-          GlobalCLIOptions.COLOR_MODE,
-          "colour",
-          "colors"
-        )(
-          "(auto | yes | always | no | never)",
-          "Specifies if colors should be used in the output, defaults to auto."
-        )
-        .withDefault(ColorMode.Auto)
     val internalOpts = InternalOpts.topLevelOptions
 
     (
@@ -650,8 +637,7 @@ object LauncherApplication {
       hideProgress,
       logLevel,
       connectLogger,
-      noLogMasking,
-      colorMode
+      noLogMasking
     ) mapN {
       (
         internalOptsCallback,
@@ -662,18 +648,18 @@ object LauncherApplication {
         hideProgress,
         logLevel,
         connectLogger,
-        disableLogMasking,
-        colorMode
+        disableLogMasking
       ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
         }
 
+        LauncherLogging.initLogger(logLevel)
+
         val globalCLIOptions = cli.GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
           useJSON      = useJSON,
-          colorMode    = colorMode,
           internalOptions = GlobalCLIOptions.InternalOptions(
             logLevel,
             connectLogger,

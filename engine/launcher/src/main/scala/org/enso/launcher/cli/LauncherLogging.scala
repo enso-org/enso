@@ -4,14 +4,14 @@ import java.nio.file.Path
 import org.enso.launcher.distribution.DefaultManagers
 import org.slf4j.event.Level
 
-import org.enso.logging.LoggingCollectorHelper
+import org.enso.logging.LoggingSetupHelper
 import org.enso.logging.LoggingServiceManager
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages setting up the logging service within the launcher.
   */
-object LauncherLogging extends LoggingCollectorHelper {
+object LauncherLogging extends LoggingSetupHelper {
 
   /** @inheritdoc */
   override val defaultLogLevel: Level = Level.WARN
@@ -22,8 +22,6 @@ object LauncherLogging extends LoggingCollectorHelper {
   /** @inheritdoc */
   override lazy val logPath: Path =
     DefaultManagers.distributionManager.paths.logs
-
-  override val logComponentName: String = "launcher"
 
   /** Turns off the main logging service, falling back to just a stderr backend.
     *
@@ -37,6 +35,6 @@ object LauncherLogging extends LoggingCollectorHelper {
   def prepareForUninstall(logLevel: Option[Level]): Unit = {
     waitForSetup()
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
-    LoggingServiceManager.fallbackToLocalConsole(actualLogLevel, "launcher")
+    LoggingServiceManager.fallbackToLocalConsole(actualLogLevel)
   }
 }

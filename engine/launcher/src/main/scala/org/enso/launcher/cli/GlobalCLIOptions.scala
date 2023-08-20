@@ -1,14 +1,8 @@
 package org.enso.launcher.cli
 
-import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
-import org.enso.logger.ColorMode.{Always, Auto, Never}
-import org.enso.logger.ColorMode
 
 import java.net.URI
-
-//import org.enso.loggingservice.ColorMode.{Always, Auto, Never}
-//import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.slf4j.event.Level
 
 /** Gathers settings set by the global CLI options.
@@ -20,7 +14,6 @@ import org.slf4j.event.Level
   *                     printed
   * @param useJSON specifies if output should be in JSON format, if it is
   *                supported (currently only the version command supports JSON)
-  * @param colorMode specifies if console output should contain colors
   * @param internalOptions options that are remembered to pass them to launcher
   *                        child processes
   */
@@ -28,7 +21,6 @@ case class GlobalCLIOptions(
   autoConfirm: Boolean,
   hideProgress: Boolean,
   useJSON: Boolean,
-  colorMode: ColorMode, // TODO: no longer supported
   internalOptions: InternalOptions
 )
 
@@ -36,7 +28,6 @@ object GlobalCLIOptions {
   val HIDE_PROGRESS = "hide-progress"
   val AUTO_CONFIRM  = "auto-confirm"
   val USE_JSON      = "json"
-  val COLOR_MODE    = "color"
 
   /** Internal options that are remembered to pass them to launcher child
     * processes.
@@ -78,39 +69,6 @@ object GlobalCLIOptions {
     val hideProgress =
       if (config.hideProgress) Seq(s"--$HIDE_PROGRESS") else Seq()
     val useJSON = if (config.useJSON) Seq(s"--$USE_JSON") else Seq()
-    autoConfirm ++ hideProgress ++ useJSON ++
-    LauncherColorMode.toOptions(
-      config.colorMode
-    ) ++ config.internalOptions.toOptions
-  }
-}
-
-object LauncherColorMode {
-
-  /** [[Argument]] instance used to parse [[ColorMode]] from CLI.
-    */
-  implicit val argument: Argument[ColorMode] = {
-    case "never"  => Right(Never)
-    case "no"     => Right(Never)
-    case "auto"   => Right(Auto)
-    case "always" => Right(Always)
-    case "yes"    => Right(Always)
-    case other =>
-      OptsParseError.left(
-        s"Unknown color mode value `$other`. Supported values are: " +
-        s"never | no | auto | always | yes."
-      )
-  }
-
-  /** Creates command line options that can be passed to a launcher process to
-    * inherit our color mode.
-    */
-  def toOptions(colorMode: ColorMode): Seq[String] = {
-    val name = colorMode match {
-      case Never  => "never"
-      case Auto   => "auto"
-      case Always => "always"
-    }
-    Seq(s"--${GlobalCLIOptions.COLOR_MODE}", name)
+    autoConfirm ++ hideProgress ++ useJSON ++ config.internalOptions.toOptions
   }
 }

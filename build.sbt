@@ -267,8 +267,9 @@ lazy val enso = (project in file("."))
     `profiling-utils`,
     `logging-utils`,
     `logging-jutil`,
+    `logging-config`,
     `logging-logback`,
-    `logging-socket-collector`,
+    `logging-server`,
     `logging-utils-akka`,
     filewatcher,
     `logging-service`,
@@ -689,8 +690,8 @@ lazy val `logging-utils` = project
     )
   )
 
-lazy val `logging-socket-collector` = project
-  .in(file("lib/scala/logging-socket-collector"))
+lazy val `logging-server` = project
+  .in(file("lib/scala/logging-server"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -699,7 +700,6 @@ lazy val `logging-socket-collector` = project
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
       "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
-      "com.typesafe"   % "config"          % typesafeConfigVersion,
       "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
       akkaHttp
     )
@@ -713,15 +713,22 @@ lazy val `logging-jutil` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
-      "com.typesafe"   % "config"          % typesafeConfigVersion,
-      "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
-      akkaHttp
+      "org.slf4j" % "slf4j-api" % slf4jVersion
     )
   )
   .dependsOn(`logging-logback`)
+
+lazy val `logging-config` = project
+  .in(file("lib/scala/logging-config"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "com.typesafe" % "config"    % typesafeConfigVersion,
+      "org.slf4j"    % "slf4j-api" % slf4jVersion
+    )
+  )
 
 lazy val `logging-logback` = project
   .in(file("lib/scala/logging-logback"))
@@ -737,6 +744,7 @@ lazy val `logging-logback` = project
       akkaHttp
     )
   )
+  .dependsOn(`logging-config`)
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
@@ -746,8 +754,7 @@ lazy val `logging-utils-akka` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"          % "slf4j-api"  % slf4jVersion,
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-      "org.scalatest"     %% "scalatest"  % scalatestVersion % Test
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion
     )
   )
 
@@ -950,7 +957,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
   .dependsOn(`logging-utils-akka`)
-  .dependsOn(`logging-socket-collector`)
+  .dependsOn(`logging-server`)
   .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -1210,9 +1217,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(`edition-updater`)
-  //.dependsOn(`logging-service`)
   .dependsOn(`logging-utils-akka`)
-  .dependsOn(`logging-socket-collector`)
+  .dependsOn(`logging-server`)
   .dependsOn(`logging-jutil`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
@@ -1484,7 +1490,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
-  .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-parser`)
@@ -1735,7 +1740,6 @@ lazy val `engine-runner` = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
-          "-H:IncludeResources=.*logback.xml$",
           "--macro:truffle",
           "--language:js",
           //          "-g",
@@ -1797,8 +1801,7 @@ lazy val launcher = project
         staticOnLinux = true,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "-H:IncludeResources=.*logback.xml$"
+          "-H:IncludeResources=.*Main.enso$"
         )
       )
       .dependsOn(installNativeImage)
@@ -1831,14 +1834,17 @@ lazy val launcher = project
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
       .value,
-    Test / parallelExecution := false
+    (Test / testOnly) := (Test / testOnly)
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare())
+      .evaluated
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-utils` % "test->test")
-  .dependsOn(`logging-socket-collector`)
+  .dependsOn(`logging-server`)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -2067,7 +2073,6 @@ lazy val `library-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
   .dependsOn(testkit % Test)
-//.dependsOn(`logging-service` % Test)
 
 lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))

@@ -2,7 +2,7 @@ package org.enso.distribution.config
 
 import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
-import io.circe.{yaml, Json}
+import io.circe.{Json, yaml}
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
 
@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try, Using}
 
 /** Manages the global configuration of the distribution. */
 class GlobalConfigurationManager(distributionManager: DistributionManager) {
-  private val logger = Logger[this.type]
+  private lazy val logger = Logger[GlobalConfigurationManager]
 
   /** Location of the global configuration file. */
   def configLocation: Path =

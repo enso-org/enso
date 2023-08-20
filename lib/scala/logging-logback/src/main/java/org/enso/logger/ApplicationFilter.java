@@ -1,5 +1,6 @@
 package org.enso.logger;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
@@ -16,7 +17,8 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
   public FilterReply decide(ILoggingEvent event) {
     for (var entry : loggers.entrySet()) {
       if (event.getLoggerName().startsWith(entry.getKey())) {
-        if (event.getLevel().isGreaterOrEqual(entry.getValue())) {
+        Level loggerLevel = Level.convertAnSLF4JLevel(entry.getValue());
+        if (event.getLevel().isGreaterOrEqual(loggerLevel)) {
           return FilterReply.NEUTRAL;
         } else {
           return FilterReply.DENY;
