@@ -54,7 +54,8 @@ type URI
        - internal_uri: The internal representation of the URI.
     Value internal_uri
 
-    ## Convert this to URI.
+    ## PRIVATE
+       Convert this to URI.
 
        > Examples
          Convert a URI to a URI (a no op).

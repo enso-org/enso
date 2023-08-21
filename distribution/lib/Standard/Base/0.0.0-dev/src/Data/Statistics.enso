@@ -357,6 +357,7 @@ is_valid v = case v of
 
 ## PRIVATE
 type Accumulator
+    ## PRIVATE
     new : Boolean -> Integer -> Accumulator
     new min_max=True moments=0 = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0)
 

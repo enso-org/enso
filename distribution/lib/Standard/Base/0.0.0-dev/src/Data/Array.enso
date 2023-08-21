@@ -15,10 +15,10 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
+import project.Internal.Array_Like_Helpers
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Internal.Array_Like_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
@@ -54,7 +54,8 @@ type Array
     length : Integer
     length self = Array_Like_Helpers.length self
 
-    ## Identity.
+    ## PRIVATE
+       Identity.
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
     to_array : Array

@@ -1,9 +1,7 @@
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Number
 
-## Alias Pi (Constant)
-
-   The mathematical constant pi, equal to the ratio of a circle circumference
+## The mathematical constant pi, equal to the ratio of a circle circumference
    to its diameter.
 
    > Example
@@ -13,9 +11,7 @@ import project.Data.Numbers.Number
 pi : Decimal
 pi = 3.1415926535897932385
 
-## ALIAS e (Constant)
-
-   The mathematical constant e, the base of the natural logarithm.
+## The mathematical constant e, the base of the natural logarithm.
 
    > Example
      Calculating the natural logarithm of 3.

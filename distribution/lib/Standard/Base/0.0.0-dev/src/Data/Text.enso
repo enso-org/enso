@@ -101,9 +101,7 @@ type Text
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
-    ## ALIAS Check Emptiness
-
-       Check if `self` is empty.
+    ## Check if `self` is empty.
 
        ! What is Empty?
          Text is considered to be empty when its length is zero.
@@ -115,9 +113,7 @@ type Text
     is_empty : Boolean
     is_empty self = self == ""
 
-    ## ALIAS Check Non-Emptiness
-
-       Check if `self` is not empty.
+    ## Check if `self` is not empty.
 
        ! What is Not Empty?
          Text is considered to be not empty when its length is greater than zero.

@@ -156,8 +156,8 @@ type Period
 
        This is useful when a period used for going forward in time needs to be
        used for going backwards instead.
-    negated : Period
-    negated self = Period.Value (self.internal_period.negated)
+    negate : Period
+    negate self = Period.Value (self.internal_period.negated)
 
     ## PRIVATE
        Convert Period to a friendly string.

@@ -184,7 +184,8 @@ type JS_Object
     to_display_text self =
         self.to_text.to_display_text
 
-    ## Convert to a JSON representation.
+    ## PRIVATE
+       Convert to a JSON representation.
     to_json : Text
     to_json self = self.to_text
 
@@ -215,6 +216,7 @@ type JS_Object_Comparator
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 
+## PRIVATE
 Comparable.from (_:JS_Object) = JS_Object_Comparator
 
 ## PRIVATE

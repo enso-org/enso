@@ -4,15 +4,14 @@ import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.IO
 
 from project.Data.Boolean import Boolean, False, True
-from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -621,6 +620,7 @@ type Decimal
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             Decimal.round_decimal_builtin self decimal_places use_bankers
 
+    ## PRIVATE
     round_decimal_builtin n decimal_places use_bankers = @Builtin_Method "Decimal.round"
 
     ## Compute the negation of this.
@@ -932,6 +932,7 @@ type Integer
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
                 Integer.round_integer_builtin self decimal_places use_bankers
 
+    ## PRIVATE
     round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 
     ## Compute the negation of this.

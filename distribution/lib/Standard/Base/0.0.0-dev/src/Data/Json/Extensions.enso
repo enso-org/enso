@@ -23,7 +23,8 @@ from project.Data.Text.Extensions import all
 Any.to_json : Text
 Any.to_json self = Json.stringify self
 
-## Converts the given value to a JSON serialized value.
+## PRIVATE
+   Converts the given value to a JSON serialized value.
 Error.to_json : Text
 Error.to_json self = self.to_js_object.to_text
 

@@ -75,7 +75,8 @@ type Date_Range
         _ : Date_Period ->
             self.with_step new_step.to_period
 
-    ## Convert to a textual representation.
+    ## PRIVATE
+       Convert to a textual representation.
     to_text : Text
     to_text self =
         middle = if self.increasing then " up to " else " down to "
@@ -83,16 +84,18 @@ type Date_Range
             " by " + self.step.to_display_text
         "(Date_Range from " + self.start.to_text + middle + self.end.to_text + step + ")"
 
-    ## Convert to a display representation.
+    ## PRIVATE
+       Convert to a display representation.
     to_display_text : Text
     to_display_text self =
         start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
         step = if self.step == (Period.new days=1) then "" else
-            effective_step = if self.increasing then self.step else self.step.negated
+            effective_step = if self.increasing then self.step else -self.step.negate
             " by " + effective_step.to_display_text
         start + step + "]"
 
-    ## Convert to a human-readable representation.
+    ## PRIVATE
+       Convert to a human-readable representation.
     pretty : Text
     pretty self = self.to_text
 

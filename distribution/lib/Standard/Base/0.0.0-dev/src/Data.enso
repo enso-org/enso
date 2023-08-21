@@ -19,7 +19,7 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS Load, Open
+## ALIAS load, open
    GROUP Input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
@@ -143,7 +143,7 @@ list_directory directory name_filter=Nothing recursive=False =
     File.new directory . list name_filter=name_filter recursive=recursive
 
 ## ALIAS Download, HTTP Get
-   GROUP Web
+   GROUP Input
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
