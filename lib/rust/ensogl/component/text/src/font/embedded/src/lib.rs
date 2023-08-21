@@ -20,7 +20,7 @@
 
 use enso_prelude::*;
 
-use ensogl_text_font_family as family;
+use enso_font as family;
 
 
 
@@ -45,16 +45,23 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 #[allow(missing_docs)]
 #[derive(Clone)]
 pub struct Embedded {
-    pub definitions: HashMap<family::Name, family::Definition>,
+    pub definitions: HashMap<family::Name, family::FontFamily>,
     pub data:        HashMap<&'static str, &'static [u8]>,
+    pub features:    HashMap<family::Name, Vec<rustybuzz::Feature>>,
 }
 
-impl Embedded {
-    /// Construct and load all the embedded fonts to memory.
-    pub fn init_and_load_embedded_fonts() -> Self {
+impl Default for Embedded {
+    fn default() -> Self {
         let data = embedded_fonts_data();
-        let definitions = embedded_family_definitions_ext();
-        Self { data, definitions }
+        let definitions = embedded_family_definitions();
+        let features = embedded_family_features()
+            .into_iter()
+            .map(|(family, feats)| {
+                // Safe to `unwrap` because the input is compile-time constant.
+                (family, feats.into_iter().map(|feat| feat.parse().unwrap()).collect())
+            })
+            .collect();
+        Self { data, definitions, features }
     }
 }
 
@@ -76,62 +83,10 @@ mod test {
 
     #[test]
     fn loading_embedded_fonts() {
-        let fonts = Embedded::init_and_load_embedded_fonts();
-        let example_font = fonts.data.get("DejaVuSans.ttf").unwrap();
-
+        let fonts = Embedded::default();
+        let example_font = fonts.data.get("Enso-Regular.ttf").unwrap();
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);
-        assert_eq!(0x1d, example_font[example_font.len() - 1]);
+        assert_eq!(0x00, example_font[example_font.len() - 1]);
     }
-}
-
-
-// ======================
-// === Embedded Fonts ===
-// ======================
-
-/// List of embedded fonts. The list is extended with hardcoded "DejaVuSans" font. It should be
-/// generated from the build.rs script in the future.
-pub fn embedded_family_definitions_ext() -> HashMap<family::Name, family::Definition> {
-    let mut map = embedded_family_definitions();
-    let dejavusans = family::Definition::NonVariable(family::NonVariableDefinition::from_iter([
-        (
-            family::NonVariableFaceHeader::new(
-                family::Width::Normal,
-                family::Weight::Normal,
-                family::Style::Normal,
-            ),
-            "DejaVuSans.ttf".to_string(),
-        ),
-        (
-            family::NonVariableFaceHeader::new(
-                family::Width::Normal,
-                family::Weight::Bold,
-                family::Style::Normal,
-            ),
-            "DejaVuSans-Bold.ttf".to_string(),
-        ),
-    ]));
-    let dejavusansmono =
-        family::Definition::NonVariable(family::NonVariableDefinition::from_iter([
-            (
-                family::NonVariableFaceHeader::new(
-                    family::Width::Normal,
-                    family::Weight::Normal,
-                    family::Style::Normal,
-                ),
-                "DejaVuSansMono.ttf".to_string(),
-            ),
-            (
-                family::NonVariableFaceHeader::new(
-                    family::Width::Normal,
-                    family::Weight::Bold,
-                    family::Style::Normal,
-                ),
-                "DejaVuSansMono-Bold.ttf".to_string(),
-            ),
-        ]));
-    map.insert("dejavusans".into(), dejavusans);
-    map.insert("dejavusansmono".into(), dejavusansmono);
-    map
 }

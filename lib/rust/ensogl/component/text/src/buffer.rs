@@ -7,12 +7,11 @@ use enso_text::unit::*;
 
 use crate::buffer::formatting::Formatting;
 use crate::buffer::rope::formatted::FormattedRope;
-use crate::buffer::selection::Selection;
 
+use enso_font::NonVariableFaceHeader;
 use enso_frp as frp;
 use enso_text::text;
 use enso_text::text::BoundsError;
-use ensogl_text_font_family::NonVariableFaceHeader;
 
 
 // ==============
@@ -34,6 +33,7 @@ pub mod traits {
 
 pub use formatting::*;
 pub use movement::*;
+pub use selection::Selection;
 
 pub use enso_text::index::*;
 pub use enso_text::unit::*;
@@ -124,7 +124,7 @@ impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     Input {
         cursors_move               (Transform),
         cursors_select             (Transform),
@@ -189,7 +189,7 @@ impl Buffer {
         let frp = Frp::new();
         let network = &frp.network;
         let input = &frp.input;
-        let output = &frp.output;
+        let output = &frp.private.output;
         let model = model.into();
         let m = &model;
 
@@ -200,11 +200,11 @@ impl Buffer {
             mod_on_delete_right <- input.delete_right.map(f_!(m.delete_right()));
             mod_on_delete_word_left <- input.delete_word_left.map(f_!(m.delete_word_left()));
             mod_on_delete_word_right <- input.delete_word_right.map(f_!(m.delete_word_right()));
-            mod_on_delete <- any(mod_on_delete_left,mod_on_delete_right, mod_on_delete_word_left,
+            mod_on_delete <- any(mod_on_delete_left, mod_on_delete_right, mod_on_delete_word_left,
                 mod_on_delete_word_right);
             any_mod <- any(mod_on_insert, mod_on_paste, mod_on_delete);
             changed <- any_mod.map(|m| !m.changes.is_empty());
-            output.source.text_change <+ any_mod.gate(&changed).map(|m| Rc::new(m.changes.clone()));
+            output.text_change <+ any_mod.gate(&changed).map(|m| Rc::new(m.changes.clone()));
 
             sel_on_move <- input.cursors_move.map(f!((t) m.moved_selection(*t,false)));
             sel_on_mod <- input.cursors_select.map(f!((t) m.moved_selection(*t,true)));
@@ -236,37 +236,37 @@ impl Buffer {
             eval input.mod_property (((range,value)) m.mod_property(range,*value));
             eval input.set_property_default ((prop) m.set_property_default(*prop));
 
-            output.source.selection_edit_mode <+ any_mod;
-            output.source.selection_non_edit_mode <+ sel_on_undo;
-            output.source.selection_non_edit_mode <+ sel_on_move;
-            output.source.selection_non_edit_mode <+ sel_on_mod;
-            output.source.selection_non_edit_mode <+ sel_on_clear;
-            output.source.selection_non_edit_mode <+ sel_on_keep_last;
-            output.source.selection_non_edit_mode <+ sel_on_keep_first;
-            output.source.selection_non_edit_mode <+ sel_on_keep_newest;
-            output.source.selection_non_edit_mode <+ sel_on_keep_oldest;
-            output.source.selection_non_edit_mode <+ sel_on_keep_lst_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_fst_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_newest_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_oldest_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_set_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_add_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_set_single_selection;
-            output.source.selection_non_edit_mode <+ sel_on_set_newest_end;
-            output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
-            output.source.selection_non_edit_mode <+ sel_on_remove_all;
+            output.selection_edit_mode <+ any_mod;
+            output.selection_non_edit_mode <+ sel_on_undo;
+            output.selection_non_edit_mode <+ sel_on_move;
+            output.selection_non_edit_mode <+ sel_on_mod;
+            output.selection_non_edit_mode <+ sel_on_clear;
+            output.selection_non_edit_mode <+ sel_on_keep_last;
+            output.selection_non_edit_mode <+ sel_on_keep_first;
+            output.selection_non_edit_mode <+ sel_on_keep_newest;
+            output.selection_non_edit_mode <+ sel_on_keep_oldest;
+            output.selection_non_edit_mode <+ sel_on_keep_lst_cursor;
+            output.selection_non_edit_mode <+ sel_on_keep_fst_cursor;
+            output.selection_non_edit_mode <+ sel_on_keep_newest_cursor;
+            output.selection_non_edit_mode <+ sel_on_keep_oldest_cursor;
+            output.selection_non_edit_mode <+ sel_on_set_cursor;
+            output.selection_non_edit_mode <+ sel_on_add_cursor;
+            output.selection_non_edit_mode <+ sel_on_set_single_selection;
+            output.selection_non_edit_mode <+ sel_on_set_newest_end;
+            output.selection_non_edit_mode <+ sel_on_set_oldest_end;
+            output.selection_non_edit_mode <+ sel_on_remove_all;
 
-            eval output.source.selection_edit_mode ((t) m.set_selection(&t.selection_group));
-            eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
+            eval output.selection_edit_mode ((t) m.set_selection(&t.selection_group));
+            eval output.selection_non_edit_mode ((t) m.set_selection(t));
 
             // === Buffer Area Management ===
 
             eval input.set_first_view_line ((line) m.set_first_view_line(*line));
-            output.source.first_view_line <+ input.set_first_view_line;
+            output.first_view_line <+ input.set_first_view_line;
 
             new_first_view_line <- input.mod_first_view_line.map
                 (f!((diff) m.mod_first_view_line(*diff)));
-            output.source.first_view_line <+ new_first_view_line;
+            output.first_view_line <+ new_first_view_line;
         }
         Self { model, frp }
     }

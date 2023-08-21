@@ -2,12 +2,12 @@
 <component name="#ProjectRunConfigurationManager">
   <configuration 
     default="false" 
-    name="clippy/ensogl-text-font-family [wasm]"
+    name="clippy/enso-font [wasm]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🎨 EnsoGl      component/text/src/font/family"
+    folderName="📚 Lib             font-family"
   >
-    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package ensogl-text-font-family" />
+    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package enso-font" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

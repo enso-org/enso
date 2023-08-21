@@ -65,14 +65,12 @@ pub struct ComputedValueInfo {
 
 impl ComputedValueInfo {
     fn apply_update(&mut self, update: ExpressionUpdate) {
-        // We do not erase method_call information to avoid ports "flickering" on every computation.
-        // the method_call should be updated soon anyway.
-        // The type of the expression could also be kept, but so far we use the "lack of type"
-        // information to inform user the results are recomputed.
+        // We do not erase this information to avoid ports "flickering" on every computation.
+        // The method_call should be updated soon anyway.
         if !matches!(update.payload, ExpressionUpdatePayload::Pending { .. }) {
             self.method_call = update.method_call.map(|mc| mc.method_pointer);
+            self.typename = update.typename.map(ImString::new);
         }
-        self.typename = update.typename.map(ImString::new);
         self.payload = update.payload
     }
 }
@@ -688,7 +686,7 @@ mod tests {
         let update1 = value_update_with_dataflow_error(expr2);
         let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
-        assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
+        assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.clone().into()));
         assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value {
             warnings: None,
         }));
@@ -708,10 +706,9 @@ mod tests {
         // Set pending value
         let update1 = value_pending_update(expr1);
         registry.apply_updates(vec![update1]);
-        // Method pointer should not be cleared to avoid port's flickering.
+        // Method pointer and type are not affected; pending state is shown by an opacity change.
         assert_eq!(registry.get(&expr1).unwrap().method_call, Some(method_ptr));
-        // The type is erased to show invalidated path.
-        assert_eq!(registry.get(&expr1).unwrap().typename, None);
+        assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
         assert!(matches!(
             registry.get(&expr1).unwrap().payload,
             ExpressionUpdatePayload::Pending { message: None, progress: None }

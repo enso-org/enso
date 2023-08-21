@@ -79,7 +79,7 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 /** A signal that a file has been deleted. This must not be called before the request is
  * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
-    id: backend.AssetId
+    key: backend.AssetId
 }
 
 /** Every possible type of asset list event. */
