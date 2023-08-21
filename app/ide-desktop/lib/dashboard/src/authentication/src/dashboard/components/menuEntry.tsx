@@ -17,23 +17,13 @@ export interface MenuEntryProps {
     action: shortcutsModule.KeyboardAction
     disabled?: boolean
     title?: string
-    /** Must include the `hover:` prefix, if using Tailwind CSS. */
-    hoverClassName?: string
     paddingClassName?: string
     doAction: () => void
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-    const {
-        hidden = false,
-        action,
-        disabled = false,
-        title,
-        hoverClassName,
-        paddingClassName,
-        doAction,
-    } = props
+    const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const info = shortcuts.keyboardShortcutInfo[action]
     React.useEffect(() => {
@@ -50,9 +40,9 @@ export default function MenuEntry(props: MenuEntryProps) {
         <button
             disabled={disabled}
             title={title}
-            className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 ${
-                hoverClassName ?? 'hover:bg-black-a10'
-            } ${paddingClassName ?? 'px-3 py-1'}`}
+            className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black-a10 ${
+                paddingClassName ?? 'px-3 py-1'
+            }`}
             onClick={event => {
                 event.stopPropagation()
                 doAction()

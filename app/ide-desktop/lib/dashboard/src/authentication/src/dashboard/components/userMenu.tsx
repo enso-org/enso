@@ -40,14 +40,14 @@ export default function UserMenu(props: UserMenuProps) {
     return (
         <Modal className="absolute overflow-hidden bg-dim w-full h-full z-10">
             <div
-                className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-3 py-2.25"
+                className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-2 py-2.25"
                 onClick={event => {
                     event.stopPropagation()
                 }}
             >
                 {organization != null ? (
                     <>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 px-1">
                             <img src={DefaultUserIcon} height={28} width={28} />
                             <span className="leading-170 h-6 py-px">{organization.name}</span>
                         </div>
@@ -55,8 +55,7 @@ export default function UserMenu(props: UserMenuProps) {
                             {canChangePassword && (
                                 <MenuEntry
                                     action={shortcuts.KeyboardAction.changeYourPassword}
-                                    hoverClassName=""
-                                    paddingClassName="py-1"
+                                    paddingClassName="p-1"
                                     doAction={() => {
                                         setModal(<ChangePasswordModal />)
                                     }}
@@ -64,8 +63,7 @@ export default function UserMenu(props: UserMenuProps) {
                             )}
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signOut}
-                                hoverClassName=""
-                                paddingClassName="py-1"
+                                paddingClassName="p-1"
                                 doAction={() => {
                                     onSignOut()
                                     // Wait until React has switched back to drive view, before signing out.
@@ -84,7 +82,6 @@ export default function UserMenu(props: UserMenuProps) {
                         <div className="flex flex-col">
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signIn}
-                                hoverClassName=""
                                 paddingClassName="py-1"
                                 doAction={() => {
                                     navigate(app.LOGIN_PATH)
