@@ -20,7 +20,8 @@ polyglot java import org.enso.base.Text_Utils
      users with efficient concatenation operations.
 @Builtin_Type
 type Text
-    ## ALIAS Count
+    ## ALIAS count
+       GROUP Metadata
        Computes the number of characters in the text.
 
        ! What is a Character?
@@ -35,7 +36,8 @@ type Text
     length : Integer
     length self = @Builtin_Method "Text.length"
 
-    ## ALIAS Concatenate
+    ## ALIAS concatenate
+       GROUP Operators
        Concatenates the text that to the right side of this.
 
        Arguments:
@@ -48,7 +50,8 @@ type Text
     + : Text -> Text
     + self that = @Builtin_Method "Text.+"
 
-    ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
+    ## GROUP Logical
+       Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
        Arguments:
        - that: The text to compare `self` for case-insensitive equality with.
@@ -75,8 +78,8 @@ type Text
     equals_ignore_case self that locale=Locale.default =
         Text_Utils.equals_ignore_case self that locale.java_locale
 
-    ## ADVANCED
-       PRIVATE
+    ## PRIVATE
+       ADVANCED
        UNSTABLE
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
@@ -101,7 +104,8 @@ type Text
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
-    ## Check if `self` is empty.
+    ## GROUP Logical
+       Check if `self` is empty.
 
        ! What is Empty?
          Text is considered to be empty when its length is zero.
@@ -113,7 +117,8 @@ type Text
     is_empty : Boolean
     is_empty self = self == ""
 
-    ## Check if `self` is not empty.
+    ## GROUP Logical
+       Check if `self` is not empty.
 
        ! What is Not Empty?
          Text is considered to be not empty when its length is greater than zero.
