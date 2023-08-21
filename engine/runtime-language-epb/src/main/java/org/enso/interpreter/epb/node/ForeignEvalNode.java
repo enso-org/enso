@@ -17,7 +17,6 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.ForeignParsingException;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
-import org.graalvm.polyglot.Context;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
@@ -72,7 +71,8 @@ public class ForeignEvalNode extends RootNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         var foreignLang = code.getLanguage();
         String truffleLangId = foreignLang.getTruffleId();
-        var installedLanguages = Context.getCurrent().getEngine().getLanguages();
+        var context = EpbContext.get(this);
+        var installedLanguages = context.getEnv().getInternalLanguages();
         if (!installedLanguages.containsKey(truffleLangId)) {
           this.parseException =
               new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
