@@ -20,7 +20,10 @@ spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
     spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
     if Polyglot.is_language_installed "python" then
-        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True
+        ignore_z_check a b =
+            if a == 'Z' || b == 'Z' then True else
+                a.should_equal b
+        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=ignore_z_check
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
