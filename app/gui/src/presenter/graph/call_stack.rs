@@ -127,7 +127,7 @@ impl Model {
     // needs to be taken to avoid infinite loops and any updates to the call stack should go
     // through the breadcrumbs.
 
-    /// Method to call when existing a node in the graph editor. This will move the selection in
+    /// Method to call when exiting a node in the graph editor. This will move the selection in
     /// the breadcrumbs (and the call stack itself) one level up.
     fn node_exited(&self) {
         self.shift_breadcrumb_selection_left(1)
