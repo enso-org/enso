@@ -85,32 +85,27 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       fnPythonZone = ctx.getEnv().parsePublic(src).call();
       nodePythonZone = insert(InteropLibrary.getFactory().create(fnPythonZone));
     }
+    int totalSeconds = totalSeconds(time, date, zone);
+    return nodePythonZone.execute(fnPythonZone, totalSeconds);
+  }
 
+  @CompilerDirectives.TruffleBoundary
+  private static int totalSeconds(LocalTime time, LocalDate date, ZoneId zone) {
     Instant when;
     if (time != null) {
       if (date != null) {
-        when = instantAtDateTimeZone(date, time, zone);
+        when = date.atTime(time).atZone(zone).toInstant();
       } else {
         when = Instant.now();
       }
     } else {
       if (date != null) {
-        when = instantAtStartOfDay(date, zone);
+        when = date.atStartOfDay(zone).toInstant();
       } else {
         when = Instant.now();
       }
     }
-    return nodePythonZone.execute(fnPythonZone, zone.getRules().getOffset(when).getTotalSeconds());
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static Instant instantAtDateTimeZone(LocalDate date, LocalTime time, ZoneId zone) {
-    return date.atTime(time).atZone(zone).toInstant();
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Instant instantAtStartOfDay(LocalDate date, ZoneId zone) {
-    return date.atStartOfDay(zone).toInstant();
+    return zone.getRules().getOffset(when).getTotalSeconds();
   }
 
   private Object combinePythonDateTimeZone(Object date, Object time, Object zone)
