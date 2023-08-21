@@ -2,6 +2,7 @@ package org.enso.logger.config;
 
 import com.typesafe.config.Config;
 import java.net.URI;
+import org.slf4j.event.Level;
 
 public class SocketAppender extends Appender {
   private String name;
@@ -33,11 +34,22 @@ public class SocketAppender extends Appender {
     return name;
   }
 
-  public boolean isSameTarget(URI uri) {
-    return uri.getHost().equals(hostname) && uri.getPort() == port;
-  }
-
   public static Appender parse(Config config) {
     return new SocketAppender(config.getString("hostname"), config.getInt("port"), config);
+  }
+
+  @Override
+  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
+    return appenderSetup.setupSocketAppender(logLevel, hostname, port);
+  }
+
+  @Override
+  public Boolean setupForURI(Level logLevel, String host, int port, AppenderSetup appenderSetup) {
+    return appenderSetup.setupSocketAppender(logLevel, host, port);
+  }
+
+  @Override
+  public boolean isSameTargetAs(URI uri) {
+    return uri.getHost().equals(hostname) && uri.getPort() == port;
   }
 }

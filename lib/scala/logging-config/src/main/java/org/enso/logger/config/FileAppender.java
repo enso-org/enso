@@ -1,6 +1,8 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
+import java.nio.file.Path;
+import org.slf4j.event.Level;
 
 public class FileAppender extends Appender {
 
@@ -27,6 +29,20 @@ public class FileAppender extends Appender {
         config.hasPath(immediateFlushKey) ? config.getBoolean("immediate-flush") : false;
     String pattern = config.hasPath(patternKey) ? config.getString(patternKey) : null;
     return new FileAppender(append, immediateFlush, pattern, config);
+  }
+
+  @Override
+  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
+    return appenderSetup.setupFileAppender(logLevel, null, null);
+  }
+
+  @Override
+  public Boolean setupForPath(
+      Level logLevel,
+      Path componentLogPath,
+      String componentLogPrefix,
+      AppenderSetup appenderSetup) {
+    return appenderSetup.setupFileAppender(logLevel, componentLogPath, componentLogPrefix);
   }
 
   @Override

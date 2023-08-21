@@ -1,6 +1,7 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
+import org.slf4j.event.Level;
 
 public class SentryAppender extends Appender {
   private String name;
@@ -14,6 +15,11 @@ public class SentryAppender extends Appender {
 
   public static Appender parse(Config config) {
     return new SentryAppender(config.getString("dsn"), config);
+  }
+
+  @Override
+  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
+    return appenderSetup.setupSentryAppender(logLevel, dsn);
   }
 
   @Override

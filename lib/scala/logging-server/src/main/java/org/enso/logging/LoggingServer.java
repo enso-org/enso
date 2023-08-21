@@ -9,17 +9,17 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import org.slf4j.event.Level;
 
-class ForwardToServer extends LoggingService {
+class LoggingServer extends LoggingService {
 
   private int port;
   private SimpleSocketServer logServer;
 
-  public ForwardToServer(int port) {
+  public LoggingServer(int port) {
     this.port = port;
     this.logServer = null;
   }
 
-  public URI logToFile(Level level, Path path, String prefix, String appenderName)
+  public URI start(Level level, Path path, String prefix, String appenderName)
       throws URISyntaxException, JoranException {
     var lc = new LoggerContext();
     var configurator = new JoranConfigurator();

@@ -4,12 +4,12 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
-import org.enso.logger.config.Loggers;
+import org.enso.logger.config.LoggersLevels;
 
 public class ApplicationFilter extends Filter<ILoggingEvent> {
-  private final Loggers loggers;
+  private final LoggersLevels loggers;
 
-  private ApplicationFilter(Loggers loggers) {
+  private ApplicationFilter(LoggersLevels loggers) {
     this.loggers = loggers;
   }
 
@@ -28,7 +28,7 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
     return FilterReply.NEUTRAL;
   }
 
-  public static Filter<ILoggingEvent> fromLoggers(Loggers loggers) {
+  public static Filter<ILoggingEvent> fromLoggers(LoggersLevels loggers) {
     return new ApplicationFilter(loggers);
   }
 }

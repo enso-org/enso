@@ -4,8 +4,6 @@ import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
 
-import scala.annotation.unused
-//import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -25,7 +23,7 @@ import zio.interop.catz.core._
 import zio.{ExitCode, Runtime, Scope, UIO, ZAny, ZIO, ZIOAppArgs, ZIOAppDefault}
 
 import java.io.{EOFException, IOException}
-import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
+import java.nio.file.{FileAlreadyExistsException, Files, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
@@ -241,9 +239,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         makeVersionDescription.asString(useJson = false)
       )
       for {
-        opts <- parseOpts(options)
-        profilingLog = opts.profilingPath.map(getSiblingFile(_, ".log"))
-        logLevel <- setupLogging(verbosity, logMasking, profilingLog)
+        opts     <- parseOpts(options)
+        logLevel <- setupLogging(verbosity, logMasking)
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingRuntimeEventsLog,
@@ -263,8 +260,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
   private def setupLogging(
     verbosityLevel: Int,
-    @unused logMasking: Boolean,
-    @unused profilingLog: Option[Path]
+    logMasking: Boolean
   ): ZIO[ZAny, IOException, Level] = {
     val level = verbosityLevel match {
       case 0 => Level.INFO
@@ -278,8 +274,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
     ZIO
       .attempt {
-        Logging.initLogger(Some(level))
-        Logging.setupServerAndForwardLogs(Some(level), logMasking, profilingLog)
+        Logging.initLogger()
+        Logging.setupServerAndForwardLogs(Some(level), logMasking)
         ()
       }
       .catchAll { exception =>
@@ -321,12 +317,4 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       )
     }
 
-  private def getSiblingFile(file: Path, ext: String): Path = {
-    val fileName       = file.getFileName.toString
-    val extensionIndex = fileName.lastIndexOf(".")
-    val newName =
-      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
-      else fileName + ext
-    file.getParent.resolve(newName)
-  }
 }

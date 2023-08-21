@@ -1,7 +1,6 @@
 package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.LoggerSetup
 import org.enso.cli.CLIOutput
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.upgrade.LauncherUpgrader
@@ -10,13 +9,13 @@ import org.enso.launcher.upgrade.LauncherUpgrader
   */
 object Main {
   private def initLogger(): Unit = {
-    LoggerSetup.setupNoOpAppender()
+    LauncherLogging.initLogger()
   }
 
   private def runAppHandlingParseErrors(args: Array[String]): Int =
     LauncherApplication.application.run(args) match {
       case Left(errors) =>
-        //TODO: LauncherLogging.setupFallback()
+        LauncherLogging.prepareForUninstall(None)
         CLIOutput.println(errors.mkString("\n"))
         1
       case Right(exitCode) =>

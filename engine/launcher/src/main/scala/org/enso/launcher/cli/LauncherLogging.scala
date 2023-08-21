@@ -2,11 +2,9 @@ package org.enso.launcher.cli
 
 import java.nio.file.Path
 import org.enso.launcher.distribution.DefaultManagers
+import org.enso.logger.LoggerSetup
 import org.slf4j.event.Level
-
 import org.enso.logging.LoggingSetupHelper
-import org.enso.logging.LoggingServiceManager
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages setting up the logging service within the launcher.
@@ -35,6 +33,6 @@ object LauncherLogging extends LoggingSetupHelper {
   def prepareForUninstall(logLevel: Option[Level]): Unit = {
     waitForSetup()
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
-    LoggingServiceManager.fallbackToLocalConsole(actualLogLevel)
+    LoggerSetup.get().setupConsoleAppender(actualLogLevel)
   }
 }

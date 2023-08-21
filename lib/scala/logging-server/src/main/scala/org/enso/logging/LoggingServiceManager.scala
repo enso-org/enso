@@ -1,7 +1,5 @@
 package org.enso.logging
 
-import org.enso.logger.LoggerSetup
-
 import java.net.URI
 import org.slf4j.event.Level
 
@@ -24,23 +22,15 @@ object LoggingServiceManager {
     appenderName: String
   )(implicit ec: ExecutionContext): Future[URI] = {
     if (loggingService != null) {
-      throw new RuntimeException("logging service already setup")
+      throw new LoggingServiceAlreadySetup()
     } else {
       currentLevel = logLevel
-      val forwarder = new ForwardToServer(port)
+      val forwarder = new LoggingServer(port)
       loggingService = forwarder
       Future {
-        forwarder.logToFile(logLevel, logPath, logFileSuffix, appenderName)
+        forwarder.start(logLevel, logPath, logFileSuffix, appenderName)
       }
     }
-  }
-
-  def fallbackToLocalConsole(logLevel: Level): Unit = {
-    if (loggingService != null) {
-      loggingService.teardown()
-    }
-    LoggerSetup.setup(logLevel)
-    loggingService = null;
   }
 
   def teardown(): Unit = {

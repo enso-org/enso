@@ -2,7 +2,7 @@ package org.enso.distribution.config
 
 import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
-import io.circe.{Json, yaml}
+import io.circe.{yaml, Json}
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
 

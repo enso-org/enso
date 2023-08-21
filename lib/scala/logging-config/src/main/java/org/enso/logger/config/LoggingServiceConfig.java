@@ -16,19 +16,19 @@ public class LoggingServiceConfig {
   public static final String defaultAppenderKey = "defaultAppender";
   public static final String logLevelKey = "log-level";
 
-  private final Loggers loggers;
+  private final LoggersLevels loggers;
   private final Map<String, Appender> appenders;
 
   private final String defaultAppenderName;
   private final Optional<String> logLevel;
-  private final Server server;
+  private final LoggingServer server;
 
   private LoggingServiceConfig(
-      Loggers loggers,
+      LoggersLevels loggers,
       Optional<String> logLevel,
       Map<String, Appender> appenders,
       String defaultAppender,
-      Server server) {
+      LoggingServer server) {
     this.loggers = loggers;
     this.appenders = appenders;
     this.defaultAppenderName = defaultAppender;
@@ -39,10 +39,10 @@ public class LoggingServiceConfig {
   public static LoggingServiceConfig parseConfig() {
     var empty = ConfigFactory.empty().atKey(configurationRoot);
     var root = ConfigFactory.load().withFallback(empty).getConfig(configurationRoot);
-    Server server;
+    LoggingServer server;
     if (root.hasPath(serverKey)) {
       Config serverConfig = root.getConfig(serverKey);
-      server = Server.parse(serverConfig);
+      server = LoggingServer.parse(serverConfig);
     } else {
       server = null;
     }
@@ -54,9 +54,9 @@ public class LoggingServiceConfig {
         appendersMap.put(a.getName(), a);
       }
     }
-    Loggers loggers;
+    LoggersLevels loggers;
     if (root.hasPath(loggersKey)) {
-      loggers = Loggers.parse(root.getConfig(loggersKey));
+      loggers = LoggersLevels.parse(root.getConfig(loggersKey));
     } else {
       loggers = null;
     }
@@ -68,7 +68,7 @@ public class LoggingServiceConfig {
         server);
   }
 
-  public Loggers getLoggers() {
+  public LoggersLevels getLoggers() {
     return loggers;
   }
 
@@ -96,7 +96,7 @@ public class LoggingServiceConfig {
     return logLevel;
   }
 
-  public Server getServer() {
+  public LoggingServer getServer() {
     return server;
   }
 

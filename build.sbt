@@ -705,6 +705,7 @@ lazy val `logging-server` = project
     )
   )
   .dependsOn(`logging-logback`)
+  .dependsOn(`logging-utils`)
 
 lazy val `logging-jutil` = project
   .in(file("lib/scala/logging-jutil"))
@@ -716,7 +717,6 @@ lazy val `logging-jutil` = project
       "org.slf4j" % "slf4j-api" % slf4jVersion
     )
   )
-  .dependsOn(`logging-logback`)
 
 lazy val `logging-config` = project
   .in(file("lib/scala/logging-config"))
@@ -741,6 +741,7 @@ lazy val `logging-logback` = project
       "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
       "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
       "com.typesafe"   % "config"          % typesafeConfigVersion,
+      "io.sentry"      % "sentry-logback"  % "6.28.0" % Provided,
       akkaHttp
     )
   )

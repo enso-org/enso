@@ -654,7 +654,7 @@ object LauncherApplication {
           Launcher.ensurePortable()
         }
 
-        LauncherLogging.initLogger(logLevel)
+        LauncherLogging.initLogger()
 
         val globalCLIOptions = cli.GlobalCLIOptions(
           autoConfirm  = autoConfirm,
@@ -672,8 +672,7 @@ object LauncherApplication {
         LauncherLogging.setup(
           logLevel,
           connectLogger,
-          !disableLogMasking,
-          None
+          !disableLogMasking
         )
         LauncherLogging.waitForSetup()
         initializeApp()

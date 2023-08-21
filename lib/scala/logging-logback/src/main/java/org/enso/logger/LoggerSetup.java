@@ -10,18 +10,49 @@ import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.helpers.NOPAppender;
 
+import io.sentry.SentryOptions;
+import io.sentry.logback.SentryAppender;
+
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import org.enso.logger.config.AppenderSetup;
 import org.enso.logger.config.LoggingServiceConfig;
 import org.enso.logger.config.Appender;
-import org.enso.logger.config.Loggers;
+import org.enso.logger.config.LoggersLevels;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-public class LoggerSetup {
+public class LoggerSetup extends AppenderSetup {
+
+    private static LoggerSetup _setup = null;
+
+    private final static Object lock = new Object();
+
+    public LoggingServiceConfig getConfig() {
+        return config;
+    }
+
+    private final LoggingServiceConfig config;
+
+    private LoggerSetup(LoggingServiceConfig config) {
+        this.config = config;
+    }
+
+    public static LoggerSetup get() {
+        if (_setup == null) {
+            synchronized (lock) {
+                if (_setup == null) {
+                    _setup = new LoggerSetup(LoggingServiceConfig.parseConfig());
+                }
+            }
+        }
+        return _setup;
+    }
 
     private static final String defaultPattern = "[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n";
 
@@ -29,40 +60,43 @@ public class LoggerSetup {
     private static final String socketAppenderKey = "socket";
     private static final String consoleAppenderKey = "console";
 
-    public static Boolean setup() {
+    public Boolean setup() {
         LoggingServiceConfig config = LoggingServiceConfig.parseConfig();
         return setup(config);
     }
 
-    public static Boolean setup(LoggingServiceConfig config) {
+    private Boolean setup(LoggingServiceConfig config) {
         Level defaultLogLevel = config.getLogLevel().map(name -> Level.valueOf(name.toUpperCase())).orElseGet(() -> Level.ERROR);
         return setup(defaultLogLevel, config);
     }
 
-    public static Boolean setup(Level logLevel) {
+    public Boolean setup(Level logLevel) {
         return setup(logLevel, LoggingServiceConfig.parseConfig());
     }
 
-    public static Boolean setup(Level logLevel, LoggingServiceConfig config) {
+    public Boolean setup(Level logLevel, LoggingServiceConfig config) {
         Appender defaultAppender = config.getAppender();
         if (defaultAppender != null) {
-            switch (defaultAppender.getName()) {
-                case fileAppenderKey:
-                    return setupFileAppender(logLevel, null, null, config);
-                case socketAppenderKey:
-                    return setupSocketAppender(logLevel, defaultAppender.getConfig().getString("hostname"), defaultAppender.getConfig().getInt("port"), config);
-                default:
-                    return setupConsoleAppender(logLevel, config);
-            }
+            return defaultAppender.setup(logLevel, this);
         } else {
-            return setupConsoleAppender(logLevel, config);
+            return setupConsoleAppender(logLevel);
         }
     }
-    public static Boolean setupSocketAppender(
+
+    public Boolean setup(Level logLevel, Path componentLogPath, String componentLogPrefix, LoggingServiceConfig config) {
+        Appender defaultAppender = config.getAppender();
+        if (defaultAppender != null) {
+            return defaultAppender.setupForPath(logLevel, componentLogPath, componentLogPrefix, this);
+        } else {
+            return setupConsoleAppender(logLevel);
+        }
+    }
+
+    @Override
+    public boolean setupSocketAppender(
             Level logLevel,
             String hostname,
-            int port,
-            LoggingServiceConfig config) {
+            int port) {
         LoggerAndContext env = contextInit(logLevel, config);
 
         SocketAppender socketAppender = new SocketAppender();
@@ -77,15 +111,14 @@ public class LoggerSetup {
     }
 
 
-    public static Boolean setupFileAppender(
+    @Override
+    public boolean setupFileAppender(
             Level logLevel,
             Path logRoot,
-            String logPrefix,
-            LoggingServiceConfig config
-    ) {
+            String logPrefix) {
         LoggerAndContext env = contextInit(logLevel, config);
 
-        String configPattern = ((org.enso.logger.config.ConsoleAppender)config.getAppender(fileAppenderKey)).getPattern();
+        String configPattern = ((org.enso.logger.config.FileAppender)config.getAppender(fileAppenderKey)).getPattern();
         final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setPattern(configPattern == null ? defaultPattern : configPattern);
         env.finalizeEncoder(encoder);
@@ -109,7 +142,8 @@ public class LoggerSetup {
         return true;
     }
 
-    public static Boolean setupConsoleAppender(Level logLevel, LoggingServiceConfig config) {
+    @Override
+    public boolean setupConsoleAppender(Level logLevel) {
         LoggerAndContext env = contextInit(logLevel, config);
 
         String consolePattern;
@@ -130,7 +164,21 @@ public class LoggerSetup {
         return true;
     }
 
-    public static Boolean setupNoOpAppender() {
+    @Override
+    public boolean setupSentryAppender(Level logLevel, String dsn) {
+        LoggerAndContext env = contextInit(logLevel, config);
+
+        SentryAppender appender = new SentryAppender();
+        SentryOptions opts = new SentryOptions();
+        opts.setDsn(dsn);
+        appender.setOptions(opts);
+
+        env.finalizeAppender(appender);
+        return true;
+    }
+
+    @Override
+    public boolean setupNoOpAppender() {
         LoggerAndContext env = contextInit(Level.ERROR, null);
 
         NOPAppender<ILoggingEvent> appender = new NOPAppender<>();
@@ -146,14 +194,14 @@ public class LoggerSetup {
         context.stop();
     }
 
-    private static  LoggerAndContext contextInit(Level level, LoggingServiceConfig config) {
+    private LoggerAndContext contextInit(Level level, LoggingServiceConfig config) {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.reset();
         context.setName("enso-custom");
         Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
 
         Filter<ILoggingEvent> filter;
-        Loggers loggers = config != null ? config.getLoggers() : null;
+        LoggersLevels loggers = config != null ? config.getLoggers() : null;
         if (loggers != null) {
             filter = ApplicationFilter.fromLoggers(loggers);
         } else {

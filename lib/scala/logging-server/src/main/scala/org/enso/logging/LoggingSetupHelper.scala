@@ -4,13 +4,12 @@ import org.slf4j.event.Level
 
 import java.net.URI
 import java.nio.file.Path
-import scala.annotation.unused
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Promise
 import scala.util.{Failure, Success}
 import org.enso.logger.LoggerSetup
-import org.enso.logger.config.{LoggingServiceConfig, SocketAppender}
+import org.enso.logger.masking.Masking
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -27,31 +26,44 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
 
   private val loggingServiceEndpointPromise = Promise[Option[URI]]()
 
-  def initLogger(logLevel: Option[Level]): Unit = {
-    LoggerSetup.setupConsoleAppender(logLevel.getOrElse(Level.ERROR), null);
+  /** Initialize logging to console prior to establishing logging.
+    * Some logs may be added while inferring the parameters of logging infrastructure, leading to catch-22 situations.
+    */
+  def initLogger(): Unit = {
+    LoggerSetup.get().setupNoOpAppender()
   }
 
+  /** Starts a logging server that collects logs from different components and immediate sets up logs from this component
+    * to send logs to it.
+    * @param logLevel
+    * @param logMasking
+    */
   def setupServerAndForwardLogs(
     logLevel: Option[Level],
-    logMasking: Boolean,
-    profilingLog: Option[Path]
+    logMasking: Boolean
   ): Unit = {
-    // Setup server at a given port
-    val config = LoggingServiceConfig.parseConfig()
+    val loggerSetup = LoggerSetup.get()
+    val config      = loggerSetup.getConfig
     if (config.loggingServerNeedsBoot()) {
       val actualPort     = config.getServer().port();
       val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
       LoggingServiceManager
-        .setupServer(actualLogLevel, actualPort, logPath, logFileSuffix, config.getServer().appender().getName())
+        .setupServer(
+          actualLogLevel,
+          actualPort,
+          logPath,
+          logFileSuffix,
+          config.getServer().appender().getName()
+        )
         .onComplete {
-          // fallback to whatever is the default appender
-          case Failure(exception) =>
-            exception.printStackTrace()
-            setup(logLevel, None, logMasking, profilingLog, config)
+          case Failure(_) =>
+            // fallback to the default appender
+            setup(logLevel, None, logMasking, loggerSetup)
           case Success(uri) =>
-            val result = LoggerSetup.setup(actualLogLevel, config)
-
+            Masking.setup(logMasking)
+            val result = loggerSetup.setup(actualLogLevel)
             if (!result) {
+              LoggingServiceManager.teardown()
               loggingServiceEndpointPromise.failure(
                 new LoggerInitializationFailed()
               )
@@ -60,9 +72,9 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
             }
         }
     } else {
-      // just setup whatever is the default
+      // Setup logger according to config
       val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
-      if (LoggerSetup.setup(actualLogLevel, config)) {
+      if (loggerSetup.setup(actualLogLevel)) {
         loggingServiceEndpointPromise.success(None)
       }
     }
@@ -71,65 +83,62 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
   def setup(
     logLevel: Option[Level],
     connectToExternalLogger: Option[URI],
-    logMasking: Boolean,
-    profilingLog: Option[Path]
+    logMasking: Boolean
   ): Unit = {
     setup(
       logLevel,
       connectToExternalLogger,
       logMasking,
-      profilingLog,
-      LoggingServiceConfig.parseConfig()
+      LoggerSetup.get()
     );
   }
 
   def setup(
     logLevel: Option[Level],
     connectToExternalLogger: Option[URI],
-    @unused logMasking: Boolean,
-    @unused profilingLog: Option[Path],
-    config: LoggingServiceConfig
+    logMasking: Boolean,
+    loggerSetup: LoggerSetup
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
 
     connectToExternalLogger match {
       case Some(uri) =>
-        var initialized = LoggerSetup.setupSocketAppender(
+        var initialized = loggerSetup.setupSocketAppender(
           actualLogLevel,
           uri.getHost(),
-          uri.getPort(),
-          config
+          uri.getPort()
         )
         if (!initialized) {
           // Fallback, try the default appender if it is not the socket appender to the same port
-          config.getAppender() match {
-            case defaultAppender: SocketAppender =>
-              if (!defaultAppender.isSameTarget(uri)) {
-                initialized = LoggerSetup.setup(actualLogLevel, config)
-                if (!initialized) {
-                  // Fallback to console
-                  initialized =
-                    LoggerSetup.setupConsoleAppender(actualLogLevel, config);
-                }
-              } else {
-                // Fallback to console
-                initialized =
-                  LoggerSetup.setupConsoleAppender(actualLogLevel, config);
-              }
-            case _ =>
-              initialized = LoggerSetup.setup(actualLogLevel, config)
+          val defaultAppender = loggerSetup.getConfig().getAppender()
+          if (!defaultAppender.isSameTargetAs(uri)) {
+            initialized = loggerSetup.setup(actualLogLevel)
+            if (!initialized) {
+              // Fallback to console
+              initialized = loggerSetup.setupConsoleAppender(actualLogLevel)
+            }
+          } else {
+            // Fallback to console
+            initialized = loggerSetup.setupConsoleAppender(actualLogLevel)
           }
         }
+
         if (initialized) {
+          Masking.setup(logMasking)
           loggingServiceEndpointPromise.success(None)
         } else {
-          loggingServiceEndpointPromise.failure(new LoggerInitializationFailed())
+          loggingServiceEndpointPromise.failure(
+            new LoggerInitializationFailed()
+          )
         }
       case None =>
-        if (LoggerSetup.setup(actualLogLevel, config)) {
+        if (loggerSetup.setup(actualLogLevel)) {
+          Masking.setup(logMasking)
           loggingServiceEndpointPromise.success(None)
         } else {
-          loggingServiceEndpointPromise.failure(new LoggerInitializationFailed())
+          loggingServiceEndpointPromise.failure(
+            new LoggerInitializationFailed()
+          )
         }
     }
   }

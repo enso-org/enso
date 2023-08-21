@@ -7,11 +7,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.event.Level;
 
-public class Loggers {
+public class LoggersLevels {
 
   private Map<String, Level> loggers;
 
-  private Loggers(Map<String, Level> loggers) {
+  private LoggersLevels(Map<String, Level> loggers) {
     this.loggers = loggers;
   }
 
@@ -19,7 +19,7 @@ public class Loggers {
     return loggers.entrySet();
   }
 
-  public static Loggers parse(Config config) {
+  public static LoggersLevels parse(Config config) {
     // LinkedHashMap ensures that wildcard loggers are de-prioritized
     Map<String, Level> loggers = systemLoggers();
     Map<String, Level> fallbacks = new LinkedHashMap<>();
@@ -42,24 +42,32 @@ public class Loggers {
     if (!fallbacks.isEmpty()) {
       loggers.putAll(fallbacks);
     }
-    return new Loggers(loggers);
+    return new LoggersLevels(loggers);
   }
 
+  /**
+   * Read any loggers' levels set via `-Dfoo.bar.Logger.level=<level>` env variables.
+   *
+   * @return a map of custom loggers' levels set on startup
+   */
   private static Map<String, Level> systemLoggers() {
-      Map<String, Level> loggers = new LinkedHashMap<>();
-      System.getProperties().forEach((keyObj, value) -> {
-          String key = keyObj.toString();
-          if (key.endsWith(SYS_PROP_SUFFIX)) {
-              int idx = key.lastIndexOf(SYS_PROP_SUFFIX);
-              String loggerName = key.substring(0, idx);
-              try {
+    Map<String, Level> loggers = new LinkedHashMap<>();
+    System.getProperties()
+        .forEach(
+            (keyObj, value) -> {
+              String key = keyObj.toString();
+              if (key.endsWith(SYS_PROP_SUFFIX)) {
+                int idx = key.lastIndexOf(SYS_PROP_SUFFIX);
+                String loggerName = key.substring(0, idx);
+                try {
                   loggers.put(loggerName, Level.valueOf(value.toString().toUpperCase()));
-              } catch (IllegalArgumentException e) {
-                  System.err.println("Invalid log level `" + value + "` for " + loggerName + ". Skipping...");
+                } catch (IllegalArgumentException e) {
+                  System.err.println(
+                      "Invalid log level `" + value + "` for " + loggerName + ". Skipping...");
+                }
               }
-          }
-      });
-     return loggers;
+            });
+    return loggers;
   }
 
   @Override
@@ -74,5 +82,6 @@ public class Loggers {
   private static String normalizeKey(String key) {
     return key.replace("'", "").replace("\"", "");
   }
+
   private static String SYS_PROP_SUFFIX = ".Logger.level";
 }
