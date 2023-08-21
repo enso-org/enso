@@ -3,11 +3,11 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /**
  * A vector used to hold hash map entries, where each entry is represented as a 2-element vector.
@@ -15,14 +15,14 @@ import org.enso.interpreter.runtime.data.Vector;
  * (array), and for Enso {@code Map.to_vector} method. May be empty.
  */
 @ExportLibrary(InteropLibrary.class)
-final class HashEntriesVector implements TruffleObject {
-  private final Vector[] entryPairs;
+final class HashEntriesVector implements EnsoObject {
+  private final EnsoObject[] entryPairs;
 
   private HashEntriesVector(Object[] keys, Object[] values) {
     assert keys.length == values.length;
-    this.entryPairs = new Vector[keys.length];
+    this.entryPairs = new EnsoObject[keys.length];
     for (int i = 0; i < keys.length; i++) {
-      entryPairs[i] = Vector.fromArray(new EntryPair(keys[i], values[i]));
+      entryPairs[i] = ArrayLikeHelpers.asVectorFromArray(new EntryPair(keys[i], values[i]));
     }
   }
 
@@ -74,7 +74,7 @@ final class HashEntriesVector implements TruffleObject {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  static final class EntryPair implements TruffleObject {
+  static final class EntryPair implements EnsoObject {
     private final Object key;
     private final Object value;
 

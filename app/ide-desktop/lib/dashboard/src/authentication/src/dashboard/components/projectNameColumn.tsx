@@ -3,13 +3,15 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
 import * as column from '../column'
@@ -21,13 +23,13 @@ import ProjectIcon from './projectIcon'
 // ===================
 
 /** Props for a {@link ProjectNameColumn}. */
-export interface ProjectNameColumnProps
-    extends column.AssetColumnProps<backendModule.ProjectAsset> {}
+export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.ProjectAsset}. */
+/** The icon and name of a {@link backendModule.ProjectAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
+ * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
@@ -41,22 +43,28 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            getDepth,
         },
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const asset = item.item
+    if (asset.type !== backendModule.AssetType.project) {
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error('`ProjectNameColumn` can only display project assets.')
+    }
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     const doRename = async (newName: string) => {
         try {
             await backend.projectUpdate(
-                item.id,
+                asset.id,
                 {
                     ami: null,
                     ideVersion: null,
                     projectName: newName,
                 },
-                item.title
+                asset.title
             )
             return
         } catch (error) {
@@ -67,31 +75,32 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newFolder:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
-                if (item.id === event.placeholderId) {
+                if (asset.id === event.placeholderId) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         const createdProject = await backend.createProject({
-                            parentDirectoryId: item.parentId,
-                            projectName: item.title,
+                            parentDirectoryId: asset.parentId,
+                            projectName: asset.title,
                             projectTemplateName: event.templateId,
                         })
                         rowState.setPresence(presence.Presence.present)
-                        setItem({
-                            ...item,
+                        setAsset({
+                            ...asset,
                             id: createdProject.projectId,
                             projectState: { type: backendModule.ProjectState.placeholder },
                         })
@@ -102,7 +111,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            key: item.key,
                         })
                         toastAndLog('Error creating new project', error)
                     }
@@ -110,24 +119,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {
-                const file = event.files.get(key)
+                const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
-                            /** Information required to display a bundle. */
-                            interface BundleInfo {
-                                name: string
-                                id: string
-                            }
-                            // This non-standard property is defined in Electron.
-                            let info: BundleInfo
+                            let id: string
                             if (
                                 'backendApi' in window &&
+                                // This non-standard property is defined in Electron.
                                 'path' in file &&
                                 typeof file.path === 'string'
                             ) {
-                                info = await window.backendApi.importProjectFromPath(file.path)
+                                id = await window.backendApi.importProjectFromPath(file.path)
                             } else {
                                 const response = await fetch('./api/upload-project', {
                                     method: 'POST',
@@ -137,28 +141,30 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                     // work on `http://localhost`.
                                     body: await file.arrayBuffer(),
                                 })
-                                // This is SAFE, as the types of this API are statically known.
-                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                                info = await response.json()
+                                id = await response.text()
                             }
+                            const listedProject = await backend.getProjectDetails(
+                                backendModule.ProjectId(id),
+                                null
+                            )
                             rowState.setPresence(presence.Presence.present)
-                            setItem({
-                                ...item,
-                                title: info.name,
-                                id: backendModule.ProjectId(info.id),
+                            setAsset({
+                                ...asset,
+                                title: listedProject.packageName,
+                                id: backendModule.ProjectId(id),
                             })
                         } else {
-                            const fileName = item.title
-                            const title = backendModule.stripProjectExtension(item.title)
-                            setItem({
-                                ...item,
+                            const fileName = asset.title
+                            const title = backendModule.stripProjectExtension(asset.title)
+                            setAsset({
+                                ...asset,
                                 title,
                             })
                             const createdFile = await backend.uploadFile(
                                 {
                                     fileId: null,
                                     fileName,
-                                    parentDirectoryId: item.parentId,
+                                    parentDirectoryId: asset.parentId,
                                 },
                                 file
                             )
@@ -167,8 +173,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 throw new Error('The uploaded file was not a project.')
                             } else {
                                 rowState.setPresence(presence.Presence.present)
-                                setItem({
-                                    ...item,
+                                setAsset({
+                                    ...asset,
                                     title,
                                     id: project.projectId,
                                     projectState: project.state,
@@ -179,7 +185,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            key: item.key,
                         })
                         toastAndLog('Could not upload project', error)
                     }
@@ -192,22 +198,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     return (
         <div
             className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
-                getDepth(key)
+                item.depth
             )}`}
             onClick={event => {
                 if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
-                        id: item.id,
+                        id: asset.id,
                     })
                 } else if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -217,14 +220,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             }}
         >
             <ProjectIcon
-                keyProp={key}
-                item={item}
-                setItem={setItem}
+                keyProp={item.key}
+                item={asset}
+                setItem={setAsset}
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
                 openIde={() => {
-                    doOpenIde(item)
+                    doOpenIde(asset)
                 }}
                 onClose={doCloseIde}
             />
@@ -235,13 +238,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         ...oldRowState,
                         isEditingName: false,
                     }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
+                    if (newTitle !== asset.title) {
+                        const oldTitle = asset.title
+                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -261,7 +264,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
                 }`}
             >
-                {item.title}
+                {asset.title}
             </EditableSpan>
         </div>
     )

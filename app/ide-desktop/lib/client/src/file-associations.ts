@@ -23,6 +23,13 @@ import * as project from './project-management'
 const logger = contentConfig.logger
 
 // =================
+// === Constants ===
+// =================
+
+/** Returned by {@link String.indexOf} when the substring was not found. */
+const NOT_FOUND = -1
+
+// =================
 // === Reexports ===
 // =================
 
@@ -69,8 +76,7 @@ function getClientArguments(): string[] {
         // Client arguments are separated from the electron dev mode arguments by a '--' argument.
         const separator = '--'
         const separatorIndex = process.argv.indexOf(separator)
-        const notFoundIndexPlaceholder = -1
-        if (separatorIndex === notFoundIndexPlaceholder) {
+        if (separatorIndex === NOT_FOUND) {
             // If there is no separator, client gets no arguments.
             return []
         } else {
@@ -158,7 +164,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) 
  * @throws {Error} if the project from the file cannot be opened or imported. */
 export function handleOpenFile(openedFile: string): string {
     try {
-        return project.importProjectFromPath(openedFile).id
+        return project.importProjectFromPath(openedFile)
     } catch (error) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.

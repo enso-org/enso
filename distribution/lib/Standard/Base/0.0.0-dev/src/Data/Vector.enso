@@ -23,6 +23,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
+import project.Internal.Array_Like_Helpers
+
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
@@ -30,7 +32,6 @@ from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 
 polyglot java import java.lang.IndexOutOfBoundsException
-polyglot java import org.enso.base.Array_Builder
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -69,7 +70,7 @@ type Vector a
 
              Vector.new my_vec.length (ix -> my_vec.at ix)
     new : Integer -> (Integer -> Any) -> Vector Any
-    new length constructor = @Builtin_Method "Vector.new"
+    new length constructor = Array_Like_Helpers.vector_from_function length constructor
 
     ## PRIVATE
        ADVANCED
@@ -161,7 +162,7 @@ type Vector a
     ## PRIVATE
        ADVANCED
        Copies content of a vector into an Array.
-    to_array self = @Builtin_Method "Vector.to_array"
+    to_array self = Array_Like_Helpers.vector_to_array self
 
     ## Returns the number of elements stored in this vector.
 
@@ -170,7 +171,7 @@ type Vector a
 
              [1, 2, 3, 4].length
     length : Integer
-    length self = @Builtin_Method "Vector.length"
+    length self = Array_Like_Helpers.length self
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -189,7 +190,7 @@ type Vector a
 
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = @Builtin_Method "Vector.at"
+    at self index = Array_Like_Helpers.at self index
 
     ## Gets an element from the vector at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
@@ -1045,7 +1046,7 @@ type Builder
 
              Vector.new_builder
     new : Integer -> Builder
-    new (capacity=10) = Builder.Value (Array_Builder.newBuilder capacity)
+    new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean

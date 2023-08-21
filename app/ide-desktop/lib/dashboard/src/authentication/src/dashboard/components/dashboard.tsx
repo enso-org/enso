@@ -9,14 +9,17 @@ import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
+import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
@@ -27,6 +30,13 @@ import Editor from './editor'
 import Templates from './templates'
 import TheModal from './theModal'
 import TopBar from './topBar'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `id` attribute of the loading spinner element. */
+const LOADER_ELEMENT_ID = 'loader'
 
 // =================
 // === Dashboard ===
@@ -49,18 +59,17 @@ export default function Dashboard(props: DashboardProps) {
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
-    const [directoryId, setDirectoryId] = React.useState(
-        session.organization != null
-            ? backendModule.rootDirectoryId(session.organization.id)
-            : // The local backend uses the empty string as the sole directory ID.
-              backendModule.DirectoryId('')
-    )
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
-    const [page, setPage] = React.useState(pageSwitcher.Page.drive)
-    const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [page, setPage] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+    )
+    const [projectStartupInfo, setProjectStartupInfo] =
+        React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -75,7 +84,61 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         unsetModal()
+        if (page === pageSwitcher.Page.editor) {
+            document.body.style.cursor = 'none'
+        } else {
+            document.body.style.cursor = 'auto'
+        }
     }, [page, /* should never change */ unsetModal])
+
+    React.useEffect(() => {
+        const savedProjectStartupInfo = localStorage.get(
+            localStorageModule.LocalStorageKey.projectStartupInfo
+        )
+        if (savedProjectStartupInfo != null) {
+            setProjectStartupInfo(savedProjectStartupInfo)
+            if (page !== pageSwitcher.Page.editor) {
+                // A workaround to hide the spinner, when the previous project is being loaded in
+                // the background. This `MutationObserver` is disconnected when the loader is
+                // removed from the DOM.
+                const observer = new MutationObserver(mutations => {
+                    for (const mutation of mutations) {
+                        for (const node of Array.from(mutation.addedNodes)) {
+                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                document.body.style.cursor = 'auto'
+                                node.style.display = 'none'
+                            }
+                        }
+                        for (const node of Array.from(mutation.removedNodes)) {
+                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                document.body.style.cursor = 'auto'
+                                observer.disconnect()
+                            }
+                        }
+                    }
+                })
+                observer.observe(document.body, { childList: true })
+            }
+        }
+        // This MUST only run when the component is mounted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    React.useEffect(() => {
+        if (projectStartupInfo != null) {
+            localStorage.set(
+                localStorageModule.LocalStorageKey.projectStartupInfo,
+                projectStartupInfo
+            )
+        }
+        return () => {
+            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+        }
+    }, [projectStartupInfo, /* should never change */ localStorage])
+
+    React.useEffect(() => {
+        localStorage.set(localStorageModule.LocalStorageKey.page, page)
+    }, [page, /* should never change */ localStorage])
 
     React.useEffect(() => {
         const onClick = () => {
@@ -93,11 +156,14 @@ export default function Dashboard(props: DashboardProps) {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
-            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
-                backendModule.BackendType.remote
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
+                backendModule.BackendType.local
         ) {
-            setBackend(new localBackend.LocalBackend())
-            setDirectoryId(backendModule.DirectoryId(''))
+            setBackend(
+                new localBackend.LocalBackend(
+                    localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
+                )
+            )
         }
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,47 +202,29 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
-                    shortcuts.KeyboardAction.closeModal,
-                    event
-                )
-            ) {
-                event.preventDefault()
-                unsetModal()
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
-        }
-    }, [unsetModal])
+        return shortcuts.registerKeyboardHandlers({
+            [shortcutsModule.KeyboardAction.closeModal]: unsetModal,
+        })
+    }, [shortcuts, unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend())
-                        setDirectoryId(backendModule.DirectoryId(''))
+                        setBackend(new localBackend.LocalBackend(null))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
                         headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                         const client = new http.Client(headers)
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                        setDirectoryId(
-                            session.organization != null
-                                ? backendModule.rootDirectoryId(session.organization.id)
-                                : backendModule.DirectoryId('')
-                        )
                         break
                     }
                 }
             }
         },
-        [backend.type, logger, session.accessToken, session.organization, setBackend]
+        [backend.type, logger, session.accessToken, setBackend]
     )
 
     const doCreateProject = React.useCallback(
@@ -185,27 +233,32 @@ export default function Dashboard(props: DashboardProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.createProject,
-                parentId: directoryId,
+                type: assetListEventModule.AssetListEventType.newProject,
+                parentKey: null,
+                parentId: null,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [directoryId, /* should never change */ dispatchAssetListEvent]
+        [/* should never change */ dispatchAssetListEvent]
     )
 
     const openEditor = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
             setPage(pageSwitcher.Page.editor)
-            if (project?.projectId !== newProject.id) {
-                setProject(await backend.getProjectDetails(newProject.id, newProject.title))
+            if (projectStartupInfo?.project.projectId !== newProject.id) {
+                setProjectStartupInfo({
+                    project: await backend.getProjectDetails(newProject.id, newProject.title),
+                    backendType: backend.type,
+                    accessToken: session.accessToken,
+                })
             }
         },
-        [backend, project?.projectId, setPage]
+        [backend, projectStartupInfo?.project.projectId, session.accessToken]
     )
 
     const closeEditor = React.useCallback(() => {
-        setProject(null)
+        setProjectStartupInfo(null)
     }, [])
 
     const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
@@ -222,11 +275,10 @@ export default function Dashboard(props: DashboardProps) {
             >
                 <TopBar
                     supportsLocalBackend={supportsLocalBackend}
-                    projectName={project?.name ?? null}
                     page={page}
                     setPage={setPage}
                     asset={null}
-                    isEditorDisabled={project == null}
+                    isEditorDisabled={projectStartupInfo == null}
                     isHelpChatOpen={isHelpChatOpen}
                     setIsHelpChatOpen={setIsHelpChatOpen}
                     setBackendType={setBackendType}
@@ -236,7 +288,7 @@ export default function Dashboard(props: DashboardProps) {
                         if (page === pageSwitcher.Page.editor) {
                             setPage(pageSwitcher.Page.drive)
                         }
-                        setProject(null)
+                        setProjectStartupInfo(null)
                     }}
                 />
                 {isListingRemoteDirectoryWhileOffline ? (
@@ -277,8 +329,6 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
-                            directoryId={directoryId}
-                            setDirectoryId={setDirectoryId}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             query={query}
@@ -299,7 +349,8 @@ export default function Dashboard(props: DashboardProps) {
                 )}
                 <Editor
                     visible={page === pageSwitcher.Page.editor}
-                    project={project}
+                    supportsLocalBackend={supportsLocalBackend}
+                    projectStartupInfo={projectStartupInfo}
                     appRunner={appRunner}
                 />
                 {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}

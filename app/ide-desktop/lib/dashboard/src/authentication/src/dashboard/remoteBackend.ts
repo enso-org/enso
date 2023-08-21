@@ -195,6 +195,15 @@ export class RemoteBackend extends backend.Backend {
         throw new Error(message)
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
+    }
+
     /** Return a list of all users in the same organization. */
     async listUsers(): Promise<backend.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
@@ -279,7 +288,8 @@ export class RemoteBackend extends backend.Backend {
             return (await response.json()).assets
                 .map(
                     asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a newtype.
+                        // This type assertion is safe; it is only needed to convert `type` to a
+                        // newtype.
                         // eslint-disable-next-line no-restricted-syntax
                         ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
                 )
@@ -289,6 +299,10 @@ export class RemoteBackend extends backend.Backend {
                         ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
                         : asset
                 )
+                .map(asset => ({
+                    ...asset,
+                    permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),
+                }))
         }
     }
 
@@ -407,12 +421,28 @@ export class RemoteBackend extends backend.Backend {
             )
         } else {
             const project = await response.json()
-            return {
-                ...project,
-                jsonAddress:
-                    project.address != null ? backend.Address(`${project.address}json`) : null,
-                binaryAddress:
-                    project.address != null ? backend.Address(`${project.address}binary`) : null,
+            const ideVersion =
+                project.ide_version ??
+                (
+                    await this.listVersions({
+                        versionType: backend.VersionType.ide,
+                        default: true,
+                    })
+                )[0]?.number
+            if (ideVersion == null) {
+                return this.throw('No IDE version found')
+            } else {
+                return {
+                    ...project,
+                    ideVersion,
+                    engineVersion: project.engine_version,
+                    jsonAddress:
+                        project.address != null ? backend.Address(`${project.address}json`) : null,
+                    binaryAddress:
+                        project.address != null
+                            ? backend.Address(`${project.address}binary`)
+                            : null,
+                }
             }
         }
     }
@@ -667,9 +697,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listVersions(
-        params: backend.ListVersionsRequestParams
-    ): Promise<[backend.Version, ...backend.Version[]]> {
+    async listVersions(params: backend.ListVersionsRequestParams): Promise<backend.Version[]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
                 '?' +

@@ -3,39 +3,49 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
-import * as fileInfo from '../../fileInfo'
 import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ================
 // === FileName ===
 // ================
 
 /** Props for a {@link FileNameColumn}. */
-export interface FileNameColumnProps extends column.AssetColumnProps<backendModule.FileAsset> {}
+export interface FileNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.FileAsset}. */
+/** The icon and name of a {@link backendModule.FileAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
+ * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
-        state: { assetEvents, dispatchAssetListEvent, getDepth },
+        state: { assetEvents, dispatchAssetListEvent },
         rowState,
         setRowState,
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const asset = item.item
+    if (asset.type !== backendModule.AssetType.file) {
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error('`FileNameColumn` can only display file assets.')
+    }
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
@@ -46,40 +56,40 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to projects.
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {
-                const file = event.files.get(key)
+                const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         const createdFile = await backend.uploadFile(
                             {
                                 fileId: null,
-                                fileName: item.title,
-                                parentDirectoryId: item.parentId,
+                                fileName: asset.title,
+                                parentDirectoryId: asset.parentId,
                             },
                             file
                         )
                         rowState.setPresence(presence.Presence.present)
-                        const newItem: backendModule.FileAsset = {
-                            ...item,
-                            ...createdFile,
-                        }
-                        setItem(newItem)
+                        setAsset({
+                            ...asset,
+                            id: createdFile.id,
+                        })
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
-                            id: key,
+                            key: item.key,
                         })
                         toastAndLog('Could not upload file', error)
                     }
@@ -92,16 +102,13 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     return (
         <div
             className={`flex text-left items-center align-middle whitespace-nowrap ${indent.indentClass(
-                getDepth(key)
+                item.depth
             )}`}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -110,7 +117,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <img src={fileIcon.fileIcon()} />
+            <SvgMask src={fileIcon.fileIcon()} className="m-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
@@ -118,13 +125,13 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         ...oldRowState,
                         isEditingName: false,
                     }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
+                    if (newTitle !== asset.title) {
+                        const oldTitle = asset.title
+                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(/* newTitle */)
                         } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -136,7 +143,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }}
                 className="bg-transparent grow px-2"
             >
-                {item.title}
+                {asset.title}
             </EditableSpan>
         </div>
     )

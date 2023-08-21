@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.map;
 
 import org.enso.table.data.table.problems.ArithmeticError;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.AggregatedProblems;
 
 public class MapOperationProblemBuilder {
@@ -22,6 +23,10 @@ public class MapOperationProblemBuilder {
 
   public void reportArithmeticError(String message, Integer row) {
     problems.add(new ArithmeticError(location, message, row));
+  }
+
+  public void reportIllegalArgumentError(String message, Integer row) {
+    problems.add(new IllegalArgumentError(location, message, row));
   }
 
   public void reportDivisionByZero(Integer row) {

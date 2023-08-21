@@ -42,6 +42,11 @@
           "value": "",
           "description": "The name of the project to open at startup. If the project does not exist, it will be created."
         },
+        "displayedProjectName": {
+          "value": "",
+          "description": "The name of the project to be displayed to the user.",
+          "primary": false
+        },
         "platform": {
           "value": "web",
           "defaultDescription": "'web' if run in the browser, operating system name otherwise`",
@@ -60,12 +65,12 @@
         },
         "rpcUrl": {
           "value": "",
-          "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, and `project` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, `project` and `displayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
           "primary": false
         },
         "dataUrl": {
           "value": "",
-          "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, and `project` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, `project` and `dislayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
           "primary": false
         },
         "namespace": {
