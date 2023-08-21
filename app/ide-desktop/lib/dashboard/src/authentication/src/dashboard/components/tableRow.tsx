@@ -55,6 +55,7 @@ interface InternalBaseTableRowProps<T, State = never, RowState = never, Key exte
     /** Pass this in only if `item` also needs to be updated in the parent component. */
     setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
+    hidden: boolean
     initialRowState?: RowState
     /** Pass this in only if `rowState` also needs to be updated in the parent component. */
     setRowState?: React.Dispatch<React.SetStateAction<RowState>>
@@ -92,6 +93,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         initialRowState,
         setRowState: rawSetRowState,
         columns,
+        hidden,
         selected,
         setSelected,
         // This prop is unused here, but is useful for components wrapping this component.
@@ -137,7 +139,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         setRowState,
     }
 
-    return (
+    return hidden ? null : (
         <tr
             ref={tableRowRef}
             tabIndex={-1}

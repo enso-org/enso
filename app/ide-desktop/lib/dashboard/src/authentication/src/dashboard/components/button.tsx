@@ -30,9 +30,9 @@ export default function Button(props: ButtonProps) {
         <SvgMask
             src={image}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${active && !disabled ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
-                !disabled ? 'cursor-pointer hover:opacity-100 cursor-pointer' : 'cursor-not-allowed'
-            } ${className ?? ''}`}
+            className={`${active ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
+                disabled ? '' : 'cursor-pointer hover:opacity-100'
+            } ${!active && disabled ? 'cursor-not-allowed' : ''} ${className ?? ''}`}
             {...(disabled ? {} : { onClick })}
         />
     )

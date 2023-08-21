@@ -1,12 +1,10 @@
 [package]
-name = "ensogl-text-font-family"
+name = "enso-enso-font"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+enso-font = { path = "../font" }
+ide-ci = { path = "../../../build/ci_utils" }
 owned_ttf_parser = { workspace = true }
-derive_more = { workspace = true }
-
-[lib]
-crate-type = ["cdylib", "rlib"]
