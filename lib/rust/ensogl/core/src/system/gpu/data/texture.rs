@@ -54,11 +54,9 @@ pub struct TextureBindGuard {
 
 impl Drop for TextureBindGuard {
     fn drop(&mut self) {
-        if self.context.is_valid() {
-            self.context.active_texture(*Context::TEXTURE0 + self.unit.to::<u32>());
-            self.context.bind_texture(*self.target, None);
-            self.context.active_texture(*Context::TEXTURE0);
-        }
+        self.context.active_texture(*Context::TEXTURE0 + self.unit.to::<u32>());
+        self.context.bind_texture(*self.target, None);
+        self.context.active_texture(*Context::TEXTURE0);
     }
 }
 
@@ -442,7 +440,7 @@ impl<P: WithItemRef<Item = Texture<I, T>>, I: InternalFormat, T: ItemType> Textu
         })
     }
 
-    fn gl_texture(&self, context: &Context) -> Result<WebGlTexture, ContextLost> {
+    fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
         Ok(self.with_item(|this| this.gl_texture.clone()))
     }
 
@@ -459,7 +457,7 @@ impl<I, T> Drop for Texture<I, T> {
     fn drop(&mut self) {
         // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
         // previous context.
-        if self.context.is_valid() && self.context.is_texture(Some(&self.gl_texture)) {
+        if self.context.is_texture(Some(&self.gl_texture)) {
             self.context.delete_texture(Some(&self.gl_texture));
         }
     }

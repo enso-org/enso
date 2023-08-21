@@ -1031,7 +1031,7 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let uniforms = Uniforms::new(&mut *variables.borrow_mut());
+        let uniforms = Uniforms::new(&mut variables.borrow_mut());
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);

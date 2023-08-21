@@ -203,9 +203,7 @@ impl Shader {
                 *self.program.borrow_mut() = None;
                 let program = self.program.clone_ref();
                 let profiler = self.profiler.take().unwrap_or_else(new_profiler);
-                let context_id = context.id;
                 let handler = context.shader_compiler().submit(code, profiler, move |prog| {
-                    assert_eq!(prog.context, context_id);
                     on_ready(&bindings, &prog);
                     *program.borrow_mut() = Some(prog);
                 });

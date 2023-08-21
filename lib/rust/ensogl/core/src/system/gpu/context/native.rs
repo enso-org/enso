@@ -53,7 +53,6 @@ pub trait ContextOps {
 
 impl ContextOps for WebGl2RenderingContext {
     fn with_program<T>(&self, program: &WebGlProgram, f: impl FnOnce() -> T) -> T {
-        assert!(self.is_program(Some(program)) || self.is_context_lost());
         self.use_program(Some(program));
         let out = f();
         self.use_program(None);

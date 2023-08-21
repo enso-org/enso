@@ -450,7 +450,7 @@ impl WorldData {
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
-        let uniforms = Uniforms::new(&mut *default_scene.variables.borrow_mut());
+        let uniforms = Uniforms::new(&mut default_scene.variables.borrow_mut());
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let themes = with_context(|t| t.theme_manager.clone_ref());
@@ -527,19 +527,17 @@ impl WorldData {
                 } else if key == "KeyX" {
                     if let Some(restore) = restore_context.take() {
                         restore.restore_context();
-                    } else {
-                        if let Some(context) = scene().context.borrow().as_ref() {
-                            if let Some(lose_context) =
-                                context.extensions.webgl_lose_context.as_ref()
-                            {
-                                restore_context.borrow_mut().replace(lose_context.clone());
-                                lose_context.lose_context();
-                            } else {
-                                error!("Could not lose context: Missing extension.");
-                            }
+                    } else if let Some(context) = scene().context.borrow().as_ref() {
+                        if let Some(lose_context) =
+                            context.extensions.webgl_lose_context.as_ref()
+                        {
+                            restore_context.borrow_mut().replace(lose_context.clone());
+                            lose_context.lose_context();
                         } else {
-                            error!("Could not lose context: Context lost.");
+                            error!("Could not lose context: Missing extension.");
                         }
+                    } else {
+                        error!("Could not lose context: Context lost.");
                     }
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);

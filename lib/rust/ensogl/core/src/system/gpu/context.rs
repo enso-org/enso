@@ -60,26 +60,17 @@ pub struct Context {
 }
 
 /// Internal data of [`Context`].
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct ContextData {
+    #[deref]
     native:          native::ContextWithExtensions,
     pub profiler:    profiler::Profiler,
     shader_compiler: shader::Compiler,
-    pub(crate) id:   u32,
+    id:              u32,
 }
 
 static CURRENT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-
-impl Deref for ContextData {
-    type Target = native::ContextWithExtensions;
-
-    fn deref(&self) -> &Self::Target {
-        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
-        assert_eq!(self.id, current_context);
-        &self.native
-    }
-}
 
 impl Context {
     fn from_native(native: WebGl2RenderingContext) -> Self {
@@ -91,22 +82,15 @@ impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
         let prev_id = CURRENT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
         let id = prev_id + 1;
-        warn!("Current context: {id}");
         let native = native::ContextWithExtensions::from_native(native);
         let profiler = profiler::Profiler::new(&native);
-        let shader_compiler = shader::Compiler::new(&native, id);
+        let shader_compiler = shader::Compiler::new(&native);
         Self { native, profiler, shader_compiler, id }
     }
 
+    /// Returns the current context's shader compiler.
     pub fn shader_compiler(&self) -> &shader::Compiler {
-        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
-        assert_eq!(self.id, current_context);
         &self.shader_compiler
-    }
-
-    pub fn is_valid(&self) -> bool {
-        let current_context = CURRENT_CONTEXT_ID.load(std::sync::atomic::Ordering::Acquire);
-        self.id == current_context
     }
 }
 

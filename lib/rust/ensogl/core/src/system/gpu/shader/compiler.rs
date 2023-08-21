@@ -222,13 +222,12 @@ struct CompilerData {
     cache:       ShaderCache,
     performance: web::Performance,
     callbacks:   Vec<DeferredCallback>,
-    context_id:  u32,
 }
 
 impl Compiler {
     /// Constructor.
-    pub fn new(context: &native::ContextWithExtensions, context_id: u32) -> Self {
-        Self { cell: RefCell::new(CompilerData::new(context, context_id)) }
+    pub fn new(context: &native::ContextWithExtensions) -> Self {
+        Self { cell: RefCell::new(CompilerData::new(context)) }
     }
 
     /// Submit shader for compilation. The job will be cancelled if the returned handle is dropped.
@@ -276,14 +275,14 @@ impl Compiler {
 }
 
 impl CompilerData {
-    fn new(context: &native::ContextWithExtensions, context_id: u32) -> Self {
+    fn new(context: &native::ContextWithExtensions) -> Self {
         let dirty = false;
         let context = context.clone();
         let jobs = default();
         let cache = default();
         let performance = web::window.performance_or_panic();
         let callbacks = default();
-        Self { dirty, context, jobs, cache, performance, callbacks, context_id }
+        Self { dirty, context, jobs, cache, performance, callbacks }
     }
 
     fn submit(
@@ -489,7 +488,7 @@ impl CompilerData {
             this.context.attach_shader(&program, &shader.fragment);
             this.context.link_program(&program);
             profiler.pause();
-            let input = shader::Program::new(shader, program, this.context_id);
+            let input = shader::Program::new(shader, program);
             let handle = job.handle;
             let on_ready = job.on_ready;
             let cache_key = job.cache_key;

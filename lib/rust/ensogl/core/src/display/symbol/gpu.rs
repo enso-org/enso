@@ -164,7 +164,7 @@ impl VertexArrayObject {
 impl Drop for VertexArrayObject {
     fn drop(&mut self) {
         // Delete the object, unless it's from a previous context.
-        if self.context.is_valid() && self.context.is_vertex_array(Some(&self.vao)) {
+        if self.context.is_vertex_array(Some(&self.vao)) {
             self.context.delete_vertex_array(Some(&self.vao));
         }
     }
@@ -348,7 +348,7 @@ impl Symbol {
                 self.surface_dirty.unset();
             }
             if self.shader_dirty.check() {
-                let var_bindings = self.discover_variable_bindings(&*global_variables.borrow());
+                let var_bindings = self.discover_variable_bindings(&global_variables.borrow());
                 let data = self.data.clone_ref();
                 let global_variables = Rc::clone(global_variables);
                 self.shader.borrow_mut().update(var_bindings, move |var_bindings, program| {
@@ -410,7 +410,6 @@ impl Symbol {
     /// is executed, both program and VAO are bound to None.
     fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
         if let Some(program) = self.shader.borrow().native_program().as_ref() {
-            assert_eq!(self.shader.borrow().program().unwrap().context, context.id);
             context.with_program(program, || self.with_vao(|_| f(program)));
         }
     }
@@ -634,7 +633,6 @@ impl SymbolData {
             self.bindings.borrow_mut().vao = VertexArrayObject::new(context).ok();
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
-            assert_eq!(program.context, context.id);
             context.with_program(&program.native, || {
                 self.with_vao(|this| {
                     for binding in var_bindings {
@@ -646,7 +644,7 @@ impl SymbolData {
                                 program,
                                 binding,
                                 &mut texture_unit_iter,
-                                &*global_variables.borrow(),
+                                &global_variables.borrow(),
                             ),
                             None => {}
                         }

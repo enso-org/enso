@@ -207,7 +207,6 @@ impl WebglLoseContext {
         }
     }
 
-    // XXX: We must have access to this extension even after context is lost!
     pub fn restore_context(&self) {
         if let Err(err) = self.restore_context.call0(&self.ext) {
             error!("Failed to restore the WebGL context: {:?}", err);

@@ -193,7 +193,7 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
         } else {
             self.since_last_read = 0;
             if self.data.is_none() {
-                self.data = self.try_init(&instance.context, &*instance.variables.borrow()).ok();
+                self.data = self.try_init(&instance.context, &instance.variables.borrow()).ok();
             }
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
