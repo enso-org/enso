@@ -284,29 +284,7 @@ impl CallStack {
             eval entried_update ((entries) model.visible_breadcrumbs(entries));
         }
 
-        Self { _network: network, model }
-            .initialize_breadcrumbs()
-            .setup_controller_notification_handlers()
-    }
-
-    fn setup_controller_notification_handlers(self) -> Self {
-        use crate::controller::graph::executed::Notification;
-        let graph_notifications = self.model.controller.subscribe();
-        let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            info!("Received controller notification {notification:?}");
-            match notification {
-                Notification::EnteredStack(stack) => {
-                    debug!("Notification::EnteredStack: {:#?}", stack);
-                }
-                Notification::ExitedStack(count) => {
-                    debug!("Notification::ExitedStack: {:#?}", count);
-                }
-                _ => {}
-            }
-            std::future::ready(())
-        });
-        self
+        Self { _network: network, model }.initialize_breadcrumbs()
     }
 
     /// Initialize the breadcrumbs view. Initially there is only the main module.
