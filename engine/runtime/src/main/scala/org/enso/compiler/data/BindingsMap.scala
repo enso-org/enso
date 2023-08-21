@@ -949,15 +949,11 @@ object BindingsMap {
 
   case class ResolvedPolyglotField(symbol: ResolvedPolyglotSymbol, name: String)
       extends ResolvedName {
-    def module: org.enso.compiler.data.BindingsMap.ModuleReference =
-      symbol.module
-    def qualifiedName: org.enso.pkg.QualifiedName =
-      symbol.qualifiedName.createChild(name)
-    def toAbstract: org.enso.compiler.data.BindingsMap.ResolvedName =
+    def module: BindingsMap.ModuleReference = symbol.module
+    def qualifiedName: QualifiedName        = symbol.qualifiedName.createChild(name)
+    def toAbstract: ResolvedName =
       ResolvedPolyglotField(symbol.toAbstract, name)
-    def toConcrete(
-      moduleMap: org.enso.compiler.PackageRepository.ModuleMap
-    ): Option[org.enso.compiler.data.BindingsMap.ResolvedName] =
+    def toConcrete(moduleMap: ModuleMap): Option[ResolvedName] =
       symbol.toConcrete(moduleMap).map(ResolvedPolyglotField(_, name))
   }
 
