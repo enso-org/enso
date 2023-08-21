@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges, sort_and_merge_ranges
 
 from Standard.Table import Set_Mode
@@ -36,7 +37,7 @@ take_drop_helper take_drop table selector =
    Turn the selector into a vector of ranges
 collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
 collect_ranges take_drop length selector =
-    at x = [Range.new x x+1]
+    at _ = Panic.throw (Illegal_State.Error "Impossible: at called in Database take/drop. This is a bug in the Database library.")
     single_slice s e = [Range.new s e]
     slice_ranges selectors =
         slice_range selector = case selector of

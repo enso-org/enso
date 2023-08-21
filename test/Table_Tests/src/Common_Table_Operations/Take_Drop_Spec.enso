@@ -58,6 +58,14 @@ spec setup =
             table.drop (Last -1) . should_equal table
             table.drop (Last 100) . should_equal empty
 
+        Test.specify "should handle consecutive take/drops" <|
+            table.take 5 . order_by "alpha" . take 3 . at "alpha" . to_vector . should_equal [1, 2, 3]
+            table.take 3 . order_by "alpha" . take 5 . at "alpha" . to_vector . should_equal [1, 2, 3]
+            table.take 5 . order_by "alpha" . drop 3 . at "alpha" . to_vector . should_equal [4, 5]
+            table.drop 3 . order_by "alpha" . drop 2 . at "alpha" . to_vector . should_equal [6, 7, 8]
+            table.drop 2 . order_by "alpha" . drop 3 . at "alpha" . to_vector . should_equal [6, 7, 8]
+            table.drop 3 . order_by "alpha" . take 2 . at "alpha" . to_vector . should_equal [4, 5]
+
         Test.specify "should allow selecting rows by ranges or indices" <|
             table.take (2.up_to 4) . at "beta" . to_vector . should_equal ["C", "D"]
             table.take (0.up_to 0) . should_equal empty
@@ -230,6 +238,14 @@ spec setup =
             alpha.drop (Last 0) . should_equal alpha
             alpha.drop (Last -1) . should_equal alpha
             alpha.drop (Last 100) . should_equal empty_alpha
+
+        Test.specify "should handle consecutive take/drops" <|
+            alpha.take 5 . sort . take 3 . to_vector . should_equal [1, 2, 3]
+            alpha.take 3 . sort . take 5 . to_vector . should_equal [1, 2, 3]
+            alpha.take 5 . sort . drop 3 . to_vector . should_equal [4, 5]
+            alpha.drop 3 . sort . drop 2 . to_vector . should_equal [6, 7, 8]
+            alpha.drop 2 . sort . drop 3 . to_vector . should_equal [6, 7, 8]
+            alpha.drop 3 . sort . take 2 . to_vector . should_equal [4, 5]
 
         Test.specify "should allow selecting rows by ranges or indices" <|
             beta.take (2.up_to 4) . to_vector . should_equal ["C", "D"]
