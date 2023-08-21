@@ -2093,7 +2093,7 @@ type Table
        Nests a table as a subquery, using `updated_context_and_columns`, which
        causes its columns to be referenced as names rather than expressions.
     as_subquery : Table
-    as_subquery self = self.updated_context_and_columns self.context self.internal_columns True
+    as_subquery self = self.updated_context_and_columns self.context self.internal_columns subquery=True
 
     ## PRIVATE
        Checks if this table is a 'trivial query'.
