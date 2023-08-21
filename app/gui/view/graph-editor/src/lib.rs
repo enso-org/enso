@@ -539,7 +539,6 @@ ensogl::define_endpoints_2! {
         // === Copy-Paste ===
         copy_selected_node(),
         paste_node(),
-        paste_node_with_code(ImString),
 
 
         /// Remove all selected nodes from the graph.

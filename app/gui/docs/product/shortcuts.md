@@ -54,7 +54,7 @@ broken and require further investigation.
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>k</kbd>                                    | Switch the execution environment to Design.                                                                                                                                                                                                          |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>l</kbd>                                    | Switch the execution environment to Live.                                                                                                                                                                                                            |
 | <kbd>cmd</kbd>+<kbd>c</kbd>                                                     | Copy the selected nodes to the clipboard.                                                                                                                                                                                                            |
-| <kbd>cmd</kbd>+<kbd>v</kbd>                                                     | Paste a node from clipboard at mouse cursor position.                                                                                                                                                                                                |
+| <kbd>cmd</kbd>+<kbd>v</kbd>                                                     | Paste a node from the clipboard at the mouse cursor position.                                                                                                                                                                                        |
 
 #### Navigation
 

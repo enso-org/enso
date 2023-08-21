@@ -1,17 +1,17 @@
-//! Copy-pasting nodes using clipboard.
+//! Copy-pasting nodes using the clipboard.
 //!
 //! # Clipboard Content Format
 //!
 //! We use a JSON-encoded [`ClipboardContent`] structure, marked with our custom [`MIME_TYPE`].
-//! This way we have a separate clipboard format for our application, and can extend it in the
+//! This way, we have a separate clipboard format for our application and can extend it in the
 //! future.
-//! To make it easier to use the clipboard in other applications, we also support plain text
-//! pasting, but only if the [`PLAIN_TEXT_PASTING_ENABLED`] is `true`. Allowing pasting plain text
-//! can bring unnecessary security risks, like immediate execution of the malicious code pasted from
-//! an untrusted source.
+//! We also support plain text pasting to make it easier to paste the content from other
+//! applications, but only if the [`PLAIN_TEXT_PASTING_ENABLED`] is `true`. Allowing pasting plain
+//! text can bring unnecessary security risks, like the execution of malicious code immediately
+//! after pasting.
 //!
-//! To copy the node as plain text, the user can enter editing node, select the node expression,
-//! and copy it to the clipboard using `text::Area` functionality.
+//! To copy the node as plain text, the user can enter the editing node, select the node expression,
+//! and copy it to the clipboard using the [`ensogl::Text`] functionality.
 
 use crate::prelude::*;
 
@@ -25,11 +25,11 @@ use serde::Serialize;
 
 
 
-/// We use `web` prefix to be able to use a custom MIME-type. Typically browsers support a
-/// restricted set of MIME-types in clipboard.
+/// We use the `web` prefix to be able to use a custom MIME type. Typically browsers support a
+/// restricted set of MIME types in the clipboard.
 /// See [Clipboard pickling](https://github.com/w3c/editing/blob/gh-pages/docs/clipboard-pickling/explainer.md).
 ///
-/// `application/enso` is not an officially registered MIME-type (yet), but it is not needed for
+/// `application/enso` is not an officially registered MIME-type (yet), but it is not important for
 /// our purposes.
 const MIME_TYPE: &str = "web application/enso";
 /// Whether to allow pasting nodes from plain text.
@@ -60,21 +60,18 @@ pub fn copy_node(expression: String, metadata: Option<NodeMetadata>) -> Fallible
 }
 
 
-/// Paste the node from the clipboard.
-pub fn paste_node(graph: &Handle, cursor_pos: Vector2) -> FallibleResult {
+/// Paste the node from the clipboard at a specific position.
+pub fn paste_node(graph: &Handle, position: Vector2) -> FallibleResult {
     clipboard::read(
         MIME_TYPE.to_string(),
-        paste_node_from_custom_format(graph, cursor_pos),
-        plain_text_fallback(graph, cursor_pos),
+        paste_node_from_custom_format(graph, position),
+        plain_text_fallback(graph, position),
     );
     Ok(())
 }
 
 /// A standard callback for pasting node using our custom format.
-fn paste_node_from_custom_format(
-    graph: &Handle,
-    cursor_pos: Vector2,
-) -> impl Fn(Vec<u8>) + 'static {
+fn paste_node_from_custom_format(graph: &Handle, position: Vector2) -> impl Fn(Vec<u8>) + 'static {
     let graph = graph.clone_ref();
     move |content| {
         let _transaction = graph.module.get_or_open_transaction("Paste node");
@@ -84,7 +81,7 @@ fn paste_node_from_custom_format(
                 ClipboardContent::Node(node) => {
                     let expression = node.expression;
                     let metadata = node.metadata;
-                    if let Err(err) = graph.new_node_at_position(cursor_pos, expression, metadata) {
+                    if let Err(err) = graph.new_node_at_position(position, expression, metadata) {
                         error!("Failed to paste node. {err}");
                     }
                 }
@@ -100,13 +97,13 @@ fn paste_node_from_custom_format(
 /// An alternative callback for pasting node from plain text. It is used when [`MIME_TYPE`] is not
 /// available in the clipboard, and only if [`PLAIN_TEXT_PASTING_ENABLED`]. Otherwise, it is a
 /// noop.
-fn plain_text_fallback(graph: &Handle, cursor_pos: Vector2) -> impl Fn(String) + 'static {
+fn plain_text_fallback(graph: &Handle, position: Vector2) -> impl Fn(String) + 'static {
     let graph = graph.clone_ref();
     move |text| {
         if PLAIN_TEXT_PASTING_ENABLED {
             let _transaction = graph.module.get_or_open_transaction("Paste node");
             let expression = text;
-            if let Err(err) = graph.new_node_at_position(cursor_pos, expression, None) {
+            if let Err(err) = graph.new_node_at_position(position, expression, None) {
                 error!("Failed to paste node. {err}");
             }
         }
