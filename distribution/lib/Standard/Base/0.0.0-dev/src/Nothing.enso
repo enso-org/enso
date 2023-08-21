@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-
 from project.Data.Boolean import Boolean, False, True
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
@@ -11,7 +10,8 @@ from project.Data.Boolean import Boolean, False, True
    Option abstraction.
 @Builtin_Type
 type Nothing
-    ## Checks if the type is an instance of `Nothing`.
+    ## GROUP Logical
+       Checks if the type is an instance of `Nothing`.
 
        > Example
          Checking if the value 1 is nothing.
@@ -20,7 +20,8 @@ type Nothing
     is_nothing : Boolean
     is_nothing self = True
 
-    ## If this is Nothing then returns `function`.
+    ## GROUP Logical
+       If this is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".

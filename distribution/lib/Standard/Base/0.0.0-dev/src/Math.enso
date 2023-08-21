@@ -22,6 +22,7 @@ e = 2.718281828459045235360
 
 ## PRIVATE
    ADVANCED
+   GROUP Math
 
    Returns the smaller value of `a` and `b`.
 
@@ -43,6 +44,7 @@ min a b = if a <= b then a else b
 
 ## PRIVATE
    ADVANCED
+   GROUP Math
 
    Returns the larger value of `a` and `b`.
 
