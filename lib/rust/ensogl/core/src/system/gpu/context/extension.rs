@@ -197,6 +197,7 @@ impl WebglLoseContext {
         Some(Self { ext, lose_context, restore_context })
     }
 
+    /// Lose the WebGL context. This can be useful for testing, or to eagerly release resources.
     pub fn lose_context(&self) {
         if let Err(err) = self.lose_context.call0(&self.ext) {
             warn!(
@@ -207,6 +208,8 @@ impl WebglLoseContext {
         }
     }
 
+    /// Restore the WebGL context. This will only succeed if the context was lost by
+    /// [`lose_context`].
     pub fn restore_context(&self) {
         if let Err(err) = self.restore_context.call0(&self.ext) {
             error!("Failed to restore the WebGL context: {:?}", err);

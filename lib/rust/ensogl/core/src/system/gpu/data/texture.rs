@@ -195,50 +195,20 @@ impl Default for Wrap {
 /// Texture which may be bound to GL context.
 #[derive(Debug)]
 pub struct Texture<InternalFormat, ItemType> {
-    width:           i32,
-    height:          i32,
-    layers:          i32,
-    gl_texture:      WebGlTexture,
-    context:         Context,
-    parameters:      Parameters,
-    internal_format: PhantomData<InternalFormat>,
-    item_type:       PhantomData<ItemType>,
-}
+    width:      i32,
+    height:     i32,
+    layers:     i32,
+    gl_texture: WebGlTexture,
+    context:    Context,
+    parameters: Parameters,
 
+    _internal_format: PhantomData<InternalFormat>,
+    _item_type:       PhantomData<ItemType>,
 
-// === Type Level Utils ===
-
-impl<I, T> Texture<I, T> where I: InternalFormat, T: ItemType {
-    /// Internal format instance of this texture.
-    pub fn internal_format() -> AnyInternalFormat {
-        <I>::default().into()
-    }
-
-    /// Format instance of this texture.
-    pub fn format() -> AnyFormat {
-        <I>::Format::default().into()
-    }
-
-    /// Internal format of this texture as `GlEnum`.
-    pub fn gl_internal_format() -> u32 {
-        let GlEnum(u) = Self::internal_format().to_gl_enum();
-        u
-    }
-
-    /// Format of this texture as `GlEnum`.
-    pub fn gl_format() -> GlEnum {
-        Self::format().to_gl_enum()
-    }
-
-    /// Element type of this texture as `GlEnum`.
-    pub fn gl_elem_type() -> u32 {
-        <T>::gl_enum().into()
-    }
-
-    /// Element type of this texture.
-    pub fn item_type() -> AnyItemType {
-        ZST::<T>().into()
-    }
+    format:          AnyFormat,
+    item_type:       AnyItemType,
+    internal_format: AnyInternalFormat,
+    elem_type:       GlEnum,
 }
 
 
@@ -258,14 +228,17 @@ impl<I, T> Texture<I, T> {
         &self.parameters
     }
 
+    /// Returns the width, in pixels.
     pub fn width(&self) -> i32 {
         self.width
     }
 
+    /// Returns the height, in pixels.
     pub fn height(&self) -> i32 {
         self.height
     }
 
+    /// Returns the number of layers.
     pub fn layers(&self) -> i32 {
         self.layers
     }
@@ -296,9 +269,26 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
         let context = context.clone();
         let gl_texture = context.create_texture().unwrap();
         let parameters = default();
-        let internal_format = default();
-        let item_type = default();
-        let this = Self { width, height, layers, gl_texture, context, parameters, internal_format, item_type };
+        let _internal_format = default();
+        let _item_type = default();
+        let internal_format: AnyInternalFormat = <I>::default().into();
+        let format: AnyFormat = <I>::Format::default().into();
+        let elem_type = <T>::gl_enum();
+        let item_type = ZST::<T>().into();
+        let this = Self {
+            width,
+            height,
+            layers,
+            gl_texture,
+            context,
+            parameters,
+            _internal_format,
+            _item_type,
+            format,
+            item_type,
+            internal_format,
+            elem_type,
+        };
         this.allocate();
         this
     }
@@ -306,7 +296,7 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
     /// Allocates GPU memory for the texture.
     fn allocate(&self) {
         let levels = 1;
-        let internal_format = Self::gl_internal_format();
+        let internal_format = self.internal_format.to_gl_enum().into();
         let target = self.target();
         self.context.bind_texture(*target, Some(&self.gl_texture));
         match self.layers {
@@ -354,38 +344,42 @@ where
         let target = self.target();
         let level = 0;
         let (xoffset, yoffset, zoffset) = default();
-        let format = Self::gl_format().into();
-        let elem_type = Self::gl_elem_type();
+        let format = self.format.to_gl_enum().into();
+        let elem_type = self.elem_type.into();
         let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
         match self.layers {
             0 => {
-                self.context.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-                    *target,
-                    level,
-                    xoffset,
-                    yoffset,
-                    self.width,
-                    self.height,
-                    format,
-                    elem_type,
-                    Some(data),
-                ).unwrap();
+                self.context
+                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+                        *target,
+                        level,
+                        xoffset,
+                        yoffset,
+                        self.width,
+                        self.height,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
             }
             _ => {
-                self.context.tex_sub_image_3d_with_opt_u8_array(
-                    *target,
-                    level,
-                    xoffset,
-                    yoffset,
-                    zoffset,
-                    self.width,
-                    self.height,
-                    self.layers,
-                    format,
-                    elem_type,
-                    Some(data),
-                ).unwrap();
+                self.context
+                    .tex_sub_image_3d_with_opt_u8_array(
+                        *target,
+                        level,
+                        xoffset,
+                        yoffset,
+                        zoffset,
+                        self.width,
+                        self.height,
+                        self.layers,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
             }
         }
         self.apply_texture_parameters(&self.context);
@@ -445,11 +439,11 @@ impl<P: WithItemRef<Item = Texture<I, T>>, I: InternalFormat, T: ItemType> Textu
     }
 
     fn get_format(&self) -> AnyFormat {
-        self.with_item(|_| <Texture<I, T>>::format())
+        self.with_item(|t| t.format)
     }
 
     fn get_item_type(&self) -> AnyItemType {
-        self.with_item(|_| <Texture<I, T>>::item_type())
+        self.with_item(|t| t.item_type)
     }
 }
 
