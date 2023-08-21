@@ -172,7 +172,8 @@ type Ordering
                 if x > y then Ordering.Greater else
                     Error.throw (Incomparable_Values.Error x y)
 
-    ## Converts the ordering to the signed notion of ordering based on integers.
+    ## GROUP Conversions
+       Converts the ordering to the signed notion of ordering based on integers.
 
        > Example
          Converting equal ordering to a signed number.
