@@ -427,4 +427,5 @@ type Matrix_Comparator
     hash : Matrix -> Number
     hash x = x.opencv_mat.hashCode
 
+## PRIVATE
 Comparable.from (_:Matrix) = Matrix_Comparator

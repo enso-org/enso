@@ -45,6 +45,7 @@ type Bits_Comparator
     hash : Bits -> Integer
     hash x = Comparable.from x.to_bits . hash x.to_bits
 
+## PRIVATE
 Comparable.from (_:Bits) = Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.

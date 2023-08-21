@@ -150,7 +150,7 @@ type Bench
 
              example_measure =
                  Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
-    measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
+    measure : Text -> Phase_Conf -> Phase_Conf -> Any -> Nothing
     measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         case dry_run of

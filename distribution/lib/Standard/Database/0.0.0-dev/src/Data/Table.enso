@@ -2270,7 +2270,8 @@ check_db_table arg_name table =
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
                 True -> True
 
-## By default, join on the first column, unless it's a cross join, in which
+## PRIVATE
+   By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of

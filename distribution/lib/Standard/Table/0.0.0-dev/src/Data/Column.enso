@@ -1023,6 +1023,7 @@ type Column
             Column.Value col
 
     ## ALIAS Fill Empty, if_empty
+       GROUP Standard.Base.Values
 
        Returns a new column where empty Text values have been replaced with the
        provided default.

@@ -235,7 +235,7 @@ type Postgres_Dialect
             _ ->
                 Date_Period_Metadata.Value period operation_input_type
 
-    ## PRVIATE
+    ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
@@ -504,6 +504,7 @@ supported_replace_params =
     e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
+## PRIVATE
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
     input = args.at 0
