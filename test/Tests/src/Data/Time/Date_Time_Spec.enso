@@ -861,7 +861,8 @@ js_set_zone local_datetime zone =
 
 python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Nothing =
     z = if zone.is_nothing then -1 else zone
-    python_datetime_impl year month day hour minute second nanosecond z
+    Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond z) err->
+        Error.throw (Time_Error.Error err.payload)
 
 python_parse text format="" =
     d = Date_Time.parse text format
@@ -889,6 +890,9 @@ foreign js js_array_datetimeCreate year month day hour minute second nanosecond 
 
 foreign python python_datetime_impl year month day hour minute second nanosecond zone = """
     import datetime
+
+    if month > 12 or month < 1:
+        raise Exception("Invalid value for MonthOfYear (valid values 1 - 12): {}".format(month))
 
     microseconds = int(nanosecond / 1000000) * 1000
     if zone == -1:
