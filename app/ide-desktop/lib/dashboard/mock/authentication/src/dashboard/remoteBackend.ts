@@ -5,48 +5,9 @@
  * the response from the API. */
 import * as backend from '../../../../src/authentication/src/dashboard/backend'
 import * as config from '../../../../src/authentication/src/config'
-import * as errorModule from '../../../../src/authentication/src/error'
+import * as dateTime from '../../../../src/authentication/src/dashboard/dateTime'
 import * as http from '../../../../src/authentication/src/http'
 import * as loggerProvider from '../../../../src/authentication/src/providers/logger'
-
-// =============
-// === Types ===
-// =============
-
-/** HTTP response body for the "list users" endpoint. */
-interface ListUsersResponseBody {
-    users: backend.SimpleUser[]
-}
-
-/** HTTP response body for the "list projects" endpoint. */
-interface ListDirectoryResponseBody {
-    assets: backend.AnyAsset[]
-}
-
-/** HTTP response body for the "list projects" endpoint. */
-interface ListProjectsResponseBody {
-    projects: backend.ListedProjectRaw[]
-}
-
-/** HTTP response body for the "list files" endpoint. */
-interface ListFilesResponseBody {
-    files: backend.File[]
-}
-
-/** HTTP response body for the "list secrets" endpoint. */
-interface ListSecretsResponseBody {
-    secrets: backend.SecretInfo[]
-}
-
-/** HTTP response body for the "list tag" endpoint. */
-interface ListTagsResponseBody {
-    tags: backend.Tag[]
-}
-
-/** HTTP response body for the "list versions" endpoint. */
-interface ListVersionsResponseBody {
-    versions: [backend.Version, ...backend.Version[]]
-}
 
 // =====================
 // === RemoteBackend ===
@@ -67,7 +28,7 @@ export class RemoteBackend extends backend.Backend {
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
         if (!this.client.defaultHeaders.has('Authorization')) {
-            return this.throw('Authorization header not set.')
+            throw new Error('Authorization header not set.')
         } else {
             if (IS_DEV_MODE) {
                 // @ts-expect-error This exists only for debugging purposes. It does not have types
@@ -76,6 +37,15 @@ export class RemoteBackend extends backend.Backend {
             }
             return
         }
+    }
+
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(user: backend.UserOrOrganization | null): backend.DirectoryId {
+        return backend.DirectoryId(
+            // `user` is only null when the user is offline, in which case the remote backend cannot
+            // be accessed anyway.
+            user != null ? user.id.replace(/^organization-/, `${backend.AssetType.directory}-`) : ''
+        )
     }
 
     /** Return a list of all users in the same organization. */
@@ -167,23 +137,20 @@ export class RemoteBackend extends backend.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
-        return await Promise.resolve({})
+        return await Promise.resolve<backend.CreatedProject>({
+            name: body.projectName,
+            organizationId: '',
+            packageName: '',
+            projectId: backend.ProjectId(''),
+            state: { type: backend.ProjectState.closed },
+        })
     }
 
     /** Close a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-        const response = await this.post(closeProjectPath(projectId), {})
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to close project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            return
-        }
+    async closeProject(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Return details for a project.
@@ -193,44 +160,24 @@ export class RemoteBackend extends backend.Backend {
         projectId: backend.ProjectId,
         title: string | null
     ): Promise<backend.Project> {
-        const response = await this.get<backend.ProjectRaw>(getProjectDetailsPath(projectId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to get details of project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            const project = await response.json()
-            return {
-                ...project,
-                jsonAddress:
-                    project.address != null ? backend.Address(`${project.address}json`) : null,
-                binaryAddress:
-                    project.address != null ? backend.Address(`${project.address}binary`) : null,
-            }
-        }
+        return await Promise.resolve<backend.Project>({
+            name: title ?? '',
+            packageName: 'Project_root',
+            projectId,
+            engineVersion: null,
+            ideVersion: { lifecycle: backend.VersionLifecycle.development, value: '2023.2.1-dev' },
+            binaryAddress: null,
+            jsonAddress: null,
+            organizationId: backend.UserOrOrganizationId(''),
+            state: { type: backend.ProjectState.closed },
+        })
     }
 
     /** Prepare a project for execution.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async openProject(
-        projectId: backend.ProjectId,
-        body: backend.OpenProjectRequestBody | null,
-        title: string | null
-    ): Promise<void> {
-        const response = await this.post(
-            openProjectPath(projectId),
-            body ?? DEFAULT_OPEN_PROJECT_BODY
-        )
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
-            )
-        } else {
-            return
-        }
+    async openProject(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Update the name or AMI of a project.
@@ -238,225 +185,117 @@ export class RemoteBackend extends backend.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async projectUpdate(
         projectId: backend.ProjectId,
-        body: backend.ProjectUpdateRequestBody,
+        _body: backend.ProjectUpdateRequestBody,
         title: string | null
     ): Promise<backend.UpdatedProject> {
-        const response = await this.put<backend.UpdatedProject>(projectUpdatePath(projectId), body)
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to update project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            return await response.json()
-        }
+        return await Promise.resolve<backend.UpdatedProject>({
+            name: title ?? '',
+            organizationId: '',
+            projectId,
+            engineVersion: null,
+            ideVersion: null,
+            ami: null,
+        })
     }
 
     /** Delete a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteProjectPath(projectId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            return
-        }
+    async deleteProject(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Return the resource usage of a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async checkResources(
-        projectId: backend.ProjectId,
-        title: string | null
-    ): Promise<backend.ResourceUsage> {
-        const response = await this.get<backend.ResourceUsage>(checkResourcesPath(projectId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to get resource usage for project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            return await response.json()
-        }
+    async checkResources(): Promise<backend.ResourceUsage> {
+        return await Promise.resolve<backend.ResourceUsage>({
+            cpu: 0,
+            memory: 0,
+            storage: 0,
+        })
     }
 
     /** Return a list of files accessible by the current user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async listFiles(): Promise<backend.File[]> {
-        const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
-        if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to list files.')
-        } else {
-            return (await response.json()).files
-        }
+        return await Promise.resolve([])
     }
 
     /** Upload a file.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async uploadFile(
-        params: backend.UploadFileRequestParams,
-        body: Blob
-    ): Promise<backend.FileInfo> {
-        const response = await this.postBinary<backend.FileInfo>(
-            UPLOAD_FILE_PATH +
-                '?' +
-                new URLSearchParams({
-                    /* eslint-disable @typescript-eslint/naming-convention */
-                    ...(params.fileName != null ? { file_name: params.fileName } : {}),
-                    ...(params.fileId != null ? { file_id: params.fileId } : {}),
-                    ...(params.parentDirectoryId
-                        ? { parent_directory_id: params.parentDirectoryId }
-                        : {}),
-                    /* eslint-enable @typescript-eslint/naming-convention */
-                }).toString(),
-            body
-        )
-        if (!responseIsSuccessful(response)) {
-            let suffix = '.'
-            try {
-                const error = errorModule.tryGetError<unknown>(await response.json())
-                if (error != null) {
-                    suffix = `: ${error}`
-                }
-            } catch {
-                // Ignored.
-            }
-            if (params.fileName != null) {
-                return this.throw(`Could not upload file with name '${params.fileName}'${suffix}`)
-            } else if (params.fileId != null) {
-                return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
-            } else {
-                return this.throw(`Could not upload file${suffix}`)
-            }
-        } else {
-            return await response.json()
-        }
+    async uploadFile(): Promise<backend.FileInfo> {
+        await Promise.resolve()
+        throw new Error('Not implemented.')
     }
 
     /** Delete a file.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteFile(fileId: backend.FileId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteFilePath(fileId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
-            )
-        } else {
-            return
-        }
+    async deleteFile(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Create a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
-        const response = await this.post<backend.SecretAndInfo>(CREATE_SECRET_PATH, body)
-        if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create secret with name '${body.secretName}'.`)
-        } else {
-            return await response.json()
-        }
+        return await Promise.resolve<backend.SecretAndInfo>({
+            id: backend.SecretId(''),
+            name: body.secretName,
+            value: body.secretValue,
+        })
     }
 
     /** Return a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async getSecret(secretId: backend.SecretId, title: string | null): Promise<backend.Secret> {
-        const response = await this.get<backend.Secret>(getSecretPath(secretId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
-            )
-        } else {
-            return await response.json()
-        }
+    async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
+        return await Promise.resolve<backend.Secret>({
+            id: secretId,
+            value: '',
+        })
     }
 
     /** Return the secret environment variables accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async listSecrets(): Promise<backend.SecretInfo[]> {
-        const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
-        if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to list secrets.')
-        } else {
-            return (await response.json()).secrets
-        }
+        return await Promise.resolve([])
     }
 
     /** Delete a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteSecret(secretId: backend.SecretId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteSecretPath(secretId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
-            )
-        } else {
-            return
-        }
+    async deleteSecret(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Create a file tag or project tag.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
-        const response = await this.post<backend.TagInfo>(CREATE_TAG_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            tag_name: body.name,
-            tag_value: body.value,
-            object_type: body.objectType,
-            object_id: body.objectId,
-            /* eslint-enable @typescript-eslint/naming-convention */
+        return await Promise.resolve<backend.TagInfo>({
+            id: backend.TagId(''),
+            name: body.name,
+            value: body.value,
         })
-        if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create create tag with name '${body.name}'.`)
-        } else {
-            return await response.json()
-        }
     }
 
     /** Return file tags or project tags accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
-        const response = await this.get<ListTagsResponseBody>(
-            LIST_TAGS_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    tag_type: params.tagType,
-                }).toString()
-        )
-        if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to list tags of type '${params.tagType}'.`)
-        } else {
-            return (await response.json()).tags
-        }
+    async listTags(): Promise<backend.Tag[]> {
+        return await Promise.resolve([])
     }
 
     /** Delete a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteTag(tagId: backend.TagId): Promise<void> {
-        const response = await this.delete(deleteTagPath(tagId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete tag with ID '${tagId}'.`)
-        } else {
-            return
-        }
+    async deleteTag(): Promise<void> {
+        await Promise.resolve()
     }
 
     /** Return list of backend or IDE versions.
@@ -465,20 +304,15 @@ export class RemoteBackend extends backend.Backend {
     async listVersions(
         params: backend.ListVersionsRequestParams
     ): Promise<[backend.Version, ...backend.Version[]]> {
-        const response = await this.get<ListVersionsResponseBody>(
-            LIST_VERSIONS_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    version_type: params.versionType,
-                    default: String(params.default),
-                }).toString()
-        )
-        if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to list versions of type '${params.versionType}'.`)
-        } else {
-            return (await response.json()).versions
-        }
+        return await Promise.resolve<[backend.Version, ...backend.Version[]]>([
+            {
+                ami: null,
+                created: dateTime.toRfc3339(new Date()),
+                number: { lifecycle: backend.VersionLifecycle.development, value: '2023.2.1-dev' },
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                version_type: params.versionType,
+            },
+        ])
     }
 
     /** Send an HTTP GET request to the given path. */

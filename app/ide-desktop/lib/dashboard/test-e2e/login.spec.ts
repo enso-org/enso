@@ -4,7 +4,7 @@ import * as test from '@playwright/test'
 
 test.test('login flow', async ({ page }) => {
     await page.goto('/')
-    await page.waitForFunction(() => document.fonts.check('13.5px "M PLUS 1"'))
+    await page.waitForFunction(() => document.fonts.ready)
     await test.expect(page).toHaveScreenshot()
 
     await page.type('#email', 'invalid email')

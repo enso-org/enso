@@ -1,7 +1,7 @@
 /** @file Return the appropriate file icon given the file name. */
-import FileIcon from 'enso-assets/file.svg'
+import TextIcon from 'enso-assets/text.svg'
 
 /** Return the appropriate icon given the file name. */
 export function fileIcon() {
-    return FileIcon
+    return TextIcon
 }
