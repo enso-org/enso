@@ -22,7 +22,7 @@ spec =
     if Polyglot.is_language_installed "python" then
         ignore_z_check a b =
             if a == 'Z' || b == 'Z' then True else
-                a.should_equal b
+                a.should_equal frames_to_skip=2 b
         spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=ignore_z_check
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
@@ -767,7 +767,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
                 d1.date_part Time_Period.Microsecond . should_equal 456
                 d1.date_part Time_Period.Nanosecond . should_equal 789
 
-        pending_date_diff_test = if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
+        pending_date_diff_test = if name.contains "Python" then "Loose Zone conversions are on, skipping the test"
 
         Test.specify "should allow computing date_diff" pending=pending_date_diff_test <|
             t1 = create_new_datetime 2021 11 3 10 15 0
