@@ -639,6 +639,8 @@ impl Project {
                     let properties = properties.clone_ref();
                     let execution_contexts = execution_contexts.clone_ref();
                     rename_project_on_notification(project_renamed, properties, execution_contexts);
+                    let notification = model::project::Notification::Renamed;
+                    publisher.notify(notification);
                 }
                 Event::Closed => {
                     error!("Lost JSON-RPC connection with the Language Server!");
@@ -770,33 +772,6 @@ impl model::project::API for Project {
             Ok(context)
         }
         .boxed_local()
-    }
-
-    fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
-        if self.read_only() {
-            std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
-        } else {
-            async move {
-                let old_name = self.properties.borrow_mut().project_name.project.clone_ref();
-                let referent_name = name.to_im_string();
-                let project_manager =
-                    self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
-                let project_id = self.properties.borrow().id;
-                let project_name = ProjectName::new_unchecked(name);
-                project_manager.rename_project(&project_id, &project_name).await.map_err(
-                    |error| match error {
-                        RpcError::RemoteError(cause)
-                            if cause.code == code::PROJECT_NAME_INVALID =>
-                            failure::Error::from(ProjectNameInvalid { cause: cause.message }),
-                        error => error.into(),
-                    },
-                )?;
-                self.properties.borrow_mut().project_name.project = referent_name.clone_ref();
-                self.execution_contexts.rename_project(old_name, referent_name);
-                Ok(())
-            }
-            .boxed_local()
-        }
     }
 
     fn project_content_root_id(&self) -> Uuid {
