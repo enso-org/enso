@@ -110,8 +110,8 @@ impl Model {
         self.view.top_bar().breadcrumbs.set_entries_from((stack, breadcrumb_index));
     }
 
-    /// Remove the given number of levels from the stack. Will move the selection in the breadcrumbs
-    /// to the left.
+    /// Move the selection in the breadcrumbs to the left. This will result in the controller
+    /// exiting the stack by the given number of levels.
     fn shift_breadcrumb_selection_left(&self, count: usize) {
         let breadcrumbs = &self.view.top_bar().breadcrumbs;
         for _ in 0..count {
