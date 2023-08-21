@@ -918,6 +918,7 @@
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
 - [Support renaming variable or function][7515]
 - [Only use types as State keys][7585]
+- [Allow Java Enums in case of branches][7607]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1050,6 +1051,7 @@
 [7397]: https://github.com/enso-org/enso/pull/7397
 [7515]: https://github.com/enso-org/enso/pull/7515
 [7585]: https://github.com/enso-org/enso/pull/7585
+[7607]: https://github.com/enso-org/enso/pull/7607
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
