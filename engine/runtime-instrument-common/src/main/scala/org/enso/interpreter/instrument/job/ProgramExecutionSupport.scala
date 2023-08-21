@@ -569,7 +569,9 @@ object ProgramExecutionSupport {
     */
   private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
     for {
-      call          <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
+      call <-
+        if (Types.isPanic(value.getType)) Option(value.getCallInfo)
+        else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
       Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)

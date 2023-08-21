@@ -41,7 +41,7 @@ mod attachment {
     /// appears to pass through the top of the node. Without this adjustment, inexact
     /// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
     /// the attachment should meet the corner at the edge of the node.
-    pub(super) const LENGTH_ADJUSTMENT: f32 = 0.1;
+    pub(super) const LENGTH_ADJUSTMENT: f32 = 1.0;
 }
 
 

@@ -1230,6 +1230,7 @@ lazy val `runtime-language-epb` =
       truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
+    .dependsOn(`polyglot-api`)
 
 /** Runs gu (GraalVM updater) command with given `args`.
   * For example `runGu(Seq("install", "js"))`.
@@ -1404,7 +1405,6 @@ lazy val runtime = (project in file("engine/runtime"))
     Benchmark / parallelExecution := false
   )
   .dependsOn(`common-polyglot-core-utils`)
-  .dependsOn(`runtime-language-epb`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1532,6 +1532,7 @@ lazy val `runtime-with-instruments` =
     .dependsOn(`runtime-instrument-id-execution`)
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
+    .dependsOn(`runtime-language-epb`)
 
 /* runtime-with-polyglot
  * ~~~~~~~~~~~~~~~~~~~~~
@@ -1828,10 +1829,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % Benchmark,
-      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
+      "org.openjdk.jmh" % "jmh-core"                 % jmhVersion                % Benchmark,
+      "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
+      "org.graalvm.sdk" % "graal-sdk"                % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=

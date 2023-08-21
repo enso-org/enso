@@ -258,13 +258,10 @@ fn list_of_examples<'a>(examples: &'a Examples) -> Box<dyn Render + 'a> {
     }
 }
 
-/// Build an HTML code of the example from the documentation section. Engine already provides as
-/// with a preformatted HTML code, but we need to modify some tags in order to properly style it.
-fn example_from_doc_section(doc_section: &DocSection) -> String {
+fn example_from_doc_section(doc_section: &DocSection) -> &str {
     match doc_section {
-        DocSection::Marked { mark: Mark::Example, body, .. } =>
-            body.replace("<pre>", "<div class=\"example\">").replace("</pre>", "</div>"),
-        _ => String::from("Invalid example"),
+        DocSection::Marked { mark: Mark::Example, body, .. } => body,
+        _ => "Invalid example",
     }
 }
 

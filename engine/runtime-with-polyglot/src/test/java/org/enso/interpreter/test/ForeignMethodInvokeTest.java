@@ -13,7 +13,7 @@ public class ForeignMethodInvokeTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = createDefaultContext();
+    ctx = defaultContextBuilder("enso").build();
   }
 
   @AfterClass
@@ -27,10 +27,10 @@ public class ForeignMethodInvokeTest extends TestBase {
     // should fail with a Polyglot_Error, rather than crashing whole engine.
     String source = """
         from Standard.Base import all
-        
+
         foreign python py_array = \"\"\"
             return [1,2,3]
-        
+
         main =
             Panic.recover Any py_array
         """.trim();
