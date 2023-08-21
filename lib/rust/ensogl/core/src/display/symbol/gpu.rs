@@ -12,7 +12,6 @@ use crate::system::gpu;
 use crate::system::gpu::context::native::ContextOps;
 use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::buffer::IsBuffer;
-use crate::system::gpu::data::texture::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
 use crate::system::gpu::data::uniform::AnyPrimUniformOps;
 use crate::system::gpu::data::uniform::AnyTextureUniform;

@@ -937,7 +937,7 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 // === FontWithGpuData ===
 // =======================
 
-type AtlasTexture = gpu::Texture<texture::Rgb8, u8>;
+type AtlasTexture = gpu::Texture;
 
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
@@ -982,7 +982,12 @@ impl FontWithGpuData {
 }
 
 fn get_texture(context: &Context, glyph_size: Vector2<u32>, num_glyphs: u32) -> AtlasTexture {
-    gpu::Texture::new(context, glyph_size.x() as i32, glyph_size.y() as i32, num_glyphs as i32)
+    gpu::Texture::new::<texture::Rgb8, u8>(
+        context,
+        glyph_size.x() as i32,
+        glyph_size.y() as i32,
+        num_glyphs as i32,
+    )
 }
 
 

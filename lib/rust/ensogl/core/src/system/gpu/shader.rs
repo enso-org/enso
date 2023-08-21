@@ -141,8 +141,8 @@ impl<T> Shader<T> {
 pub struct Program {
     #[as_ref]
     #[deref]
-    pub native:         WebGlProgram,
-    pub shader:         CompiledCode,
+    pub native: WebGlProgram,
+    pub shader: CompiledCode,
 }
 
 impl Program {

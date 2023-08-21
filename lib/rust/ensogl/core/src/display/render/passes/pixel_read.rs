@@ -7,7 +7,6 @@ use crate::system::js::*;
 use crate::display::render::pass;
 use crate::display::scene::UpdateStatus;
 use crate::system::gpu::context::ContextLost;
-use crate::system::gpu::data::texture::TextureOps;
 
 use web_sys::WebGlBuffer;
 use web_sys::WebGlFramebuffer;

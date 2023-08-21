@@ -5,7 +5,6 @@ use crate::system::gpu::*;
 
 use crate::display::scene::UpdateStatus;
 use crate::system::gpu::context::ContextLost;
-use crate::system::gpu::data::texture::TextureOps;
 
 
 
@@ -84,10 +83,10 @@ impl Instance {
         let name = format!("pass_{}", output.name);
         let format = output.internal_format;
         let item_type = output.item_type;
-        let params = Some(output.texture_parameters);
-        uniform::get_or_add_gpu_texture_dyn(
-            context, variables, &name, format, item_type, width, height, 0, params,
-        )
+        let mut texture = Texture::new_(&context, format, item_type, width, height, 0);
+        texture.set_parameters(output.texture_parameters);
+        let uniform = variables.borrow_mut().set(name, texture).unwrap();
+        uniform.into()
     }
 
     /// Create a new framebuffer from the provided textures.

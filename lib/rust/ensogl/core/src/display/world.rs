@@ -528,9 +528,7 @@ impl WorldData {
                     if let Some(restore) = restore_context.take() {
                         restore.restore_context();
                     } else if let Some(context) = scene().context.borrow().as_ref() {
-                        if let Some(lose_context) =
-                            context.extensions.webgl_lose_context.as_ref()
-                        {
+                        if let Some(lose_context) = context.extensions.webgl_lose_context.as_ref() {
                             restore_context.borrow_mut().replace(lose_context.clone());
                             lose_context.lose_context();
                         } else {

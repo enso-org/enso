@@ -194,27 +194,21 @@ impl Default for Wrap {
 
 /// Texture which may be bound to GL context.
 #[derive(Debug)]
-pub struct Texture<InternalFormat, ItemType> {
-    width:      i32,
-    height:     i32,
-    layers:     i32,
-    gl_texture: WebGlTexture,
-    context:    Context,
-    parameters: Parameters,
-
-    _internal_format: PhantomData<InternalFormat>,
-    _item_type:       PhantomData<ItemType>,
-
-    format:          AnyFormat,
+pub struct Texture {
+    width:           i32,
+    height:          i32,
+    layers:          i32,
+    gl_texture:      WebGlTexture,
+    context:         Context,
+    parameters:      Parameters,
     item_type:       AnyItemType,
     internal_format: AnyInternalFormat,
-    elem_type:       GlEnum,
 }
 
 
 // === Getters ===
 
-impl<I, T> Texture<I, T> {
+impl Texture {
     /// Texture target getter.
     pub fn target(&self) -> GlEnum {
         match self.layers {
@@ -247,7 +241,7 @@ impl<I, T> Texture<I, T> {
 
 // === Setters ===
 
-impl<I, T> Texture<I, T> {
+impl Texture {
     /// Setter.
     pub fn set_parameters(&mut self, parameters: Parameters) {
         self.parameters = parameters;
@@ -257,9 +251,27 @@ impl<I, T> Texture<I, T> {
 
 // === Constructors ===
 
-impl<I: InternalFormat, T: ItemType> Texture<I, T> {
+impl Texture {
     /// Constructor.
-    pub fn new(context: &Context, mut width: i32, mut height: i32, layers: i32) -> Self {
+    pub fn new<I: InternalFormat, T: ItemType>(
+        context: &Context,
+        mut width: i32,
+        mut height: i32,
+        layers: i32,
+    ) -> Self {
+        let internal_format: AnyInternalFormat = <I>::default().into();
+        let item_type = ZST::<T>().into();
+        Self::new_(context, internal_format, item_type, width, height, layers)
+    }
+
+    pub fn new_(
+        context: &Context,
+        internal_format: AnyInternalFormat,
+        item_type: AnyItemType,
+        mut width: i32,
+        mut height: i32,
+        layers: i32,
+    ) -> Self {
         if width == 0 {
             width = 1;
         }
@@ -269,12 +281,6 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
         let context = context.clone();
         let gl_texture = context.create_texture().unwrap();
         let parameters = default();
-        let _internal_format = default();
-        let _item_type = default();
-        let internal_format: AnyInternalFormat = <I>::default().into();
-        let format: AnyFormat = <I>::Format::default().into();
-        let elem_type = <T>::gl_enum();
-        let item_type = ZST::<T>().into();
         let this = Self {
             width,
             height,
@@ -282,12 +288,8 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
             gl_texture,
             context,
             parameters,
-            _internal_format,
-            _item_type,
-            format,
             item_type,
             internal_format,
-            elem_type,
         };
         this.allocate();
         this
@@ -327,25 +329,21 @@ impl<I: InternalFormat, T: ItemType> Texture<I, T> {
 
 // === Internal API ===
 
-impl<I, T> Texture<I, T> {
+impl Texture {
     /// Applies this textures' parameters in the given context.
-    pub fn apply_texture_parameters(&self, context: &Context) {
+    fn apply_texture_parameters(&self, context: &Context) {
         self.parameters.apply_parameters(context, self.target());
     }
 }
 
-impl<I, T> Texture<I, T>
-where
-    I: InternalFormat,
-    T: ItemType + JsBufferViewArr,
-{
+impl Texture {
     /// Reloads gpu texture with data from given slice.
-    pub fn reload_with_content(&self, data: &[T]) {
+    pub fn reload_with_content<T: JsBufferViewArr + bytemuck::Pod>(&self, data: &[T]) {
         let target = self.target();
         let level = 0;
         let (xoffset, yoffset, zoffset) = default();
-        let format = self.format.to_gl_enum().into();
-        let elem_type = self.elem_type.into();
+        let format = self.internal_format.format().to_gl_enum().into();
+        let elem_type = self.item_type.to_gl_enum().into();
         let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
         match self.layers {
@@ -386,68 +384,30 @@ where
     }
 }
 
+impl Texture {
+    pub fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
+        let context = context.clone();
+        let target = self.target();
+        context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
+        context.bind_texture(*target, Some(&self.gl_texture));
+        context.active_texture(*Context::TEXTURE0);
+        TextureBindGuard { context, target, unit }
+    }
 
-// === Instances ===
+    pub fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
+        Ok(self.gl_texture.clone())
+    }
 
-impl<I, T> HasItem for Texture<I, T> {
-    type Item = Texture<I, T>;
-}
+    pub fn get_format(&self) -> AnyFormat {
+        self.internal_format.format()
+    }
 
-impl<I, T> ItemRef for Texture<I, T> {
-    fn item(&self) -> &Self::Item {
-        self
+    pub fn get_item_type(&self) -> AnyItemType {
+        self.item_type
     }
 }
 
-
-
-// ==================
-// === TextureOps ===
-// ==================
-
-/// API of the texture. It is defined as trait and uses the `WithContent` mechanism in order for
-/// uniforms to easily redirect the methods.
-pub trait TextureOps {
-    /// Bind texture to a specific unit.
-    fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard;
-
-    /// Return the texture. If it has not been allocated yet, or its allocation is from a previous
-    /// context, it will be newly allocated.
-    fn gl_texture(&self, context: &Context) -> Result<WebGlTexture, ContextLost>;
-
-    /// Accessor.
-    fn get_format(&self) -> AnyFormat;
-
-    /// Accessor.
-    fn get_item_type(&self) -> AnyItemType;
-}
-
-impl<P: WithItemRef<Item = Texture<I, T>>, I: InternalFormat, T: ItemType> TextureOps for P {
-    fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        self.with_item(|this| {
-            let context = context.clone();
-            let target = this.target();
-            context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
-            context.bind_texture(*target, Some(&this.gl_texture));
-            context.active_texture(*Context::TEXTURE0);
-            TextureBindGuard { context, target, unit }
-        })
-    }
-
-    fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
-        Ok(self.with_item(|this| this.gl_texture.clone()))
-    }
-
-    fn get_format(&self) -> AnyFormat {
-        self.with_item(|t| t.format)
-    }
-
-    fn get_item_type(&self) -> AnyItemType {
-        self.with_item(|t| t.item_type)
-    }
-}
-
-impl<I, T> Drop for Texture<I, T> {
+impl Drop for Texture {
     fn drop(&mut self) {
         // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
         // previous context.
