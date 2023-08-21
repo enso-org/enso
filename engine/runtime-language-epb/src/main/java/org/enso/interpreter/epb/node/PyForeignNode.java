@@ -89,7 +89,7 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
     Instant when;
     if (time != null) {
       if (date != null) {
-        when = date.atTime(time).atZone(zone).toInstant();
+        when = instantAtDateTimeZone(date, time, zone);
       } else {
         when = Instant.now();
       }
@@ -101,6 +101,11 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       }
     }
     return nodePythonZone.execute(fnPythonZone, zone.getRules().getOffset(when).getTotalSeconds());
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static Instant instantAtDateTimeZone(LocalDate date, LocalTime time, ZoneId zone) {
+    return date.atTime(time).atZone(zone).toInstant();
   }
 
   private Object combinePythonDateTimeZone(Object date, Object time, Object zone)
