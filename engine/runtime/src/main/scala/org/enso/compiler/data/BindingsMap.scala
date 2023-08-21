@@ -985,7 +985,7 @@ object BindingsMap {
         case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
           s"    The imported polyglot symbol ${symbol.name};"
         case BindingsMap.ResolvedPolyglotField(_, name) =>
-          s"    The imported polyglot symbol ${name};"
+          s"    The imported polyglot field ${name};"
         case BindingsMap.ResolvedMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
         case BindingsMap.ResolvedType(module, typ) =>
