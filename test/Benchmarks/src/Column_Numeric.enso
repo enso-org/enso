@@ -25,7 +25,7 @@ create_floats vector_size faker =
 
 
 collect_benches = Bench.build builder->
-    vector_size = 1000000
+    vector_size = 5 * 1000 * 1000
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
