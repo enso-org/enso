@@ -372,7 +372,7 @@ class IrToTruffle(
                     )
                   case BindingsMap.ResolvedPolyglotField(_, _) =>
                     throw new CompilerError(
-                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                      "Impossible polyglot field, should be caught by MethodDefinitions pass."
                     )
                   case _: BindingsMap.ResolvedMethod =>
                     throw new CompilerError(
@@ -1240,25 +1240,39 @@ class IrToTruffle(
                     .getPolyglotSymbols
                     .get(typ.symbol.name)
 
-                  val polyValue =
-                    if (polyClass == null) null
+                  val polyValueOrError =
+                    if (polyClass == null)
+                      Left(
+                        BadPatternMatch.NonVisiblePolyglotSymbol(
+                          typ.symbol.name
+                        )
+                      )
                     else
                       try {
                         val iop = InteropLibrary.getUncached()
-                        iop.readMember(polyClass, symbol)
+                        if (!iop.isMemberReadable(polyClass, symbol)) {
+                          Left(BadPatternMatch.NonVisiblePolyglotSymbol(symbol))
+                        } else {
+                          if (iop.isMemberModifiable(polyClass, symbol)) {
+                            Left(
+                              BadPatternMatch.NonConstantPolyglotSymbol(symbol)
+                            )
+                          } else {
+                            Right(iop.readMember(polyClass, symbol))
+                          }
+                        }
                       } catch {
-                        case _: Throwable => null
+                        case _: Throwable =>
+                          Left(BadPatternMatch.NonVisiblePolyglotSymbol(symbol))
                       }
-                  Either.cond(
-                    polyValue != null,
+                  polyValueOrError.map(polyValue => {
                     ObjectEqualityBranchNode
                       .build(
                         branchCodeNode.getCallTarget,
                         polyValue,
                         branch.terminalBranch
-                      ),
-                    BadPatternMatch.NonVisiblePolyglotSymbol(symbol)
-                  )
+                      )
+                  })
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedMethod(_, _)
