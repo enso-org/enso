@@ -239,7 +239,6 @@ impl Model {
         self.execution_failed_notification.show();
     }
 
-
     fn execution_context_interrupt(&self) {
         let controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
