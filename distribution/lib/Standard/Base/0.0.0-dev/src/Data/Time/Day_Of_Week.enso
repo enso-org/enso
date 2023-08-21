@@ -19,7 +19,8 @@ type Day_Of_Week
 
     Saturday
 
-    ## Convert the Day_Of_Week to an Integer
+    ## GROUP Conversions
+       Convert the Day_Of_Week to an Integer
 
        Arguments:
        - `first_day`: The first day of the week.

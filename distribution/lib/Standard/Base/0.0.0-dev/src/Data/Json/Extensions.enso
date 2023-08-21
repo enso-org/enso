@@ -151,7 +151,7 @@ Locale.to_js_object self =
 ## PRIVATE
    Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
-   
+
    Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
 Map.to_js_object : JS_Object
 Map.to_js_object self =
