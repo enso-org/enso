@@ -543,8 +543,6 @@ ensogl_core::define_endpoints_2! {
     Output {
         /// Currently selected breadcrumb.
         selected(BreadcrumbId),
-        /// Only emitted when the selection is changed through user interaction.
-        user_selected(BreadcrumbId),
         /// List of displayed breadcrumbs.
         entries(Vec<Breadcrumb>)
     }
