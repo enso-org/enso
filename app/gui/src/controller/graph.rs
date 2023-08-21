@@ -26,10 +26,7 @@ use double_representation::node::NodeAst;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use ensogl::system::web::clipboard;
 use parser::Parser;
-use serde::Deserialize;
-use serde::Serialize;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::Context as SpanTreeContext;
@@ -46,6 +43,10 @@ pub mod widget;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;
+
+
+
+mod clipboard;
 
 
 
@@ -416,17 +417,6 @@ impl EndpointInfo {
     pub fn erase(&self) -> FallibleResult<Ast> {
         self.span_tree_node()?.erase(&self.ast)
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct CopiedNode {
-    expression: String,
-    metadata:   Option<NodeMetadata>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum ClipboardContent {
-    Node(CopiedNode),
 }
 
 
@@ -943,67 +933,20 @@ impl Handle {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Copy the node to clipboard. See `clipboard` module documentation for details.
     pub fn copy_node(&self, id: ast::Id) -> FallibleResult {
         let graph = GraphInfo::from_definition(self.definition()?.item);
         let node = graph.locate_node(id)?;
         let expression = node.whole_expression().repr();
         let metadata = self.module.node_metadata(id).ok();
-        console_log!("Copying node {expression}");
-        let content = ClipboardContent::Node(CopiedNode { expression, metadata });
-        let text_repr = serde_json::to_string(&content)?;
-        clipboard::write(text_repr.as_bytes(), "web application/enso".to_string());
+        clipboard::copy_node(expression, metadata)?;
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Paste a node from clipboard at cursor position. See `clipboard` module documentation for
+    /// details.
     pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
-        let this = self.clone_ref();
-        let that = self.clone_ref();
-        clipboard::read(
-            "web application/enso".to_string(),
-            move |content| {
-                let _transaction = this.module.get_or_open_transaction("Paste node");
-                let string = String::from_utf8(content).unwrap();
-                if let Ok(content) = serde_json::from_str(&string) {
-                    match content {
-                        ClipboardContent::Node(node) => {
-                            let expression = node.expression;
-                            let metadata = node.metadata;
-                            console_log!("Pasting node: {expression}");
-                            let info = NewNodeInfo {
-                                expression,
-                                doc_comment: None,
-                                metadata,
-                                id: None,
-                                location_hint: double_representation::graph::LocationHint::End,
-                                introduce_pattern: true,
-                            };
-                            if let Ok(ast_id) = this.add_node(info) {
-                                this.set_node_position(ast_id, cursor_pos);
-                            }
-                        }
-                    }
-                } else {
-                    todo!()
-                }
-            },
-            move |text| {
-                let expression = text;
-                console_log!("Pasting node: {expression}");
-                let info = NewNodeInfo {
-                    expression,
-                    doc_comment: None,
-                    metadata: None,
-                    id: None,
-                    location_hint: double_representation::graph::LocationHint::End,
-                    introduce_pattern: true,
-                };
-                if let Ok(ast_id) = that.add_node(info) {
-                    that.set_node_position(ast_id, cursor_pos);
-                }
-            },
-        );
+        clipboard::paste_node(self, cursor_pos)?;
         Ok(())
     }
 

@@ -607,10 +607,6 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    pub fn copy_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
-        self.nodes.borrow().ast_node_by_view_id.get(&id).cloned()
-    }
-
     /// Remove the node, and returns its AST ID.
     pub fn remove_node(&self, id: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow_mut().remove_node(id)

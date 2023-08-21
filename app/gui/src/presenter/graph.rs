@@ -1,7 +1,6 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-use crate::controller::graph::NewNodeInfo;
 use crate::prelude::*;
 use enso_web::traits::*;
 
@@ -295,7 +294,7 @@ impl Model {
     fn node_copied(&self, id: ViewNodeId) {
         self.log_action(
             || {
-                let ast_id = self.state.update_from_view().copy_node(id)?;
+                let ast_id = self.state.ast_node_id_of_view(id)?;
                 Some(self.controller.graph().copy_node(ast_id))
             },
             "copy node",
@@ -446,7 +445,7 @@ impl Model {
 
     fn paste_node(&self, cursor_pos: Vector2) {
         if let Err(err) = self.controller.graph().paste_node(cursor_pos) {
-            error!("Error when pasting the node: {err}");
+            error!("Error when pasting node: {err}");
         }
     }
 
@@ -783,7 +782,7 @@ impl Graph {
             eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
-            // === Dropping Files ===
+            // === Dropping Files and Pasting Node ===
 
             eval view.request_paste_node((pos) model.paste_node(*pos));
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);

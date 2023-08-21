@@ -721,8 +721,11 @@ ensogl::define_endpoints_2! {
         node_being_edited (Option<NodeId>),
         node_editing (bool),
 
+
         // === Copy-Paste ===
+
         node_copied(NodeId),
+        // Paste node at position.
         request_paste_node(Vector2),
 
         file_dropped     (ensogl_drop_manager::File,Vector2<f32>),

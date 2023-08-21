@@ -50,8 +50,6 @@
 //! [`SpanWidget::PRIORITY_OVER_OVERRIDE`] as `true` in their implementation. In that case, the
 //! override will be applied again on their children that use the same span-tree node.
 
-
-
 use crate::prelude::*;
 
 use crate::component::node::input::area::NODE_HEIGHT;
