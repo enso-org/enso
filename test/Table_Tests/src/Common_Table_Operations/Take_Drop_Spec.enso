@@ -15,11 +15,8 @@ from project.Common_Table_Operations.Util import run_default_backend
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    test_selection = setup.test_selection
-    take_drop_by_pending = if test_selection.take_drop.not then
-        "TODO: take/drop are not yet supported by this backend."
 
-    Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
+    Test.group prefix+"Table.take/drop" <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
@@ -187,7 +184,7 @@ spec setup =
                 True -> unordered_table.take . should_fail_with Illegal_Argument
                 False -> unordered_table.take . at "alpha" . to_vector . should_equal [1]
 
-    Test.group prefix+"Column.take/drop" pending=take_drop_by_pending <|
+    Test.group prefix+"Column.take/drop" <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]

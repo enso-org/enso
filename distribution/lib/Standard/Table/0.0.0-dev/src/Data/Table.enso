@@ -1192,6 +1192,12 @@ type Table
        For the purposes of the `Index_Sub_Range.While` predicate a single
        "element" of the table is represented by the `Row` type.
 
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
+
        > Example
          Take first 10 rows of the table.
 
@@ -1214,6 +1220,12 @@ type Table
 
        For the purposes of the `Index_Sub_Range.While` predicate a single
        "element" of the table is represented by the `Row` type.
+
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
 
        > Example
          Drop first 10 rows of the table.
@@ -1376,6 +1388,11 @@ type Table
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
             Column.from_vector_repeated ("Constant_" + UUID.randomUUID.to_text) [value] self.row_count
+
+    ## PRIVATE
+       Create a unique temporary column name.
+    make_temp_column_name : Text
+    make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names
 
     ## Returns the vector of columns contained in this table.
 

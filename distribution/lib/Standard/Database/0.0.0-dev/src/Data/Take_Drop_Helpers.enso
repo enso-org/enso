@@ -24,7 +24,7 @@ take_drop_helper take_drop table selector =
 
         if ranges.is_empty then table.remove_all_rows else
             # Filter on row column. Add the row column at the start, remove it at the end.
-            row_column_name = Table.make_temp_column_name
+            row_column_name = table.make_temp_column_name
             table_with_row_number = table.add_row_number name=row_column_name from=0
 
             subqueries = ranges.map range->

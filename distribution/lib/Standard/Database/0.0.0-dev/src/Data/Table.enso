@@ -596,15 +596,27 @@ type Table
     ## Creates a new Table with the specified range of rows from the input
        Table.
 
-       Does not support `While` or `Sample`.
-
        Arguments:
        - range: The selection of rows from the table to return.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
 
        > Example
          Take first 10 rows of the table.
 
              table.take (First 10)
+
+       > Example
+         Take rows from the top of the table as long as their values sum to 10.
+
+             table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
@@ -613,15 +625,27 @@ type Table
     ## Creates a new Table from the input with the specified range of rows
        removed.
 
-       Does not support `While` or `Sample`.
-
        Arguments:
        - range: The selection of rows from the table to remove.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
 
        > Example
          Drop first 10 rows of the table.
 
              table.drop (First 10)
+
+       > Example
+         Drop rows from the top of the table as long as their values sum to 10.
+
+             table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
@@ -858,13 +882,13 @@ type Table
     ## PRIVATE
        Create a unique temporary column name.
     make_temp_column_name : Text
-    make_temp_column_name = ("Temp_" + UUID.randomUUID.to_text)
+    make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names
 
     ## PRIVSATE
        Run a table transformer with a temporary column added.
     with_temporary_column :  Column -> (Text -> Table -> Table) -> Table
     with_temporary_column self new_column:Column f:(Text -> Table -> Table) =
-        new_column_name = Table.make_temp_column_name
+        new_column_name = self.make_temp_column_name
         with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
         modified_table.remove_columns new_column_name
