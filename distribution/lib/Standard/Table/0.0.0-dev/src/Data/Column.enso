@@ -43,8 +43,13 @@ type Column
        - name: The name of the column to create.
        - items: The elements to contain in the column.
        - value_type: The type of the values in the column. If `Auto`, the type
-         will be inferred from the items in the column. If some `items` do not
-         fit the selected type, an `Illegal_Argument` error will be raised.
+         will be inferred from the items in the column.
+
+       ! Error Conditions
+
+         - If some values in `items` do not match the `value_type`, an
+           `Invalid_Value_Type` error is raised.
+         - With the default `value_type` of `Auto`, no errors should occur.
 
        > Example
          Create a new column called "My Column" from a vector of numbers.
@@ -53,7 +58,7 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Illegal_Argument
+    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
     from_vector name items value_type=Auto =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
