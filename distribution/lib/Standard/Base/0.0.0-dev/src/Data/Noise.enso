@@ -36,7 +36,8 @@ type Deterministic_Random
         val = gen.nextDouble
         (val * value_range) + offset
 
-## Generate noise based on the input number.
+## GROUP Random
+   Generate noise based on the input number.
 
    Arguments:
    - interval: An interval in which the noise should be generated.

@@ -19,7 +19,8 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
-## Converts the given value to a JSON serialized value.
+## GROUP Conversions
+   Converts the given value to a JSON serialized value.
 Any.to_json : Text
 Any.to_json self = Json.stringify self
 
