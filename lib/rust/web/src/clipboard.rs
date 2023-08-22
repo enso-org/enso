@@ -10,10 +10,10 @@
 //! - The website has to be served over HTTPS for these functions to work correctly.
 //! - These functions needs to be called from within user-initiated event callbacks, like mouse or
 //!   key press. Otherwise it may not work.
-//! - Web browsers do not support MIME-types other than `text/plain`, `text/html`, and `image/png`
+//! - Web browsers do not support MIME types other than `text/plain`, `text/html`, and `image/png`
 //!   in general. However, using
 //!   [Clipboard pickling](https://github.com/w3c/editing/blob/gh-pages/docs/clipboard-pickling/explainer.md),
-//!   we can practically use any MIME-type.
+//!   we can practically use any MIME type.
 //!
 //! To learn more, see this [StackOverflow question](https://stackoverflow.com/questions/400212/how-do-i-copy-to-the-clipboard-in-javascript).
 
@@ -29,7 +29,7 @@ use wasm_bindgen::prelude::Closure;
 // === Types ===
 // =============
 
-/// MIME-type of the data.
+/// MIME type of the data.
 pub type MimeType = String;
 /// The data to be written to the clipboard.
 pub type BinaryData<'a> = &'a [u8];
@@ -52,7 +52,7 @@ extern "C" {
     fn readText(closure: &ReadTextClosure);
 
     #[allow(unsafe_code)]
-    fn writeCustom(mime_type: String, data: Uint8Array);
+    fn writeCustom(mime_type: String, data: Uint8Array, text_data: String);
 
     #[allow(unsafe_code)]
     fn readCustom(
@@ -62,19 +62,20 @@ extern "C" {
     );
 }
 
-/// Write the provided data to the clipboard, using the provided MIME-type.
+/// Write the provided data to the clipboard, using the provided MIME type.
+/// If `text_data` is present, it will be added to the clipboard with a `text/plain` MIME type.
 ///
 /// See the module documentation for mode details.
 ///
 /// - Unlike `write_text`, there is no special fallback mechanism in case of failures or unavailable
 ///   clipboard. The function will simply report an error to the console.
-pub fn write(data: BinaryData<'_>, mime_type: MimeType) {
+pub fn write(data: BinaryData<'_>, mime_type: MimeType, text_data: Option<String>) {
     let data = Uint8Array::from(data);
-    writeCustom(mime_type, data);
+    writeCustom(mime_type, data, text_data.unwrap_or_default());
 }
 
 /// Read the arbitrary binary data from the console. It is expected to have `expected_mime_type`.
-/// If the value of such type is not present in the clipboard content, the `plain/text` MIME-type
+/// If the value of such type is not present in the clipboard content, the `plain/text` MIME type
 /// is requested and the result is passed to the `plain_text_fallback` callback.
 ///
 /// See the module documentation for more details.

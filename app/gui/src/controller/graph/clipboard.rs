@@ -53,9 +53,10 @@ struct CopiedNode {
 
 /// Copy the node to the clipboard.
 pub fn copy_node(expression: String, metadata: Option<NodeMetadata>) -> FallibleResult {
+    let text_data = Some(expression.clone());
     let content = ClipboardContent::Node(CopiedNode { expression, metadata });
     let text_repr = serde_json::to_string(&content)?;
-    clipboard::write(text_repr.as_bytes(), MIME_TYPE.to_string());
+    clipboard::write(text_repr.as_bytes(), MIME_TYPE.to_string(), text_data);
     Ok(())
 }
 
