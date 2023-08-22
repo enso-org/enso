@@ -14,9 +14,9 @@ use std::fs::File;
 #[derivative(Debug)]
 pub struct Archive {
     /// The path that the `file` originated from. This is stored for error reporting.
-    path:     Box<Path>,
+    path: Box<Path>,
     #[derivative(Debug = "ignore")]
-    pub file: tar::Archive<GzDecoder<File>>,
+    file: tar::Archive<GzDecoder<File>>,
 }
 
 impl Archive {
