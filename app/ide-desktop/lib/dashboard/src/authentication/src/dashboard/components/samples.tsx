@@ -62,13 +62,13 @@ export const SAMPLES: Sample[] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: `url("${SpreadsheetsImage}") center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
+        background: `url('${SpreadsheetsImage}') center / 50% no-repeat, rgba(255, 255, 255, 0.30)`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: `url("${GeoImage}") 50% 20% / 100% no-repeat`,
+        background: `url('${GeoImage}') 50% 20% / 100% no-repeat`,
     },
     {
         title: 'Analyze GitHub stars',
@@ -181,7 +181,7 @@ function ProjectTile(props: InternalProjectTileProps) {
                         template.background != null ? '' : 'bg-frame'
                     }`}
                 />
-                <div className="grow bg-frame backdrop-blur rounded-b-2xl px-4 pt-1.75 pb-3.5">
+                <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
                     <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
                     <div className="text-xs text-ellipsis leading-144.5 pb-px">
                         {template.description}

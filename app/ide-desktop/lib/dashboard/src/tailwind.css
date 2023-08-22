@@ -2,6 +2,7 @@
 @import "react-toastify/dist/ReactToastify.css";
 
 body {
+  overflow: hidden;
   margin: 0;
   background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
   background-blend-mode: lighten;
@@ -143,6 +144,12 @@ body {
         position: unset;
         transform: unset;
         left: unset;
+      }
+    }
+
+    .whatsnew-span-2.whatsnew-span-2 {
+      @media screen and (max-width: 40.5625rem) {
+        grid-column: span 1 / span 1;
       }
     }
   }
