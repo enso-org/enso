@@ -224,6 +224,13 @@ spec =
             Integer.parse "-101021010" 2 . should_fail_with Number_Parse_Error
             Integer.parse "123" 128 . should_fail_with Number_Parse_Error
 
+        Test.specify "should be able to invoke methods on Integer via static method call" <|
+            Integer.+ 1 2 . should_equal 3
+            Integer.+ 1 2.5 . should_equal 3.5
+            Integer.+ 2.5 1 . should_equal 3.5
+            Text.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
+            Text.expect_panic_with (Integer.+ 1 "hello") Type_Error
+
     Test.group "Decimals" <|
 
         Test.specify "should exist and expose basic arithmetic operations" <|

@@ -1,5 +1,6 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -11,11 +12,11 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "+", description = "Addition of numbers.")
+@BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(long self, Object that);
+  abstract Object execute(Object self, Object that);
 
   static AddNode build() {
     return AddNodeGen.create();
@@ -26,25 +27,36 @@ public abstract class AddNode extends Node {
     return Math.addExact(self, that);
   }
 
-  @Specialization
+  @Specialization(replaces = "doLong")
   Object doOverflow(long self, long that) {
     return toEnsoNumberNode.execute(BigIntegerOps.add(self, that));
   }
 
   @Specialization
-  double doDouble(long self, double that) {
+  Object doDouble(long self, double that) {
     return self + that;
   }
 
+  @TruffleBoundary
   @Specialization
-  Object doBigInteger(long self, EnsoBigInteger that) {
+  Object doBigIntegers(EnsoBigInteger self, EnsoBigInteger that) {
+    return self.asBigInteger().add(that.asBigInteger());
+  }
+
+  @Specialization
+  Object doLongBigInteger(long self, EnsoBigInteger that) {
     return toEnsoNumberNode.execute(BigIntegerOps.add(that.getValue(), self));
   }
 
+  @Specialization
+  Object doBigIntegerLong(EnsoBigInteger self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.add(self.getValue(), that));
+  }
+
   @Fallback
-  Object doOther(long self, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var number = builtins.number().getNumber();
+    var number = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }
