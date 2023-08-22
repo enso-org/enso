@@ -4,19 +4,27 @@ from project.Data.Ordering import all
 
 polyglot java import java.time.DayOfWeek
 
+## Represents a day of the week.
 type Day_Of_Week
+    ## Create a Day_Of_Week indicating Sunday.
     Sunday
 
+    ## Create a Day_Of_Week indicating Monday.
     Monday
 
+    ## Create a Day_Of_Week indicating Tuesday.
     Tuesday
 
+    ## Create a Day_Of_Week indicating Wednesday.
     Wednesday
 
+    ## Create a Day_Of_Week indicating Thursday.
     Thursday
 
+    ## Create a Day_Of_Week indicating Friday.
     Friday
 
+    ## Create a Day_Of_Week indicating Saturday.
     Saturday
 
     ## GROUP Conversions

@@ -43,6 +43,7 @@ polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.Encoding_Utils
 
+## Represents a file or folder on the filesystem.
 @Builtin_Type
 type File
     ## ALIAS new file

@@ -62,6 +62,7 @@ ensure_duration object ~action =
             Error.throw Illegal_Argument.Error <|
                 "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
 
+## Represents the amount of time between two points in time.
 @Builtin_Type
 type Duration
     ## Create an interval representing the duration between two points in time.

@@ -12,7 +12,10 @@ from project.Data.Boolean.Boolean export False, True
    primarily used for control-flow.
 @Builtin_Type
 type Boolean
+    ## The boolean value representing true.
     True
+
+    ## The boolean value representing false.
     False
 
     ## ALIAS and
