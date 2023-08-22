@@ -107,7 +107,7 @@ spec setup =
             c.value_type.is_floating_point . should_be_true
             c.to_vector . should_equal [1.0, 2.0, 3.0]
 
-        Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" pending="TODO: #5159" <|
+        Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" pending="ToDo: #5159" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
             c.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -282,7 +282,7 @@ spec setup =
             t2.at "A" . to_vector . should_equal [True, False, True]
 
         if setup.test_selection.fixed_length_text_columns then
-            Test.specify "should preserve the overridden types when materialized" pending="TODO: #5159 needed" <|
+            Test.specify "should preserve the overridden types when materialized" pending="ToDo: #5159 needed" <|
                 t = table_builder [["X", [1, 2, 100]], ["Y", ["a", "abcdef", "abc"]]]
                 t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=3 variable_length=False)
 

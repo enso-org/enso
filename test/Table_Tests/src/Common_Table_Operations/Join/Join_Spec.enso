@@ -29,7 +29,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_todo = if setup.is_database.not then Nothing else "TODO: handling NULLs in equality conditions."
+    db_todo = if setup.is_database.not then Nothing else "ToDo: handling NULLs in equality conditions."
     Test.group prefix+"Table.join" <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
         t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]

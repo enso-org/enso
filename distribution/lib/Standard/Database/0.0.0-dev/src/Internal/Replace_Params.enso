@@ -8,6 +8,7 @@ from project.Errors import Unsupported_Database_Operation
 ## PRIVATE
    Specifies a set of parameters to Table.replace
 type Replace_Params
+    ## PRIVATE
     Value input_type (case_sensitivity : Case_Sensitivity) (only_first : Boolean)
 
     ## PRIVATE

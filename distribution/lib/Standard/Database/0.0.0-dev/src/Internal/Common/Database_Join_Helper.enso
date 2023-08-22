@@ -62,7 +62,9 @@ select_columns_for_join column_naming_helper join_kind left_new_columns right_ne
             new_columns = left_new_columns + right_renamed_kept_columns
             new_columns
 
+## PRIVATE
 type Join_Subquery_Setup
+    ## PRIVATE
     Value (subquery : From_Spec) (new_columns : Vector Internal_Column) (old_columns : Vector Internal_Column) (indicator_column : Nothing | Internal_Column)
 
     ## PRIVATE
