@@ -238,7 +238,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== item.id) {
-                    if (!isRunningInBackground) {
+                    if (!event.runInBackground && !isRunningInBackground) {
                         setShouldOpenWhenReady(false)
                         void closeProject(false)
                     }
@@ -424,7 +424,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
-                        await closeProject()
+                        await closeProject(!isRunningInBackground)
                     }}
                 >
                     <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
@@ -441,7 +441,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
-                            await closeProject()
+                            await closeProject(!isRunningInBackground)
                         }}
                     >
                         <div
