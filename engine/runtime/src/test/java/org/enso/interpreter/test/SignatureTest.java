@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -353,6 +354,73 @@ public class SignatureTest extends TestBase {
     assertEquals("binary.Bin", ok3.getMetaObject().getMetaQualifiedName());
   }
 
+  @Test
+  public void partiallyAppliedConstructor() throws Exception {
+    final URI uri = new URI("memory://partial.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    type V
+        Val a b c
+
+    create x:V = x.a + x.b + x.c
+
+    mix a =
+      partial = V.Val 1 a
+      create partial
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var mix = module.invokeMember("eval_expression", "mix");
+
+    try {
+      var res = mix.execute(7);
+      fail("No result expected: " + res);
+    } catch (PolyglotException ex) {
+      assertContains("Type error", ex.getMessage());
+      assertContains("expected `x` to be V", ex.getMessage());
+      assertContains("got V.Val[partial", ex.getMessage());
+      assertContains("a=1", ex.getMessage());
+      assertContains("b=7", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void oversaturatedFunction() throws Exception {
+    final URI uri = new URI("memory://oversaturated.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    fn a b c =
+      sum = a + b + c
+      add a = sum + a
+      add
+
+    neg x:Integer = -x
+
+    mix a = neg (fn 2 a=4 3)
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var mix = module.invokeMember("eval_expression", "mix");
+
+    try {
+      var res = mix.execute(7);
+      fail("No result expected: " + res);
+    } catch (PolyglotException ex) {
+      assertContains("Type error", ex.getMessage());
+      assertContains("expected `x` to be Integer", ex.getMessage());
+      assertContains("got oversaturated.fn[", ex.getMessage());
+      assertContains("a=2", ex.getMessage());
+      assertContains("b=3", ex.getMessage());
+      assertContains("+a=4", ex.getMessage());
+    }
+  }
+
   private static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
@@ -362,6 +430,12 @@ public class SignatureTest extends TestBase {
     }
     if (!msg.contains(realType)) {
       fail("Expecting value " + realType + " in " + msg);
+    }
+  }
+
+  private static void assertContains(String exp, String msg) {
+    if (!msg.contains(exp)) {
+      fail("Expecting " + msg + " to contain " + exp);
     }
   }
 }

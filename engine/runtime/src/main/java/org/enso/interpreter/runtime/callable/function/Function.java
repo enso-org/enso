@@ -409,9 +409,33 @@ public final class Function implements EnsoObject {
     if (ss == null) {
       return super.toString();
     }
-    var s = ss.getSource();
+    var iop = InteropLibrary.getUncached();
+    var src = ss.getSource();
     var start = ss.getStartLine();
-    final int end = start + s.getLineCount();
-    return n.getName() + "[" + s.getName() + ":" + start + "-" + end + "]";
+    var end = ss.getEndLine();
+    var sb = new StringBuilder();
+    sb.append(n.getName());
+    sb.append("[")
+        .append(src.getName())
+        .append(":")
+        .append(start)
+        .append("-")
+        .append(end)
+        .append("]");
+    for (var i = 0; i < schema.getArgumentsCount(); i++) {
+      if (preAppliedArguments != null && preAppliedArguments[i] != null) {
+        sb.append(" ").append(schema.getArgumentInfos()[i].getName()).append("=");
+        sb.append(iop.toDisplayString(preAppliedArguments[i], false));
+      }
+    }
+    if (schema.getOversaturatedArguments() != null) {
+      for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
+        if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
+          sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
+          sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
+        }
+      }
+    }
+    return sb.toString();
   }
 }
