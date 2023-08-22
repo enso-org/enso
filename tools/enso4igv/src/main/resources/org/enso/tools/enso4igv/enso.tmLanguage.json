@@ -88,12 +88,22 @@
 				{
 					"contentName": "string.quoted.triple.begin",
 					"begin": "^(\\s*)(\"\"\"|''')",
-					"end": "^(?!\\1\\s+)(?!\\s*$)"
+					"end": "^(?!\\1\\s+)(?!\\s*$)",
+					"beginCaptures": {
+						"2": {
+							"name": "string.quoted.triple.begin"
+						}
+					}
 				},
 				{
 					"contentName": "string.quoted.triple.middle",
 					"begin": "^(\\s*)[^\\s].*(\"\"\"|''')",
-					"end": "^(?!\\1\\s+)(?!\\s*$)"
+					"end": "^(?!\\1\\s+)(?!\\s*$)",
+					"beginCaptures": {
+						"2": {
+							"name": "string.quoted.triple.begin"
+						}
+					}
 				},
 				{
 					"name": "string.quoted.single",
