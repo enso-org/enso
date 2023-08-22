@@ -158,6 +158,22 @@ postgres_specific_spec connection db_name setup =
             t.at "bools" . value_type . is_boolean . should_be_true
             t.at "doubles" . value_type . is_floating_point . should_be_true
 
+        Test.specify "should preserve Postgres types when table is materialized, where possible" <|
+            name = Name_Generator.random_name "types-test"
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+            t1 = connection.query (SQL_Query.Table_Name name)
+            t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            in_memory = t1.read
+            in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
     Test.group "[PostgreSQL] Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|
             t = connection.query (SQL_Query.Table_Name tinfo)

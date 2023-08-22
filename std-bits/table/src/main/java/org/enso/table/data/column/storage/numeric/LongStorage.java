@@ -6,7 +6,6 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -22,30 +21,34 @@ public final class LongStorage extends AbstractLongStorage {
   private final BitSet isMissing;
   private final int size;
 
+  private final IntegerType type;
+
   /**
    * @param data the underlying data
    * @param size the number of items stored
    * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
    *     i} is missing.
+   * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
-  public LongStorage(long[] data, int size, BitSet isMissing) {
+  public LongStorage(long[] data, int size, BitSet isMissing, IntegerType type) {
     this.data = data;
     this.isMissing = isMissing;
     this.size = size;
+    this.type = type;
   }
 
   public static LongStorage fromArray(long[] data) {
-    return new LongStorage(data, data.length, new BitSet());
+    return new LongStorage(data, data.length, new BitSet(), IntegerType.INT_64);
   }
 
-  public static LongStorage makeEmpty(int size) {
+  public static LongStorage makeEmpty(int size, IntegerType type) {
     BitSet isMissing = new BitSet(size);
     isMissing.set(0, size);
-    return new LongStorage(new long[0], size, isMissing);
+    return new LongStorage(new long[0], size, isMissing, type);
   }
 
-  public LongStorage(long[] data) {
-    this(data, data.length, new BitSet());
+  public LongStorage(long[] data, IntegerType type) {
+    this(data, data.length, new BitSet(), type);
   }
 
   /** @inheritDoc */
@@ -75,9 +78,8 @@ public final class LongStorage extends AbstractLongStorage {
 
   /** @inheritDoc */
   @Override
-  public StorageType getType() {
-    // TODO add possibility to set integer bit limit (#5159)
-    return IntegerType.INT_64;
+  public IntegerType getType() {
+    return type;
   }
 
   /** @inheritDoc */
@@ -104,7 +106,7 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingLong(long arg) {
-    final var builder = NumericBuilder.createLongBuilder(size());
+    final var builder = NumericBuilder.createLongBuilder(size(), IntegerType.INT_64);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -148,7 +150,7 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing);
+    return new LongStorage(newData, cardinality, newMissing, type);
   }
 
   @Override
@@ -166,7 +168,7 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing);
+    return new LongStorage(newData, positions.length, newMissing, type);
   }
 
   @Override
@@ -187,7 +189,7 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, total, newMissing);
+    return new LongStorage(newData, total, newMissing, type);
   }
 
   @Override
@@ -205,7 +207,7 @@ public final class LongStorage extends AbstractLongStorage {
     long[] newData = new long[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
-    return new LongStorage(newData, newSize, newMask);
+    return new LongStorage(newData, newSize, newMask, type);
   }
 
   @Override
@@ -225,6 +227,13 @@ public final class LongStorage extends AbstractLongStorage {
       offset += length;
     }
 
-    return new LongStorage(newData, newSize, newMissing);
+    return new LongStorage(newData, newSize, newMissing, type);
+  }
+
+  /** Widening to a bigger type can be done without copying the data. */
+  @Override
+  public LongStorage widen(IntegerType widerType) {
+    assert widerType.fits(type);
+    return new LongStorage(data, size, isMissing, widerType);
   }
 }

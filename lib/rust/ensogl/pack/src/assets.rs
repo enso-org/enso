@@ -219,7 +219,8 @@ async fn update_assets(
         }
     }
     for (builder, deferred_assets) in deferred_assets.into_iter() {
-        let deferred_assets = futures::future::join_all(deferred_assets).await;
+        let deferred_assets =
+            futures::stream::iter(deferred_assets).buffer_unordered(50).collect::<Vec<_>>().await;
         let deferred_assets: Result<Vec<_>> = deferred_assets.into_iter().collect();
         assets.entry(builder).or_default().extend(deferred_assets?);
     }

@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 public abstract class DoubleLongMapOpWithSpecialNumericHandling
@@ -38,6 +39,6 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
 
       context.safepoint();
     }
-    return new LongStorage(out, storage.size(), isMissing);
+    return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
   }
 }

@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
@@ -54,7 +55,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
                 context.safepoint();
             }
-            return new LongStorage(out, storage.size(), isMissing);
+            return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
         } else {
             // Return double storage.
             DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size());

@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+import project.Data.Type.Storage
+import project.Data.Type.Value_Type.Bits
+import project.Data.Type.Value_Type.Value_Type
+
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.DateBuilder
 polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
@@ -7,7 +11,7 @@ polyglot java import org.enso.table.data.column.builder.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
-polyglot java import org.enso.table.data.column.storage.Storage
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 ## PRIVATE
 make_bool_builder : BoolBuilder
@@ -19,11 +23,15 @@ make_double_builder initial_size = NumericBuilder.createDoubleBuilder initial_si
 
 ## PRIVATE
 make_long_builder : Integer -> NumericBuilder
-make_long_builder initial_size = NumericBuilder.createLongBuilder initial_size
+make_long_builder initial_size bits=Bits.Bits_64 =
+    integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
+    NumericBuilder.createLongBuilder initial_size integer_type
 
 ## PRIVATE
-make_string_builder : Integer -> StringBuilder
-make_string_builder initial_size = StringBuilder.new initial_size
+make_string_builder : Integer -> Value_Type -> StringBuilder
+make_string_builder initial_size value_type=Value_Type.Char =
+    storage_type = Storage.from_value_type_strict value_type
+    StringBuilder.new initial_size storage_type
 
 ## PRIVATE
 make_time_of_day_builder : Integer -> TimeOfDayBuilder
@@ -53,7 +61,7 @@ type DateBuilderAdapter
         self.date_builder.appendDate date
 
     ## PRIVATE
-    seal : Storage
+    seal : Java_Storage
     seal self = self.date_builder.seal
 
 ## PRIVATE
