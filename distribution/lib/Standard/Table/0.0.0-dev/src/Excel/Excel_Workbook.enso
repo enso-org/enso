@@ -73,19 +73,23 @@ type Excel_Workbook
         if schema == self.schema then self else
             Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
 
-    ## Gets the number of sheets.
+    ## GROUP Standard.Base.Metadata
+       Gets the number of sheets.
     sheet_count : Integer
     sheet_count self = self.workbook.getNumberOfSheets
 
-    ## Gets the names of all the sheets.
+    ## GROUP Standard.Base.Metadata
+       Gets the names of all the sheets.
     sheet_names : Vector Text
     sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
 
-    ## Gets the number of named ranges.
+    ## GROUP Standard.Base.Metadata
+       Gets the number of named ranges.
     named_ranges_count : Integer
     named_ranges_count self = self.workbook.getNumberOfNames
 
-    ## Gets the names of all the named ranges.
+    ## GROUP Standard.Base.Metadata
+       Gets the names of all the named ranges.
     named_ranges : Vector Text
     named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
 
@@ -93,7 +97,8 @@ type Excel_Workbook
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
 
-    ## Returns a materialised Table of all the matching views and tables.
+    ## GROUP Standard.Base.Metadata
+       Returns a materialised Table of all the matching views and tables.
 
        Arguments:
        - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
@@ -132,7 +137,8 @@ type Excel_Workbook
         _ = [alias]
         self.read query
 
-    ## ALIAS sheet, worksheet, range
+    ## ALIAS range, sheet, worksheet
+       GROUP Standard.Base.Input
        Execute the query and load the results into memory as a Table.
 
        Arguments:
