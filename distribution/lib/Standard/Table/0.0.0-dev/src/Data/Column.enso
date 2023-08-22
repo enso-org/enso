@@ -42,6 +42,9 @@ type Column
        Arguments:
        - name: The name of the column to create.
        - items: The elements to contain in the column.
+       - value_type: The type of the values in the column. If `Auto`, the type
+         will be inferred from the items in the column. If some `items` do not
+         fit the selected type, an `Illegal_Argument` error will be raised.
 
        > Example
          Create a new column called "My Column" from a vector of numbers.
@@ -50,14 +53,27 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Column
-    from_vector name items =
-        ## TODO [RW] in #6111 use a more specific storage type, and if it is a
-           type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
-        expected_storage_type = Nothing
+    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Illegal_Argument
+    from_vector name items value_type=Auto =
+        ## If the type does not accept date-time-like values, we can skip the
+           additional logic for polyglot conversions that would normally be used,
+           which is quite costly - so if we can guarantee it is unnecessary,
+           it is good to skip it.
+        needs_polyglot_conversion = case value_type of
+            Value_Type.Char _ _  -> False
+            Value_Type.Float _   -> False
+            Value_Type.Integer _ -> False
+            Value_Type.Boolean   -> False
+            Value_Type.Byte      -> False
+            _                    -> True
+        expected_storage_type = case value_type of
+            Auto -> Nothing
+            _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
-                Java_Column.fromItems name items expected_storage_type
+                case needs_polyglot_conversion of
+                    True -> Java_Column.fromItems name items expected_storage_type
+                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
             Column.Value java_column
 
     ## PRIVATE
