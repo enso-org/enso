@@ -1760,8 +1760,6 @@ impl<'a> TreeBuilder<'a> {
                 } else {
                     override_config
                 }
-
-                // If the override config was rejected, put it back into the local overrides map.
             }
             None => Cow::Owned(
                 Configuration::infer_from_context(&ctx, allowed_configs, Score::Mismatch)

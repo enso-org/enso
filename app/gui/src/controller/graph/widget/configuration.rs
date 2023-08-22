@@ -73,6 +73,7 @@ fn to_kind(
 ) -> widget::DynConfig {
     match inner {
         response::WidgetKindDefinition::SingleChoice { label, values } => {
+            console_log!("Single choice: {:?}", values);
             let (choices, arguments) = to_choices_and_arguments(values, db, parser);
             widget::single_choice::Config {
                 label: label.map(Into::into),

@@ -164,7 +164,7 @@ impl QualifiedNameToIdMap {
 /// displays all Constructors and Methods defined for this type.
 #[derive(Clone, Debug, Default)]
 struct HierarchyIndex {
-    inner:   HashMap<entry::Id, HashSet<entry::Id>>,
+    inner:   HashMap<entry::Id, HashMap<entry::Id, IsConstructor>>,
     /// Orphans are entries that are not yet in the index, but are referenced by other entries.
     /// For example, if we have a Type entry, but we haven't yet received its Module entry, we
     /// store the Type entry as an orphan of Module entry. When we receive the Module entry, we
@@ -172,8 +172,10 @@ struct HierarchyIndex {
     /// Engine.
     ///
     /// Key is the parent entry name, value is a set of orphan entries.
-    orphans: HashMap<QualifiedName, HashSet<entry::Id>>,
+    orphans: HashMap<QualifiedName, HashMap<entry::Id, IsConstructor>>,
 }
+
+type IsConstructor = bool;
 
 impl HierarchyIndex {
     /// Add a new entry to the index. If the entry already exists, do nothing.
@@ -188,18 +190,24 @@ impl HierarchyIndex {
     ) {
         if let Some(self_type) = &entry.self_type {
             if let Some(self_type_id) = qualified_name_to_id_map.get(self_type) {
-                self.inner.entry(self_type_id).or_default().insert(id);
+                self.inner
+                    .entry(self_type_id)
+                    .or_default()
+                    .insert(id, entry.kind == Kind::Constructor);
             } else {
-                self.orphans.entry(self_type.clone()).or_default().insert(id);
+                self.orphans
+                    .entry(self_type.clone())
+                    .or_default()
+                    .insert(id, entry.kind == Kind::Constructor);
             }
         }
         if entry.kind == Kind::Type {
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_id) = qualified_name_to_id_map.get(&parent_module) {
-                    self.inner.entry(parent_id).or_default().insert(id);
+                    self.inner.entry(parent_id).or_default().insert(id, false);
                 } else {
                     let parent_module_name = parent_module.to_owned();
-                    self.orphans.entry(parent_module_name).or_default().insert(id);
+                    self.orphans.entry(parent_module_name).or_default().insert(id, false);
                 }
             } else {
                 let entry_name = &entry.name;
@@ -212,7 +220,7 @@ impl HierarchyIndex {
     }
 
     /// Remove the entry from the index, as it is removed from the database.
-    pub fn remove(&mut self, id: entry::Id) {
+    pub fn remove(&mut self, id: entry::Id, qualified_name_to_id_map: &QualifiedNameToIdMap) {
         self.inner.remove(&id);
         self.remove_from_parent(id);
     }
@@ -230,8 +238,12 @@ impl HierarchyIndex {
     /// Get all "children" of the entry with the given id. Returns a set of Methods and Constructors
     /// of the Type entry, or a set of Types defined in the Module entry. Returns [`None`] for
     /// other entries.
-    pub fn get(&self, id: &entry::Id) -> Option<&HashSet<entry::Id>> {
+    pub fn get(&self, id: &entry::Id) -> Option<&HashMap<entry::Id, IsConstructor>> {
         self.inner.get(id)
+    }
+
+    pub fn count_constructors(&self, id: &entry::Id) -> Option<usize> {
+        self.inner.get(id).map(|children| children.values().filter(|c| **c).count())
     }
 
     /// Whether the index is empty.
@@ -438,7 +450,7 @@ impl SuggestionDatabase {
                         Some(entry) => {
                             qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
                             mp_to_id_map.remove(&entry);
-                            hierarchy_index.remove(id);
+                            hierarchy_index.remove(id, &qn_to_id_map);
                         }
 
                         None => {
@@ -572,8 +584,14 @@ impl SuggestionDatabase {
     /// Lookup hierarchy index for given id. See [`HierarchyIndex`] for more information.
     pub fn lookup_hierarchy(&self, id: entry::Id) -> Result<HashSet<entry::Id>, NoSuchEntry> {
         let hierarchy = self.hierarchy_index.borrow();
-        let children = hierarchy.get(&id).cloned().ok_or(NoSuchEntry(id))?;
-        Ok(children)
+        hierarchy
+            .get(&id)
+            .map(|m| m.into_iter().map(|(k, _)| *k).collect::<HashSet<_>>())
+            .ok_or(NoSuchEntry(id))
+    }
+
+    pub fn lookup_constructors_count(&self, id: entry::Id) -> Result<usize, NoSuchEntry> {
+        self.hierarchy_index.borrow().count_constructors(&id).ok_or(NoSuchEntry(id))
     }
 
     /// Lookup documentation of the given entry.
@@ -1352,7 +1370,11 @@ pub mod test {
         let id = id.unwrap_or_else(|_| panic!("No entry with name {name}"));
         let hierarchy_index = db.hierarchy_index.borrow();
         let actual_ids = hierarchy_index.get(&id);
-        let actual_ids = actual_ids.unwrap_or_else(|| panic!("No entry for id {id}"));
+        let actual_ids = actual_ids
+            .unwrap_or_else(|| panic!("No entry for id {id}"))
+            .keys()
+            .cloned()
+            .collect::<HashSet<_>>();
         let id_from_name = |name: &&str| {
             lookup_id_by_name(db, name).unwrap_or_else(|_| panic!("No entry with name {name}"))
         };
@@ -1361,7 +1383,7 @@ pub mod test {
             db.lookup(*id).map(|e| e.name.clone()).unwrap_or_else(|_| "<not found>".into())
         };
         let actual = actual_ids.iter().map(name_from_id).collect::<Vec<_>>();
-        assert_eq!(actual_ids, &expected_ids, "Actual {actual:?} != expected {expected:?}");
+        assert_eq!(actual_ids, expected_ids, "Actual {actual:?} != expected {expected:?}");
     }
 
     /// Test that hierarchy index is populated when the database is created from the language server
