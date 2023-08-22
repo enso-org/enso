@@ -3,8 +3,10 @@
 
 body {
   overflow: hidden;
+  height: 100vh;
   margin: 0;
-  background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
+  background: url("enso-assets/background.png") 0 0,
+    linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
   background-blend-mode: lighten;
 }
 
