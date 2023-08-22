@@ -30,6 +30,216 @@ pub mod item_type {
 
 
 
+// ===============
+// === Texture ===
+// ===============
+
+/// Texture bound to a GL context.
+#[derive(Debug)]
+pub struct Texture {
+    width:           i32,
+    height:          i32,
+    layers:          i32,
+    gl_texture:      WebGlTexture,
+    context:         Context,
+    parameters:      Parameters,
+    item_type:       AnyItemType,
+    internal_format: AnyInternalFormat,
+}
+
+impl Texture {
+    /// Constructor.
+    pub fn new<I: InternalFormat, T: ItemType>(
+        context: &Context,
+        width: i32,
+        height: i32,
+        layers: i32,
+    ) -> Self {
+        let internal_format: AnyInternalFormat = <I>::default().into();
+        let item_type = ZST::<T>().into();
+        Self::new_(context, internal_format, item_type, width, height, layers)
+    }
+
+    pub fn new_(
+        context: &Context,
+        internal_format: AnyInternalFormat,
+        item_type: AnyItemType,
+        mut width: i32,
+        mut height: i32,
+        layers: i32,
+    ) -> Self {
+        if width == 0 {
+            width = 1;
+        }
+        if height == 0 {
+            height = 1;
+        }
+        let context = context.clone();
+        let gl_texture = context.create_texture().unwrap();
+        let parameters = default();
+        let this = Self {
+            width,
+            height,
+            layers,
+            gl_texture,
+            context,
+            parameters,
+            item_type,
+            internal_format,
+        };
+        this.allocate();
+        this
+    }
+
+    /// Setter.
+    pub fn set_parameters(&mut self, parameters: Parameters) {
+        self.parameters = parameters;
+    }
+
+    /// Texture target getter.
+    pub fn target(&self) -> GlEnum {
+        match self.layers {
+            0 => Context::TEXTURE_2D,
+            _ => Context::TEXTURE_2D_ARRAY,
+        }
+    }
+
+    /// Getter.
+    pub fn parameters(&self) -> &Parameters {
+        &self.parameters
+    }
+
+    /// Returns the width, in pixels.
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    /// Returns the height, in pixels.
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
+    /// Returns the number of layers.
+    pub fn layers(&self) -> i32 {
+        self.layers
+    }
+
+    /// Reloads gpu texture with data from given slice.
+    pub fn reload_with_content<T: JsBufferViewArr + bytemuck::Pod>(&self, data: &[T]) {
+        let target = self.target();
+        let level = 0;
+        let (xoffset, yoffset, zoffset) = default();
+        let format = self.internal_format.format().to_gl_enum().into();
+        let elem_type = self.item_type.to_gl_enum().into();
+        let data: &[u8] = bytemuck::cast_slice(data);
+        self.context.bind_texture(*target, Some(&self.gl_texture));
+        match self.layers {
+            0 => {
+                self.context
+                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+                        *target,
+                        level,
+                        xoffset,
+                        yoffset,
+                        self.width,
+                        self.height,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+            _ => {
+                self.context
+                    .tex_sub_image_3d_with_opt_u8_array(
+                        *target,
+                        level,
+                        xoffset,
+                        yoffset,
+                        zoffset,
+                        self.width,
+                        self.height,
+                        self.layers,
+                        format,
+                        elem_type,
+                        Some(data),
+                    )
+                    .unwrap();
+            }
+        }
+        self.apply_texture_parameters(&self.context);
+    }
+
+    pub fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
+        let context = context.clone();
+        let target = self.target();
+        context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
+        context.bind_texture(*target, Some(&self.gl_texture));
+        context.active_texture(*Context::TEXTURE0);
+        TextureBindGuard { context, target, unit }
+    }
+
+    pub fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
+        Ok(self.gl_texture.clone())
+    }
+
+    pub fn get_format(&self) -> AnyFormat {
+        self.internal_format.format()
+    }
+
+    pub fn get_item_type(&self) -> AnyItemType {
+        self.item_type
+    }
+}
+
+
+// === Internal API ===
+
+impl Texture {
+    /// Allocates GPU memory for the texture.
+    fn allocate(&self) {
+        let levels = 1;
+        let internal_format = self.internal_format.to_gl_enum().into();
+        let target = self.target();
+        self.context.bind_texture(*target, Some(&self.gl_texture));
+        match self.layers {
+            0 => {
+                self.context.tex_storage_2d(
+                    *target,
+                    levels,
+                    internal_format,
+                    self.width,
+                    self.height,
+                );
+            }
+            _ => {
+                self.context.tex_storage_3d(
+                    *target,
+                    levels,
+                    internal_format,
+                    self.width,
+                    self.height,
+                    self.layers,
+                );
+            }
+        }
+        self.apply_texture_parameters(&self.context);
+    }
+
+    /// Applies this textures' parameters in the given context.
+    fn apply_texture_parameters(&self, context: &Context) {
+        self.parameters.apply_parameters(context, self.target());
+    }
+}
+
+impl Drop for Texture {
+    fn drop(&mut self) {
+        self.context.delete_texture(&self.gl_texture);
+    }
+}
+
+
+
 // ===================
 // === TextureUnit ===
 // ===================
@@ -101,24 +311,33 @@ impl Parameters {
 
 // === Parameter Types ===
 
-/// Valid Parameters for the `gl.TEXTURE_MAG_FILTER` texture setting.
-///
-/// Specifies how values are interpolated if the texture is rendered at a resolution that is
-/// lower than its native resolution.
-#[derive(Copy, Clone, Debug)]
-pub struct MagFilter(GlEnum);
+macro_rules! gl_enum_subset {
+    ($(#[$($attrs:tt)*])* $ty:ident: $base:ty, [$($value:ident),*]) => {
+        $(#[$($attrs)*])*
+        #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+        pub struct $ty($base);
+
+        #[allow(missing_docs)]
+        impl $ty {
+            $(pub const $value: $ty = $ty(Context::$value);)*
+        }
+    }
+}
+
+gl_enum_subset!(
+    /// Valid Parameters for the `gl.TEXTURE_MAG_FILTER` texture setting.
+    ///
+    /// Specifies how values are interpolated if the texture is rendered at a resolution that is
+    /// *higher* than its native resolution.
+    MagFilter: GlEnum,
+    [LINEAR, NEAREST]
+);
 
 impl Deref for MagFilter {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
-
-#[allow(missing_docs)]
-impl MagFilter {
-    pub const LINEAR: MagFilter = MagFilter(Context::LINEAR);
-    pub const NEAREST: MagFilter = MagFilter(Context::NEAREST);
 }
 
 // Note: The parameters implement our own default, not the WebGL one.
@@ -128,28 +347,27 @@ impl Default for MagFilter {
     }
 }
 
-/// Valid Parameters for the `gl.TEXTURE_MIN_FILTER` texture setting.
-///
-/// Specifies how values are interpolated if the texture is rendered at a resolution that is
-/// lower than its native resolution.
-#[derive(Copy, Clone, Debug)]
-pub struct MinFilter(GlEnum);
+gl_enum_subset!(
+    /// Valid Parameters for the `gl.TEXTURE_MIN_FILTER` texture setting.
+    ///
+    /// Specifies how values are interpolated if the texture is rendered at a resolution that is
+    /// *lower* than its native resolution.
+    MinFilter: GlEnum,
+    [
+        LINEAR,
+        NEAREST,
+        NEAREST_MIPMAP_NEAREST,
+        LINEAR_MIPMAP_NEAREST,
+        NEAREST_MIPMAP_LINEAR,
+        LINEAR_MIPMAP_LINEAR
+    ]
+);
 
 impl Deref for MinFilter {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
-
-#[allow(missing_docs)]
-impl MinFilter {
-    pub const LINEAR: MinFilter = MinFilter(Context::LINEAR);
-    pub const NEAREST: MinFilter = MinFilter(Context::NEAREST);
-    pub const NEAREST_MIPMAP_NEAREST: MinFilter = MinFilter(Context::NEAREST_MIPMAP_NEAREST);
-    pub const LINEAR_MIPMAP_NEAREST: MinFilter = MinFilter(Context::LINEAR_MIPMAP_NEAREST);
-    pub const NEAREST_MIPMAP_LINEAR: MinFilter = MinFilter(Context::NEAREST_MIPMAP_LINEAR);
-    pub const LINEAR_MIPMAP_LINEAR: MinFilter = MinFilter(Context::LINEAR_MIPMAP_LINEAR);
 }
 
 // Note: The parameters implement our own default, not the WebGL one.
@@ -159,11 +377,13 @@ impl Default for MinFilter {
     }
 }
 
-/// Valid Parameters for the `gl.TEXTURE_WRAP_S` and `gl.TEXTURE_WRAP_T` texture setting.
-///
-/// Specifies what happens if a texture is sampled out of bounds.
-#[derive(Copy, Clone, Debug)]
-pub struct Wrap(GlEnum);
+gl_enum_subset!(
+    /// Valid Parameters for the `gl.TEXTURE_WRAP_S` and `gl.TEXTURE_WRAP_T` texture setting.
+    ///
+    /// Specifies what happens if a texture is sampled out of bounds.
+    Wrap: GlEnum,
+    [REPEAT, CLAMP_TO_EDGE, MIRRORED_REPEAT]
+);
 
 impl Deref for Wrap {
     type Target = u32;
@@ -172,247 +392,9 @@ impl Deref for Wrap {
     }
 }
 
-#[allow(missing_docs)]
-impl Wrap {
-    pub const REPEAT: Wrap = Wrap(Context::REPEAT);
-    pub const CLAMP_TO_EDGE: Wrap = Wrap(Context::CLAMP_TO_EDGE);
-    pub const MIRRORED_REPEAT: Wrap = Wrap(Context::MIRRORED_REPEAT);
-}
-
 // Note: The parameters implement our own default, not the WebGL one.
 impl Default for Wrap {
     fn default() -> Self {
         Self::CLAMP_TO_EDGE
-    }
-}
-
-
-
-// ===============
-// === Texture ===
-// ===============
-
-/// Texture which may be bound to GL context.
-#[derive(Debug)]
-pub struct Texture {
-    width:           i32,
-    height:          i32,
-    layers:          i32,
-    gl_texture:      WebGlTexture,
-    context:         Context,
-    parameters:      Parameters,
-    item_type:       AnyItemType,
-    internal_format: AnyInternalFormat,
-}
-
-
-// === Getters ===
-
-impl Texture {
-    /// Texture target getter.
-    pub fn target(&self) -> GlEnum {
-        match self.layers {
-            0 => Context::TEXTURE_2D,
-            _ => Context::TEXTURE_2D_ARRAY,
-        }
-    }
-
-    /// Getter.
-    pub fn parameters(&self) -> &Parameters {
-        &self.parameters
-    }
-
-    /// Returns the width, in pixels.
-    pub fn width(&self) -> i32 {
-        self.width
-    }
-
-    /// Returns the height, in pixels.
-    pub fn height(&self) -> i32 {
-        self.height
-    }
-
-    /// Returns the number of layers.
-    pub fn layers(&self) -> i32 {
-        self.layers
-    }
-}
-
-
-// === Setters ===
-
-impl Texture {
-    /// Setter.
-    pub fn set_parameters(&mut self, parameters: Parameters) {
-        self.parameters = parameters;
-    }
-}
-
-
-// === Constructors ===
-
-impl Texture {
-    /// Constructor.
-    pub fn new<I: InternalFormat, T: ItemType>(
-        context: &Context,
-        width: i32,
-        height: i32,
-        layers: i32,
-    ) -> Self {
-        let internal_format: AnyInternalFormat = <I>::default().into();
-        let item_type = ZST::<T>().into();
-        Self::new_(context, internal_format, item_type, width, height, layers)
-    }
-
-    pub fn new_(
-        context: &Context,
-        internal_format: AnyInternalFormat,
-        item_type: AnyItemType,
-        mut width: i32,
-        mut height: i32,
-        layers: i32,
-    ) -> Self {
-        if width == 0 {
-            width = 1;
-        }
-        if height == 0 {
-            height = 1;
-        }
-        let context = context.clone();
-        let gl_texture = context.create_texture().unwrap();
-        let parameters = default();
-        let this = Self {
-            width,
-            height,
-            layers,
-            gl_texture,
-            context,
-            parameters,
-            item_type,
-            internal_format,
-        };
-        this.allocate();
-        this
-    }
-
-    /// Allocates GPU memory for the texture.
-    fn allocate(&self) {
-        let levels = 1;
-        let internal_format = self.internal_format.to_gl_enum().into();
-        let target = self.target();
-        self.context.bind_texture(*target, Some(&self.gl_texture));
-        match self.layers {
-            0 => {
-                self.context.tex_storage_2d(
-                    *target,
-                    levels,
-                    internal_format,
-                    self.width,
-                    self.height,
-                );
-            }
-            _ => {
-                self.context.tex_storage_3d(
-                    *target,
-                    levels,
-                    internal_format,
-                    self.width,
-                    self.height,
-                    self.layers,
-                );
-            }
-        }
-        self.apply_texture_parameters(&self.context);
-    }
-}
-
-
-// === Internal API ===
-
-impl Texture {
-    /// Applies this textures' parameters in the given context.
-    fn apply_texture_parameters(&self, context: &Context) {
-        self.parameters.apply_parameters(context, self.target());
-    }
-}
-
-impl Texture {
-    /// Reloads gpu texture with data from given slice.
-    pub fn reload_with_content<T: JsBufferViewArr + bytemuck::Pod>(&self, data: &[T]) {
-        let target = self.target();
-        let level = 0;
-        let (xoffset, yoffset, zoffset) = default();
-        let format = self.internal_format.format().to_gl_enum().into();
-        let elem_type = self.item_type.to_gl_enum().into();
-        let data: &[u8] = bytemuck::cast_slice(data);
-        self.context.bind_texture(*target, Some(&self.gl_texture));
-        match self.layers {
-            0 => {
-                self.context
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-                        *target,
-                        level,
-                        xoffset,
-                        yoffset,
-                        self.width,
-                        self.height,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .unwrap();
-            }
-            _ => {
-                self.context
-                    .tex_sub_image_3d_with_opt_u8_array(
-                        *target,
-                        level,
-                        xoffset,
-                        yoffset,
-                        zoffset,
-                        self.width,
-                        self.height,
-                        self.layers,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .unwrap();
-            }
-        }
-        self.apply_texture_parameters(&self.context);
-    }
-}
-
-impl Texture {
-    pub fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        let context = context.clone();
-        let target = self.target();
-        context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
-        context.bind_texture(*target, Some(&self.gl_texture));
-        context.active_texture(*Context::TEXTURE0);
-        TextureBindGuard { context, target, unit }
-    }
-
-    pub fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
-        Ok(self.gl_texture.clone())
-    }
-
-    pub fn get_format(&self) -> AnyFormat {
-        self.internal_format.format()
-    }
-
-    pub fn get_item_type(&self) -> AnyItemType {
-        self.item_type
-    }
-}
-
-impl Drop for Texture {
-    fn drop(&mut self) {
-        // Check before dropping; otherwise, WebGL will log an error when we delete a texture from a
-        // previous context.
-        if self.context.is_texture(Some(&self.gl_texture)) {
-            self.context.delete_texture(Some(&self.gl_texture));
-        }
     }
 }
