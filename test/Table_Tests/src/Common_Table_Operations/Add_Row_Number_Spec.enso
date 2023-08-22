@@ -20,7 +20,7 @@ spec setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
 
-    Test.group prefix+"Table.add_row_number (common)asdfasdf" <|
+    Test.group prefix+"Table.add_row_number (common)" <|
         Test.specify "should rename existing column upon a name clash" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
             t2 = t1.add_row_number name="Y" order_by=["X"] |> materialize |> _.order_by "X"
