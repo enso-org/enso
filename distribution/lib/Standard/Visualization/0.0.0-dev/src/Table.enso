@@ -12,7 +12,7 @@ from Standard.Visualization.Text import get_chunk_from_line
    information about some rows or columns. Even updating information is fine and will be handled
    by the UI.
 type Table_Specification_Update
-
+    ## PRIVATE
     Value (row_heights : Vector Number ) (column_widths : Vector Number) (column_names : Vector Text) (row_names : Vector Text)
 
 
@@ -23,7 +23,7 @@ type Table_Specification_Update
    table. Coordinates have a first component that indicates row/column and a second component that
    indicates the chunk index and line.
 type Table_Update
-
+    ## PRIVATE
     Value chunks table_specification_update
 
     ## PRIVATE
