@@ -237,7 +237,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr ref={headerRowRef} className="sticky">
+        <tr ref={headerRowRef} className="sticky top-0">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax

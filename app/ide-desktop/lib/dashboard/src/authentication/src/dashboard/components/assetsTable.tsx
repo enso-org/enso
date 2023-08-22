@@ -310,7 +310,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (initialized) {
             overwriteAssets([])
         }
-        // `setAssets` is a callback, not a dependency.
+        // `overwriteAssets` is a callback, not a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend])
 

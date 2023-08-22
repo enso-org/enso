@@ -40,7 +40,7 @@ const FETCH_TIMEOUT = 300
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE && !detect.isRunningInElectron()) {
+if (IS_DEV_MODE && !detect.isOnElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.
