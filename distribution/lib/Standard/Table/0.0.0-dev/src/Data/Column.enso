@@ -1772,6 +1772,18 @@ type Column
        - function: The function to apply to each element of `self` column.
        - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
          `Nothing` values will be passed to the `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Multiply each element of the column by itself.
@@ -1779,11 +1791,11 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Boolean -> Column
-    map self function skip_nothing=True =
+    map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    map self function skip_nothing=True expected_value_type=Auto =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map new_fn
-        Column.from_vector self.name new_st
+        Column.from_vector self.name new_st value_type=expected_value_type
 
     ## ALIAS transform columns
 
@@ -1799,6 +1811,18 @@ type Column
          the value in either column is missing and automatically append
          `Nothing` to the result table. If set to `False`, every pair of values
          is passed to `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Zip two columns together as pairs.
@@ -1807,8 +1831,8 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
-    zip self that function skip_nothing=True =
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    zip self that function skip_nothing=True expected_value_type=Auto =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -1818,7 +1842,7 @@ type Column
             False -> function
         new_name = naming_helper.binary_operation_name "x" self that
         vec = self.to_vector.zip that.to_vector new_fn
-        Column.from_vector new_name vec
+        Column.from_vector new_name vec value_type=expected_value_type
 
     ## GROUP Standard.Base.Metadata
        Returns a new column, containing the same elements as `self`, but with
