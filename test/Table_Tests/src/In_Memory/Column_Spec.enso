@@ -8,8 +8,10 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
-from Standard.Table import Column, Value_Type
+from Standard.Table import Column, Value_Type, Auto
+import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
+
 from Standard.Test import Test, Test_Suite, Problems
 
 main = Test_Suite.run_main spec
@@ -118,6 +120,81 @@ spec =
             c2.at 0 . should_be_a Integer
             c2.at 1 . should_be_a Decimal
             c2.at 2 . should_be_a Text
+
+        Test.specify "should allow to set a specific type at construction" <|
+            c1 = Column.from_vector "X" [1, 2] Value_Type.Float
+            c1.value_type . should_equal Value_Type.Float
+            c1.at 0 . should_be_a Decimal
+            c1.at 1 . should_be_a Decimal
+            c1.to_vector . should_equal [1.0, 2.0]
+
+            # Even if we have only integers, we force the value_type to be reported as Mixed.
+            c2 = Column.from_vector "X" [1, 2] Value_Type.Mixed
+            c2.value_type . should_equal Value_Type.Mixed
+            c2.at 0 . should_be_a Integer
+            c2.at 1 . should_be_a Integer
+            c2.to_vector . should_equal [1, 2]
+
+            c3 = Column.from_vector "X" [1, 2] Auto
+            c3.value_type . should_equal Value_Type.Integer
+            c3.to_vector . should_equal [1, 2]
+
+            c3_1 = Column.from_vector "X" [1, 2] (Value_Type.Integer Bits.Bits_16)
+            c3_1.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            c3_1.to_vector . should_equal [1, 2]
+
+            c3_2 = Column.from_vector "X" [1, 2] Value_Type.Byte
+            c3_2.value_type . should_equal Value_Type.Byte
+            c3_2.to_vector . should_equal [1, 2]
+
+            c4 = Column.from_vector "X" ["a", 42] Value_Type.Mixed
+            c4.value_type . should_equal Value_Type.Mixed
+            c4.to_vector . should_equal ["a", 42]
+
+            # By default Auto will yield simply Value_Type.Char with variable length and no limit.
+            c5 = Column.from_vector "X" ["aaa", "bbb"] Auto
+            c5.value_type . should_equal Value_Type.Char
+
+            # But we can narrow down to a more specific type.
+            c6 = Column.from_vector "X" ["aaa", "bbb"] (Value_Type.Char size=3 variable_length=False)
+            c6.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            c7 = Column.from_vector "X" ["aaa", "b"] (Value_Type.Char size=3 variable_length=True)
+            c7.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
+            c7.to_vector . should_equal ["aaa", "b"]
+
+            c8 = Column.from_vector "X" ["aaa", 42, Date.new 2022 08 22] Value_Type.Mixed
+            c8.value_type . should_equal Value_Type.Mixed
+            c8.to_vector . should_equal ["aaa", 42, Date.new 2022 08 22]
+
+        Test.specify "will fail if unexpected values are encountered for the requested type" <|
+            r1 = Column.from_vector "X" ["a", 2] Value_Type.Char
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text.should_contain "One of the values (2) does not fit the requested type Char (max_size=Nothing, variable_length=True)"
+
+            r2 = Column.from_vector "X" ["aaa", "b"] (Value_Type.Char size=3 variable_length=False)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text.should_contain "One of the values (b) does not fit the requested type Char (max_size=3, variable_length=False)"
+
+            r3 = Column.from_vector "X" ["aaa", 42] Value_Type.Char
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text.should_contain "One of the values (42) does not fit the requested type Char (max_size=Nothing, variable_length=True)"
+
+            r4 = Column.from_vector "X" [12, Time_Of_Day.new 10 11 12] Value_Type.Integer
+            r4.should_fail_with Illegal_Argument
+            r4.catch.to_display_text.should_contain "One of the values (10:11:12) does not fit the requested type Integer (64 bits)"
+
+            r5 = Column.from_vector "X" [12, Date_Time.new 2023 08 22 18 17 zone=Time_Zone.utc] Value_Type.Integer
+            r5.should_fail_with Illegal_Argument
+            r5.catch.to_display_text.should_contain "One of the values (2023-08-22 18:17:00 UTC) does not fit the requested type Integer (64 bits)"
+
+            r6 = Column.from_vector "X" [12, Date.new 2023 08 22] Value_Type.Byte
+            r6.should_fail_with Illegal_Argument
+            r6.catch.to_display_text.should_contain "One of the values (2023-08-22) does not fit the requested type Byte"
+
+            r7 = Column.from_vector "X" [Date.new 2023 08 22, 42] Value_Type.Date
+            r7.should_fail_with Illegal_Argument
+            r7.catch.to_display_text.should_contain "One of the values (42) does not fit the requested type Date"
 
     Test.group "Rounding" <|
         Test.specify "should be able to round a column of decimals" <|
