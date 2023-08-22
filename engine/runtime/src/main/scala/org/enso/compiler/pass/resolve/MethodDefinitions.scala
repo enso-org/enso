@@ -165,6 +165,13 @@ case object MethodDefinitions extends IRPass {
                 "a method definition target"
               )
             )
+          case Right(_: BindingsMap.ResolvedPolyglotField) =>
+            IR.Error.Resolution(
+              typePointer,
+              IR.Error.Resolution.UnexpectedPolyglot(
+                "a method definition target"
+              )
+            )
           case Right(_: BindingsMap.ResolvedMethod) =>
             IR.Error.Resolution(
               typePointer,
