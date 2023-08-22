@@ -126,6 +126,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Refactoring](#refactoring)
   - [`refactoring/renameProject`](#refactoringrenameproject)
   - [`refactoring/renameSymbol`](#refactoringrenamesymbol)
+  - [`refactoring/projectRenamed`](#refactoringprojectrenamed)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -3411,6 +3412,41 @@ Current limitations of the method renaming are:
   operation was not able to apply generated edits.
 - [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
   refactoring of the given expression is not supported.
+
+### `refactoring/projectRenamed`
+
+This is a notification sent from the server to the clients to inform them about
+the new project name.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * Old normalized name of the project.
+   */
+  oldNormalizedName: string;
+
+  /**
+   * New normalized name of the prject.
+   */
+  newNormalizedName: string;
+
+  /**
+   * New display name of the project.
+   */
+  newName: string;
+}
+```
+
+#### Errors
+
+None
 
 ## Execution Management Operations
 
