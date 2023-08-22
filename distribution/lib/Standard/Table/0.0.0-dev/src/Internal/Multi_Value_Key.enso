@@ -58,6 +58,7 @@ Comparable.from (_:Unordered_Multi_Value_Key) = Unordered_Multi_Value_Key_Compar
    An Enso implementation mirroring `OrderedMultiValueKey` from the Java
    helpers.
 type Ordered_Multi_Value_Key
+    ## PRIVATE
     Key columns:(Vector Column) flip_direction:(Vector Boolean) row_index:Integer
 
     ## PRIVATE

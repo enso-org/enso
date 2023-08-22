@@ -37,7 +37,8 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Writer.write_text that format
         _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
-## Converts an object or a Vector of object into a Table, by looking up the
+## GROUP Standard.Base.Constants
+   Converts an object or a Vector of object into a Table, by looking up the
    requested fields from each item.
 
    Arguments:
@@ -108,7 +109,8 @@ Table.from_objects value fields=Nothing =
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
         _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
 
-## Converts a Text into a Table using a regular expression pattern.
+## GROUP Standard.Base.Conversions
+   Converts a Text into a Table using a regular expression pattern.
 
    Each match becomes a row in the table.
 
