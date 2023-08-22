@@ -281,6 +281,7 @@ export class Cognito {
 
     /** Sign out the current user. */
     async signOut() {
+        listen.authEventListener?.(listen.AuthEvent.signOut)
         this.isSignedIn = false
         return Promise.resolve(null)
     }

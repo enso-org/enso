@@ -486,6 +486,12 @@ export default [
             'lib/dashboard/src/**/*.tsx',
             'lib/dashboard/src/**/*.mtsx',
             'lib/dashboard/src/**/*.ctsx',
+            'lib/dashboard/mock/**/*.ts',
+            'lib/dashboard/mock/**/*.mts',
+            'lib/dashboard/mock/**/*.cts',
+            'lib/dashboard/mock/**/*.tsx',
+            'lib/dashboard/mock/**/*.mtsx',
+            'lib/dashboard/mock/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [
@@ -517,6 +523,69 @@ export default [
                 {
                     property: '$d$',
                     message: 'Avoid leaving debugging statements when committing code',
+                },
+            ],
+        },
+    },
+    {
+        files: [
+            'lib/dashboard/test*/*.ts',
+            'lib/dashboard/test*/*.mts',
+            'lib/dashboard/test*/*.cts',
+            'lib/dashboard/test*/*.tsx',
+            'lib/dashboard/test*/*.mtsx',
+            'lib/dashboard/test*/*.ctsx',
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'console',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugEffect',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugMemo',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugCallback',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    property: '$d$',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'page',
+                    property: 'type',
+                    message: 'Prefer `locator.type` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'click',
+                    message: 'Prefer `locator.click` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'fill',
+                    message: 'Prefer `locator.fill` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'locator',
+                    message: 'Prefer `page.getBy*` instead',
                 },
             ],
         },

@@ -1,31 +1,43 @@
 /** @file Test the login flow. */
-
 import * as test from '@playwright/test'
 
+import * as actions from './actions'
+
+// =============
+// === Tests ===
+// =============
+
 test.test('login flow', async ({ page }) => {
+    // Screenshot #1: Initial
     await page.goto('/')
     await test.expect(page).toHaveScreenshot()
 
-    await page.type('#email', 'invalid email')
-    await page.click('[type=submit]')
+    // Screenshot #2: Invalid email
+    await actions.locateEmailInput(page).type('invalid email')
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
         'form should reject invalid email'
     ).toBe(false)
+    await actions.locateLoginButton(page).click()
+    await test.expect(page).toHaveScreenshot()
 
-    await page.fill('#email', '')
-    await page.type('#email', 'email@example.com')
-    await page.type('#password', 'password')
+    // Screenshot #3: Invalid password
+    await actions.locateEmailInput(page).fill('')
+    await actions.locateEmailInput(page).type('email@example.com')
+    await actions.locatePasswordInput(page).type(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
         'form should reject invalid password'
     ).toBe(false)
-
-    await page.fill('#password', '')
-    await page.type('#password', 'Password0!')
-    await page.click('[type=submit]')
+    await actions.locateLoginButton(page).click()
     await test.expect(page).toHaveScreenshot()
 
-    await page.click('.user-menu-button')
-    await test.expect(page.locator('.user-menu')).toHaveScreenshot()
+    // Screenshot #4: After sign in
+    await actions.login(page)
+    await test.expect(page).toHaveScreenshot()
+
+    // Screenshot #5: After sign out
+    await actions.locateUserMenuButton(page).click()
+    await actions.locateSignOutButton(page).click()
+    await test.expect(page).toHaveScreenshot()
 })

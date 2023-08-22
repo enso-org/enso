@@ -16,7 +16,7 @@ import ChangePasswordModal from './changePasswordModal'
  * The main interaction logic is in the `onClick` injected by `UserMenu`. */
 export interface UserMenuItemProps {
     disabled?: boolean
-    onClick?: React.MouseEventHandler<HTMLDivElement>
+    onClick?: React.MouseEventHandler<HTMLButtonElement>
 }
 
 /** User menu item. */
@@ -24,16 +24,15 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
     const { children, disabled = false, onClick } = props
 
     return (
-        <div
-            className={`whitespace-nowrap first:rounded-t-2xl last:rounded-b-2xl px-4 py-2 ${
-                disabled ? 'opacity-50' : ''
-            } ${onClick && !disabled ? 'hover:bg-black-a10' : ''} ${
-                onClick != null && !disabled ? 'cursor-pointer' : ''
+        <button
+            disabled={disabled}
+            className={`text-left whitespace-nowrap first:rounded-t-2xl last:rounded-b-2xl px-4 py-2 disabled:opacity-50 ${
+                onClick && !disabled ? 'hover:bg-black-a10' : ''
             }`}
             onClick={onClick}
         >
             {children}
-        </div>
+        </button>
     )
 }
 
@@ -68,7 +67,8 @@ export default function UserMenu(props: UserMenuProps) {
 
     return (
         <div
-            className="user-menu absolute bg-frame-selected backdrop-blur-3xl right-2.25 top-11 z-1 flex flex-col rounded-2xl"
+            data-testid="user-menu"
+            className="absolute bg-frame-selected backdrop-blur-3xl right-2.25 top-11 z-1 flex flex-col rounded-2xl"
             onClick={event => {
                 event.stopPropagation()
             }}

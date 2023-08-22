@@ -31,10 +31,11 @@ export default function ChangePasswordModal() {
     return (
         <Modal centered className="bg-dim">
             <div
+                data-testid="change-password-modal"
+                className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md"
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md"
             >
                 <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
                     Change Your Password
@@ -106,7 +107,7 @@ export default function ChangePasswordModal() {
                         </div>
                         <div className="flex flex-col mb-6">
                             <label
-                                htmlFor="new_password_confirm"
+                                htmlFor="confirm_new_password"
                                 className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
                             >
                                 Confirm New Password:

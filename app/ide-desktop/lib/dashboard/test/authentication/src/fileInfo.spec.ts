@@ -3,7 +3,9 @@ import * as test from '@playwright/test'
 
 import * as fileInfo from '../../../src/authentication/src/fileInfo'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
+// =============
+// === Tests ===
+// =============
 
 test.test('fileExtension', () => {
     test.expect(fileInfo.fileExtension('image.png')).toBe('png')

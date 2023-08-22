@@ -34,7 +34,6 @@ export default function UserBar(props: UserBarProps) {
                 }}
             />
             <button
-                className="user-menu-button"
                 onClick={event => {
                     event.stopPropagation()
                     updateModal(oldModal =>
@@ -42,7 +41,7 @@ export default function UserBar(props: UserBarProps) {
                     )
                 }}
             >
-                <img src={DefaultUserIcon} height={28} width={28} />
+                <img alt="Open user menu" src={DefaultUserIcon} height={28} width={28} />
             </button>
         </div>
     )

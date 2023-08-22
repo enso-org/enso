@@ -7,6 +7,9 @@ export default test.defineConfig({
     testDir: './test-e2e',
     use: {
         baseURL: 'http://localhost:8080',
+        // This MUST be `false`, otherwise `background-blur` does not work.
+        // (`--headless=new` does not fix this issue.)
+        headless: false,
     },
     webServer: {
         command: 'npx tsx test-server.ts',
