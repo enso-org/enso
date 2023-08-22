@@ -354,7 +354,7 @@ spec setup =
                 t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
 
             Test.specify "should fail to find a common type if widening is not allowed (2)" <|
-                # TODO No_Output_Columns should have Column_Type_Mismatch as its cause for better readability
+                # ToDo No_Output_Columns should have Column_Type_Mismatch as its cause for better readability (#7635)
                 t1.union t2 allow_type_widening=False . should_fail_with No_Output_Columns
 
                 # And this should report Column_Type_Mismatch as the more important error too.
