@@ -2,6 +2,7 @@
 @import "react-toastify/dist/ReactToastify.css";
 
 body {
+  overflow: hidden;
   margin: 0;
   background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
   background-blend-mode: lighten;

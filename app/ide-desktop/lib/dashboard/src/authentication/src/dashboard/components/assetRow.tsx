@@ -10,6 +10,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as download from '../../download'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
@@ -99,7 +100,10 @@ export default function AssetRow(props: AssetRowProps) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            toastAndLog(`Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+            toastAndLog(
+                errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                    `Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+            )
         }
     }, [
         backend,
@@ -153,8 +157,8 @@ export default function AssetRow(props: AssetRowProps) {
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
                         toastAndLog(
-                            `Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`,
-                            error
+                            errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                                `Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
                         )
                     }
                 }
