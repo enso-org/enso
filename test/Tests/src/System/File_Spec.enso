@@ -671,18 +671,25 @@ spec =
             r2.catch.should_be_a File_Error.Not_Found
 
         Test.specify "Should handle parent-less file paths" <|
-            f1 = File.new "./test1.txt"
-            f2 = File.new "test2.txt"
+            transient = enso_project.data / "transient"
+            f1 = transient / "./test1.txt"
+            f2 = File.new ("parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt")
 
             txt = "MY CONTENT"
+            txt.write f1
+            txt.write f2
 
             f1.read_text . should_equal txt
             f2.read_text . should_equal txt
 
             txt2 = "MY NEW CONTENT"
+            txt2.write f1
+            txt2.write f2
 
             f1.read_text . should_equal txt2
             f2.read_text . should_equal txt2
+
+            f2.delete
 
         Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
             f = transient / "encoding-errors.txt"
