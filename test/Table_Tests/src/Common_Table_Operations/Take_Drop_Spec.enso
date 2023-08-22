@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
 from Standard.Table.Errors import all
 
 from Standard.Test import Test
@@ -16,7 +17,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    Test.group prefix+"Table.take/drop" <|
+    Test.group prefix+"Table.take/dropasdfasdf" <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]
             col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
@@ -191,6 +192,18 @@ spec setup =
             case setup.is_database of
                 True -> unordered_table.take . should_fail_with Illegal_Argument
                 False -> unordered_table.take . at "alpha" . to_vector . should_equal [1]
+
+        Test.specify "Should work correctly after aggregation" <|
+            t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
+            t1 = t0.aggregate [Group_By "X", Sum "Y"]
+
+            t2 = t1.order_by "X" . take 2
+            t2.at "X" . to_vector . should_equal ['a', 'b']
+            t2.at "Sum Y" . to_vector . should_equal [5.0, 2.0]
+
+            t3 = t1.order_by "X" . drop 1
+            t3.at "X" . to_vector . should_equal ['b', 'c']
+            t3.at "Sum Y" . to_vector . should_equal [2.0, 8.0]
 
     Test.group prefix+"Column.take/drop" <|
         table =
