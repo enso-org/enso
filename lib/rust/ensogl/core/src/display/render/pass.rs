@@ -43,7 +43,7 @@ clone_boxed!(Definition);
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Instance {
-    pub variables:   UniformScope,
+    pub variables:   Rc<RefCell<UniformScope>>,
     pub context:     Context,
     pub width:       i32,
     pub height:      i32,
@@ -54,7 +54,7 @@ impl Instance {
     /// Constructor
     pub fn new(
         context: &Context,
-        variables: &UniformScope,
+        variables: &Rc<RefCell<UniformScope>>,
         width: i32,
         height: i32,
         pixel_ratio: f32,

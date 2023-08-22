@@ -35,15 +35,13 @@ pub trait UniformValue = Sized where Uniform<Self>: Into<AnyUniform>;
 // === UniformScope ===
 // ====================
 
-pub type UniformScope = Rc<RefCell<UniformScopeData>>;
-
 /// A scope containing set of uniform values.
 #[derive(Debug, Default)]
-pub struct UniformScopeData {
+pub struct UniformScope {
     map: HashMap<String, AnyUniform>,
 }
 
-impl UniformScopeData {
+impl UniformScope {
     /// Constructor.
     pub fn new() -> Self {
         default()

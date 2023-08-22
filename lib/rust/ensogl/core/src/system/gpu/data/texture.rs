@@ -311,6 +311,9 @@ impl Parameters {
 
 // === Parameter Types ===
 
+/// Define a type that can represent a subset of `GlEnum` values defined in the `Context`. The
+/// resulting type is not an enum, so it cannot be exhaustively pattern-matched, but conversion to a
+/// `GlEnum` is zero-cost.
 macro_rules! gl_enum_subset {
     ($(#[$($attrs:tt)*])* $ty:ident: $base:ty, [$($value:ident),*]) => {
         $(#[$($attrs)*])*

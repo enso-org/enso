@@ -101,7 +101,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
     fn try_init(
         &mut self,
         context: &Context,
-        variables: &uniform::UniformScopeData,
+        variables: &UniformScope,
     ) -> Result<PixelReadPassData<T>, ContextLost> {
         let buffer = context.create_buffer()?;
         let js_array = JsTypedArray::<T>::new_with_length(4);

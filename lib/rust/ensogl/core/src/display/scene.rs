@@ -24,13 +24,12 @@ use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
-use crate::display::uniform::UniformScopeData;
+use crate::display::uniform::UniformScope;
 use crate::display::world;
 use crate::frp::io::keyboard as frp_keyboard;
 use crate::system;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
-use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader;
 use crate::system::gpu::Context;
 use crate::system::gpu::ContextLostHandler;
@@ -168,7 +167,7 @@ impl Mouse {
         scene_frp: &Frp,
         scene_object: &display::object::Instance,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
-        variables: &UniformScope,
+        variables: &mut UniformScope,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let background = PointerTarget_DEPRECATED::new();
@@ -178,7 +177,6 @@ impl Mouse {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::default()));
-        let mut variables = variables.borrow_mut();
         let position = variables.add_or_panic("mouse_position", Vector2::default());
         let click_count = variables.add_or_panic("mouse_click_count", 0);
         let pointer_target_encoded = variables.add_or_panic("mouse_hover_ids", Vector4::default());
@@ -601,7 +599,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &mut UniformScopeData) -> Self {
+    pub fn new(scope: &mut UniformScope) -> Self {
         let pixel_ratio = scope.add_or_panic("pixel_ratio", 1.0);
         Self { pixel_ratio }
     }
@@ -642,13 +640,13 @@ impl Dirty {
 #[allow(missing_docs)]
 pub struct Renderer {
     dom:          Rc<Dom>,
-    variables:    UniformScope,
+    variables:    Rc<RefCell<UniformScope>>,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
     pub composer: Rc<RefCell<Option<render::Composer>>>,
 }
 
 impl Renderer {
-    fn new(dom: &Rc<Dom>, variables: &UniformScope) -> Self {
+    fn new(dom: &Rc<Dom>, variables: &Rc<RefCell<UniformScope>>) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
@@ -988,7 +986,7 @@ pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
-    pub variables: UniformScope,
+    pub variables: Rc<RefCell<UniformScope>>,
     pub mouse: Mouse,
     /// Keyboard that bypasses event propagation and receives all key events. Typically, this is
     /// appropriate for monitoring the state of modifier keys (which have a logical state
@@ -1035,7 +1033,7 @@ impl SceneData {
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
+        let mouse = Mouse::new(&frp, &display_object, &dom.root, &mut variables.borrow_mut(), &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;

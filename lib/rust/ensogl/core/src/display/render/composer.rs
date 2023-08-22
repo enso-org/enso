@@ -18,7 +18,7 @@ use crate::display::scene::UpdateStatus;
 pub struct Composer {
     pipeline:    Pipeline,
     passes:      Vec<ComposerPass>,
-    variables:   UniformScope,
+    variables:   Rc<RefCell<UniformScope>>,
     context:     Context,
     width:       i32,
     height:      i32,
@@ -30,7 +30,7 @@ impl Composer {
     pub fn new(
         pipeline: &Pipeline,
         context: &Context,
-        variables: &UniformScope,
+        variables: &Rc<RefCell<UniformScope>>,
         width: i32,
         height: i32,
         pixel_ratio: f32,
@@ -121,7 +121,7 @@ impl ComposerPass {
     #[allow(clippy::borrowed_box)]
     pub fn new(
         context: &Context,
-        variables: &UniformScope,
+        variables: &Rc<RefCell<UniformScope>>,
         mut pass: Box<dyn pass::Definition>,
         width: i32,
         height: i32,

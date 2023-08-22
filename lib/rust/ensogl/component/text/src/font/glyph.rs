@@ -135,8 +135,7 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
             variables.add("msdf_size", size);
         });
 
-        let variables = symbol.variables();
-        let mut variables = variables.borrow_mut();
+        let mut variables = symbol.variables();
         variables.add_uniform_or_panic("atlas", &font.atlas);
         variables.add_uniform_or_panic("opacity_increase", &font.opacity_increase);
         variables.add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);

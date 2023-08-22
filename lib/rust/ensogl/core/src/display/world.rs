@@ -24,7 +24,7 @@ use crate::display::scene::UpdateStatus;
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
-use crate::display::uniform::UniformScopeData;
+use crate::display::uniform::UniformScope;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::shader;
 use crate::system::web;
@@ -242,7 +242,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &mut UniformScopeData) -> Self {
+    pub fn new(scope: &mut UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
         Self { time }
     }

@@ -7,7 +7,8 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
-use crate::display::uniform::UniformScopeData;
+use crate::display::texture::TextureUnit;
+use crate::display::uniform::UniformScope;
 use crate::system::gpu;
 use crate::system::gpu::context::native::ContextOps;
 use crate::system::gpu::context::ContextLost;
@@ -82,8 +83,6 @@ impl UniformBinding {
     }
 }
 
-type TextureUnit = u32;
-
 /// Binds input sampler definition in shader to its location, uniform declaration and texture unit.
 #[derive(Clone, Debug)]
 struct TextureBinding {
@@ -112,7 +111,7 @@ impl TextureBinding {
 
     /// Upload uniform value.
     fn upload_uniform(&self, context: &Context) {
-        context.uniform1i(Some(&self.location), self.texture_unit as i32);
+        context.uniform1i(Some(&self.location), u32::from(self.texture_unit) as i32);
     }
 }
 
@@ -162,10 +161,7 @@ impl VertexArrayObject {
 
 impl Drop for VertexArrayObject {
     fn drop(&mut self) {
-        // Delete the object, unless it's from a previous context.
-        if self.context.is_vertex_array(Some(&self.vao)) {
-            self.context.delete_vertex_array(Some(&self.vao));
-        }
+        self.context.delete_vertex_array(&self.vao);
     }
 }
 
@@ -340,7 +336,7 @@ impl Symbol {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&self, global_variables: &UniformScope) {
+    pub fn update(&self, global_variables: &Rc<RefCell<UniformScope>>) {
         if self.context.borrow().is_some() {
             if self.surface_dirty.check() {
                 self.surface.update();
@@ -390,7 +386,7 @@ impl Symbol {
     /// For each variable from the shader definition, looks up its position in geometry scopes.
     fn discover_variable_bindings(
         &self,
-        global_variables: &UniformScopeData,
+        global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {
         self.shader
             .borrow()
@@ -452,8 +448,8 @@ impl Symbol {
         self.shader.borrow_mut()
     }
 
-    pub fn variables(&self) -> UniformScope {
-        Rc::clone(&self.variables)
+    pub fn variables(&self) -> RefMut<UniformScope> {
+        self.variables.borrow_mut()
     }
 }
 
@@ -520,7 +516,7 @@ pub struct SymbolData {
     display_object:     display::object::Instance,
     surface:            Mesh,
     surface_dirty:      GeometryDirty,
-    variables:          UniformScope,
+    variables:          RefCell<UniformScope>,
     context:            RefCell<Option<Context>>,
     bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
@@ -593,7 +589,7 @@ impl SymbolData {
     pub fn lookup_variable<S: Str>(
         &self,
         name: S,
-        global_variables: &UniformScopeData,
+        global_variables: &UniformScope,
     ) -> Option<ScopeType> {
         let name = name.as_ref();
         match self.surface.lookup_variable(name) {
@@ -614,7 +610,7 @@ impl SymbolData {
     fn init_variable_bindings(
         &self,
         var_bindings: &[shader::VarBinding],
-        global_variables: UniformScope,
+        global_variables: Rc<RefCell<UniformScope>>,
         program: &gpu::shader::Program,
     ) {
         if let Some(context) = &*self.context.borrow() {
@@ -628,7 +624,7 @@ impl SymbolData {
                 JsValue::from_f64(min_texture_units as f64)
             });
             let max_texture_units = max_texture_units.as_f64().unwrap() as u32;
-            let mut texture_unit_iter = 0..max_texture_units;
+            let mut texture_unit_iter = (0..max_texture_units).map(TextureUnit::from);
             self.bindings.borrow_mut().vao = VertexArrayObject::new(context).ok();
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
@@ -682,7 +678,7 @@ impl SymbolData {
         program: &WebGlProgram,
         binding: &shader::VarBinding,
         texture_unit_iter: &mut dyn Iterator<Item = TextureUnit>,
-        global_variables: &UniformScopeData,
+        global_variables: &UniformScope,
     ) {
         let name = &binding.name;
         let uni_name = shader::builder::mk_uniform_name(name);

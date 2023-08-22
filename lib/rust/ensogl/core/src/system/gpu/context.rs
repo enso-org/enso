@@ -134,6 +134,13 @@ impl ContextData {
             self.native.delete_texture(Some(texture));
         }
     }
+
+    pub fn delete_vertex_array(&self, texture: &web_sys::WebGlVertexArrayObject) {
+        // Avoid WebGL errors if we delete something bound to a context that has been lost.
+        if self.native.is_vertex_array(Some(texture)) {
+            self.native.delete_vertex_array(Some(texture));
+        }
+    }
 }
 
 

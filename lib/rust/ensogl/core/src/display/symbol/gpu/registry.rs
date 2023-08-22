@@ -88,7 +88,7 @@ pub struct SymbolRegistry {
     view_projection:    Uniform<Matrix4<f32>>,
     z_zoom_1:           Uniform<f32>,
     pub display_mode:   Uniform<i32>,
-    pub variables:      UniformScope,
+    pub variables:      Rc<RefCell<UniformScope>>,
     context:            Rc<RefCell<Option<Context>>>,
     pub stats:          Stats,
     next_id:            Rc<Cell<u32>>,
@@ -104,7 +104,7 @@ impl SymbolRegistry {
         let run_mode = default();
         let dirty = Dirty::new(());
         let symbols = default();
-        let mut variables = crate::display::uniform::UniformScopeData::new();
+        let mut variables = crate::display::uniform::UniformScope::new();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let display_mode = variables.add_or_panic("display_mode", 0);
