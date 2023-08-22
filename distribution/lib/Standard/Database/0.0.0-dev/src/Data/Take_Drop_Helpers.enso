@@ -11,8 +11,12 @@ import project.Data.Column.Column
 import project.Data.Table.Table
 from project.Errors import Unsupported_Database_Operation
 
+## PRIVATE
 type Take_Drop
+    ## PRIVATE
     Take
+
+    ## PRIVATE
     Drop
 
 ## PRIVATE
