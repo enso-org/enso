@@ -7,6 +7,105 @@ import java.util.UUID
 
 class RefactoringTest extends BaseServerTest {
 
+  "refactoring/renameProject" should {
+
+    "return ok response after a successful renaming" in {
+      val client = getInitialisedWsClient()
+
+      val namespace = "local"
+      val oldName   = "Unnamed"
+      val newName   = "Project1"
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameProject",
+            "id": 1,
+            "params": {
+              "namespace": $namespace,
+              "oldName": $oldName,
+              "newName": $newName
+            }
+          }
+          """)
+
+      val requestId = runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, payload: Api.RenameProject) =>
+          payload.namespace shouldEqual namespace
+          payload.oldName shouldEqual oldName
+          payload.newName shouldEqual newName
+          requestId
+        case msg =>
+          fail(s"Runtime connector received unexpected message: $msg")
+      }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.ProjectRenamed(oldName, newName, newName)
+      )
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": null
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method": "refactoring/projectRenamed",
+            "params": {
+              "oldNormalizedName": $oldName,
+              "newNormalizedName": $newName,
+              "newName": $newName
+            }
+          }
+          """)
+    }
+
+    "reply with ProjectRenameFailed in case of failures" in {
+      val client = getInitialisedWsClient()
+
+      val namespace = "local"
+      val oldName   = "Unnamed"
+      val newName   = "Project1"
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "refactoring/renameProject",
+            "id": 1,
+            "params": {
+              "namespace": $namespace,
+              "oldName": $oldName,
+              "newName": $newName
+            }
+          }
+          """)
+
+      val requestId = runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, payload: Api.RenameProject) =>
+          payload.namespace shouldEqual namespace
+          payload.oldName shouldEqual oldName
+          payload.newName shouldEqual newName
+          requestId
+        case msg =>
+          fail(s"Runtime connector received unexpected message: $msg")
+      }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.ProjectRenameFailed(oldName, newName)
+      )
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 9004,
+              "message": ${s"Project rename failed [$oldName, $newName]"}
+            }
+          }
+          """)
+    }
+
+  }
+
   "refactoring/renameSymbol" should {
 
     "return ok response after a successful renaming" in {
