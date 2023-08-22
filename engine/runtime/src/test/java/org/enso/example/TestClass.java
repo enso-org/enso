@@ -5,6 +5,8 @@ import java.util.function.Function;
 
 /** A class used for testing Java Interop from Enso code */
 public class TestClass {
+  public static final int FINAL_ONE = 1;
+  public static int nonFinalTwo = 2;
 
   private final Function<Long, Long> function;
 

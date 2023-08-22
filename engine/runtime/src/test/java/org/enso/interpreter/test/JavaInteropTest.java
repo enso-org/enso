@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertArrayEquals;
@@ -95,6 +96,48 @@ public class JavaInteropTest extends TestBase {
             IO.println <| TestClass.enumToString TestClass.InnerEnum.ENUM_VALUE_2
         """;
     checkPrint(code, List.of("ENUM_VALUE_1", "ENUM_VALUE_2"));
+  }
+
+  @Test
+  public void testCaseOnEnum() {
+    var code = """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+        polyglot java import org.enso.example.TestClass.InnerEnum
+
+        to_string x = case x of
+          InnerEnum.ENUM_VALUE_1 -> "one"
+          InnerEnum.ENUM_VALUE_2 -> "two"
+          _ -> "none"
+
+        main =
+            IO.println <| to_string TestClass.InnerEnum.ENUM_VALUE_1
+            IO.println <| to_string TestClass.InnerEnum.ENUM_VALUE_2
+        """;
+    checkPrint(code, List.of("one", "two"));
+  }
+
+  @Test
+  public void testCaseNonFinal() {
+    var code = """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+
+        to_string x = case x of
+          TestClass.FINAL_ONE -> "one"
+          TestClass.nonFinalTwo -> "two"
+          _ -> "none"
+
+        main =
+            IO.println <| to_string 1
+            IO.println <| to_string 2
+        """;
+    try {
+      checkPrint(code, List.of());
+      fail("Expecting exception");
+    } catch (PolyglotException e) {
+      assertEquals("Compile error: nonFinalTwo is not a constant.", e.getMessage());
+    }
   }
 
   @Test
