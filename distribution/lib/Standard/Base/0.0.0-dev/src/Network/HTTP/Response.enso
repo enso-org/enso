@@ -35,8 +35,8 @@ type Response
        Get the response headers.
 
        > Example
-         Getting the headers from a response. NOTE that this example will make a
-         network request.
+         Getting the headers from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -55,8 +55,8 @@ type Response
     ## Get the response body.
 
        > Example
-         Getting the body from a response. NOTE that this example will make a
-         network request.
+         Getting the body from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -67,8 +67,8 @@ type Response
     ## Get the response status code.
 
        > Example
-         Getting the code from a response. NOTE that this example will make a
-         network request.
+         Getting the code from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -124,7 +124,7 @@ type Response
 
        > Example
          Convert a response to JS_Object.
-         NOTE that this example will make a network request.
+         Note: This example will make a network request.
 
              import Standard.Examples
 

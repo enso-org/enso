@@ -171,6 +171,7 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
             response.decode if_unsupported=response . catch handler=(_->response)
 
 ## ALIAS download, http get
+   GROUP Input
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
