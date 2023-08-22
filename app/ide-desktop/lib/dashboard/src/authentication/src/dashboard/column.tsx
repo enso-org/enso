@@ -96,7 +96,7 @@ export const COLUMN_NAME: Record<Column, string> = {
 
 const COLUMN_CSS_CLASSES =
     'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-2 pt-1 pb-1.5 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
@@ -303,7 +303,7 @@ export const COLUMN_HEADING: Record<
                     }
                 }}
             >
-                <SvgMask src={TimeIcon} />
+                <SvgMask src={TimeIcon} className="h-4 w-4" />
                 <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
                 <img
                     src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
@@ -314,19 +314,19 @@ export const COLUMN_HEADING: Record<
     },
     [Column.sharedWith]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={PeopleIcon} />
+            <SvgMask src={PeopleIcon} className="h-4 w-4" />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={TagIcon} />
+            <SvgMask src={TagIcon} className="h-4 w-4" />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={AccessedByProjectsIcon} />
+            <SvgMask src={AccessedByProjectsIcon} className="h-4 w-4" />
             <span className="leading-144.5 h-6 py-0.5">
                 {COLUMN_NAME[Column.accessedByProjects]}
             </span>
@@ -334,13 +334,13 @@ export const COLUMN_HEADING: Record<
     ),
     [Column.accessedData]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={AccessedDataIcon} />
+            <SvgMask src={AccessedDataIcon} className="h-4 w-4" />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={DocsIcon} />
+            <SvgMask src={DocsIcon} className="h-4 w-4" />
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
         </div>
     ),

@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/folder.svg'
+import FolderIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -133,7 +133,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={DirectoryIcon} className="m-1" />
+            <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {

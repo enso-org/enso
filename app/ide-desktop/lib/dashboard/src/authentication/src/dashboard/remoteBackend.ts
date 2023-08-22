@@ -277,12 +277,12 @@ export class RemoteBackend extends backend.Backend {
                 return []
             } else if (query.parentId != null) {
                 return this.throw(
-                    `Unable to list directory ${
+                    `Unable to list folder ${
                         title != null ? `'${title}'` : `with ID '${query.parentId}'`
                     }.`
                 )
             } else {
-                return this.throw('Unable to list root directory.')
+                return this.throw('Unable to list root folder.')
             }
         } else {
             return (await response.json()).assets
@@ -314,7 +314,7 @@ export class RemoteBackend extends backend.Backend {
     ): Promise<backend.CreatedDirectory> {
         const response = await this.post<backend.CreatedDirectory>(CREATE_DIRECTORY_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create directory with name '${body.title}'.`)
+            return this.throw(`Unable to create folder with name '${body.title}'.`)
         } else {
             return await response.json()
         }
@@ -334,7 +334,7 @@ export class RemoteBackend extends backend.Backend {
         )
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to update directory ${
+                `Unable to update folder ${
                     title != null ? `'${title}'` : `with ID '${directoryId}'`
                 }.`
             )
@@ -350,7 +350,7 @@ export class RemoteBackend extends backend.Backend {
         const response = await this.delete(deleteDirectoryPath(directoryId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete directory ${
+                `Unable to delete folder ${
                     title != null ? `'${title}'` : `with ID '${directoryId}'`
                 }.`
             )
