@@ -13,7 +13,7 @@ public class LoggingServiceConfig {
   public static final String serverKey = "server";
   public static final String loggersKey = "logger";
   public static final String appendersKey = "appenders";
-  public static final String defaultAppenderKey = "defaultAppender";
+  public static final String defaultAppenderKey = "default-appender";
   public static final String logLevelKey = "log-level";
 
   private final LoggersLevels loggers;
@@ -36,7 +36,7 @@ public class LoggingServiceConfig {
     this.server = server;
   }
 
-  public static LoggingServiceConfig parseConfig() {
+  public static LoggingServiceConfig parseConfig() throws MissingConfigurationField {
     var empty = ConfigFactory.empty().atKey(configurationRoot);
     var root = ConfigFactory.load().withFallback(empty).getConfig(configurationRoot);
     LoggingServer server;
@@ -58,7 +58,7 @@ public class LoggingServiceConfig {
     if (root.hasPath(loggersKey)) {
       loggers = LoggersLevels.parse(root.getConfig(loggersKey));
     } else {
-      loggers = null;
+      loggers = LoggersLevels.parse();
     }
     return new LoggingServiceConfig(
         loggers,
@@ -66,6 +66,13 @@ public class LoggingServiceConfig {
         appendersMap,
         root.getString(defaultAppenderKey),
         server);
+  }
+
+  public static LoggingServiceConfig withSingleAppender(Appender appender) {
+    Map<String, Appender> map = new HashMap<>();
+    map.put(appender.getName(), appender);
+    return new LoggingServiceConfig(
+        LoggersLevels.parse(), Optional.empty(), map, appender.getName(), null);
   }
 
   public LoggersLevels getLoggers() {
@@ -76,8 +83,20 @@ public class LoggingServiceConfig {
     return appenders.get(defaultAppenderName);
   }
 
-  public Appender getAppender(String name) {
-    return appenders.get(name);
+  public SocketAppender getSocketAppender() {
+    return (SocketAppender) appenders.getOrDefault(SocketAppender.appenderName, null);
+  }
+
+  public FileAppender getFileAppender() {
+    return (FileAppender) appenders.getOrDefault(FileAppender.appenderName, null);
+  }
+
+  public ConsoleAppender getConsoleAppender() {
+    return (ConsoleAppender) appenders.getOrDefault(ConsoleAppender.appenderName, null);
+  }
+
+  public SentryAppender getSentryAppender() {
+    return (SentryAppender) appenders.getOrDefault(SentryAppender.appenderName, null);
   }
 
   public boolean loggingServerNeedsBoot() {

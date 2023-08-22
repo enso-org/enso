@@ -3,27 +3,34 @@ package org.enso.logger.config;
 import com.typesafe.config.Config;
 import org.slf4j.event.Level;
 
+/** Config for log configuration that sends logs to sentry.io service. */
 public class SentryAppender extends Appender {
-  private String name;
+
+  public String getDsn() {
+    return dsn;
+  }
+
   private String dsn;
 
-  private SentryAppender(String dsn, Config config) {
-    super(config);
-    this.name = "sentry";
+  private SentryAppender(String dsn) {
     this.dsn = dsn;
   }
 
-  public static Appender parse(Config config) {
-    return new SentryAppender(config.getString("dsn"), config);
+  public static Appender parse(Config config) throws MissingConfigurationField {
+    if (config.hasPath(dsnKey)) return new SentryAppender(config.getString(dsnKey));
+    else throw new MissingConfigurationField(dsnKey);
   }
 
   @Override
-  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
-    return appenderSetup.setupSentryAppender(logLevel, dsn);
+  public Boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+    return appenderSetup.setupSentryAppender(logLevel);
   }
 
   @Override
   public String getName() {
-    return name;
+    return appenderName;
   }
+
+  private static final String dsnKey = "dsn";
+  public static final String appenderName = "sentry";
 }

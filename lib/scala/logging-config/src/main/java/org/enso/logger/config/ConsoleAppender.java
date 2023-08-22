@@ -1,39 +1,25 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
-import java.nio.file.Path;
 import org.slf4j.event.Level;
 
+/** Config for log configuration that appends to the console */
 public class ConsoleAppender extends Appender {
 
   private final String pattern;
 
-  private ConsoleAppender(String pattern, Config config) {
-    super(config);
+  private ConsoleAppender(String pattern) {
     this.pattern = pattern;
   }
 
   public static ConsoleAppender parse(Config config) {
-    String pattern = config.hasPath("pattern") ? config.getString("pattern") : null;
-    return new ConsoleAppender(pattern, config);
+    String pattern =
+        config.hasPath(patternKey) ? config.getString(patternKey) : Appender.defaultPattern;
+    return new ConsoleAppender(pattern);
   }
 
   @Override
-  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
-    return appenderSetup.setupConsoleAppender(logLevel);
-  }
-
-  @Override
-  public Boolean setupForPath(
-      Level logLevel,
-      Path componentLogPath,
-      String componentLogPrefix,
-      AppenderSetup appenderSetup) {
-    return appenderSetup.setupConsoleAppender(logLevel);
-  }
-
-  @Override
-  public Boolean setupForURI(Level logLevel, String host, int port, AppenderSetup appenderSetup) {
+  public Boolean setup(Level logLevel, LoggerSetup appenderSetup) {
     return appenderSetup.setupConsoleAppender(logLevel);
   }
 
@@ -43,6 +29,8 @@ public class ConsoleAppender extends Appender {
 
   @Override
   public String getName() {
-    return "console";
+    return appenderName;
   }
+
+  public static final String appenderName = "console";
 }

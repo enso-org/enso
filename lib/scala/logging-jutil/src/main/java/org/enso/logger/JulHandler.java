@@ -9,6 +9,7 @@ import java.util.logging.SimpleFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** java.util.logging.Handler that propagates all events to the equivalent SLF4J implementation. */
 public class JulHandler extends Handler {
 
   private Formatter formattter;

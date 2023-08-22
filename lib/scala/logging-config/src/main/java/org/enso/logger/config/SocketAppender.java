@@ -4,29 +4,39 @@ import com.typesafe.config.Config;
 import java.net.URI;
 import org.slf4j.event.Level;
 
+/** Config for log configuration that forwards logs to the network socket as-is. */
 public class SocketAppender extends Appender {
   private String name;
-  private String hostname;
+  private String host;
 
-  public String getHostname() {
-    return hostname;
+  /**
+   * Returns the name of the host of the network socket to connect to.
+   *
+   * @return
+   */
+  public String getHost() {
+    return host;
   }
 
+  /** Returns the port of the network socket to connect to. */
   public int getPort() {
     return port;
   }
 
   private int port;
-  private int reconnectionDelay;
-  private boolean includeCallerData;
 
-  private SocketAppender(String hostname, int port, Config config) {
-    super(config);
-    this.name = "socket";
-    this.hostname = hostname;
+  /** Returns the number of miliseconds after a failed connection should be re-established. */
+  public int getReconnectionDelay() {
+    return reconnectionDelay;
+  }
+
+  private final int reconnectionDelay;
+
+  private SocketAppender(String host, int port, int reconnectionDelay) {
+    this.name = appenderName;
+    this.host = host;
     this.port = port;
-    this.reconnectionDelay = 10000;
-    this.includeCallerData = true;
+    this.reconnectionDelay = reconnectionDelay;
   }
 
   @Override
@@ -34,22 +44,31 @@ public class SocketAppender extends Appender {
     return name;
   }
 
-  public static Appender parse(Config config) {
-    return new SocketAppender(config.getString("hostname"), config.getInt("port"), config);
+  public static Appender parse(Config config) throws MissingConfigurationField {
+    if (!config.hasPath(hostKey)) throw new MissingConfigurationField(hostKey);
+    if (!config.hasPath(portKey)) throw new MissingConfigurationField(portKey);
+    int reconnectionDelay =
+        config.hasPath(reconnectionDelayKey) ? config.getInt(reconnectionDelayKey) : 10000;
+    return new SocketAppender(config.getString(hostKey), config.getInt(portKey), reconnectionDelay);
   }
 
   @Override
-  public Boolean setup(Level logLevel, AppenderSetup appenderSetup) {
-    return appenderSetup.setupSocketAppender(logLevel, hostname, port);
+  public Boolean setup(Level logLevel, LoggerSetup loggerSetup) {
+    return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 
   @Override
-  public Boolean setupForURI(Level logLevel, String host, int port, AppenderSetup appenderSetup) {
-    return appenderSetup.setupSocketAppender(logLevel, host, port);
+  public Boolean setupForURI(Level logLevel, String host, int port, LoggerSetup loggerSetup) {
+    return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 
   @Override
   public boolean isSameTargetAs(URI uri) {
-    return uri.getHost().equals(hostname) && uri.getPort() == port;
+    return uri.getHost().equals(host) && uri.getPort() == port;
   }
+
+  private static final String hostKey = "hostname";
+  private static final String portKey = "port";
+  private static final String reconnectionDelayKey = "reconnection-delay";
+  public static final String appenderName = "socket";
 }

@@ -45,6 +45,7 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.logger.LogbackSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -60,11 +61,8 @@ import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
-import org.enso.logger.LoggerSetup
 
 class BaseServerTest
     extends JsonRpcServerTestKit
@@ -77,7 +75,7 @@ class BaseServerTest
 
   val timeout: FiniteDuration = 10.seconds
 
-  LoggerSetup.setup()
+  LogbackSetup.get().setup()
 
   def isFileWatcherEnabled: Boolean = false
 

@@ -1,12 +1,14 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.event.Level;
 
+/** Encapsulates custom log levels that can be set via config file and environmental variables. */
 public class LoggersLevels {
 
   private Map<String, Level> loggers;
@@ -17,6 +19,10 @@ public class LoggersLevels {
 
   public Set<Map.Entry<String, Level>> entrySet() {
     return loggers.entrySet();
+  }
+
+  public static LoggersLevels parse() {
+    return parse(ConfigFactory.empty());
   }
 
   public static LoggersLevels parse(Config config) {
@@ -43,6 +49,10 @@ public class LoggersLevels {
       loggers.putAll(fallbacks);
     }
     return new LoggersLevels(loggers);
+  }
+
+  public boolean isEmpty() {
+    return loggers.isEmpty();
   }
 
   /**

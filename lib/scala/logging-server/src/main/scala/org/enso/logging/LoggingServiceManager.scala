@@ -1,5 +1,7 @@
 package org.enso.logging
 
+import org.enso.logger.config.Appender
+
 import java.net.URI
 import org.slf4j.event.Level
 
@@ -19,7 +21,7 @@ object LoggingServiceManager {
     port: Int,
     logPath: Path,
     logFileSuffix: String,
-    appenderName: String
+    appender: Appender
   )(implicit ec: ExecutionContext): Future[URI] = {
     if (loggingService != null) {
       throw new LoggingServiceAlreadySetup()
@@ -28,7 +30,7 @@ object LoggingServiceManager {
       val forwarder = new LoggingServer(port)
       loggingService = forwarder
       Future {
-        forwarder.start(logLevel, logPath, logFileSuffix, appenderName)
+        forwarder.start(logLevel, logPath, logFileSuffix, appender)
       }
     }
   }

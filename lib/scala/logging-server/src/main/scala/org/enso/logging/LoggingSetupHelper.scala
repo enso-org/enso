@@ -1,5 +1,7 @@
 package org.enso.logging
 
+import org.enso.logger.LogbackSetup
+import org.enso.logger.config.LoggerSetup
 import org.slf4j.event.Level
 
 import java.net.URI
@@ -8,7 +10,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Promise
 import scala.util.{Failure, Success}
-import org.enso.logger.LoggerSetup
 import org.enso.logger.masking.Masking
 
 import scala.concurrent.Await
@@ -30,7 +31,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
     * Some logs may be added while inferring the parameters of logging infrastructure, leading to catch-22 situations.
     */
   def initLogger(): Unit = {
-    LoggerSetup.get().setupNoOpAppender()
+    LogbackSetup.get().setupNoOpAppender()
   }
 
   /** Starts a logging server that collects logs from different components and immediate sets up logs from this component
@@ -42,7 +43,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
     logLevel: Option[Level],
     logMasking: Boolean
   ): Unit = {
-    val loggerSetup = LoggerSetup.get()
+    val loggerSetup = LogbackSetup.get()
     val config      = loggerSetup.getConfig
     if (config.loggingServerNeedsBoot()) {
       val actualPort     = config.getServer().port();
@@ -53,7 +54,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
           actualPort,
           logPath,
           logFileSuffix,
-          config.getServer().appender().getName()
+          config.getServer().appender()
         )
         .onComplete {
           case Failure(_) =>
@@ -89,7 +90,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
       logLevel,
       connectToExternalLogger,
       logMasking,
-      LoggerSetup.get()
+      LogbackSetup.get()
     );
   }
 
