@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 /** An operation that takes a single double argumebnt and returns a long. */
@@ -32,6 +33,6 @@ public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, Doub
       context.safepoint();
     }
 
-    return new LongStorage(newVals, newVals.length, newMissing);
+    return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
   }
 }

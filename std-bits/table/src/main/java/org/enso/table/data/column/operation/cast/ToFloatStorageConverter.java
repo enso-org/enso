@@ -4,8 +4,8 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
@@ -22,8 +22,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   public Storage<Double> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
-    } else if (storage instanceof LongStorage longStorage) {
-      return convertDoubleStorage(longStorage, problemBuilder);
+    } else if (storage instanceof AbstractLongStorage longStorage) {
+      return convertLongStorage(longStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
@@ -43,7 +43,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       } else if (o instanceof Boolean b) {
         builder.appendDouble(booleanAsDouble(b));
       } else if (NumericConverter.isCoercibleToLong(o)) {
-        builder.appendLong(NumericConverter.coerceToLong(o));
+        long x = NumericConverter.coerceToLong(o);
+        builder.appendLong(x);
       } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
@@ -59,7 +60,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return builder.seal();
   }
 
-  private Storage<Double> convertDoubleStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
     int n = longStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
     for (int i = 0; i < n; i++) {
