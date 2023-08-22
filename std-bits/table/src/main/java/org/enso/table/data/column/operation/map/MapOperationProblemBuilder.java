@@ -9,9 +9,9 @@ import org.enso.table.problems.AggregatedProblems;
 
 /**
  * This class is used to aggregate problems occurring during map operations performed on a storage.
- * <p>
- * A single instance of this builder should not be re-used for different map operations. It may only be used with a
- * single operation.
+ *
+ * <p>A single instance of this builder should not be re-used for different map operations. It may
+ * only be used with a single operation.
  */
 public class MapOperationProblemBuilder {
   private final String location;
