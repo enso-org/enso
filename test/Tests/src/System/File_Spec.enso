@@ -670,6 +670,20 @@ spec =
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Not_Found
 
+        Test.specify "Should handle parent-less file paths" <|
+            f1 = File.new "./test1.txt"
+            f2 = File.new "test2.txt"
+
+            txt = "MY CONTENT"
+
+            f1.read_text . should_equal txt
+            f2.read_text . should_equal txt
+
+            txt2 = "MY NEW CONTENT"
+
+            f1.read_text . should_equal txt2
+            f2.read_text . should_equal txt2
+
         Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
             f = transient / "encoding-errors.txt"
 
