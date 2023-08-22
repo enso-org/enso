@@ -1,6 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+from Standard.Table import Value_Type, Auto
+import Standard.Table.Data.Type.Value_Type.Bits
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -39,13 +42,54 @@ spec setup =
                 Test.expect_panic_with (t.at "X" . map f) Illegal_State
 
             Test.specify "should forward warnings that are attached to results of function invocation" <|
-                t = table_builder [["X", [1, 2, 3]]]
+                t = table_builder [["X", [1, 2, 3, 4]]]
                 f x =
-                    if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (2*x + 1) else 2*x + 1
+                    if (x % 2) == 0 then Warning.attach (Illegal_State.Error "MY WARNING "+x.to_text) (2*x + 1) else 2*x + 1
                 c1 = t.at "X" . map f
-                w1 = Problems.expect_only_warning Illegal_State c1
-                w1.message . should_equal "MY WARNING"
-                c1.to_vector . should_equal [3, 5, 7]
+                warnings = Problems.get_attached_warnings c1
+                warnings.map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
+                c1.to_vector . should_equal [3, 5, 7, 9]
+
+            Test.specify "should respect the expected_value_type" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x = 2*x + 1
+                c2 = t.at "X" . map f expected_value_type=Value_Type.Float
+                c2.value_type . should_equal Value_Type.Float
+                c2.to_vector . should_equal [3.0, 5.0, 7.0]
+
+                c2_1 = t.at "X" . map f expected_value_type=Value_Type.Byte
+                c2_1.value_type . should_equal Value_Type.Byte
+                c2_1.to_vector . should_equal [3, 5, 7]
+
+                c2_2 = t.at "X" . map f expected_value_type=(Value_Type.Integer Bits.Bits_16)
+                c2_2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                c2_2.to_vector . should_equal [3, 5, 7]
+
+                c3 = t.at "X" . map f expected_value_type=Value_Type.Mixed
+                c3.value_type . should_equal Value_Type.Mixed
+                c3.to_vector . should_equal [3, 5, 7]
+
+                g x = "|" + x.to_text + "|"
+                c4 = t.at "X" . map g
+                c4.value_type . should_equal Value_Type.Char
+                c4.to_vector . should_equal ["|1|", "|2|", "|3|"]
+
+                c5 = t.at "X" . map g expected_value_type=(Value_Type.Char variable_size=False size=3)
+                c5.value_type . should_equal (Value_Type.Char variable_size=False size=3)
+                c5.to_vector . should_equal ["|1|", "|2|", "|3|"]
+
+                h x =
+                    if x == 2 then "A" else x+1
+                c6 = t.at "X" . map h expected_value_type=Value_Type.Mixed
+                c6.value_type . should_equal Value_Type.Mixed
+                c6.to_vector . should_equal [2, "A", 4]
+
+                c7 = t.at "X" . map h
+                c7.value_type . should_equal Value_Type.Mixed
+                c7.to_vector . should_equal [2, "A", 4]
+
+            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+                TODO
 
     Test.group prefix+"Column.zip" <|
         if setup.is_database then
@@ -80,3 +124,8 @@ spec setup =
                 w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
+            Test.specify "should respect the expected_value_type" <|
+                TODO
+
+            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+                TODO
