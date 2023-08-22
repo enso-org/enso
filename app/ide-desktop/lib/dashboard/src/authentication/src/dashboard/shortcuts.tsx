@@ -6,6 +6,7 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
 import CameraIcon from 'enso-assets/camera.svg'
+import ChangePasswordIcon from 'enso-assets/change_password.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
 import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
@@ -15,6 +16,8 @@ import OpenIcon from 'enso-assets/open.svg'
 import PenIcon from 'enso-assets/pen.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import ScissorsIcon from 'enso-assets/scissors.svg'
+import SignInIcon from 'enso-assets/sign_in.svg'
+import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
 
@@ -61,6 +64,9 @@ export enum KeyboardAction {
     newDataConnector = 'new-data-connector',
     closeModal = 'close-modal',
     cancelEditName = 'cancel-edit-name',
+    changeYourPassword = 'change-your-password',
+    signIn = 'sign-in',
+    signOut = 'sign-out',
 }
 
 /** Valid mouse buttons. The values of each enum member is its corresponding value of
@@ -155,6 +161,9 @@ function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
         [KeyboardAction.newDataConnector]: make(),
         [KeyboardAction.closeModal]: make(),
         [KeyboardAction.cancelEditName]: make(),
+        [KeyboardAction.changeYourPassword]: make(),
+        [KeyboardAction.signIn]: make(),
+        [KeyboardAction.signOut]: make(),
     }
 }
 
@@ -419,6 +428,9 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     ],
     [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
     [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
+    [KeyboardAction.changeYourPassword]: [],
+    [KeyboardAction.signIn]: [],
+    [KeyboardAction.signOut]: [],
 }
 
 /** The default UI data for every keyboard shortcut. */
@@ -450,6 +462,9 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     // These should not appear in any context menus.
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
+    [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
+    [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
+    [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
 }
 
 /** The default mouse shortcuts. */

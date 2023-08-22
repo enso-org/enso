@@ -88,10 +88,6 @@ pub trait API: Debug {
         context_id: model::execution_context::Id,
     ) -> BoxFuture<'a, FallibleResult<model::ExecutionContext>>;
 
-    /// Set a new project name.
-    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
-    fn rename_project<'a>(&'a self, name: String) -> BoxFuture<'a, FallibleResult<()>>;
-
     /// Returns the primary content root id for this project.
     fn project_content_root_id(&self) -> Uuid {
         self.json_rpc().project_root().id()
@@ -184,6 +180,8 @@ pub enum Notification {
     ExecutionComplete,
     /// Indicates failure of the project execution.
     ExecutionFailed,
+    /// Project has been renamed.
+    Renamed,
 }
 
 /// Denotes one of backend connections used by a project.

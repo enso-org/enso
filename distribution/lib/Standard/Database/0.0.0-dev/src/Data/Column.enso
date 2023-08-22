@@ -369,6 +369,15 @@ type Column
        Returns a column containing the result of adding `other` to each element
        of `self`.  If `other` is a column, the operation is performed pairwise
        between corresponding elements of `self` and `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
     + : Column | Any -> Column
     + self other =
         op = case Value_Type_Helpers.resolve_addition_kind self other of
@@ -388,6 +397,15 @@ type Column
        Returns a column containing the result of subtracting `other` from each
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
     - : Column | Any -> Column
     - self other =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
@@ -405,6 +423,15 @@ type Column
        Returns a column containing the result of multiplying `other` by each
        element of `self`.  If `other` is a column, the operation is performed
        pairwise between corresponding elements of `self` and `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
     * : Column | Any -> Column
     * self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
@@ -425,6 +452,15 @@ type Column
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Divide the elements of one column by the elements of another.
@@ -492,6 +528,15 @@ type Column
 
        Returns a column containing the result of raising each element of `self`
        by `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Squares the elements of one column.
