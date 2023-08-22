@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import java.util.function.Consumer;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 import org.enso.interpreter.epb.node.ForeignEvalNode;
+import org.enso.polyglot.ForeignLanguage;
 
 /**
  * An internal language that serves as a bridge between Enso and other supported languages.
@@ -29,7 +30,7 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
  * provide context-switching facilities.
  */
 @TruffleLanguage.Registration(
-    id = EpbLanguage.ID,
+    id = ForeignLanguage.ID,
     name = "Enso Polyglot Bridge",
     characterMimeTypes = {EpbLanguage.MIME},
     internal = true,
@@ -37,7 +38,6 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     services = Consumer.class)
 public class EpbLanguage extends TruffleLanguage<EpbContext> {
-  public static final String ID = "epb";
   public static final String MIME = "application/epb";
 
   @Override
