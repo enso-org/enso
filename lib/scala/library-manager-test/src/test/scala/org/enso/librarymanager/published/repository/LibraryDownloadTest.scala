@@ -43,7 +43,7 @@ class LibraryDownloadTest
           }
           val pkg =
             PackageManager.Default.loadPackage(libPath.location.toFile).get
-          pkg.module shouldEqual "Bar"
+          pkg.normalizedName shouldEqual "Bar"
           val sources = pkg.listSources()
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
