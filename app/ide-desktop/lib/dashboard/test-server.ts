@@ -30,7 +30,7 @@ OPTS.loader['.html'] = 'copy'
 OPTS.plugins.push({
     name: 'inject-mock-modules',
     setup: build => {
-        build.onResolve({ filter: /^\.[^.]+$/ }, async args => {
+        build.onResolve({ filter: /^\..+$/ }, async args => {
             const sourcePath = path.resolve(path.dirname(args.importer), args.path)
             if (sourcePath.includes('/lib/dashboard/src/')) {
                 const mockPath = sourcePath.replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
@@ -40,7 +40,7 @@ OPTS.plugins.push({
                 } catch {
                     try {
                         await fs.access(mockPath + '.tsx', fs.constants.R_OK)
-                        return { path: mockPath + '.tsx ' }
+                        return { path: mockPath + '.tsx' }
                     } catch {
                         return
                     }

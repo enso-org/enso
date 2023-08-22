@@ -41,6 +41,8 @@ import * as detect from 'enso-common/src/detect'
 import * as config from '../../../../src/authentication/src/authentication/config'
 import * as loggerProvider from '../../../../src/authentication/src/providers/logger'
 
+import * as listen from './listen'
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 // =================
@@ -51,8 +53,8 @@ import * as loggerProvider from '../../../../src/authentication/src/providers/lo
 const SEC_MS = 1_000
 /** One day, in milliseconds. */
 const DAY_MS = 86_400_000
-/** One hour, in seconds. */
-const HOUR_S = 3_600
+/** Ten hours, in seconds. */
+const TEN_HOURS_S = 36_000
 
 const MESSAGES = {
     signInWithPassword: {
@@ -82,15 +84,6 @@ interface UserAttributes {
     'custom:organizationId'?: string
 }
 /* eslint-enable @typescript-eslint/naming-convention */
-
-/** User information returned from {@link amplify.Auth.currentUserInfo}. */
-interface UserInfo {
-    username: string
-    // The type comes from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    id: undefined
-    attributes: UserAttributes
-}
 
 // ====================
 // === AmplifyError ===
@@ -176,7 +169,7 @@ export class Cognito {
     /** The organization id to be returned by {@link organizationId}. */
     mockOrganizationId: string | null = null
     mockEmail: string | null = null
-    signedIn = false
+    isSignedIn = false
 
     /** Create a new Cognito wrapper. */
     constructor(
@@ -196,36 +189,41 @@ export class Cognito {
     async userSession() {
         const currentSession = await results.Result.wrapAsync(() => {
             const date = Math.floor(Number(new Date()) / SEC_MS)
-            // eslint-disable-next-line no-restricted-syntax
-            return Promise.resolve({
-                getAccessToken: () => {
-                    return {
-                        getJwtToken: () => {
-                            return `.${window.btoa(
-                                JSON.stringify({
-                                    /* eslint-disable @typescript-eslint/naming-convention */
-                                    sub: '62bdf414-c47f-4c76-a333-c564f841c256',
-                                    iss: 'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_9Kycu2SbD',
-                                    client_id: '4j9bfs8e7415erf82l129v0qhe',
-                                    origin_jti: '3bd05163-dce7-496e-93f4-ac84c33448aa',
-                                    event_id: '7392b8de-66d6-4f60-8050-a90253911e45',
-                                    token_use: 'access',
-                                    scope: 'aws.cognito.signin.user.admin',
-                                    auth_time: date,
-                                    exp: date + HOUR_S,
-                                    iat: date,
-                                    jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
-                                    username: this.mockEmail,
-                                    /* eslint-enable @typescript-eslint/naming-convention */
-                                })
-                            )}.`
-                        },
-                    }
-                },
-            } as cognito.CognitoUserSession)
+            if (!this.isSignedIn) {
+                // eslint-disable-next-line @typescript-eslint/no-throw-literal
+                throw CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage
+            } else {
+                // eslint-disable-next-line no-restricted-syntax
+                return Promise.resolve({
+                    getAccessToken: () => {
+                        return {
+                            getJwtToken: () => {
+                                return `.${window.btoa(
+                                    JSON.stringify({
+                                        /* eslint-disable @typescript-eslint/naming-convention */
+                                        sub: '62bdf414-c47f-4c76-a333-c564f841c256',
+                                        iss: 'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_9Kycu2SbD',
+                                        client_id: '4j9bfs8e7415erf82l129v0qhe',
+                                        origin_jti: '3bd05163-dce7-496e-93f4-ac84c33448aa',
+                                        event_id: '7392b8de-66d6-4f60-8050-a90253911e45',
+                                        token_use: 'access',
+                                        scope: 'aws.cognito.signin.user.admin',
+                                        auth_time: date,
+                                        exp: date + TEN_HOURS_S,
+                                        iat: date,
+                                        jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
+                                        username: this.mockEmail,
+                                        /* eslint-enable @typescript-eslint/naming-convention */
+                                    })
+                                )}.`
+                            },
+                        }
+                    },
+                } as cognito.CognitoUserSession)
+            }
         })
         const amplifySession = currentSession.mapErr(intoCurrentSessionErrorKind)
-        return amplifySession.map(parseUserSession).toOption()
+        return amplifySession.map(parseUserSession).unwrapOr(null)
     }
 
     /** Returns the associated organization ID of the current user, which is passed during signup,
@@ -258,6 +256,7 @@ export class Cognito {
      * be asked to log in to their Google account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
     signInWithGoogle() {
+        this.isSignedIn = true
         return signInWithGoogle(this.customState())
     }
 
@@ -267,6 +266,7 @@ export class Cognito {
      * be asked to log in to their GitHub account, and then to grant access to the application.
      * After the user has granted access, the browser will be redirected to the application. */
     signInWithGitHub() {
+        this.isSignedIn = true
         return signInWithGitHub()
     }
 
@@ -274,13 +274,14 @@ export class Cognito {
      *
      * Does not rely on external identity providers (e.g., Google or GitHub). */
     signInWithPassword(username: string, password: string) {
+        this.isSignedIn = true
         this.mockEmail = username
         return signInWithPassword(username, password)
     }
 
     /** Sign out the current user. */
     async signOut() {
-        this.signedIn = false
+        this.isSignedIn = false
         return Promise.resolve(null)
     }
 
@@ -362,7 +363,7 @@ function parseUserSession(_session: cognito.CognitoUserSession): UserSession {
     if (typeof email !== 'string') {
         throw new Error('Payload does not have an email field.')
     } else {
-        const accessToken = 'a jwt token'
+        const accessToken = `aJwtToken.${btoa(JSON.stringify({ username: email }))}.`
         return { email, accessToken }
     }
 }
@@ -542,7 +543,8 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 
 /** A wrapper around the Amplify "sign in with Google" endpoint. */
 async function signInWithGoogle(_customState: string | null) {
-    // Ignored.
+    listen.authEventListener?.(listen.AuthEvent.signIn)
+    await Promise.resolve()
 }
 
 // ========================
@@ -551,6 +553,7 @@ async function signInWithGoogle(_customState: string | null) {
 
 /** A wrapper around the Amplify confirm "sign in with GitHub" endpoint. */
 function signInWithGitHub() {
+    listen.authEventListener?.(listen.AuthEvent.signIn)
     return Promise.resolve({
         accessKeyId: 'access key id',
         sessionToken: 'session token',
@@ -569,7 +572,8 @@ function signInWithGitHub() {
  * to {@link SignInWithPasswordError}s. */
 async function signInWithPassword(_username: string, _password: string) {
     const result = await results.Result.wrapAsync(async () => {
-        // Ignored.
+        listen.authEventListener?.(listen.AuthEvent.signIn)
+        await Promise.resolve()
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
 }

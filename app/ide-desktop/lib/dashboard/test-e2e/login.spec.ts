@@ -4,7 +4,6 @@ import * as test from '@playwright/test'
 
 test.test('login flow', async ({ page }) => {
     await page.goto('/')
-    await page.waitForFunction(() => document.fonts.ready)
     await test.expect(page).toHaveScreenshot()
 
     await page.type('#email', 'invalid email')
@@ -27,6 +26,6 @@ test.test('login flow', async ({ page }) => {
     await page.click('[type=submit]')
     await test.expect(page).toHaveScreenshot()
 
-    await page.waitForTimeout(3000)
-    await test.expect(page).toHaveScreenshot()
+    await page.click('.user-menu-button')
+    await test.expect(page.locator('.user-menu')).toHaveScreenshot()
 })

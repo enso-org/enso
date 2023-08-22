@@ -68,7 +68,7 @@ export default function UserMenu(props: UserMenuProps) {
 
     return (
         <div
-            className="absolute bg-frame-selected backdrop-blur-3xl right-2.25 top-11 z-1 flex flex-col rounded-2xl"
+            className="user-menu absolute bg-frame-selected backdrop-blur-3xl right-2.25 top-11 z-1 flex flex-col rounded-2xl"
             onClick={event => {
                 event.stopPropagation()
             }}

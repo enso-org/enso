@@ -34,6 +34,7 @@ export default function UserBar(props: UserBarProps) {
                 }}
             />
             <button
+                className="user-menu-button"
                 onClick={event => {
                     event.stopPropagation()
                     updateModal(oldModal =>
