@@ -1244,7 +1244,7 @@ type Table
     ## PRIVATE
        Filter out all rows.
     remove_all_rows : Table
-    remove_all_rows self = self.filter_by_expression "0=1"
+    remove_all_rows self = self.take 0
 
     ## ALIAS rank, record id, add index column
        Adds a new column to the table enumerating the rows.
