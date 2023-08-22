@@ -21,7 +21,7 @@
 		"keywords": {
 			"patterns": [{
 					"name": "keyword.other",
-					"match": "\\b(here|self|type)\\b"
+					"match": "\\b(self|type)\\b"
 				}, {
 					"name": "keyword.control",
 					"match": "\\b(case|of|if|then|else)\\b"
