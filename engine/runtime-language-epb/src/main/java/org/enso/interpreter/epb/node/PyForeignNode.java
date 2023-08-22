@@ -18,10 +18,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.source.Source;
 
-/**
- *
- * @author devel
- */
 @NodeField(name = "foreignFunction", type = Object.class)
 public abstract class PyForeignNode extends ForeignFunctionCallNode {
   @Child
