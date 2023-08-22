@@ -232,9 +232,11 @@ fn rename_project_on_notification(
     properties: Rc<RefCell<Properties>>,
     execution_contexts: Rc<ExecutionContextsRegistry>,
 ) {
-    let mut properties = properties.borrow_mut();
-    properties.displayed_name = project_renamed.new_name.into();
-    properties.project_name.project = project_renamed.new_normalized_name.clone().into();
+    {
+        let mut properties = properties.borrow_mut();
+        properties.displayed_name = project_renamed.new_name.into();
+        properties.project_name.project = project_renamed.new_normalized_name.clone().into();
+    }
     execution_contexts
         .rename_project(project_renamed.old_normalized_name, project_renamed.new_normalized_name);
 }
