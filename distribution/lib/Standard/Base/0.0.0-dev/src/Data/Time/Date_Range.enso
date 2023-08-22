@@ -91,7 +91,7 @@ type Date_Range
     to_display_text self =
         start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
         step = if self.step == (Period.new days=1) then "" else
-            effective_step = if self.increasing then self.step else -self.step.negate
+            effective_step = if self.increasing then self.step else -self.step
             " by " + effective_step.to_display_text
         start + step + "]"
 
