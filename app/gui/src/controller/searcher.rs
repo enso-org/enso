@@ -666,7 +666,7 @@ impl Searcher {
         let this = self.clone_ref();
         executor::global::spawn(async move {
             let this_type = this_type.await;
-            let is_static = this_type.is_some().then_some(false);
+            let is_static = Some(this_type.is_none());
             info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let file = graph.module.path().file_path();
             let response =
