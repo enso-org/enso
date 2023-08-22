@@ -64,6 +64,7 @@ impl Archive {
         Ok(())
     }
 
+    /// The given function will be called with the path of each file within the archive. For each
     /// input path, if it returns a path the file will be extracted to the returned path.
     ///
     /// IMPORTANT: If the function uses its input path to generate an output path, care must be
