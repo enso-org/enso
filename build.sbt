@@ -272,7 +272,6 @@ lazy val enso = (project in file("."))
     `logging-server`,
     `logging-utils-akka`,
     filewatcher,
-    `logging-service`,
     `logging-truffle-connector`,
     `locking-test-helper`,
     `akka-native`,
@@ -758,35 +757,6 @@ lazy val `logging-utils-akka` = project
       "com.typesafe.akka" %% "akka-actor" % akkaVersion
     )
   )
-
-lazy val `logging-service` = project
-  .in(file("lib/scala/logging-service"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
-      "com.typesafe"                % "config"        % typesafeConfigVersion,
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      akkaStream,
-      akkaHttp,
-      "io.circe"               %% "circe-core"      % circeVersion,
-      "io.circe"               %% "circe-parser"    % circeVersion,
-      "junit"                   % "junit"           % junitVersion              % Test,
-      "com.github.sbt"          % "junit-interface" % junitIfVersion            % Test,
-      "org.scalatest"          %% "scalatest"       % scalatestVersion          % Test,
-      "org.graalvm.nativeimage" % "svm"             % graalMavenPackagesVersion % "provided"
-    )
-  )
-  .settings(
-    if (Platform.isWindows)
-      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
-    else
-      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
-  )
-  .dependsOn(`akka-native`)
-  .dependsOn(`logging-utils`)
 
 lazy val filewatcher = project
   .in(file("lib/scala/filewatcher"))
