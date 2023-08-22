@@ -7,7 +7,8 @@ import project.Internal.Auth
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## Gets the list of the S3 bucket names.
+## GROUP Standard.Base.Input
+   Gets the list of the S3 bucket names.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
 list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
