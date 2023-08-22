@@ -442,9 +442,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
-                        const childAssetNodes = childAssets.map(
-                            assetTreeNode.assetTreeNodeFromAsset
-                        )
                         setAssetTree(oldAssetTree =>
                             assetTreeNode.assetTreeMap(oldAssetTree, item => {
                                 if (item.key !== key) {
@@ -454,6 +451,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         child =>
                                             child.item.type !==
                                             backendModule.AssetType.specialLoading
+                                    )
+                                    const childAssetsMap = new Map(
+                                        childAssets.map(asset => [asset.id, asset])
+                                    )
+                                    for (const child of initialChildren ?? []) {
+                                        const newChild = childAssetsMap.get(child.item.id)
+                                        if (newChild != null) {
+                                            child.item = newChild
+                                            childAssetsMap.delete(child.item.id)
+                                        }
+                                    }
+                                    const childAssetNodes = Array.from(
+                                        childAssetsMap.values(),
+                                        child =>
+                                            assetTreeNode.assetTreeNodeFromAsset(
+                                                child,
+                                                item.depth + 1
+                                            )
                                     )
                                     const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
                                         (initialChildren != null && initialChildren.length !== 0) ||
@@ -474,9 +489,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             : [...initialChildren, ...childAssetNodes].sort(
                                                   assetTreeNode.compareAssetTreeNodes
                                               )
-                                    for (const child of children) {
-                                        child.depth = item.depth + 1
-                                    }
                                     return {
                                         ...item,
                                         children,
