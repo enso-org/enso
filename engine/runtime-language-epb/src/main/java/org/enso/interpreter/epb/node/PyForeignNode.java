@@ -11,12 +11,17 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.source.Source;
 
+/**
+ *
+ * @author devel
+ */
 @NodeField(name = "foreignFunction", type = Object.class)
 public abstract class PyForeignNode extends ForeignFunctionCallNode {
   @Child
@@ -134,7 +139,7 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       Object[] arguments,
       @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
       @CachedLibrary(limit="3") InteropLibrary iop
-  ) throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+  ) throws InteropException {
     for (int i = 0; i < arguments.length; i++) {
       var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
       var time = javaTime != null ? wrapPythonTime(javaTime) : null;

@@ -6,10 +6,8 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
@@ -55,8 +53,8 @@ public class ForeignEvalNode extends RootNode {
     if (foreign != null) {
       try {
         return foreign.execute(frame.getArguments());
-      } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException ex) {
-        throw raise(RuntimeException.class, ex);
+      } catch (InteropException ex) {
+        throw new ForeignParsingException(ex.getMessage(), this);
       }
     } else {
       CompilerDirectives.transferToInterpreter();
@@ -186,10 +184,5 @@ public class ForeignEvalNode extends RootNode {
     } finally {
       inner.leave(this, p);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> clazz, Exception ex) throws E {
-    throw (E) ex;
   }
 }
