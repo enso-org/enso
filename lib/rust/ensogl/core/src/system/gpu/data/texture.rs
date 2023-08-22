@@ -255,8 +255,8 @@ impl Texture {
     /// Constructor.
     pub fn new<I: InternalFormat, T: ItemType>(
         context: &Context,
-        mut width: i32,
-        mut height: i32,
+        width: i32,
+        height: i32,
         layers: i32,
     ) -> Self {
         let internal_format: AnyInternalFormat = <I>::default().into();

@@ -86,7 +86,7 @@ type TextureUnit = u32;
 
 /// Binds input sampler definition in shader to its location, uniform declaration and texture unit.
 #[derive(Clone, Debug)]
-pub struct TextureBinding {
+struct TextureBinding {
     name:         String,
     location:     WebGlUniformLocation,
     uniform:      AnyTextureUniform,
@@ -95,7 +95,7 @@ pub struct TextureBinding {
 
 impl TextureBinding {
     /// Create new texture binding.
-    pub fn new<Name: Str>(
+    fn new<Name: Str>(
         name: Name,
         location: WebGlUniformLocation,
         uniform: AnyTextureUniform,
@@ -106,12 +106,12 @@ impl TextureBinding {
     }
 
     /// Bind texture to proper texture unit.
-    pub fn bind_texture_unit(&self, context: &Context) -> TextureBindGuard {
+    fn bind_texture_unit(&self, context: &Context) -> TextureBindGuard {
         self.uniform.bind_texture_unit(context, self.texture_unit.into())
     }
 
     /// Upload uniform value.
-    pub fn upload_uniform(&self, context: &Context) {
+    fn upload_uniform(&self, context: &Context) {
         context.uniform1i(Some(&self.location), self.texture_unit as i32);
     }
 }

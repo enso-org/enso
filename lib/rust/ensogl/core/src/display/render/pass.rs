@@ -83,7 +83,7 @@ impl Instance {
         let name = format!("pass_{}", output.name);
         let format = output.internal_format;
         let item_type = output.item_type;
-        let mut texture = Texture::new_(&context, format, item_type, width, height, 0);
+        let mut texture = Texture::new_(context, format, item_type, width, height, 0);
         texture.set_parameters(output.texture_parameters);
         let uniform = variables.borrow_mut().set(name, texture).unwrap();
         uniform.into()
