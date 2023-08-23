@@ -96,11 +96,11 @@ spec setup =
                 f x = 128^x
                 r1 = c1.map f expected_value_type=Value_Type.Byte
                 r1.should_fail_with Invalid_Value_Type
-                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 16384 of type Integer (16 bit)"
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 16384 of type Integer (16 bits)"
 
                 r2 = c1.map f expected_value_type=(Value_Type.Integer Bits.Bits_16)
                 r2.should_fail_with Invalid_Value_Type
-                r2.catch.to_display_text . should_contain "Expected type Integer (16 bit), but got a value 2097152 of type Integer (32 bit)"
+                r2.catch.to_display_text . should_contain "Expected type Integer (16 bits), but got a value 2097152 of type Integer (32 bits)"
 
                 g x = "|" + (x * 4).to_text + "|"
                 r3 = c1.map g expected_value_type=(Value_Type.Char variable_length=True size=3)
@@ -115,12 +115,12 @@ spec setup =
                 i x = if x == 2 then "A" else x+1
                 r5 = c1.map i expected_value_type=Value_Type.Integer
                 r5.should_fail_with Invalid_Value_Type
-                r5.catch.to_display_text . should_contain "Expected type Integer (64 bit), but got a value A of type Char (fixed length, size=1)"
+                r5.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value A of type Char (fixed length, size=1)"
 
                 j x = if x == 2 then Date.new 2022 08 23 else x+1
                 r6 = c1.map j expected_value_type=Value_Type.Integer
                 r6.should_fail_with Invalid_Value_Type
-                r6.catch.to_display_text . should_contain "Expected type Integer (64 bit), but got a value 2022-08-23 of type Date"
+                r6.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-08-23 of type Date"
 
                 k x = if x == 2 then Time_Of_Day.new 13 05 else x+1
                 r7 = c1.map k expected_value_type=Value_Type.Char
@@ -130,7 +130,7 @@ spec setup =
                 l x = if x == 2 then 42 else Date.new 2022 05 x
                 r8 = c1.map l expected_value_type=Value_Type.Date
                 r8.should_fail_with Invalid_Value_Type
-                r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16-bit)"
+                r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16-bits)"
 
     Test.group prefix+"Column.zip" <|
         if setup.is_database then
@@ -193,7 +193,7 @@ spec setup =
 
                 r1 = (t.at "X") . zip (t.at "Y") (*) expected_value_type=Value_Type.Byte
                 r1.should_fail_with Invalid_Value_Type
-                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 300 of type Integer (16 bit)"
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 300 of type Integer (16 bits)"
 
                 f x y = x.to_text * y
                 r2 = (t.at "X") . zip (t.at "Y") f expected_value_type=(Value_Type.Char variable_length=True size=3)
@@ -203,8 +203,8 @@ spec setup =
                 g x y = if x == 2 then Date.new 2022 09 23 else x+y
                 r3 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Integer
                 r3.should_fail_with Invalid_Value_Type
-                r3.catch.to_display_text . should_contain "Expected type Integer (64 bit), but got a value 2022-09-23 of type Date"
+                r3.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-09-23 of type Date"
 
                 r4 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Date
                 r4.should_fail_with Invalid_Value_Type
-                r4.catch.to_display_text . should_contain "Expected type Date, but got a value 101 of type Integer (16-bit)"
+                r4.catch.to_display_text . should_contain "Expected type Date, but got a value 101 of type Integer (16-bits)"
