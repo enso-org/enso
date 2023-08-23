@@ -529,12 +529,12 @@ export default [
     },
     {
         files: [
-            'lib/dashboard/test*/*.ts',
-            'lib/dashboard/test*/*.mts',
-            'lib/dashboard/test*/*.cts',
-            'lib/dashboard/test*/*.tsx',
-            'lib/dashboard/test*/*.mtsx',
-            'lib/dashboard/test*/*.ctsx',
+            'lib/dashboard/test*/**/*.ts',
+            'lib/dashboard/test*/**/*.mts',
+            'lib/dashboard/test*/**/*.cts',
+            'lib/dashboard/test*/**/*.tsx',
+            'lib/dashboard/test*/**/*.mtsx',
+            'lib/dashboard/test*/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [

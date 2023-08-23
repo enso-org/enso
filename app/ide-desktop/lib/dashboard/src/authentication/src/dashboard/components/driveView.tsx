@@ -9,6 +9,7 @@ import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 
 import * as pageSwitcher from './pageSwitcher'
+import * as spinner from './spinner'
 import AssetsTable from './assetsTable'
 import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'
@@ -25,7 +26,6 @@ export interface DriveViewProps {
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
-    doCreateProject: (templateId: string | null) => void
     doOpenEditor: (project: backendModule.ProjectAsset) => void
     doCloseEditor: () => void
     appRunner: AppRunner | null
@@ -44,7 +44,6 @@ export default function DriveView(props: DriveViewProps) {
         query,
         assetListEvents,
         dispatchAssetListEvent,
-        doCreateProject,
         doOpenEditor,
         doCloseEditor,
         appRunner,
@@ -86,6 +85,22 @@ export default function DriveView(props: DriveViewProps) {
         [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
     )
 
+    const doCreateProject = React.useCallback(
+        (
+            templateId: string | null,
+            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+        ) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.newProject,
+                parentKey: null,
+                parentId: null,
+                templateId: templateId ?? null,
+                onSpinnerStateChange: onSpinnerStateChange ?? null,
+            })
+        },
+        [/* should never change */ dispatchAssetListEvent]
+    )
+
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
             type: assetListEventModule.AssetListEventType.newFolder,
@@ -111,6 +126,7 @@ export default function DriveView(props: DriveViewProps) {
 
     return (
         <div
+            data-testid="drive-view"
             className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
                 hidden ? 'hidden' : ''
             }`}

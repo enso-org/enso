@@ -168,7 +168,7 @@ function AppRouter(props: AppProps) {
         onAuthenticated,
     } = props
     const navigate = hooks.useNavigate()
-    if (IS_DEV_MODE) {
+    if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }

@@ -138,10 +138,10 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-disable @typescript-eslint/naming-convention */
             /** Whether the application is being run locally. This enables a service worker that
              * properly serves `/index.html` to client-side routes like `/login`. */
-            IS_DEV_MODE: JSON.stringify(devMode),
+            ['process.env.NODE_ENV']: JSON.stringify(devMode ? 'development' : 'production'),
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
-            REDIRECT_OVERRIDE: JSON.stringify(null),
+            ['process.env.REDIRECT_OVERRIDE']: 'undefined',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],

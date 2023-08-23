@@ -31,12 +31,6 @@ export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 /** The current environment that we're running in. */
 export const ENVIRONMENT: Environment = 'production'
 
-const GLOBAL: object = globalThis
-const REDIRECT_OVERRIDE =
-    'REDIRECT_OVERRIDE' in GLOBAL && typeof GLOBAL.REDIRECT_OVERRIDE === 'string'
-        ? GLOBAL.REDIRECT_OVERRIDE
-        : null
-
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
     /** In development, a fixed port is used so that the redirect URL can be known ahead of time.
@@ -44,7 +38,7 @@ const CLOUD_REDIRECTS = {
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
     development: auth.OAuthRedirect('http://localhost:8080'),
-    production: auth.OAuthRedirect(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
+    production: auth.OAuthRedirect(process.env.REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
 }
 
 /** All possible API URLs, sorted by environment. */

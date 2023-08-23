@@ -3,6 +3,8 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
+import * as detect from 'enso-common/src/detect'
+
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as errorModule from '../error'
@@ -42,7 +44,7 @@ export class LocalBackend extends backend.Backend {
                 languageServerJsonAddress: { host: '', port: 0 },
             })
         }
-        if (IS_DEV_MODE) {
+        if (detect.IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
             window.localBackend = this

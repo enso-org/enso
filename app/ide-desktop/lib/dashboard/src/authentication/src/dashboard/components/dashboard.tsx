@@ -332,7 +332,6 @@ export default function Dashboard(props: DashboardProps) {
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             query={query}
-                            doCreateProject={doCreateProject}
                             doOpenEditor={openEditor}
                             doCloseEditor={closeEditor}
                             appRunner={appRunner}

@@ -64,6 +64,27 @@ export function locateSignOutButton(page: test.Page) {
     return page.getByRole('button', { name: 'Sign out' })
 }
 
+/** Find a new project button (if any) on the current page. */
+export function locateNewProjectButton(page: test.Page) {
+    return page.getByRole('button', { name: 'New Project' })
+}
+
+/** Find a drive view (if any) on the current page. */
+export function locateDriveView(page: test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('drive-view')
+}
+
+/** Find an assets table (if any) on the current page. */
+export function locateAssetsTable(page: test.Page) {
+    return locateDriveView(page).getByRole('table')
+}
+
+/** Find assets table rows (if any) on the current page. */
+export function locateAssetsTableRows(page: test.Page) {
+    return locateAssetsTable(page).getByRole('row')
+}
+
 /** Find a "change password" modal (if any) on the current page. */
 export function locateChangePasswordModal(page: test.Page) {
     // This has no identifying features.
@@ -83,9 +104,33 @@ export function locateUserMenu(page: test.Page) {
 /** Perform a successful login. */
 export async function login(page: test.Page) {
     await page.goto('/')
-    await locateEmailInput(page).fill('')
-    await locateEmailInput(page).type('email@example.com')
-    await locatePasswordInput(page).fill('')
-    await locatePasswordInput(page).type(VALID_PASSWORD)
+    await locateEmailInput(page).fill('email@example.com')
+    await locatePasswordInput(page).fill(VALID_PASSWORD)
     await locateLoginButton(page).click()
+}
+
+// ================
+// === mockDate ===
+// ================
+
+/** A placeholder date for visual regresison testing. */
+const MOCK_DATE = Number(new Date('01/23/45 01:23:45 UTC'))
+
+/** Replace `Date` with a version that returns a fixed time. */
+export async function mockDate(page: test.Page) {
+    // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
+    await page.addInitScript(`{
+        Date = class extends Date {
+            constructor(...args) {
+            if (args.length === 0) {
+                super(${MOCK_DATE});
+            } else {
+                super(...args);
+            }
+            }
+        }
+        const __DateNowOffset = ${MOCK_DATE} - Date.now();
+        const __DateNow = Date.now;
+        Date.now = () => __DateNow() + __DateNowOffset;
+    }`)
 }

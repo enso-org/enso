@@ -3,6 +3,8 @@
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
+import * as detect from 'enso-common/src/detect'
+
 import * as backend from './backend'
 import * as config from '../config'
 import * as errorModule from '../error'
@@ -179,7 +181,7 @@ export class RemoteBackend extends backend.Backend {
         if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
-            if (IS_DEV_MODE) {
+            if (detect.IS_DEV_MODE) {
                 // @ts-expect-error This exists only for debugging purposes. It does not have types
                 // because it MUST NOT be used in this codebase.
                 window.remoteBackend = this

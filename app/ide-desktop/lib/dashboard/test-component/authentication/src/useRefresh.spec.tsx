@@ -1,4 +1,4 @@
-/** @file Tests for `error.ts`. */
+/** @file Tests for the `useRefresh` hook. */
 import * as React from 'react'
 
 import * as test from '@playwright/experimental-ct-react'

@@ -14,7 +14,7 @@ test.test('change password modal', async ({ page }) => {
     await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #2: Invalid old password
-    await actions.locateOldPasswordInput(page).type(actions.INVALID_PASSWORD)
+    await actions.locateOldPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
         'form should reject invalid old password'
@@ -23,9 +23,8 @@ test.test('change password modal', async ({ page }) => {
     await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #3: Invalid new password
-    await actions.locateOldPasswordInput(page).fill('')
-    await actions.locateOldPasswordInput(page).type(actions.VALID_PASSWORD)
-    await actions.locateNewPasswordInput(page).type(actions.INVALID_PASSWORD)
+    await actions.locateOldPasswordInput(page).fill(actions.VALID_PASSWORD)
+    await actions.locateNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
         'form should reject invalid new password'
@@ -34,9 +33,8 @@ test.test('change password modal', async ({ page }) => {
     await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #4: Invalid "confirm new password"
-    await actions.locateNewPasswordInput(page).fill('')
-    await actions.locateNewPasswordInput(page).type(actions.VALID_PASSWORD)
-    await actions.locateConfirmNewPasswordInput(page).type(actions.INVALID_PASSWORD)
+    await actions.locateNewPasswordInput(page).fill(actions.VALID_PASSWORD)
+    await actions.locateConfirmNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
         'form should reject invalid "confirm new password"'
@@ -45,8 +43,7 @@ test.test('change password modal', async ({ page }) => {
     await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #5: After form submission
-    await actions.locateConfirmNewPasswordInput(page).fill('')
-    await actions.locateConfirmNewPasswordInput(page).type(actions.VALID_PASSWORD)
+    await actions.locateConfirmNewPasswordInput(page).fill(actions.VALID_PASSWORD)
     await actions.locateResetButton(page).click()
     await test.expect(actions.locateChangePasswordModal(page)).not.toBeAttached()
 })

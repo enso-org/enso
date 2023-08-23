@@ -21,7 +21,7 @@ const HTTP_STATUS_OK = 200
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const OPTS = bundler.bundlerOptions({ outputPath: '/', devMode: true })
-OPTS.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${PORT}`)
+OPTS.define['process.env.REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
     path.resolve(THIS_PATH, 'src', 'index.tsx'),

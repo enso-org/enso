@@ -3,6 +3,8 @@ import * as React from 'react'
 import * as router from 'react-router'
 import * as toastify from 'react-toastify'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
 import * as errorModule from './error'
@@ -153,7 +155,7 @@ export function useEventHandler<T extends KnownEvent>(
 ) {
     let hasEffectRun = false
     React.useLayoutEffect(() => {
-        if (IS_DEV_MODE) {
+        if (detect.IS_DEV_MODE) {
             if (hasEffectRun) {
                 // This is the second time this event is being run in React Strict Mode.
                 // Event handlers are not supposed to be idempotent, so it is a mistake to execute it

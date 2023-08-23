@@ -46,7 +46,7 @@ function run(props: app.AppProps) {
         // via the browser.
         const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
         reactDOM.createRoot(root).render(
-            IS_DEV_MODE ? (
+            detect.IS_DEV_MODE ? (
                 <React.StrictMode>
                     <App {...props} />
                 </React.StrictMode>
