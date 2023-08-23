@@ -7,6 +7,8 @@ visualizes benchmark data for the last 14 days. By default, no data is written
 to the disk except for the generated web page, and the data are downloaded
 asynchronously.
 
+Set the `--source` parameter to either `engine` or `stdlib`.
+
 The generated website is placed under "generated_site" directory
 
 The default GH artifact retention period is 3 months, which means that all
