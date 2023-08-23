@@ -35,9 +35,11 @@ Dependencies for the script:
         - Used as a template engine for the HTML.
 """
 
+import asyncio
 import json
 import logging
 import logging.config
+import math
 import os
 import re
 import shutil
@@ -47,11 +49,12 @@ import tempfile
 import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
 import xml.etree.ElementTree as ET
+
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
@@ -76,8 +79,18 @@ except subprocess.CalledProcessError as err:
     exit(1)
 
 DATE_FORMAT = "%Y-%m-%d"
-# Workflod ID of engine benchmarks, got via `gh api '/repos/enso-org/enso/actions/workflows'`
-BENCH_WORKFLOW_ID = 29450898
+ENGINE_BENCH_WORKFLOW_ID = 29450898
+"""
+Workflod ID of engine benchmarks, got via `gh api 
+'/repos/enso-org/enso/actions/workflows'`.
+The name of the workflow is 'Benchmark Engine'
+"""
+STDLIBS_BENCH_WORKFLOW_ID = 66661001
+"""
+Workflod ID of stdlibs benchmarks, got via `gh api 
+'/repos/enso-org/enso/actions/workflows'`.
+The name is 'Benchmark Standard Libraries'
+"""
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 """ Date format as returned from responses in GH API"""
 ENSO_COMMIT_BASE_URL = "https://github.com/enso-org/enso/commit/"
@@ -261,7 +274,7 @@ def _read_json(json_file: str) -> Dict[Any, Any]:
         return json.load(f)
 
 
-def _invoke_gh_api(endpoint: str,
+async def _invoke_gh_api(endpoint: str,
                    query_params: Dict[str, str] = {},
                    result_as_text: bool = True) -> Union[Dict[str, Any], bytes]:
     query_str_list = [key + "=" + value for key, value in query_params.items()]
@@ -271,18 +284,21 @@ def _invoke_gh_api(endpoint: str,
         "api",
         f"/repos/enso-org/enso{endpoint}" + ("" if len(query_str) == 0 else "?" + query_str)
     ]
-    logging.info(f"Running subprocess `{' '.join(cmd)}`")
-    try:
-        ret = subprocess.run(cmd, check=True, text=result_as_text, capture_output=True)
-        if result_as_text:
-            return json.loads(ret.stdout)
-        else:
-            return ret.stdout
-    except subprocess.CalledProcessError as err:
-        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(err.returncode))
-        print(err.stdout)
-        print(err.stderr)
-        exit(err.returncode)
+    logging.info(f"Starting subprocess `{' '.join(cmd)}`")
+    proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+    out, err = await proc.communicate()
+    logging.info(f"Finished subprocess `{' '.join(cmd)}`")
+    if proc.returncode != 0:
+        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(
+            proc.returncode))
+        print(err.decode())
+        exit(proc.returncode)
+    if result_as_text:
+        return json.loads(out.decode())
+    else:
+        return out
 
 
 class Cache:
@@ -354,7 +370,7 @@ class FakeCache:
         return 0
 
 
-def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun]:
+async def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun]:
     """
     Fetches the list of all the job runs from the GH API for the specified `branch`.
     """
@@ -367,29 +383,33 @@ def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun
         # Start with 1, just to determine the total count
         "per_page": "1"
     }
-    res = _invoke_gh_api(f"/actions/workflows/{BENCH_WORKFLOW_ID}/runs", query_fields)
+    res = await _invoke_gh_api(f"/actions/workflows/{ENGINE_BENCH_WORKFLOW_ID}/runs", query_fields)
     total_count = int(res["total_count"])
-    per_page = 30
+    per_page = 2
     logging.debug(f"Total count of all runs: {total_count}, will process {per_page} runs per page")
 
-    query_fields["per_page"] = str(per_page)
-    processed = 0
-    page = 1
-    parsed_bench_runs = []
-    while processed < total_count:
-        logging.debug(f"Processing page {page}, processed={processed}, total_count={total_count}")
-        query_fields["page"] = str(page)
-        res = _invoke_gh_api(f"/actions/workflows/{BENCH_WORKFLOW_ID}/runs", query_fields)
+    async def get_and_parse_run(page: int, parsed_bench_runs) -> None:
+        _query_fields = query_fields.copy()
+        _query_fields["page"] = str(page)
+        res = await _invoke_gh_api(f"/actions/workflows/{ENGINE_BENCH_WORKFLOW_ID}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
-        parsed_bench_runs += [_parse_bench_run_from_json(bench_run_json)
+        _parsed_bench_runs = [_parse_bench_run_from_json(bench_run_json)
                               for bench_run_json in bench_runs_json]
-        processed += per_page
-        page += 1
+        parsed_bench_runs.extend(_parsed_bench_runs)
+
+    # Now we know the total count, so we can fetch all the runs
+    query_fields["per_page"] = str(per_page)
+    num_queries = math.ceil(total_count / per_page)
+    parsed_bench_runs = []
+    async with asyncio.TaskGroup() as task_group:
+        # Page is indexed from 1
+        for page in range(1, num_queries + 1):
+            task_group.create_task(get_and_parse_run(page, parsed_bench_runs))
 
     return parsed_bench_runs
 
 
-def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
+async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
     """
     Extracts some data from the given bench_run, which was fetched via the GH API,
     optionally getting it from the cache.
@@ -403,11 +423,10 @@ def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional
         logging.info(f"Getting bench run with ID {bench_run.id} from cache")
         return cache[bench_run.id]
 
-    logging.info(f"Getting bench run with ID {bench_run.id} from GitHub API")
     # There might be multiple artifacts in the artifact list for a benchmark run
     # We are looking for the one named 'Runtime Benchmark Report', which will
     # be downloaded as a ZIP file.
-    obj = _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
+    obj = await _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
     bench_report_artifact = None
     for artifact in artifacts:
@@ -424,7 +443,7 @@ def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional
         return None
 
     # Get contents of the ZIP artifact file
-    artifact_ret = _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
+    artifact_ret = await _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
     logging.debug(f"Writing artifact ZIP content into {zip_file_name}")
     with open(zip_file_name, "wb") as zip_file:
@@ -626,7 +645,7 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
         html_file.write(generated_html)
 
 
-def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
+async def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
     def perc_str(perc: float) -> str:
         s = "+" if perc > 0 else ""
         s += "{:.5f}".format(perc)
@@ -639,12 +658,12 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
     def commit_to_str(commit: Commit) -> str:
         return f"{commit.timestamp} {commit.author.name}  '{commit.message.splitlines()[0]}'"
 
-    res_1 = _invoke_gh_api(f"/actions/runs/{bench_run_id_1}")
+    res_1 = await _invoke_gh_api(f"/actions/runs/{bench_run_id_1}")
     bench_run_1 = _parse_bench_run_from_json(res_1)
-    res_2 = _invoke_gh_api(f"/actions/runs/{bench_run_id_2}")
+    res_2 = await _invoke_gh_api(f"/actions/runs/{bench_run_id_2}")
     bench_run_2 = _parse_bench_run_from_json(res_2)
-    bench_report_1 = get_bench_report(bench_run_1, cache, tmp_dir)
-    bench_report_2 = get_bench_report(bench_run_2, cache, tmp_dir)
+    bench_report_1 = await get_bench_report(bench_run_1, cache, tmp_dir)
+    bench_report_2 = await get_bench_report(bench_run_2, cache, tmp_dir)
     # Check that the runs have the same labels, and get their intersection
     bench_labels_1 = set(bench_report_1.label_score_dict.keys())
     bench_labels_2 = set(bench_report_2.label_score_dict.keys())
@@ -677,7 +696,7 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
     print("    " + commit_to_str(bench_run_2.head_commit))
 
 
-if __name__ == '__main__':
+async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
@@ -773,24 +792,31 @@ if __name__ == '__main__':
         cache = FakeCache()
 
     if len(compare) > 0:
-        compare_runs(compare[0], compare[1], cache, temp_dir)
+        await compare_runs(compare[0], compare[1], cache, temp_dir)
         exit(0)
 
     bench_labels: Optional[Set[str]] = None
     """ Set of all gathered benchmark labels from all the job reports """
     job_reports_per_branch: Dict[str, List[JobReport]] = {}
     for branch in branches:
-        bench_runs = get_bench_runs(since, until, branch)
+        bench_runs = await get_bench_runs(since, until, branch)
         if len(bench_runs) == 0:
             print(
                 f"No successful benchmarks found within period since {since}"
                 f" until {until} for branch {branch}")
             exit(1)
+
         job_reports: List[JobReport] = []
-        for bench_run in bench_runs:
-            job_report = get_bench_report(bench_run, cache, temp_dir)
-            if job_report:
-                job_reports.append(job_report)
+
+        async def _process_report(_bench_run):
+            _job_report = await get_bench_report(_bench_run, cache, temp_dir)
+            if _job_report:
+                job_reports.append(_job_report)
+
+        async with asyncio.TaskGroup() as task_group:
+            for bench_run in bench_runs:
+                task_group.create_task(_process_report(bench_run))
+
         logging.debug(f"Got {len(job_reports)} job reports for branch {branch}")
         if len(job_reports) == 0:
             print(f"There were 0 job_reports in the specified time interval, "
@@ -800,15 +826,13 @@ if __name__ == '__main__':
 
         logging.debug("Sorting job_reports by commit date")
 
-
-        def get_timestamp(job_report: JobReport) -> datetime:
+        def _get_timestamp(job_report: JobReport) -> datetime:
             return datetime.strptime(
                 job_report.bench_run.head_commit.timestamp,
                 GH_DATE_FORMAT
             )
 
-
-        job_reports.sort(key=lambda report: get_timestamp(report))
+        job_reports.sort(key=lambda report: _get_timestamp(report))
 
         if create_csv:
             write_bench_reports_to_csv(job_reports, csv_fname)
@@ -866,3 +890,7 @@ if __name__ == '__main__':
     )
     print(f"The generated HTML is in {index_html_abs_path}")
     print(f"Open file://{index_html_abs_path} in the browser")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
