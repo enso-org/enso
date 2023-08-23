@@ -33,12 +33,12 @@ export interface PermissionSelectorProps {
     /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
     typeSelectorYOffsetPx?: number
     error?: string | null
-    selfPermission: backend.PermissionAction
+    selfPermission: permissionsModule.PermissionAction
     /** If this prop changes, the internal state will be updated too. */
-    action: backend.PermissionAction
+    action: permissionsModule.PermissionAction
     assetType: backend.AssetType
     className?: string
-    onChange: (action: backend.PermissionAction) => void
+    onChange: (action: permissionsModule.PermissionAction) => void
     doDelete?: () => void
 }
 
@@ -60,7 +60,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
     const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
-    const setAction = (newAction: backend.PermissionAction) => {
+    const setAction = (newAction: permissionsModule.PermissionAction) => {
         setActionRaw(newAction)
         onChange(newAction)
     }

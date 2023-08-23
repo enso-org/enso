@@ -7,6 +7,7 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as permissionsModule from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
 
@@ -66,8 +67,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         permission => permission.user.user_email === organization?.email
     )
     const managesThisAsset =
-        self?.permission === backendModule.PermissionAction.own ||
-        self?.permission === backendModule.PermissionAction.admin
+        self?.permission === permissionsModule.PermissionAction.own ||
+        self?.permission === permissionsModule.PermissionAction.admin
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {

@@ -291,23 +291,10 @@ export interface SimpleUser {
     email: EmailAddress
 }
 
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
-}
-
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
-    permission: PermissionAction
+    permission: permissions.PermissionAction
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -522,7 +509,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    action: PermissionAction | null
+    action: permissions.PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */

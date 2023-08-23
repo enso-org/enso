@@ -39,83 +39,83 @@ function responseIsSuccessful(response: Response) {
 // =============
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
-const LIST_USERS_PATH = 'users'
+export const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
-const CREATE_USER_PATH = 'users'
+export const CREATE_USER_PATH = 'users'
 /** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
-const INVITE_USER_PATH = 'users/invite'
+export const INVITE_USER_PATH = 'users/invite'
 /** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
-const CREATE_PERMISSION_PATH = 'permissions'
+export const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
-const USERS_ME_PATH = 'users/me'
+export const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
-const LIST_DIRECTORY_PATH = 'directories'
+export const LIST_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
-const CREATE_DIRECTORY_PATH = 'directories'
+export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-const LIST_PROJECTS_PATH = 'projects'
+export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
-const CREATE_PROJECT_PATH = 'projects'
+export const CREATE_PROJECT_PATH = 'projects'
 /** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-const LIST_FILES_PATH = 'files'
+export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
-const UPLOAD_FILE_PATH = 'files'
+export const UPLOAD_FILE_PATH = 'files'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
-const CREATE_SECRET_PATH = 'secrets'
+export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
-const LIST_SECRETS_PATH = 'secrets'
+export const LIST_SECRETS_PATH = 'secrets'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
-const CREATE_TAG_PATH = 'tags'
+export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
-const LIST_TAGS_PATH = 'tags'
+export const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
-const LIST_VERSIONS_PATH = 'versions'
+export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
-function updateDirectoryPath(directoryId: backend.DirectoryId) {
+export function updateDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`
 }
 /** Relative HTTP path to the "delete directory" endpoint of the Cloud backend API. */
-function deleteDirectoryPath(directoryId: backend.DirectoryId) {
+export function deleteDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`
 }
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
-function closeProjectPath(projectId: backend.ProjectId) {
+export function closeProjectPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/close`
 }
 /** Relative HTTP path to the "get project details" endpoint of the Cloud backend API. */
-function getProjectDetailsPath(projectId: backend.ProjectId) {
+export function getProjectDetailsPath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
-function openProjectPath(projectId: backend.ProjectId) {
+export function openProjectPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/open`
 }
 /** Relative HTTP path to the "project update" endpoint of the Cloud backend API. */
-function projectUpdatePath(projectId: backend.ProjectId) {
+export function projectUpdatePath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
 /** Relative HTTP path to the "delete project" endpoint of the Cloud backend API. */
-function deleteProjectPath(projectId: backend.ProjectId) {
+export function deleteProjectPath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-function checkResourcesPath(projectId: backend.ProjectId) {
+export function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`
 }
 /** Relative HTTP path to the "delete file" endpoint of the Cloud backend API. */
-function deleteFilePath(fileId: backend.FileId) {
+export function deleteFilePath(fileId: backend.FileId) {
     return `files/${fileId}`
 }
 /** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
-function getSecretPath(secretId: backend.SecretId) {
+export function getSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "delete secret" endpoint of the Cloud backend API. */
-function deleteSecretPath(secretId: backend.SecretId) {
+export function deleteSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
-function deleteTagPath(tagId: backend.TagId) {
+export function deleteTagPath(tagId: backend.TagId) {
     return `secrets/${tagId}`
 }
 
@@ -124,37 +124,37 @@ function deleteTagPath(tagId: backend.TagId) {
 // =============
 
 /** HTTP response body for the "list users" endpoint. */
-interface ListUsersResponseBody {
+export interface ListUsersResponseBody {
     users: backend.SimpleUser[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
-interface ListDirectoryResponseBody {
+export interface ListDirectoryResponseBody {
     assets: backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
-interface ListProjectsResponseBody {
+export interface ListProjectsResponseBody {
     projects: backend.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
-interface ListFilesResponseBody {
+export interface ListFilesResponseBody {
     files: backend.File[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
-interface ListSecretsResponseBody {
+export interface ListSecretsResponseBody {
     secrets: backend.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
-interface ListTagsResponseBody {
+export interface ListTagsResponseBody {
     tags: backend.Tag[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
-interface ListVersionsResponseBody {
+export interface ListVersionsResponseBody {
     versions: [backend.Version, ...backend.Version[]]
 }
 

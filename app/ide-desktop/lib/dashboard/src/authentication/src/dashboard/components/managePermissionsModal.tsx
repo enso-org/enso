@@ -7,6 +7,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
+import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -48,15 +49,15 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
-    const [action, setAction] = React.useState(backendModule.PermissionAction.view)
+    const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own
+            self.permission === permissionsModule.PermissionAction.own
                 ? permissions
                 : permissions.filter(
-                      permission => permission.permission !== backendModule.PermissionAction.own
+                      permission => permission.permission !== permissionsModule.PermissionAction.own
                   ),
         [permissions, self.permission]
     )
@@ -73,10 +74,10 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     )
     const isOnlyOwner = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own &&
+            self.permission === permissionsModule.PermissionAction.own &&
             permissions.every(
                 permission =>
-                    permission.permission !== backendModule.PermissionAction.own ||
+                    permission.permission !== permissionsModule.PermissionAction.own ||
                     permission.user.user_email === organization?.email
             ),
         [organization?.email, permissions, self.permission]
@@ -276,7 +277,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
                                     typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                                    action={backendModule.PermissionAction.view}
+                                    action={permissionsModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
                                 />

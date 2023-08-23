@@ -17,6 +17,7 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
+import * as permissionsModule from './permissions'
 import * as sorting from './sorting'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
@@ -190,8 +191,8 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        self?.permission === backend.PermissionAction.own ||
-        self?.permission === backend.PermissionAction.admin
+        self?.permission === permissionsModule.PermissionAction.own ||
+        self?.permission === permissionsModule.PermissionAction.admin
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {

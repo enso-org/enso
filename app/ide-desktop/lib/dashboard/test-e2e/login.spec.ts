@@ -2,12 +2,15 @@
 import * as test from '@playwright/test'
 
 import * as actions from './actions'
+import * as api from './api'
 
 // =============
 // === Tests ===
 // =============
 
 test.test('login flow', async ({ page }) => {
+    await api.mockApi(page)
+
     // Screenshot #1: Initial
     await page.goto('/')
     await test.expect(page).toHaveScreenshot()

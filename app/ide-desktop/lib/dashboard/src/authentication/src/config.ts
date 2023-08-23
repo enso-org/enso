@@ -31,6 +31,12 @@ export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 /** The current environment that we're running in. */
 export const ENVIRONMENT: Environment = 'production'
 
+const GLOBAL: object = globalThis
+const REDIRECT_OVERRIDE =
+    'REDIRECT_OVERRIDE' in GLOBAL && typeof GLOBAL.REDIRECT_OVERRIDE === 'string'
+        ? GLOBAL.REDIRECT_OVERRIDE
+        : null
+
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
     /** In development, a fixed port is used so that the redirect URL can be known ahead of time.
