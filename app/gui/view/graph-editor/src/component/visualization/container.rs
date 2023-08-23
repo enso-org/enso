@@ -36,6 +36,7 @@ use ensogl::display::scene::Shape;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
+use ensogl::gui::cursor;
 use ensogl::system::web;
 use ensogl::Animation;
 use ensogl_component::shadow;
@@ -612,6 +613,7 @@ impl Container {
         let width_anim = Animation::new(network);
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let selection_style = SelectionStyle::from_theme(network, &style);
+        let cursor = &app.cursor.frp;
 
         frp::extend! { network
             init <- source_();
@@ -647,6 +649,27 @@ impl Container {
             _eval <- background_color.all_with(&init, f!((color, _) model.view.set_background_color(*color)));
             grip_offset <- all_with3(&init, &grip_offset_x, &grip_offset_y, |_, x, y| Vector2(*x, *y));
             eval grip_offset((offset) model.view.set_resize_grip_offset(*offset));
+
+
+            // == Grip Hover Cursor Style ==
+
+            let on_hover = model.view.resize_grip.on_event::<mouse::Move>();
+            on_hover_pos <- on_hover.map(|event| event.client_centered());
+            cursor.set_style_override <+ on_hover_pos.map(f!([model](pos) {
+                let relative_position = model.screen_to_object_space(*pos);
+                let lower_right_corner = model.size.get();
+                // Check whether we are right of the diagonal line going from the top left to the
+                // bottom right corner.
+                let is_left = ((lower_right_corner.x * -relative_position.y) - (lower_right_corner.y * relative_position.x)) < 0.0;
+                if is_left {
+                    Some(cursor::Style::double_arrow(0.0))
+                } else {
+                    Some(cursor::Style::double_arrow(std::f32::consts::PI/2.0))
+                }
+            }));
+
+            let on_hover_end = model.view.resize_grip.on_event::<mouse::Leave>();
+            cursor.set_style_override <+ on_hover_end.constant(None);
 
 
             // === Drag-resize ===
