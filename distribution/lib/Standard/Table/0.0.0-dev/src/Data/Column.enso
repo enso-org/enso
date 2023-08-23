@@ -836,7 +836,7 @@ type Column
             run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
 
     ## ALIAS int
-       GROUP Standard.Base.Math
+       GROUP Standard.Base.Rounding
 
        If the column is numeric, truncate the floating-point values to an
        integer by dropping the fractional part. This is equivalent to

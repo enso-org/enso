@@ -236,7 +236,6 @@ Any.is_same_object_as : Any -> Boolean
 Any.is_same_object_as self value = is_same_object self value
 
 ## ADVANCED
-   GROUP Logical
 
    Checks if `self` is an instance of `typ`.
 
@@ -246,7 +245,6 @@ Any.is_a : Any -> Boolean
 Any.is_a self typ = is_a self typ
 
 ## ADVANCED
-   GROUP Logical
 
    Checks if `self` is an instance of `typ`.
 

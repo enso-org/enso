@@ -792,7 +792,7 @@ type Column
         result.cast Value_Type.Float . rename new_name
 
     ## ALIAS int
-       GROUP Standard.Base.Math
+       GROUP Standard.Base.Rounding
 
        Truncate the floating-point values to an integer by dropping the
        fractional part. This is equivalent to "round-toward-zero".
