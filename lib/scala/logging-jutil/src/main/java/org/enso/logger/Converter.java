@@ -12,15 +12,6 @@ public class Converter {
   private static int defaultLevelDebugCutOff =
       Math.min(java.util.logging.Level.FINE.intValue(), java.util.logging.Level.CONFIG.intValue());
 
-  public static String backwardCompatibleName(String name) {
-    switch (name) {
-      case "warning":
-        return "warn";
-      default:
-        return name;
-    }
-  }
-
   /**
    * Converts SLF4J's Level to java.util one.
    *

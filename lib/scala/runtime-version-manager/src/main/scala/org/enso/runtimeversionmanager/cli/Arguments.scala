@@ -2,11 +2,10 @@ package org.enso.runtimeversionmanager.cli
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.logger.Converter
+import org.enso.logger.LoggerUtils
 
 import java.net.URI
 import java.net.URISyntaxException
-//import org.enso.loggingservice.LogLevel
 import org.slf4j.event.Level
 
 object Arguments {
@@ -29,7 +28,7 @@ object Arguments {
     }
 
   implicit val logLevelArgument: Argument[Level] = (string: String) => {
-    val provided = Converter.backwardCompatibleName(string.toLowerCase)
+    val provided = LoggerUtils.backwardCompatibleName(string.toLowerCase)
     Level
       .values()
       //LogLevel.allLevels

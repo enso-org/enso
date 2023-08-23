@@ -349,6 +349,10 @@ val akkaVersion               = "2.6.20"
 val akkaHTTPVersion           = "10.2.10"
 val akkaMockSchedulerVersion  = "0.5.5"
 val logbackClassicVersion     = "1.3.7"
+val logbackPkg           = Seq(
+  "ch.qos.logback"             % "logback-classic"      % logbackClassicVersion,
+  "ch.qos.logback"             % "logback-core"         % logbackClassicVersion,
+)
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -357,9 +361,7 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
-val akkaTest = Seq(
-  "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
-)
+val akkaTest                  = logbackPkg.map( _  % Test)
 val akka =
   Seq(
     akkaActor,
@@ -683,10 +685,8 @@ lazy val `logging-utils` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       "org.scalatest" %% "scalatest"       % scalatestVersion      % Test,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
-    )
+    ) ++ logbackPkg.map(_ % Test)
   )
 
 lazy val `logging-server` = project
@@ -697,11 +697,9 @@ lazy val `logging-server` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
       "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
       akkaHttp
-    )
+    ) ++ logbackPkg.map(_ % Provided)
   )
   .dependsOn(`logging-logback`)
   .dependsOn(`logging-utils`)
@@ -737,12 +735,10 @@ lazy val `logging-logback` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
       "com.typesafe"   % "config"          % typesafeConfigVersion,
       "io.sentry"      % "sentry-logback"  % "6.28.0" % Provided,
       akkaHttp
-    )
+    ) ++ logbackPkg.map(_ % Provided)
   )
   .dependsOn(`logging-config`)
 
@@ -874,7 +870,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
       "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
-    ),
+    ) ++ logbackPkg.map(_ % Runtime),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
@@ -899,7 +895,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .buildNativeImage(
         "project-manager",
         staticOnLinux     = true,
-        additionalOptions = Seq("-H:IncludeResources=.*logback.xml$"),
         initializeAtRuntime = Seq(
           "scala.util.Random",
           "zio.internal.ZScheduler$$anon$4",
@@ -1004,9 +999,8 @@ lazy val searcher = project
     libraryDependencies ++= jmh ++ Seq(
       "com.typesafe.slick" %% "slick"           % slickVersion,
       "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
-      "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
       "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
-    )
+    ) ++ logbackPkg.map(_ % Test)
   )
   .configs(Benchmark)
   .settings(
@@ -1465,7 +1459,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-parser`)
   .dependsOn(pkg)
-  .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
@@ -1691,13 +1684,13 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
       "commons-cli"         % "commons-cli"  % commonsCliVersion,
       "com.monovore"       %% "decline"      % declineVersion,
       "org.jline"           % "jline"        % jlineVersion,
       "org.typelevel"      %% "cats-core"    % catsVersion
-    ),
+    ) ++ logbackPkg.map(_ % Runtime),
     run / connectInput := true
   )
   .settings(
@@ -1748,8 +1741,10 @@ lazy val `engine-runner` = project
   .dependsOn(cli)
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
+  .dependsOn(`logging-jutil`)
+  .dependsOn(`edition-updater`)
+  .dependsOn(`logging-server`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`logging-logback`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1763,7 +1758,7 @@ lazy val launcher = project
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
-    )
+    ) ++ logbackPkg.map(_ % Runtime)
   )
   .settings(
     rebuildNativeImage := NativeImage

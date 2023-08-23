@@ -27,10 +27,10 @@ object LoggingServiceManager {
       throw new LoggingServiceAlreadySetup()
     } else {
       currentLevel = logLevel
-      val forwarder = new LoggingServer(port)
-      loggingService = forwarder
+      val server = new LoggingServer(port)
+      loggingService = server
       Future {
-        forwarder.start(logLevel, logPath, logFileSuffix, appender)
+        server.start(logLevel, logPath, logFileSuffix, appender)
       }
     }
   }
