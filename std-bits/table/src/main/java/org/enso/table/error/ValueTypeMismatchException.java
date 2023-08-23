@@ -8,7 +8,14 @@ public class ValueTypeMismatchException extends RuntimeException {
   private final Object value;
 
   public ValueTypeMismatchException(StorageType expectedType, Object value) {
-    super("Invalid value type. Expected " + expectedType + ", but got a value " + value + " (" + value.getClass().getSimpleName() + ") that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.");
+    super(
+        "Invalid value type. Expected "
+            + expectedType
+            + ", but got a value "
+            + value
+            + " ("
+            + value.getClass().getSimpleName()
+            + ") that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.");
     this.expectedType = expectedType;
     this.value = value;
   }
