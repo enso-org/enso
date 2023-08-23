@@ -386,7 +386,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask src={PlayIcon} />
+                    <SvgMask alt="Open in editor" src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -403,7 +403,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     <div className="relative h-0">
                         <Spinner size={24} state={spinnerState} />
                     </div>
-                    <SvgMask src={StopIcon} />
+                    <SvgMask alt="Stop execution" src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -420,7 +420,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <SvgMask src={StopIcon} />
+                        <SvgMask alt="Stop execution" src={StopIcon} />
                     </button>
                     <button
                         className="w-6"
@@ -430,7 +430,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             openIde()
                         }}
                     >
-                        <SvgMask src={ArrowUpIcon} />
+                        <SvgMask alt="Open in editor" src={ArrowUpIcon} />
                     </button>
                 </>
             )

@@ -15,84 +15,94 @@ export const VALID_PASSWORD = 'Password0!'
 // ================
 
 /** Find an email input (if any) on the current page. */
-export function locateEmailInput(page: test.Page) {
+export function locateEmailInput(page: test.Locator | test.Page) {
     return page.getByLabel('E-Mail Address:')
 }
 
 /** Find a password input (if any) on the current page. */
-export function locatePasswordInput(page: test.Page) {
+export function locatePasswordInput(page: test.Locator | test.Page) {
     return page.getByLabel('Password:')
 }
 
 /** Find an "old password" input (if any) on the current page. */
-export function locateOldPasswordInput(page: test.Page) {
+export function locateOldPasswordInput(page: test.Locator | test.Page) {
     return page.getByLabel('Old Password:')
 }
 
 /** Find a "new password" input (if any) on the current page. */
-export function locateNewPasswordInput(page: test.Page) {
+export function locateNewPasswordInput(page: test.Locator | test.Page) {
     return page.getByLabel('New Password:', { exact: true })
 }
 
 /** Find a "confirm new password" input (if any) on the current page. */
-export function locateConfirmNewPasswordInput(page: test.Page) {
+export function locateConfirmNewPasswordInput(page: test.Locator | test.Page) {
     return page.getByLabel('Confirm New Password:')
 }
 
 /** Find a login button (if any) on the current page. */
-export function locateLoginButton(page: test.Page) {
+export function locateLoginButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Login', exact: true })
 }
 
 /** Find a reset button (if any) on the current page. */
-export function locateResetButton(page: test.Page) {
+export function locateResetButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Reset' })
 }
 
 /** Find a user menu button (if any) on the current page. */
-export function locateUserMenuButton(page: test.Page) {
+export function locateUserMenuButton(page: test.Locator | test.Page) {
     return page.getByAltText('Open user menu')
 }
 
 /** Find a change password button (if any) on the current page. */
-export function locateChangePasswordButton(page: test.Page) {
+export function locateChangePasswordButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Change your password' })
 }
 
 /** Find a sign out button (if any) on the current page. */
-export function locateSignOutButton(page: test.Page) {
+export function locateSignOutButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Sign out' })
 }
 
 /** Find a new project button (if any) on the current page. */
-export function locateNewProjectButton(page: test.Page) {
+export function locateNewProjectButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'New Project' })
 }
 
+/** Find a button to open the editor (if any) on the current page. */
+export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
+    return page.getByAltText('Open in editor')
+}
+
+/** Find a button to close the project (if any) on the current page. */
+export function locateStopProjectButton(page: test.Locator | test.Page) {
+    return page.getByAltText('Stop execution')
+}
+
 /** Find a drive view (if any) on the current page. */
-export function locateDriveView(page: test.Page) {
+export function locateDriveView(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('drive-view')
 }
 
 /** Find an assets table (if any) on the current page. */
-export function locateAssetsTable(page: test.Page) {
+export function locateAssetsTable(page: test.Locator | test.Page) {
     return locateDriveView(page).getByRole('table')
 }
 
 /** Find assets table rows (if any) on the current page. */
-export function locateAssetsTableRows(page: test.Page) {
+export function locateAssetsTableRows(page: test.Locator | test.Page) {
     return locateAssetsTable(page).getByRole('row')
 }
 
 /** Find a "change password" modal (if any) on the current page. */
-export function locateChangePasswordModal(page: test.Page) {
+export function locateChangePasswordModal(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('change-password-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
-export function locateUserMenu(page: test.Page) {
+export function locateUserMenu(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('user-menu')
 }

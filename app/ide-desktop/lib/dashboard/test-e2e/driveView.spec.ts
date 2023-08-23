@@ -24,4 +24,15 @@ test.test('drive view', async ({ page }) => {
 
     await actions.locateNewProjectButton(page).click()
     await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(3)
+
+    // These are guarded by the `not.toBeUndefined` below.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const firstAssetRow = (await actions.locateAssetsTableRows(page).all())[1]!
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const secondAssetRow = (await actions.locateAssetsTableRows(page).all())[2]!
+    test.expect(firstAssetRow).not.toBeUndefined()
+    test.expect(secondAssetRow).not.toBeUndefined()
+
+    await actions.locateStopProjectButton(firstAssetRow).click()
+    await secondAssetRow.click({ button: 'right' })
 })
