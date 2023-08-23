@@ -67,33 +67,6 @@ export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
     return result
 }
 
-/** Handle the case where IDE is invoked with a URL to open.
- *
- * This happens on Windows when the browser redirects user using the deep link scheme.
- *
- * @param openedUrl - The URL to open. */
-export function handleOpenUrl(openedUrl: URL) {
-    logger.log(`Opening URL '${openedUrl.toString()}'.`)
-    const appLock = electron.app.requestSingleInstanceLock({ openedUrl })
-    if (!appLock) {
-        // If we failed to acquire the lock, it means that another instance of the application is
-        // already running. In this case, we must send the URL to the existing instance and exit.
-        logger.log('Another instance of the application is already running. Exiting.')
-        // Note that we need here to exit rather than quit. Otherwise, the application would
-        // continue initializing and would create a new window, before quitting.
-        // We don't want anything to flash on the screen, so we just exit.
-        electron.app.exit(0)
-    } else {
-        // If we acquired the lock, it means that we are the first instance of the application.
-        // In this case, we must wait for the application to be ready and then send the URL to the
-        // renderer process.
-        // If we supported starting the application from the URL, we should add this logic here.
-        // However, we currently only use our custom URL scheme to handle authentication, so we
-        // don't need to do anything here.
-        logger.log('We are the first instance of the application. This is not expected.')
-    }
-}
-
 /** Register the callback that will be called when the application is requested to open a URL.
  *
  * This method serves to unify the url handling between macOS and Windows. On macOS, the OS

@@ -42,9 +42,9 @@ const logger = contentConfig.logger
 /** The Electron application. It is responsible for starting all the required services, and
  * displaying and managing the app window. */
 class App {
-    window: electron.BrowserWindow | null = null
+    windows = new Set<electron.BrowserWindow>()
+    lastFocusedWindow: electron.BrowserWindow | null = null
     server: server.Server | null = null
-    args: config.Args = config.CONFIG
     isQuitting = false
 
     /** Initialize and run the Electron application. */
@@ -54,23 +54,27 @@ class App {
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
         fileAssociations.setOpenFileEventHandler(id => {
-            this.setProjectToOpenOnStartup(id)
+            this.setProjectToOpenOnStartup(args, id)
         })
 
-        const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments(
+        const args = config.CONFIG.clone()
+        // `urlToOpen` is ignored. If it is not `null`, the app should have exited when it tried to
+        // become the sole instance.
+        const { windowSize, chromeOptions, fileToOpen } = this.processArguments(
+            args,
             fileAssociations.CLIENT_ARGUMENTS
         )
-        this.handleItemOpening(fileToOpen, urlToOpen)
-        if (this.args.options.version.value) {
-            await this.printVersion()
+        this.handleItemOpening(args, fileToOpen)
+        if (args.options.version.value) {
+            await this.printVersion(args)
             electron.app.quit()
-        } else if (this.args.groups.debug.options.info.value) {
+        } else if (args.groups.debug.options.info.value) {
             await electron.app.whenReady().then(async () => {
                 await debug.printInfo()
                 electron.app.quit()
             })
         } else {
-            this.setChromeOptions(chromeOptions)
+            this.setChromeOptions(args, chromeOptions)
             security.enableAll()
             electron.app.on('before-quit', () => (this.isQuitting = true))
             /** TODO [NP]: https://github.com/enso-org/enso/issues/5851
@@ -81,7 +85,7 @@ class App {
              * should be used here instead. */
             electron.app.on('ready', () => {
                 logger.log('Electron application is ready.')
-                void this.main(windowSize)
+                void this.main(args, windowSize)
             })
             this.registerShortcuts()
         }
@@ -95,15 +99,19 @@ class App {
         )
         if (didAcquireLock) {
             electron.app.on('second-instance', (_event, argv) => {
-                const { windowSize, chromeOptions, fileToOpen, urlToOpen } =
-                    this.processArguments(argv)
-                // Check if additional data is an object that contains the URL.
-                const requestOneLastElementSlice = -1
-                const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
-                const isUrlOpenAttempt =
-                    urlAssociations.argsDenoteUrlOpenAttempt(lastArgumentSlice) != null
-                if (!isUrlOpenAttempt) {
-                    void this.main(windowSize)
+                const args = config.CONFIG.clone()
+                // `chromeOptions` is ignored for now as it is unknown whether changes to
+                // command-line switches take effect after a window is already open.
+                const { windowSize, fileToOpen, urlToOpen } = this.processArguments(args, argv)
+                this.handleItemOpening(args, fileToOpen)
+                // If `urlToOpen` is not `null`, then it will be handled but
+                if (urlToOpen == null) {
+                    void (async () => {
+                        const window = await this.createWindowIfEnabled(args, windowSize)
+                        if (window != null) {
+                            this.loadWindowContent(args, window)
+                        }
+                    })()
                 }
             })
         }
@@ -111,7 +119,7 @@ class App {
     }
 
     /** Process the command line arguments. */
-    processArguments(commandLineArguments: string[]) {
+    processArguments(args: typeof config.CONFIG, commandLineArguments: string[]) {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
         const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(commandLineArguments)
@@ -120,7 +128,7 @@ class App {
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
         const argsToParse = fileToOpen != null || urlToOpen != null ? [] : commandLineArguments
-        return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
+        return { ...configParser.parseArgs(args, argsToParse), fileToOpen, urlToOpen }
     }
 
     /** Set the project to be opened on application startup.
@@ -129,13 +137,14 @@ class App {
      * modifies the startup options. If the application is already initialized,
      * an error will be logged, and the method will have no effect.
      *
+     * @param args - The command-line configuration.
      * @param projectId - The ID of the project to be opened on startup. */
-    setProjectToOpenOnStartup(projectId: string) {
+    setProjectToOpenOnStartup(args: typeof config.CONFIG, projectId: string) {
         // Make sure that we are not initialized yet, as this method should be called before the
         // application is ready.
         if (!electron.app.isReady()) {
             logger.log(`Setting the project to open on startup to '${projectId}'.`)
-            this.args.groups.startup.options.project.value = projectId
+            args.groups.startup.options.project.value = projectId
         } else {
             logger.error(
                 "Cannot set the project to open on startup to '" +
@@ -147,19 +156,15 @@ class App {
 
     /** This method is invoked when the application was spawned due to being a default application
      * for a URL protocol or file extension. */
-    handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
-        logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
+    handleItemOpening(args: typeof config.CONFIG, fileToOpen: string | null) {
+        logger.log('Opening file.', { fileToOpen })
         try {
             if (fileToOpen != null) {
                 // This makes the IDE open the relevant project. Also, this prevents us from using
                 // this method after the IDE has been fully set up, as the initializing code
                 // would have already read the value of this argument.
                 const projectId = fileAssociations.handleOpenFile(fileToOpen)
-                this.setProjectToOpenOnStartup(projectId)
-            }
-
-            if (urlToOpen != null) {
-                urlAssociations.handleOpenUrl(urlToOpen)
+                this.setProjectToOpenOnStartup(args, projectId)
             }
         } catch (e) {
             // If we failed to open the file, we should enter the usual welcome screen.
@@ -169,7 +174,7 @@ class App {
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
      * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
-    setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
+    setChromeOptions(args: typeof config.CONFIG, chromeOptions: configParser.ChromeOption[]) {
         const addIf = (
             opt: contentConfig.Option<boolean>,
             chromeOptName: string,
@@ -187,7 +192,7 @@ class App {
             chromeOptions.push(new configParser.ChromeOption(option, value))
         }
         logger.groupMeasured('Setting Chrome options', () => {
-            const perfOpts = this.args.groups.performance.options
+            const perfOpts = args.groups.performance.options
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
             addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
             addIf(perfOpts.disableSandbox, 'no-sandbox')
@@ -208,7 +213,7 @@ class App {
     }
 
     /** Main app entry point. */
-    async main(windowSize: config.WindowSize) {
+    async main(args: typeof config.CONFIG, windowSize: config.WindowSize) {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and enter a "zombie mode", where user is not aware of the app still running.
         try {
@@ -217,18 +222,13 @@ class App {
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
-                await this.startBackendIfEnabled()
-                await this.startContentServerIfEnabled()
-                await this.createWindowIfEnabled(windowSize)
-                this.initIpc()
-                /** The non-null assertion on the following line is safe because the window
-                 * initialization is guarded by the `createWindowIfEnabled` method. The window is
-                 * not yet created at this point, but it will be created by the time the
-                 * authentication module uses the lambda providing the window. */
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                authentication.initModule(() => this.window!)
-                if (this.window != null) {
-                    this.loadWindowContent(this.window)
+                await this.startBackendIfEnabled(args)
+                await this.startContentServerIfEnabled(args)
+                const window = await this.createWindowIfEnabled(args, windowSize)
+                this.initIpc(args)
+                authentication.initModule(() => this.lastFocusedWindow)
+                if (window != null) {
+                    this.loadWindowContent(args, window)
                 }
             })
         } catch (err) {
@@ -238,29 +238,30 @@ class App {
     }
 
     /** Run the provided function if the provided option was enabled. Log a message otherwise. */
-    async runIfEnabled(option: contentConfig.Option<boolean>, fn: () => Promise<void> | void) {
+    async runIfEnabled<T = void>(option: contentConfig.Option<boolean>, fn: () => Promise<T> | T) {
         if (option.value) {
-            await fn()
+            return await fn()
         } else {
             logger.log(`The app is configured not to use ${option.name}.`)
+            return null
         }
     }
 
     /** Start the backend processes. */
-    async startBackendIfEnabled() {
-        await this.runIfEnabled(this.args.options.engine, () => {
-            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-            projectManager.spawn(this.args, backendOpts)
+    async startBackendIfEnabled(args: typeof config.CONFIG) {
+        await this.runIfEnabled(args.options.engine, () => {
+            const backendOpts = args.groups.debug.options.verbose.value ? ['-vv'] : []
+            projectManager.spawn(args, backendOpts)
         })
     }
 
     /** Start the content server, which will serve the application content (HTML) to the window. */
-    async startContentServerIfEnabled() {
-        await this.runIfEnabled(this.args.options.server, async () => {
+    async startContentServerIfEnabled(args: typeof config.CONFIG) {
+        await this.runIfEnabled(args.options.server, async () => {
             await logger.asyncGroupMeasured('Starting the content server.', async () => {
                 const serverCfg = new server.Config({
                     dir: paths.ASSETS_PATH,
-                    port: this.args.groups.server.options.port.value,
+                    port: args.groups.server.options.port.value,
                     externalFunctions: {
                         uploadProjectBundle: projectManagement.uploadBundle,
                     },
@@ -271,14 +272,14 @@ class App {
     }
 
     /** Create the Electron window and display it on the screen. */
-    async createWindowIfEnabled(windowSize: config.WindowSize) {
-        await this.runIfEnabled(this.args.options.window, () => {
-            logger.groupMeasured('Creating the window.', () => {
-                const argGroups = this.args.groups
-                const useFrame = this.args.groups.window.options.frame.value
+    async createWindowIfEnabled(args: typeof config.CONFIG, windowSize: config.WindowSize) {
+        return await this.runIfEnabled(args.options.window, () => {
+            return logger.groupMeasured('Creating the window.', () => {
+                const argGroups = args.groups
+                const useFrame = args.groups.window.options.frame.value
                 const macOS = process.platform === 'darwin'
                 const useHiddenInsetTitleBar = !useFrame && macOS
-                const useVibrancy = this.args.groups.window.options.vibrancy.value
+                const useVibrancy = args.groups.window.options.vibrancy.value
                 const webPreferences: electron.WebPreferences = {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
@@ -303,7 +304,7 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
-                if (this.args.groups.debug.options.devTools.value) {
+                if (args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
 
@@ -319,15 +320,19 @@ class App {
                     }
                 )
 
-                window.on('close', evt => {
-                    if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
-                        evt.preventDefault()
+                window.on('focus', () => {
+                    this.lastFocusedWindow = window
+                })
+
+                window.on('close', event => {
+                    if (!this.isQuitting && !args.groups.window.options.closeToQuit.value) {
+                        event.preventDefault()
                         window.hide()
                     }
                 })
 
                 electron.app.on('activate', () => {
-                    if (!this.args.groups.window.options.closeToQuit.value) {
+                    if (!args.groups.window.options.closeToQuit.value) {
                         window.show()
                     }
                 })
@@ -336,18 +341,19 @@ class App {
                     logger.error('Error, the render process crashed.', details)
                 })
 
-                this.window = window
+                this.windows.add(window)
+                return window
             })
         })
     }
 
     /** Initialize Inter-Process Communication between the Electron application and the served
      * website. */
-    initIpc() {
+    initIpc(args: typeof config.CONFIG) {
         electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
             logger.error(`IPC error: ${JSON.stringify(data)}`)
         })
-        const argProfiles = this.args.groups.profile.options.load.value
+        const argProfiles = args.groups.profile.options.load.value
         const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
             fs.readFile(path, 'utf8')
         )
@@ -357,16 +363,14 @@ class App {
                 event.reply('profiles-loaded', profiles)
             })
         })
-        const profileOutPath = this.args.groups.profile.options.save.value
+        const profileOutPath = args.groups.profile.options.save.value
         if (profileOutPath) {
             electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
                 fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, () => {
-            if (this.window != null) {
-                void this.window.loadURL('chrome://gpu')
-            }
+        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, event => {
+            void event.sender.loadURL('chrome://gpu')
         })
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
@@ -380,27 +384,27 @@ class App {
     /** The server port. In case the server was not started, the port specified in the configuration
      * is returned. This might be used to connect this application window to another, existing
      * application server. */
-    serverPort(): number {
-        return this.server?.config.port ?? this.args.groups.server.options.port.value
+    serverPort(args: typeof config.CONFIG): number {
+        return this.server?.config.port ?? args.groups.server.options.port.value
     }
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
-    loadWindowContent(window: electron.BrowserWindow) {
+    loadWindowContent(args: typeof config.CONFIG, window: electron.BrowserWindow) {
         const searchParams: Record<string, string> = {}
-        for (const option of this.args.optionsRecursive()) {
+        for (const option of args.optionsRecursive()) {
             if (option.value !== option.default && option.passToWebApplication) {
                 searchParams[option.qualifiedName()] = option.value.toString()
             }
         }
         const address = new URL('http://localhost')
-        address.port = this.serverPort().toString()
+        address.port = this.serverPort(args).toString()
         address.search = new URLSearchParams(searchParams).toString()
         logger.log(`Loading the window address '${address.toString()}'.`)
         void window.loadURL(address.toString())
     }
 
     /** Print the version of the frontend and the backend. */
-    async printVersion(): Promise<void> {
+    async printVersion(args: typeof config.CONFIG): Promise<void> {
         const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
@@ -414,7 +418,7 @@ class App {
         }
         console.log('')
         console.log('Backend:')
-        const backend = await projectManager.version(this.args)
+        const backend = await projectManager.version(args)
         if (backend == null) {
             console.log(`${indent}No backend available.`)
         } else {
@@ -432,7 +436,7 @@ class App {
                 const { code, alt, control, shift, meta, type } = input
                 if (type === 'keyDown') {
                     const focusedWindow = electron.BrowserWindow.getFocusedWindow()
-                    if (focusedWindow) {
+                    if (focusedWindow != null) {
                         if (control && alt && shift && !meta && code === 'KeyI') {
                             focusedWindow.webContents.toggleDevTools()
                         }

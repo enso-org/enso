@@ -92,15 +92,10 @@ const logger = contentConfig.logger
 // ========================================
 
 /** Configure all the functionality that must be set up in the Electron app to support
- * authentication-related flows. Must be called in the Electron app `whenReady` event.
- *
- * @param window - A function that returns the main Electron window. This argument is a lambda and
- * not a variable because the main window is not available when this function is called. This module
- * does not use the `window` until after it is initialized, so while the lambda may return `null` in
- * theory, it never will in practice. */
-export function initModule(window: () => electron.BrowserWindow) {
+ * authentication-related flows. Must be called in the Electron app `whenReady` event. */
+export function initModule(getLastFocusedWindow: () => electron.BrowserWindow | null) {
     initIpc()
-    initOpenUrlListener(window)
+    initOpenUrlListener(getLastFocusedWindow)
     initSaveAccessTokenListener()
 }
 
@@ -129,24 +124,30 @@ function initIpc() {
  *
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
-function initOpenUrlListener(window: () => electron.BrowserWindow) {
+function initOpenUrlListener(getLastFocusedWindow: () => electron.BrowserWindow | null) {
     urlAssociations.registerUrlCallback(url => {
-        onOpenUrl(url, window)
+        onOpenUrl(url, getLastFocusedWindow)
     })
 }
 
 /** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
  *
- * @param url - The URL to handle.
- * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
-export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
+ * @param url - The URL to handle. */
+export function onOpenUrl(url: URL, getLastFocusedWindow: () => electron.BrowserWindow | null) {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
         logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
     } else {
-        logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
-        window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+        const window = getLastFocusedWindow()
+        if (window == null) {
+            logger.error(
+                `'${url.toString()}'` + ' is a deep link but there is no renderer to send it to.'
+            )
+        } else {
+            logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+            window.webContents.send(ipc.Channel.openDeepLink, url.toString())
+        }
     }
 }
 

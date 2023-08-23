@@ -272,8 +272,10 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 // =====================
 
 /** Parse command line arguments. */
-export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
-    const args = config.CONFIG
+export function parseArgs(
+    args: typeof config.CONFIG,
+    clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS
+) {
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
     const yargsOptions = args
         .optionsRecursive()
