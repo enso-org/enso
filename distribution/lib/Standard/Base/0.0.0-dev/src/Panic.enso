@@ -227,8 +227,7 @@ type Caught_Panic
     convert_to_dataflow_error : Error
     convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
-    ## GROUP Errors
-       Returns the stack trace of the caught panic.
+    ## Returns the stack trace of the caught panic.
     stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self

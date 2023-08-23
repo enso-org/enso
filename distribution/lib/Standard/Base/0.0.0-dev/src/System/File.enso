@@ -308,7 +308,7 @@ type File
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
-    ## GROUP Metadata
+    ## GROUP Calculations
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:

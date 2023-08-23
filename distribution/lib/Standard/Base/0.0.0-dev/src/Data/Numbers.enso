@@ -368,7 +368,7 @@ type Number
     nan : Decimal
     nan = Double.NaN
 
-    ## GROUP Logical
+    ## GROUP Math
        Checks if the given number is the floating-point Not-a-Number value.
 
        This is needed, because the NaN value will return `False` even when being
