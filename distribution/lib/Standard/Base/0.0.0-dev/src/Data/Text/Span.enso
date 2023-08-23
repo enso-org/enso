@@ -38,7 +38,8 @@ type Span
                  Span.Value range text
     Value (range : Range) (parent : Text)
 
-    ## The index of the first character included in the span.
+    ## GROUP Metadata
+       The index of the first character included in the span.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -57,7 +58,8 @@ type Span
     end : Integer
     end self = self.range.end
 
-    ## The length of the span in extended grapheme clusters.
+    ## GROUP Metadata
+       The length of the span in extended grapheme clusters.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -66,7 +68,8 @@ type Span
     length : Integer
     length self = self.range.length
 
-    ## Returns the part of the text that this span covers.
+    ## GROUP Metadata
+       Returns the part of the text that this span covers.
     text : Text
     text self = self.to_utf_16_span.text
 
@@ -107,7 +110,8 @@ type Utf_16_Span
                  Span.Utf_16_Span.Value (Range 0 3) text
     Value (range : Range) (parent : Text)
 
-    ## The index of the first code unit included in the span.
+    ## GROUP Metadata
+       The index of the first code unit included in the span.
     start : Integer
     start self = self.range.start
 
@@ -116,15 +120,18 @@ type Utf_16_Span
     end : Integer
     end self = self.range.end
 
-    ## The length of the span in UTF-16 code units.
+    ## GROUP Metadata
+       The length of the span in UTF-16 code units.
     length : Integer
     length self = self.range.length
 
-    ## Returns the part of the text that this span covers.
+    ## GROUP Metadata
+       Returns the part of the text that this span covers.
     text : Text
     text self = Text_Utils.substring self.parent self.start self.end
 
-    ## Returns a span of extended grapheme clusters which is the closest
+    ## GROUP Conversions
+       Returns a span of extended grapheme clusters which is the closest
        approximation of this span of code units.
 
        The resulting span is extended in such a way that every code unit that

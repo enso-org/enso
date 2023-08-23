@@ -58,7 +58,8 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
    offset or timezone.
 @Builtin_Type
 type Date
-    ## ALIAS Current Date, now
+    ## ALIAS current date, now
+       GROUP DateTime
 
        Obtains the current date from the system clock in the system timezone.
 
@@ -69,7 +70,8 @@ type Date
     today : Date
     today = @Builtin_Method "Date.today"
 
-    ## Constructs a new Date from a year, month, and day.
+    ## GROUP DateTime
+       Constructs a new Date from a year, month, and day.
 
        Arguments
        - year: The year to represent.
@@ -96,7 +98,8 @@ type Date
         Panic.catch JException (new_builtin year month day) caught->
             Error.throw (Time_Error.Error caught.payload.getMessage)
 
-    ## ALIAS Date from Text
+    ## ALIAS date from text
+       GROUP Conversions
 
        Converts text containing a date into a Date object.
 
@@ -173,7 +176,8 @@ type Date
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex
 
-    ## Get the year field.
+    ## GROUP Metadata
+       Get the year field.
 
        > Example
          Get the current year.
@@ -184,7 +188,8 @@ type Date
     year : Integer
     year self = @Builtin_Method "Date.year"
 
-    ## Get the month of year field, as a number from 1 to 12.
+    ## GROUP Metadata
+       Get the month of year field, as a number from 1 to 12.
 
        > Example
          Get the current month.
@@ -193,7 +198,8 @@ type Date
     month : Integer
     month self = @Builtin_Method "Date.month"
 
-    ## Get the day of month field.
+    ## GROUP Metadata
+       Get the day of month field.
 
        > Example
          Get the current day.
@@ -226,7 +232,8 @@ type Date
             if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
                 Time_Utils.week_of_year_localdate self locale.java_locale
 
-    ## Returns if the date is in a leap year.
+    ## GROUP DateTime
+       Returns if the date is in a leap year.
 
        Produces a warning for a Date that is before epoch start.
     is_leap_year : Boolean
@@ -234,7 +241,8 @@ type Date
         ensure_in_epoch self <|
             Time_Utils.is_leap_year self
 
-    ## Returns the number of days in the year represented by this date.
+    ## GROUP DateTime
+       Returns the number of days in the year represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_year : Integer
@@ -245,11 +253,13 @@ type Date
     century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
         Error.throw (Illegal_Argument.Error "Century can only be given for AD years.")
 
-    ## Returns the quarter of the year the date falls into.
+    ## GROUP Metadata
+       Returns the quarter of the year the date falls into.
     quarter : Integer
     quarter self = Time_Utils.get_field_as_localdate self IsoFields.QUARTER_OF_YEAR
 
-    ## Returns the number of days in the month represented by this date.
+    ## GROUP DateTime
+       Returns the number of days in the month represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
@@ -261,7 +271,8 @@ type Date
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_YEAR
 
-    ## Returns the day of the week.
+    ## GROUP Metadata
+       Returns the day of the week.
 
        Produces a warning for a Date that is before epoch start.
     day_of_week : Day_Of_Week
@@ -269,15 +280,18 @@ type Date
         ensure_in_epoch self <|
             Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
-    ## Returns the first date within the `Date_Period` containing self.
+    ## GROUP DateTime
+       Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
     start_of self period=Date_Period.Month = period.adjust_start self
 
-    ## Returns the last date within the `Date_Period` containing self.
+    ## GROUP DateTime
+       Returns the last date within the `Date_Period` containing self.
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
-    ## Returns the next date adding the `Date_Period` to self.
+    ## GROUP DateTime
+       Returns the next date adding the `Date_Period` to self.
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -287,7 +301,8 @@ type Date
     next : Date_Period -> Date
     next self period=Date_Period.Day = self + period.to_period
 
-    ## Returns the previous date subtracting the `Date_Period` from self.
+    ## GROUP DateTime
+       Returns the previous date subtracting the `Date_Period` from self.
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -297,7 +312,8 @@ type Date
     previous : Date_Period -> Date
     previous self period=Date_Period.Day = self - period.to_period
 
-    ## Creates a `Period` between self and the provided end date.
+    ## GROUP DateTime
+       Creates a `Period` between self and the provided end date.
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -309,7 +325,8 @@ type Date
         ensure_in_epoch self <| ensure_in_epoch end <|
             Period.between self end
 
-    ## Counts the days between self (inclusive) and the provided end date
+    ## GROUP DateTime
+       Counts the days between self (inclusive) and the provided end date
        (exclusive, or inclusive if include_end_date=True).
 
        Produces a warning for a Date that is before epoch start.
@@ -325,7 +342,8 @@ type Date
             ensure_in_epoch self <| ensure_in_epoch end <|
                 (Time_Utils.days_between self end) + if include_end_date then 1 else 0
 
-    ## Returns a requested date part as integer.
+    ## GROUP DateTime
+       Returns a requested date part as integer.
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -338,7 +356,8 @@ type Date
             Date_Period.Week _  -> self.week_of_year locale=Nothing
             Date_Period.Day     -> self.day
 
-    ## Computes a time difference between the two dates.
+    ## GROUP DateTime
+       Computes a time difference between the two dates.
 
        It returns an integer expressing how many periods fit between the two
        dates.
@@ -355,7 +374,8 @@ type Date
     date_diff self (end : Date) (period : Date_Period) = ensure_in_epoch self <|
         Time_Utils.unit_date_difference period.to_java_unit self end
 
-    ## Shifts the date by a specified period.
+    ## GROUP DateTime
+       Shifts the date by a specified period.
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -367,7 +387,8 @@ type Date
     date_add self (amount : Integer) (period : Date_Period) = ensure_in_epoch self <|
         Time_Utils.unit_date_add period.to_java_unit self amount
 
-    ## Counts workdays between self (inclusive) and the provided end date
+    ## GROUP DateTime
+       Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
        Produces a warning for a Date that is before epoch start.
@@ -412,7 +433,8 @@ type Date
                     fits_in_range self end holiday && (is_weekend holiday).not
                 weekdays - overlapping_holidays.distinct.length
 
-    ## ALIAS Date to Time
+    ## ALIAS date to time
+       GROUP Conversions
 
        Combine this date with time of day to create a point in time.
 
@@ -430,7 +452,8 @@ type Date
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) =
         Time_Utils.make_zoned_date_time self time_of_day zone
 
-    ## ALIAS Add Period
+    ## ALIAS add period
+       GROUP Operators
        Add the specified amount of time to this instant to get another date.
 
        Arguments:
@@ -458,7 +481,8 @@ type Date
             date_period : Date_Period ->
                 self + date_period.to_period
 
-    ## ALIAS Date Range
+    ## ALIAS date range
+       GROUP Input
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -482,7 +506,8 @@ type Date
             Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
         _ -> Error.throw (Type_Error.Error Date end "end")
 
-    ## ALIAS Date Range
+    ## ALIAS date range
+       GROUP Input
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
@@ -506,7 +531,8 @@ type Date
             Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
         _ -> Error.throw (Type_Error.Error Date end "end")
 
-    ## Shift the date by the specified amount of business days.
+    ## GROUP DateTime
+       Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
        Monday through Friday.
@@ -628,7 +654,8 @@ type Date
                         if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
-    ## ALIAS Subtract Period
+    ## ALIAS subtract period
+       GROUP Operators
        Subtract the specified amount of time from this instant to get another
        date.
 
@@ -678,7 +705,8 @@ type Date
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
 
-    ## Format this date using the provided format specifier.
+    ## GROUP Conversions
+       Format this date using the provided format specifier.
 
        Arguments:
        - pattern: The text specifying the format for formatting the date.

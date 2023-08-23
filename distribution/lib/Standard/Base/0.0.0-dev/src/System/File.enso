@@ -43,9 +43,10 @@ polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.Encoding_Utils
 
+## Represents a file or folder on the filesystem.
 @Builtin_Type
 type File
-    ## ALIAS New File
+    ## ALIAS new file
        GROUP Input
 
        Creates a new file object, pointing to the given path.
@@ -93,7 +94,7 @@ type File
             warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
             Warning.attach warning temp
 
-    ## ALIAS Current Directory
+    ## ALIAS current directory
 
        Returns the current working directory (CWD) of the current program.
 
@@ -106,7 +107,7 @@ type File
     current_directory : File
     current_directory = get_cwd
 
-    ## ALIAS Home Directory
+    ## ALIAS home directory
 
        Returns the home directory of the current user.
 
@@ -216,7 +217,8 @@ type File
     with_input_stream self open_options action =
         Managed_Resource.bracket (self.new_input_stream open_options) (_.close) action
 
-    ## ALIAS Load, Open
+    ## ALIAS load, open
+       GROUP Input
        Read a file using the specified file format
 
        Arguments:
@@ -252,7 +254,7 @@ type File
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
             format.read self on_problems
 
-    ## ALIAS Load Bytes, Open Bytes
+    ## ALIAS load bytes, open bytes
        Reads all bytes in this file into a byte vector.
 
        > Example
@@ -266,7 +268,7 @@ type File
         opts = [File_Access.Read]
         self.with_input_stream opts (_.read_all_bytes)
 
-    ## ALIAS Load Text, Open Text
+    ## ALIAS load text, open text
        Reads the whole file into a `Text`, with specified encoding.
 
        Arguments:
@@ -290,7 +292,8 @@ type File
         bytes = file.read_bytes
         Text.from_bytes bytes encoding on_problems
 
-    ## Join two path segments together.
+    ## GROUP Operators
+       Join two path segments together.
 
        Arguments:
        - subpath: The path to join to the path of `self`.
@@ -305,7 +308,8 @@ type File
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
-    ## Join two or more path segments together, normalizing the `..` and `.` subpaths.
+    ## GROUP Calculations
+       Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
        - subpaths: The path segment or segments to join to the path of `self`.
@@ -349,7 +353,8 @@ type File
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 
-    ## Checks whether the file exists.
+    ## GROUP Metadata
+       Checks whether the file exists.
 
        > Example
          Check if a file exists.
@@ -360,7 +365,8 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
-    ## Checks whether the file is within another path.
+    ## GROUP Text
+       Checks whether the file is within another path.
 
        Arguments:
        - parent: The path to check if self is contained within.
@@ -373,7 +379,8 @@ type File
     starts_with : File -> Boolean
     starts_with self parent = @Builtin_Method "File.starts_with"
 
-    ## Gets the creation time of a file.
+    ## GROUP Metadata
+       Gets the creation time of a file.
 
        > Example
          Gets the creation time of a file.
@@ -385,7 +392,8 @@ type File
     creation_time self =
         File_Error.handle_java_exceptions self <| self.creation_time_builtin
 
-    ## Gets the last modified time of a file.
+    ## GROUP Metadata
+       Gets the last modified time of a file.
 
        > Example
          Gets the last modified time of a file.
@@ -409,7 +417,8 @@ type File
     posix_permissions self =
         File_Permissions.from_java_set self.posix_permissions_builtin
 
-    ## Checks whether the file exists and is a directory.
+    ## GROUP Metadata
+       Checks whether the file exists and is a directory.
 
        > Example
          Check if a file is a directory.
@@ -442,7 +451,8 @@ type File
     create_directory_builtin : Nothing
     create_directory_builtin self = @Builtin_Method "File.create_directory_builtin"
 
-    ## Checks whether the file exists and is a regular file.
+    ## GROUP Metadata
+       Checks whether the file exists and is a regular file.
 
        ? Regular Files
          A regular file is one that does not have any special meaning to the
@@ -458,7 +468,8 @@ type File
     is_regular_file : Boolean
     is_regular_file self = @Builtin_Method "File.is_regular_file"
 
-    ## Checks whether it the file can be written to.
+    ## GROUP Metadata
+       Checks whether it the file can be written to.
 
        ? Read-only Files
          If a file is read-only, it may still be possible to move or delete it,
@@ -466,7 +477,8 @@ type File
     is_writable : Boolean
     is_writable self = @Builtin_Method "File.is_writable"
 
-    ## Resolves the parent filesystem node of this file.
+    ## GROUP Metadata
+       Resolves the parent filesystem node of this file.
 
        > Example
          Get the parent file of a file.
@@ -477,7 +489,8 @@ type File
     parent : File | Nothing
     parent self = @Builtin_Method "File.parent"
 
-    ## Returns the path of this file.
+    ## GROUP Metadata
+       Returns the path of this file.
 
        > Example
          Get the path from a file.
@@ -488,7 +501,8 @@ type File
     path : Text
     path self = @Builtin_Method "File.path"
 
-    ## Returns the name of this file.
+    ## GROUP Metadata
+       Returns the name of this file.
 
        > Example
          Get the name from a file.
@@ -499,7 +513,8 @@ type File
     name : Text
     name self = @Builtin_Method "File.name"
 
-    ## Returns the extension of the file.
+    ## GROUP Metadata
+       Returns the extension of the file.
 
        > Example
          Get the extension of a file.
@@ -646,7 +661,8 @@ type File
         File_Error.handle_java_exceptions self <|
             Vector.from_polyglot_array (self.read_last_bytes_builtin n)
 
-    ## Lists files contained in the directory denoted by this file.
+    ## GROUP Input
+       Lists files contained in the directory denoted by this file.
 
        Arguments:
        - name_filter: A glob pattern that can be used to filter the returned
@@ -710,7 +726,8 @@ type File
                     pathStr = self.relativize file . path
                     matcher.matches (Path.of pathStr)
 
-    ## Checks if `self` is a child path of `other`.
+    ## GROUP Metadata
+       Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean
     is_child_of self other = self.starts_with other
 

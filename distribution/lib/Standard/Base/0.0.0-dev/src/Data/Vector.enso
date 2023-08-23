@@ -17,14 +17,13 @@ import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
+import project.Internal.Array_Like_Helpers
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
-import project.Internal.Array_Like_Helpers
-
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
@@ -98,6 +97,7 @@ type Vector a
         single_element -> [single_element]
 
     ## ALIAS repeat
+       GROUP Constants
        Creates a new vector of the given length, filling the elements with
        the provided constant.
 
@@ -164,7 +164,8 @@ type Vector a
        Copies content of a vector into an Array.
     to_array self = Array_Like_Helpers.vector_to_array self
 
-    ## Returns the number of elements stored in this vector.
+    ## GROUP Metadata
+       Returns the number of elements stored in this vector.
 
        > Example
          Checking the length of a vector.
@@ -173,7 +174,8 @@ type Vector a
     length : Integer
     length self = Array_Like_Helpers.length self
 
-    ## Gets an element from the vector at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the vector at a specified index (0-based).
 
        Arguments:
        - index: The location in the vector to get the element from. The index is
@@ -287,7 +289,8 @@ type Vector a
                         @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
                 fold_function (self.at 0) 1
 
-    ## Returns the first element of the vector that satisfies the condition or
+    ## GROUP Selections
+       Returns the first element of the vector that satisfies the condition or
        `if_missing` if no elements of the vector satisfy it.
 
        Arguments:
@@ -309,7 +312,8 @@ type Vector a
             found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
             if found.is_nothing then if_missing else self.at found
 
-    ## Returns the index of an element in the vector.
+    ## GROUP Values
+       Returns the index of an element in the vector.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -334,7 +338,8 @@ type Vector a
             predicate = unify_condition_predicate_or_element condition
             used_start.up_to self.length . find if_missing=Nothing (i-> predicate (self.at i))
 
-    ## Returns the last index of an element in the vector.
+    ## GROUP Values
+       Returns the last index of an element in the vector.
        Returns `Nothing` if the element is not found.
 
        Arguments:
@@ -360,7 +365,8 @@ type Vector a
                 predicate = unify_condition_predicate_or_element condition
                 used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
 
-    ## Checks whether a predicate holds for at least one element of self vector.
+    ## GROUP Logical
+       Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -380,7 +386,8 @@ type Vector a
         predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
-    ## Checks whether a condition holds for all elements in this vector.
+    ## GROUP Logical
+       Checks whether a condition holds for all elements in this vector.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -400,7 +407,8 @@ type Vector a
         predicate = unify_condition_or_predicate condition
         self.any (predicate >> .not) . not
 
-    ## Checks whether this vector contains a given value as an element.
+    ## GROUP Logical
+       Checks whether this vector contains a given value as an element.
 
        Arguments:
        - elem: The item to see if it exists in the vector.
@@ -412,7 +420,8 @@ type Vector a
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## Checks if this vector is empty.
+    ## GROUP Logical
+       Checks if this vector is empty.
 
        > Example
          Checking for emptiness.
@@ -421,7 +430,8 @@ type Vector a
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## Checks if this vector is not empty.
+    ## GROUP Logical
+       Checks if this vector is not empty.
 
        > Example
          Checking for non-emptiness.
@@ -430,7 +440,8 @@ type Vector a
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Selects all elements of this vector which satisfy a condition.
+    ## GROUP Selections
+       Selects all elements of this vector which satisfy a condition.
 
        Arguments:
        - filter: The filter to apply to the vector. It can either be an instance
@@ -450,7 +461,8 @@ type Vector a
             if predicate elem then builder.append elem else builder
         builder.to_vector
 
-    ## Selects all elements of this vector which satisfy a predicate.
+    ## GROUP Selections
+       Selects all elements of this vector which satisfy a predicate.
 
        Arguments:
        - predicate: A function that takes an index and a list element and
@@ -467,7 +479,8 @@ type Vector a
             if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
-    ## Partitions the vector into `Vector`s of elements which satisfy a given
+    ## GROUP Selections
+       Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -557,7 +570,8 @@ type Vector a
     flat_map self function =
         self.map function . flatten
 
-    ## Transforms a vector of vectors into a `Vector` of inner elements - removes
+    ## GROUP Calculations
+       Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
        > Example
@@ -625,7 +639,8 @@ type Vector a
         0.up_to self.length . each ix->
             f ix (self.at ix)
 
-    ## Reverses the vector, returning a `Vector` with the same elements, but in
+    ## GROUP Selections
+       Reverses the vector, returning a `Vector` with the same elements, but in
        the opposite order.
 
        > Example
@@ -669,7 +684,8 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## ALIAS Concatenate
+    ## ALIAS concatenate
+       GROUP Operators
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -686,7 +702,8 @@ type Vector a
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "that")
 
-    ## Inserts the given item into the vector at the given index.
+    ## GROUP Calculations
+       Inserts the given item into the vector at the given index.
 
        Arguments:
        - at: The index at which to insert the item before.
@@ -713,7 +730,8 @@ type Vector a
     ## PRIVATE
     insert_builtin vec at values = @Builtin_Method("Vector.insert_builtin")
 
-    ## Removes the item at the given index from the vector.
+    ## GROUP Selections
+       Removes the item at the given index from the vector.
 
        Arguments:
        - at: The index at which to remove the item.
@@ -729,7 +747,8 @@ type Vector a
     ## PRIVATE
     remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
-    ## When `self` is a vector of text values, concatenates all the values by
+    ## GROUP Calculations
+       When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
        Arguments:
@@ -747,7 +766,8 @@ type Vector a
             if self.length == 1 then prefix + self.at 0 + suffix else
                 prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
 
-    ## Creates a new vector with the skipping elements until `start` and then
+    ## GROUP Selections
+       Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
 
        Arguments:
@@ -761,7 +781,8 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## Creates a new `Vector` with only the specified range of elements from the
+    ## GROUP Selections
+       Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
        Arguments:
@@ -782,7 +803,8 @@ type Vector a
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## Creates a new `Vector`, removing any elements from the specified range.
+    ## GROUP Selections
+       Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
        - range: The section of the this vector to return.
@@ -794,7 +816,8 @@ type Vector a
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## Performs a pair-wise operation passed in `function` on consecutive
+    ## GROUP Calculations
+       Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
        Arguments:
@@ -820,7 +843,8 @@ type Vector a
         len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
 
-    ## Extend `self` vector to the length of `n` appending elements `elem` to
+    ## GROUP Calculations
+       Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
        Arguments:
@@ -844,7 +868,8 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
+    ## GROUP Selections
+       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
@@ -854,7 +879,8 @@ type Vector a
     first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
+    ## GROUP Selections
+       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
        > Example
@@ -864,7 +890,8 @@ type Vector a
     last : Any ! Index_Out_Of_Bounds
     last self = self.at -1
 
-    ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
+    ## GROUP Selections
+       Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -877,6 +904,7 @@ type Vector a
     second self = self.at 1
 
     ## ALIAS order_by
+       GROUP Calculations
        Sort the vector.
 
        Arguments:
@@ -958,7 +986,8 @@ type Vector a
         compare_funcs = comps.map (it-> it.compare)
         self.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
 
-    ## Keeps only unique elements within the vector, removing any duplicates.
+    ## GROUP Selections
+       Keeps only unique elements within the vector, removing any duplicates.
 
        Arguments:
        - on: A projection from the element type to the value of that element
@@ -1048,15 +1077,18 @@ type Builder
     new : Integer -> Builder
     new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
-    ## Checks if this builder is empty.
+    ## GROUP Logical
+       Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.java_builder.isEmpty
 
-    ## Checks if this builder is not empty.
+    ## GROUP Logical
+       Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Gets the current length of the builder.
+    ## GROUP Metadata
+       Gets the current length of the builder.
     length : Integer
     length self = self.java_builder.getSize
 
@@ -1120,7 +1152,8 @@ type Builder
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
 
-    ## Gets an element from the vector builder at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
        - index: The location in the vector to get the element from. The index is
@@ -1132,7 +1165,8 @@ type Builder
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
-    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
+    ## GROUP Selections
+       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
@@ -1142,7 +1176,8 @@ type Builder
     first : Vector ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
+    ## GROUP Selections
+       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
        > Example
@@ -1152,7 +1187,8 @@ type Builder
     last : Vector ! Index_Out_Of_Bounds
     last self = self.at -1
 
-    ## Checks whether a predicate holds for at least one element of this builder.
+    ## GROUP Logical
+       Checks whether a predicate holds for at least one element of this builder.
 
        Arguments:
        - condition: A `Filter_Condition` or a function that takes a vector
@@ -1163,7 +1199,8 @@ type Builder
         predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
-    ## Converts this builder to a vector containing all the appended elements.
+    ## GROUP Conversions
+       Converts this builder to a vector containing all the appended elements.
 
        > Example
          Use a builder to add elements to and then create a vector.

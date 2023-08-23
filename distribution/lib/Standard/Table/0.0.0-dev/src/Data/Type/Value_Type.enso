@@ -45,6 +45,7 @@ type Bits_Comparator
     hash : Bits -> Integer
     hash x = Comparable.from x.to_integer . hash x.to_integer
 
+## PRIVATE
 Comparable.from (_:Bits) = Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.
@@ -140,25 +141,29 @@ type Value_Type
        In-Memory and SQLite tables support this.
     Mixed
 
-    ## Checks if the `Value_Type` represents a boolean type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a boolean type.
     is_boolean : Boolean
     is_boolean self = case self of
         Value_Type.Boolean -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a floating-point number type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
         Value_Type.Float _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a text type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a text type.
     is_text : Boolean
     is_text self = case self of
         Value_Type.Char _ _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents any numeric type - integer, byte,
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
@@ -168,19 +173,22 @@ type Value_Type
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents an integer type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents an integer type.
     is_integer : Boolean
     is_integer self = case self of
         Value_Type.Integer _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a decimal type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a decimal type.
     is_decimal : Boolean
     is_decimal self = case self of
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a type that holds a date.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.
     has_date : Boolean
@@ -189,7 +197,8 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a type that holds a time of day.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a type that holds a time of day.
 
        It will return true for both `Time_Of_Day` and `Date_Time` types.
     has_time : Boolean
@@ -198,7 +207,8 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
-    ## Checks if the `Value_Type` represents a date/time type.
+    ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a date/time type.
     is_date_or_time : Boolean
     is_date_or_time self = case self of
         Value_Type.Date -> True

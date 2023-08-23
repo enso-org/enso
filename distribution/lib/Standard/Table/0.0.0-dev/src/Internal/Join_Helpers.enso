@@ -81,5 +81,7 @@ type Join_Condition_Resolver
             if converted.contains Nothing then Panic.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
                 Join_Condition_Resolution.Result converted redundant_names.to_vector
 
+## PRIVATE
 type Join_Condition_Resolution
+    ## PRIVATE
     Result (conditions : Vector Any) (redundant_column_names : Vector Text)

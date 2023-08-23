@@ -260,7 +260,7 @@ type SQLite_Dialect
         _ = [period, operation_input_type]
         Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
 
-    ## PRVIATE
+    ## PRIVATE
        Returns true if the `replace` parameters are suppoerted by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
@@ -412,6 +412,7 @@ supported_replace_params =
     e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     Set.from_vector e
 
+## PRIVATE
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
     input = args.at 0
@@ -438,6 +439,7 @@ replace args metadata =
         Nothing -> replace_params.throw_unsupported
         _ -> expression
 
+## PRIVATE
 replace_only_first case_sensitive t p r =
     search_string = if case_sensitive then t else
         Builder.code "LOWER(" ++ t ++ ")"
