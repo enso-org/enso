@@ -48,7 +48,7 @@ type Pair
         Pair.new (fun self.first) (fun self.second)
 
     ## GROUP Metadata
-       Returns the length (2) of the Pair.
+       Returns the length of the Pair (which is always equal to 2).
     length : Integer
     length self = 2
 
@@ -85,7 +85,7 @@ type Pair
             _ -> if_missing
 
     ## GROUP Logical
-       Checks whether a predicate holds for at least one element of self pair.
+       Checks whether a predicate holds for at least one element of this pair.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean

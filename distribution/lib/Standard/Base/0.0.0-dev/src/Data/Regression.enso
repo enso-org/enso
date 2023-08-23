@@ -103,7 +103,7 @@ type Fitted_Model
         Fitted_Model.Logarithmic a b _ -> a.to_text + " * X.ln + " + b.to_text
         Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
-    ## GROUP Math
+    ## GROUP Calculations
        Use the model to predict a value.
     predict : Number -> Number
     predict self x = case self of
