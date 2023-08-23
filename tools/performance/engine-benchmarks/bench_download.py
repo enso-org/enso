@@ -58,6 +58,7 @@ import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
 from datetime import datetime, timedelta
+from enum import Enum
 from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
@@ -93,6 +94,11 @@ Workflod ID of engine benchmarks, got via `gh api
 '/repos/enso-org/enso/actions/workflows'`.
 The name of the workflow is 'Benchmark Engine'
 """
+NEW_ENGINE_BENCH_WORKFLOW_ID = 67075764
+"""
+Workflow ID for 'Benchmark Engine' workflow, which is the new workflow
+since 2023-08-22.
+"""
 STDLIBS_BENCH_WORKFLOW_ID = 66661001
 """
 Workflod ID of stdlibs benchmarks, got via `gh api 
@@ -107,6 +113,19 @@ JINJA_TEMPLATE = "templates/template_jinja.html"
 TEMPLATES_DIR = "templates"
 GENERATED_SITE_DIR = "generated_site"
 GH_ARTIFACT_RETENTION_PERIOD = timedelta(days=90)
+
+
+class Source(Enum):
+    ENGINE = "engine"
+    STDLIB = "stdlib"
+
+    def workflow_ids(self) -> List[int]:
+        if self == Source.ENGINE:
+            return [ENGINE_BENCH_WORKFLOW_ID, NEW_ENGINE_BENCH_WORKFLOW_ID]
+        elif self == Source.STDLIB:
+            return [STDLIBS_BENCH_WORKFLOW_ID]
+        else:
+            raise ValueError(f"Unknown source {self}")
 
 
 @dataclass
@@ -379,12 +398,13 @@ class FakeCache:
         return 0
 
 
-async def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun]:
+async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow_id: int) -> List[JobRun]:
     """
     Fetches the list of all the job runs from the GH API for the specified `branch`.
     """
     logging.info(f"Looking for all successful Engine benchmark workflow run "
-                 f"actions from {since} to {until} for branch {branch}")
+                 f"actions from {since} to {until} for branch {branch} "
+                 f"and workflow ID {workflow_id}")
     query_fields = {
         "branch": branch,
         "status": "success",
@@ -392,15 +412,16 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[
         # Start with 1, just to determine the total count
         "per_page": "1"
     }
-    res = await _invoke_gh_api(f"/actions/workflows/{ENGINE_BENCH_WORKFLOW_ID}/runs", query_fields)
+    res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", query_fields)
     total_count = int(res["total_count"])
-    per_page = 2
-    logging.debug(f"Total count of all runs: {total_count}, will process {per_page} runs per page")
+    per_page = 3
+    logging.debug(f"Total count of all runs: {total_count} for workflow ID "
+                  f"{workflow_id}. Will process {per_page} runs per page")
 
     async def get_and_parse_run(page: int, parsed_bench_runs) -> None:
         _query_fields = query_fields.copy()
         _query_fields["page"] = str(page)
-        res = await _invoke_gh_api(f"/actions/workflows/{ENGINE_BENCH_WORKFLOW_ID}/runs", _query_fields)
+        res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
         _parsed_bench_runs = [_parse_bench_run_from_json(bench_run_json)
                               for bench_run_json in bench_runs_json]
@@ -435,12 +456,10 @@ async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Op
     # There might be multiple artifacts in the artifact list for a benchmark run
     # We are looking for the one named 'Runtime Benchmark Report', which will
     # be downloaded as a ZIP file.
-    obj = await _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
+    obj: Dict[str, Any] = await _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
-    bench_report_artifact = None
-    for artifact in artifacts:
-        if artifact["name"] == "Runtime Benchmark Report":
-            bench_report_artifact = artifact
+    assert len(artifacts) == 1, "There should be exactly one artifact for a benchmark run"
+    bench_report_artifact = artifacts[0]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
     if bench_report_artifact["expired"]:
@@ -677,6 +696,22 @@ async def main():
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
+
+    def _parse_bench_source(_bench_source: str) -> Source:
+        try:
+            return Source(_bench_source)
+        except ValueError:
+            print(f"Invalid benchmark source {_bench_source}.", file=sys.stderr)
+            print(f"Available sources: {[source.value for source in Source]}", file=sys.stderr)
+            exit(1)
+
+    arg_parser.add_argument("-r", "--source",
+                            action="store",
+                            metavar=f"({Source.ENGINE.value}|{Source.STDLIB.value})",
+                            default=Source.ENGINE.value,
+                            type=lambda s: _parse_bench_source(s),
+                            help=f"The source of the benchmarks. Available sources: "
+                                 f"{[source.value for source in Source]}")
     arg_parser.add_argument("-b", "--branches", action="store",
                             nargs="+",
                             default=["develop"],
@@ -727,13 +762,15 @@ async def main():
         temp_dir: str = args.tmp_dir
     use_cache: bool = args.use_cache
     assert cache_dir and temp_dir
+    bench_source: Source = args.source
     csv_output: str = args.csv_output
     create_csv: bool = args.create_csv
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
-                 f"temp_dir={temp_dir}, use_cache={use_cache}, csv_output={csv_output}, "
-                 f"create_csv={create_csv}, compare={compare}, branches={branches}, "
+                 f"temp_dir={temp_dir}, use_cache={use_cache}, bench_source={bench_source}, "
+                 f"csv_output={csv_output}, "
+                 f"create_csv={create_csv}, branches={branches}, "
                  f"labels_override={labels_override}")
 
 
@@ -761,7 +798,11 @@ async def main():
     """ Set of all gathered benchmark labels from all the job reports """
     job_reports_per_branch: Dict[str, List[JobReport]] = {}
     for branch in branches:
-        bench_runs = await get_bench_runs(since, until, branch)
+        bench_runs: List[JobRun] = []
+        for workflow_id in bench_source.workflow_ids():
+            bench_runs.extend(
+                await get_bench_runs(since, until, branch, workflow_id)
+            )
         if len(bench_runs) == 0:
             print(
                 f"No successful benchmarks found within period since {since}"
