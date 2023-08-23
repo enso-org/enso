@@ -16,7 +16,6 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 
-
 type Match
     ## PRIVATE
        internal_regex_result : RegexResult (Truffle)
@@ -76,7 +75,8 @@ type Match
         span = self.utf_16_span group
         if span.is_nothing then Nothing else span.end
 
-    ## Returns the start grapheme index of a group.
+    ## GROUP Metadata
+       Returns the start grapheme index of a group.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -144,7 +144,8 @@ type Match
             range = Range.new start end
             Utf_16_Span.Value range self.input
 
-    ## Gets the grapheme span matched by the group with the provided identifier, or
+    ## GROUP Metadata
+       Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -177,7 +178,8 @@ type Match
         result = self.utf_16_span group Nothing
         if result.is_nothing then default else result.to_grapheme_span
 
-    ## Gets the Text matched by the group with the provided identifier, or
+    ## GROUP Metadata
+       Gets the Text matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such
        group exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -205,7 +207,8 @@ type Match
         result = self.span group Nothing
         if result.is_nothing then default else result.text
 
-    ## Gets a vector containing the Text of _all_ of the capturing groups in
+    ## GROUP Metadata
+       Gets a vector containing the Text of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
        the match with `default`. This vector includes group 0, which contains
        the entire match.
@@ -245,7 +248,8 @@ type Match
         group_numbers = 0.up_to self.pattern.group_count
         group_numbers.map n-> (self.text n . if_nothing default)
 
-    ## Gets a map containing the named capturing groups for the pattern,
+    ## GROUP Metadata
+       Gets a map containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
        `default`.
 
@@ -288,7 +292,8 @@ type Match
     get self index ~if_missing=Nothing =
         self.text index . catch No_Such_Group (_-> if_missing)
 
-    ## Gets the grapheme span matched by the group with the provided index, or
+    ## GROUP Selections
+       Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.
        If the identifier is invalid then Index_Out_Of_Bounds is thrown.
 

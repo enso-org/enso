@@ -55,11 +55,13 @@ type Suite_Config
        Construct a configuration
     Value only_group_regexp print_only_failures output_path
 
+    ## Should a specific group be run.
     should_run_group self name =
         regexp = self.only_group_regexp
         case regexp of
             _ : Text -> name.match regexp . catch Any (_->True)
             _ -> True
 
+    ## Should the results be written to JUnit XML file.
     should_output_junit self =
         self.output_path.is_nothing.not

@@ -5,11 +5,14 @@ import Standard.Base.Nothing.Nothing
 
 from project.Errors import Unsupported_Database_Operation
 
-# Specifies a set of parameters to Table.replace
+## PRIVATE
+   Specifies a set of parameters to Table.replace
 type Replace_Params
+    ## PRIVATE
     Value input_type (case_sensitivity : Case_Sensitivity) (only_first : Boolean)
 
-    ## Raise an exception for an unsupported combination of parameters
+    ## PRIVATE
+       Raise an exception for an unsupported combination of parameters
     throw_unsupported : Nothing ! Unsupported_Database_Operation
     throw_unsupported self =
         msg = "The REPLACE operation is not supported on PostgreSQL for the following options: argument type " + self.input_type.to_text + ", case_sensitivity " + self.case_sensitivity.to_display_text + ", only_first " + self.only_first.to_text

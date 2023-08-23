@@ -1,9 +1,7 @@
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Number
 
-## Alias Pi (Constant)
-
-   The mathematical constant pi, equal to the ratio of a circle circumference
+## The mathematical constant pi, equal to the ratio of a circle circumference
    to its diameter.
 
    > Example
@@ -13,9 +11,7 @@ import project.Data.Numbers.Number
 pi : Decimal
 pi = 3.1415926535897932385
 
-## ALIAS e (Constant)
-
-   The mathematical constant e, the base of the natural logarithm.
+## The mathematical constant e, the base of the natural logarithm.
 
    > Example
      Calculating the natural logarithm of 3.
@@ -26,6 +22,7 @@ e = 2.718281828459045235360
 
 ## PRIVATE
    ADVANCED
+   GROUP Math
 
    Returns the smaller value of `a` and `b`.
 
@@ -47,6 +44,7 @@ min a b = if a <= b then a else b
 
 ## PRIVATE
    ADVANCED
+   GROUP Math
 
    Returns the larger value of `a` and `b`.
 

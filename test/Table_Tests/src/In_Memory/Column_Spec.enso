@@ -112,7 +112,7 @@ spec =
             c1.at 1 . should_be_a Integer
             c1.at 2 . should_be_a Decimal
 
-        Test.specify "will preserve the types if the column is Mixed (2)" pending="TODO: disabled due to issue #7352" <|
+        Test.specify "will preserve the types if the column is Mixed (2)" pending="ToDo: disabled due to issue #7352" <|
             c2 = Column.from_vector "X" [1, 2.0, "a"]
             c2.value_type . should_equal Value_Type.Mixed
             c2.at 0 . should_be_a Integer

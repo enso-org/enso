@@ -217,7 +217,7 @@ spec =
             # We fallback to `to_text`, so obviously the nested numbers will not know about our formatting settings.
             formatter.format (Custom_Type_With_To_Text.Value 1000) . should_equal "[CUSTOM = 1000]"
 
-        Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
+        Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="ToDo: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
             formatter = Data_Formatter.Value
             formatter.format Custom_Type_With_Error . should_fail_with Illegal_State
             Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State

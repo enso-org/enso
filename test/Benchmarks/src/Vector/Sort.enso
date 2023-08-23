@@ -54,7 +54,7 @@ type Int
 # The Benchmarks ==============================================================
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 1 3)
 
 
 type Data
@@ -71,7 +71,7 @@ type Data
 
 
 collect_benches = Bench.build builder->
-    vector_size = 1000 * 1000
+    vector_size = 100 * 1000
     data = Data.create vector_size
     projection = x -> x % 10
     comparator = l -> r -> Ordering.compare l r

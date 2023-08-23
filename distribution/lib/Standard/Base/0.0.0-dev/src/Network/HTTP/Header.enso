@@ -192,4 +192,5 @@ type Header_Comparator
         key = x.name.to_case_insensitive_key + x.value
         Comparable.from key . hash key
 
+## PRIVATE
 Comparable.from (_:Header) = Header_Comparator

@@ -83,14 +83,16 @@ type Column
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## Returns a Table describing this column's contents.
+    ## GROUP Standard.Base.Metadata
+       Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
     info : Table
     info self = self.to_table.info
 
-    ## Returns a materialized column containing rows of this column.
+    ## GROUP Standard.Base.Input
+       Returns a materialized column containing rows of this column.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -99,12 +101,14 @@ type Column
     read self max_rows=Nothing =
         self.to_table.read max_rows . at self.name
 
-    ## Returns a vector containing all the elements in this column.
+    ## GROUP Standard.Base.Conversions
+       Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
         self.to_table.read . at 0 . to_vector
 
-    ## Returns the `Value_Type` associated with that column.
+    ## GROUP Standard.Base.Metadata
+       Returns the `Value_Type` associated with that column.
 
        The value type determines what type of values the column is storing and
        what operations are permitted.
@@ -188,21 +192,25 @@ type Column
             self.naming_helper.function_name op_kind [self]
         self.make_op op_kind [] effective_new_name
 
-    ## Returns the length of this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 
-    ## Returns the number of missing items in this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of missing items in this column.
     count_nothing : Integer
     count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
-    ## Returns the number of non-null items in this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of non-null items in this column.
     count : Integer
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## ALIAS Equals
+    ## ALIAS equals
+       GROUP Standard.Base.Operators
        Element-wise equality comparison.
 
        Arguments:
@@ -236,7 +244,8 @@ type Column
     == self other =
         make_equality_check_with_floating_point_handling self other "=="
 
-    ## Element-wise case-insensitive text equality comparison.
+    ## GROUP Standard.Base.Logical
+       Element-wise case-insensitive text equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -254,7 +263,8 @@ type Column
                     new_name = self.naming_helper.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
 
-    ## ALIAS Not Equals
+    ## ALIAS not equals
+       GROUP Standard.Base.Operators
        Element-wise non-equality comparison.
 
        Arguments:
@@ -288,7 +298,8 @@ type Column
     != self other =
         make_equality_check_with_floating_point_handling self other "!="
 
-    ## ALIAS Greater Than Or Equal
+    ## ALIAS greater than or equal
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -301,7 +312,8 @@ type Column
     >= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">=" other
 
-    ## ALIAS Less Than Or Equal
+    ## ALIAS less than or equal
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -314,7 +326,8 @@ type Column
     <= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<=" other
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -327,7 +340,8 @@ type Column
     > self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">" other
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -340,7 +354,8 @@ type Column
     < self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<" other
 
-    ## Element-wise inclusive bounds check.
+    ## GROUP Standard.Base.Logical
+       Element-wise inclusive bounds check.
 
        Arguments:
        - lower: The lower bound to compare elements of `self` against. If
@@ -360,7 +375,8 @@ type Column
                     [self.naming_helper.to_expression_text self, "between", self.naming_helper.to_expression_text lower, "and", self.naming_helper.to_expression_text upper]
                 self.make_op "BETWEEN" [lower, upper] new_name
 
-    ## ALIAS Add, Plus, Concatenate
+    ## ALIAS add, concatenate, plus
+       GROUP Standard.Base.Operators
        Element-wise addition. Works on numeric types or text.
 
        Arguments:
@@ -387,7 +403,8 @@ type Column
             new_name = self.naming_helper.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## ALIAS Subtract, Minus, Time Difference
+    ## ALIAS minus, subtract, time difference
+       GROUP Standard.Base.Operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
 
@@ -414,7 +431,8 @@ type Column
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
                 Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time values is not supported in this database.")
 
-    ## ALIAS Multiply, Times, Product
+    ## ALIAS multiply, product, times
+       GROUP Standard.Base.Operators
        Element-wise multiplication.
 
        Arguments:
@@ -437,7 +455,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
-    ## ALIAS Divide
+    ## ALIAS divide
+       GROUP Standard.Base.Operators
        Element-wise division.
 
        Arguments:
@@ -480,7 +499,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
-    ## ALIAS Modulus, Modulo
+    ## ALIAS modulo, modulus
+       GROUP Standard.Base.Operators
        Element-wise modulus.
 
        Arguments:
@@ -518,7 +538,8 @@ type Column
             new_name = self.naming_helper.binary_operation_name "%" self other
             self.make_binary_op op other new_name
 
-    ## ALIAS Power
+    ## ALIAS power
+       GROUP Standard.Base.Operators
        Element-wise raising to the power.
 
        Arguments:
@@ -556,7 +577,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
-    ## ALIAS And
+    ## ALIAS and
+       GROUP Standard.Base.Operators
        Element-wise boolean conjunction.
 
        Arguments:
@@ -572,7 +594,8 @@ type Column
             new_name = self.naming_helper.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
-    ## ALIAS Or
+    ## ALIAS or
+       GROUP Standard.Base.Operators
        Element-wise boolean disjunction.
 
        Arguments:
@@ -588,14 +611,16 @@ type Column
             new_name = self.naming_helper.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
 
-    ## Boolean negation of each element in this column.
+    ## GROUP Standard.Base.Logical
+       Boolean negation of each element in this column.
     not : Column
     not self =
         Value_Type.expect_boolean self <|
             new_name = self.naming_helper.concat ["not", self.naming_helper.to_expression_text self]
             self.make_unary_op "NOT" new_name
 
-    ## ALIAS IF
+    ## ALIAS if
+       GROUP Standard.Base.Logical
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
@@ -633,7 +658,8 @@ type Column
     const : Any -> Column
     const self value = self.to_table.make_constant_column value
 
-    ## Round to a specified number of decimal places.
+    ## GROUP Standard.Base.Math
+       Round to a specified number of decimal places.
 
        `round` is only valid for `Value_Type.Decimal`, `Value_Type.Float`, and
        `Value_Type.Integer` columns.
@@ -766,6 +792,7 @@ type Column
         result.cast Value_Type.Float . rename new_name
 
     ## ALIAS int
+       GROUP Standard.Base.Rounding
 
        Truncate the floating-point values to an integer by dropping the
        fractional part. This is equivalent to "round-toward-zero".
@@ -786,7 +813,8 @@ type Column
             new_name = self.naming_helper.function_name "truncate" [self]
             self.make_unary_op "TRUNCATE" new_name
 
-    ## Takes the ceiling of floating-point values, returning integer values.
+    ## GROUP Standard.Base.Rounding
+       Takes the ceiling of floating-point values, returning integer values.
 
        ! NaN/Inf
          If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
@@ -804,7 +832,8 @@ type Column
             new_name = self.naming_helper.function_name "ceil" [self]
             self.make_unary_op "CEIL" new_name
 
-    ## Takes the floor of floating-point values, returning integer values.
+    ## GROUP Standard.Base.Rounding
+       Takes the floor of floating-point values, returning integer values.
 
        ! NaN/Inf
          If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
@@ -838,7 +867,8 @@ type Column
             new_name = self.naming_helper.function_name "decimal_mod" [self, other]
             self.make_binary_op "DECIMAL_MOD" other new_name
 
-    ## Returns a column of first non-`Nothing` value on each row of `self` and
+    ## GROUP Standard.Base.Logical
+       Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
        Arguments:
@@ -860,7 +890,8 @@ type Column
             op_result = self.make_op "COALESCE" vec new_name
             adapt_unified_column op_result common_type
 
-    ## Returns a column of minimum on each row of `self` and `values`.
+    ## GROUP Standard.Base.Math
+       Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
        - values: list of columns or values to minimum with `self`, or a single
@@ -879,7 +910,8 @@ type Column
             new_name = self.naming_helper.function_name "min" [self]+args
             self.make_op "ROW_MIN" args new_name
 
-    ## Returns a column of maximum on each row of `self` and `values`.
+    ## GROUP Standard.Base.Math
+       Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
        - values: list of columns or values to maximum with `self`, or a single
@@ -898,21 +930,24 @@ type Column
             new_name = self.naming_helper.function_name "max" [self]+args
             self.make_op "ROW_MAX" args new_name
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Logical
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
         new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is null"]
         self.make_unary_op "IS_NULL" new_name
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Math
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self = Value_Type.expect_numeric self <|
         new_name = self.naming_helper.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Math
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
     is_infinite : Column
@@ -928,7 +963,8 @@ type Column
         new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is empty"]
         self.make_unary_op "IS_EMPTY" new_name
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Logical
+       Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
        > Example
@@ -964,7 +1000,8 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## ALIAS Fill Missing, if_nothing
+    ## ALIAS fill missing, if_nothing
+       GROUP Standard.Base.Values
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -987,7 +1024,8 @@ type Column
             op_result = self.make_binary_op "FILL_NULL" default self.name
             adapt_unified_column op_result common_type
 
-    ## ALIAS Fill Empty, if_empty
+    ## ALIAS fill empty, if_empty
+       GROUP Standard.Base.Values
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1010,7 +1048,8 @@ type Column
                 result = self.is_empty.iif default self
                 result.rename self.name
 
-    ## Returns a new column, containing the same elements as `self`, but with
+    ## GROUP Standard.Base.Metadata
+       Returns a new column, containing the same elements as `self`, but with
        the given name.
 
        Arguments:
@@ -1027,6 +1066,7 @@ type Column
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
+       GROUP Standard.Base.Selections
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -1047,7 +1087,8 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## Creates a new Column with the specified range of rows from the input
+    ## GROUP Standard.Base.Selections
+       Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -1059,7 +1100,8 @@ type Column
         msg = "`Column.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Creates a new Column from the input with the specified range of rows
+    ## GROUP Standard.Base.Selections
+       Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:
@@ -1071,7 +1113,8 @@ type Column
         msg = "`Column.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Checks for each element of the column if it starts with `other`.
+    ## GROUP Standard.Base.Text
+       Checks for each element of the column if it starts with `other`.
 
        Arguments:
        - other: A column or text to check for each item in `self`.
@@ -1087,7 +1130,8 @@ type Column
         new_name = self.naming_helper.function_name "starts_with" [self, other]
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
-    ## Checks for each element of the column if it ends with `other`.
+    ## GROUP Standard.Base.Text
+       Checks for each element of the column if it ends with `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
@@ -1103,7 +1147,8 @@ type Column
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
 
-    ## Checks for each element of the column if it contains `other`.
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it contains `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
@@ -1119,7 +1164,8 @@ type Column
         new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "contains" other case_sensitivity new_name
 
-    ## Checks for each element of the column if it matches an SQL-like pattern.
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it matches an SQL-like pattern.
 
        Arguments:
        - pattern: The pattern to match `self` against. If it is a column, the
@@ -1141,7 +1187,8 @@ type Column
                 new_name = self.naming_helper.binary_operation_name "like" self pattern
                 self.make_binary_op "LIKE" pattern new_name
 
-    ## This function removes the specified characters, by default any
+    ## GROUP Standard.Base.Text
+       This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
        Arguments:
@@ -1161,7 +1208,8 @@ type Column
                 if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
                     Error.throw (Unsupported_Database_Operation.Error ("`Column.trim "+where.to_text+"` is not supported by this connection."))
 
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+    ## GROUP Standard.Base.Text
+       Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the table unchanged.
 
        This method follows the exact replacement semantics of the
@@ -1235,7 +1283,8 @@ type Column
                 new_name = self.naming_helper.function_name "replace" [self, raw_term, new_text]
                 self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
-    ## Gets the year as a number from the date stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1243,7 +1292,8 @@ type Column
     year self = Value_Type.expect_has_date self <|
         simple_unary_op self "year"
 
-    ## Gets the month as a number (1-12) from the date stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1251,7 +1301,8 @@ type Column
     month self = Value_Type.expect_has_date self <|
         simple_unary_op self "month"
 
-    ## Gets the day of the month as a number (1-31) from the date stored in the
+    ## GROUP Standard.Base.DateTime
+       Gets the day of the month as a number (1-31) from the date stored in the
        column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1260,7 +1311,8 @@ type Column
     day self = Value_Type.expect_has_date self <|
         simple_unary_op self "day"
 
-    ## Gets the hour as a number (0-23) from the time stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the hour as a number (0-23) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1268,7 +1320,8 @@ type Column
     hour self = Value_Type.expect_has_time self <|
         simple_unary_op self "hour"
 
-    ## Gets the minute as a number (0-59) from the time stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the minute as a number (0-59) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1276,7 +1329,8 @@ type Column
     minute self = Value_Type.expect_has_time self <|
         simple_unary_op self "minute"
 
-    ## Gets the second as an integer (0-60) from the time stored in the column.
+    ## GROUP Standard.Base.Selections
+       Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1284,7 +1338,8 @@ type Column
     second self = Value_Type.expect_has_time self <|
         simple_unary_op self "second"
 
-    ## Gets the date part of the date/time value.
+    ## GROUP Standard.Base.DateTime
+       Gets the date part of the date/time value.
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
@@ -1292,7 +1347,8 @@ type Column
     date_part self period =
         Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helper
 
-    ## Computes a time difference between the two dates.
+    ## GROUP Standard.Base.DateTime
+       Computes a time difference between the two dates.
 
        It returns a column of integers expressing how many periods fit between
        the two dates/times.
@@ -1325,7 +1381,8 @@ type Column
                     metadata = self.connection.dialect.prepare_metadata_for_period period my_type
                     self.make_op "date_diff" [end] new_name metadata
 
-    ## Shifts the date/time by a specified period, returning a new date/time
+    ## GROUP Standard.Base.DateTime
+       Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
        Arguments:
@@ -1352,7 +1409,8 @@ type Column
                     metadata = self.connection.dialect.prepare_metadata_for_period period my_type
                     self.make_op "date_add" [amount] new_name metadata
 
-    ## Checks for each element of the column if it is contained within the
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it is contained within the
        provided vector or column.
 
        Arguments:
@@ -1416,7 +1474,8 @@ type Column
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
-    ## Parses a text column into values.
+    ## GROUP Standard.Base.Conversions
+       Parses a text column into values.
 
        In the Database backends, the default formatting settings of the
        particular database are used.
@@ -1466,14 +1525,16 @@ type Column
                    Database parse just boils down to a simple CAST.
                 self.internal_do_cast type on_problems
 
-    ## Formatting values is not supported in database columns.
+    ## GROUP Standard.Base.Conversions
+       Formatting values is not supported in database columns.
     @locale Locale.default_widget
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
-    ## Cast the column to a specific type.
+    ## GROUP Standard.Base.Conversions
+       Cast the column to a specific type.
 
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
@@ -1537,7 +1598,7 @@ type Column
             new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
             Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
-    ## ALIAS Transform Column
+    ## ALIAS transform column
 
        Applies `function` to each item in this column and returns the column
        of results.
@@ -1558,7 +1619,7 @@ type Column
         _ = [function, skip_nothing]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
-    ## ALIAS Transform Columns
+    ## ALIAS transform columns
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
