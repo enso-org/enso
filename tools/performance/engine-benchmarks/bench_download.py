@@ -664,6 +664,8 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
     jinja_template = jinja_env.get_template(template_file)
     generated_html = jinja_template.render(jinja_data.__dict__)
+    if path.exists(html_out_fname):
+        logging.info(f"{html_out_fname} already exist, rewritting")
     with open(html_out_fname, "w") as html_file:
         html_file.write(generated_html)
 
@@ -884,22 +886,20 @@ async def main():
     if not path.exists(GENERATED_SITE_DIR):
         os.mkdir(GENERATED_SITE_DIR)
 
+    logging.debug(f"Rendering HTML from {JINJA_TEMPLATE} to {GENERATED_SITE_DIR}")
+    site_path = path.join(GENERATED_SITE_DIR, bench_source.value + "-benchs.html")
     render_html(
         jinja_data,
         JINJA_TEMPLATE,
-        path.join(GENERATED_SITE_DIR, "index.html")
+        site_path
     )
-    # Copy rest of the static site content
     logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
     shutil.copy(
         path.join(TEMPLATES_DIR, "styles.css"),
         path.join(GENERATED_SITE_DIR, "styles.css")
     )
-    index_html_abs_path = path.join(
-        os.getcwd(),
-        GENERATED_SITE_DIR,
-        "index.html"
-    )
+
+    index_html_abs_path = path.abspath(site_path)
     print(f"The generated HTML is in {index_html_abs_path}")
     print(f"Open file://{index_html_abs_path} in the browser")
 
