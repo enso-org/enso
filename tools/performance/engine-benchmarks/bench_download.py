@@ -284,8 +284,11 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
             assert case.tag == "case"
             label = case.findtext("label").strip()
             scores = case.find("scores")
-            assert len(scores) == 1, "scores element should have exactly one child"
-            label_score_dict[label] = float(scores[0].text.strip())
+            scores_float = [float(score.text.strip()) for score in scores]
+            if len(scores_float) > 1:
+                logging.warning(f"More than one score for benchmark {label}, "
+                                f"using the best one (the smallest one).")
+            label_score_dict[label] = min(scores_float)
     return JobReport(
         label_score_dict=label_score_dict,
         bench_run=bench_run
