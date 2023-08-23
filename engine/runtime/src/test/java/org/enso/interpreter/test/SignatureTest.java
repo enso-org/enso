@@ -384,6 +384,7 @@ public class SignatureTest extends TestBase {
       assertContains("got V.Val[partial", ex.getMessage());
       assertContains("a=1", ex.getMessage());
       assertContains("b=7", ex.getMessage());
+      assertContains("c=_", ex.getMessage());
     }
   }
 
@@ -417,6 +418,7 @@ public class SignatureTest extends TestBase {
       assertContains("got oversaturated.fn[", ex.getMessage());
       assertContains("a=2", ex.getMessage());
       assertContains("b=3", ex.getMessage());
+      assertContains("c=_", ex.getMessage());
       assertContains("+a=4", ex.getMessage());
     }
   }
