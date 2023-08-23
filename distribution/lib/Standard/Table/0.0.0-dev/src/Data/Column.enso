@@ -1156,7 +1156,7 @@ type Column
         new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
-    ## GROUP Standard.Base.Logical
+    ## GROUP Standard.Base.Text
        Checks for each element of the column if it ends with `other`.
 
        Arguments:

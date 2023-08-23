@@ -365,7 +365,7 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
-    ## GROUP Logical
+    ## GROUP Text
        Checks whether the file is within another path.
 
        Arguments:

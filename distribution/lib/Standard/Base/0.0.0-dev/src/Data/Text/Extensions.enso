@@ -791,7 +791,7 @@ Text.from_codepoints : Vector Integer -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
 ## ALIAS check prefix
-   GROUP Logical
+   GROUP Text
 
    Checks whether `self` starts with `prefix`.
 
