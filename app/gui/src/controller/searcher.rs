@@ -964,7 +964,7 @@ pub mod test {
             result: &[SuggestionId],
         ) {
             let completion_response = completion_response(result);
-            let is_static = self_type.is_some().then_some(false);
+            let is_static = Some(self_type.is_none());
             expect_call!(client.completion(
                 module      = self.graph.module.path.file_path().clone(),
                 position    = self.code_location,
