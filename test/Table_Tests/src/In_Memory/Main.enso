@@ -7,6 +7,7 @@ import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Column_Format_Spec
 import project.In_Memory.Common_Spec
+import project.In_Memory.Integer_Overflow_Spec
 import project.In_Memory.Join_Performance_Spec
 import project.In_Memory.Lossy_Conversions_Spec
 import project.In_Memory.Parse_To_Table_Spec
@@ -21,6 +22,7 @@ spec =
     Column_Spec.spec
     Column_Format_Spec.spec
     Common_Spec.spec
+    Integer_Overflow_Spec.spec
     Lossy_Conversions_Spec.spec
     Table_Date_Spec.spec
     Table_Date_Time_Spec.spec

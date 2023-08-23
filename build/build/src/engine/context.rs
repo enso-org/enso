@@ -323,6 +323,7 @@ impl RunContext {
                     "runtime/Benchmark/compile",
                     "language-server/Benchmark/compile",
                     "searcher/Benchmark/compile",
+                    "std-benchmarks/Benchmark/compile",
                 ]);
             }
 
@@ -372,6 +373,9 @@ impl RunContext {
 
                 // Check Searcher Benchmark Compilation
                 sbt.call_arg("searcher/Benchmark/compile").await?;
+
+                // Check Enso JMH benchmark compilation
+                sbt.call_arg("std-benchmarks/Benchmark/compile").await?;
             }
 
             for benchmark in &self.config.execute_benchmarks {
@@ -419,15 +423,42 @@ impl RunContext {
 
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
-            let path = &self.paths.repo_root.engine.runtime.bench_report_xml;
-            if path.exists() {
-                ide_ci::actions::artifacts::upload_single_file(
-                    &self.paths.repo_root.engine.runtime.bench_report_xml,
-                    "Runtime Benchmark Report",
-                )
-                .await?;
-            } else {
-                info!("No benchmark file found at {}, nothing to upload.", path.display());
+            for bench in &self.config.execute_benchmarks {
+                match bench {
+                    Benchmarks::Runtime => {
+                        let runtime_bench_report =
+                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        if runtime_bench_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                runtime_bench_report,
+                                "Runtime Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Runtime Benchmark Report file found at {}, nothing to upload.",
+                                runtime_bench_report.display()
+                            );
+                        }
+                    }
+                    Benchmarks::EnsoJMH => {
+                        let enso_jmh_report =
+                            &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
+                        if enso_jmh_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                enso_jmh_report,
+                                "Enso JMH Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
+                                enso_jmh_report.display()
+                            );
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 

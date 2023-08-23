@@ -134,6 +134,36 @@ spec setup =
                 r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
 
+            ## This mostly checks that various operations handle all kinds of Integer storage implementations
+               (add_row_number may use a different storage than regular columns)
+            if setup.is_database.not then Test.specify "add_row_number and other operations" <|
+                t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]], ["Z", [0.25, 0.5, 0.75]]]
+                t2 = table_builder [["X", ["ddd", "eee", "fff"]]]
+
+                t11 = t1.add_row_number
+                (t11.at "Row" + 2) . to_vector . should_equal [3, 4, 5]
+                (t11.at "Row" + 0.5) . to_vector . should_equal [1.5, 2.5, 3.5]
+                ((t11.at "Y") + (t11.at "Row")) . to_vector . should_equal [2, 4, 6]
+                ((t11.at "Z") + (t11.at "Row")) . to_vector . should_equal [1.25, 2.5, 3.75]
+
+                xls = (enso_project.data / 'transient' / 'add_row_number.xls')
+                Problems.assume_no_problems <| t11.write xls
+                workbook = xls.read
+                t11_loaded = workbook.read workbook.sheet_names.first
+                t11_loaded.at "Row" . to_vector . should_equal [1, 2, 3]
+
+                t12 = (t1.add_row_number) . union (t2.add_row_number from=100)
+                r12 = t12 |> materialize
+                r12.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff"]
+                r12.at "Row" . to_vector . should_equal [1, 2, 3, 100, 101, 102]
+
+                t3 = table_builder [["X", ["a", "b", "c"]], ["Row", [1.5, 2.5, 3.5]]]
+
+                t123 = ((t1.add_row_number).union [(t2.add_row_number), t3])
+                r123 = t123 |> materialize
+                r123.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff", "a", "b", "c"]
+                r123.at "Row" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1.5, 2.5, 3.5]
+
         if setup.test_selection.fixed_length_text_columns then
             Test.specify "types of unioned fixed-length columns should be correctly inferred after passing through other operations that infer types from Database, like aggregate Shortest" <|
                 t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 0, 2]]] . cast "X" (Value_Type.Char 1 False)

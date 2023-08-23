@@ -8,6 +8,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
+import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import all
 
@@ -836,6 +837,22 @@ spec make_new_connection prefix persistent_connector=True =
                 err.column_name.should_equal "X"
                 err.expected_type.is_text . should_be_true
                 err.got_type.is_numeric . should_be_true
+
+        dest_name = Name_Generator.random_name "dest-table-test-types"
+        structure =
+            x = Column_Description.Value "X" (Value_Type.Integer Bits.Bits_16)
+            y = Column_Description.Value "Y" (Value_Type.Char size=4 variable_length=True)
+            z = Column_Description.Value "Z" (Value_Type.Char size=5 variable_length=False)
+            [x, y, z]
+        dest = connection.create_table dest_name structure temporary=True primary_key=[]
+        non_trivial_types_supported =
+            has_warning_or_error = dest.is_error || (Problems.get_attached_warnings dest . not_empty)
+            has_warning_or_error.not
+        if non_trivial_types_supported then
+            src = source_table_builder [["X", [1, 2, 3]], ["Y", ["a", "xyz", "abcdefghijkl"]], ["Z", ["a", "pqrst", "abcdefghijkl"]]]
+            Test.specify "fails if the target type is more restrictive than source" <|
+                result = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
+                result.should_fail_with Column_Type_Mismatch
 
         Test.specify "should not leave behind any garbage temporary tables if the upload fails" <|
             dest_name = Name_Generator.random_name "dest-table"

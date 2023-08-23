@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -496,7 +497,7 @@ public abstract class Storage<T> {
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return new LongStorage(data);
+    return new LongStorage(data, IntegerType.INT_64);
   }
 
   public final Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {

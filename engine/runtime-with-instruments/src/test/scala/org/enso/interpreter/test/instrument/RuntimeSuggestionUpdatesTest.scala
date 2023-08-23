@@ -728,7 +728,7 @@ class RuntimeSuggestionUpdatesTest
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,

@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Data.Type.Storage
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 from project.Data.Type.Value_Type import Auto, Bits, Value_Type
@@ -173,9 +174,10 @@ type Data_Formatter
             WhitespaceStrippingParser.new base_parser
 
     ## PRIVATE
-    make_integer_parser self auto_mode=False =
+    make_integer_parser self auto_mode=False target_type=Value_Type.Integer =
         separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
-        NumberParser.createIntegerParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
+        storage_type = Storage.from_value_type_strict target_type
+        NumberParser.createIntegerParser storage_type auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
 
     ## PRIVATE
     make_decimal_parser self auto_mode=False =
@@ -221,8 +223,8 @@ type Data_Formatter
 
     ## PRIVATE
     make_value_type_parser self value_type = case value_type of
-        # TODO once we implement #5159 we will need to add checks for bounds here and support 16/32-bit ints
-        Value_Type.Integer Bits.Bits_64 -> self.make_integer_parser
+        Value_Type.Integer _ ->
+            self.make_integer_parser target_type=value_type
         # TODO once we implement #6109 we can support 32-bit floats
         Value_Type.Float Bits.Bits_64   -> self.make_decimal_parser
         Value_Type.Boolean              -> self.make_boolean_parser

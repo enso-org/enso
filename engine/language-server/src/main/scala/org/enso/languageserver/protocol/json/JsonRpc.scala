@@ -122,5 +122,6 @@ object JsonRpc {
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
     .registerNotification(VisualizationEvaluationFailed)
+    .registerNotification(ProjectRenamed)
     .finalized()
 }

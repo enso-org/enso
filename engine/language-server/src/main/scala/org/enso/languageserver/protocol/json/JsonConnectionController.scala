@@ -36,6 +36,7 @@ import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject,
   RenameSymbol
 }
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -131,6 +132,13 @@ class JsonConnectionController(
   import context.dispatcher
 
   implicit val timeout: Timeout = Timeout(requestTimeout)
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream
+      .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
+  }
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
@@ -416,6 +424,20 @@ class JsonConnectionController(
         )
       }
 
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
+      webActor ! Notification(
+        RefactoringApi.ProjectRenamed,
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
+      )
+
     case Api.ProgressNotification(payload) =>
       val translated: Notification[_, _] =
         translateProgressNotification(payload)
@@ -581,6 +603,10 @@ class JsonConnectionController(
         requestTimeout,
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
+      ),
+      RenameProject -> RenameProjectHandler.props(
+        requestTimeout,
+        runtimeConnector
       ),
       RenameSymbol -> RenameSymbolHandler.props(
         requestTimeout,
