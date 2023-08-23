@@ -12,6 +12,7 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
@@ -164,6 +165,27 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request
+
+    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+        if try_auto_parse.not then response else
+            response.decode if_unsupported=response . catch handler=(_->response)
+
+#post : (URI | Text) -> Text | Request_Body | Any -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+#post uri data method=HTTP_Method.Get headers=[] try_auto_parse=True =
+
+post : (URI | Text) -> Text -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post uri body method=HTTP_Method.Get headers=[] try_auto_parse=True =
+    parsed_headers = headers . map h-> case h of
+        _ : Vector -> Header.new (h.at 0) (h.at 1)
+        _ : Pair -> Header.new (h.at 0) (h.at 1)
+        _ : Header -> h
+        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+
+    response = case body of
+        _ : Text ->
+            request = Request.new method uri parsed_headers (Request_Body.Json body)
+            HTTP.new.request request
+        _ -> Error.throw (Illegal_Argument.Error "Unsupported post body type " + (Meta.get_simple_type_name body) + ": " + body.to_display_text)
 
     if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
         if try_auto_parse.not then response else
