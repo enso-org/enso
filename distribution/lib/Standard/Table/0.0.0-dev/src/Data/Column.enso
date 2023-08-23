@@ -75,18 +75,22 @@ type Column
         expected_storage_type = case value_type of
             Auto -> Nothing
             _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
+        raise_invalid_value_type_error problematic_value =
+            expected_type = value_type
+            actual_type = Enso_Types.most_specific_value_type problematic_value use_smallest=True
+            Error.throw (Invalid_Value_Type.Value expected_type actual_type problematic_value)
         handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
             java_exception = caught_panic.payload
-            value = java_exception.getValue
-            expected_type = value_type
-            actual_type = Enso_Types.most_specific_value_type value use_smallest=True
-            Error.throw (Invalid_Value_Type.Value expected_type actual_type value)
+            raise_invalid_value_type_error java_exception.getValue
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
-            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Error <|
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name items expected_storage_type
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
-            Column.Value java_column
+            result = Column.Value java_column
+            result.catch Conversion_Failure error->
+                if error.example_values.is_empty then result else
+                    raise_invalid_value_type_error error.example_values.first
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
