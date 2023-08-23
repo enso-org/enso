@@ -227,9 +227,9 @@ spec =
         Test.specify "should be able to invoke methods on Integer via static method call" <|
             Integer.+ 1 2 . should_equal 3
             Integer.+ 1 2.5 . should_equal 3.5
-            Integer.+ 2.5 1 . should_equal 3.5
-            Text.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
-            Text.expect_panic_with (Integer.+ 1 "hello") Type_Error
+            Test.expect_panic_with (Integer.+ 1.5 1) Type_Error
+            Test.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
+            Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
 
     Test.group "Decimals" <|
 
