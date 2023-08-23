@@ -2,8 +2,8 @@ from Standard.Base import all
 
 polyglot java import org.enso.base.Environment_Utils
 
-## UNSTABLE
-   ADVANCED
+## ADVANCED
+   UNSTABLE
 
    Runs a given action with an environment variable modified to a given value.
    The environment variable is restored to its original value after the action.

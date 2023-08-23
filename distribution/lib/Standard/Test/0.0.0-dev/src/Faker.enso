@@ -5,10 +5,13 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Object to generate (deterministic) random value for testing
 type Faker
+    ## Set of upper case letters.
     upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
 
+    ## Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
+    ## Set of numerical digits.
     numbers = "0123456789".char_vector
 
     ## Creates a new Faker which can be used for creating test values.
@@ -20,9 +23,11 @@ type Faker
         generator = if seed == 0 then Java_Random.new else Java_Random.new seed
         Faker.Value generator
 
+    ## PRIVATE
     Value generator
 
-    ## Creates a random Text based on a template of character sets.
+    ## GROUP Standard.Base.Random
+       Creates a random Text based on a template of character sets.
 
        Arguments:
        - template: Vector of vectors that represent the possible characters for each
@@ -43,7 +48,8 @@ type Faker
             possible_chars.at selected_char_ix
         Text.from_char_vector characters
 
-    ## Generates a Text consisting of lower/upper case characters.
+    ## GROUP Standard.Base.Random
+       Generates a Text consisting of lower/upper case characters.
 
        Arguments:
        - length: length of text to generate
@@ -53,7 +59,8 @@ type Faker
         alphabet = if upper_case then Faker.upper_case_letters else Faker.lower_case_letters
         self.string_value <| 0.up_to length . map _->alphabet
 
-    ## Generates a Text consisting of lower/upper case characters and digits.
+    ## GROUP Standard.Base.Random
+       Generates a Text consisting of lower/upper case characters and digits.
 
        Arguments:
        - length: length of text to generate
@@ -63,7 +70,8 @@ type Faker
         alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.numbers
         self.string_value <| 0.up_to length . map _->alphabet
 
-    ## Generates a Text for a hexadecimal number
+    ## GROUP Standard.Base.Random
+       Generates a Text for a hexadecimal number
 
        Arguments:
        - length: length of text to generate
@@ -72,22 +80,26 @@ type Faker
         alphabet = "0123456789ABCDEF".char_vector
         self.string_value <| 0.up_to length . map _->alphabet
 
-    ## Create a random Boolean value
+    ## GROUP Standard.Base.Random
+       Create a random Boolean value
     boolean : Boolean
     boolean self =
         if self.generator.nextDouble < 0.5 then True else False
 
-    ## Create a random Integer value
+    ## GROUP Standard.Base.Random
+       Create a random Integer value
     integer : Integer -> Integer -> Integer
     integer self minimum=0 maximum=100 =
         minimum + (self.generator.nextInt (maximum - minimum))
 
-    ## Create a random Decimal value
+    ## GROUP Standard.Base.Random
+       Create a random Decimal value
     decimal : Decimal -> Decimal -> Decimal
     decimal self  minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
-    ## Picks an item at Random from a list
+    ## GROUP Standard.Base.Random
+       Picks an item at Random from a list
 
        Arguments:
        - items: Vector of items to pick from
@@ -96,7 +108,8 @@ type Faker
     vector_item self items =
         items.at (self.generator.nextInt items.length)
 
-    ## Randomly converts some values to Nothing
+    ## GROUP Standard.Base.Random
+       Randomly converts some values to Nothing
     make_some_nothing : Any -> Decimal -> Any
     make_some_nothing self value (chance=0.1) =
         if self.generator.nextDouble <= chance then Nothing else value

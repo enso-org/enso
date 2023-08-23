@@ -19,14 +19,16 @@ type Response_Body
        - bytes: The body of the response as binary data.
     Value bytes
 
-    ## ALIAS Parse as Text
+    ## ALIAS parse as text
+       GROUP Conversions
        Decodes the body to a Text value.
     @encoding Encoding.default_widget
     decode_as_text : Encoding -> Text
     decode_as_text self encoding=Encoding.utf_8 =
         Text.from_bytes self.bytes encoding
 
-    ## ALIAS Parse as JSON, Parse JSON
+    ## ALIAS parse as json, parse json
+       GROUP Conversions
        Decodes the body as JSON.
 
        > Example
@@ -45,7 +47,8 @@ type Response_Body
     to_text : Text
     to_text self = "Response_Body [" + self.bytes.length.to_text + " bytes]"
 
-    ## Write response body to a File.
+    ## GROUP Output
+       Write response body to a File.
 
        Arguments:
        - file: The file to write the bytes to.

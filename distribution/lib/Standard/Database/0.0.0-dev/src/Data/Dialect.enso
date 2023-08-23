@@ -224,7 +224,7 @@ type Dialect
         _ = [period, operation_input_type]
         Unimplemented.throw "This is an interface only."
 
-    ## PRVIATE
+    ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =

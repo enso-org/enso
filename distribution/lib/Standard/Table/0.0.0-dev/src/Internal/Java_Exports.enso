@@ -22,7 +22,7 @@ make_double_builder : Integer -> NumericBuilder
 make_double_builder initial_size = NumericBuilder.createDoubleBuilder initial_size
 
 ## PRIVATE
-make_long_builder : Integer -> NumericBuilder
+make_long_builder : Integer -> Bits -> NumericBuilder
 make_long_builder initial_size bits=Bits.Bits_64 =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     NumericBuilder.createLongBuilder initial_size integer_type
@@ -52,7 +52,8 @@ make_inferred_builder initial_size = InferredBuilder.new initial_size
 ## PRIVATE
    Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a
    value (instead of builder.append())
-type DateBuilderAdapter
+type Date_Builder_Adapter
+    ## PRIVATE
     Value (date_builder : DateBuilder)
 
     ## PRIVATE
@@ -65,7 +66,7 @@ type DateBuilderAdapter
     seal self = self.date_builder.seal
 
 ## PRIVATE
-   DateBuilderAdapter constructor that matches the interface of the other
+   Date_Builder_Adapter constructor that matches the interface of the other
    make_*_builder functions.
-make_date_builder_adapter : Integer -> DateBuilderAdapter
-make_date_builder_adapter n = DateBuilderAdapter.Value (make_date_builder n)
+make_date_builder_adapter : Integer -> Date_Builder_Adapter
+make_date_builder_adapter n = Date_Builder_Adapter.Value (make_date_builder n)

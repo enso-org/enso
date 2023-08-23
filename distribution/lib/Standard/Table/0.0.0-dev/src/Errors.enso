@@ -41,7 +41,7 @@ type Too_Many_Column_Names_Provided
     ## PRIVATE
        More names than the column count provided to the function.
        Can occur when using By_Position.
-    Error (column_names : [Text])
+    Error (column_names : Vector Text)
 
     ## PRIVATE
 
@@ -52,6 +52,12 @@ type Too_Many_Column_Names_Provided
 
 ## One or more column names were invalid.
 type Invalid_Column_Names
+    ## PRIVATE
+       Create an invalid column names error.
+
+       Arguments:
+       - column_names: The names of the invalid columns.
+       - extra_message: An optional message to append to the error.
     Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
     ## PRIVATE
@@ -76,7 +82,12 @@ type Invalid_Column_Names
 
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names
-    Error (column_names : [Text])
+    ## PRIVATE
+       Create an duplicate column names error.
+
+       Arguments:
+       - column_names: The set of duplicated column names.
+    Error (column_names : Vector Text)
 
     ## PRIVATE
 

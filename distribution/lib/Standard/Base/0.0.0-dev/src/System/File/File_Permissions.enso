@@ -45,15 +45,18 @@ type File_Permissions
             result.append PosixFilePermission.OTHERS_EXECUTE
         result.to_vector
 
-    ## Checks if the given file can be read by the owner.
+    ## GROUP Metadata
+       Checks if the given file can be read by the owner.
     owner_read : Boolean
     owner_read self = self.owner.contains Permission.Read
 
-    ## Checks if the given file can be written by the owner.
+    ## GROUP Metadata
+       Checks if the given file can be written by the owner.
     owner_write : Boolean
     owner_write self = self.owner.contains Permission.Write
 
-    ## Checks if the given file can be executed by the owner.
+    ## GROUP Metadata
+       Checks if the given file can be executed by the owner.
     owner_execute : Boolean
     owner_execute self = self.owner.contains Permission.Execute
 
@@ -69,15 +72,18 @@ type File_Permissions
     group_execute : Boolean
     group_execute self = self.group.contains Permission.Execute
 
-    ## Checks if the given file can be read by others.
+    ## GROUP Metadata
+       Checks if the given file can be read by others.
     others_read : Boolean
     others_read self = self.others.contains Permission.Read
 
-    ## Checks if the given file can be written by others.
+    ## GROUP Metadata
+       Checks if the given file can be written by others.
     others_write : Boolean
     others_write self = self.others.contains Permission.Write
 
-    ## Checks if the given file can be executed by others.
+    ## GROUP Metadata
+       Checks if the given file can be executed by others.
     others_execute : Boolean
     others_execute self = self.others.contains Permission.Execute
 
