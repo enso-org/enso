@@ -87,14 +87,16 @@ export function registerUrlCallback(callback: (url: URL) => void) {
     })
 
     // Second, register the callback for the `second-instance` event. This is used on Windows.
-    electron.app.on('second-instance', (event, argv) => {
+    electron.app.on('second-instance', (event, _argv, _cwd, argvRaw) => {
+        // This is SAFE, as the type of `argvRaw` is statically known.
+        // eslint-disable-next-line no-restricted-syntax
+        const argv = argvRaw as string[]
         logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
-        unsetAsUrlHandler()
         // Check if additional data is an object that contains the URL.
         const requestOneLastElementSlice = -1
         const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
         const url = argsDenoteUrlOpenAttempt(lastArgumentSlice)
-        if (url) {
+        if (url != null) {
             logger.log(`Got URL from 'second-instance' event: '${url.toString()}'.`)
             // Even we received the URL, our Window likely is not in the foreground - the focus
             // went to the "second instance" of the application. We must bring our Window to the
@@ -113,39 +115,4 @@ export function registerUrlCallback(callback: (url: URL) => void) {
             callback(url)
         }
     })
-}
-
-// ===============================
-// === Temporary handler setup ===
-// ===============================
-
-/** Make this application instance the recipient of URL callbacks.
- *
- * After the callback is received (or no longer expected), the `urlCallbackCompleted` function
- * must be called. Otherwise, other IDE instances will not be able to receive their URL
- * callbacks.
- *
- * The mechanism is built on top of the Electron's
- * [instance lock]{@link https://www.electronjs.org/docs/api/app#apprequestsingleinstancelock}
- * functionality.
- *
- * @throws {Error} An error if another instance of the application has already acquired the lock. */
-export function setAsUrlHandler() {
-    logger.log('Expecting URL callback, acquiring the lock.')
-    if (!electron.app.requestSingleInstanceLock()) {
-        const message = 'Another instance of the application is already running. Exiting.'
-        logger.error(message)
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error(message)
-    }
-}
-
-/** Stop this application instance from receiving URL callbacks.
- *
- * This function releases the instance lock that was acquired by the {@link setAsUrlHandler}
- * function. This is necessary to ensure that other IDE instances can receive their
- * URL callbacks. */
-export function unsetAsUrlHandler() {
-    logger.log('URL callback completed, releasing the lock.')
-    electron.app.releaseSingleInstanceLock()
 }

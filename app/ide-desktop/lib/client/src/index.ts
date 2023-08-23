@@ -98,13 +98,18 @@ class App {
             fileAssociations.CLIENT_ARGUMENTS
         )
         if (didAcquireLock) {
-            electron.app.on('second-instance', (_event, argv) => {
+            electron.app.on('second-instance', (_event, _argv, _cwd, argv) => {
                 const args = config.CONFIG.clone()
                 // `chromeOptions` is ignored for now as it is unknown whether changes to
                 // command-line switches take effect after a window is already open.
-                const { windowSize, fileToOpen, urlToOpen } = this.processArguments(args, argv)
+                const { windowSize, fileToOpen, urlToOpen } = this.processArguments(
+                    args,
+                    // This is SAFE, as the type of `argv` is statically known.
+                    // eslint-disable-next-line no-restricted-syntax
+                    argv as string[]
+                )
                 this.handleItemOpening(args, fileToOpen)
-                // If `urlToOpen` is not `null`, then it will be handled but
+                // If `urlToOpen` is not `null`, then it will be handled by `url-associations.ts`.
                 if (urlToOpen == null) {
                     void (async () => {
                         const window = await this.createWindowIfEnabled(args, windowSize)
@@ -114,6 +119,9 @@ class App {
                     })()
                 }
             })
+        } else {
+            // The existing instance will open a new window.
+            process.exit(0)
         }
         return didAcquireLock
     }

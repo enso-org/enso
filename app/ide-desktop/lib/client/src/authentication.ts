@@ -112,7 +112,6 @@ export function initModule(getLastFocusedWindow: () => electron.BrowserWindow | 
 function initIpc() {
     electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
         logger.log(`Opening URL in system browser: '${url}'.`)
-        urlAssociations.setAsUrlHandler()
         opener(url)
     })
 }
