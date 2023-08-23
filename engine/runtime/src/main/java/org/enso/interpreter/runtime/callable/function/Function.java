@@ -415,13 +415,13 @@ public final class Function implements EnsoObject {
     var end = ss.getEndLine();
     var sb = new StringBuilder();
     sb.append(n.getName());
-    sb.append("[")
-        .append(src.getName())
-        .append(":")
-        .append(start)
-        .append("-")
-        .append(end)
-        .append("]");
+    sb.append("[").append(src.getName()).append(":").append(start);
+    if (end == start) {
+      sb.append(":").append(ss.getStartColumn()).append("-").append(ss.getEndColumn());
+    } else {
+      sb.append("-").append(end);
+    }
+    sb.append("]");
     for (var i = 0; i < schema.getArgumentsCount(); i++) {
       sb.append(" ").append(schema.getArgumentInfos()[i].getName()).append("=");
       if (preAppliedArguments != null && preAppliedArguments[i] != null) {
