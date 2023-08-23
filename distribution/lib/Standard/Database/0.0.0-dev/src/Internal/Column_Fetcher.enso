@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Exports
 
@@ -69,13 +70,13 @@ double_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
-long_fetcher : Column_Fetcher
-long_fetcher =
+long_fetcher : Bits -> Column_Fetcher
+long_fetcher bits =
     fetch_value rs i =
         l = rs.getLong i
         if rs.wasNull then Nothing else l
     make_builder initial_size =
-        java_builder = Java_Exports.make_long_builder initial_size
+        java_builder = Java_Exports.make_long_builder initial_size bits=bits
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendLong v
@@ -83,13 +84,13 @@ long_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
-text_fetcher : Column_Fetcher
-text_fetcher =
+text_fetcher : Value_Type -> Column_Fetcher
+text_fetcher value_type =
     fetch_value rs i =
         t = rs.getString i
         if rs.wasNull then Nothing else t
     make_builder initial_size =
-        java_builder = Java_Exports.make_string_builder initial_size
+        java_builder = Java_Exports.make_string_builder initial_size value_type=value_type
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -137,11 +138,9 @@ date_time_fetcher =
 default_fetcher_for_value_type : Value_Type -> Column_Fetcher
 default_fetcher_for_value_type value_type =
     case value_type of
-        ## TODO [RW] once we support varying bit-width in storages, we should specify it
-           Revisit in #5159.
-        Value_Type.Integer _ -> long_fetcher
+        Value_Type.Integer bits -> long_fetcher bits
         Value_Type.Float _ -> double_fetcher
-        Value_Type.Char _ _ -> text_fetcher
+        Value_Type.Char _ _ -> text_fetcher value_type
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.

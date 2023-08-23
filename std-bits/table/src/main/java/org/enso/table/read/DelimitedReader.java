@@ -5,6 +5,7 @@ import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptyFileException;
@@ -521,7 +522,7 @@ public class DelimitedReader {
   private void initBuilders(int count) {
     builders = new StringBuilder[count];
     for (int i = 0; i < count; i++) {
-      builders[i] = new StringBuilder(INITIAL_ROW_CAPACITY);
+      builders[i] = new StringBuilder(INITIAL_ROW_CAPACITY, TextType.VARIABLE_LENGTH);
     }
   }
 

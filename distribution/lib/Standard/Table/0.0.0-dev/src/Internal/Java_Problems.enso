@@ -2,10 +2,14 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Loss_Of_Integer_Precision, Unquoted_Characters_In_Output, Unquoted_Delimiter
+import project.Data.Type.Storage
+from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter, Loss_Of_Integer_Precision, Conversion_Failure, Arithmetic_Overflow
 
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
+polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
+polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
+polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
@@ -33,6 +37,21 @@ translate_problem p = case p of
         Floating_Point_Equality.Error p.getLocationName
     _ : LossOfIntegerPrecision ->
         Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
+    _ : ArithmeticOverflow ->
+        target_type = Storage.to_value_type p.targetType
+        example_operands = case p.exampleOperands of
+            Nothing -> Nothing
+            array -> Vector.from_polyglot_array array
+        Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
+    _ : ConversionFailure ->
+        examples = Vector.from_polyglot_array p.examples
+        target_type = Storage.to_value_type p.targetType
+        related_column = p.relatedColumn
+        affected_rows_count = p.affectedRowCount
+        constructor = if p.errorType == ConversionFailureType.NUMBER_OUT_OF_RANGE then Conversion_Failure.Out_Of_Range else
+            if p.errorType == ConversionFailureType.TEXT_TOO_LONG then Conversion_Failure.Text_Too_Long else
+                Conversion_Failure.Error
+        constructor target_type related_column affected_rows_count examples
     _ : UnquotedCharactersInOutput ->
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : UnquotedDelimiter ->
