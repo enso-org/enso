@@ -3,18 +3,26 @@
 """
 Script for downloading Engine benchmark results into a single static web page
 that visualizes all the benchmarks. Without any options, downloads and
-visualizes benchmark data for the last 14 days.
+visualizes benchmark data for the last 14 days. By default, no data is written
+to the disk except for the generated web page, and the data are downloaded
+asynchronously.
 
 The generated website is placed under "generated_site" directory
 
-It downloads the data synchronously and uses a cache directory by default.
-It is advised to use `-v|--verbose` option all the time.
+The default GH artifact retention period is 3 months, which means that all
+the artifacts older than 3 months are dropped. If you wish to gather the data
+for benchmarks older than 3 months, make sure that the `use_cache` parameter
+is set to true, and that the cache directory is populated with older data.
+If the script encounters an expired artifact, it prints a warning.
+
+This script is under continuous development, so it is advised to use
+`-v|--verbose` option all the time.
 
 It queries only successful benchmark runs. If there are no successful benchmarks
 in a given period, no results will be written.
 
 The process of the script is roughly as follows:
-- Gather all the benchmark results from GH API into job reports (JobReport dataclass)
+- Asynchronously gather all the benchmark results from GH API into job reports (JobReport dataclass)
     - Use cache if possible to avoid unnecessary GH API queries
 - Transform the gathered results into data for a particular benchmark sorted
   by an appropriate commit timestamp.
@@ -98,6 +106,7 @@ JINJA_TEMPLATE = "templates/template_jinja.html"
 """ Path to the Jinja HTML template """
 TEMPLATES_DIR = "templates"
 GENERATED_SITE_DIR = "generated_site"
+GH_ARTIFACT_RETENTION_PERIOD = timedelta(days=90)
 
 
 @dataclass
@@ -646,6 +655,8 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
 
 
 async def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
+    """ DEPRECATED: Will be removed in the future """
+
     def perc_str(perc: float) -> str:
         s = "+" if perc > 0 else ""
         s += "{:.5f}".format(perc)
@@ -700,6 +711,7 @@ async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
+    default_csv_out = "Engine_Benchs/data/benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
     arg_parser = ArgumentParser(description=__doc__,
@@ -736,10 +748,6 @@ async def main():
                                  "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
                                  "This option excludes --since, --until, --output, and --create-csv options."
                                  " Note: THIS OPTION IS DEPRECATED, use --branches instead")
-    arg_parser.add_argument("-o", "--output",
-                            default="Engine_Benchs/data/benchs.csv",
-                            metavar="CSV_OUTPUT",
-                            help="Output CSV file. Makes sense only when used with --create-csv argument")
     arg_parser.add_argument("-c", "--cache", action="store",
                             default=default_cache_dir,
                             metavar="CACHE_DIR",
@@ -750,15 +758,19 @@ async def main():
                             default=None,
                             help="Temporary directory with default created by `tempfile.mkdtemp()`")
     arg_parser.add_argument("--use-cache",
-                            default=True,
+                            default=False,
                             metavar="(true|false)",
                             type=lambda input: True if input in ("true", "True") else False,
-                            help="Whether the cache directory should be used. The default is True.")
+                            help="Whether the cache directory should be used. The default is False.")
     arg_parser.add_argument("--create-csv", action="store_true",
                             default=False,
                             help="Whether an intermediate `benchs.csv` should be created. "
                                  "Appropriate to see whether the benchmark downloading was successful. "
                                  "Or if you wish to inspect the CSV with Enso")
+    arg_parser.add_argument("--csv-output",
+                            default=default_csv_out,
+                            metavar="CSV_OUTPUT",
+                            help="Output CSV file. Makes sense only when used with --create-csv argument")
     arg_parser.add_argument("-v", "--verbose", action="store_true")
     args = arg_parser.parse_args()
     if args.verbose:
@@ -776,15 +788,31 @@ async def main():
         temp_dir: str = args.tmp_dir
     use_cache: bool = args.use_cache
     assert cache_dir and temp_dir
-    csv_fname: str = args.output
+    csv_output: str = args.csv_output
     create_csv: bool = args.create_csv
     compare: List[str] = args.compare
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
-                 f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}, "
+                 f"temp_dir={temp_dir}, use_cache={use_cache}, csv_output={csv_output}, "
                  f"create_csv={create_csv}, compare={compare}, branches={branches}, "
                  f"labels_override={labels_override}")
+
+
+    # If the user requires benchmarks for which artifacts are not retained
+    # anymore, then cache should be used.
+    min_since_without_cache = datetime.today() - GH_ARTIFACT_RETENTION_PERIOD
+    if not use_cache and since < min_since_without_cache:
+        logging.warning(f"The default GH artifact retention period is "
+                        f"{GH_ARTIFACT_RETENTION_PERIOD.days} days. "
+                        f"This means that all the artifacts older than "
+                        f"{min_since_without_cache.date()} are expired."
+                        f"The use_cache parameter is set to False, so no "
+                        f"expired artifacts will be fetched.")
+        logging.warning(f"The `since` parameter is reset to "
+                        f"{min_since_without_cache.date()} to prevent "
+                        f"unnecessary GH API queries.")
+        since = min_since_without_cache
 
     if use_cache:
         cache = populate_cache(cache_dir)
@@ -835,9 +863,9 @@ async def main():
         job_reports.sort(key=lambda report: _get_timestamp(report))
 
         if create_csv:
-            write_bench_reports_to_csv(job_reports, csv_fname)
-            logging.info(f"Benchmarks written to {csv_fname}")
-            print(f"The generated CSV is in {csv_fname}")
+            write_bench_reports_to_csv(job_reports, csv_output)
+            logging.info(f"Benchmarks written to {csv_output}")
+            print(f"The generated CSV is in {csv_output}")
             exit(0)
 
         # Gather all the benchmark labels from all the job reports
