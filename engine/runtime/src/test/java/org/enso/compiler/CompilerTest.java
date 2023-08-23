@@ -1,5 +1,8 @@
 package org.enso.compiler;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
@@ -9,8 +12,6 @@ import java.util.function.Function;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 
 public abstract class CompilerTest {
