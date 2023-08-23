@@ -29,11 +29,11 @@ public class StringBuilder extends TypedBuilderImpl<String> {
   public void appendNoGrow(Object o) {
     try {
       String str = (String) o;
-      if (!type.fits(str)) {
+      if (type.fits(str)) {
+        data[currentSize++] = str;
+      } else {
         throw new ValueTypeMismatchException(type, str);
       }
-
-      data[currentSize++] = str;
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(type, o);
     }

@@ -83,11 +83,11 @@ type Column
             java_exception = caught_panic.payload
             raise_invalid_value_type_error java_exception.getValue
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
-            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Error <|
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name items expected_storage_type
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
-            result = Column.Value java_column
+            result = Column.Value java_column . throw_on_warning Conversion_Failure
             result.catch Conversion_Failure error->
                 if error.example_values.is_empty then result else
                     raise_invalid_value_type_error error.example_values.first
