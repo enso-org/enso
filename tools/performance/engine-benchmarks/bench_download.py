@@ -686,23 +686,6 @@ async def main():
     default_csv_out = "Engine_Benchs/data/benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
-    arg_parser = ArgumentParser(description=__doc__,
-                                formatter_class=RawDescriptionHelpFormatter)
-    arg_parser.add_argument("-s", "--since", action="store",
-                            default=default_since,
-                            metavar="SINCE_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
-                            help=f"The date from which the benchmark results will be gathered. "
-                                 f"Format is {date_format_help}. "
-                                 f"The default is 14 days before")
-    arg_parser.add_argument("-u", "--until", action="store",
-                            default=default_until,
-                            metavar="UNTIL_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
-                            help=f"The date until which the benchmark results will be gathered. "
-                                 f"Format is {date_format_help}. "
-                                 f"The default is today")
-
     def _parse_bench_source(_bench_source: str) -> Source:
         try:
             return Source(_bench_source)
@@ -711,13 +694,30 @@ async def main():
             print(f"Available sources: {[source.value for source in Source]}", file=sys.stderr)
             exit(1)
 
-    arg_parser.add_argument("-r", "--source",
+    arg_parser = ArgumentParser(description=__doc__,
+                                formatter_class=RawDescriptionHelpFormatter)
+    arg_parser.add_argument("-s", "--source",
                             action="store",
+                            required=True,
                             metavar=f"({Source.ENGINE.value}|{Source.STDLIB.value})",
-                            default=Source.ENGINE.value,
                             type=lambda s: _parse_bench_source(s),
                             help=f"The source of the benchmarks. Available sources: "
                                  f"{[source.value for source in Source]}")
+    arg_parser.add_argument("--since", action="store",
+                            default=default_since,
+                            metavar="SINCE_DATE",
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            help=f"The date from which the benchmark results will be gathered. "
+                                 f"Format is {date_format_help}. "
+                                 f"The default is 14 days before")
+    arg_parser.add_argument("--until", action="store",
+                            default=default_until,
+                            metavar="UNTIL_DATE",
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            help=f"The date until which the benchmark results will be gathered. "
+                                 f"Format is {date_format_help}. "
+                                 f"The default is today")
+
     arg_parser.add_argument("-b", "--branches", action="store",
                             nargs="+",
                             default=["develop"],
