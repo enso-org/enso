@@ -401,7 +401,7 @@ public class SignatureTest extends TestBase {
 
     neg x:Integer = -x
 
-    mix a = neg (fn 2 a=4 3)
+    mix n = neg (fn 2 a=4 n)
     """, uri.getHost())
             .uri(uri)
             .buildLiteral();
@@ -417,9 +417,43 @@ public class SignatureTest extends TestBase {
       assertContains("expected `x` to be Integer", ex.getMessage());
       assertContains("got oversaturated.fn[", ex.getMessage());
       assertContains("a=2", ex.getMessage());
-      assertContains("b=3", ex.getMessage());
+      assertContains("b=7", ex.getMessage());
       assertContains("c=_", ex.getMessage());
       assertContains("+a=4", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void suspendedArgumentsUnappliedFunction() throws Exception {
+    final URI uri = new URI("memory://suspended.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    fn ~a ~b ~c =
+      add x = if x == 0 then 0 else x * (a + b + c)
+      add
+
+    neg x:Integer = -x
+
+    mix a = neg (fn c=(2/0) b=(a/0))
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var mix = module.invokeMember("eval_expression", "mix");
+
+    try {
+      var res = mix.execute(0);
+      fail("No result expected: " + res);
+    } catch (PolyglotException ex) {
+      assertContains("Type error", ex.getMessage());
+      assertContains("expected `x` to be Integer", ex.getMessage());
+      assertContains("got suspended.fn[", ex.getMessage());
+      assertContains("a=_", ex.getMessage());
+      assertContains("b=suspended.mix<arg-b>", ex.getMessage());
+      assertContains("c=suspended.mix<arg-c>", ex.getMessage());
+      assertContains("[suspended:9:28-30]", ex.getMessage());
     }
   }
 
