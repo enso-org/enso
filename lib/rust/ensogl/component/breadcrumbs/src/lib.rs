@@ -351,7 +351,7 @@ impl Model {
             let end_of_overwritten_entries = starting_from + new_entries.len();
             borrowed.truncate(end_of_overwritten_entries);
             let len = borrowed.len();
-            if starting_from >= len {
+            if starting_from > len {
                 warn!("Invalid replacement range: {}..{}", starting_from, len);
             }
             let starting_from = starting_from.min(len);

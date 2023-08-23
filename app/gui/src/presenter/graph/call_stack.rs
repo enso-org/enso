@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use crate::executor::global::spawn_stream_handler;
 use crate::model::execution_context::LocalCall;
 use crate::presenter::graph::state::State;
 use crate::presenter::graph::ViewNodeId;
@@ -66,34 +65,14 @@ impl Model {
         }
     }
 
-    // === Stack History API ===
-    // Methods that modify the stack history. Note that these methods will not propagate the
-    // changes to the controller. They should be used to update the stack history, which is needed
-    // to translate the breadcrumbs selection to the call stack.
-
-    /// We enter a new node. If we enter a node that was not previous part of the stack history, we
-    /// discard deeper levels, otherwise we keep the deeper levels and just update the selection.
-    fn update_stack_history_on_node_enter(
-        &self,
-        controller_stack_size: usize,
-        new_call: LocalCall,
-    ) {
-        let new_item_index = controller_stack_size + 1;
-        let new_call = view::project_view_top_bar::LocalCall {
-            call:       new_call.call,
-            definition: new_call.definition.into(),
-        };
-        if self.stack_history.borrow().get(new_item_index) != Some(&new_call) {
-            self.stack_history.borrow_mut().truncate(new_item_index);
-            self.stack_history.borrow_mut().push(new_call);
-        }
-    }
 
     // === UI Control API ===
     // Methods that modify the UI state of the breadcrumbs. Note that they will always propagate
     // the changes to the controller. These should be exclusivity used to update the state of the
     // call stack. They will result in the breadcrumbs view being updated, which in turn will
     // result in the methods from the `UI Driven API` being called to update the controller.
+    // They are also update the internal stack history, which should always be in sync with the
+    // visible breadcrumbs.
 
     /// Add a part of the call stack. Note that this will check if the stack is already in the
     /// breadcrumbs and if so, it will only update the selection.
@@ -105,6 +84,10 @@ impl Model {
         if stack.is_empty() {
             return;
         }
+
+        self.stack_history.borrow_mut().truncate(stack_pointer);
+        self.stack_history.borrow_mut().extend(stack.clone());
+
         let stack = stack.into_iter().map(|call| call.into()).collect_vec();
         let breadcrumb_index = stack_pointer + 1;
         self.view.top_bar().breadcrumbs.set_entries_from((stack, breadcrumb_index));
@@ -144,7 +127,6 @@ impl Model {
                 if let Some(method_pointer) = computed_value.method_call.as_ref() {
                     let local_call = LocalCall { call, definition: method_pointer.clone() };
                     let stack_pointer = self.controller.call_stack().len();
-                    self.update_stack_history_on_node_enter(stack_pointer, local_call.clone());
                     self.add_stack_levels(
                         vec![view::project_view_top_bar::LocalCall {
                             call:       local_call.call,
@@ -170,9 +152,9 @@ impl Model {
         if current_stack.len() >= index {
             self.pop_stack(current_stack.len() - index);
         } else {
-            let to_push = self.stack_history.borrow().iter().skip(index).cloned().collect_vec();
+            let to_push = self.stack_history.borrow().iter().skip(index - 1).cloned().collect_vec();
             if to_push.is_empty() {
-                warn!("Cannot select breadcrumb {index}: no stack history.");
+                warn!("Cannot select breadcrumb {index}. No such item in stack history {stack_history:?}.", stack_history = self.stack_history);
                 return;
             }
             self.push_stack(to_push);
@@ -181,17 +163,23 @@ impl Model {
 
     fn visible_breadcrumbs(&self, entries: &[Breadcrumb]) {
         debug!("Visible Breadcrumbs changed to {entries:?}");
+        debug_assert_eq!(
+            entries.len(),
+            self.stack_history.borrow().len() + 1,
+            "Visible breadcrumbs should be equal to stack history, but are {entries:#?}, \
+            while stack history is {stack_history:#?}.",
+            stack_history = self.stack_history
+        );
     }
 
 
     // === Controller API ===
-    // These methods are used to update the state of the call stack. They are called by the UI
-    // driven logic and update the call stack state and propagate the changes to the controller.
+    // These methods are used to update the state of the call stack in the controller. They are
+    // called by the UI driven logic and propagate the changes to the controller.
 
     /// Push a new call stack to the current stack. This will notify the controller to enter the
     /// stack.
     pub fn push_stack(&self, stack: Vec<view::project_view_top_bar::LocalCall>) {
-        self.stack_history.borrow_mut().extend(stack.clone());
         let store_stack = self.store_updated_stack_task();
         let controller = self.controller.clone_ref();
         executor::global::spawn(async move {
