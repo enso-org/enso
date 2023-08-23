@@ -78,17 +78,6 @@ except ModuleNotFoundError as err:
     print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
     exit(1)
 
-try:
-    out = subprocess.run(["gh", "--version"], check=True, capture_output=True)
-    if out.returncode != 0:
-        print("`gh` command not found - GH CLI utility is not installed. "
-              "See https://cli.github.com/", file=sys.stderr)
-        exit(1)
-except subprocess.CalledProcessError as err:
-    print("`gh` command not found - GH CLI utility is not installed. "
-          "See https://cli.github.com/", file=sys.stderr)
-    exit(1)
-
 DATE_FORMAT = "%Y-%m-%d"
 ENGINE_BENCH_WORKFLOW_ID = 29450898
 """
@@ -679,6 +668,19 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
         html_file.write(generated_html)
 
 
+def ensure_gh_installed() -> None:
+    try:
+        out = subprocess.run(["gh", "--version"], check=True, capture_output=True)
+        if out.returncode != 0:
+            print("`gh` command not found - GH CLI utility is not installed. "
+                  "See https://cli.github.com/", file=sys.stderr)
+            exit(1)
+    except subprocess.CalledProcessError:
+        print("`gh` command not found - GH CLI utility is not installed. "
+              "See https://cli.github.com/", file=sys.stderr)
+        exit(1)
+
+
 async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
@@ -772,12 +774,13 @@ async def main():
     create_csv: bool = args.create_csv
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
-    logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
+    logging.debug(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
                  f"temp_dir={temp_dir}, use_cache={use_cache}, bench_source={bench_source}, "
                  f"csv_output={csv_output}, "
                  f"create_csv={create_csv}, branches={branches}, "
                  f"labels_override={labels_override}")
 
+    ensure_gh_installed()
 
     # If the user requires benchmarks for which artifacts are not retained
     # anymore, then cache should be used.
