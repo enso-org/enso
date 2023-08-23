@@ -696,6 +696,7 @@ async def main():
 
     arg_parser = ArgumentParser(description=__doc__,
                                 formatter_class=RawDescriptionHelpFormatter)
+    arg_parser.add_argument("-v", "--verbose", action="store_true")
     arg_parser.add_argument("-s", "--source",
                             action="store",
                             required=True,
@@ -717,7 +718,17 @@ async def main():
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
-
+    arg_parser.add_argument("--use-cache",
+                            default=False,
+                            metavar="(true|false)",
+                            type=lambda input: True if input in ("true", "True") else False,
+                            help="Whether the cache directory should be used. The default is False.")
+    arg_parser.add_argument("-c", "--cache", action="store",
+                            default=default_cache_dir,
+                            metavar="CACHE_DIR",
+                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
+                                 f"The default is {default_cache_dir}. If there are any troubles with the "
+                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-b", "--branches", action="store",
                             nargs="+",
                             default=["develop"],
@@ -728,20 +739,9 @@ async def main():
                             default=set(),
                             help="List of labels to gather the benchmark results from."
                                  "The default behavior is to gather all the labels")
-    arg_parser.add_argument("-c", "--cache", action="store",
-                            default=default_cache_dir,
-                            metavar="CACHE_DIR",
-                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
-                                 f"The default is {default_cache_dir}. If there are any troubles with the "
-                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-t", "--tmp-dir", action="store",
                             default=None,
                             help="Temporary directory with default created by `tempfile.mkdtemp()`")
-    arg_parser.add_argument("--use-cache",
-                            default=False,
-                            metavar="(true|false)",
-                            type=lambda input: True if input in ("true", "True") else False,
-                            help="Whether the cache directory should be used. The default is False.")
     arg_parser.add_argument("--create-csv", action="store_true",
                             default=False,
                             help="Whether an intermediate `benchs.csv` should be created. "
@@ -751,7 +751,6 @@ async def main():
                             default=default_csv_out,
                             metavar="CSV_OUTPUT",
                             help="Output CSV file. Makes sense only when used with --create-csv argument")
-    arg_parser.add_argument("-v", "--verbose", action="store_true")
     args = arg_parser.parse_args()
     if args.verbose:
         log_level = logging.DEBUG
