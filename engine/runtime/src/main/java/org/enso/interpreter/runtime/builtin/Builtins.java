@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
@@ -47,15 +47,10 @@ import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.builtin.Error;
-import org.enso.interpreter.runtime.builtin.Number;
-import org.enso.interpreter.runtime.builtin.System;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
-
-import com.oracle.truffle.api.CompilerDirectives;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
@@ -187,12 +182,11 @@ public final class Builtins {
         // Register a builtin method iff it is marked as auto-register.
         // Methods can only register under a type or, if we deal with a static method, it's eigen-type.
         // Such builtins are available on certain types without importing the whole stdlib, e.g. Any or Number.
-        methods.entrySet().stream().forEach(entry -> {
-          Type tpe = entry.getValue().isAutoRegister ? (!entry.getValue().isStatic() ? type : type.getEigentype()) : null;
+        methods.forEach((key, value) -> {
+          Type tpe = value.isAutoRegister ? (!value.isStatic() ? type : type.getEigentype()) : null;
           if (tpe != null) {
-            LoadedBuiltinMethod value = entry.getValue();
             Optional<BuiltinFunction> fun = value.toFunction(language, false);
-            fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
+            fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
           }
         });
       }
@@ -235,7 +229,6 @@ public final class Builtins {
    * builtin type per row. The format of the row is as follows: <Enso name of the builtin
    * type>:<Name of the class representing it>:[<field1>,<field2>,...] where the last column gives a
    * list of optional type's fields.
-   *
    */
   private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
