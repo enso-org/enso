@@ -654,59 +654,6 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
         html_file.write(generated_html)
 
 
-async def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
-    """ DEPRECATED: Will be removed in the future """
-
-    def perc_str(perc: float) -> str:
-        s = "+" if perc > 0 else ""
-        s += "{:.5f}".format(perc)
-        s += "%"
-        return s
-
-    def percent_change(old_val: float, new_val: float) -> float:
-        return ((new_val - old_val) / old_val) * 100
-
-    def commit_to_str(commit: Commit) -> str:
-        return f"{commit.timestamp} {commit.author.name}  '{commit.message.splitlines()[0]}'"
-
-    res_1 = await _invoke_gh_api(f"/actions/runs/{bench_run_id_1}")
-    bench_run_1 = _parse_bench_run_from_json(res_1)
-    res_2 = await _invoke_gh_api(f"/actions/runs/{bench_run_id_2}")
-    bench_run_2 = _parse_bench_run_from_json(res_2)
-    bench_report_1 = await get_bench_report(bench_run_1, cache, tmp_dir)
-    bench_report_2 = await get_bench_report(bench_run_2, cache, tmp_dir)
-    # Check that the runs have the same labels, and get their intersection
-    bench_labels_1 = set(bench_report_1.label_score_dict.keys())
-    bench_labels_2 = set(bench_report_2.label_score_dict.keys())
-    if bench_labels_1 != bench_labels_2:
-        logging.warning(
-            f"Benchmark labels are not the same in both runs. This means that "
-            f"there will be some missing numbers in one of the runs. "
-            f"The set difference is {bench_labels_1.difference(bench_labels_2)}")
-    all_labels: List[str] = sorted(
-        list(bench_labels_1.intersection(bench_labels_2)))
-    bench_report_2.label_score_dict.keys()
-
-    df = pd.DataFrame(columns=["bench_label", "score-run-1", "score-run-2"])
-    for bench_label in all_labels:
-        df = pd.concat([df, pd.DataFrame([{
-            "bench_label": bench_label,
-            "score-run-1": bench_report_1.label_score_dict[bench_label],
-            "score-run-2": bench_report_2.label_score_dict[bench_label],
-        }])], ignore_index=True)
-    df["score-diff"] = np.diff(df[["score-run-1", "score-run-2"]], axis=1)
-    df["score-diff-perc"] = df.apply(lambda row: perc_str(
-        percent_change(row["score-run-1"], row["score-run-2"])),
-                                     axis=1)
-    print("================================")
-    print(df.to_string(index=False, header=True, justify="center", float_format="%.5f"))
-    print("================================")
-    print("Latest commit on bench-run-id-1: ")
-    print("    " + commit_to_str(bench_run_1.head_commit))
-    print("Latest commit on bench-run-id-2: ")
-    print("    " + commit_to_str(bench_run_2.head_commit))
-
-
 async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
@@ -740,14 +687,6 @@ async def main():
                             default=set(),
                             help="List of labels to gather the benchmark results from."
                                  "The default behavior is to gather all the labels")
-    arg_parser.add_argument("--compare",
-                            nargs=2,
-                            default=[],
-                            metavar=("<Bench action ID 1>", "<Bench action ID 2>"),
-                            help="Compare two benchmark actions runs. Choose an action from https://github.com/enso-org/enso/actions/workflows/benchmark.yml, "
-                                 "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
-                                 "This option excludes --since, --until, --output, and --create-csv options."
-                                 " Note: THIS OPTION IS DEPRECATED, use --branches instead")
     arg_parser.add_argument("-c", "--cache", action="store",
                             default=default_cache_dir,
                             metavar="CACHE_DIR",
@@ -790,7 +729,6 @@ async def main():
     assert cache_dir and temp_dir
     csv_output: str = args.csv_output
     create_csv: bool = args.create_csv
-    compare: List[str] = args.compare
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
     logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
@@ -818,10 +756,6 @@ async def main():
         cache = populate_cache(cache_dir)
     else:
         cache = FakeCache()
-
-    if len(compare) > 0:
-        await compare_runs(compare[0], compare[1], cache, temp_dir)
-        exit(0)
 
     bench_labels: Optional[Set[str]] = None
     """ Set of all gathered benchmark labels from all the job reports """
