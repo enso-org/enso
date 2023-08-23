@@ -51,6 +51,7 @@ from datetime import datetime, timedelta, date
 from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
+import xml.etree.ElementTree as ET
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
@@ -231,24 +232,19 @@ def _bench_report_to_json(bench_report: JobReport) -> Dict[Any, Any]:
     }
 
 
-def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: JobRun) -> "JobReport":
-    logging.debug(f"Parsing BenchReport from {bench_report_xml}")
-    with open(bench_report_xml, "r") as f:
-        lines = f.readlines()
-    label_pattern = re.compile("<label>(?P<label>.+)</label>")
-    score_pattern = re.compile("<score>(?P<score>.+)</score>")
-    label_score_dict = {}
-    label: Optional[str] = None
-    for line in lines:
-        line = line.strip()
-        label_match = label_pattern.match(line)
-        score_match = score_pattern.match(line)
-        if label_match:
-            label = label_match.group("label")
-        if score_match:
-            score = score_match.group("score")
-            assert label, "label element must be before score element"
-            label_score_dict[label] = float(score)
+def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> "JobReport":
+    logging.debug(f"Parsing BenchReport from {bench_report_xml_path}")
+    tree = ET.parse(bench_report_xml_path)
+    root = tree.getroot()
+    label_score_dict: Dict[str, float] = dict()
+    for cases in root:
+        assert cases.tag == "cases"
+        for case in cases:
+            assert case.tag == "case"
+            label = case.findtext("label").strip()
+            scores = case.find("scores")
+            assert len(scores) == 1, "scores element should have exactly one child"
+            label_score_dict[label] = float(scores[0].text.strip())
     return JobReport(
         label_score_dict=label_score_dict,
         bench_run=bench_run
