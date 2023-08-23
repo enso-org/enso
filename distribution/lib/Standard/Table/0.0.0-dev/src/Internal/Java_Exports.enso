@@ -22,7 +22,7 @@ make_double_builder : Integer -> NumericBuilder
 make_double_builder initial_size = NumericBuilder.createDoubleBuilder initial_size
 
 ## PRIVATE
-make_long_builder : Integer -> NumericBuilder
+make_long_builder : Integer -> Bits -> NumericBuilder
 make_long_builder initial_size bits=Bits.Bits_64 =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     NumericBuilder.createLongBuilder initial_size integer_type
