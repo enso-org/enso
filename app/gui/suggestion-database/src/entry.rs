@@ -967,7 +967,6 @@ where
         chain.last_operand().map_or_default(|op| op.arg.repr()).replace('_', " ")
     };
 
-    console_log!("Resolved tag values: {:?}", resolved);
     let tmp = resolved
         .into_iter()
         .map(|resolution| match resolution {
