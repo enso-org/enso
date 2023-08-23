@@ -80,7 +80,7 @@ public class BoolBuilder extends TypedBuilder {
         throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 

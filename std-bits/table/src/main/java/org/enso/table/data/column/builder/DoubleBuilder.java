@@ -147,7 +147,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 
