@@ -93,19 +93,19 @@ spec setup =
                 t = table_builder [["X", [1, 2, 3]]]
                 c1 = t.at "X"
 
-                f x = 128^x
+                f x = 127^x
                 r1 = c1.map f expected_value_type=Value_Type.Byte
                 r1.should_fail_with Invalid_Value_Type
-                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 16384 of type Integer (16 bits)"
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 16129 of type Integer (16 bits)"
 
                 r2 = c1.map f expected_value_type=(Value_Type.Integer Bits.Bits_16)
                 r2.should_fail_with Invalid_Value_Type
-                r2.catch.to_display_text . should_contain "Expected type Integer (16 bits), but got a value 2097152 of type Integer (32 bits)"
+                r2.catch.to_display_text . should_contain "Expected type Integer (16 bits), but got a value 2048383 of type Integer (32 bits)"
 
                 g x = "|" + (x * 4).to_text + "|"
                 r3 = c1.map g expected_value_type=(Value_Type.Char variable_length=True size=3)
                 r3.should_fail_with Invalid_Value_Type
-                r3.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value |4| of type Char (fixed length, size=4)"
+                r3.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value |12| of type Char (fixed length, size=4)"
 
                 h x = "_"+x.to_text
                 r4 = c1.map h expected_value_type=(Value_Type.Char variable_length=False size=3)
@@ -122,7 +122,7 @@ spec setup =
                 r6.should_fail_with Invalid_Value_Type
                 r6.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-08-23 of type Date"
 
-                k x = if x == 2 then Time_Of_Day.new 13 05 else x+1
+                k x = if x == 2 then Time_Of_Day.new 13 05 else (x+1).to_text
                 r7 = c1.map k expected_value_type=Value_Type.Char
                 r7.should_fail_with Invalid_Value_Type
                 r7.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=Nothing), but got a value 13:05:00 of type Time"
@@ -130,7 +130,7 @@ spec setup =
                 l x = if x == 2 then 42 else Date.new 2022 05 x
                 r8 = c1.map l expected_value_type=Value_Type.Date
                 r8.should_fail_with Invalid_Value_Type
-                r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16-bits)"
+                r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16 bits)"
 
     Test.group prefix+"Column.zip" <|
         if setup.is_database then
@@ -189,22 +189,22 @@ spec setup =
                 c4.to_vector . should_equal ["a4", "b5", "c6"]
 
             Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
-                t = table_builder [["X", [100, 200, 120]], ["Y", [1, 3, 1]]]
+                t = table_builder [["X", [100, 110, 120]], ["Y", [1, 3, 1]]]
 
                 r1 = (t.at "X") . zip (t.at "Y") (*) expected_value_type=Value_Type.Byte
                 r1.should_fail_with Invalid_Value_Type
-                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 300 of type Integer (16 bits)"
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 330 of type Integer (16 bits)"
 
                 f x y = x.to_text * y
                 r2 = (t.at "X") . zip (t.at "Y") f expected_value_type=(Value_Type.Char variable_length=True size=3)
                 r2.should_fail_with Invalid_Value_Type
-                r2.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value 200200200 of type Char (fixed length, size=9)"
+                r2.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value 110110110 of type Char (fixed length, size=9)"
 
-                g x y = if x == 2 then Date.new 2022 09 23 else x+y
+                g x y = if x == 110 then Date.new 2022 09 23 else x+y
                 r3 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Integer
                 r3.should_fail_with Invalid_Value_Type
                 r3.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-09-23 of type Date"
 
                 r4 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Date
                 r4.should_fail_with Invalid_Value_Type
-                r4.catch.to_display_text . should_contain "Expected type Date, but got a value 101 of type Integer (16-bits)"
+                r4.catch.to_display_text . should_contain "Expected type Date, but got a value 101 of type Integer (16 bits)"
