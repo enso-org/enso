@@ -60,10 +60,20 @@ try:
     import numpy as np
     import jinja2
 except ModuleNotFoundError as err:
-    print("ERROR: One of pandas, numpy, or jinja2 packages not installed")
+    print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
     exit(1)
 
-BENCH_RUN_NAME = "Benchmark Engine"
+try:
+    out = subprocess.run(["gh", "--version"], check=True, capture_output=True)
+    if out.returncode != 0:
+        print("`gh` command not found - GH CLI utility is not installed. "
+              "See https://cli.github.com/", file=sys.stderr)
+        exit(1)
+except subprocess.CalledProcessError as err:
+    print("`gh` command not found - GH CLI utility is not installed. "
+          "See https://cli.github.com/", file=sys.stderr)
+    exit(1)
+
 DATE_FORMAT = "%Y-%m-%d"
 # Workflod ID of engine benchmarks, got via `gh api '/repos/enso-org/enso/actions/workflows'`
 BENCH_WORKFLOW_ID = 29450898
