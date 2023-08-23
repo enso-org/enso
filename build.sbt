@@ -1886,7 +1886,14 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     }
   )
   .settings(
-    bench := (Benchmark / run).toTask("").tag(Exclusive).value,
+    bench := Def
+      .task {
+        (Benchmark / run).toTask("").tag(Exclusive).value
+      }
+      .dependsOn(
+        buildEngineDistribution
+      )
+      .value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
@@ -2385,6 +2392,12 @@ buildEngineDistribution := {
     generateIndex       = true
   )
   log.info(s"Engine package created at $root")
+}
+
+// This makes the buildEngineDistribution task usable as a dependency
+// of other tasks.
+ThisBuild / buildEngineDistribution := {
+  buildEngineDistribution.result.value
 }
 
 lazy val buildEngineDistributionNoIndex =
