@@ -165,7 +165,36 @@ spec setup =
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
             Test.specify "should respect the expected_value_type" <|
-                TODO
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+
+                f x y = 10*x + y
+                c1 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Mixed
+                c1.value_type . should_equal Value_Type.Mixed
+                c1.to_vector . should_equal [14, 25, 36]
+
+                c2 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Float
+                c2.value_type . should_equal Value_Type.Float
+                c2.to_vector . should_equal [14.0, 25.0, 36.0]
+
+                c3 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Byte
+                c3.value_type . should_equal Value_Type.Byte
+                c3.to_vector . should_equal [14, 25, 36]
+
+                t2 = table_builder [["X", ["a", "b", "c"]], ["Y", [4, 5, 6]]]
+                f2 x y = x + y.to_text
+
+                c4 = (t2.at "X") . zip (t2.at "Y") f2 expected_value_type=(Value_Type.Char variable_size=False size=2)
+                c4.value_type . should_equal (Value_Type.Char variable_size=False size=2)
+                c4.to_vector . should_equal ["a4", "b5", "c6"]
 
             Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
-                TODO
+                t = table_builder [["X", [100, 200, 120]], ["Y", [1, 3, 1]]]
+
+                r1 = (t.at "X") . zip (t.at "Y") (*) expected_value_type=Value_Type.Byte
+                r1.should_fail_with Invalid_Value_Type
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 300 of type Integer (16 bit)"
+
+                f x y = x.to_text * y
+                r2 = (t.at "X") . zip (t.at "Y") f expected_value_type=(Value_Type.Char variable_length=True size=3)
+                r2.should_fail_with Invalid_Value_Type
+                r2.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value 200200200 of type Char (fixed length, size=9)"
