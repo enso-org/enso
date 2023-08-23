@@ -114,7 +114,7 @@ type File_Format
 
 ## A file format for plain text files.
 type Plain_Text_Format
-    ## Create a file format for plain text files with the specify encoding.
+    ## A file format for plain text files with the specified encoding.
     @encoding Encoding.default_widget
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 

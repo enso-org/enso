@@ -6,29 +6,29 @@ polyglot java import java.time.DayOfWeek
 
 ## Represents a day of the week.
 type Day_Of_Week
-    ## Create a Day_Of_Week indicating Sunday.
+    ## Day_Of_Week representing Sunday.
     Sunday
 
-    ## Create a Day_Of_Week indicating Monday.
+    ## Day_Of_Week representing Monday.
     Monday
 
-    ## Create a Day_Of_Week indicating Tuesday.
+    ## Day_Of_Week representing Tuesday.
     Tuesday
 
-    ## Create a Day_Of_Week indicating Wednesday.
+    ## Day_Of_Week representing Wednesday.
     Wednesday
 
-    ## Create a Day_Of_Week indicating Thursday.
+    ## Day_Of_Week representing Thursday.
     Thursday
 
-    ## Create a Day_Of_Week indicating Friday.
+    ## Day_Of_Week representing Friday.
     Friday
 
-    ## Create a Day_Of_Week indicating Saturday.
+    ## Day_Of_Week representing Saturday.
     Saturday
 
     ## GROUP Conversions
-       Convert the Day_Of_Week to an Integer
+       Convert the Day_Of_Week to an Integer.
 
        Arguments:
        - `first_day`: The first day of the week.
