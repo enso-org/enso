@@ -423,9 +423,11 @@ public final class Function implements EnsoObject {
         .append(end)
         .append("]");
     for (var i = 0; i < schema.getArgumentsCount(); i++) {
+      sb.append(" ").append(schema.getArgumentInfos()[i].getName()).append("=");
       if (preAppliedArguments != null && preAppliedArguments[i] != null) {
-        sb.append(" ").append(schema.getArgumentInfos()[i].getName()).append("=");
         sb.append(iop.toDisplayString(preAppliedArguments[i], false));
+      } else {
+        sb.append("_");
       }
     }
     if (schema.getOversaturatedArguments() != null) {
