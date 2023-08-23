@@ -18,6 +18,7 @@ import Standard.Test.Extensions
 type My_Type
     Value foo
     Multi_Value foo bar
+    Default_Value foo=2 bar
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
@@ -347,6 +348,9 @@ spec =
         my_func x y =
             x + y
 
+        my_defaulted_func x=5 y =
+            x + y
+
         neg n:Number = -n
 
         extract x:My_Type = x.foo
@@ -364,10 +368,20 @@ spec =
             r . should_fail_with Type_Error
             r.to_display_text.should_contain "Try to apply x, y arguments."
 
+        Test.specify "apply two arguments with one defaulted" <|
+            r = Panic.recover Type_Error <| neg my_defaulted_func
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply y argument."
+
         Test.specify "report unapplied constructor nicely" <|
             r = Panic.recover Type_Error <| extract My_Type.Value
             r . should_fail_with Type_Error
             r.to_display_text.should_contain "Try to apply foo argument."
+
+        Test.specify "report unapplied constructor with default value nicely" <|
+            r = Panic.recover Type_Error <| extract My_Type.Default_Value
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply bar argument."
 
         Test.specify "report partially applied constructor nicely" <|
             r = Panic.recover Type_Error <| extract (My_Type.Multi_Value 42)

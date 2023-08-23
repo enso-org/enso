@@ -428,7 +428,11 @@ public final class Function implements EnsoObject {
     sb.append("]");
     if (includeArguments) {
       for (var i = 0; i < schema.getArgumentsCount(); i++) {
-        var name = schema.getArgumentInfos()[i].getName();
+        ArgumentDefinition info = schema.getArgumentInfos()[i];
+        if (info.hasDefaultValue()) {
+          continue;
+        }
+        var name = info.getName();
         sb.append(" ").append(name).append("=");
         if (preAppliedArguments != null && preAppliedArguments[i] != null) {
           sb.append(iop.toDisplayString(preAppliedArguments[i], false));
