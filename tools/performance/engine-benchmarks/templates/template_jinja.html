@@ -285,35 +285,47 @@
 
 
     <div id="top-panel" class="container">
-      <h3 class="text-center">Filters</h3>
-      <form class="row">
-        <label for="since-date-input" class="form-label">Since date:</label>
-        <input
-            type="date"
-            id="since-date-input"
-            class="form-control form-control-lg"
-            name="since-date"
-            min="{{ since.date() }}"
-            max="{{ until.date() }}"
-        />
-      </form>
-      <button
-          id="reset-since-date-btn"
-          class="row btn btn-primary"
-          style="margin-top:10px"
-          onclick="sinceDateClickHandler()"
-      >Apply filters</button>
-      <div style="margin-top:15px">
-        Applied filters:
-        <ul>
-          <li>
-            Since date:
-            <span
-              id="applied-since-filter"
-              class="fs-3"
-            >{{ display_since.date() }}</span>
-          </li>
-        </ul>
+      <div id="top-panel-filters" class="card">
+        <h3 class="card-header text-center">Filters</h3>
+        <div class="card-body">
+          <form class="row">
+            <label for="since-date-input" class="col fs-4 text-center form-label">
+              Since date:
+            </label>
+            <input
+                type="date"
+                id="since-date-input"
+                class="col form-control form-control-lg"
+                name="since-date"
+                min="{{ since.date() }}"
+                max="{{ until.date() }}"
+            />
+          </form>
+          <div class="row">
+            <div class="col"></div>
+            <button
+                id="reset-since-date-btn"
+                class="col btn btn-primary"
+                style="margin-top:10px;"
+                onclick="sinceDateClickHandler()"
+            >Apply filters
+            </button>
+            <div class="col"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="top-panel-applied-filters" class="card">
+        <h3 class="card-header text-center">Applied filters</h3>
+        <div class="card-body">
+          <div class="row">
+            <div class="col text-center fs-4">Since date:</div>
+            <div
+                id="applied-since-filter"
+                class="col fs-4 text-center"
+            >{{ display_since.date() }}</div>
+          </div>
+        </div>
       </div>
     </div>
 
