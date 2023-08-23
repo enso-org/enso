@@ -69,6 +69,7 @@ node_modules/
 *.iml
 .enso-sources*
 .metals
+tools/performance/engine-benchmarks/generated_site
 
 ############################
 ## Rendered Documentation ##
