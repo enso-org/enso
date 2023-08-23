@@ -377,6 +377,19 @@ spec =
         Test.specify "try to apply two arguments with over-saturated" <|
             r = Panic.recover Type_Error <| neg (my_func z=10)
             r . should_fail_with Type_Error
-            r.to_display_text.contains "Try to apply x, y arguments" . should_be_true
+            r.to_display_text . should_contain "Try to apply x, y arguments"
+
+        Test.specify "types and unapplied arguments" <|
+            c = C.Baz C.to_text
+            r = Panic.recover Type_Error <| neg (c.to_num c=3)
+            r . should_fail_with Type_Error
+            r.to_display_text . should_contain "Try to apply a, b arguments"
+
+
+
+type C
+    Baz x
+
+C.to_num self a b c = a+b+c
 
 main = Test_Suite.run_main spec

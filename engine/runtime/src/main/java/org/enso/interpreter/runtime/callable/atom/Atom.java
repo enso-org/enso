@@ -253,7 +253,8 @@ public abstract class Atom implements EnsoObject {
       } else if (TypesGen.isText(result)) {
         return TypesGen.asText(result);
       } else {
-        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
+        var txt = result instanceof Function fn ? fn.toString(false) : result.toString();
+        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", txt);
       }
     } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException |
              UnsupportedTypeException panic) {

@@ -402,8 +402,12 @@ public final class Function implements EnsoObject {
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
+    return toString(true);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public final String toString(boolean includeArguments) {
     var n = callTarget.getRootNode();
     var ss = n.getSourceSection();
     if (ss == null) {
@@ -422,19 +426,22 @@ public final class Function implements EnsoObject {
       sb.append("-").append(end);
     }
     sb.append("]");
-    for (var i = 0; i < schema.getArgumentsCount(); i++) {
-      sb.append(" ").append(schema.getArgumentInfos()[i].getName()).append("=");
-      if (preAppliedArguments != null && preAppliedArguments[i] != null) {
-        sb.append(iop.toDisplayString(preAppliedArguments[i], false));
-      } else {
-        sb.append("_");
+    if (includeArguments) {
+      for (var i = 0; i < schema.getArgumentsCount(); i++) {
+        var name = schema.getArgumentInfos()[i].getName();
+        sb.append(" ").append(name).append("=");
+        if (preAppliedArguments != null && preAppliedArguments[i] != null) {
+          sb.append(iop.toDisplayString(preAppliedArguments[i], false));
+        } else {
+          sb.append("_");
+        }
       }
-    }
-    if (schema.getOversaturatedArguments() != null) {
-      for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
-        if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
-          sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
-          sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
+      if (schema.getOversaturatedArguments() != null) {
+        for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
+          if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
+            sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
+            sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
+          }
         }
       }
     }
