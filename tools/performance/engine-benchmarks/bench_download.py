@@ -219,6 +219,7 @@ class TemplateBenchData:
 
 @dataclass
 class JinjaData:
+    bench_source: Source
     bench_datas: List[TemplateBenchData]
     branches: List[str]
     since: datetime
@@ -871,6 +872,7 @@ async def main():
         display_since=max(until - timedelta(days=30), since),
         until=until,
         bench_datas=template_bench_datas,
+        bench_source=bench_source,
         branches=branches,
     )
 

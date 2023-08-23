@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <html lang="en">
   <head>
-    <title>Engine benchmark results</title>
+    <title>{{ bench_source.value }} benchmark results</title>
     <!--Load the AJAX API-->
     <script
       type="text/javascript"
@@ -243,7 +243,7 @@
   </head>
 
   <body>
-    <h1 class="text-center">Engine benchmark results</h1>
+    <h1 class="text-center">{{ bench_source.value }} benchmark results</h1>
     <h2 class="text-center">Since {{ since.date() }} until {{ until.date() }}</h2>
 
     <div id="description">
