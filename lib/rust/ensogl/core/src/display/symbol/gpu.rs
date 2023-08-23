@@ -104,9 +104,10 @@ impl TextureBinding {
         Self { name, location, uniform, texture_unit }
     }
 
-    /// Bind texture to proper texture unit.
-    fn bind_texture_unit(&self, context: &Context) -> TextureBindGuard {
-        self.uniform.bind_texture_unit(context, self.texture_unit.into())
+    /// Bind texture to proper texture unit. This will return `None` if the texture is not currently
+    /// loaded on the GPU, which can happen if the context was lost and has not been restored yet.
+    fn bind_texture_unit(&self) -> Option<TextureBindGuard> {
+        self.uniform.texture().map(|texture| texture.bind_texture_unit(self.texture_unit))
     }
 
     /// Upload uniform value.
@@ -370,7 +371,7 @@ impl Symbol {
                     }
 
                     let textures = &self.bindings.borrow().textures;
-                    let bound_textures_iter = textures.iter().map(|t| t.bind_texture_unit(context));
+                    let bound_textures_iter = textures.iter().map(|t| t.bind_texture_unit());
                     let _textures_keep_alive = bound_textures_iter.collect_vec();
 
                     let mode = Context::TRIANGLE_STRIP;

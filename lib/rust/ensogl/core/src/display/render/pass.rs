@@ -83,9 +83,11 @@ impl Instance {
         let name = format!("pass_{}", output.name);
         let format = output.internal_format;
         let item_type = output.item_type;
-        let mut texture = Texture::new_(context, format, item_type, width, height, 0);
-        texture.set_parameters(output.texture_parameters);
-        let uniform = variables.borrow_mut().set(name, texture).unwrap();
+        let mut texture = Texture::new(context, format, item_type, width, height, 0);
+        if let Ok(texture) = texture.as_mut() {
+            texture.set_parameters(output.texture_parameters);
+        }
+        let uniform = variables.borrow_mut().set(name, texture.ok()).unwrap();
         uniform.into()
     }
 
@@ -100,10 +102,10 @@ impl Instance {
         let draw_buffers = js_sys::Array::new();
         context.bind_framebuffer(*target, Some(&native));
         for (index, texture) in textures.iter().enumerate() {
+            let texture = texture.texture().unwrap();
             let texture_target = Context::TEXTURE_2D;
             let attachment_point = *Context::COLOR_ATTACHMENT0 + index as u32;
-            let gl_texture = texture.gl_texture(&context)?;
-            let gl_texture = Some(&gl_texture);
+            let gl_texture = Some(texture.as_gl_texture());
             let level = 0;
             draw_buffers.push(&attachment_point.into());
             context.framebuffer_texture_2d(

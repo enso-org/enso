@@ -49,33 +49,16 @@ pub struct Texture {
 
 impl Texture {
     /// Constructor.
-    pub fn new<I: InternalFormat, T: ItemType>(
-        context: &Context,
-        width: i32,
-        height: i32,
-        layers: i32,
-    ) -> Self {
-        let internal_format: AnyInternalFormat = <I>::default().into();
-        let item_type = ZST::<T>().into();
-        Self::new_(context, internal_format, item_type, width, height, layers)
-    }
-
-    pub fn new_(
+    pub fn new(
         context: &Context,
         internal_format: AnyInternalFormat,
         item_type: AnyItemType,
-        mut width: i32,
-        mut height: i32,
+        width: i32,
+        height: i32,
         layers: i32,
-    ) -> Self {
-        if width == 0 {
-            width = 1;
-        }
-        if height == 0 {
-            height = 1;
-        }
+    ) -> Result<Self, ContextLost> {
         let context = context.clone();
-        let gl_texture = context.create_texture().unwrap();
+        let gl_texture = context.create_texture()?;
         let parameters = default();
         let this = Self {
             width,
@@ -88,7 +71,8 @@ impl Texture {
             internal_format,
         };
         this.allocate();
-        this
+        this.apply_texture_parameters();
+        Ok(this)
     }
 
     /// Setter.
@@ -167,11 +151,12 @@ impl Texture {
                     .unwrap();
             }
         }
-        self.apply_texture_parameters(&self.context);
+        self.apply_texture_parameters();
     }
 
-    pub fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        let context = context.clone();
+    /// Bind this texture to the specified texture unit on the GPU.
+    pub fn bind_texture_unit(&self, unit: TextureUnit) -> TextureBindGuard {
+        let context = self.context.clone();
         let target = self.target();
         context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
         context.bind_texture(*target, Some(&self.gl_texture));
@@ -179,14 +164,17 @@ impl Texture {
         TextureBindGuard { context, target, unit }
     }
 
-    pub fn gl_texture(&self, _context: &Context) -> Result<WebGlTexture, ContextLost> {
-        Ok(self.gl_texture.clone())
+    /// Access the raw WebGL texture object.
+    pub fn as_gl_texture(&self) -> &WebGlTexture {
+        &self.gl_texture
     }
 
+    /// Get the format of the texture.
     pub fn get_format(&self) -> AnyFormat {
         self.internal_format.format()
     }
 
+    /// Get the texture's item type.
     pub fn get_item_type(&self) -> AnyItemType {
         self.item_type
     }
@@ -223,12 +211,11 @@ impl Texture {
                 );
             }
         }
-        self.apply_texture_parameters(&self.context);
     }
 
-    /// Applies this textures' parameters in the given context.
-    fn apply_texture_parameters(&self, context: &Context) {
-        self.parameters.apply_parameters(context, self.target());
+    /// Applies this textures' parameters.
+    fn apply_texture_parameters(&self) {
+        self.parameters.apply_parameters(&self.context, self.target());
     }
 }
 

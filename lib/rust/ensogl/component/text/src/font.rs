@@ -937,27 +937,24 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 // === FontWithGpuData ===
 // =======================
 
-type AtlasTexture = gpu::Texture;
-
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct FontWithGpuData {
     pub font:             Font,
-    pub atlas:            gpu::Uniform<AtlasTexture>,
+    pub atlas:            gpu::Uniform<Option<gpu::Texture>>,
     pub opacity_increase: gpu::Uniform<f32>,
     pub opacity_exponent: gpu::Uniform<f32>,
     context:              Rc<RefCell<Option<Context>>>,
 }
 
 impl FontWithGpuData {
-    fn new(font: Font, hinting: Hinting, context: Context) -> Self {
+    fn new(font: Font, hinting: Hinting) -> Self {
         let Hinting { opacity_increase, opacity_exponent } = hinting;
-        let texture = get_texture(&context, default(), default());
-        let atlas = gpu::Uniform::new(texture);
         let opacity_increase = gpu::Uniform::new(opacity_increase);
         let opacity_exponent = gpu::Uniform::new(opacity_exponent);
-        let context = Rc::new(RefCell::new(Some(context)));
+        let atlas = gpu::Uniform::new(default());
+        let context = default();
         Self { font, atlas, opacity_exponent, opacity_increase, context }
     }
 
@@ -969,25 +966,30 @@ impl FontWithGpuData {
     fn update_atlas(&self) {
         if let Some(context) = self.context.borrow().as_ref() {
             let num_glyphs = self.font.msdf_texture().glyphs();
-            let gpu_tex_glyphs = self.atlas.with_item(|texture| texture.layers());
+            let gpu_tex_glyphs = self
+                .atlas
+                .with_item(|texture| texture.as_ref().map_or_default(|texture| texture.layers()));
             let texture_changed = gpu_tex_glyphs as u32 != num_glyphs;
             if texture_changed {
                 let glyph_size = self.font.msdf_texture().size();
-                let texture = get_texture(context, glyph_size, num_glyphs);
-                self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-                self.atlas.set(texture);
+                let texture = gpu::Texture::new(
+                    context,
+                    texture::AnyInternalFormat::Rgb8,
+                    texture::AnyItemType::u8,
+                    glyph_size.x() as i32,
+                    glyph_size.y() as i32,
+                    num_glyphs as i32,
+                );
+                if let Ok(texture) = texture.as_ref() {
+                    self.font
+                        .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+                }
+                self.atlas.set(texture.ok());
             }
+        } else {
+            self.atlas.set(None);
         }
     }
-}
-
-fn get_texture(context: &Context, glyph_size: Vector2<u32>, num_glyphs: u32) -> AtlasTexture {
-    gpu::Texture::new::<texture::Rgb8, u8>(
-        context,
-        glyph_size.x() as i32,
-        glyph_size.y() as i32,
-        num_glyphs as i32,
-    )
 }
 
 
@@ -1029,13 +1031,15 @@ impl Registry {
         fonts: impl IntoIterator<Item = (Name, Font)>,
     ) -> Self {
         let context = scene.context.borrow();
-        let context = context.as_ref().unwrap();
+        let context = context.as_ref();
         let scene_shape = scene.shape().value();
         let fonts = fonts
             .into_iter()
             .map(|(name, font)| {
                 let hinting = Hinting::for_font(&name, scene_shape);
-                (name, FontWithGpuData::new(font, hinting, context.clone()))
+                let font = FontWithGpuData::new(font, hinting);
+                font.set_context(context);
+                (name, font)
             })
             .collect();
         let fonts = Rc::new(fonts);

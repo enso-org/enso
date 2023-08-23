@@ -6,11 +6,9 @@ use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
 use enum_dispatch::*;
 
-use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::Context;
 
 use upload::UniformUpload;
-use web_sys::WebGlTexture;
 use web_sys::WebGlUniformLocation;
 
 
@@ -290,34 +288,22 @@ impl<Value: UniformUpload> AnyPrimUniformOps for Uniform<Value> {
 #[allow(non_camel_case_types)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct AnyTextureUniform {
-    texture: Uniform<Texture>,
+    texture: Uniform<Option<Texture>>,
 }
 
 impl AnyTextureUniform {
-    pub fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        self.texture.value.borrow().bind_texture_unit(context, unit)
-    }
-
-    pub fn gl_texture(&self, context: &Context) -> Result<WebGlTexture, ContextLost> {
-        self.texture.value.borrow().gl_texture(context)
-    }
-
-    pub fn get_format(&self) -> AnyFormat {
-        self.texture.value.borrow().get_format()
-    }
-
-    pub fn get_item_type(&self) -> AnyItemType {
-        self.texture.value.borrow().get_item_type()
+    pub fn texture(&self) -> Option<Ref<Texture>> {
+        Ref::filter_map(self.texture.value.borrow(), |texture| texture.as_ref()).ok()
     }
 }
 
-impl From<Uniform<Texture>> for AnyTextureUniform {
-    fn from(texture: Uniform<Texture>) -> Self {
+impl From<Uniform<Option<Texture>>> for AnyTextureUniform {
+    fn from(texture: Uniform<Option<Texture>>) -> Self {
         Self { texture }
     }
 }
 
-impl<'t> TryFrom<&'t AnyTextureUniform> for &'t Uniform<Texture> {
+impl<'t> TryFrom<&'t AnyTextureUniform> for &'t Uniform<Option<Texture>> {
     type Error = TypeMismatch;
     fn try_from(value: &'t AnyTextureUniform) -> Result<Self, Self::Error> {
         Ok(&value.texture)
@@ -357,9 +343,7 @@ impl<T: Into<AnyPrimUniform>> IntoAnyUniform for T {
     }
 }
 
-impl IntoAnyUniform for Uniform<Texture>
-where Uniform<Texture>: Into<AnyTextureUniform>
-{
+impl IntoAnyUniform for Uniform<Option<Texture>> {
     fn into_any_uniform(self) -> AnyUniform {
         AnyUniform::Texture(self.into())
     }
@@ -381,9 +365,7 @@ macro_rules! generate_prim_type_downcasts {
 crate::with_all_prim_types!([[generate_prim_type_downcasts][]]);
 
 
-impl<'t> TryFrom<&'t AnyUniform> for &'t Uniform<Texture>
-where &'t Uniform<Texture>: TryFrom<&'t AnyTextureUniform, Error = TypeMismatch>
-{
+impl<'t> TryFrom<&'t AnyUniform> for &'t Uniform<Option<Texture>> {
     type Error = TypeMismatch;
     fn try_from(value: &'t AnyUniform) -> Result<Self, Self::Error> {
         match value {

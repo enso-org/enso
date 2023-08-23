@@ -115,14 +115,14 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             AnyUniform::Texture(t) => t,
             _ => panic!("Pass internal error. Unmatched types."),
         };
+        let texture = texture.texture().unwrap();
         let format = texture.get_format();
         let item_type = texture.get_item_type();
-        let gl_texture = texture.gl_texture(context)?;
+        let gl_texture = Some(texture.as_gl_texture());
         let framebuffer = context.create_framebuffer()?;
         let target = Context::FRAMEBUFFER;
         let texture_target = Context::TEXTURE_2D;
         let attachment_point = Context::COLOR_ATTACHMENT0;
-        let gl_texture = Some(&gl_texture);
         let level = 0;
         context.bind_framebuffer(*target, Some(&framebuffer));
         context.framebuffer_texture_2d(

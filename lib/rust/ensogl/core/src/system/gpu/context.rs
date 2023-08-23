@@ -128,6 +128,10 @@ impl ContextData {
         self.native.create_buffer().ok_or(ContextLost)
     }
 
+    pub fn create_texture(&self) -> Result<web_sys::WebGlTexture, ContextLost> {
+        self.native.create_texture().ok_or(ContextLost)
+    }
+
     pub fn delete_texture(&self, texture: &web_sys::WebGlTexture) {
         // Avoid WebGL errors if we delete something bound to a context that has been lost.
         if self.native.is_texture(Some(texture)) {

@@ -118,6 +118,7 @@ macro_rules! generate_internal_format_instances_item {
 crate::with_texture_format_relations!(generate_internal_format_instances []);
 
 impl AnyInternalFormat {
+    /// Return the [`Format`] corresponding to this internal format.
     pub fn format(self) -> AnyFormat {
         // TODO: Generate this.
         match self {

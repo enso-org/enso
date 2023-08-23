@@ -345,7 +345,7 @@ impl Glyph {
         );
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id);
-            self.update_atlas();
+            self.view.data.borrow().font.update_atlas();
             self.view.set_size(glyph_info.scale.scale(self.font_size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
@@ -363,11 +363,6 @@ impl Glyph {
     /// color do not call this method.
     fn refresh(&self) {
         self.set_glyph_id(self.glyph_id.get());
-    }
-
-    /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
-    fn update_atlas(&self) {
-        self.view.data.borrow().font.update_atlas();
     }
 }
 

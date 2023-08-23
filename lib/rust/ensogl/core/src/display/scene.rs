@@ -1033,7 +1033,13 @@ impl SceneData {
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &display_object, &dom.root, &mut variables.borrow_mut(), &display_mode);
+        let mouse = Mouse::new(
+            &frp,
+            &display_object,
+            &dom.root,
+            &mut variables.borrow_mut(),
+            &display_mode,
+        );
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;
