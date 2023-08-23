@@ -1076,15 +1076,16 @@ type Integer
     ## GROUP Bitwise
        Shifts the bits of this by the amount that.
 
-       Arguments:
-       - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left shift, while negative numbers perform a
-         right shift.
-
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
 
        Returns an error if the shift amount exceeds 2^32.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a left-shift, while negative numbers perform a
+         right-shift.
+
 
        > Example
          Shift the bits of the number 1 left by four bits.
@@ -1094,17 +1095,17 @@ type Integer
     bit_shift self that = @Builtin_Method "Integer.bit_shift"
 
     ## GROUP Bitwise
-       Performs a left-wise bit shift on the bits of this.
+       Performs a bitwise left-shift on the number.
+
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
 
        Arguments:
        - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left shift, while negative numbers perform a
-         right shift.
-
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
-
-       Returns an error if the shift amount exceeds 2^32.
+         Positive numbers perform a left-shift, while negative numbers perform a
+         right-shift.
 
        > Example
          Shift the bits of the number 1 left by four bits.
@@ -1114,17 +1115,17 @@ type Integer
     bit_shift_l self that = self.bit_shift that
 
     ## GROUP Bitwise
-       Performs a right-wise bit shift on the bits of this.
+       Performs a bitwise right-shift on the number.
+
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
 
        Arguments:
        - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a right shift, while negative numbers perform
-         a left shift.
-
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
-
-       Returns an error if the shift amount exceeds 2^32.
+         Positive numbers perform a right-shift, while negative numbers perform
+         a left-shift.
 
        > Example
          Shift the bits of the number 1 right by four bits.
