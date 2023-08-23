@@ -345,7 +345,7 @@ class FakeCache:
         return None
 
     def __setitem__(self, key, value):
-        raise NotImplementedError()
+        pass
 
     def __contains__(self, item):
         return False
