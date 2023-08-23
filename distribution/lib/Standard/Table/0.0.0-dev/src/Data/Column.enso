@@ -33,6 +33,7 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
@@ -74,7 +75,13 @@ type Column
         expected_storage_type = case value_type of
             Auto -> Nothing
             _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
-        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+        handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
+            java_exception = caught_panic.payload
+            value = java_exception.getValue
+            expected_type = value_type
+            actual_type = Enso_Types.most_specific_value_type value use_smallest=True
+            error = Invalid_Value_Type.Value expected_type actual_type value
+        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
             java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name items expected_storage_type
