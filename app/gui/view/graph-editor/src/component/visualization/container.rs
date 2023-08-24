@@ -208,7 +208,7 @@ impl View {
             r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         display_object.add_child(&selection);
-        selection.add_child(&hover_area);
+        display_object.add_child(&hover_area);
         hover_area.add_child(&resize_grip);
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
@@ -511,6 +511,7 @@ impl ContainerModel {
             bg_dom.set_style_or_warn("width", "0");
             bg_dom.set_style_or_warn("height", "0");
             self.drag_root.set_xy(Vector2(size.x / 2.0, -size.y / 2.0));
+            self.view.hover_area.set_xy(-size / 2.0);
         }
         let action_bar_size = if matches!(view_state, ViewState::Enabled { has_error: false }) {
             Vector2::new(size.x, ACTION_BAR_HEIGHT)
@@ -519,6 +520,7 @@ impl ContainerModel {
         };
         self.action_bar.frp.set_size.emit(action_bar_size);
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
+
 
         if view_state.is_visible() && let Some(viz) = &*self.visualization.borrow() {
             viz.frp.set_size.emit(size);
