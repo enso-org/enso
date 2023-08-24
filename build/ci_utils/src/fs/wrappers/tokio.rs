@@ -86,3 +86,9 @@ pub async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
 pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
     tokio::fs::read_to_string(&path).await.anyhow_err()
 }
+
+/// See [`tokio::fs::set_permissions`].
+#[context("Failed to set permissions {:?} for file: {}", permissions, path.as_ref().display())]
+pub async fn set_permissions(path: impl AsRef<Path>, permissions: std::fs::Permissions) -> Result {
+    tokio::fs::set_permissions(&path, permissions.clone()).await.anyhow_err()
+}

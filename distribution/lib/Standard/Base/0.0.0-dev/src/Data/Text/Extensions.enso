@@ -44,7 +44,8 @@ polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
-## Returns a new `Text` object with the characters in the reverse order of the input.
+## GROUP Text
+   Returns a new `Text` object with the characters in the reverse order of the input.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -92,7 +93,8 @@ Text.each self function =
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
-## ALIAS Get Character
+## ALIAS get character
+   GROUP Selections
 
    Returns a character from the text at the specified index (0-based).
 
@@ -115,7 +117,7 @@ Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-## ALIAS Get Character
+## ALIAS get character
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -152,7 +154,8 @@ Text.get self index ~if_missing=Nothing =
             if (next == -1) then if_missing else
                 Text_Utils.substring self first next
 
-## Returns the first character from the text.
+## GROUP Selections
+   Returns the first character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -166,7 +169,8 @@ Text.get self index ~if_missing=Nothing =
 Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
-## Returns the second character from the text.
+## GROUP Selections
+   Returns the second character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -180,7 +184,8 @@ Text.first self = self.at 0
 Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
-## Returns the last character from the text.
+## GROUP Selections
+   Returns the last character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -194,7 +199,8 @@ Text.second self = self.at 1
 Text.last : Text ! Index_Out_Of_Bounds
 Text.last self = self.at -1
 
-## ALIAS Get Characters
+## ALIAS get characters
+   GROUP Text
 
    Returns a vector containing all characters in the given text.
 
@@ -213,7 +219,8 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## Find the regular expression `pattern` in `self`, returning the first match
+## GROUP Selections
+   Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
 
    Arguments:
@@ -240,7 +247,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## Finds all the matches of the regular expression `pattern` in `self`,
+## GROUP Selections
+   Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
 
    Arguments:
@@ -267,7 +275,8 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
-## ALIAS Check Matches
+## ALIAS check matches
+   GROUP Text
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
@@ -297,7 +306,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
-## Compile the text into a regex pattern that can be used for matching.
+## GROUP Text
+   Compile the text into a regex pattern that can be used for matching.
 
    Arguments
    - case_insensitive: Enables or disables case-insensitive matching. Case
@@ -314,7 +324,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
 Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
-## ALIAS Split Text
+## ALIAS split text
+   GROUP Conversions
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -378,6 +389,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
 ## ADVANCED
+   GROUP Conversions
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -408,7 +420,8 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
 
-## ALIAS Replace Text
+## ALIAS replace text
+   GROUP Text
    Perform a text or regex replace.
 
    Returns the text with all matched elements replaced by the provided
@@ -500,7 +513,8 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
             updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
 
-## ALIAS Get Words
+## ALIAS get words
+   GROUP Text
 
    Returns a vector containing all words in the given text.
 
@@ -543,7 +557,8 @@ Text.words self keep_whitespace=False =
 
     bldr.to_vector
 
-## ALIAS Get Lines
+## ALIAS get lines
+   GROUP Text
 
    Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
 
@@ -570,7 +585,8 @@ Text.lines : Boolean -> Vector Text
 Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
-## Inserts text value at the specified index.
+## GROUP Text
+   Inserts text value at the specified index.
 
    Arguments:
      - index: The position (0-based) in the text to inset text at.
@@ -602,7 +618,8 @@ Text.insert self index that =
                 post = self.take (idx.up_to len)
                 pre + that + post
 
-## Returns if a character from the text at the specified index (0-based) is a
+## GROUP Logical
+   Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
    Arguments:
@@ -629,7 +646,8 @@ Text.is_digit self (index=0) =
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
 
-## Checks if the text consists only of whitespace characters.
+## GROUP Logical
+   Checks if the text consists only of whitespace characters.
 
    > Example
      Check if a text is whitespace only.
@@ -772,7 +790,8 @@ Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints sel
 Text.from_codepoints : Vector Integer -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
-## ALIAS Check Prefix
+## ALIAS check prefix
+   GROUP Text
 
    Checks whether `self` starts with `prefix`.
 
@@ -805,7 +824,8 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
 
-## ALIAS Check Suffix
+## ALIAS check suffix
+   GROUP Text
 
    Checks whether `self` ends with `suffix`.
 
@@ -833,7 +853,8 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
 
-## ALIAS Contains
+## ALIAS contains
+   GROUP Logical
 
    Checks whether `self` contains `sequence` as its substring.
    Returns: `True` if term is found within `self`. `False` otherwise.
@@ -875,7 +896,8 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Insensitive locale ->
         Text_Utils.contains_case_insensitive self term locale.java_locale
 
-## Takes an integer and returns a new text, consisting of `count` concatenated
+## GROUP Operators
+   Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
    Arguments:
@@ -894,7 +916,8 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
 Text.* : Integer -> Text
 Text.* self count = self.repeat count
 
-## Takes an integer and returns a new text, consisting of `count` concatenated
+## GROUP Calculations
+   Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
    Arguments:
@@ -914,7 +937,8 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, last, left, right, mid, substring, slice
+## ALIAS first, last, left, mid, right, slice, substring
+   GROUP Selections
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -961,7 +985,8 @@ Text.take self range=(Index_Sub_Range.First 1) =
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
 
-## ALIAS skip, remove
+## ALIAS remove, skip
+   GROUP Selections
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1014,7 +1039,8 @@ Text.drop self range=(Index_Sub_Range.First 1) =
             inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
-## ALIAS lower, upper, title, proper
+## ALIAS lower, proper, title, upper
+   GROUP Text
    Converts each character in `self` to the specified case.
 
    Arguments:
@@ -1051,7 +1077,8 @@ Text.to_case self case_option=Case.Lower locale=Locale.default = case case_optio
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
 
-## Returns the input padded to the specified `length`, using the `with_pad`
+## GROUP Calculations
+   Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
 
    Arguments:
@@ -1091,7 +1118,8 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                     Location.End ->
                         self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
-## This function removes the specified `trim_characters`, by default any
+## GROUP Text
+   This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
 
    Arguments:
@@ -1145,6 +1173,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
         Text_Utils.substring self start_index end_index
 
 ## ALIAS position_of, span_of
+   GROUP Text
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1246,6 +1275,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
                     Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
 ## ALIAS index_of_all, position_of_all, span_of_all
+   GROUP Text
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1323,7 +1353,8 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
         grapheme_spans.map grapheme_span->
             Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
-## Find the first index of the `term` in the input.
+## GROUP Values
+   Find the first index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
    Using `locate` is preferred as then you can also get the length of the match
@@ -1356,7 +1387,8 @@ Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
         span = used.locate term Matching_Mode.First case_sensitivity
         if span.is_nothing then Nothing else span.start+used_start
 
-## Find the last index of the `term` in the input.
+## GROUP Values
+   Find the last index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
    Using `locate` is preferred as then you can also get the length of the match
@@ -1389,7 +1421,8 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## ALIAS Decimal From Text, to_decimal
+## ALIAS decimal from text, to_decimal
+   GROUP Conversions
 
    Parses a textual representation of a decimal into a decimal number, returning
    a `Number_Parse_Error` if the text does not represent a valid decimal.
@@ -1405,7 +1438,8 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
 Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
 Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 
-## ALIAS Integer From Text, to_integer
+## ALIAS integer from text, to_integer
+   GROUP Conversions
 
    Parses a textual representation of an integer into an integer number, returning
    a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1421,7 +1455,8 @@ Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 Text.parse_integer : Integer -> Integer ! Number_Parse_Error
 Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 
-## ALIAS JSON From Text
+## ALIAS json from text
+   GROUP Conversions
 
    Parse a Text value into a `JS_Object` or an Enso primitive value (like
    `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -1433,7 +1468,8 @@ Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
 Text.parse_json self = Json.parse self
 
-## ALIAS Date from Text, to_date
+## ALIAS date from text, to_date
+   GROUP Conversions
 
    Converts text containing a date into a Date object.
 
@@ -1501,7 +1537,8 @@ Text.parse_json self = Json.parse self
 Text.parse_date : Text -> Locale -> Date ! Time_Error
 Text.parse_date self format:Text="" locale:Locale=Locale.default = Date.parse self format locale
 
-## ALIAS Date_Time from Text
+## ALIAS date_time from text
+   GROUP Conversions
 
    Obtains an instance of `Date_Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -1588,7 +1625,8 @@ Text.parse_date self format:Text="" locale:Locale=Locale.default = Date.parse se
 Text.parse_date_time : Text -> Locale -> Date_Time ! Time_Error
 Text.parse_date_time self format:Text="" locale:Locale=Locale.default = Date_Time.parse self format locale
 
-## ALIAS Time_Of_Day from Text, to_time_of_day
+## ALIAS time_of_day from text, to_time_of_day
+   GROUP Conversions
 
    Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -1658,7 +1696,8 @@ Text.parse_date_time self format:Text="" locale:Locale=Locale.default = Date_Tim
 Text.parse_time_of_day : Text -> Locale -> Time_Of_Day ! Time_Error
 Text.parse_time_of_day self format:Text="" locale:Locale=Locale.default = Time_Of_Day.parse self format locale
 
-## ALIAS Time_Zone from Text, to_time_zone
+## ALIAS time_zone from text, to_time_zone
+   GROUP Conversions
 
    This method parses the ID producing a `Time_Zone`.
 

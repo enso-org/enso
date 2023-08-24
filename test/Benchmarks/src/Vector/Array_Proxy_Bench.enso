@@ -32,7 +32,7 @@ type Data
 
 
 collect_benches = Bench.build builder->
-    vector_size = 10000
+    vector_size = 1000 * 1000
     data = Data.create vector_size
 
     builder.group "Vector_Array_Proxy" Bench.options group_builder->

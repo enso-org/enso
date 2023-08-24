@@ -31,11 +31,12 @@ type Response
          response.
     Value internal_http_response
 
-    ## Get the response headers.
+    ## GROUP Metadata
+       Get the response headers.
 
        > Example
-         Getting the headers from a response. NOTE that this example will make a
-         network request.
+         Getting the headers from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -54,8 +55,8 @@ type Response
     ## Get the response body.
 
        > Example
-         Getting the body from a response. NOTE that this example will make a
-         network request.
+         Getting the body from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -66,8 +67,8 @@ type Response
     ## Get the response status code.
 
        > Example
-         Getting the code from a response. NOTE that this example will make a
-         network request.
+         Getting the code from a response.
+         Note: This example will make a network request.
 
              import Standard.Examples
 
@@ -75,7 +76,8 @@ type Response
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
-    ## ALIAS Parse
+    ## ALIAS parse
+       GROUP Conversions
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
@@ -94,14 +96,16 @@ type Response
                 if can_decode type_obj then format.read_web self else
                     Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from the web.")
 
-    ## ALIAS Parse as Text
+    ## ALIAS parse as text
+       GROUP Conversions
        Decodes the body to a Text value.
     @encoding Encoding.default_widget
     decode_as_text : Encoding -> Text
     decode_as_text self encoding=Encoding.utf_8 =
         self.body.decode_as_text encoding
 
-    ## ALIAS Parse as JSON, Parse JSON
+    ## ALIAS parse as json, parse json
+       GROUP Conversions
        Decodes the body as JSON.
 
        > Example
@@ -120,7 +124,7 @@ type Response
 
        > Example
          Convert a response to JS_Object.
-         NOTE that this example will make a network request.
+         Note: This example will make a network request.
 
              import Standard.Examples
 

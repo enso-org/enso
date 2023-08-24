@@ -3,6 +3,7 @@ import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Nothing.Nothing
 from project.Data.Boolean.Boolean import False, True
+
 from project.Data.Boolean.Boolean export False, True
 
 ## A type with only two possible values.
@@ -11,10 +12,14 @@ from project.Data.Boolean.Boolean export False, True
    primarily used for control-flow.
 @Builtin_Type
 type Boolean
+    ## The boolean value representing true.
     True
+
+    ## The boolean value representing false.
     False
 
-    ## ALIAS And
+    ## ALIAS and
+       GROUP Logical
        Computes the logical and (conjunction) of two booleans.
 
        Arguments:
@@ -31,7 +36,8 @@ type Boolean
     && : Boolean -> Boolean
     && self ~that = @Builtin_Method "Boolean.&&"
 
-    ## ALIAS Or
+    ## ALIAS or
+       GROUP Logical
        Computes the logical or (disjunction) of two booleans.
 
        Arguments:
@@ -48,7 +54,8 @@ type Boolean
     || : Boolean -> Boolean
     || self ~that = @Builtin_Method "Boolean.||"
 
-    ## Computes the logical negation of this.
+    ## GROUP Logical
+       Computes the logical negation of this.
 
        > Example
          Negating True to get False.
@@ -57,7 +64,8 @@ type Boolean
     not : Boolean
     not self = @Builtin_Method "Boolean.not"
 
-    ## The if-then-else control flow operator that executes one of two branches
+    ## GROUP Logical
+       The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 
        Arguments:
@@ -74,7 +82,8 @@ type Boolean
     if_then_else : Any -> Any -> Any
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
-    ## The if-then control flow operator that executes a branch if the condition
+    ## GROUP Logical
+       The if-then control flow operator that executes a branch if the condition
        is true, and otherwise returns Nothing.
 
        Arguments:

@@ -28,7 +28,8 @@ type Exit_Code
        - code: The exit code for the failure.
     Failure code
 
-    ## Convert exit code to a number.
+    ## GROUP Conversions
+       Convert exit code to a number.
 
        > Example
          Convert a success code to a corresponding number.

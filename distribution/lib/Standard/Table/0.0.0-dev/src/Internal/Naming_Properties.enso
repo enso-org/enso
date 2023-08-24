@@ -56,6 +56,7 @@ type Naming_Properties
    Its case sensitivity may be customized. By default it is case sensitive, as
    that is the behaviour for the in-memory backend.
 type Unlimited_Naming_Properties
+    ## PRIVATE
     Instance (is_case_sensitive : Boolean = True)
 
     ## PRIVATE

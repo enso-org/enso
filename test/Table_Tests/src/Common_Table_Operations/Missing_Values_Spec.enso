@@ -218,7 +218,7 @@ spec setup =
             table.at "Z" . fill_nothing True . should_fail_with No_Common_Type
 
         if setup.is_database.not then
-            Test.specify "may allow mixed types if explicitly retyped" pending="TODO: cast #6112" <|
+            Test.specify "may allow mixed types if explicitly retyped" pending="ToDo: cast #6112" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
                 ints = table.at "X" . cast Value_Type.Mixed
                 ints_filled = ints.fill_nothing False
