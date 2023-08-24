@@ -628,6 +628,9 @@ private object DefaultPackageRepository {
     val editionManager = EditionManager(distributionManager, homeManager)
     val edition        = editionManager.resolveEdition(rawEdition).get
 
+    // TODO
+    val projectRoot = projectPackage.map(_.root)
+
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(
         distributionManager = distributionManager,
@@ -637,7 +640,8 @@ private object DefaultPackageRepository {
         languageHome        = homeManager,
         edition             = edition,
         preferLocalLibraries =
-          projectPackage.exists(_.getConfig().preferLocalLibraries)
+          projectPackage.exists(_.getConfig().preferLocalLibraries),
+        projectRoot = projectRoot
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,

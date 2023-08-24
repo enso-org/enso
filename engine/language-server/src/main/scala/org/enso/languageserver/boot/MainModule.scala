@@ -356,13 +356,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "project-settings-manager"
   )
 
+  val libraryLocations =
+    LibraryLocations.resolve(
+      distributionManager,
+      Some(languageHome),
+      Some(contentRoot.file.toPath)
+    )
+
   val localLibraryManager = system.actorOf(
-    LocalLibraryManager.props(contentRoot.file, distributionManager),
+    LocalLibraryManager.props(contentRoot.file, libraryLocations),
     "local-library-manager"
   )
-
-  val libraryLocations =
-    LibraryLocations.resolve(distributionManager, Some(languageHome))
 
   val libraryConfig = LibraryConfig(
     localLibraryManager      = localLibraryManager,

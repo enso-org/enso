@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
+import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.{
   DefaultLocalLibraryProvider,
   LocalLibraryProvider
@@ -16,17 +17,16 @@ import org.enso.yaml.YamlHelper
 
 import java.io.File
 import java.nio.file.{Files, Path}
-
 import scala.util.{Success, Try}
 
 /** An Actor that manages local libraries. */
 class LocalLibraryManager(
   currentProjectRoot: File,
-  distributionManager: DistributionManager
+  libraryLocations: LibraryLocations
 ) extends BlockingSynchronizedRequestHandler
     with LazyLogging {
   val localLibraryProvider = new DefaultLocalLibraryProvider(
-    distributionManager.paths.localLibrariesSearchPaths.toList
+    libraryLocations.localLibrarySearchPaths
   )
 
   override def requestStage: Receive = { case request: Request =>
@@ -77,7 +77,7 @@ class LocalLibraryManager(
 
     // TODO [RW] make the exceptions more relevant
     val possibleRoots = LazyList
-      .from(distributionManager.paths.localLibrariesSearchPaths)
+      .from(libraryLocations.localLibrarySearchPaths)
       .filter { path =>
         Try { if (Files.notExists(path)) Files.createDirectories(path) }
         Files.isWritable(path)
@@ -122,7 +122,7 @@ class LocalLibraryManager(
 
   private def findLocalLibraries(): Try[Seq[LibraryName]] = Try {
     for {
-      searchPathRoot <- distributionManager.paths.localLibrariesSearchPaths
+      searchPathRoot <- libraryLocations.localLibrarySearchPaths
       namespaceDir <- FileSystem
         .listDirectory(searchPathRoot)
         .filter(Files.isDirectory(_))
@@ -252,8 +252,8 @@ class LocalLibraryManager(
 object LocalLibraryManager {
   def props(
     currentProjectRoot: File,
-    distributionManager: DistributionManager
+    libraryLocations: LibraryLocations
   ): Props = Props(
-    new LocalLibraryManager(currentProjectRoot, distributionManager)
+    new LocalLibraryManager(currentProjectRoot, libraryLocations)
   )
 }
