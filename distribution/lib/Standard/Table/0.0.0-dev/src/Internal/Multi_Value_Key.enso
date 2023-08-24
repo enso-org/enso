@@ -51,12 +51,14 @@ type Unordered_Multi_Value_Key_Comparator
     ## PRIVATE
     hash x = x.hash_code
 
+## PRIVATE
 Comparable.from (_:Unordered_Multi_Value_Key) = Unordered_Multi_Value_Key_Comparator
 
 ## PRIVATE
    An Enso implementation mirroring `OrderedMultiValueKey` from the Java
    helpers.
 type Ordered_Multi_Value_Key
+    ## PRIVATE
     Key columns:(Vector Column) flip_direction:(Vector Boolean) row_index:Integer
 
     ## PRIVATE
@@ -91,4 +93,5 @@ type Ordered_Multi_Value_Key_Comparator
         _ = [x]
         Error.throw (Illegal_State.new "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
 
+## PRIVATE
 Comparable.from (_:Ordered_Multi_Value_Key) = Ordered_Multi_Value_Key_Comparator

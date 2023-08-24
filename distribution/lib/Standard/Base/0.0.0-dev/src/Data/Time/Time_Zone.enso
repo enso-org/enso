@@ -59,7 +59,7 @@ type Time_Zone
     system : Time_Zone
     system = @Builtin_Method "Time_Zone.system"
 
-    ## ALIAS Current Time Zone
+    ## ALIAS current time zone
 
        The system's local timezone.
 
@@ -72,7 +72,7 @@ type Time_Zone
     local : Time_Zone
     local = Time_Zone.system
 
-    ## ALIAS UTC Time Zone
+    ## ALIAS utc time zone
 
        The UTC timezone.
 
@@ -105,7 +105,8 @@ type Time_Zone
     new (hours = 0) (minutes = 0) (seconds = 0) =
         new_builtin hours minutes seconds
 
-    ## ALIAS Time Zone from Text
+    ## ALIAS time zone from text
+       GROUP Conversions
 
        This method parses the ID producing a `Time_Zone`.
 
@@ -144,7 +145,8 @@ type Time_Zone
         Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
             parse_builtin id
 
-    ## Get the unique timezone ID.
+    ## GROUP DateTime
+       Get the unique timezone ID.
 
        > Example
          Get the unique identifier for your system's current timezone.

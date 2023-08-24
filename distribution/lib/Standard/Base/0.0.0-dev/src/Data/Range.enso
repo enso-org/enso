@@ -37,7 +37,8 @@ type Range
          non-zero. Defaults to 1.
     Between (start : Integer) (end : Integer) (step : Integer = 1)
 
-    ## Creates a copy of this range with a changed step.
+    ## GROUP Metadata
+       Creates a copy of this range with a changed step.
 
        > Example
          Create a range of even numbers from 0 to 10 (exclusive).
@@ -57,26 +58,30 @@ type Range
         _ ->
             Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
-    ## Returns the first element that is included within the range.
+    ## GROUP Selections
+       Returns the first element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
-    ## Returns the second element that is included within the range.
+    ## GROUP Selections
+       Returns the second element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
     second : Integer ! Index_Out_Of_Bounds
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
-    ## Returns the last element that is included within the range.
+    ## GROUP Selections
+       Returns the last element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
     last : Integer ! Index_Out_Of_Bounds
     last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
         self.start + self.step*(self.length - 1)
 
-    ## Get the number of elements in the range.
+    ## GROUP Metadata
+       Get the number of elements in the range.
 
        > Example
          The following range has 100 elements.
@@ -92,7 +97,8 @@ type Range
            so we increase by one.
         if exact_fit then steps else steps+1
 
-    ## Gets an element from the Range at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the Range at a specified index (0-based).
 
        Arguments:
        - index: The location in the Range to get the element from. The index is
@@ -127,7 +133,8 @@ type Range
         if used_index >= 0 && used_index < len then self.start + used_index * self.step else
             if_missing
 
-    ## Checks if this range is empty.
+    ## GROUP Logical
+       Checks if this range is empty.
 
        > Example
          Checking if the range from 0 to 100 is empty.
@@ -138,7 +145,8 @@ type Range
         if self.step < 0 then self.start <= self.end else
             throw_zero_step_error
 
-    ## Checks if this range is not empty.
+    ## GROUP Logical
+       Checks if this range is not empty.
 
        > Example
          Checking if the range from 0 to 100 is not empty.
@@ -162,7 +170,8 @@ type Range
     map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
-    ## Returns a vector of all elements of this range which satisfy a condition.
+    ## GROUP Selections
+       Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
        - filter: The filter to apply to the range. It can either be an instance
@@ -184,7 +193,8 @@ type Range
                 if predicate elem then builder.append elem else builder
             builder.to_vector
 
-    ## Partitions the range into `Vector`s of elements which satisfy a given
+    ## GROUP Selections
+       Partitions the range into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -323,7 +333,8 @@ type Range
         built = self.fold (Vector.new_builder self.length) wrapped
         built.to_vector
 
-    ## Checks whether a condition is satisfied for all numbers in this range.
+    ## GROUP Logical
+       Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -344,7 +355,8 @@ type Range
         predicate = unify_condition_or_predicate condition
         self.any (predicate >> .not) . not
 
-    ## Checks whether a condition is satisfied for any number in this range.
+    ## GROUP Logical
+       Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -363,7 +375,8 @@ type Range
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
     any self condition = self.find condition . is_nothing . not
 
-    ## Gets the first element of this range that satisfies a condition.
+    ## GROUP Selections
+       Gets the first element of this range that satisfies a condition.
        If no element satisfies the condition, returns `if_missing`.
 
        Arguments:
@@ -390,7 +403,8 @@ type Range
             result = find_internal self used_start predicate
             if result.is_nothing then if_missing else result.first
 
-    ## Checks if the range contains the specified value.
+    ## GROUP Logical
+       Checks if the range contains the specified value.
 
        > Example
          Check if an index is in the range of a Vector
@@ -409,7 +423,8 @@ type Range
            decimals instead.
         _ -> Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
 
-    ## Returns the index of an element in the range.
+    ## GROUP Values
+       Returns the index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -437,7 +452,8 @@ type Range
                     self.index_of fc.to_predicate start
                 _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integer, Filter_Condition or a predicate.")
 
-    ## Returns the last index of an element in the range.
+    ## GROUP Values
+       Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -468,7 +484,8 @@ type Range
                         self.last_index_of fc.to_predicate start
                     _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integer, Filter_Condition or a predicate.")
 
-    ## Reverses the range, returning a range with the same elements, but in
+    ## GROUP Selections
+       Reverses the range, returning a range with the same elements, but in
        the opposite order.
 
        > Example
@@ -480,7 +497,8 @@ type Range
         if self.step == 0 then throw_zero_step_error else
             Range.Between self.last (self.first-self.step) (-self.step)
 
-    ## Converts the range to a vector containing the numbers in the range.
+    ## GROUP Conversions
+       Converts the range to a vector containing the numbers in the range.
 
        > Example
          Getting a vector of the numbers 1 to 5.

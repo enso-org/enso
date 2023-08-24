@@ -15,10 +15,10 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
+import project.Internal.Array_Like_Helpers
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Internal.Array_Like_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
@@ -26,7 +26,8 @@ from project.Data.Range.Extensions import all
 ## The type of primitive mutable arrays.
 @Builtin_Type
 type Array
-    ## Gets an element from the array at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the array at a specified index (0-based).
 
        Arguments:
        - index: The location in the array to get the element from. The index is
@@ -45,7 +46,8 @@ type Array
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = Array_Like_Helpers.at self index
 
-    ## Returns the number of elements stored in this array.
+    ## GROUP Metadata
+       Returns the number of elements stored in this array.
 
        > Example
          Checking the length of an array.
@@ -54,17 +56,17 @@ type Array
     length : Integer
     length self = Array_Like_Helpers.length self
 
-    ## Identity.
+    ## PRIVATE
+       Identity.
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
     to_array : Array
     to_array self = self
 
-    #
-    # For compatibility with Vector
-    #
+    ## For compatibility with Vector
 
     ## ALIAS order_by
+       GROUP Calculations
        Sort the array.
 
        Arguments:
@@ -142,7 +144,8 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Vector.sort self order on by on_incomparable
 
-    ## Creates a new `Vector` with only the specified range of elements from the
+    ## GROUP Selections
+       Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
        Arguments:
@@ -154,7 +157,8 @@ type Array
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
-    ## Creates a new `Vector`, removing any elements from the specified range.
+    ## GROUP Selections
+       Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
        - range: The section of the this array to return.
@@ -165,7 +169,8 @@ type Array
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
 
-    ## Inserts the given item into the array at the given index.
+    ## GROUP Calculations
+       Inserts the given item into the array at the given index.
 
        Arguments:
        - at: The index at which to insert the item before.
@@ -183,7 +188,8 @@ type Array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing = Vector.insert self at item
 
-    ## Removes the item at the given index from the array.
+    ## GROUP Selections
+       Removes the item at the given index from the array.
 
        Arguments:
        - at: The index at which to remove the item.
@@ -192,7 +198,8 @@ type Array
     remove : Integer -> Vector
     remove self at=-1 = Vector.remove self at
 
-    ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
+    ## GROUP Selections
+       Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
 
        > Example
@@ -202,7 +209,8 @@ type Array
     first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the second element from the array, or a `Index_Out_Of_Bounds` if the
+    ## GROUP Selections
+       Get the second element from the array, or a `Index_Out_Of_Bounds` if the
        array doesn't have a second element.
 
        Useful when tuples are implemented as arrays.
@@ -214,7 +222,8 @@ type Array
     second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
 
-    ## Get the last element of the array, or an `Index_Out_Of_Bounds` if the array is
+    ## GROUP Selections
+       Get the last element of the array, or an `Index_Out_Of_Bounds` if the array is
        empty.
 
        > Example
@@ -224,7 +233,8 @@ type Array
     last : Any ! Index_Out_Of_Bounds
     last self = self.at -1
 
-    ## Returns the index of an element in the array.
+    ## GROUP Values
+       Returns the index of an element in the array.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -245,7 +255,8 @@ type Array
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition start=0 = Vector.index_of self condition start
 
-    ## Returns the last index of an element in the array.
+    ## GROUP Values
+       Returns the last index of an element in the array.
        Returns `Nothing` if the element is not found.
 
        Arguments:
@@ -266,7 +277,8 @@ type Array
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition start=-1 = Vector.last_index_of self condition start
 
-    ## Checks if this array is empty.
+    ## GROUP Logical
+       Checks if this array is empty.
 
        > Example
          Checking for emptiness.
@@ -279,7 +291,8 @@ type Array
     to_list : List
     to_list self = Vector.to_list self
 
-    ## Keeps only unique elements within the array, removing any duplicates.
+    ## GROUP Selections
+       Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
        - on: A projection from the element type to the value of that element
@@ -331,7 +344,8 @@ type Array
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map self function = Vector.flat_map self function
 
-    ## Selects all elements of this array which satisfy a condition.
+    ## GROUP Selections
+       Selects all elements of this array which satisfy a condition.
 
        Arguments:
        - filter: The filter to apply to the array. It can either be an instance
@@ -347,7 +361,8 @@ type Array
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = Vector.filter self filter
 
-    ## Transforms an array of arrays into a `Vector` of inner elements - removes
+    ## GROUP Calculations
+       Transforms an array of arrays into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested arrays.
 
        > Example
@@ -411,7 +426,8 @@ type Array
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function = Vector.fold_with_index self init function
 
-    ## Extend `self` array to the length of `n` appending elements `elem` to
+    ## GROUP Calculations
+       Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
        Arguments:
@@ -433,7 +449,8 @@ type Array
     pad : Integer -> Any -> Vector Any
     pad self n elem = Vector.pad self n elem
 
-    ## Partitions the array into `Vector`s of elements which satisfy a given
+    ## GROUP Selections
+       Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -497,7 +514,8 @@ type Array
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.map_with_index self function
 
-    ## Creates a new array with the skipping elements until `start` and then
+    ## GROUP Selections
+       Creates a new array with the skipping elements until `start` and then
        continuing until `end` index.
 
        Arguments:
@@ -511,7 +529,8 @@ type Array
     slice : Integer -> Integer -> Vector Any
     slice self start end = Vector.slice self start end
 
-    ## Returns the first element of the array that satisfies the condition or
+    ## GROUP Selections
+       Returns the first element of the array that satisfies the condition or
        `if_missing` if no elements of the array satisfy it.
 
        Arguments:
@@ -539,7 +558,8 @@ type Array
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing = Vector.get self index if_missing
 
-    ## Checks if this array is not empty.
+    ## GROUP Logical
+       Checks if this array is not empty.
 
        > Example
          Checking for non-emptiness.
@@ -548,7 +568,8 @@ type Array
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Selects all elements of this array which satisfy a predicate.
+    ## GROUP Selections
+       Selects all elements of this array which satisfy a predicate.
 
        Arguments:
        - predicate: A function that takes an index and a list element and
@@ -562,7 +583,8 @@ type Array
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate = Vector.filter_with_index self predicate
 
-    ## When `self` is an array of text values, concatenates all the values by
+    ## GROUP Calculations
+       When `self` is an array of text values, concatenates all the values by
        interspersing them with `separator`.
 
        Arguments:
@@ -600,7 +622,8 @@ type Array
     reduce : (Any -> Any -> Any) -> Any -> Any
     reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
 
-    ## Checks whether a predicate holds for at least one element of self array.
+    ## GROUP Logical
+       Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -618,7 +641,8 @@ type Array
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self condition = Vector.any self condition
 
-    ## Checks whether a condition holds for all elements in this array.
+    ## GROUP Logical
+       Checks whether a condition holds for all elements in this array.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -636,7 +660,8 @@ type Array
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
     all self condition = Vector.all self condition
 
-    ## Checks whether this array contains a given value as an element.
+    ## GROUP Logical
+       Checks whether this array contains a given value as an element.
 
        Arguments:
        - elem: The item to see if it exists in the array.
@@ -648,7 +673,8 @@ type Array
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## Performs a pair-wise operation passed in `function` on consecutive
+    ## GROUP Calculations
+       Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
        Arguments:
@@ -676,7 +702,8 @@ type Array
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self
 
-    ## Reverses the array, returning a `Vector` with the same elements, but in
+    ## GROUP Selections
+       Reverses the array, returning a `Vector` with the same elements, but in
        the opposite order.
 
        > Example
@@ -723,7 +750,8 @@ type Array
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f = Vector.each_with_index self f
 
-    ## ALIAS Concatenate
+    ## ALIAS concatenate
+       GROUP Operators
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 

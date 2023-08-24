@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-
 from project.Errors.Common import Module_Not_In_Package_Error
 
 ## Functionality for inspecting the current project.
@@ -48,7 +47,8 @@ type Project_Description
        - prim_config: The primitive config of the project.
     Value prim_root_file prim_config
 
-    ## Returns the root directory of the project.
+    ## GROUP Metadata
+       Returns the root directory of the project.
 
        > Example
          Get the root directory of the project.
@@ -57,7 +57,8 @@ type Project_Description
     root : File
     root self = File.new self.prim_root_file
 
-    ## Returns the root data directory of the project.
+    ## GROUP Input
+       Returns the root data directory of the project.
 
        > Example
          Get the data directory of the project.
@@ -66,7 +67,8 @@ type Project_Description
     data : File
     data self = self.root / "data"
 
-    ## Returns the name of the project.
+    ## GROUP Metadata
+       Returns the name of the project.
 
        > Example
          Get the name of the project.
@@ -75,7 +77,8 @@ type Project_Description
     name : Text
     name self = self.prim_config.name
 
-    ## Returns the namespace of the project.
+    ## GROUP Metadata
+       Returns the namespace of the project.
 
        > Example
          Get the namespace of the project.

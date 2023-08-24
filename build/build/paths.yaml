@@ -4,7 +4,8 @@
 <repo_root>/:
   .github/:
     workflows/:
-      benchmark.yml:
+      engine-benchmark.yml:
+      std-libs-benchmark.yml:
       changelog.yml:
       gui.yml:
       nightly.yml:
@@ -100,6 +101,9 @@
         docker-entrypoint.sh:
         Dockerfile:
     simple-library-server/:
+  std-bits/:
+    benchmarks/:
+      bench-report.xml:
   build.sbt:
   run:
   runner: # The runner native image (Linux only).

@@ -98,7 +98,8 @@ type Date_Time
     enso_epoch_start : Date_Time
     enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 
-    ## ALIAS Current Time
+    ## ALIAS current time
+       GROUP DateTime
 
        Obtains the current date-time from the system clock in the system timezone.
 
@@ -111,7 +112,8 @@ type Date_Time
     now : Date_Time
     now = @Builtin_Method "Date_Time.now"
 
-    ## Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
+    ## GROUP DateTime
+       Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
        second, nanosecond and timezone.
 
        Arguments:
@@ -148,7 +150,8 @@ type Date_Time
         Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
             Error.throw (Time_Error.Error cause.payload.getMessage)
 
-    ## ALIAS Time from Text
+    ## ALIAS time from text
+       GROUP Conversions
 
        Obtains an instance of `Time` from a text such as
        "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -246,7 +249,8 @@ type Date_Time
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex
 
-    ## Get the year portion of the time.
+    ## GROUP Metadata
+       Get the year portion of the time.
 
        > Example
          Get the current year.
@@ -257,7 +261,8 @@ type Date_Time
     year : Integer
     year self = @Builtin_Method "Date_Time.year"
 
-    ## Get the month portion of the time as a number from 1 to 12.
+    ## GROUP Metadata
+       Get the month portion of the time as a number from 1 to 12.
 
        > Example
          Get the current month.
@@ -268,7 +273,8 @@ type Date_Time
     month : Integer
     month self = @Builtin_Method "Date_Time.month"
 
-    ## Get the day portion of the time.
+    ## GROUP Metadata
+       Get the day portion of the time.
 
        > Example
          Get the current day.
@@ -279,7 +285,8 @@ type Date_Time
     day : Integer
     day self = @Builtin_Method "Date_Time.day"
 
-    ## Get the hour portion of the time.
+    ## GROUP Metadata
+       Get the hour portion of the time.
 
        > Example
          Get the current hour.
@@ -290,7 +297,8 @@ type Date_Time
     hour : Integer
     hour self = @Builtin_Method "Date_Time.hour"
 
-    ## Get the minute portion of the time.
+    ## GROUP Metadata
+       Get the minute portion of the time.
 
        > Example
          Get the current minute.
@@ -301,7 +309,8 @@ type Date_Time
     minute : Integer
     minute self = @Builtin_Method "Date_Time.minute"
 
-    ## Get the second portion of the time.
+    ## GROUP Metadata
+       Get the second portion of the time.
 
        > Example
          Get the current second.
@@ -312,7 +321,8 @@ type Date_Time
     second : Integer
     second self = @Builtin_Method "Date_Time.second"
 
-    ## Get the millisecond portion of the time.
+    ## GROUP Metadata
+       Get the millisecond portion of the time.
 
        > Example
          Get the current millisecond.
@@ -323,7 +333,8 @@ type Date_Time
     millisecond : Integer
     millisecond self = @Builtin_Method "Date_Time.millisecond"
 
-    ## Get the microsecond portion of the time.
+    ## GROUP Metadata
+       Get the microsecond portion of the time.
 
        > Example
          Get the current microsecond.
@@ -334,7 +345,8 @@ type Date_Time
     microsecond : Integer
     microsecond self = @Builtin_Method "Date_Time.microsecond"
 
-    ## Get the nanosecond portion of the time.
+    ## GROUP Metadata
+       Get the nanosecond portion of the time.
 
        Arguments:
        - include_milliseconds: Specifies if the whole fractional part of the
@@ -351,7 +363,8 @@ type Date_Time
     nanosecond self include_milliseconds=False =
         self.nanosecond_builtin include_milliseconds
 
-    ## Get the timezone for the time.
+    ## GROUP DateTime
+       Get the timezone for the time.
 
        > Example
          Get the current timezone.
@@ -404,7 +417,8 @@ type Date_Time
     to_enso_epoch_milliseconds self =
         (Duration.between Date_Time.enso_epoch_start self).total_milliseconds.floor
 
-    ## Convert this point in time to time of day, discarding the time zone
+    ## GROUP DateTime
+       Convert this point in time to time of day, discarding the time zone
        information.
 
        > Example
@@ -438,13 +452,15 @@ type Date_Time
             if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
                 Time_Utils.week_of_year_zoneddatetime self locale.java_locale
 
-    ## Returns if the date is in a leap year.
+    ## GROUP DateTime
+       Returns if the date is in a leap year.
 
        Produces a warning for a Date that is before epoch start.
     is_leap_year : Boolean
     is_leap_year self = self.date.is_leap_year
 
-    ## Returns the number of days in the year represented by this date.
+    ## GROUP DateTime
+       Returns the number of days in the year represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_year : Integer
@@ -454,11 +470,13 @@ type Date_Time
     century : Integer
     century self = self.date.century
 
-    ## Returns the quarter of the year the date falls into.
+    ## GROUP Metadata
+       Returns the quarter of the year the date falls into.
     quarter : Integer
     quarter self = Time_Utils.get_field_as_zoneddatetime self IsoFields.QUARTER_OF_YEAR
 
-    ## Returns the number of days in the month represented by this date.
+    ## GROUP DateTime
+       Returns the number of days in the month represented by this date.
 
        Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
@@ -468,13 +486,15 @@ type Date_Time
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_YEAR
 
-    ## Returns the day of the week.
+    ## GROUP Metadata
+       Returns the day of the week.
     day_of_week : Day_Of_Week
     day_of_week self =
         ensure_in_epoch self <|
             Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
-    ## Returns the first date within the `Time_Period` or `Date_Period`
+    ## GROUP DateTime
+       Returns the first date within the `Time_Period` or `Date_Period`
        containing self.
     start_of : (Date_Period|Time_Period) -> Date_Time
     start_of self period=Date_Period.Month =
@@ -483,7 +503,8 @@ type Date_Time
             _ : Date_Period -> Time_Period.Day.adjust_start adjusted
             _ : Time_Period -> adjusted
 
-    ## Returns the last date within the `Time_Period` or `Date_Period`
+    ## GROUP DateTime
+       Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
     end_of : (Date_Period|Time_Period) -> Date_Time
     end_of self period=Date_Period.Month =
@@ -492,7 +513,8 @@ type Date_Time
             _ : Date_Period -> Time_Period.Day.adjust_end adjusted
             _ : Time_Period -> adjusted
 
-    ## ALIAS Time to Date
+    ## ALIAS time to date
+       GROUP DateTime
 
        Convert this point in time to date, discarding the time of day
        information.
@@ -506,7 +528,8 @@ type Date_Time
     date : Date
     date self = @Builtin_Method "Date_Time.date"
 
-    ## ALIAS Change Time Zone
+    ## ALIAS change time zone
+       GROUP DateTime
 
        Convert the time instant to the same instant in the provided time zone.
 
@@ -523,7 +546,8 @@ type Date_Time
     at_zone self zone =
         Time_Utils.with_zone_same_instant self zone
 
-    ## Returns a requested date-time part as integer.
+    ## GROUP DateTime
+       Returns a requested date-time part as integer.
 
        Produces a warning for a Date_Time that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -543,7 +567,8 @@ type Date_Time
             Time_Period.Microsecond -> self.microsecond
             Time_Period.Nanosecond  -> self.nanosecond
 
-    ## Computes a time difference between the two date-times.
+    ## GROUP DateTime
+       Computes a time difference between the two date-times.
 
        It returns an integer expressing how many periods fit between the two
        date-times.
@@ -560,7 +585,8 @@ type Date_Time
     date_diff self (end : Date_Time) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
         Time_Utils.unit_datetime_difference period.to_java_unit self end
 
-    ## Shifts the date-time by a specified period.
+    ## GROUP DateTime
+       Shifts the date-time by a specified period.
 
        Produces a warning for a Date_Time that is before epoch start.
        See `Date_Time.enso_epoch_start`.
@@ -573,7 +599,8 @@ type Date_Time
     date_add self (amount : Integer) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
         Time_Utils.unit_datetime_add period.to_java_unit self amount
 
-    ## ALIAS Add Period, Add Duration
+    ## ALIAS add duration, add period
+       GROUP Operators
        Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
@@ -606,7 +633,8 @@ type Date_Time
             date_period : Date_Period ->
                 self + date_period.to_period
 
-    ## Shift the date by the specified amount of business days.
+    ## GROUP DateTime
+       Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
        Monday through Friday.
@@ -647,7 +675,8 @@ type Date_Time
         ensure_in_epoch self <|
             self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
-    ## ALIAS Subtract Duration, Subtract Period
+    ## ALIAS subtract duration, subtract period
+       GROUP Operators
        Subtract the specified amount of time from this instant to get a new
        instant.
 
@@ -704,7 +733,8 @@ type Date_Time
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
-    ## Format this time as text using the specified format specifier.
+    ## GROUP Conversions
+       Format this time as text using the specified format specifier.
 
        Arguments:
        - pattern: The pattern that specifies how to format the time.
