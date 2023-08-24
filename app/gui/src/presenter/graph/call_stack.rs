@@ -178,10 +178,12 @@ impl Model {
     // called by the UI driven logic and propagate the changes to the controller.
 
     /// Push a new call stack to the current stack. This will notify the controller to enter the
-    /// stack.
+    /// stack. If the controller fails to enter the stack, the last item from breadcrumbs will be
+    /// popped again.
     pub fn push_stack(&self, stack: Vec<view::project_view_top_bar::LocalCall>) {
         let store_stack = self.store_updated_stack_task();
         let controller = self.controller.clone_ref();
+        let breadcrumbs = self.view.top_bar().breadcrumbs.clone_ref();
         executor::global::spawn(async move {
             let stack = stack
                 .into_iter()
@@ -194,7 +196,10 @@ impl Model {
             match controller.enter_stack(stack).await {
                 Ok(()) => store_stack(),
                 Err(error) => {
-                    error!("Entering stack failed: {error}.");
+                    // Revert the breadcrumbs
+                    breadcrumbs.pop();
+                    // Log the error.
+                    debug!("Entering stack failed: {error}.");
                     let event = "integration::entering_node_failed";
                     let field = "error";
                     let data = analytics::AnonymousData(|| error.to_string());
