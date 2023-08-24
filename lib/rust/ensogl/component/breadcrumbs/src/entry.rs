@@ -270,7 +270,7 @@ impl EntryData {
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
         self.icon.set_x(-size.x / 2.0 - icon_x_offset);
-        self.icon.set_y(-ICON_WIDTH - icon_y_offset);
+        self.icon.set_y(-ICON_WIDTH / 2.0 - icon_y_offset);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
