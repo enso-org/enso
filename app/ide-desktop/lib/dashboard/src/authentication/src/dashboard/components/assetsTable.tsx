@@ -181,6 +181,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { setModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const [initialized, setInitialized] = React.useState(false)
+    const [filterBy, setFilterBy] = React.useState<backendModule.FilterBy | null>(null)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(
@@ -312,7 +313,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             switch (backend.type) {
                 case backendModule.BackendType.local: {
                     if (!isListingLocalDirectoryAndWillFail) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        const newAssets = await backend.listDirectory(
+                            { parentId: null, filterBy },
+                            null
+                        )
                         if (!signal.aborted) {
                             setIsLoading(false)
                             overwriteAssets(newAssets)
@@ -325,7 +329,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                         !isListingRemoteDirectoryAndWillFail &&
                         !isListingRemoteDirectoryWhileOffline
                     ) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        const newAssets = await backend.listDirectory(
+                            { parentId: null, filterBy },
+                            null
+                        )
                         if (!signal.aborted) {
                             setIsLoading(false)
                             overwriteAssets(newAssets)
@@ -394,7 +401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     const abortController = new AbortController()
                     directoryListAbortControllersRef.current.set(directoryId, abortController)
                     const childAssets = await backend.listDirectory(
-                        { parentId: directoryId },
+                        { parentId: directoryId, filterBy },
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
@@ -444,7 +451,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [nodeMap, backend]
+        [filterBy, nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(

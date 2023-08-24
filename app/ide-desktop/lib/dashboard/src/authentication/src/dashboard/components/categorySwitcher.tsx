@@ -100,10 +100,8 @@ export default function CategorySwitcher() {
                 }}
             />
             <CategorySwitcherItem
-                disabled
                 image={Trash2Icon}
                 name="Trash"
-                error="Not implemented yet."
                 onClick={() => {
                     // No backend support yet.
                 }}

@@ -70,12 +70,12 @@ const CREATE_TAG_PATH = 'tags'
 const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 const LIST_VERSIONS_PATH = 'versions'
+/** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
+function deleteAssetPath(assetId: backend.AssetId) {
+    return `assets/${assetId}`
+}
 /** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
 function updateDirectoryPath(directoryId: backend.DirectoryId) {
-    return `directories/${directoryId}`
-}
-/** Relative HTTP path to the "delete directory" endpoint of the Cloud backend API. */
-function deleteDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`
 }
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
@@ -94,24 +94,12 @@ function openProjectPath(projectId: backend.ProjectId) {
 function projectUpdatePath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
-/** Relative HTTP path to the "delete project" endpoint of the Cloud backend API. */
-function deleteProjectPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}`
-}
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
 function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`
 }
-/** Relative HTTP path to the "delete file" endpoint of the Cloud backend API. */
-function deleteFilePath(fileId: backend.FileId) {
-    return `files/${fileId}`
-}
 /** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
 function getSecretPath(secretId: backend.SecretId) {
-    return `secrets/${secretId}`
-}
-/** Relative HTTP path to the "delete secret" endpoint of the Cloud backend API. */
-function deleteSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
@@ -269,6 +257,8 @@ export class RemoteBackend extends backend.Backend {
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     ...(query.parentId != null ? { parent_id: query.parentId } : {}),
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
@@ -343,16 +333,14 @@ export class RemoteBackend extends backend.Backend {
         }
     }
 
-    /** Change the name of a directory.
+    /** Delete an arbitrary asset.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteDirectory(directoryId: backend.DirectoryId, title: string | null) {
-        const response = await this.delete(deleteDirectoryPath(directoryId))
+    async deleteAsset(assetId: backend.AssetId, title: string | null) {
+        const response = await this.delete(deleteAssetPath(assetId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete directory ${
-                    title != null ? `'${title}'` : `with ID '${directoryId}'`
-                }.`
+                `Unable to delete ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
             )
         } else {
             return
@@ -488,22 +476,6 @@ export class RemoteBackend extends backend.Backend {
         }
     }
 
-    /** Delete a project.
-     *
-     * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteProjectPath(projectId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }.`
-            )
-        } else {
-            return
-        }
-    }
-
     /** Return the resource usage of a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
@@ -578,20 +550,6 @@ export class RemoteBackend extends backend.Backend {
         }
     }
 
-    /** Delete a file.
-     *
-     * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteFile(fileId: backend.FileId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteFilePath(fileId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
-            )
-        } else {
-            return
-        }
-    }
-
     /** Create a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
@@ -627,20 +585,6 @@ export class RemoteBackend extends backend.Backend {
             return this.throw('Unable to list secrets.')
         } else {
             return (await response.json()).secrets
-        }
-    }
-
-    /** Delete a secret environment variable.
-     *
-     * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteSecret(secretId: backend.SecretId, title: string | null): Promise<void> {
-        const response = await this.delete(deleteSecretPath(secretId))
-        if (!responseIsSuccessful(response)) {
-            return this.throw(
-                `Unable to delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
-            )
-        } else {
-            return
         }
     }
 
