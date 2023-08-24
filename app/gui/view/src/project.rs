@@ -178,7 +178,6 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
-        go_to_dashboard_button_pressed (),
         /// The name of the command currently being handled due to shortcut being pressed.
         current_shortcut               (Option<ImString>),
     }
