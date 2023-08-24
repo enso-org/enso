@@ -1,9 +1,15 @@
 from Standard.Base import all
 
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.lang.System as Java_System
+
+type TestType
+    Aaa (s:Text)
+    Bbb (i:Integer)
 
 spec =
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
@@ -14,10 +20,14 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
 
         Test.specify "Can post JSON" <|
-            url_get = base_url_with_slash + "get"
+            url_post = base_url_with_slash + "post"
             body = '{ "a" : 1 }'
-            IO.println 'AAA'
-            response = Data.post url_get body
-            IO.println response
+            Data.post url_post body
+            Data.post url_post body mime_type="text/plain"
+            Data.post url_post body mime_type="application/json"
+            Data.post url_post (TestType.Aaa "abcd")
+            Data.post url_post (TestType.Bbb 123)
+            Data.post url_post (Request_Body.Text "abcd")
+            Data.post url_post (Request_Body.Json '{ "a" : 1 }')
 
 main = Test_Suite.run_main spec

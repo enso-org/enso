@@ -19,6 +19,7 @@ import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.System.File_Format import Auto_Detect, File_Format
+import project.IO
 
 ## ALIAS load, open
    GROUP Input
@@ -173,23 +174,43 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
 #post : (URI | Text) -> Text | Request_Body | Any -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 #post uri data method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
-post : (URI | Text) -> Text -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-post uri body method=HTTP_Method.Get headers=[] try_auto_parse=True =
+post : (URI | Text) -> Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post uri body mime_type=Nothing headers=[] try_auto_parse=True =
     parsed_headers = headers . map h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
-    response = case body of
+    IO.println 'BBB'
+    request = case body of
+        _ : Request_Body ->
+            if mime_type.is_nothing.not then
+                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting a Request_Body")
+            Request.new HTTP_Method.Post uri parsed_headers body
         _ : Text ->
-            request = Request.new method uri parsed_headers (Request_Body.Json body)
-            HTTP.new.request request
-        _ -> Error.throw (Illegal_Argument.Error "Unsupported post body type " + (Meta.get_simple_type_name body) + ": " + body.to_display_text)
+            request_body_ctor = if mime_type == "text/plain" || mime_type.is_nothing then Request_Body.Text else if mime_type == "application/json" then Request_Body.Json else
+                Error.throw (Illegal_Argument.Error "When posting a Text object, mime type must be 'text/plain' or 'application/json'")
+            Request.new HTTP_Method.Post uri parsed_headers (request_body_ctor body)
+        _ ->
+            if mime_type.is_nothing.not then
+                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting an Enso object as JSON")
+            json = body.to_json
+            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Json json)
+        #_ -> Error.throw (Illegal_Argument.Error "Unsupported post body type " + (Meta.get_simple_type_name body) + ": " + body.to_display_text)
 
-    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+    IO.println 'AAA'
+    IO.println request
+    response = HTTP.new.request request
+    IO.println response
+    IO.println <| Meta.get_simple_type_name response
+
+    r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
         if try_auto_parse.not then response else
             response.decode if_unsupported=response . catch handler=(_->response)
+    IO.println r
+    IO.println <| Meta.get_simple_type_name r
+    r
 
 ## ALIAS download, http get
    GROUP Input
