@@ -186,7 +186,7 @@ function saveAccessToken(accessToken: string) {
  * 2. Clicking a "reset password" link in a password reset email.
  *
  * For example, when the user completes an OAuth sign in flow (e.g., through Google), they are
- * redirected to a URL like `enso://authentication/register?code=...`. This listener will intercept
+ * redirected to a URL like `enso://auth/registration?code=...`. This listener will intercept
  * that URL and open the page `register?code=...` in the application window.
  *
  * This is only used when running on the desktop, as the browser version of the app lets Amplify

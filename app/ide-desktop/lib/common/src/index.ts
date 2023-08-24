@@ -12,7 +12,7 @@
 /** URL protocol scheme for deep links to authentication flow pages, without the `:` suffix.
  *
  * For example: the deep link URL
- * `enso://authentication/register?code=...&state=...` uses this scheme. */
+ * `enso://auth/registration?code=...&state=...` uses this scheme. */
 export const DEEP_LINK_SCHEME = 'enso'
 
 /** Name of the product. */

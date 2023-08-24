@@ -92,7 +92,9 @@ const logger = contentConfig.logger
 // ========================================
 
 /** Configure all the functionality that must be set up in the Electron app to support
- * authentication-related flows. Must be called in the Electron app `whenReady` event. */
+ * authentication-related flows. Must be called in the Electron app `whenReady` event.
+ *
+ * @param getLastFocusedWindow - A function that returns the last focused Electron window. */
 export function initModule(getLastFocusedWindow: () => electron.BrowserWindow | null) {
     initIpc()
     initOpenUrlListener(getLastFocusedWindow)
@@ -132,7 +134,9 @@ function initOpenUrlListener(getLastFocusedWindow: () => electron.BrowserWindow 
 /** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
  *
- * @param url - The URL to handle. */
+ * @param url - The URL to handle.
+ * @param getLastFocusedWindow - A function that returns the BrowserWindow to send the parsed URL
+ * to. */
 export function onOpenUrl(url: URL, getLastFocusedWindow: () => electron.BrowserWindow | null) {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
@@ -140,6 +144,9 @@ export function onOpenUrl(url: URL, getLastFocusedWindow: () => electron.Browser
     } else {
         const window = getLastFocusedWindow()
         if (window == null) {
+            // This MAY happen when opening a deep link when the first instance is launched using
+            // `-window=false`. This is currently not a supported usecase, as currently most
+            // deep links are triggered from the UI from a window.
             logger.error(
                 `'${url.toString()}'` + ' is a deep link but there is no renderer to send it to.'
             )

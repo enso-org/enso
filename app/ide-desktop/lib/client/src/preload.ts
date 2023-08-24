@@ -130,7 +130,7 @@ const AUTHENTICATION_API = {
     /** Set the callback that will be called when a deep link to the application is opened.
      *
      * The callback is intended to handle links like
-     * `enso://authentication/register?code=...&state=...` from external sources like the user's
+     * `enso://auth/registration?code=...&state=...` from external sources like the user's
      * system browser or email client. Handling the links involves resuming whatever flow was in
      * progress when the link was opened (e.g., an OAuth registration flow). */
     setDeepLinkHandler: (callback: (url: string) => void) => {
