@@ -282,8 +282,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def displayVersion(
     useJson: Boolean
   ): ZIO[ZAny, IOException, ExitCode] = {
-    val versionDescription = makeVersionDescription
-    printLine(versionDescription.asString(useJson)) *>
+    printLine(makeVersionDescription.asString(useJson)) *>
     ZIO.succeed(SuccessExitCode)
   }
 
