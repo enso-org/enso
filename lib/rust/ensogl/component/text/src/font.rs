@@ -999,10 +999,12 @@ impl FontWithGpuData {
 // ================
 
 /// Stores all loaded fonts.
-#[derive(Debug, Clone)]
-#[derive(CloneRef)]
+#[derive(Clone, CloneRef, Derivative)]
+#[derivative(Debug)]
 pub struct Registry {
-    fonts: Rc<HashMap<Name, FontWithGpuData>>,
+    fonts:              Rc<HashMap<Name, FontWithGpuData>>,
+    #[derivative(Debug = "ignore")]
+    set_context_handle: Rc<dyn Fn(Option<&Context>)>,
 }
 
 impl Registry {
@@ -1026,14 +1028,14 @@ impl Registry {
         self.fonts.get(&name).cloned()
     }
 
-    fn from_fonts(
+    fn new(
         scene: &ensogl_core::display::Scene,
         fonts: impl IntoIterator<Item = (Name, Font)>,
     ) -> Self {
         let context = scene.context.borrow();
         let context = context.as_ref();
         let scene_shape = scene.shape().value();
-        let fonts = fonts
+        let fonts: HashMap<_, _> = fonts
             .into_iter()
             .map(|(name, font)| {
                 let hinting = Hinting::for_font(&name, scene_shape);
@@ -1043,28 +1045,20 @@ impl Registry {
             })
             .collect();
         let fonts = Rc::new(fonts);
-        Self { fonts }
+        let fonts_ = Rc::clone(&fonts);
+        let set_context_handle = scene.on_set_context(move |context| {
+            for font in fonts_.values() {
+                font.set_context(context);
+            }
+        });
+        Self { fonts, set_context_handle }
     }
 }
 
 impl scene::Extension for Registry {
     fn init(scene: &scene::Scene) -> Self {
-        let this = Self::default();
-        let fonts = Rc::clone(&this.fonts);
-        scene.add_context_listener(move |context| {
-            for font in fonts.values() {
-                font.set_context(context);
-            }
-        });
-        this
-    }
-}
-
-impl Default for Registry {
-    fn default() -> Self {
-        let scene = scene();
         let fonts = Embedded::default().into_fonts();
-        Self::from_fonts(&scene, fonts)
+        Self::new(scene, fonts)
     }
 }
 

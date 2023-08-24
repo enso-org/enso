@@ -119,7 +119,7 @@ impl pass::Definition for CacheShapesPass {
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
         if self.camera_ready.get() {
             let is_shader_compiled = |shape: &mut Rc<dyn AnyShapeView>| {
-                shape.sprite().symbol.shader().program().is_some()
+                shape.sprite().symbol.borrow_shader_mut().program().is_some()
             };
             let mut ready_to_render =
                 self.shapes_to_render.drain_filter(is_shader_compiled).peekable();

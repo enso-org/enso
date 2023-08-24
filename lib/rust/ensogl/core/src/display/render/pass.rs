@@ -102,7 +102,7 @@ impl Instance {
         let draw_buffers = js_sys::Array::new();
         context.bind_framebuffer(*target, Some(&native));
         for (index, texture) in textures.iter().enumerate() {
-            let texture = texture.texture().unwrap();
+            let texture = texture.texture().ok_or(ContextLost)?;
             let texture_target = Context::TEXTURE_2D;
             let attachment_point = *Context::COLOR_ATTACHMENT0 + index as u32;
             let gl_texture = Some(texture.as_gl_texture());
@@ -190,6 +190,8 @@ impl OutputDefinition {
 // ===================
 
 /// A native WebGL framebuffer object bound to the gl context.
+// NOTE: This type must not derive `Clone`, as the resulting shared `native` would be deleted when
+// either instance is dropped.
 #[derive(Debug, Clone)]
 pub struct Framebuffer {
     context: Context,

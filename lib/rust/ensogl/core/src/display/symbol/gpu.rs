@@ -445,11 +445,11 @@ impl Symbol {
         &self.surface
     }
 
-    pub fn shader(&self) -> RefMut<Shader> {
+    pub fn borrow_shader_mut(&self) -> RefMut<Shader> {
         self.shader.borrow_mut()
     }
 
-    pub fn variables(&self) -> RefMut<UniformScope> {
+    pub fn borrow_variables_mut(&self) -> RefMut<UniformScope> {
         self.variables.borrow_mut()
     }
 }

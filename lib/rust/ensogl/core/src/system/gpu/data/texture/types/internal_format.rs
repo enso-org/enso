@@ -117,70 +117,20 @@ macro_rules! generate_internal_format_instances_item {
 
 crate::with_texture_format_relations!(generate_internal_format_instances []);
 
-impl AnyInternalFormat {
-    /// Return the [`Format`] corresponding to this internal format.
-    pub fn format(self) -> AnyFormat {
-        // TODO: Generate this.
-        match self {
-            AnyInternalFormat::Alpha => AnyFormat::Alpha,
-            AnyInternalFormat::Luminance => AnyFormat::Luminance,
-            AnyInternalFormat::LuminanceAlpha => AnyFormat::LuminanceAlpha,
-            AnyInternalFormat::Rgb => AnyFormat::Rgb,
-            AnyInternalFormat::Rgba => AnyFormat::Rgba,
-            AnyInternalFormat::R8 => AnyFormat::Red,
-            AnyInternalFormat::R8SNorm => AnyFormat::Red,
-            AnyInternalFormat::R16f => AnyFormat::Red,
-            AnyInternalFormat::R32f => AnyFormat::Red,
-            AnyInternalFormat::R8ui => AnyFormat::RedInteger,
-            AnyInternalFormat::R8i => AnyFormat::RedInteger,
-            AnyInternalFormat::R16ui => AnyFormat::RedInteger,
-            AnyInternalFormat::R16i => AnyFormat::RedInteger,
-            AnyInternalFormat::R32ui => AnyFormat::RedInteger,
-            AnyInternalFormat::R32i => AnyFormat::RedInteger,
-            AnyInternalFormat::Rg8 => AnyFormat::Rg,
-            AnyInternalFormat::Rg8SNorm => AnyFormat::Rg,
-            AnyInternalFormat::Rg16f => AnyFormat::Rg,
-            AnyInternalFormat::Rg32f => AnyFormat::Rg,
-            AnyInternalFormat::Rg8ui => AnyFormat::RgInteger,
-            AnyInternalFormat::Rg8i => AnyFormat::RgInteger,
-            AnyInternalFormat::Rg16ui => AnyFormat::RgInteger,
-            AnyInternalFormat::Rg16i => AnyFormat::RgInteger,
-            AnyInternalFormat::Rg32ui => AnyFormat::RgInteger,
-            AnyInternalFormat::Rg32i => AnyFormat::RgInteger,
-            AnyInternalFormat::Rgb8 => AnyFormat::Rgb,
-            AnyInternalFormat::SRgb8 => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb565 => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb8SNorm => AnyFormat::Rgb,
-            AnyInternalFormat::R11fG11fB10f => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb9E5 => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb16f => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb32f => AnyFormat::Rgb,
-            AnyInternalFormat::Rgb8ui => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgb8i => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgb16ui => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgb16i => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgb32ui => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgb32i => AnyFormat::RgbInteger,
-            AnyInternalFormat::Rgba8 => AnyFormat::Rgba,
-            AnyInternalFormat::SRgb8Alpha8 => AnyFormat::Rgba,
-            AnyInternalFormat::Rgba8SNorm => AnyFormat::Rgba,
-            AnyInternalFormat::Rgb5A1 => AnyFormat::Rgba,
-            AnyInternalFormat::Rgba4 => AnyFormat::Rgba,
-            AnyInternalFormat::Rgb10A2 => AnyFormat::Rgba,
-            AnyInternalFormat::Rgba16f => AnyFormat::Rgba,
-            AnyInternalFormat::Rgba32f => AnyFormat::Rgba,
-            AnyInternalFormat::Rgba8ui => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgba8i => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgb10A2ui => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgba16ui => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgba16i => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgba32i => AnyFormat::RgbaInteger,
-            AnyInternalFormat::Rgba32ui => AnyFormat::RgbaInteger,
-            AnyInternalFormat::DepthComponent16 => AnyFormat::DepthComponent,
-            AnyInternalFormat::DepthComponent24 => AnyFormat::DepthComponent,
-            AnyInternalFormat::DepthComponent32f => AnyFormat::DepthComponent,
-            AnyInternalFormat::Depth24Stencil8 => AnyFormat::DepthStencil,
-            AnyInternalFormat::Depth32fStencil8 => AnyFormat::DepthStencil,
+/// Generate a function that returns the format for any `InternalFormat`.
+#[macro_export]
+macro_rules! generate_format_map {
+    ([] $( $internal_format:ident $format:ident $sampler:ident
+           $renderable:tt $filterable:tt $blendable:tt $elem_descs:tt)* ) => {
+        impl AnyInternalFormat {
+            /// Return the [`Format`] corresponding to this internal format.
+            pub fn format(self) -> AnyFormat {
+                match self {
+                    $(<AnyInternalFormat>::$internal_format => <AnyFormat>::$format),*
+                }
+            }
         }
     }
 }
+
+crate::with_texture_format_relations!(generate_format_map []);

@@ -945,9 +945,9 @@ pub trait Extension: 'static + CloneRef + Any {
     fn init(scene: &Scene) -> Self;
 }
 
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Extensions {
-    map: Rc<RefCell<HashMap<TypeId, Box<dyn Any>>>>,
+    map: RefCell<HashMap<TypeId, Box<dyn Any>>>,
 }
 
 impl Extensions {
@@ -1011,7 +1011,7 @@ pub struct SceneData {
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
     #[derivative(Debug = "ignore")]
-    context_listeners: RefCell<Vec<Box<dyn FnMut(Option<&Context>)>>>,
+    on_set_context: RefCell<Vec<Weak<dyn Fn(Option<&Context>)>>>,
 }
 
 impl SceneData {
@@ -1064,7 +1064,7 @@ impl SceneData {
         let pointer_position_changed = default();
         let shader_compiler = default();
         let initial_shader_compilation = default();
-        let context_listeners = default();
+        let on_set_context = default();
         Self {
             display_object,
             display_mode,
@@ -1087,7 +1087,7 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
-            context_listeners,
+            on_set_context,
         }
         .init()
     }
@@ -1250,8 +1250,13 @@ impl SceneData {
         }
     }
 
-    pub fn add_context_listener(&self, f: impl 'static + FnMut(Option<&Context>)) {
-        self.context_listeners.borrow_mut().push(Box::new(f));
+    /// Register the given function to be called when the GL context is changed. The callback will
+    /// be unregistered when the returned handle is dropped.
+    #[must_use]
+    pub fn on_set_context<F: 'static + Fn(Option<&Context>)>(&self, f: F) -> Rc<F> {
+        let handle = Rc::new(f);
+        self.on_set_context.borrow_mut().push(handle.downgrade());
+        handle
     }
 }
 
@@ -1410,9 +1415,13 @@ impl system::gpu::context::Display for Rc<SceneData> {
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
-        for listener in &mut *self.context_listeners.borrow_mut() {
-            listener(context);
-        }
+        self.on_set_context.borrow_mut().retain(|handle| match handle.upgrade() {
+            Some(listener) => {
+                listener(context);
+                true
+            }
+            None => false,
+        })
     }
 }
 
