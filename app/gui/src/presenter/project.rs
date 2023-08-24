@@ -224,6 +224,11 @@ impl Model {
         self.view.top_bar().project_name().set_project_changed(changed);
     }
 
+    fn project_renamed(&self) {
+        let actual_name = self.controller.model.name();
+        self.view.top_bar().project_name().set_name(actual_name);
+    }
+
     fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_complete.emit(());
@@ -501,6 +506,9 @@ impl Project {
                 }
                 Notification::ExecutionFailed => {
                     model.execution_failed();
+                }
+                Notification::Renamed => {
+                    model.project_renamed();
                 }
             };
             std::future::ready(())

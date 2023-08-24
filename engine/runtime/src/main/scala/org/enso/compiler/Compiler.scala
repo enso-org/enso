@@ -193,26 +193,28 @@ class Compiler(
         CompletableFuture.completedFuture(false)
       case Some(pkg) =>
         val packageModule = packageRepository.getModuleMap.get(
-          s"${pkg.namespace}.${pkg.module}.Main"
+          s"${pkg.namespace}.${pkg.normalizedName}.Main"
         )
         packageModule match {
           case None =>
             context.log(
               Level.SEVERE,
               "Could not find entry point for compilation in package [{0}.{1}]",
-              Array(pkg.namespace, pkg.module)
+              Array(pkg.namespace, pkg.normalizedName)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
             context.log(
               Compiler.defaultLogLevel,
-              s"Compiling the package [${pkg.namespace}.${pkg.module}] " +
+              s"Compiling the package [${pkg.namespace}.${pkg.normalizedName}] " +
               s"starting at the root [${m.getName}]."
             )
 
             val packageModules = packageRepository.freezeModuleMap.collect {
               case (name, mod)
-                  if name.startsWith(s"${pkg.namespace}.${pkg.module}") =>
+                  if name.startsWith(
+                    s"${pkg.namespace}.${pkg.normalizedName}"
+                  ) =>
                 mod
             }.toList
 

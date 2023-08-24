@@ -65,13 +65,14 @@ default_line_separator : Text
 default_line_separator = Java_System.lineSeparator
 
 ## PRIVATE
-
    The type representing the result of a process.
-
-   Arguments:
-   - exit_code: The exit code of the child process.
-   - stdout: Any values printed to standard out by the child process.
-   - stderr: Any values printed to standard error by the child process.
 @Builtin_Type
 type System_Process_Result
+    ## PRIVATE
+       Create a System_Process_Result.
+
+       Arguments:
+       - exit_code: The exit code of the child process.
+       - stdout: Any values printed to standard out by the child process.
+       - stderr: Any values printed to standard error by the child process.
     Result exit_code stdout stderr

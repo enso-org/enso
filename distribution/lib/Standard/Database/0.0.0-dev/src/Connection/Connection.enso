@@ -133,7 +133,8 @@ type Connection
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## GROUP Standard.Base.Metadata
+       Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
 

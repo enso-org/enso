@@ -22,8 +22,6 @@ build_map size =
     rand = Java_Random.new
     0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
-options = Bench.options
-
 type Data
     Value ~list ~vec ~vec_decimal
 
@@ -34,7 +32,7 @@ type Data
 collect_benches = Bench.build builder->
     data = Data.create
 
-    builder.group "Collections" options group_builder->
+    builder.group "Collections" (Bench.options.set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)) group_builder->
         group_builder.specify "list_meta_fold" <|
             sum_list_meta data.list
 
@@ -47,8 +45,9 @@ collect_benches = Bench.build builder->
         group_builder.specify "vector_decimal_fold" <|
             data.vec_decimal.fold 0 (+)
 
+    builder.group "Collections_Map" (Bench.options.set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)) group_builder->
         group_builder.specify "build_map" <|
-            build_map 10000
+            build_map 5000
 
 
 main = collect_benches . run_main

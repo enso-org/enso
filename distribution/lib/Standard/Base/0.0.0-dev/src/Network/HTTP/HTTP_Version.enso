@@ -1,6 +1,6 @@
 type HTTP_Version
-    ## HTTP version 1.1.
+    ## Use HTTP version 1.1.
     HTTP_1_1
 
-    ## HTTP version 2.
+    ## Use HTTP version 2.
     HTTP_2

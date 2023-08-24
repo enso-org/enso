@@ -9,7 +9,7 @@ import project.Vector.Utils
 polyglot java import java.util.Random as Java_Random
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
+options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 1 5)
 
 
 collect_benches = Bench.build builder->

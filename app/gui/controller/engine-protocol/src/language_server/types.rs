@@ -174,6 +174,10 @@ pub enum Notification {
     /// visualization.
     #[serde(rename = "executionContext/visualizationEvaluationFailed")]
     VisualizationEvaluationFailed(VisualizationEvaluationFailed),
+
+    /// Sent from server to the client to inform that the project has been renamed.
+    #[serde(rename = "refactoring/projectRenamed")]
+    ProjectRenamed(ProjectRenamed),
 }
 
 /// Sent from the server to the client to inform about a failure during execution of an execution
@@ -378,6 +382,25 @@ pub struct TextAutoSave {
 #[allow(missing_docs)]
 pub struct TextFileModifiedOnDisk {
     pub path: Path,
+}
+
+
+
+// =================================
+// === Refactoring Notifications ===
+// =================================
+
+/// The `refactoring/projectRenamed` notification parameters.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectRenamed {
+    /// The old normalized project name.
+    pub old_normalized_name: String,
+    /// The new normalized project name.
+    pub new_normalized_name: String,
+    /// The new display project name.
+    pub new_name:            String,
 }
 
 

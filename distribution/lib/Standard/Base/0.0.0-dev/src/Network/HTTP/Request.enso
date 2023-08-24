@@ -201,19 +201,18 @@ type Request
 
     ## Set the body text in the request encoded as "application/json".
 
-        Arguments:
-        - json_body: The body to insert into the request. It must be textual
-          JSON.
+       Arguments:
+       - json_body: The body to add to the request. It must be textual JSON.
 
-        > Example
-          Setting the body in a post request to some JSON.
+       > Example
+         Setting the body in a post request to some JSON.
 
-             import Standard.Base.Network.HTTP.Request.Request
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Base.Network.URI.URI
+            import Standard.Base.Network.HTTP.Request.Request
+            import Standard.Base.Network.HTTP.Request_Body.Request_Body
+            import Standard.Base.Network.URI.URI
 
-             example_with_json =
-                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
+            example_with_json =
+                Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
     with_json : Text -> Request
     with_json self json_body =
         new_body = Request_Body.Json json_body

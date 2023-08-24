@@ -6,7 +6,6 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
@@ -90,7 +89,7 @@ public abstract class LongBooleanOp extends BinaryMapOperation<Long, AbstractLon
         context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
-    } else if (arg instanceof LongStorage v) {
+    } else if (arg instanceof AbstractLongStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
