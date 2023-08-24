@@ -3,6 +3,7 @@
     { "pattern": "\\QMETA-INF/MANIFEST.MF\\E" },
     { "pattern": "\\Qakka-http-version.conf\\E" },
     { "pattern": "\\Qapplication.conf\\E" },
+    { "pattern": "\\Qenso-logging.conf\\E" },
     { "pattern": "\\Qorg/enso/projectmanager/boot/ProjectManager$.class\\E" },
     {
       "pattern": "\\Qorg/enso/projectmanager/control/core/CovariantFlatMapOps.class\\E"
@@ -51,6 +52,7 @@
       "pattern": "\\Qorg/enso/projectmanager/service/versionmanagement/RuntimeVersionManagerMixin$ErrorRecovery.class\\E"
     },
     { "pattern": "\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E" },
+    { "pattern": "\\Qch/qos/logback/classic/spi/Configurator.class\\E" },
     { "pattern": "\\Qreference.conf\\E" },
     { "pattern": "\\Qversion.conf\\E" },
     { "pattern": "\\Qzio/App$$anon$1.class\\E" },

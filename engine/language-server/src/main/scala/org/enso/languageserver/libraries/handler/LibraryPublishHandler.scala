@@ -19,9 +19,7 @@ import org.enso.languageserver.libraries.{
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.libraryupload.{auth, LibraryUploader}
-import org.enso.logger.Converter
-//import org.slf4j.LoggerFactory
-//import org.enso.loggingservice.LoggingServiceManager
+import org.enso.logging.LoggingServiceManager
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -104,8 +102,7 @@ class LibraryPublishHandler(
         )
 
       val future: Future[UploadSucceeded] = BlockingOperation.run {
-        val logLevel =
-          Converter.defaultLogLevel //LoggingServiceManager.currentLogLevelForThisApplication()
+        val logLevel = LoggingServiceManager.currentLogLevelForThisApplication()
         val dependencyExtractor =
           new CompilerBasedDependencyExtractor(logLevel)
         LibraryUploader(dependencyExtractor)

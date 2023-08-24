@@ -1,7 +1,6 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
-import java.net.URI;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that forwards logs to the network socket as-is. */
@@ -60,11 +59,6 @@ public class SocketAppender extends Appender {
   @Override
   public Boolean setupForURI(Level logLevel, String host, int port, LoggerSetup loggerSetup) {
     return loggerSetup.setupSocketAppender(logLevel, host, port);
-  }
-
-  @Override
-  public boolean isSameTargetAs(URI uri) {
-    return uri.getHost().equals(host) && uri.getPort() == port;
   }
 
   private static final String hostKey = "hostname";

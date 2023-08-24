@@ -75,7 +75,6 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
 
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
-    //LoggingCollector.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
       rootId    = descriptor.rootId,
       interface = descriptor.networkConfig.interface,

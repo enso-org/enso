@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Parsed and verified representation of `logging-service` section of `application.conf`. Defines
+ * custom log levels, logging appenders and, optionally, logging server configuration.
+ */
 public class LoggingServiceConfig {
   public static final String configurationRoot = "logging-service";
   public static final String serverKey = "server";

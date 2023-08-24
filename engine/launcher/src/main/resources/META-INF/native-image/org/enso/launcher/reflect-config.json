@@ -722,5 +722,22 @@
         "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
+  },
+  {
+    "name": "org.enso.logging.LogbackLoggingServiceFactory",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "org.enso.logger.LogbackSetup",
+    "methods": [
+      {
+        "name": "get"
+      }
+    ]
   }
 ]

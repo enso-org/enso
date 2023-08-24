@@ -11,8 +11,8 @@ import scala.concurrent.ExecutionContext
 
 object LoggingServiceManager {
 
-  private[this] var loggingService: LoggingService = null
-  private[this] var currentLevel: Level            = Level.TRACE
+  private[this] var loggingService: LoggingService[_] = null
+  private[this] var currentLevel: Level               = Level.TRACE
 
   def currentLogLevelForThisApplication(): Level = currentLevel
 
@@ -27,7 +27,7 @@ object LoggingServiceManager {
       throw new LoggingServiceAlreadySetup()
     } else {
       currentLevel = logLevel
-      val server = new LoggingServer(port)
+      val server = LoggingServiceFactory.get().localServerFor(port);;
       loggingService = server
       Future {
         server.start(logLevel, logPath, logFileSuffix, appender)

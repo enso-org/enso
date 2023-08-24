@@ -1,7 +1,6 @@
 package org.enso.logging
 
-import org.enso.logger.LogbackSetup
-import org.enso.logger.config.LoggerSetup
+import org.enso.logger.config.{LoggerSetup, LoggerSetupFactory}
 import org.slf4j.event.Level
 
 import java.net.URI
@@ -31,11 +30,16 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
     * Some logs may be added while inferring the parameters of logging infrastructure, leading to catch-22 situations.
     */
   def initLogger(): Unit = {
-    LogbackSetup.get().setupNoOpAppender()
+    LoggerSetupFactory.get().setupNoOpAppender()
   }
 
-  /** Starts a logging server that collects logs from different components and immediate sets up logs from this component
-    * to send logs to it.
+  def setupFallback(): Unit = {
+    LoggerSetupFactory.get().setupConsoleAppender(defaultLogLevel)
+  }
+
+  /** Starts a logging server that collects logs from different components.
+    * Once started, all logs are being forwarded to the server.
+    *
     * @param logLevel
     * @param logMasking
     */
@@ -43,7 +47,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
     logLevel: Option[Level],
     logMasking: Boolean
   ): Unit = {
-    val loggerSetup = LogbackSetup.get()
+    val loggerSetup = LoggerSetupFactory.get()
     val config      = loggerSetup.getConfig
     if (config.loggingServerNeedsBoot()) {
       val actualPort     = config.getServer().port();
@@ -90,7 +94,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
       logLevel,
       connectToExternalLogger,
       logMasking,
-      LogbackSetup.get()
+      LoggerSetupFactory.get()
     );
   }
 
@@ -110,20 +114,13 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
           uri.getPort()
         )
         if (!initialized) {
-          // Fallback, try the default appender if it is not the socket appender to the same port
-          val defaultAppender = loggerSetup.getConfig().getAppender()
-          if (!defaultAppender.isSameTargetAs(uri)) {
-            initialized = loggerSetup.setup(actualLogLevel)
-            if (!initialized) {
-              // Fallback to console
-              initialized = loggerSetup.setupConsoleAppender(actualLogLevel)
-            }
-          } else {
+          // Fallback
+          initialized = loggerSetup.setup(actualLogLevel)
+          if (!initialized) {
             // Fallback to console
             initialized = loggerSetup.setupConsoleAppender(actualLogLevel)
           }
         }
-
         if (initialized) {
           Masking.setup(logMasking)
           loggingServiceEndpointPromise.success(None)
@@ -145,7 +142,7 @@ abstract class LoggingSetupHelper(implicit executionContext: ExecutionContext) {
   }
 
   def waitForSetup(): Unit = {
-    Await.ready(loggingServiceEndpointPromise.future, 5.seconds)
+    Await.ready(loggingServiceEndpointPromise.future, 10.seconds)
   }
 
   def tearDown(): Unit = {

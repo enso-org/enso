@@ -25,7 +25,6 @@ import org.enso.launcher.installation.{
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.slf4j.event.Level
-//import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /** Implements launcher commands that are run from CLI and can be affected by

@@ -67,22 +67,22 @@ public class LogbackSetup extends LoggerSetup {
     private final LoggerContext context;
 
     @Override
-    public Boolean setup() throws MissingConfigurationField {
+    public boolean setup() throws MissingConfigurationField {
         LoggingServiceConfig config = LoggingServiceConfig.parseConfig();
         return setup(config);
     }
 
-    private Boolean setup(LoggingServiceConfig config) {
+    private boolean setup(LoggingServiceConfig config) {
         Level defaultLogLevel = config.getLogLevel().map(name -> Level.valueOf(name.toUpperCase())).orElseGet(() -> Level.ERROR);
         return setup(defaultLogLevel, config);
     }
 
     @Override
-    public Boolean setup(Level logLevel) throws MissingConfigurationField {
+    public boolean setup(Level logLevel) throws MissingConfigurationField {
         return setup(logLevel, LoggingServiceConfig.parseConfig());
     }
 
-    public Boolean setup(Level logLevel, LoggingServiceConfig config) {
+    public boolean setup(Level logLevel, LoggingServiceConfig config) {
         Appender defaultAppender = config.getAppender();
         if (defaultAppender != null) {
             return defaultAppender.setup(logLevel, this);
@@ -92,7 +92,7 @@ public class LogbackSetup extends LoggerSetup {
     }
 
     @Override
-    public Boolean setup(Level logLevel, Path componentLogPath, String componentLogPrefix, LoggingServiceConfig config) {
+    public boolean setup(Level logLevel, Path componentLogPath, String componentLogPrefix, LoggingServiceConfig config) {
         Appender defaultAppender = config.getAppender();
         if (defaultAppender != null) {
             return defaultAppender.setupForPath(logLevel, componentLogPath, componentLogPrefix, this);
@@ -247,9 +247,9 @@ public class LogbackSetup extends LoggerSetup {
         return true;
     }
 
-    public static void teardown() {
+    @Override
+    public void teardown() {
         // TODO: disable whatever appender is now in place and replace it with console
-        var context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.stop();
     }
 

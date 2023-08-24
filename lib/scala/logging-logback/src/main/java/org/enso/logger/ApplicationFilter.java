@@ -6,6 +6,10 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 import org.enso.logger.config.LoggersLevels;
 
+/**
+ * An implementation of ch.qos.logback.core.filter.Filter that is created from configuration's and
+ * user's custom logger levels.
+ */
 public class ApplicationFilter extends Filter<ILoggingEvent> {
   private final LoggersLevels loggers;
 
