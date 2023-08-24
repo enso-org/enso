@@ -6,8 +6,6 @@ import * as test from '@playwright/experimental-ct-react'
 import type * as refresh from './useRefresh/refresh'
 import Refresh from './useRefresh/refresh'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-
 test.test('useRefresh', async ({ mount }) => {
     const values = new Set<refresh.RefreshState>()
     const onRefresh = (refreshState: refresh.RefreshState) => {
@@ -15,7 +13,7 @@ test.test('useRefresh', async ({ mount }) => {
     }
     const component = await mount(<Refresh onRefresh={onRefresh} />)
     test.expect(values.size).toBe(0)
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await component.waitFor({ state: 'attached' })
     test.expect(values.size).toBe(1)
     await component.click()
     test.expect(values.size, '`onRefresh` is triggered when `doRefresh` is called').toBe(2)

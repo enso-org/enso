@@ -85,14 +85,14 @@ export function locateSignOutButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Sign out' })
 }
 
-/** Find a "new project" button (if any) on the current page. */
-export function locateNewProjectButton(page: test.Locator | test.Page) {
-    return page.getByRole('button', { name: 'New Project' })
-}
-
 /** Find a "set username" button (if any) on the current page. */
 export function locateSetUsernameButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Set Username' })
+}
+
+/** Find a "delete" button (if any) on the current page. */
+export function locateDeleteButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Delete' })
 }
 
 /** Find a button to open the editor (if any) on the current page. */
@@ -103,6 +103,88 @@ export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
 /** Find a button to close the project (if any) on the current page. */
 export function locateStopProjectButton(page: test.Locator | test.Page) {
     return page.getByAltText('Stop execution')
+}
+
+// === Context menu buttons ===
+
+/** Find an "open" button (if any) on the current page. */
+export function locateOpenButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Open' })
+}
+
+/** Find an "upload to cloud" button (if any) on the current page. */
+export function locateUploadToCloudButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Upload To Cloud' })
+}
+
+/** Find a "rename" button (if any) on the current page. */
+export function locateRenameButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Rename' })
+}
+
+/** Find a "snapshot" button (if any) on the current page. */
+export function locateSnapshotButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Snapshot' })
+}
+
+/** Find a "move to trash" button (if any) on the current page. */
+export function locateMoveToTrashButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Move To Trash' })
+}
+
+/** Find a "move all to trash" button (if any) on the current page. */
+export function locateMoveAllToTrashButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Move All To Trash' })
+}
+
+/** Find a "share" button (if any) on the current page. */
+export function locateShareButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Share' })
+}
+
+/** Find a "label" button (if any) on the current page. */
+export function locateLabelButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Label' })
+}
+
+/** Find a "duplicate" button (if any) on the current page. */
+export function locateDuplicateButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Duplicate' })
+}
+
+/** Find a "copy" button (if any) on the current page. */
+export function locateCopyButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Copy' })
+}
+
+/** Find a "cut" button (if any) on the current page. */
+export function locateCutButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Cut' })
+}
+
+/** Find a "download" button (if any) on the current page. */
+export function locateDownloadButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Download' })
+}
+
+/** Find an "upload files" button (if any) on the current page. */
+export function locateUploadFilesButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Upload Files' })
+}
+
+/** Find a "new project" button (if any) on the current page. */
+export function locateNewProjectButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'New Project' })
+}
+
+/** Find a "new folder" button (if any) on the current page. */
+export function locateNewFolderButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'New Folder' })
+}
+
+/** Find a "new data connector" button (if any) on the current page. */
+export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'New Data Connector' })
 }
 
 // === Container locators ===
@@ -129,6 +211,12 @@ export function locateChangePasswordModal(page: test.Locator | test.Page) {
     return page.getByTestId('change-password-modal')
 }
 
+/** Find a "confirm delete" modal (if any) on the current page. */
+export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('confirm-delete-modal')
+}
+
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Locator | test.Page) {
     // This has no identifying features.
@@ -138,6 +226,11 @@ export function locateUserMenu(page: test.Locator | test.Page) {
 /** Find a "set username" panel (if any) on the current page. */
 export function locateSetUsernamePanel(page: test.Locator | test.Page) {
     return page.getByTestId('set-username-panel')
+}
+
+/** Find a set of context menus (if any) on the current page. */
+export function locateContextMenus(page: test.Locator | test.Page) {
+    return page.getByTestId('context-menus')
 }
 
 // =============

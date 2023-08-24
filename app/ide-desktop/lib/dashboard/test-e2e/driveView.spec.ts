@@ -4,8 +4,6 @@ import * as test from '@playwright/test'
 import * as actions from './actions'
 import * as api from './api'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-
 test.test('drive view', async ({ page }) => {
     await api.mockApi(page)
     await actions.mockDate(page)
@@ -16,7 +14,7 @@ test.test('drive view', async ({ page }) => {
     await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
     await test.expect(actions.locateDriveView(page)).toHaveScreenshot()
 
-    // Screenshot #1: Assets table with one asset
+    // Screenshot #2: Assets table with one asset
     await actions.locateNewProjectButton(page).click()
     // The placeholder row becomes hidden.
     await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
@@ -32,7 +30,17 @@ test.test('drive view', async ({ page }) => {
     const secondAssetRow = (await actions.locateAssetsTableRows(page).all())[2]!
     test.expect(firstAssetRow).not.toBeUndefined()
     test.expect(secondAssetRow).not.toBeUndefined()
+    // The last opened project needs to be stopped, to remove the toast notification notifying the
+    // user that project creation may take a while. Previously opened projects are stopped when the
+    // new project is created.
+    await actions.locateStopProjectButton(secondAssetRow).click()
 
-    await actions.locateStopProjectButton(firstAssetRow).click()
-    await secondAssetRow.click({ button: 'right' })
+    // Screenshot #3: Project context menu
+    await firstAssetRow.click({ button: 'right' })
+    const contextMenu = actions.locateContextMenus(page)
+    await test.expect(contextMenu).toHaveScreenshot()
+
+    await actions.locateMoveToTrashButton(contextMenu).click()
+    await actions.locateDeleteButton(page).click()
+    await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
 })

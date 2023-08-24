@@ -8,8 +8,6 @@
 
 // import DriveViewWrapper from './driveView/driveView'
 
-// /* eslint-disable @typescript-eslint/no-magic-numbers */
-
 // // ================
 // // === Locators ===
 // // ================
