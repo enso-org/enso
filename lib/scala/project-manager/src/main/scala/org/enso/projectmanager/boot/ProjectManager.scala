@@ -24,6 +24,7 @@ import zio.{ExitCode, Runtime, Scope, UIO, ZAny, ZIO, ZIOAppArgs, ZIOAppDefault}
 import java.io.{EOFException, IOException}
 import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
@@ -228,7 +229,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
-      logger.info("Starting Project Manager...")
+      logger.info(
+        "Starting {}",
+        makeVersionDescription.asString(useJson = false)
+      )
       for {
         opts <- parseOpts(options)
         profilingLog = opts.profilingPath.map(getSiblingFile(_, ".log"))
@@ -278,14 +282,16 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def displayVersion(
     useJson: Boolean
   ): ZIO[ZAny, IOException, ExitCode] = {
-    val versionDescription = VersionDescription.make(
+    printLine(makeVersionDescription.asString(useJson)) *>
+    ZIO.succeed(SuccessExitCode)
+  }
+
+  private def makeVersionDescription: VersionDescription =
+    VersionDescription.make(
       "Enso Project Manager",
       includeRuntimeJVMInfo         = false,
       enableNativeImageOSWorkaround = true
     )
-    printLine(versionDescription.asString(useJson)) *>
-    ZIO.succeed(SuccessExitCode)
-  }
 
   private def logServerStartup(): UIO[Unit] =
     ZIO.succeed {
