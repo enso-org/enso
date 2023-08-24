@@ -162,13 +162,16 @@ interface CognitoError {
 // === Cognito ===
 // ===============
 
+const MOCK_ORGANIZATION_ID_KEY = 'mock_organization_id'
+const MOCK_EMAIL_KEY = 'mock_email'
+
+let mockOrganizationId = localStorage.getItem(MOCK_ORGANIZATION_ID_KEY)
+let mockEmail = localStorage.getItem(MOCK_EMAIL_KEY)
+
 /** Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
  * This way, the methods don't throw all errors, but define exactly which errors they return.
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
-    /** The organization id to be returned by {@link organizationId}. */
-    mockOrganizationId: string | null = null
-    mockEmail: string | null = null
     isSignedIn = false
 
     /** Create a new Cognito wrapper. */
@@ -201,7 +204,7 @@ export class Cognito {
                     }),
                     getIdToken: () => ({
                         payload: {
-                            email: this.mockEmail,
+                            email: mockEmail,
                         },
                         decodePayload: () => ({}),
                         // Do not need to be the same as the dates for the access token.
@@ -229,7 +232,7 @@ export class Cognito {
                                     exp: expirationDate,
                                     iat: date,
                                     jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
-                                    username: this.mockEmail,
+                                    username: mockEmail,
                                     /* eslint-enable @typescript-eslint/naming-convention */
                                 })
                             )}.`,
@@ -244,13 +247,19 @@ export class Cognito {
     /** Returns the associated organization ID of the current user, which is passed during signup,
      * or `null` if the user is not associated with an existing organization. */
     async organizationId() {
-        return Promise.resolve(this.mockOrganizationId)
+        return Promise.resolve(mockOrganizationId)
     }
 
     /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string, organizationId: string | null) {
+        mockOrganizationId = organizationId
+        if (organizationId != null) {
+            localStorage.setItem(MOCK_ORGANIZATION_ID_KEY, organizationId)
+        } else {
+            localStorage.removeItem(MOCK_ORGANIZATION_ID_KEY)
+        }
         return signUp(this.supportsDeepLinks, username, password, organizationId)
     }
 
@@ -261,7 +270,8 @@ export class Cognito {
      * If the verification code matches, the email address is marked as verified. Once the email
      * address is verified, the user can sign in. */
     confirmSignUp(email: string, code: string) {
-        this.mockEmail = email
+        mockEmail = email
+        localStorage.setItem(MOCK_EMAIL_KEY, email)
         return confirmSignUp(email, code)
     }
 
@@ -290,7 +300,8 @@ export class Cognito {
      * Does not rely on external identity providers (e.g., Google or GitHub). */
     signInWithPassword(username: string, password: string) {
         this.isSignedIn = true
-        this.mockEmail = username
+        mockEmail = username
+        localStorage.setItem(MOCK_EMAIL_KEY, username)
         return signInWithPassword(username, password)
     }
 

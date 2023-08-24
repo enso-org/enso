@@ -148,12 +148,15 @@ export async function mockApi(page: test.Page) {
     )
 
     // === Other endpoints ===
+    // eslint-disable-next-line no-restricted-syntax
+    const defaultEmail = 'email@example.com' as backend.EmailAddress
+    const defaultUsername = 'user name'
+    // eslint-disable-next-line no-restricted-syntax
+    const defaultOrganizationId = 'placeholder organization id' as backend.UserOrOrganizationId
     const defaultUser: backend.UserOrOrganization = {
-        // eslint-disable-next-line no-restricted-syntax
-        email: 'email@example.com' as backend.EmailAddress,
-        name: 'user name',
-        // eslint-disable-next-line no-restricted-syntax
-        id: 'placeholder organization id' as backend.UserOrOrganizationId,
+        email: defaultEmail,
+        name: defaultUsername,
+        id: defaultOrganizationId,
         isEnabled: true,
     }
     let currentUser: backend.UserOrOrganization | null = defaultUser
@@ -187,6 +190,9 @@ export async function mockApi(page: test.Page) {
     })
 
     return {
+        defaultEmail,
+        defaultName: defaultUsername,
+        defaultOrganizationId,
         defaultUser,
         /** Returns the current value of `currentUser`. This is a getter, so its return value
          * SHOULD NOT be cached. */

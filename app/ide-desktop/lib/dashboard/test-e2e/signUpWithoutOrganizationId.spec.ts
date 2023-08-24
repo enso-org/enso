@@ -8,15 +8,10 @@ import * as apiModule from './api'
 // === Tests ===
 // =============
 
-// Note: This does not check that the organization ID is sent in the correct format for the backend.
-// It only checks that the organization ID is sent in certain places.
-test.test('sign up with organization id', async ({ page }) => {
+test.test('sign up without organization id', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('domcontentloaded')
-    const organizationId = 'some testing organization id'
-    await page.goto(
-        '/registration?' + new URLSearchParams([['organization_id', organizationId]]).toString()
-    )
+    await page.goto('/registration')
     const api = await apiModule.mockApi(page)
     api.setCurrentUser(null)
 
@@ -35,5 +30,7 @@ test.test('sign up with organization id', async ({ page }) => {
     await actions.locateUsernameInput(page).fill('arbitrary username')
     await actions.locateSetUsernameButton(page).click()
 
-    test.expect(api.currentUser?.id, 'new user has correct organization id').toBe(organizationId)
+    test.expect(api.currentUser?.id, 'new user has correct organization id').toBe(
+        api.defaultOrganizationId
+    )
 })

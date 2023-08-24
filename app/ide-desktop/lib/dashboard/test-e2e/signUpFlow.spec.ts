@@ -13,9 +13,12 @@ test.test('sign up flow', async ({ page }) => {
     api.setCurrentUser(null)
     await page.goto('/')
 
-    // These SHOULD NOT be the same as the default values.
     const email = 'example.email+1234@testing.org'
     const name = 'a custom user name'
+
+    // These values should be different, otherwise the email and name may come from the defaults.
+    test.expect(email).not.toStrictEqual(api.defaultEmail)
+    test.expect(name).not.toStrictEqual(api.defaultName)
 
     // Screenshot #1: Set username panel
     await actions.locateEmailInput(page).fill(email)
