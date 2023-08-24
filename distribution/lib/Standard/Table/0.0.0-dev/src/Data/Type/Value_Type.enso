@@ -390,8 +390,8 @@ type Value_Type
         Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
         Value_Type.Time -> "Time"
         Value_Type.Binary size variable_length -> case variable_length of
-            True  -> "Binary (variable length, max_size=" + size.to_text + ")"
-            False -> "Binary (fixed length, size=" + size.to_text + ")"
+            True  -> "Binary (variable length, max_size=" + size.to_text + " bytes)"
+            False -> "Binary (fixed length, size=" + size.to_text + " bytes)"
         Value_Type.Unsupported_Data_Type type_name _ -> case type_name of
             Nothing  -> "Unsupported_Data_Type"
             _ : Text -> "Unsupported_Data_Type (" + type_name + ")"
