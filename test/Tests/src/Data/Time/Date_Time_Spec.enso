@@ -15,6 +15,7 @@ polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.lang.Exception as JException
+polyglot java import java.util.Objects
 
 spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
@@ -453,6 +454,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1 = parse_datetime "2021-01-01T00:30:12.7102[UTC]"
             time_2 = parse_datetime "2021-01-01T04:00:10.0+04:00"
             (time_1 == time_2) . should_be_false
+            if time_1==time_1 . not then
+                msg = "Equality isn't reflexive for " + (Objects.toString time_1) + " info:"
+                info_1 = " time_1.zone: " + (Objects.toString time_1.zone) + " type: " + (Meta.type_of time_1).to_text
+                info_2 = " Time_Zone.system: " + Time_Zone.system.to_text
+                Test.fail msg+info_1+info_2
             time_1==time_1 . should_be_true
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
