@@ -100,8 +100,8 @@ class App {
         if (didAcquireLock) {
             electron.app.on('second-instance', (_event, _argv, _cwd, argv) => {
                 const args = config.CONFIG.clone()
-                // `chromeOptions` is ignored for now as it is unknown whether changes to
-                // command-line switches take effect after a window is already open.
+                // `chromeOptions` MUST NOT be used, as changing Chrome options causes the renderer
+                // to crash.
                 const { windowSize, fileToOpen, urlToOpen } = this.processArguments(
                     args,
                     // This is SAFE, as the type of `argv` is statically known.
