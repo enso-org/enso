@@ -675,10 +675,7 @@ spec =
             f1 = transient / "./test1.txt"
             f2 = File.new ("parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt")
 
-            cleanup =
-                f2.delete
-
-            Panic.with_finalizer cleanup <|
+            Panic.with_finalizer f2.delete <|
                 txt = "MY CONTENT"
                 txt.write f1
                 txt.write f2
