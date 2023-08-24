@@ -4,8 +4,4 @@ version: 0.0.1
 license: MIT
 author: enso-dev@enso.org
 maintainer: enso-dev@enso.org
-edition:
-  extends: 0.0.0-dev
-  libraries:
-    - name: enso_dev.Tests
-      repository: local
+prefer-local-libraries: true
