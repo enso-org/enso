@@ -116,7 +116,10 @@ public abstract class Atom implements EnsoObject {
       sb.append(suffix);
     }
     if (obj != null) {
-      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      var errorMessage = switch (obj) {
+        case Function fn -> fn.toString(false);
+        default -> InteropLibrary.getUncached().toDisplayString(obj);
+      };
       if (errorMessage != null) {
         sb.append(errorMessage);
       } else {
@@ -253,8 +256,7 @@ public abstract class Atom implements EnsoObject {
       } else if (TypesGen.isText(result)) {
         return TypesGen.asText(result);
       } else {
-        var txt = result instanceof Function fn ? fn.toString(false) : result.toString();
-        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", txt);
+        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
     } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException |
              UnsupportedTypeException panic) {
