@@ -221,6 +221,7 @@ spec setup =
             Test.specify "may allow mixed types if explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
                 mix = table.at "X" . cast Value_Type.Mixed
+                mix.value_type . should_equal Value_Type.Mixed
                 mix_filled = mix.fill_nothing False
                 mix_filled.to_vector . should_equal [1, False, 2, False]
                 mix_filled.value_type . should_equal Value_Type.Mixed
