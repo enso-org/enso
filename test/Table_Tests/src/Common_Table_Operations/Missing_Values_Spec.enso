@@ -219,12 +219,20 @@ spec setup =
 
         if setup.is_database.not then
             Test.specify "may allow mixed types if explicitly retyped" <|
-                table = table_builder [["X", [1, Nothing, 2, Nothing]]]
+                table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
                 mix = table.at "X" . cast Value_Type.Mixed
                 mix.value_type . should_equal Value_Type.Mixed
                 mix_filled = mix.fill_nothing False
                 mix_filled.to_vector . should_equal [1, False, 2, False]
                 mix_filled.value_type . should_equal Value_Type.Mixed
+
+                c2 = table.at "Y" . fill_nothing mix
+                c2.to_vector . should_equal [True, False, 2, Nothing]
+                c2.value_type . should_equal Value_Type.Mixed
+
+                c3 = table.at "Z" . fill_nothing mix
+                c3.to_vector . should_equal [0.5, Nothing, 2, 0.25]
+                c3.value_type . should_equal Value_Type.Mixed
 
             Test.specify "will keep the Mixed type if was explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
