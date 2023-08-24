@@ -386,7 +386,7 @@ impl Searcher {
                 warn!(
                     "Cannot update breadcrumbs with component that has no suggestion database \
                 entry. Invalid component: {:?}",
-                    component
+                    component.suggestion.name()
                 );
                 None
             }

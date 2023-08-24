@@ -87,8 +87,6 @@ fn init(app: &Application) {
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
-    project_view.debug_push_breadcrumb();
-
     root_view.switch_view_to_project();
 
 
