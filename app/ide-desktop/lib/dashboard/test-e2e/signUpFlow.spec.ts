@@ -9,13 +9,13 @@ import * as apiModule from './api'
 // =============
 
 test.test('sign up flow', async ({ page }) => {
-    await page.goto('/')
     const api = await apiModule.mockApi(page)
     api.setCurrentUser(null)
+    await page.goto('/')
 
-    // This SHOULD NOT be the same as the default email.
+    // These SHOULD NOT be the same as the default values.
     const email = 'example.email+1234@testing.org'
-    const name = 'user name'
+    const name = 'a custom user name'
 
     // Screenshot #1: Set username panel
     await actions.locateEmailInput(page).fill(email)

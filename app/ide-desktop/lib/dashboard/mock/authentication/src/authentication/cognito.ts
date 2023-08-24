@@ -189,37 +189,52 @@ export class Cognito {
     async userSession() {
         const currentSession = await results.Result.wrapAsync(() => {
             const date = Math.floor(Number(new Date()) / SEC_MS)
+            const expirationDate = date + TEN_HOURS_S
             if (!this.isSignedIn) {
                 // eslint-disable-next-line @typescript-eslint/no-throw-literal
                 throw CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage
             } else {
-                // eslint-disable-next-line no-restricted-syntax
-                return Promise.resolve({
-                    getAccessToken: () => {
-                        return {
-                            getJwtToken: () => {
-                                return `.${window.btoa(
-                                    JSON.stringify({
-                                        /* eslint-disable @typescript-eslint/naming-convention */
-                                        sub: '62bdf414-c47f-4c76-a333-c564f841c256',
-                                        iss: 'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_9Kycu2SbD',
-                                        client_id: '4j9bfs8e7415erf82l129v0qhe',
-                                        origin_jti: '3bd05163-dce7-496e-93f4-ac84c33448aa',
-                                        event_id: '7392b8de-66d6-4f60-8050-a90253911e45',
-                                        token_use: 'access',
-                                        scope: 'aws.cognito.signin.user.admin',
-                                        auth_time: date,
-                                        exp: date + TEN_HOURS_S,
-                                        iat: date,
-                                        jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
-                                        username: this.mockEmail,
-                                        /* eslint-enable @typescript-eslint/naming-convention */
-                                    })
-                                )}.`
-                            },
-                        }
-                    },
-                } as cognito.CognitoUserSession)
+                return Promise.resolve<cognito.CognitoUserSession>({
+                    isValid: () => true,
+                    getRefreshToken: () => ({
+                        getToken: () => '',
+                    }),
+                    getIdToken: () => ({
+                        payload: {
+                            email: this.mockEmail,
+                        },
+                        decodePayload: () => ({}),
+                        // Do not need to be the same as the dates for the access token.
+                        getIssuedAt: () => date,
+                        getExpiration: () => expirationDate,
+                        getJwtToken: () => '',
+                    }),
+                    getAccessToken: () => ({
+                        payload: {},
+                        decodePayload: () => ({}),
+                        getIssuedAt: () => date,
+                        getExpiration: () => expirationDate,
+                        getJwtToken: () =>
+                            `.${window.btoa(
+                                JSON.stringify({
+                                    /* eslint-disable @typescript-eslint/naming-convention */
+                                    sub: '62bdf414-c47f-4c76-a333-c564f841c256',
+                                    iss: 'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_9Kycu2SbD',
+                                    client_id: '4j9bfs8e7415erf82l129v0qhe',
+                                    origin_jti: '3bd05163-dce7-496e-93f4-ac84c33448aa',
+                                    event_id: '7392b8de-66d6-4f60-8050-a90253911e45',
+                                    token_use: 'access',
+                                    scope: 'aws.cognito.signin.user.admin',
+                                    auth_time: date,
+                                    exp: expirationDate,
+                                    iat: date,
+                                    jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
+                                    username: this.mockEmail,
+                                    /* eslint-enable @typescript-eslint/naming-convention */
+                                })
+                            )}.`,
+                    }),
+                })
             }
         })
         const amplifySession = currentSession.mapErr(intoCurrentSessionErrorKind)
@@ -357,8 +372,8 @@ export interface UserSession {
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(_session: cognito.CognitoUserSession): UserSession {
-    const payload: Record<string, unknown> = { email: 'email@example.com' }
+function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+    const payload: Record<string, unknown> = session.getIdToken().payload
     const email = payload.email
     /** The `email` field is mandatory, so we assert that it exists and is a string. */
     if (typeof email !== 'string') {
