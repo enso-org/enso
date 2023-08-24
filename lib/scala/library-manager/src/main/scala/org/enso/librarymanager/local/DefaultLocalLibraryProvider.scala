@@ -5,10 +5,11 @@ import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
+import org.enso.pkg.PackageManager
 
 import java.nio.file.{Files, Path}
-
 import scala.annotation.tailrec
+import scala.util.{Failure, Success}
 
 /** A default implementation of [[LocalLibraryProvider]]. */
 class DefaultLocalLibraryProvider(searchPaths: List[Path])
@@ -35,19 +36,34 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
     case head :: tail =>
       val potentialPath =
         LocalLibraryProvider.resolveLibraryPath(head, libraryName)
-      if (Files.exists(potentialPath) && Files.isDirectory(potentialPath)) {
+      val found = if (Files.exists(potentialPath) && Files.isDirectory(potentialPath)) {
         logger.trace(
-          s"Found a local $libraryName at " +
+          s"Found a candidate ${libraryName.name} at " +
           s"[${MaskedPath(potentialPath).applyMasking()}]."
         )
-        Some(potentialPath)
+
+        PackageManager.Default.loadPackage(potentialPath.toFile) match {
+          case Failure(exception) =>
+            logger.trace("Failed to load the candidate library package description.", exception)
+            None
+          case Success(pkg) =>
+            if (pkg.libraryName == libraryName) {
+              logger.trace(s"The candidate library [$libraryName] at [${MaskedPath(potentialPath).applyMasking()}] matches the namespace.")
+              Some(potentialPath)
+            } else {
+              logger.trace(s"The candidate library at [${MaskedPath(potentialPath).applyMasking()}] does not match (${pkg.libraryName} != $libraryName).")
+              None
+            }
+        }
       } else {
         logger.trace(
           s"Local library $libraryName not found at " +
           s"[${MaskedPath(potentialPath).applyMasking()}]."
         )
-        findLibraryHelper(libraryName, tail)
+        None
       }
+
+      if (found.isDefined) found else findLibraryHelper(libraryName, tail)
     case Nil => None
   }
 }
