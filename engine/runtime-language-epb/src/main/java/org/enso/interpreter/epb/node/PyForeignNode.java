@@ -1,6 +1,5 @@
 package org.enso.interpreter.epb.node;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -72,41 +71,45 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
 
   private Object wrapPythonZone(ZoneId zone, LocalTime time, LocalDate date)
   throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+    var ctx = EpbContext.get(this);
     if (nodePythonZone == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      var ctx = EpbContext.get(this);
       var src = Source.newBuilder("python", """
-      from datetime import timezone, timedelta
-      def conv(sec):
-          d = timedelta(seconds=sec)
-          return timezone(d)
+      from datetime import timezone, timedelta, tzinfo
+
+      class EnsoTzInfo(tzinfo):
+        def __init__(self, name, rules):
+          self._name = name
+          self._rules = rules
+
+        def utcoffset(self, when):
+          when = when.replace(tzinfo=None)
+          zoneOffset = self._rules.getOffset(when)
+          d = timedelta(seconds=zoneOffset.getTotalSeconds())
+          return d
+
+        def tzname(self, dt):
+          return self._name
+
+        def dst(self, dt):
+          if self._rules.isDaylightSavings(dt):
+              return 3600
+          else:
+              return 0
+
+
+      def conv(name, rules):
+          return EnsoTzInfo(name, rules)
+
       conv
       """, "convert_time_zone.py").build();
 
       fnPythonZone = ctx.getEnv().parsePublic(src).call();
       nodePythonZone = insert(InteropLibrary.getFactory().create(fnPythonZone));
     }
-    int totalSeconds = totalSeconds(time, date, zone);
-    return nodePythonZone.execute(fnPythonZone, totalSeconds);
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static int totalSeconds(LocalTime time, LocalDate date, ZoneId zone) {
-    Instant when;
-    if (time != null) {
-      if (date != null) {
-        when = date.atTime(time).atZone(zone).toInstant();
-      } else {
-        when = Instant.now();
-      }
-    } else {
-      if (date != null) {
-        when = date.atStartOfDay(zone).toInstant();
-      } else {
-        when = Instant.now();
-      }
-    }
-    return zone.getRules().getOffset(when).getTotalSeconds();
+    // XXX: Avoid asGuestValue
+    var rules = ctx.getEnv().asGuestValue(zone.getRules());
+    return nodePythonZone.execute(fnPythonZone, zone.getId(), rules);
   }
 
   private Object combinePythonDateTimeZone(Object date, Object time, Object zone)
