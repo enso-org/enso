@@ -23,7 +23,7 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import DriveView from './driveView'
 import Editor from './editor'

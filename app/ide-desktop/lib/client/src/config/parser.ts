@@ -4,7 +4,7 @@ import chalk from 'chalk'
 import stringLength from 'string-length'
 
 import yargs from 'yargs/yargs'
-import yargsModule from 'yargs'
+import type yargsModule from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 

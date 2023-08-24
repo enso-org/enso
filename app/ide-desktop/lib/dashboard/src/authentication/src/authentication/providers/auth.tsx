@@ -8,7 +8,7 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
 import * as app from '../../components/app'
-import * as authServiceModule from '../service'
+import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as cognitoModule from '../cognito'

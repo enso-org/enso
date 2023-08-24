@@ -41,7 +41,7 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '../authentication/service'
-import * as backend from '../dashboard/backend'
+import type * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
 import * as shortcutsModule from '../dashboard/shortcuts'

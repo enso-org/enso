@@ -30,13 +30,13 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
 import * as amplify from '@aws-amplify/auth'
-import * as cognito from 'amazon-cognito-identity-js'
+import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as config from './config'
-import * as loggerProvider from '../providers/logger'
+import type * as loggerProvider from '../providers/logger'
 
 // =================
 // === Constants ===

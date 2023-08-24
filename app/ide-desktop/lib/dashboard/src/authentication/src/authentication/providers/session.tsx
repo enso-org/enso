@@ -2,7 +2,7 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import * as cognito from '../cognito'
+import type * as cognito from '../cognito'
 import * as error from '../../error'
 import * as hooks from '../../hooks'
 import * as listen from '../listen'

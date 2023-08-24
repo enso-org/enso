@@ -3,7 +3,8 @@ import * as React from 'react'
 
 import * as test from '@playwright/experimental-ct-react'
 
-import Refresh, * as refresh from './useRefresh/refresh'
+import type * as refresh from './useRefresh/refresh'
+import Refresh from './useRefresh/refresh'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 

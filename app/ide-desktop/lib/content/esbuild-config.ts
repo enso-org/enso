@@ -13,7 +13,7 @@ import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import * as url from 'node:url'
 
-import * as esbuild from 'esbuild'
+import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginAlias from 'esbuild-plugin-alias'

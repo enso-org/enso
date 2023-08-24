@@ -4,7 +4,7 @@ import * as React from 'react'
 import DocsIcon from 'enso-assets/docs.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import * as backend from '../backend'
+import type * as backend from '../backend'
 import Button from './button'
 
 /** Props for an {@link AssetInfoBar}. */

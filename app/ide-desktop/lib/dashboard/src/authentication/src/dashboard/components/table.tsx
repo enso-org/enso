@@ -7,9 +7,10 @@ import * as set from '../../set'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as tableColumn from './tableColumn'
+import type * as tableColumn from './tableColumn'
+import type * as tableRow from './tableRow'
 import Spinner, * as spinner from './spinner'
-import TableRow, * as tableRow from './tableRow'
+import TableRow from './tableRow'
 
 // =================
 // === Constants ===

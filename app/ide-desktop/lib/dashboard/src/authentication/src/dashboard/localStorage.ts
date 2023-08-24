@@ -1,10 +1,10 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import * as backend from './backend'
-import * as column from './column'
+import type * as backend from './backend'
+import type * as column from './column'
 
-import * as pageSwitcher from './components/pageSwitcher'
+import type * as pageSwitcher from './components/pageSwitcher'
 
 // ====================
 // === LocalStorage ===

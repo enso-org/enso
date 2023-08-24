@@ -22,7 +22,7 @@ test.test('login screen', async ({ page }) => {
     await test.expect(page).toHaveScreenshot()
 
     // Screenshot #3: Invalid password
-    await actions.locateEmailInput(page).fill('email@example.com')
+    await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
     await actions.locatePasswordInput(page).type(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),

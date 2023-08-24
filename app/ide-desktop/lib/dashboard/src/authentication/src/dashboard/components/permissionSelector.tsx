@@ -1,7 +1,7 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import * as backend from '../backend'
+import type * as backend from '../backend'
 import * as permissionsModule from '../permissions'
 
 import Modal from './modal'

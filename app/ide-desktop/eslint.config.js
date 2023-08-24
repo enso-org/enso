@@ -322,7 +322,7 @@ export default [
             'react-hooks/exhaustive-deps': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
-            '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
+            '@typescript-eslint/consistent-type-imports': 'error',
             '@typescript-eslint/member-ordering': 'error',
             // Method syntax is not type-safe.
             // See: https://typescript-eslint.io/rules/method-signature-style

@@ -1,7 +1,7 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as assetEventModule from '../events/assetEvent'
+import type * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
@@ -9,7 +9,7 @@ import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 
 import * as pageSwitcher from './pageSwitcher'
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import AssetsTable from './assetsTable'
 import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'

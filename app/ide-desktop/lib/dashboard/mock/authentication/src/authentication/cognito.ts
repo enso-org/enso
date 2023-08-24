@@ -38,8 +38,8 @@ import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as config from '../../../../src/authentication/src/authentication/config'
-import * as loggerProvider from '../../../../src/authentication/src/providers/logger'
+import type * as config from '../../../../src/authentication/src/authentication/config'
+import type * as loggerProvider from '../../../../src/authentication/src/providers/logger'
 
 import * as listen from './listen'
 

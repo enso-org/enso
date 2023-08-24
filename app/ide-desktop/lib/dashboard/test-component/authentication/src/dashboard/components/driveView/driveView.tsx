@@ -1,7 +1,7 @@
 /** @file A wrapper around {@link DriveView}. */
 import * as React from 'react'
 
-import * as assetListEvent from '../../../../../../src/authentication/src/dashboard/events/assetListEvent'
+import type * as assetListEvent from '../../../../../../src/authentication/src/dashboard/events/assetListEvent'
 import * as backendProvider from '../../../../../../src/authentication/src/providers/backend'
 import * as hooks from '../../../../../../src/authentication/src/hooks'
 import * as http from '../../../../../../src/authentication/src/http'

@@ -12,7 +12,7 @@ import * as path from 'node:path'
 
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from 'electron-notarize'
-import * as macOptions from 'app-builder-lib/out/options/macOptions'
+import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
 import * as common from 'enso-common'
