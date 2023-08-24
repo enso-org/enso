@@ -4,6 +4,7 @@ import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+import Standard.Base.Meta
 
 polyglot java import java.lang.System as Java_System
 
@@ -18,16 +19,22 @@ spec =
 
     Test.group "json" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_post = base_url_with_slash + "post"
 
-        Test.specify "Can post JSON" <|
-            url_post = base_url_with_slash + "post"
+        Test.specify "Can perform a POST" <|
+            response = Data.post url_post "hello world"
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Uses the correct mime type" <|
             body = '{ "a" : 1 }'
-            Data.post url_post body
-            Data.post url_post body mime_type="text/plain"
-            Data.post url_post body mime_type="application/json"
-            Data.post url_post (TestType.Aaa "abcd")
-            Data.post url_post (TestType.Bbb 123)
-            Data.post url_post (Request_Body.Text "abcd")
-            Data.post url_post (Request_Body.Json '{ "a" : 1 }')
+            Data.post url_post body . at "headers" . at "Content-Type" . should_equal "text/plain"
+            Data.post url_post body mime_type="text/plain" . at "headers" . at "Content-Type" . should_equal "text/plain"
+            Data.post url_post body mime_type="application/json" . at "headers" . at "Content-Type" . should_equal "application/json"
+            Data.post url_post (TestType.Aaa "abcd") . at "headers" . at "Content-Type" . should_equal "application/json"
+            Data.post url_post (TestType.Bbb 123) . at "headers" . at "Content-Type" . should_equal "application/json"
+            Data.post url_post (Request_Body.Text "abcd") . at "headers" . at "Content-Type" . should_equal "text/plain"
+            Data.post url_post (Request_Body.Json '{ "a" : 1 }') . at "headers" . at "Content-Type" . should_equal "application/json"
 
 main = Test_Suite.run_main spec

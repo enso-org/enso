@@ -182,7 +182,6 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
         _ : Header -> h
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
-    IO.println 'BBB'
     request = case body of
         _ : Request_Body ->
             if mime_type.is_nothing.not then
