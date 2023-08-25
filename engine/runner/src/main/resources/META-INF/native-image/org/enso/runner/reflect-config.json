@@ -240,7 +240,8 @@
     "name": "org.enso.logger.LogbackSetup",
     "methods": [
       {
-        "name": "get"
+        "name": "<init>",
+        "parameterTypes": []
       }
     ]
   },
