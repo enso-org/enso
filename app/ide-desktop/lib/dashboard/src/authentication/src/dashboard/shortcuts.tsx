@@ -20,6 +20,7 @@ import SignInIcon from 'enso-assets/sign_in.svg'
 import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
+import UntrashIcon from 'enso-assets/untrash.svg'
 
 import * as detect from 'enso-common/src/detect'
 

@@ -711,6 +711,8 @@ export abstract class Backend {
     ): Promise<UpdatedDirectory>
     /** Delete an arbitrary asset. */
     abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+    /** Restore an arbitrary asset from the trash. */
+    abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */

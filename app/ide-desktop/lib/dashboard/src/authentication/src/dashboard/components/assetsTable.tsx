@@ -47,13 +47,15 @@ const ASSET_TYPE_NAME_PLURAL = 'items'
 // This is a function, even though it is not syntactically a function.
 // eslint-disable-next-line no-restricted-syntax
 const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
-/** Placeholder row. */
+/** The default placeholder row. */
 const PLACEHOLDER = (
-    <span className="opacity-75">
+    <span className="opacity-75 px-1.5">
         You have no projects yet. Go ahead and create one using the button above, or open a template
         from the home screen.
     </span>
 )
+/** The placeholder row for the Trash category. */
+const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 /** Placeholder row for directories that are empty. */
 export const EMPTY_DIRECTORY_PLACEHOLDER = (
     <span className="px-2 opacity-75">This folder is empty.</span>
@@ -246,7 +248,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setIsLoading(true)
-    }, [backend])
+    }, [backend, filterBy])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -346,7 +348,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [accessToken, organization, backend]
+        [filterBy, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -754,7 +756,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     getKey={assetTreeNode.getAssetTreeNodeKey}
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
-                    placeholder={PLACEHOLDER}
+                    placeholder={
+                        filterBy === backendModule.FilterBy.trashed
+                            ? TRASH_PLACEHOLDER
+                            : PLACEHOLDER
+                    }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
                         className: columnModule.COLUMN_CSS_CLASS[column],
@@ -782,7 +788,30 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 />
                             )
                         }
-                        if (filterBy !== backendModule.FilterBy.trashed) {
+                        // This is not a React component even though it contains JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const doRestoreAll = () => {
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                ids: innerSelectedKeys,
+                            })
+                        }
+                        if (filterBy === backendModule.FilterBy.trashed) {
+                            if (innerSelectedKeys.size !== 0) {
+                                setModal(
+                                    <ContextMenus key={uniqueString.uniqueString()} event={event}>
+                                        <ContextMenu>
+                                            <MenuEntry
+                                                action={
+                                                    shortcuts.KeyboardAction.restoreAllFromTrash
+                                                }
+                                                doAction={doRestoreAll}
+                                            />
+                                        </ContextMenu>
+                                    </ContextMenus>
+                                )
+                            }
+                        } else {
                             setModal(
                                 <ContextMenus key={uniqueString.uniqueString()} event={event}>
                                     {innerSelectedKeys.size !== 0 && (

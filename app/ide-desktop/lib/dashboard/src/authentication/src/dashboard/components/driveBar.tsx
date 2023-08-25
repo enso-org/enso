@@ -57,22 +57,8 @@ export default function DriveBar(props: DriveBarProps) {
         })
     }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
-    return filterBy === backendModule.FilterBy.trashed ? (
-        <div className="flex py-0.5">
-            <div className="flex gap-2.5">
-                <button
-                    className="flex items-center bg-frame rounded-full h-8 px-2.5"
-                    onClick={() => {
-                        unsetModal()
-                        doCreateProject(null)
-                    }}
-                >
-                    <span className="font-semibold leading-5 h-6 py-px">New Project</span>
-                </button>
-            </div>
-        </div>
-    ) : (
-        <div className="flex py-0.5">
+    return (
+        <div className="flex h-8 py-0.5">
             <div className="flex gap-2.5">
                 <button
                     className="flex items-center bg-frame rounded-full h-8 px-2.5"
@@ -87,7 +73,9 @@ export default function DriveBar(props: DriveBarProps) {
                     {backend.type !== backendModule.BackendType.local && (
                         <>
                             <Button
-                                active
+                                active={filterBy !== backendModule.FilterBy.trashed}
+                                disabled={filterBy === backendModule.FilterBy.trashed}
+                                error="Cannot create a new folder in Trash."
                                 image={AddFolderIcon}
                                 disabledOpacityClassName="opacity-20"
                                 onClick={() => {
@@ -96,10 +84,13 @@ export default function DriveBar(props: DriveBarProps) {
                                 }}
                             />
                             <Button
-                                active
                                 disabled
                                 image={AddConnectorIcon}
-                                error="Not implemented yet."
+                                error={
+                                    filterBy === backendModule.FilterBy.trashed
+                                        ? 'Cannot create a new data connector in Trash.'
+                                        : 'Not implemented yet.'
+                                }
                                 disabledOpacityClassName="opacity-20"
                                 onClick={() => {
                                     // No backend support yet.
@@ -127,7 +118,9 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active
+                        active={filterBy !== backendModule.FilterBy.trashed}
+                        disabled={filterBy === backendModule.FilterBy.trashed}
+                        error="Cannot upload files to Trash."
                         image={DataUploadIcon}
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
@@ -136,10 +129,20 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active
-                        disabled={backend.type !== backendModule.BackendType.local}
+                        active={
+                            filterBy !== backendModule.FilterBy.trashed &&
+                            backend.type === backendModule.BackendType.local
+                        }
+                        disabled={
+                            filterBy === backendModule.FilterBy.trashed ||
+                            backend.type !== backendModule.BackendType.local
+                        }
                         image={DataDownloadIcon}
-                        error="Not implemented yet."
+                        error={
+                            filterBy === backendModule.FilterBy.trashed
+                                ? 'Cannot download files from Trash.'
+                                : 'Not implemented yet.'
+                        }
                         disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()

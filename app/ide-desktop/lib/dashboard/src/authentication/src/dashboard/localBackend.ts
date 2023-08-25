@@ -271,7 +271,7 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Delete an arbitrary.
+    /** Delete an arbitrary asset.
      *
      * @throws An error if the JSON-RPC call fails. */
     override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
@@ -319,6 +319,11 @@ export class LocalBackend extends backend.Backend {
      * backend. */
     invalidOperation(): never {
         throw new Error('Unable to manage users, folders, files, and secrets on the local backend.')
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override undoDeleteAsset(): Promise<void> {
+        return this.invalidOperation()
     }
 
     /** Return an empty array. This function should never need to be called. */

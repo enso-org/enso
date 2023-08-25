@@ -52,6 +52,8 @@ const USERS_ME_PATH = 'users/me'
 const LIST_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
 const CREATE_DIRECTORY_PATH = 'directories'
+/** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
+const UNDO_DELETE_ASSET_PATH = 'assets'
 /** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
 const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
@@ -193,7 +195,7 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Return a list of all users in the same organization. */
-    async listUsers(): Promise<backend.SimpleUser[]> {
+    override async listUsers(): Promise<backend.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to list users in the organization.`)
@@ -203,7 +205,9 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Set the username and parent organization of the current user. */
-    async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
+    override async createUser(
+        body: backend.CreateUserRequestBody
+    ): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw('Unable to create user.')
@@ -213,7 +217,7 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Invite a new user to the organization by email. */
-    async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
+    override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
         const response = await this.post(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to invite user '${body.userEmail}'.`)
@@ -223,7 +227,7 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Adds a permission for a specific user on a specific asset. */
-    async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
+    override async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_PERMISSION_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to set permissions.`)
@@ -235,7 +239,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return organization info for the current user.
      *
      * @returns `null` if a non-successful status code (not 200-299) was received. */
-    async usersMe(): Promise<backend.UserOrOrganization | null> {
+    override async usersMe(): Promise<backend.UserOrOrganization | null> {
         const response = await this.get<backend.UserOrOrganization>(USERS_ME_PATH)
         if (!responseIsSuccessful(response)) {
             return null
@@ -247,7 +251,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return a list of assets in a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listDirectory(
+    override async listDirectory(
         query: backend.ListDirectoryRequestParams,
         title: string | null
     ): Promise<backend.AnyAsset[]> {
@@ -299,7 +303,7 @@ export class RemoteBackend extends backend.Backend {
     /** Create a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async createDirectory(
+    override async createDirectory(
         body: backend.CreateDirectoryRequestBody
     ): Promise<backend.CreatedDirectory> {
         const response = await this.post<backend.CreatedDirectory>(CREATE_DIRECTORY_PATH, body)
@@ -313,7 +317,7 @@ export class RemoteBackend extends backend.Backend {
     /** Change the name of a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async updateDirectory(
+    override async updateDirectory(
         directoryId: backend.DirectoryId,
         body: backend.UpdateDirectoryRequestBody,
         title: string | null
@@ -336,7 +340,7 @@ export class RemoteBackend extends backend.Backend {
     /** Delete an arbitrary asset.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteAsset(assetId: backend.AssetId, title: string | null) {
+    override async deleteAsset(assetId: backend.AssetId, title: string | null) {
         const response = await this.delete(deleteAssetPath(assetId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
@@ -347,10 +351,26 @@ export class RemoteBackend extends backend.Backend {
         }
     }
 
+    /** Restore an arbitrary asset from the trash.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async undoDeleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
+        const response = await this.patch(UNDO_DELETE_ASSET_PATH, { assetId })
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to restore ${
+                    title != null ? `'${title}'` : `asset with ID '${assetId}'`
+                } from Trash.`
+            )
+        } else {
+            return
+        }
+    }
+
     /** Return a list of projects belonging to the current user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listProjects(): Promise<backend.ListedProject[]> {
+    override async listProjects(): Promise<backend.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list projects.')
@@ -368,7 +388,9 @@ export class RemoteBackend extends backend.Backend {
     /** Create a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
+    override async createProject(
+        body: backend.CreateProjectRequestBody
+    ): Promise<backend.CreatedProject> {
         const response = await this.post<backend.CreatedProject>(CREATE_PROJECT_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create project with name '${body.projectName}'.`)
@@ -380,7 +402,7 @@ export class RemoteBackend extends backend.Backend {
     /** Close a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
         if (!responseIsSuccessful(response)) {
             return this.throw(
@@ -396,7 +418,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return details for a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async getProjectDetails(
+    override async getProjectDetails(
         projectId: backend.ProjectId,
         title: string | null
     ): Promise<backend.Project> {
@@ -438,7 +460,7 @@ export class RemoteBackend extends backend.Backend {
     /** Prepare a project for execution.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async openProject(
+    override async openProject(
         projectId: backend.ProjectId,
         body: backend.OpenProjectRequestBody | null,
         title: string | null
@@ -459,7 +481,7 @@ export class RemoteBackend extends backend.Backend {
     /** Update the name or AMI of a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async projectUpdate(
+    override async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody,
         title: string | null
@@ -479,7 +501,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return the resource usage of a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async checkResources(
+    override async checkResources(
         projectId: backend.ProjectId,
         title: string | null
     ): Promise<backend.ResourceUsage> {
@@ -498,7 +520,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return a list of files accessible by the current user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listFiles(): Promise<backend.File[]> {
+    override async listFiles(): Promise<backend.File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list files.')
@@ -510,7 +532,7 @@ export class RemoteBackend extends backend.Backend {
     /** Upload a file.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async uploadFile(
+    override async uploadFile(
         params: backend.UploadFileRequestParams,
         body: Blob
     ): Promise<backend.FileInfo> {
@@ -553,7 +575,9 @@ export class RemoteBackend extends backend.Backend {
     /** Create a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
+    override async createSecret(
+        body: backend.CreateSecretRequestBody
+    ): Promise<backend.SecretAndInfo> {
         const response = await this.post<backend.SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create secret with name '${body.secretName}'.`)
@@ -565,7 +589,10 @@ export class RemoteBackend extends backend.Backend {
     /** Return a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async getSecret(secretId: backend.SecretId, title: string | null): Promise<backend.Secret> {
+    override async getSecret(
+        secretId: backend.SecretId,
+        title: string | null
+    ): Promise<backend.Secret> {
         const response = await this.get<backend.Secret>(getSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
@@ -579,7 +606,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return the secret environment variables accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listSecrets(): Promise<backend.SecretInfo[]> {
+    override async listSecrets(): Promise<backend.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list secrets.')
@@ -591,7 +618,7 @@ export class RemoteBackend extends backend.Backend {
     /** Create a file tag or project tag.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
+    override async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
         const response = await this.post<backend.TagInfo>(CREATE_TAG_PATH, {
             /* eslint-disable @typescript-eslint/naming-convention */
             tag_name: body.name,
@@ -610,7 +637,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return file tags or project tags accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
+    override async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
         const response = await this.get<ListTagsResponseBody>(
             LIST_TAGS_PATH +
                 '?' +
@@ -629,7 +656,7 @@ export class RemoteBackend extends backend.Backend {
     /** Delete a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteTag(tagId: backend.TagId): Promise<void> {
+    override async deleteTag(tagId: backend.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete tag with ID '${tagId}'.`)
@@ -641,7 +668,9 @@ export class RemoteBackend extends backend.Backend {
     /** Return list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listVersions(params: backend.ListVersionsRequestParams): Promise<backend.Version[]> {
+    override async listVersions(
+        params: backend.ListVersionsRequestParams
+    ): Promise<backend.Version[]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
                 '?' +
@@ -671,6 +700,11 @@ export class RemoteBackend extends backend.Backend {
     /** Send a binary HTTP POST request to the given path. */
     private postBinary<T = void>(path: string, payload: Blob) {
         return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    }
+
+    /** Send a JSON HTTP PATCH request to the given path. */
+    private patch<T = void>(path: string, payload: object) {
+        return this.client.patch<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
     /** Send a JSON HTTP PUT request to the given path. */

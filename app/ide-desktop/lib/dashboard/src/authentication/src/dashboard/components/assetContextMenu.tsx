@@ -86,12 +86,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             <ContextMenu hidden={hidden}>
                 <MenuEntry
                     hidden={hidden}
-                    action={shortcuts.KeyboardAction.open}
+                    action={shortcuts.KeyboardAction.restoreFromTrash}
                     doAction={() => {
                         unsetModal()
                         dispatchAssetEvent({
-                            type: assetEventModule.AssetEventType.restoreFromTrash,
-                            id: asset.id,
+                            type: assetEventModule.AssetEventType.restoreMultiple,
+                            ids: new Set([asset.id]),
                         })
                     }}
                 />

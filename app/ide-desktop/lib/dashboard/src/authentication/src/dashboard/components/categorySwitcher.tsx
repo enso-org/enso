@@ -34,17 +34,17 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         <div
             {...(disabled && error != null ? { title: error } : {})}
             className={`flex items-center rounded-full gap-2 h-8 px-2 ${
-                active ? 'bg-frame-selected' : 'text-not-selected'
-            } ${disabled ? '' : 'cursor-pointer hover:opacity-100'} ${
+                active ? 'bg-frame-selected' : 'hover:text-primary text-not-selected'
+            } ${disabled ? '' : 'hover:bg-frame-selected cursor-pointer hover:opacity-100'} ${
                 !active && disabled ? 'cursor-not-allowed' : ''
             }`}
             {...(disabled ? {} : { onClick })}
         >
             <SvgMask
                 src={image}
-                className={`${active ? 'text-icon-selected' : 'text-icon-not-selected'} ${
-                    iconClassName ?? ''
-                }`}
+                className={`hover:text-icon-selected ${
+                    active ? 'text-icon-selected' : 'text-icon-not-selected'
+                } ${iconClassName ?? ''}`}
             />
             <span>{name}</span>
         </div>
