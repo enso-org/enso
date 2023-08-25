@@ -40,6 +40,16 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void dotUnderscore2() throws Exception {
+    var ir = parse("""
+    run op =
+      op._.something
+    """);
+
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
   public void unfinishedLiteral2() throws Exception {
     var ir = parse("""
     foo = 'unfinished literal...
