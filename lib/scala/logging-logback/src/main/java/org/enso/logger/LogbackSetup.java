@@ -27,26 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 public class LogbackSetup extends LoggerSetup {
-
-
     private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
         this.config = config;
         this.context = context;
     }
 
-    private static LogbackSetup _setup = null;
-    private final static Object lock = new Object();
-
-    /** Get a singleton instance of LoggerSetup */
-    public static LoggerSetup get() throws MissingConfigurationField {
-        if (_setup == null) {
-            synchronized (lock) {
-                if (_setup == null) {
-                    _setup = new LogbackSetup(LoggingServiceConfig.parseConfig(), (LoggerContext) LoggerFactory.getILoggerFactory());
-                }
-            }
-        }
-        return _setup;
+    public LogbackSetup() throws MissingConfigurationField {
+        this(LoggingServiceConfig.parseConfig(), (LoggerContext) LoggerFactory.getILoggerFactory());
     }
 
     /**

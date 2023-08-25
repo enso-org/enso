@@ -1,6 +1,7 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
+import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that sends logs to sentry.io service. */

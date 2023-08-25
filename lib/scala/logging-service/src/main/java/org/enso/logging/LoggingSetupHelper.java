@@ -4,8 +4,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.enso.logger.config.LoggerSetup;
-import org.enso.logger.config.LoggerSetupFactory;
+import org.enso.logger.LoggerSetup;
 import org.enso.logger.config.MissingConfigurationField;
 import org.enso.logger.masking.Masking;
 import org.slf4j.event.Level;
@@ -49,23 +48,23 @@ public abstract class LoggingSetupHelper {
    * inferring the parameters of logging infrastructure, leading to catch-22 situations.
    */
   public void initLogger() {
-    LoggerSetupFactory.get().setupNoOpAppender();
+    LoggerSetup.get().setupNoOpAppender();
   }
 
   public void setupFallback() {
-    LoggerSetupFactory.get().setupConsoleAppender(defaultLogLevel());
+    LoggerSetup.get().setupConsoleAppender(defaultLogLevel());
   }
 
   /**
-   * Starts a logging server that collects logs from different components. Once started, all logs
-   * are being forwarded to the server.
+   * Starts a logging server, if necessary, that accepts logs from different components.
+   * Once started, logs in this service are being setup to be forwarded to that logging server.
    *
-   * @param logLevel
-   * @param logMasking
+   * @param logLevel maximal level of log events to be forwarded
+   * @param logMasking true if masking of sensitive data should be applied to all log messages
    */
   public void setupServerAndForwardLogs(Option<Level> logLevel, boolean logMasking)
       throws MissingConfigurationField {
-    var loggerSetup = LoggerSetupFactory.get();
+    var loggerSetup = LoggerSetup.get();
     var config = loggerSetup.getConfig();
     if (config.loggingServerNeedsBoot()) {
       int actualPort = config.getServer().port();
@@ -102,12 +101,21 @@ public abstract class LoggingSetupHelper {
     }
   }
 
+  /**
+   * Initializes logging for this service using the URI of the dedicated logging server.
+   * If connecting to the logging server failed, or the optional address is missing, log events will be handled purely based on configuration packaged with this service.
+   *
+   * @param logLevel optional maximal level of log events that will be handled by the logging infrastructure
+   * @param connectToExternalLogger optional address of the logging server
+   * @param logMasking true if sensitive data should be masked in log events, false otherwise
+   * @throws MissingConfigurationField if the config file has been mis-configured
+   */
   public void setup(Option<Level> logLevel, Option<URI> connectToExternalLogger, boolean logMasking)
       throws MissingConfigurationField {
-    setup(logLevel, connectToExternalLogger, logMasking, LoggerSetupFactory.get());
+    setup(logLevel, connectToExternalLogger, logMasking, LoggerSetup.get());
   }
 
-  public void setup(
+  private void setup(
       Option<Level> logLevel,
       Option<URI> connectToExternalLogger,
       boolean logMasking,

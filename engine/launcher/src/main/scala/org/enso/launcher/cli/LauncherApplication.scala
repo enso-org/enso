@@ -674,7 +674,6 @@ object LauncherApplication {
           connectLogger,
           !disableLogMasking
         )
-        LauncherLogging.waitForSetup()
         initializeApp()
 
         if (version) {

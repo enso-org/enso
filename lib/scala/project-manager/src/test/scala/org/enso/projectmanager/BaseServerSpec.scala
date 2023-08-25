@@ -16,7 +16,7 @@ import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
-import org.enso.logger.LogbackSetup
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
@@ -237,9 +237,9 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     super.beforeAll()
 
     if (debugLogs) {
-      LogbackSetup.get().setup(Level.TRACE)
+      LoggerSetup.get().setup(Level.TRACE)
     } else {
-      LogbackSetup.get().setup()
+      LoggerSetup.get().setup()
     }
 
     setupEditions()

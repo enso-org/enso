@@ -2,7 +2,7 @@ package org.enso.runner
 
 import java.net.URI
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.config.LoggerSetupFactory
+import org.enso.logger.LoggerSetup
 import org.enso.logger.masking.Masking
 import org.slf4j.event.Level
 
@@ -32,7 +32,7 @@ object RunnerLogging {
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     Masking.setup(logMasking)
-    val loggerSetup = LoggerSetupFactory.get()
+    val loggerSetup = LoggerSetup.get()
     val initializedLogger = connectionUri match {
       case Some(uri) =>
         Future {
@@ -73,6 +73,6 @@ object RunnerLogging {
   /** Shuts down the logging service gracefully.
     */
   def tearDown(): Unit = {
-    LoggerSetupFactory.get().teardown()
+    LoggerSetup.get().teardown()
   }
 }
