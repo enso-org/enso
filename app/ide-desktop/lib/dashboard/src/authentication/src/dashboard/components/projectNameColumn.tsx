@@ -63,9 +63,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const ownPermission =
         asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
         null
-    const hasPermissionsToOpenProject =
+    const canExecute =
         ownPermission != null &&
-        backendModule.PERMISSION_ACTION_CAN_EXECUTE_PROJECT[ownPermission.permission]
+        backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]
 
     const doRename = async (newName: string) => {
         try {
@@ -233,7 +233,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
             }}
         >
-            {!hasPermissionsToOpenProject ? (
+            {!canExecute ? (
                 <SvgMask src={NetworkIcon} className="m-1" />
             ) : (
                 <ProjectIcon
@@ -279,11 +279,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       }
                     : {})}
                 className={`bg-transparent grow px-2 ${
-                    rowState.isEditingName
-                        ? 'cursor-text'
-                        : hasPermissionsToOpenProject
-                        ? 'cursor-pointer'
-                        : ''
+                    rowState.isEditingName ? 'cursor-text' : canExecute ? 'cursor-pointer' : ''
                 }`}
             >
                 {asset.title}

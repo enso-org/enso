@@ -88,7 +88,7 @@ export enum PermissionAction {
 }
 
 /** Whether each {@link PermissionAction} can execute a project. */
-export const PERMISSION_ACTION_CAN_EXECUTE_PROJECT: Record<PermissionAction, boolean> = {
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
     [PermissionAction.own]: true,
     [PermissionAction.admin]: true,
     [PermissionAction.edit]: true,

@@ -68,6 +68,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const managesThisAsset =
         self?.permission === backendModule.PermissionAction.own ||
         self?.permission === backendModule.PermissionAction.admin
+    const canExecute =
+        self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission]
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
@@ -84,7 +86,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     return (
         <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
-                {asset.type === backendModule.AssetType.project && (
+                {asset.type === backendModule.AssetType.project && canExecute && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
@@ -146,21 +148,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                <MenuEntry
-                    hidden={hidden}
-                    disabled={
-                        asset.type !== backendModule.AssetType.project &&
-                        asset.type !== backendModule.AssetType.directory
-                    }
-                    action={shortcuts.KeyboardAction.rename}
-                    doAction={() => {
-                        setRowState(oldRowState => ({
-                            ...oldRowState,
-                            isEditingName: true,
-                        }))
-                        unsetModal()
-                    }}
-                />
+                {canExecute && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled={
+                            asset.type !== backendModule.AssetType.project &&
+                            asset.type !== backendModule.AssetType.directory
+                        }
+                        action={shortcuts.KeyboardAction.rename}
+                        doAction={() => {
+                            setRowState(oldRowState => ({
+                                ...oldRowState,
+                                isEditingName: true,
+                            }))
+                            unsetModal()
+                        }}
+                    />
+                )}
                 <MenuEntry
                     hidden={hidden}
                     disabled
@@ -169,18 +173,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <MenuEntry
-                    hidden={hidden}
-                    action={shortcuts.KeyboardAction.moveToTrash}
-                    doAction={() => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${asset.type} '${asset.title}'`}
-                                doDelete={doDelete}
-                            />
-                        )
-                    }}
-                />
+                {managesThisAsset && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.moveToTrash}
+                        doAction={() => {
+                            setModal(
+                                <ConfirmDeleteModal
+                                    description={`the ${asset.type} '${asset.title}'`}
+                                    doDelete={doDelete}
+                                />
+                            )
+                        }}
+                    />
+                )}
                 <ContextMenuSeparator hidden={hidden} />
                 {managesThisAsset && (
                     <MenuEntry
