@@ -32,6 +32,7 @@ use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::shader;
 use crate::system::gpu::Context;
+use crate::system::gpu::ContextHandler;
 use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
@@ -1253,7 +1254,7 @@ impl SceneData {
     /// Register the given function to be called when the GL context is changed. The callback will
     /// be unregistered when the returned handle is dropped.
     #[must_use]
-    pub fn on_set_context<F: 'static + Fn(Option<&Context>)>(&self, f: F) -> Rc<F> {
+    pub fn on_set_context<F: 'static + Fn(Option<&Context>)>(&self, f: F) -> ContextHandler {
         let handle = Rc::new(f);
         self.on_set_context.borrow_mut().push(handle.downgrade());
         handle
@@ -1411,6 +1412,9 @@ impl system::gpu::context::Display for Rc<SceneData> {
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
+        if context.is_none() {
+            self.initial_shader_compilation.set(TaskState::Unstarted);
+        }
         world::with_context(|t| t.set_context(context));
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();

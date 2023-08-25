@@ -148,6 +148,12 @@ impl ContextData {
 }
 
 
+// === Context Handler ===
+
+/// Shared handle of a function that handles context loss and restoration.
+pub type ContextHandler = Rc<dyn Fn(Option<&Context>)>;
+
+
 
 // ===============
 // === Display ===
