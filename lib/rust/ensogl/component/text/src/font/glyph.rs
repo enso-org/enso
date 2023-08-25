@@ -86,7 +86,7 @@ pub struct ShapeData {
 impl ShapeData {
     fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
         let mut hasher = DefaultHasher::new();
-        std::hash::Hash::hash(&self.font.font.name(), &mut hasher);
+        std::hash::Hash::hash(&self.font.name(), &mut hasher);
         display::shape::system::ShapeSystemFlavor { flavor: hasher.finish() }
     }
 }
@@ -120,7 +120,7 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
-        let size = font.font.msdf_texture().size();
+        let size = font.msdf_texture().size();
         let sprite_system = &data.model.sprite_system;
         let symbol = sprite_system.symbol();
 
@@ -135,7 +135,7 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
             variables.add("msdf_size", size);
         });
 
-        let mut variables = symbol.borrow_variables_mut();
+        let mut variables = symbol.variables.borrow_mut();
         variables.add_uniform_or_panic("atlas", &font.atlas);
         variables.add_uniform_or_panic("opacity_increase", &font.opacity_increase);
         variables.add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
@@ -317,7 +317,7 @@ impl Glyph {
     pub fn set_font_size(&self, size: Size) {
         let size = size.value;
         self.view.font_size.set(size);
-        let opt_glyph_info = self.view.data.borrow().font.font.glyph_info(
+        let opt_glyph_info = self.view.data.borrow().font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
@@ -338,11 +338,8 @@ impl Glyph {
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
         let variations = self.variations.borrow();
-        let opt_glyph_info = self.view.data.borrow().font.font.glyph_info(
-            self.properties.get(),
-            &variations,
-            glyph_id,
-        );
+        let opt_glyph_info =
+            self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id);
             self.view.set_size(glyph_info.scale.scale(self.font_size().value));

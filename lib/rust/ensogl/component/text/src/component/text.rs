@@ -954,7 +954,7 @@ impl TextModel {
         let rope = self.buffer.rope.sub(range);
         let content = rope.to_string();
         let glyph_system = self.glyph_system.borrow();
-        let font = &glyph_system.font.font;
+        let font = &glyph_system.font;
         let mut glyph_sets = vec![];
         let mut prev_chunk_cluster_byte_offset = 0;
         let mut grapheme_byte_offset = Byte(0);

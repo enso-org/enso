@@ -42,13 +42,12 @@ pub struct Texture {
     layers:          i32,
     gl_texture:      WebGlTexture,
     context:         Context,
-    parameters:      Parameters,
     item_type:       AnyItemType,
     internal_format: AnyInternalFormat,
 }
 
 impl Texture {
-    /// Constructor.
+    /// Allocate a texture on the GPU, and set its parameters.
     pub fn new(
         context: &Context,
         internal_format: AnyInternalFormat,
@@ -56,41 +55,21 @@ impl Texture {
         width: i32,
         height: i32,
         layers: i32,
+        parameters: Parameters,
     ) -> Result<Self, ContextLost> {
         let context = context.clone();
         let gl_texture = context.create_texture()?;
-        let parameters = default();
-        let this = Self {
-            width,
-            height,
-            layers,
-            gl_texture,
-            context,
-            parameters,
-            item_type,
-            internal_format,
-        };
-        this.allocate();
-        this.apply_texture_parameters();
+        let this = Self { width, height, layers, gl_texture, context, item_type, internal_format };
+        this.init(parameters);
         Ok(this)
     }
 
-    /// Setter.
-    pub fn set_parameters(&mut self, parameters: Parameters) {
-        self.parameters = parameters;
-    }
-
-    /// Texture target getter.
+    /// Returns the texture target.
     pub fn target(&self) -> GlEnum {
         match self.layers {
             0 => Context::TEXTURE_2D,
             _ => Context::TEXTURE_2D_ARRAY,
         }
-    }
-
-    /// Getter.
-    pub fn parameters(&self) -> &Parameters {
-        &self.parameters
     }
 
     /// Returns the width, in pixels.
@@ -117,7 +96,7 @@ impl Texture {
         let elem_type = self.item_type.to_gl_enum().into();
         let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
-        match self.layers {
+        let error = match self.layers {
             0 => {
                 self.context
                     .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
@@ -131,7 +110,7 @@ impl Texture {
                         elem_type,
                         Some(data),
                     )
-                    .unwrap();
+                    .err()
             }
             _ => {
                 self.context
@@ -148,10 +127,14 @@ impl Texture {
                         elem_type,
                         Some(data),
                     )
-                    .unwrap();
+                    .err()
+            }
+        };
+        if let Some(error) = error {
+            if !self.context.is_context_lost() {
+                error!("Error in `texSubImage`: {error:?}.");
             }
         }
-        self.apply_texture_parameters();
     }
 
     /// Bind this texture to the specified texture unit on the GPU.
@@ -184,8 +167,8 @@ impl Texture {
 // === Internal API ===
 
 impl Texture {
-    /// Allocates GPU memory for the texture.
-    fn allocate(&self) {
+    /// Allocate GPU memory for the texture, and apply the specified parameters.
+    fn init(&self, parameters: Parameters) {
         let levels = 1;
         let internal_format = self.internal_format.to_gl_enum().into();
         let target = self.target();
@@ -211,11 +194,7 @@ impl Texture {
                 );
             }
         }
-    }
-
-    /// Applies this textures' parameters.
-    fn apply_texture_parameters(&self) {
-        self.parameters.apply_parameters(&self.context, self.target());
+        parameters.apply_parameters(&self.context, self.target());
     }
 }
 

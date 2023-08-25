@@ -59,8 +59,6 @@ struct Model {
     available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
     execution_failed_notification: notification::Notification,
-    #[derivative(Debug = "ignore")]
-    #[allow(unused)] // Handle keeps the callback alive.
     /// Handle of a function that shows the loading spinner until a lost context is restored.
     context_monitor: ensogl::display::world::ContextHandler,
 }
@@ -109,24 +107,6 @@ impl Model {
             execution_failed_notification,
             context_monitor,
         }
-    }
-
-    fn init_context_monitor(view: view::project::View) -> ensogl::display::world::ContextHandler {
-        scene().on_set_context(move |context| {
-            if context.is_none() {
-                view.hide_graph_editor();
-                js::app_or_panic().show_progress_indicator(LOST_CONTEXT_SPINNER_PROGRESS);
-            } else {
-                let view = view.clone_ref();
-                executor::global::spawn(async move {
-                    js::app_or_panic().show_progress_indicator(RESTORING_CONTEXT_SPINNER_PROGRESS);
-                    let scene = scene();
-                    scene.prepare_to_render().await;
-                    view.show_graph_editor();
-                    js::app_or_panic().hide_progress_indicator();
-                });
-            }
-        })
     }
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
@@ -376,6 +356,26 @@ impl Model {
                 },
             Err(error) => error!("Failed to create event to show the dashboard. {error:?}"),
         }
+    }
+
+    /// Register a [`Scene`] callback that shows the progress spinner while the WebGL Context is
+    /// being restored; return the handle.
+    fn init_context_monitor(view: view::project::View) -> ensogl::display::world::ContextHandler {
+        scene().on_set_context(move |context| {
+            if context.is_none() {
+                view.hide_graph_editor();
+                js::app_or_panic().show_progress_indicator(LOST_CONTEXT_SPINNER_PROGRESS);
+            } else {
+                let view = view.clone_ref();
+                executor::global::spawn(async move {
+                    js::app_or_panic().show_progress_indicator(RESTORING_CONTEXT_SPINNER_PROGRESS);
+                    let scene = scene();
+                    scene.prepare_to_render().await;
+                    view.show_graph_editor();
+                    js::app_or_panic().hide_progress_indicator();
+                });
+            }
+        })
     }
 }
 

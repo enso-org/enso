@@ -939,8 +939,9 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct FontWithGpuData {
+    #[deref]
     pub font:             Font,
     pub atlas:            gpu::Uniform<Option<gpu::Texture>>,
     pub opacity_increase: gpu::Uniform<f32>,
@@ -981,6 +982,7 @@ impl FontWithGpuData {
                     glyph_size.x() as i32,
                     glyph_size.y() as i32,
                     num_glyphs as i32,
+                    default(),
                 );
                 if let Ok(texture) = texture.as_ref() {
                     self.font
@@ -1006,8 +1008,7 @@ impl FontWithGpuData {
 pub struct Registry {
     frp:                registry::Frp,
     fonts:              Rc<HashMap<Name, FontWithGpuData>>,
-    #[derivative(Debug = "ignore")]
-    set_context_handle: Rc<dyn Fn(Option<&Context>)>,
+    set_context_handle: ensogl_core::display::world::ContextHandler,
 }
 
 impl Registry {

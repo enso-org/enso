@@ -1257,7 +1257,7 @@ impl SceneData {
     pub fn on_set_context<F: 'static + Fn(Option<&Context>)>(&self, f: F) -> ContextHandler {
         let handle = Rc::new(f);
         self.on_set_context.borrow_mut().push(handle.downgrade());
-        handle
+        ContextHandler::new(handle)
     }
 }
 

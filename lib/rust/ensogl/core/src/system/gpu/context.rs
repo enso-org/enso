@@ -70,8 +70,6 @@ pub struct ContextData {
     id:              u32,
 }
 
-static CURRENT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-
 impl Context {
     fn from_native(native: WebGl2RenderingContext) -> Self {
         Self { rc: Rc::new(ContextData::from_native(native)) }
@@ -80,8 +78,8 @@ impl Context {
 
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
-        let prev_id = CURRENT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
-        let id = prev_id + 1;
+        static NEXT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let id = NEXT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
         let native = native::ContextWithExtensions::from_native(native);
         let profiler = profiler::Profiler::new(&native);
         let shader_compiler = shader::Compiler::new(&native);
@@ -151,7 +149,21 @@ impl ContextData {
 // === Context Handler ===
 
 /// Shared handle of a function that handles context loss and restoration.
-pub type ContextHandler = Rc<dyn Fn(Option<&Context>)>;
+#[derive(Clone, CloneRef)]
+pub struct ContextHandler(Rc<dyn Fn(Option<&Context>)>);
+
+impl ContextHandler {
+    /// Wrap the handle.
+    pub fn new(rc: Rc<dyn Fn(Option<&Context>)>) -> Self {
+        Self(rc)
+    }
+}
+
+impl Debug for ContextHandler {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ContextHandler")
+    }
+}
 
 
 

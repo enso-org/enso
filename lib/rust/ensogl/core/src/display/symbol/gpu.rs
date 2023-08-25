@@ -301,7 +301,8 @@ pub struct Symbol {
     #[display_object]
     data:         Rc<SymbolData>,
     shader_dirty: ShaderDirty,
-    shader:       Rc<RefCell<Shader>>,
+    /// The GL shader.
+    pub shader:   Rc<RefCell<Shader>>,
 }
 
 impl Symbol {
@@ -444,14 +445,6 @@ impl Symbol {
     pub fn surface(&self) -> &Mesh {
         &self.surface
     }
-
-    pub fn borrow_shader_mut(&self) -> RefMut<Shader> {
-        self.shader.borrow_mut()
-    }
-
-    pub fn borrow_variables_mut(&self) -> RefMut<UniformScope> {
-        self.variables.borrow_mut()
-    }
 }
 
 
@@ -513,11 +506,11 @@ impl WeakElement for WeakSymbol {
 pub struct SymbolData {
     pub label:          &'static str,
     pub id:             SymbolId,
+    pub variables:      RefCell<UniformScope>,
     global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
     surface:            Mesh,
     surface_dirty:      GeometryDirty,
-    variables:          RefCell<UniformScope>,
     context:            RefCell<Option<Context>>,
     bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
