@@ -25,6 +25,10 @@ use serde::Serialize;
 
 
 
+// =================
+// === Constants ===
+// =================
+
 /// We use the `web` prefix to be able to use a custom MIME type. Typically browsers support a
 /// restricted set of MIME types in the clipboard.
 /// See [Clipboard pickling](https://github.com/w3c/editing/blob/gh-pages/docs/clipboard-pickling/explainer.md).
@@ -34,6 +38,18 @@ use serde::Serialize;
 const MIME_TYPE: &str = "web application/enso";
 /// Whether to allow pasting nodes from plain text.
 const PLAIN_TEXT_PASTING_ENABLED: bool = true;
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[derive(Debug, Clone, PartialEq, failure::Fail)]
+#[fail(
+    display = "`application/enso` MIME-type is used, but clipboard content has incorrect format."
+)]
+pub struct InvalidFormatError;
 
 /// Clipboard payload.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,35 +78,43 @@ pub fn copy_node(expression: String, metadata: Option<NodeMetadata>) -> Fallible
 
 
 /// Paste the node from the clipboard at a specific position.
-pub fn paste_node(graph: &Handle, position: Vector2) -> FallibleResult {
+///
+/// As pasting is an asynchronous operation, we need to provide a callback for handling possible
+/// errors.
+pub fn paste_node(graph: &Handle, position: Vector2, on_error: fn(String)) {
     clipboard::read(
         MIME_TYPE.to_string(),
-        paste_node_from_custom_format(graph, position),
-        plain_text_fallback(graph, position),
+        paste_node_from_custom_format(graph, position, on_error),
+        plain_text_fallback(graph, position, on_error),
     );
-    Ok(())
 }
 
 /// A standard callback for pasting node using our custom format.
-fn paste_node_from_custom_format(graph: &Handle, position: Vector2) -> impl Fn(Vec<u8>) + 'static {
+fn paste_node_from_custom_format(
+    graph: &Handle,
+    position: Vector2,
+    on_error: impl Fn(String) + 'static,
+) -> impl Fn(Vec<u8>) + 'static {
     let graph = graph.clone_ref();
-    move |content| {
+    let closure = move |content| -> FallibleResult {
         let _transaction = graph.module.get_or_open_transaction("Paste node");
-        let string = String::from_utf8(content).unwrap();
+        let string = String::from_utf8(content)?;
         if let Ok(content) = serde_json::from_str(&string) {
             match content {
                 ClipboardContent::Node(node) => {
                     let expression = node.expression;
                     let metadata = node.metadata;
-                    if let Err(err) = graph.new_node_at_position(position, expression, metadata) {
-                        error!("Failed to paste node. {err}");
-                    }
+                    graph.new_node_at_position(position, expression, metadata)?;
+                    Ok(())
                 }
             }
         } else {
-            error!(
-                "`application/enso` MIME-type is used, but clipboard content has incorrect format."
-            );
+            Err(InvalidFormatError.into())
+        }
+    };
+    move |content| {
+        if let Err(err) = closure(content) {
+            on_error(format!("Failed to paste node. {err}"));
         }
     }
 }
@@ -98,15 +122,23 @@ fn paste_node_from_custom_format(graph: &Handle, position: Vector2) -> impl Fn(V
 /// An alternative callback for pasting node from plain text. It is used when [`MIME_TYPE`] is not
 /// available in the clipboard, and only if [`PLAIN_TEXT_PASTING_ENABLED`]. Otherwise, it is a
 /// noop.
-fn plain_text_fallback(graph: &Handle, position: Vector2) -> impl Fn(String) + 'static {
+fn plain_text_fallback(
+    graph: &Handle,
+    position: Vector2,
+    on_error: impl Fn(String) + 'static,
+) -> impl Fn(String) + 'static {
     let graph = graph.clone_ref();
-    move |text| {
+    let closure = move |text| -> FallibleResult {
         if PLAIN_TEXT_PASTING_ENABLED {
             let _transaction = graph.module.get_or_open_transaction("Paste node");
             let expression = text;
-            if let Err(err) = graph.new_node_at_position(position, expression, None) {
-                error!("Failed to paste node. {err}");
-            }
+            graph.new_node_at_position(position, expression, None)?;
+        }
+        Ok(())
+    };
+    move |text| {
+        if let Err(err) = closure(text) {
+            on_error(format!("Failed to paste node. {err}"));
         }
     }
 }

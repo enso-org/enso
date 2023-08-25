@@ -945,9 +945,8 @@ impl Handle {
 
     /// Paste a node from clipboard at cursor position. See `clipboard` module documentation for
     /// details.
-    pub fn paste_node(&self, cursor_pos: Vector2) -> FallibleResult {
-        clipboard::paste_node(self, cursor_pos)?;
-        Ok(())
+    pub fn paste_node(&self, cursor_pos: Vector2, on_error: fn(String)) {
+        clipboard::paste_node(self, cursor_pos, on_error);
     }
 
     /// Sets the given's node expression.

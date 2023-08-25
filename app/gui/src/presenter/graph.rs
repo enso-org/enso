@@ -19,6 +19,7 @@ use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
+use view::notification::logged as notification;
 
 
 // ==============
@@ -444,9 +445,11 @@ impl Model {
     }
 
     fn paste_node(&self, cursor_pos: Vector2) {
-        if let Err(err) = self.controller.graph().paste_node(cursor_pos) {
-            error!("Error when pasting node: {err}");
+        fn on_error(msg: String) {
+            error!("Error when pasting node. {}", msg);
+            notification::error(msg, &None);
         }
+        self.controller.graph().paste_node(cursor_pos, on_error);
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
