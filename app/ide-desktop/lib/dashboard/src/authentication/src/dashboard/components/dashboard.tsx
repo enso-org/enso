@@ -113,7 +113,11 @@ export default function Dashboard(props: DashboardProps) {
         if (savedProjectStartupInfo != null) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
-                    if (currentBackend.type === backendModule.BackendType.remote) {
+                    if (
+                        currentBackend.type === backendModule.BackendType.remote &&
+                        savedProjectStartupInfo.projectAsset.parentId ===
+                            backend.rootDirectoryId(session.organization)
+                    ) {
                         // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
                         setPage(pageSwitcher.Page.drive)
                         setQueuedAssetEvents([
@@ -301,6 +305,7 @@ export default function Dashboard(props: DashboardProps) {
             if (projectStartupInfo?.project.projectId !== newProject.id) {
                 setProjectStartupInfo({
                     project: await backend.getProjectDetails(newProject.id, newProject.title),
+                    projectAsset: newProject,
                     backendType: backend.type,
                     accessToken: session.accessToken,
                 })
