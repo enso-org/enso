@@ -11,7 +11,8 @@ import project.Data.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Upload_Table import all
 
-## Creates a new database table from this in-memory table.
+## GROUP Standard.Base.Output
+   Creates a new database table from this in-memory table.
 
    Arguments:
    - connection: the database connection to use. The table will be created in
@@ -58,7 +59,8 @@ Table.select_into_database_table : Connection -> Text -> Vector Text | Nothing -
 Table.select_into_database_table self connection (table_name : Text) primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
     select_into_table_implementation self connection table_name primary_key temporary on_problems
 
-## Updates the target table with the contents of this table.
+## GROUP Standard.Base.Output
+   Updates the target table with the contents of this table.
 
    Arguments:
    - target_table: the target table to update. It must be a database table.

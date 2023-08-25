@@ -4,7 +4,6 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
 import project.Runtime
-
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Throwable

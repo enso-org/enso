@@ -12,6 +12,7 @@ import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
+import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -33,6 +34,8 @@ import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
+import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+
 const logger = contentConfig.logger
 
 // ===========
@@ -45,6 +48,8 @@ class App {
     windows = new Set<electron.BrowserWindow>()
     lastFocusedWindow: electron.BrowserWindow | null = null
     server: server.Server | null = null
+    projectManagerHost: string | null = null
+    projectManagerPort: number | null = null
     isQuitting = false
 
     /** Initialize and run the Electron application. */
@@ -257,9 +262,29 @@ class App {
 
     /** Start the backend processes. */
     async startBackendIfEnabled(args: typeof config.CONFIG) {
-        await this.runIfEnabled(args.options.engine, () => {
+        await this.runIfEnabled(args.options.engine, async () => {
+            // The first return value is the original string, which is not needed.
+            // These all cannot be null as the format is known at runtime.
+            const [, projectManagerHost, projectManagerPort] =
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                GLOBAL_CONFIG.projectManagerEndpoint.match(/^ws:\/\/(.+):(.+)$/)!
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.projectManagerHost ??= projectManagerHost!
+            this.projectManagerPort ??= await portfinder.getPortPromise({
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                port: parseInt(projectManagerPort!),
+            })
+            const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
+            args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
             const backendOpts = args.groups.debug.options.verbose.value ? ['-vv'] : []
-            projectManager.spawn(args, backendOpts)
+            const backendEnv = Object.assign({}, process.env, {
+                // These are environment variables, and MUST be in CONSTANT_CASE.
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_HOST: this.projectManagerHost,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_PORT: `${this.projectManagerPort}`,
+            })
+            projectManager.spawn(args, backendOpts, backendEnv)
         })
     }
 

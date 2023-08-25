@@ -2,11 +2,12 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.math.BigInteger
 
+## PRIVATE
 spec prefix round_fun =
     Test.group prefix+"Rounding numeric tests" <|
         Test.specify "Can round positive decimals correctly" <|
@@ -285,4 +286,5 @@ spec prefix round_fun =
             Test.expect_panic_with (round_fun 123 use_bankers="no") Type_Error
             Test.expect_panic_with (round_fun 123 use_bankers=0) Type_Error
 
+## PRIVATE
 main = Test_Suite.run_main (spec "Number " .round)

@@ -401,6 +401,7 @@ match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (colum
 ## PRIVATE
    A helper type used by transform helpers.
 type Column_Transform_Element
+    ## PRIVATE
     Value column associated_selector
 
 ## PRIVATE

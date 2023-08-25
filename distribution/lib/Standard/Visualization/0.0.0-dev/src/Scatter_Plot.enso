@@ -150,7 +150,9 @@ bound_data bounds data = case bounds of
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
+## Represents the extreme range of points for a data set.
 type Extreme
+    ## Create an extreme range of points.
     Value min_x max_x min_y max_y
 
 ## PRIVATE

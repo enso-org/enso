@@ -2675,6 +2675,7 @@ dependencies = [
 name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
+ "ensogl-breadcrumbs",
  "ensogl-button",
  "ensogl-drop-down",
  "ensogl-drop-down-menu",

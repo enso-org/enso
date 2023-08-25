@@ -10,6 +10,7 @@ type Phase_Conf
        - seconds: The minimal number of seconds per one iteration.
     Impl (iterations:Integer) (seconds:Integer)
 
+    ## PRIVATE
     to_text self =
         self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
 
@@ -35,6 +36,7 @@ type Bench_Options
     set_measure : Phase_Conf -> Bench_Options
     set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
+    ## PRIVATE
     to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
 
     ## Validates the config and throws a Panic if it is invalid.
@@ -43,11 +45,12 @@ type Bench_Options
         self.warmup.validate
         self.measure.validate
 
-
+## Builder to create benchmark run.
 type Bench_Builder
     ## PRIVATE
     Impl builder
 
+    ## Add a group to the builder.
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
         validate_name name
@@ -55,7 +58,7 @@ type Bench_Builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
 
-
+## Builder to create a group of benchmarks.
 type Group_Builder
     ## PRIVATE
     Impl builder
@@ -71,10 +74,16 @@ type Group_Builder
 
 
 type Bench
+    ## A set of groups of benchmarks.
     All (groups : Vector Bench)
+
+    ## A single group of benchmarks sharing configuration.
     Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
+
+    ## A specific single benchmark.
     Spec (name:Text) (code : Any -> Any)
 
+    ## Construct a Bench object.
     build : (Bench_Builder -> Any) -> Bench
     build fn =
         b = Vector.new_builder
@@ -82,6 +91,7 @@ type Bench
         groups_vec = b.to_vector
         Bench.All groups_vec . validate
 
+    ## The default options for benchmarks.
     options : Bench_Options
     options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
 
@@ -117,12 +127,14 @@ type Bench
                 if code == Nothing then Panic.throw (Illegal_Argument.Error "Benchmark code must be specified")
         self
 
+    ## Fold over the set of benchmarks merging using the specified function.
     fold : Any -> (Any -> Bench -> Bench -> Any) -> Any
     fold self value fn = case self of
         Bench.All groups -> groups.fold value (v-> g-> g.fold v fn)
         Bench.Group _ _ specs -> specs.fold value (v-> s-> fn v self s)
         Bench.Spec _ _ -> fn value self self
 
+    ## Run the specified set of benchmarks.
     run_main self =
         count = self.fold 0 v-> _-> _-> v+1
         IO.println <| "Found " + count.to_text + " cases to execute"
@@ -150,7 +162,7 @@ type Bench
 
              example_measure =
                  Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
-    measure : Text -> Phase_Conf -> Phase_Conf -> Boolean -> Any -> Nothing
+    measure : Text -> Phase_Conf -> Phase_Conf -> Any -> Nothing
     measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         case dry_run of

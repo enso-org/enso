@@ -62,7 +62,8 @@ type Regex
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
-    ## Gets the original pattern used to create this `Regex`.
+    ## GROUP Metadata
+       Gets the original pattern used to create this `Regex`.
     pattern : Text
     pattern self = self.internal_regex_object.pattern
 
@@ -77,7 +78,8 @@ type Regex
     to_display_text : Text
     to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
-    ## Returns `True` if the input matches against the pattern described by
+    ## GROUP Text
+       Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
 
        Arguments:
@@ -88,7 +90,8 @@ type Regex
             m = self.internal_regex_object.exec input 0
             m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
-    ## Tries to match the provided `input` against the pattern `self`.
+    ## GROUP Text
+       Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Match` containing the matched text and its match groups, or
        `Nothing` if the match failed.
@@ -103,7 +106,8 @@ type Regex
                 Match_Iterator_Value.Next _ match _ -> match
                 Match_Iterator_Value.Last _ -> Nothing
 
-    ## Tries to match the provided `input` against the pattern `self`.
+    ## GROUP Text
+       Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Match` object, each containing the matched text
        and its match groups.
@@ -125,7 +129,8 @@ type Regex
                 go it
                 builder.to_vector
 
-    ## Tries to match the provided `input` against the pattern `self`.
+    ## GROUP Selections
+       Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Text` containing the matched text, or `Nothing` if the match
        failed.
@@ -137,7 +142,8 @@ type Regex
         Helpers.expect_text input <|
            match_to_group_maybe <| self.match input
 
-    ## Tries to match the provided `input` against the pattern `self`.
+    ## GROUP Selections
+       Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Text`, each containing the matched text.
        If the pattern does not match, an empty `Vector` is returned.
@@ -149,7 +155,8 @@ type Regex
         Helpers.expect_text input <|
            self.match_all input . map match_to_group_maybe
 
-    ## Splits the `input` text based on the pattern described by `self`.
+    ## GROUP Conversions
+       Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
        - input: The text to split based on the pattern described by `self`.
@@ -193,7 +200,8 @@ type Regex
             go it.next
             builder.to_vector
 
-    ## Takes an input string and returns all the matches as a `Vector Text`.
+    ## GROUP Conversions
+       Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
        groups are omitted.
@@ -220,7 +228,8 @@ type Regex
     tokenize self input =
         self.match_all input . map (build_tokenization_output_from_match self _)
 
-    ## Replace all occurrences of the pattern described by `self` in the `input`
+    ## GROUP Text
+       Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
        Arguments:
@@ -356,7 +365,8 @@ type Regex
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
 
-    ## Return a vector of all named group names.
+    ## GROUP Metadata
+       Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
         map = polyglot_map_to_map self.internal_regex_object.groups

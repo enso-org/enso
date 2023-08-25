@@ -318,7 +318,14 @@ public final class AtomConstructor implements EnsoObject {
   @ExportMessage
   @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
-    return "Constructor<" + getDisplayName() + ">";
+    var sb = new StringBuilder();
+    sb.append("Constructor<").append(getDisplayName()).append(">");
+    for (var f : getFields()) {
+      if (!f.hasDefaultValue()) {
+        sb.append(" ").append(f.getName()).append("=_");
+      }
+    }
+    return sb.toString();
   }
 
   /** @return the fully qualified name of this constructor. */
