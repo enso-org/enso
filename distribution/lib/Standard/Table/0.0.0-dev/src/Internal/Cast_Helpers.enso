@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
@@ -38,31 +39,16 @@ is_a_valid_parse_target target_type =
 ## PRIVATE
 type Cast_Problem_Builder
     ## PRIVATE
-    Value column_name target_type to_java
+    Value to_java
 
     ## PRIVATE
        Returns a vector of all reported problems.
     get_problems : Vector
     get_problems self =
-        builder = Vector.new_builder
-        java_instance = self.to_java
-
-        lossy_conversion_rows = java_instance.getFailedConversionsCount
-        if lossy_conversion_rows > 0 then
-            example_values = Vector.from_polyglot_array java_instance.getFailedConversionExamples
-            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows example_values)
-
-        text_too_long_rows = java_instance.getTextTooLongCount
-        if text_too_long_rows > 0 then
-            example_values = Vector.from_polyglot_array java_instance.getTextTooLongExamples
-            builder.append (Conversion_Failure.Text_Too_Long self.target_type self.column_name text_too_long_rows example_values)
-
-        aggregated = Java_Problems.parse_aggregated_problems java_instance.getAggregatedProblems
-        builder.append_vector_range aggregated
-
-        builder.to_vector
+        Java_Problems.parse_aggregated_problems self.to_java.getAggregatedProblems
 
 ## PRIVATE
 new_java_problem_builder : Text -> Value_Type -> Cast_Problem_Builder
 new_java_problem_builder column_name target_type =
-    Cast_Problem_Builder.Value column_name target_type CastProblemBuilder.new
+    storage_type = Storage.from_value_type_strict target_type
+    Cast_Problem_Builder.Value (CastProblemBuilder.new column_name storage_type)

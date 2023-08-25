@@ -50,7 +50,8 @@ type Date_Range
         base_length = start.days_until end . abs
         Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
 
-    ## Creates a copy of this range with a changed step.
+    ## GROUP Metadata
+       Creates a copy of this range with a changed step.
 
        Arguments:
        - new_step: The new step to use. It can either be a `Date_Period` or
@@ -75,7 +76,8 @@ type Date_Range
         _ : Date_Period ->
             self.with_step new_step.to_period
 
-    ## Convert to a textual representation.
+    ## PRIVATE
+       Convert to a textual representation.
     to_text : Text
     to_text self =
         middle = if self.increasing then " up to " else " down to "
@@ -83,16 +85,18 @@ type Date_Range
             " by " + self.step.to_display_text
         "(Date_Range from " + self.start.to_text + middle + self.end.to_text + step + ")"
 
-    ## Convert to a display representation.
+    ## PRIVATE
+       Convert to a display representation.
     to_display_text : Text
     to_display_text self =
         start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
         step = if self.step == (Period.new days=1) then "" else
-            effective_step = if self.increasing then self.step else self.step.negated
+            effective_step = if self.increasing then self.step else -self.step
             " by " + effective_step.to_display_text
         start + step + "]"
 
-    ## Convert to a human-readable representation.
+    ## PRIVATE
+       Convert to a human-readable representation.
     pretty : Text
     pretty self = self.to_text
 
@@ -102,23 +106,27 @@ type Date_Range
     to_js_object self =
         JS_Object.from_pairs [["type", "Date_Range"], ["start", self.start.to_js_object], ["end", self.end.to_js_object], ["step", self.step.to_js_object], ["increasing", self.increasing]]
 
-    ## Returns the first element that is included within the range or `Nothing`
+    ## GROUP Selections
+       Returns the first element that is included within the range or `Nothing`
        if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
-    ## Returns the second element that is included within the range or `Nothing`
+    ## GROUP Selections
+       Returns the second element that is included within the range or `Nothing`
        if the range has less than 2 element
     second : Integer ! Index_Out_Of_Bounds
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
-    ## Returns the last element that is included within the range or `Nothing`
+    ## GROUP Selections
+       Returns the last element that is included within the range or `Nothing`
        if the range is empty.
     last : Integer ! Index_Out_Of_Bounds
     last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
         self.start + self.step*(self.length - 1)
 
-    ## Get the number of elements in the range.
+    ## GROUP Metadata
+       Get the number of elements in the range.
 
        > Example
          The following range has 2 elements.
@@ -127,7 +135,8 @@ type Date_Range
     length : Integer
     length self = self.cached_length
 
-    ## Gets an element from the range at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the range at a specified index (0-based).
 
        Arguments:
        - index: The location in the range to get the element from. The index is
@@ -184,7 +193,8 @@ type Date_Range
     map self function =
         Vector.new self.length (i -> function (self.internal_at i))
 
-    ## Converts the range to a vector containing the dates in the range.
+    ## GROUP Conversions
+       Converts the range to a vector containing the dates in the range.
 
        > Example
          Getting a vector of dates from 2021-05-07 to 2021-05-10 (exclusive).
@@ -193,7 +203,8 @@ type Date_Range
     to_vector : Vector Date
     to_vector self = self.map x->x
 
-    ## Checks if this range is empty.
+    ## GROUP Logical
+       Checks if this range is empty.
 
        > Example
          Checking if the range of days from start of 2020 to start of 2023 is empty.
@@ -202,7 +213,8 @@ type Date_Range
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## Checks if this range is not empty.
+    ## GROUP Logical
+       Checks if this range is not empty.
 
        > Example
          Checking if the range of days from start of 2020 to start of 2023 is not empty.
@@ -211,7 +223,8 @@ type Date_Range
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Returns a vector of all elements of this range which satisfy a condition.
+    ## GROUP Selections
+       Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
        - filter: The filter to apply to the range. It can either be an instance
@@ -232,7 +245,8 @@ type Date_Range
             if predicate elem then builder.append elem else builder
         builder.to_vector
 
-    ## Partitions the range into `Vector`s of elements which satisfy a given
+    ## GROUP Selections
+       Partitions the range into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -330,7 +344,8 @@ type Date_Range
         (0.up_to self.length).running_fold init acc-> ix->
             function acc (self.internal_at ix)
 
-    ## Checks whether a condition is satisfied for all dates in this range.
+    ## GROUP Logical
+       Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -346,7 +361,8 @@ type Date_Range
         predicate = unify_condition_or_predicate condition
         self . any (predicate >> .not) . not
 
-    ## Checks whether a condition is satisfied for any date in this range.
+    ## GROUP Logical
+       Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -360,7 +376,8 @@ type Date_Range
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
     any self condition = self.find condition . is_nothing . not
 
-    ## Gets the first index when a condition is satisfied this range.
+    ## GROUP Selections
+       Gets the first index when a condition is satisfied this range.
        If no index satisfies the predicate, returns `if_missing`.
 
        Arguments:
@@ -383,7 +400,8 @@ type Date_Range
             Nothing -> if_missing
             _ : Integer -> self.internal_at index
 
-    ## Checks if the range contains the specified value.
+    ## GROUP Logical
+       Checks if the range contains the specified value.
 
        > Example
          Check if a particular date is in the range.
@@ -392,7 +410,8 @@ type Date_Range
     contains : Date -> Boolean
     contains self value = self.find (== value) . is_nothing . not
 
-    ## Returns the index of an element in the range.
+    ## GROUP Values
+       Returns the index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -411,7 +430,8 @@ type Date_Range
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).index_of (ix-> predicate (self.internal_at ix)) start
 
-    ## Returns the last index of an element in the range.
+    ## GROUP Values
+       Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -430,7 +450,8 @@ type Date_Range
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).last_index_of (ix-> predicate (self.internal_at ix)) start
 
-    ## Reverses the range, returning a vector with the same elements as the
+    ## GROUP Selections
+       Reverses the range, returning a vector with the same elements as the
        original range, but in the opposite order.
 
        > Example

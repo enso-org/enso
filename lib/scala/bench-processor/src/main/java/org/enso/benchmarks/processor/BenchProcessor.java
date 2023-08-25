@@ -226,9 +226,11 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("  ");
     out.println("  @Setup");
     out.println("  public void setup(BenchmarkParams params) throws Exception {");
+    // Workaround for compilation failures on Windows.
+    String projectRootDirPath = projectRootDir.getPath().contains("\\") ? projectRootDir.getPath().replace("\\", "\\\\") : projectRootDir.getPath();
     out
         .append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
-        .append(projectRootDir.toString())
+        .append(projectRootDirPath)
         .append("\").toFile();\n");
     out.println(
         "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead()) {");

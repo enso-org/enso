@@ -10,6 +10,7 @@ import project.Nothing.Nothing
 type Function
 
     ## ADVANCED
+       GROUP Operators
        Applies the function `self` to the provided argument.
 
        Arguments:
@@ -30,6 +31,7 @@ type Function
     <| self ~argument = @Builtin_Method "Function.<|"
 
     ## ADVANCED
+       GROUP Operators
        Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
@@ -44,6 +46,7 @@ type Function
     << self ~that = x -> self (that x)
 
     ## ADVANCED
+       GROUP Operators
        Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 

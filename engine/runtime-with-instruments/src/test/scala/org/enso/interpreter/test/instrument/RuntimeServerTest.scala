@@ -5604,7 +5604,7 @@ class RuntimeServerTest
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,
@@ -5720,7 +5720,7 @@ class RuntimeServerTest
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,

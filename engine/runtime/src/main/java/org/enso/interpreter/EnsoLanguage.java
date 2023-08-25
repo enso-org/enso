@@ -15,7 +15,6 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
-import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
@@ -31,6 +30,7 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
+import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
@@ -69,7 +69,7 @@ import com.oracle.truffle.api.nodes.RootNode;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
-    dependentLanguages = {EpbLanguage.ID},
+    dependentLanguages = {ForeignLanguage.ID},
     fileTypeDetectors = FileDetector.class,
     services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
 )
@@ -159,7 +159,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     var env = context.getEnvironment();
     var preinit = env.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
-      var epb = env.getInternalLanguages().get(EpbLanguage.ID);
+      var epb = env.getInternalLanguages().get(ForeignLanguage.ID);
       var run = env.lookup(epb, Consumer.class);
       run.accept(preinit);
     }

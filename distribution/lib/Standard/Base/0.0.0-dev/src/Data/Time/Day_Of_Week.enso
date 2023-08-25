@@ -4,22 +4,31 @@ from project.Data.Ordering import all
 
 polyglot java import java.time.DayOfWeek
 
+## Represents a day of the week.
 type Day_Of_Week
+    ## Day_Of_Week representing Sunday.
     Sunday
 
+    ## Day_Of_Week representing Monday.
     Monday
 
+    ## Day_Of_Week representing Tuesday.
     Tuesday
 
+    ## Day_Of_Week representing Wednesday.
     Wednesday
 
+    ## Day_Of_Week representing Thursday.
     Thursday
 
+    ## Day_Of_Week representing Friday.
     Friday
 
+    ## Day_Of_Week representing Saturday.
     Saturday
 
-    ## Convert the Day_Of_Week to an Integer
+    ## GROUP Conversions
+       Convert the Day_Of_Week to an Integer.
 
        Arguments:
        - `first_day`: The first day of the week.
@@ -65,4 +74,5 @@ type Day_Of_Week_Comparator
     hash : Day_Of_Week -> Integer
     hash x = x.to_integer
 
+## PRIVATE
 Comparable.from (_:Day_Of_Week) = Day_Of_Week_Comparator

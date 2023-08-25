@@ -80,11 +80,13 @@ type Postgres_Connection
         if schema == self.schema then self else
             self.make_new Nothing schema
 
-    ## Gets a list of the table types.
+    ## GROUP Standard.Base.Metadata
+       Gets a list of the table types.
     table_types : Vector Text
     table_types self = self.connection.table_types
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## GROUP Standard.Base.Metadata
+       Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
 
@@ -107,7 +109,8 @@ type Postgres_Connection
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## Set up a query returning a Table object, which can be used to work with
+    ## GROUP Standard.Base.Input
+       Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
 
        Arguments:
@@ -127,7 +130,8 @@ type Postgres_Connection
     query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found
     query self query alias="" = self.connection.query query alias
 
-    ## Execute the query and load the results into memory as a Table.
+    ## GROUP Standard.Base.Input
+       Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: name of the table or sql statement to query.
@@ -145,7 +149,8 @@ type Postgres_Connection
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing = self.connection.read query limit
 
-    ## Creates a new empty table in the database and returns a query referencing
+    ## GROUP Standard.Base.Output
+       Creates a new empty table in the database and returns a query referencing
        the new table.
 
        Arguments:
@@ -191,6 +196,7 @@ type Postgres_Connection
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
+       GROUP Standard.Base.Output
 
        Executes a raw update query. If the query was inserting, updating or
        deleting rows, the number of affected rows is returned; otherwise it

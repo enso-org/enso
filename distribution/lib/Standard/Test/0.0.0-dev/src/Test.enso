@@ -5,6 +5,7 @@ import project.Test_Reporter
 import project.Test_Result.Test_Result
 import project.Test_Suite.Test_Suite
 
+## Set of functions for running Unit Tests.
 type Test
     ## Creates a new test group, describing properties of the object
        described by `self`.
@@ -213,22 +214,28 @@ run_spec ~behavior =
 ## PRIVATE
 
    An error describing that a test finished with an unexpected error.
-
-   Arguments:
-   - err: The payload of the error that triggered this error.
-   - stack_trace_text: A textual representation of the stack trace for the
-     error.
 type Finished_With
+    ## PRIVATE
+
+       An error describing that a test finished with an unexpected error.
+
+       Arguments:
+       - err: The payload of the error that triggered this error.
+       - stack_trace_text: A textual representation of the stack trace for the
+         error.
     Error err stack_trace_text
 
 ## PRIVATE
 
    A group of behaviors for a test.
-
-   Arguments:
-   - name: The name of the spec.
-   - behaviors: The results of the behaviors encapsulated in that spec.
 type Spec
+    ## PRIVATE
+
+       A group of behaviors for a test.
+
+       Arguments:
+       - name: The name of the spec.
+       - behaviors: The results of the behaviors encapsulated in that spec.
     Value name behaviors
 
     ## PRIVATE
@@ -237,12 +244,15 @@ type Spec
     is_fail : Boolean
     is_fail self = self.behaviors.any .is_fail
 
+    ## Number of tests that passed.
     tests_succeeded : Integer
     tests_succeeded self = self.behaviors.filter (x-> x.is_success) . length
 
+    ## Number of tests that failed.
     tests_failed : Integer
     tests_failed self = self.behaviors.filter (x-> x.is_fail) . length
 
+    ## Number of tests that were skipped.
     tests_pending : Integer
     tests_pending self = self.behaviors.filter (x-> x.is_pending) . length
 
@@ -251,19 +261,19 @@ type Spec
     tests_executed self = self.behaviors.filter (b-> b.is_pending.not) . length
 
 ## PRIVATE
-
    A description of a behaviors in a test.
-
-   Arguments:
-   - name: The name of the behavior.
-   - result: The result of the behavior.
-   - time_taken: The duration that the behaviour took to run.
 type Behavior
+    ## PRIVATE
+       A description of a behaviors in a test.
+
+       Arguments:
+       - name: The name of the behavior.
+       - result: The result of the behavior.
+       - time_taken: The duration that the behaviour took to run.
     Value name result time_taken
 
 
     ## PRIVATE
-
        Checks if the behavior is pending.
     is_pending : Boolean
     is_pending self = self.result.is_pending
@@ -281,7 +291,6 @@ type Behavior
     is_success self = self.result.is_success
 
 ## PRIVATE
-
 type Clue
     ## PRIVATE
 

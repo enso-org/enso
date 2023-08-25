@@ -428,7 +428,7 @@ spec setup =
             t = table_builder [["X", [Date.new 2021 01 31]]]
             t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
 
-        Test.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. TODO: investigate - https://github.com/enso-org/enso/issues/7326" <|
+        Test.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
             zone = Time_Zone.parse "Europe/Warsaw"
             dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
             t = table_builder [["X", [dt1]]]

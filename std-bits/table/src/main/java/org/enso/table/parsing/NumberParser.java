@@ -3,6 +3,7 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.problems.AggregatedProblems;
@@ -45,6 +46,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
 
     private final static Map<String, Pattern> PATTERNS = new HashMap<>();
+    private final IntegerType integerTargetType;
 
     private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int index) {
         int allowedSet = (allowCurrency ? ALLOWED_CCY_PATTERNS : ALLOWED_NON_CCY_PATTERNS);
@@ -106,14 +108,15 @@ public class NumberParser extends IncrementalDatatypeParser {
     /**
      * Creates a new integer instance of this parser.
      *
+     * @param integerTargetType the target type describing how large integer values can be accepted
      * @param allowCurrency whether to allow currency symbols
      * @param allowLeadingZeros whether to allow leading zeros
      * @param trimValues whether to trim the input values
      * @param thousandSeparator the thousand separator to use
      */
-    public static NumberParser createIntegerParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
+    public static NumberParser createIntegerParser(IntegerType integerTargetType, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
         var separator = thousandSeparator == null ? null : (thousandSeparator + '_');
-        return new NumberParser(false, allowCurrency, allowLeadingZeros, trimValues, false, separator);
+        return new NumberParser(false, integerTargetType, allowCurrency, allowLeadingZeros, trimValues, false, separator);
     }
 
     /**
@@ -125,7 +128,7 @@ public class NumberParser extends IncrementalDatatypeParser {
      * @param allowScientific whether to allow scientific notation
      */
     public static NumberParser createAutoDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific) {
-        return new NumberParser(true, allowCurrency, allowLeadingZeros, trimValues, allowScientific, null);
+        return new NumberParser(true, null, allowCurrency, allowLeadingZeros, trimValues, allowScientific, null);
     }
 
     /**
@@ -144,11 +147,12 @@ public class NumberParser extends IncrementalDatatypeParser {
         }
 
         thousandSeparator = thousandSeparator == null ? "" : thousandSeparator;
-        return new NumberParser(true, allowCurrency, allowLeadingZeros, trimValues, allowScientific, thousandSeparator + decimalSeparator);
+        return new NumberParser(true, null, allowCurrency, allowLeadingZeros, trimValues, allowScientific, thousandSeparator + decimalSeparator);
     }
 
-    private NumberParser(boolean allowDecimal, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String separators) {
+    private NumberParser(boolean allowDecimal, IntegerType integerTargetType, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String separators) {
         this.allowDecimal = allowDecimal;
+        this.integerTargetType = integerTargetType;
         this.allowCurrency = allowCurrency;
         this.allowLeadingZeros = allowLeadingZeros;
         this.trimValues = trimValues;
@@ -252,7 +256,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     protected Builder makeBuilderWithCapacity(int capacity) {
         return allowDecimal
                 ? NumericBuilder.createDoubleBuilder(capacity)
-                : NumericBuilder.createLongBuilder(capacity);
+                : NumericBuilder.createLongBuilder(capacity, integerTargetType);
     }
 
     private Object innerParseSingleValue(String text, Pattern pattern) {
@@ -319,7 +323,16 @@ public class NumberParser extends IncrementalDatatypeParser {
                 return sign_value * Double.parseDouble(integer + decimalPrepared);
             }
 
-            return integer.equals("") ? null : sign_value * Long.parseLong(integer);
+            if (integer.equals("")) {
+                return null;
+            }
+
+            long integer_value = sign_value * Long.parseLong(integer);
+            if (integerTargetType.fits(integer_value)) {
+                return integer_value;
+            } else {
+                return null;
+            }
         } catch (NumberFormatException e) {
             throw new IllegalStateException("Java parse failed to parse number: " + text, e);
         }

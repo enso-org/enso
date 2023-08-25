@@ -19,11 +19,13 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
-## Converts the given value to a JSON serialized value.
+## GROUP Conversions
+   Converts the given value to a JSON serialized value.
 Any.to_json : Text
 Any.to_json self = Json.stringify self
 
-## Converts the given value to a JSON serialized value.
+## PRIVATE
+   Converts the given value to a JSON serialized value.
 Error.to_json : Text
 Error.to_json self = self.to_js_object.to_text
 
@@ -150,7 +152,7 @@ Locale.to_js_object self =
 ## PRIVATE
    Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
-   
+
    Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
 Map.to_js_object : JS_Object
 Map.to_js_object self =
