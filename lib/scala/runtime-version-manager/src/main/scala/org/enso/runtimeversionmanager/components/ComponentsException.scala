@@ -59,13 +59,15 @@ case class ComponentMissingError(message: String, cause: Throwable = null)
 /** Indicates that a requested engine version requires a newer launcher/project
   * manager version.
   *
+  * @param currentVersion the current engine version
   * @param expectedVersion the minimum version that is required to run the engine
   */
 case class UpgradeRequiredError(
+  currentVersion: SemVer,
   expectedVersion: SemVer
 ) extends ComponentsException(
       s"Minimum version required to use this engine is " +
-      s"$expectedVersion."
+      s"$expectedVersion. Current version is $currentVersion."
     )
 
 /** Indicates uninstallation failure. */
