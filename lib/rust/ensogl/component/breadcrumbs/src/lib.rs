@@ -44,6 +44,7 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::Rectangle;
@@ -181,12 +182,6 @@ impl Model {
             );
             grid.model_for_entry <+ requested_entry;
         }
-        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let style = entry::Style::from_theme(&network, &style_frp);
-        frp::extend! { network
-            params <- style.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
-            grid.set_entries_params <+ params;
-        }
         Self { display_object, grid, entries, network, mask, show_ellipsis, background }
     }
 
@@ -223,16 +218,19 @@ impl Model {
         let background_x = background_x.min(size.x);
         let background_size = Vector2::new(background_x, background_height);
 
+        self.set_size(background_size);
         self.background.set_size(background_size);
         self.background.set_corner_radius(background_size.y / 2.0);
+        let y = background_height;
         self.background
-            .set_y(-background_height / 2.0 - content_size.y / 2.0 - background_y_offset);
+            .set_y(-background_height / 2.0 - content_size.y / 2.0 - background_y_offset + y);
         // Note that the position of the grid, is also offset by `background_padding_x`, but this
         // happens in the FRP network calling this function, as this layout change is animated.
 
         self.mask.set_size(size);
-        let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
+        let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0 + y);
         self.mask.set_xy(grid_view_center);
+        self.grid.set_y(y);
         let offset = self.offset(content_size, size);
         // Additional padding is added to the viewport width to avoid rare glitches when the last
         // entry is cropped because it is placed right on the border of the viewport. Even 1px seems
@@ -353,6 +351,10 @@ impl Model {
             let end_of_overwritten_entries = starting_from + new_entries.len();
             borrowed.truncate(end_of_overwritten_entries);
             let len = borrowed.len();
+            if starting_from > len {
+                warn!("Invalid replacement range: {}..{}", starting_from, len);
+            }
+            let starting_from = starting_from.min(len);
             let count_to_overwrite = len.saturating_sub(starting_from);
             let range_to_overwrite = starting_from..len;
             borrowed[range_to_overwrite].clone_from_slice(&new_entries[..count_to_overwrite]);
@@ -370,7 +372,29 @@ impl Model {
     /// A newly added breadcrumb will be placed after the currently selected one. All inactive
     /// (greyed out) breadcrumbs will be removed.
     pub fn push(&self, breadcrumb: &Breadcrumb) {
-        self.set_entries(&[breadcrumb.clone_ref()], self.entries.borrow().len());
+        let entry_count = self.entries.borrow().len();
+        self.set_entries(&[breadcrumb.clone_ref()], entry_count);
+    }
+
+    /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
+    pub fn push_back(&self, breadcrumb: &Breadcrumb) {
+        let entry_count = self.entries.borrow().len();
+        self.set_entries(&[breadcrumb.clone_ref()], entry_count);
+    }
+
+    /// Remove the last `n` breadcrumbs.
+    fn pop(&self, n: usize, retain: usize) {
+        let mut borrowed = self.entries.borrow_mut();
+        let len = borrowed.len();
+        let new_len = len.saturating_sub(n).max(retain);
+        borrowed.truncate(new_len);
+        drop(borrowed);
+        let new_col_count = self.grid_columns();
+        self.grid.resize_grid(1, new_col_count);
+        self.grid.request_model_for_visible_entries();
+        if let Some(last_entry) = self.column_of_the_last_entry() {
+            self.grid.select_entry(Some((0, last_entry)));
+        }
     }
 
     /// Move the selection to the previous breadcrumb. Stops at the first one. There is always at
@@ -412,7 +436,7 @@ impl Model {
 pub(crate) type Icon = Rc<icon::Id>;
 
 /// A single breadcrumb.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, PartialEq)]
 pub struct Breadcrumb {
     text: ImString,
     icon: Option<Icon>,
@@ -478,6 +502,8 @@ ensogl_core::define_endpoints_2! {
         select(BreadcrumbId),
         /// Add a new breadcrumb after the currently selected one.
         push(Breadcrumb),
+        /// Add a new breadcrumb at the end of the list.
+        push_back(Breadcrumb),
         /// Set the displayed breadcrumbs starting from the specific index.
         set_entries_from((Vec<Breadcrumb>, BreadcrumbId)),
         /// Set the displayed breadcrumbs.
@@ -496,10 +522,29 @@ ensogl_core::define_endpoints_2! {
         move_up(),
         /// Move the selection to the next (lower-level) breadcrumb in the list.
         move_down(),
+        /// Remove the last breadcrumb from the list.
+        pop(),
+        /// Remove the last `n` breadcrumbs from the list.
+        pop_multiple(usize),
+        /// Remove the last `n` breadcrumbs from the list, but only up to the first `m` breadcrumbs.
+        pop_multiple_but_retain((usize,usize)),
+
+        // == Theming API ==
+
+        /// Set the color of the text.
+        set_text_selected_color(color::Rgba),
+        /// Set the color of the text for greyed out breadcrumbs.
+        set_text_greyed_out_color(color::Rgba),
+        /// Set the color of the separator icon.
+        set_background_color(color::Rgba),
+        /// Set the color of the background.
+        set_separator_color(color::Rgba),
     }
     Output {
         /// Currently selected breadcrumb.
-        selected(BreadcrumbId)
+        selected(BreadcrumbId),
+        /// List of displayed breadcrumbs.
+        entries(Vec<Breadcrumb>)
     }
 }
 
@@ -529,7 +574,6 @@ impl Breadcrumbs {
         let background_padding_x = style.get_number(theme::background_padding_x);
         let background_y_offset = style.get_number(theme::background_y_offset);
         let background_height = style.get_number(theme::background_height);
-        let background_color = style.get_color(theme::background_color);
         let scroll_anim = Animation::new(network);
         frp::extend! { network
             init <- source_();
@@ -538,11 +582,16 @@ impl Breadcrumbs {
             eval selected_grid_col(((_row, col)) model.grey_out(Some(col + 1)));
             eval_ input.clear(model.clear());
             selected <- selected_grid_col.map(|(_, col)| col / 2);
-            eval input.push((b) model.push(b));
+            entry_pushed <- input.push.map(f!((b) model.push(b))).constant(());
+            entry_pushed_back <- input.push_back.map(f!((b) model.push_back(b))).constant(());
+            entry_poped <- input.pop.map(f_!(model.pop(1, 0))).constant(());
+            entries_poped <- input.pop_multiple.map(f!((n) model.pop(*n, 0))).constant(());
+            entries_poped_with_retain <- input.pop_multiple_but_retain.map(f!(((n, m)) model.pop(*n, *m))).constant(());
+            entries_poped <- any3(&entry_poped, &entries_poped, &entries_poped_with_retain);
 
             set_entries_from_zero <- input.set_entries.map(|entries| (entries.clone(), 0));
             set_entries_from <- any(set_entries_from_zero, input.set_entries_from);
-            eval set_entries_from(((entries, from)) model.set_entries(entries, *from));
+            entries_set <- set_entries_from.map(f!(((entries, from)) model.set_entries(entries, *from)));
             eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
@@ -564,9 +613,36 @@ impl Breadcrumbs {
             eval_ input.move_down(model.move_down());
             entries_height <- all(&entries_height, &init)._0();
             eval entries_height((height) model.update_entries_height(*height));
-            background_color <- all(&background_color, &init)._0();
+            background_color <- all(&frp.set_background_color, &init)._0();
             eval background_color ((color) background.set_color(*color););
+            entried_update <- any5(&init, &entry_pushed, &entry_pushed_back, &entries_poped, &entries_set);
+            out.entries <+ entried_update.map(f_!(model.entries.as_ref().borrow().clone())).on_change();
         }
+
+        //== Entry Style ==
+
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let style = entry::Style::from_theme(network, &style_frp);
+
+        frp::extend! { network
+            style_params <- all4(
+                &style,
+                &frp.set_text_selected_color,
+                &frp.set_text_greyed_out_color,
+                &frp.set_separator_color
+            );
+            params <- style_params.map(
+                |(style, selected_color, greyed_out_color, separator_color)|
+                entry::Params {
+                    style: style.clone(),
+                    greyed_out_start: None,
+                    selected_color: *selected_color,
+                    greyed_out_color: *greyed_out_color,
+                    separator_color: *separator_color,
+                });
+            grid.set_entries_params <+ params;
+        }
+
         init.emit(());
 
         let widget = Widget::new(app, frp, model);
@@ -600,5 +676,74 @@ impl ensogl_core::application::View for Breadcrumbs {
 impl FrpNetworkProvider for Breadcrumbs {
     fn network(&self) -> &frp::Network {
         self.widget.frp().network()
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ensogl_core::application::test_utils;
+
+    #[test]
+    fn test_breadcrumb_stack_operations() {
+        let (_app, breadcrumbs) = test_utils::init_component_for_test::<Breadcrumbs>();
+
+        let breadcrumb_1 = Breadcrumb::new_without_icon("1");
+        let breadcrumb_2 = Breadcrumb::new_without_icon("2");
+        let breadcrumb_3 = Breadcrumb::new_without_icon("3");
+
+        breadcrumbs.push(breadcrumb_1.clone());
+        assert_eq!(breadcrumbs.entries.value(), vec![breadcrumb_1.clone()]);
+        breadcrumbs.push(breadcrumb_2.clone());
+        assert_eq!(breadcrumbs.entries.value(), vec![breadcrumb_1.clone(), breadcrumb_2.clone()]);
+        breadcrumbs.push(breadcrumb_2.clone());
+        assert_eq!(breadcrumbs.entries.value(), vec![
+            breadcrumb_1.clone(),
+            breadcrumb_2.clone(),
+            breadcrumb_2.clone()
+        ]);
+        breadcrumbs.pop();
+        assert_eq!(breadcrumbs.entries.value(), vec![breadcrumb_1.clone(), breadcrumb_2.clone()]);
+        breadcrumbs.pop();
+        assert_eq!(breadcrumbs.entries.value(), vec![breadcrumb_1.clone()]);
+        breadcrumbs.pop();
+        assert_eq!(breadcrumbs.entries.value(), vec![]);
+        breadcrumbs.pop();
+        assert_eq!(breadcrumbs.entries.value(), vec![]);
+
+        breadcrumbs.push_back(breadcrumb_1.clone());
+        breadcrumbs.push_back(breadcrumb_1.clone());
+        breadcrumbs.push_back(breadcrumb_2.clone());
+        breadcrumbs.push_back(breadcrumb_2.clone());
+        breadcrumbs.push_back(breadcrumb_3.clone());
+        breadcrumbs.push_back(breadcrumb_3.clone());
+        assert_eq!(breadcrumbs.entries.value(), vec![
+            breadcrumb_1.clone(),
+            breadcrumb_1.clone(),
+            breadcrumb_2.clone(),
+            breadcrumb_2.clone(),
+            breadcrumb_3.clone(),
+            breadcrumb_3.clone()
+        ]);
+        breadcrumbs.pop_multiple(2);
+        assert_eq!(breadcrumbs.entries.value(), vec![
+            breadcrumb_1.clone(),
+            breadcrumb_1.clone(),
+            breadcrumb_2.clone(),
+            breadcrumb_2.clone()
+        ]);
+        breadcrumbs.pop_multiple(3);
+        assert_eq!(breadcrumbs.entries.value(), vec![breadcrumb_1.clone()]);
+        breadcrumbs.pop_multiple(1);
+        assert_eq!(breadcrumbs.entries.value(), vec![]);
+        breadcrumbs.pop_multiple(10);
+        assert_eq!(breadcrumbs.entries.value(), vec![]);
+
+        // Avoids clippy warnings about the last `clone` used in the above code,
+        // which might be in some arbitrary location.
+        drop(breadcrumb_1);
+        drop(breadcrumb_2);
+        drop(breadcrumb_3);
     }
 }

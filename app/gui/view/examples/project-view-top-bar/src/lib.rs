@@ -41,7 +41,6 @@ fn init(app: &Application) {
 
     world.add_child(&top_bar);
 
-    top_bar.breadcrumbs.debug_push_breadcrumb(None);
     top_bar.project_name_with_environment_selector.selector.set_available_execution_environments(
         execution_environment_selector::make_dummy_execution_environments(),
     );

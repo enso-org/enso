@@ -27,11 +27,15 @@ export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    private readonly projectManager = projectManager.ProjectManager.default()
+    private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
-    constructor(projectStartupInfo: backend.ProjectStartupInfo | null) {
+    constructor(
+        projectManagerUrl: string | null,
+        projectStartupInfo: backend.ProjectStartupInfo | null
+    ) {
         super()
+        this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
         if (projectStartupInfo?.backendType === backend.BackendType.local) {
             LocalBackend.currentlyOpenProjects.set(projectStartupInfo.project.projectId, {
                 projectName: projectManager.ProjectName(projectStartupInfo.project.name),

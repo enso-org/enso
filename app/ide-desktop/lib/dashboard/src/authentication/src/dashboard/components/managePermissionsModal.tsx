@@ -232,9 +232,6 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                 className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
             >
                 <div
-                    ref={element => {
-                        element?.focus()
-                    }}
                     tabIndex={-1}
                     style={
                         position != null

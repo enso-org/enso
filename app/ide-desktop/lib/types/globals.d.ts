@@ -77,9 +77,10 @@ declare global {
     namespace NodeJS {
         /** Environment variables. */
         interface ProcessEnv {
+            // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
-            APPLEID: string
-            APPLEIDPASS: string
+            APPLEID?: string
+            APPLEIDPASS?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
