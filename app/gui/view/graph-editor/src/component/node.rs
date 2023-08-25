@@ -69,8 +69,9 @@ pub const COMMENT_MARGIN: f32 = 10.0;
 
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y: f32 = -20.0;
-const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, VISUALIZATION_OFFSET_Y);
+/// Size of the gap between the lower edge of the node and the top of the visualization.
+const VISUALIZATION_OFFSET_Y: f32 = 25.0;
+const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, -VISUALIZATION_OFFSET_Y);
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;

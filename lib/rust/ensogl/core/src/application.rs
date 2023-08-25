@@ -154,6 +154,17 @@ pub mod test_utils {
             scene.dom.root.override_shape(TEST_SCREEN_SHAPE);
         }
     }
+
+    /// Create a new application and a view for testing.
+    pub fn init_component_for_test<T>() -> (Application, T)
+    where T: View {
+        let app = Application::new("root");
+        app.set_screen_size_for_tests();
+        let view = View::new(&app);
+        app.display.add_child(&view);
+        crate::animation::test_utils::next_frame();
+        (app, view)
+    }
 }
 
 // =============
