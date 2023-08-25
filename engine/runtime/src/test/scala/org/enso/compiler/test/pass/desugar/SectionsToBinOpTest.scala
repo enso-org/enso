@@ -56,26 +56,20 @@ class SectionsToBinOpTest extends CompilerTest {
           |(1 +)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[IR.Application.Prefix]
       ir.location shouldBe defined
 
-      val irLam = ir.asInstanceOf[IR.Function.Lambda]
-      irLam.arguments.length shouldEqual 1
+      val irApp = ir.asInstanceOf[IR.Application.Prefix]
+      irApp.arguments.length shouldEqual 1
+      irApp.arguments.head shouldBe an[IR.CallArgument.Specified]
 
-      val lamArgName =
-        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+      val irAppArgument =
+        irApp.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      irAppArgument.value shouldBe an[IR.Literal.Number]
 
-      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
-      lamBody.arguments.length shouldEqual 2
-      val lamBodyFirstArg =
-        lamBody
-          .arguments(1)
-          .asInstanceOf[IR.CallArgument.Specified]
-          .value
-          .asInstanceOf[IR.Name.Literal]
-
-      lamBodyFirstArg.name shouldEqual lamArgName.name
-      lamBodyFirstArg.getId should not equal lamArgName.getId
+      irApp.function shouldBe an[IR.Name.Literal]
+      val irAppFunction = irApp.function.asInstanceOf[IR.Name.Literal]
+      irAppFunction.name shouldEqual "+"
     }
 
     "work for sides sections" in {
@@ -87,8 +81,7 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
-      // TODO[DB] Section.Sides location is not parsed
-      //ir.location shouldBe defined
+      ir.location shouldBe defined
 
       val leftLam = ir.asInstanceOf[IR.Function.Lambda]
       leftLam.arguments.length shouldEqual 1
@@ -160,14 +153,12 @@ class SectionsToBinOpTest extends CompilerTest {
           .asInstanceOf[IR.Function.Lambda]
 
       ir.body
-        .asInstanceOf[IR.Function.Lambda]
-        .body shouldBe an[IR.Application.Prefix]
+        .asInstanceOf[IR.Application.Prefix]
+        .function shouldBe an[IR.Name.Literal]
       ir.body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
         .asInstanceOf[IR.Application.Prefix]
         .arguments
-        .length shouldEqual 2
+        .length shouldEqual 1
     }
 
     "flip the arguments when a right section's argument is a blank" in {

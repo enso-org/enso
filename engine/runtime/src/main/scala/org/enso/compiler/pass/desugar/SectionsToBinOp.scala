@@ -88,8 +88,7 @@ case object SectionsToBinOp extends IRPass {
     * @param section the section to desugar
     * @return the result of desugaring `section`
     */
-  //noinspection DuplicatedCode
-  def desugarSections(
+  private def desugarSections(
     section: IR.Application.Operator.Section,
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
@@ -139,21 +138,16 @@ case object SectionsToBinOp extends IRPass {
           )
 
         } else {
-          val opCall = IR.Application.Prefix(
+          IR.Application.Prefix(
             function             = op,
-            arguments            = List(arg, rightCallArg),
+            arguments            = List(arg),
             hasDefaultsSuspended = false,
-            location             = None,
+            location             = loc,
             passData,
             diagnostics
           )
-
-          IR.Function.Lambda(
-            List(rightDefArg),
-            opCall,
-            loc
-          )
         }
+
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =

@@ -877,13 +877,15 @@ class RuntimeServerTest
 
     val metadata = new Metadata
     val id_x_1   = metadata.addItem(48, 5, "aa")
+    val id_x_2   = metadata.addItem(64, 7, "ab")
 
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    x_1 = "3" +
-        |    x_1
+        |    x_1 = "4" +
+        |    x_2 = x_1 "2"
+        |    x_2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -919,7 +921,7 @@ class RuntimeServerTest
       "Standard.Base.Data.Text.Text",
       "+"
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
@@ -931,6 +933,12 @@ class RuntimeServerTest
           None,
           Some(Api.FunctionSchema(textPlusMethodPointer, Vector(1)))
         )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.TEXT,
+        Api.MethodCall(textPlusMethodPointer)
       ),
       context.executionComplete(contextId)
     )
