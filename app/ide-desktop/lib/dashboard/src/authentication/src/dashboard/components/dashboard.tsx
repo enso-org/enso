@@ -24,7 +24,6 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
-import * as projectIcon from './projectIcon'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import DriveView from './driveView'
@@ -69,8 +68,11 @@ export default function Dashboard(props: DashboardProps) {
     )
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
+    const [openProjectAbortController, setOpenProjectAbortController] =
+        React.useState<AbortController | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -137,49 +139,22 @@ export default function Dashboard(props: DashboardProps) {
                             logger
                         )
                         void (async () => {
-                            const projectId = savedProjectStartupInfo.project.projectId
-                            const projectName = savedProjectStartupInfo.project.packageName
-                            let project = await remoteBackend.getProjectDetails(
-                                projectId,
-                                projectName
+                            const abortController = new AbortController()
+                            setOpenProjectAbortController(abortController)
+                            await remoteBackendModule.waitUntilProjectIsReady(
+                                remoteBackend,
+                                savedProjectStartupInfo.projectAsset,
+                                abortController
                             )
-                            if (
-                                project.state.type !== backendModule.ProjectState.openInProgress &&
-                                project.state.type !== backendModule.ProjectState.opened
-                            ) {
-                                await remoteBackend.openProject(projectId, null, projectName)
-                            }
-                            let nextCheckTimestamp = 0
-                            while (project.state.type !== backendModule.ProjectState.opened) {
-                                await new Promise<void>(resolve => {
-                                    const delayMs = nextCheckTimestamp - Number(new Date())
-                                    setTimeout(resolve, Math.max(0, delayMs))
-                                })
-                                nextCheckTimestamp =
-                                    Number(new Date()) + projectIcon.CHECK_STATUS_INTERVAL_MS
-                                project = await remoteBackend.getProjectDetails(
-                                    projectId,
-                                    projectName
+                            if (!abortController.signal.aborted) {
+                                const project = await remoteBackend.getProjectDetails(
+                                    savedProjectStartupInfo.projectAsset.id,
+                                    savedProjectStartupInfo.projectAsset.title
                                 )
-                            }
-                            nextCheckTimestamp = 0
-                            while (true) {
-                                try {
-                                    await new Promise<void>(resolve => {
-                                        const delayMs = nextCheckTimestamp - Number(new Date())
-                                        setTimeout(resolve, Math.max(0, delayMs))
-                                    })
-                                    nextCheckTimestamp =
-                                        Number(new Date()) + projectIcon.CHECK_RESOURCES_INTERVAL_MS
-                                    await remoteBackend.checkResources(projectId, projectName)
-                                    break
-                                } catch {
-                                    // Ignored.
+                                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                if (page === pageSwitcher.Page.editor) {
+                                    setPage(page)
                                 }
-                            }
-                            setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                            if (page === pageSwitcher.Page.editor) {
-                                setPage(page)
                             }
                         })()
                     }
@@ -191,6 +166,20 @@ export default function Dashboard(props: DashboardProps) {
         // This MUST only run when the component is mounted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    hooks.useEventHandler(assetEvents, event => {
+        switch (event.type) {
+            case assetEventModule.AssetEventType.openProject: {
+                openProjectAbortController?.abort()
+                setOpenProjectAbortController(null)
+                break
+            }
+            default: {
+                // Ignored.
+                break
+            }
+        }
+    })
 
     React.useEffect(() => {
         if (initialized) {
@@ -389,6 +378,8 @@ export default function Dashboard(props: DashboardProps) {
                             queuedAssetEvents={queuedAssetEvents}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
+                            assetEvents={assetEvents}
+                            dispatchAssetEvent={dispatchAssetEvent}
                             query={query}
                             doCreateProject={doCreateProject}
                             doOpenEditor={openEditor}

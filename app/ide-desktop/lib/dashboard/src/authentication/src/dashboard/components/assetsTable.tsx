@@ -113,9 +113,9 @@ export interface AssetsTableState {
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
-    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -149,10 +149,10 @@ export interface AssetsTableProps {
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
     queuedAssetEvents: assetEventModule.AssetEvent[]
-    assetEvents: assetEventModule.AssetEvent[]
-    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     doOpenIde: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseIde: () => void
     loadingProjectManagerDidFail: boolean
@@ -168,10 +168,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         query,
         initialProjectName,
         queuedAssetEvents: rawQueuedAssetEvents,
-        assetEvents,
-        dispatchAssetEvent,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
         loadingProjectManagerDidFail,
@@ -193,9 +193,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
-    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
-        []
-    )
+    const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
     const nodeMap = React.useMemo(
@@ -291,12 +289,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
-            if (queuedAssetEvents.length !== 0) {
-                for (const event of queuedAssetEvents) {
-                    dispatchAssetEvent(event)
+            setQueuedAssetEvents(oldQueuedAssetEvents => {
+                if (oldQueuedAssetEvents.length !== 0) {
+                    window.setTimeout(() => {
+                        for (const event of oldQueuedAssetEvents) {
+                            dispatchAssetEvent(event)
+                        }
+                    }, 0)
                 }
-                setQueuedAssetEvents([])
-            }
+                return []
+            })
             if (!initialized) {
                 setInitialized(true)
                 if (initialProjectName != null) {
@@ -313,7 +315,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             initialProjectName,
             logger,
             nameOfProjectToImmediatelyOpen,
-            queuedAssetEvents,
             /* should never change */ setNameOfProjectToImmediatelyOpen,
             /* should never change */ dispatchAssetEvent,
         ]
