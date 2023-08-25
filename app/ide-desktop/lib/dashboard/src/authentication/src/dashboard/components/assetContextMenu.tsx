@@ -93,6 +93,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
                                 id: asset.id,
+                                shouldAutomaticallySwitchPage: true,
                             })
                         }}
                     />

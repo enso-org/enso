@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
@@ -32,13 +33,6 @@ import TheModal from './theModal'
 import TopBar from './topBar'
 
 // =================
-// === Constants ===
-// =================
-
-/** The `id` attribute of the loading spinner element. */
-const LOADER_ELEMENT_ID = 'loader'
-
-// =================
 // === Dashboard ===
 // =================
 
@@ -62,6 +56,7 @@ export default function Dashboard(props: DashboardProps) {
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [initialized, setInitialized] = React.useState(false)
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
@@ -69,10 +64,16 @@ export default function Dashboard(props: DashboardProps) {
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
+        []
+    )
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
+    const [openProjectAbortController, setOpenProjectAbortController] =
+        React.useState<AbortController | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -84,6 +85,10 @@ export default function Dashboard(props: DashboardProps) {
         backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
+        setInitialized(true)
+    }, [])
+
+    React.useEffect(() => {
         unsetModal()
         if (page === pageSwitcher.Page.editor) {
             document.body.style.cursor = 'none'
@@ -93,48 +98,104 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        let currentBackend = backend
+        if (
+            supportsLocalBackend &&
+            session.type !== authProvider.UserSessionType.offline &&
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
+                backendModule.BackendType.local
+        ) {
+            currentBackend = new localBackend.LocalBackend(
+                projectManagerUrl,
+                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
+            )
+            setBackend(currentBackend)
+        }
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
         if (savedProjectStartupInfo != null) {
-            setProjectStartupInfo(savedProjectStartupInfo)
-            if (page !== pageSwitcher.Page.editor) {
-                // A workaround to hide the spinner, when the previous project is being loaded in
-                // the background. This `MutationObserver` is disconnected when the loader is
-                // removed from the DOM.
-                const observer = new MutationObserver(mutations => {
-                    for (const mutation of mutations) {
-                        for (const node of Array.from(mutation.addedNodes)) {
-                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                document.body.style.cursor = 'auto'
-                                node.style.display = 'none'
+            if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
+                if (session.accessToken != null) {
+                    if (
+                        currentBackend.type === backendModule.BackendType.remote &&
+                        savedProjectStartupInfo.projectAsset.parentId ===
+                            backend.rootDirectoryId(session.organization)
+                    ) {
+                        // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
+                        setPage(pageSwitcher.Page.drive)
+                        setQueuedAssetEvents([
+                            {
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: savedProjectStartupInfo.project.projectId,
+                                shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
+                            },
+                        ])
+                    } else {
+                        setPage(pageSwitcher.Page.drive)
+                        const httpClient = new http.Client(
+                            new Headers([['Authorization', `Bearer ${session.accessToken}`]])
+                        )
+                        const remoteBackend = new remoteBackendModule.RemoteBackend(
+                            httpClient,
+                            logger
+                        )
+                        void (async () => {
+                            const abortController = new AbortController()
+                            setOpenProjectAbortController(abortController)
+                            await remoteBackendModule.waitUntilProjectIsReady(
+                                remoteBackend,
+                                savedProjectStartupInfo.projectAsset,
+                                abortController
+                            )
+                            if (!abortController.signal.aborted) {
+                                const project = await remoteBackend.getProjectDetails(
+                                    savedProjectStartupInfo.projectAsset.id,
+                                    savedProjectStartupInfo.projectAsset.title
+                                )
+                                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                if (page === pageSwitcher.Page.editor) {
+                                    setPage(page)
+                                }
                             }
-                        }
-                        for (const node of Array.from(mutation.removedNodes)) {
-                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                                document.body.style.cursor = 'auto'
-                                observer.disconnect()
-                            }
-                        }
+                        })()
                     }
-                })
-                observer.observe(document.body, { childList: true })
+                }
+            } else {
+                setProjectStartupInfo(savedProjectStartupInfo)
             }
         }
         // This MUST only run when the component is mounted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    hooks.useEventHandler(assetEvents, event => {
+        switch (event.type) {
+            case assetEventModule.AssetEventType.openProject: {
+                openProjectAbortController?.abort()
+                setOpenProjectAbortController(null)
+                break
+            }
+            default: {
+                // Ignored.
+                break
+            }
+        }
+    })
+
     React.useEffect(() => {
-        if (projectStartupInfo != null) {
-            localStorage.set(
-                localStorageModule.LocalStorageKey.projectStartupInfo,
-                projectStartupInfo
-            )
+        if (initialized) {
+            if (projectStartupInfo != null) {
+                localStorage.set(
+                    localStorageModule.LocalStorageKey.projectStartupInfo,
+                    projectStartupInfo
+                )
+            } else {
+                localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+            }
         }
-        return () => {
-            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
-        }
+        // `initialized` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
@@ -152,24 +213,6 @@ export default function Dashboard(props: DashboardProps) {
             document.removeEventListener('click', onClick)
         }
     }, [/* should never change */ unsetModal])
-
-    React.useEffect(() => {
-        if (
-            supportsLocalBackend &&
-            session.type !== authProvider.UserSessionType.offline &&
-            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
-                backendModule.BackendType.local
-        ) {
-            setBackend(
-                new localBackend.LocalBackend(
-                    projectManagerUrl,
-                    localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
-                )
-            )
-        }
-        // This hook MUST only run once, on mount.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
 
     React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
@@ -252,11 +295,14 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const openEditor = React.useCallback(
-        async (newProject: backendModule.ProjectAsset) => {
-            setPage(pageSwitcher.Page.editor)
+        async (newProject: backendModule.ProjectAsset, switchPage: boolean) => {
+            if (switchPage) {
+                setPage(pageSwitcher.Page.editor)
+            }
             if (projectStartupInfo?.project.projectId !== newProject.id) {
                 setProjectStartupInfo({
                     project: await backend.getProjectDetails(newProject.id, newProject.title),
+                    projectAsset: newProject,
                     backendType: backend.type,
                     accessToken: session.accessToken,
                 })
@@ -337,8 +383,11 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
+                            queuedAssetEvents={queuedAssetEvents}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
+                            assetEvents={assetEvents}
+                            dispatchAssetEvent={dispatchAssetEvent}
                             query={query}
                             doCreateProject={doCreateProject}
                             doOpenEditor={openEditor}
