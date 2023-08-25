@@ -3018,7 +3018,7 @@ fn init_remaining_graph_editor_frp(
 
     frp::extend! { network
         out.node_copied <+ inputs.copy_selected_node.map(f_!(model.nodes.last_selected())).unwrap();
-        out.request_paste_node <+ cursor.position.sample(&inputs.paste_node).map(|v| v.xy());
+        out.request_paste_node <+ cursor.scene_position.sample(&inputs.paste_node).map(|v| v.xy());
     }
 
 
