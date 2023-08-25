@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages setting up the logging service within the launcher.
   */
-object LauncherLogging extends LoggingSetupHelper {
+object LauncherLogging extends LoggingSetupHelper(global) {
 
   /** @inheritdoc */
   override val defaultLogLevel: Level = Level.WARN

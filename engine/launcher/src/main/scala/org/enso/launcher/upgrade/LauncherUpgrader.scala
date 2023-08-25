@@ -430,7 +430,7 @@ object LauncherUpgrader {
   ): Int = {
     val logger = LoggerFactory.getLogger(
       classOf[LauncherUpgrader]
-    ) //.enter("auto-upgrade")
+    )
     val globalCLIOptions = cachedCLIOptions.getOrElse(
       throw new IllegalStateException(
         "Upgrade requested but application was not initialized properly."

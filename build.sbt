@@ -763,9 +763,9 @@ lazy val filewatcher = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"     % "commons-io"        % commonsIoVersion,
-      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+      "io.methvin"        % "directory-watcher" % directoryWatcherVersion,
+      "commons-io"        % "commons-io"        % commonsIoVersion,
+      "org.scalatest"    %% "scalatest"         % scalatestVersion % Test
     ) ++ logbackPkg.map(_ % Test)
   )
   .dependsOn(testkit % Test)

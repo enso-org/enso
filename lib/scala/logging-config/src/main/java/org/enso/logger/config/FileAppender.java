@@ -110,6 +110,16 @@ public class FileAppender extends Appender {
     else return defaultValue;
   }
 
+  @Override
+  public String toString() {
+    return "file-appender: pattern - "
+        + pattern
+        + ", immediate-flush - "
+        + immediateFlush
+        + ", rolling-policy - "
+        + (rollingPolicy == null ? "no" : rollingPolicy.toString());
+  }
+
   // Config keys
   private static final String immediateFlushKey = "immediate-flush";
   private static final String appendKey = "append";

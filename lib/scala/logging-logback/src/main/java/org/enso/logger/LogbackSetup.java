@@ -179,8 +179,8 @@ public class LogbackSetup extends LoggerSetup {
                 fileAppender.setFile(fullFilePath);
             }
 
-            fileAppender.setAppend(true);
-            fileAppender.setImmediateFlush(true);
+            fileAppender.setAppend(appenderConfig.isAppend());
+            fileAppender.setImmediateFlush(appenderConfig.isImmediateFlush());
             fileAppender.setEncoder(encoder);
 
 

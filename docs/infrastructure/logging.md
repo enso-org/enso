@@ -29,6 +29,39 @@ components.
 
 <!-- /MarkdownTOC -->
 
+## Configuration
+
+Each of the main components can customize logging format and output via section in `application.conf` configuration file.
+The configuration is based on the SLF4J style of configuration and formatting but no SLF4J-specific configuration is present in the implementation.
+During component's setup, its `application.conf` file is read, parsed and verified and available as part of the 
+class hierarchy defined in `org.enso.logger.config` package.
+Class `org.enso.logger.config.LoggingServiceConfig` encapsulates the full information represented by the `logging-service` field of the configuration file.
+
+### Appenders
+
+Configuration can defined numerous logging "appenders" (or "handlers" in `java.util.logging` terminology) which specify the final format of the logging events and where to store/forward/display them.
+Currently supported are
+- console appender - the most basic appender that prints log events to stdout
+- file appender - appender that writes log events to a file, with optional rolling file policy
+- socket appender - appender that forwards log events to some logging server
+- sentry appender - appender that forwards log events to a sentry.io service
+
+### Format
+
+Appenders that store/display log events can specify the format of the log message via `pattern` field e.g.
+```typescript
+
+  appenders = [
+    {
+      name = "console"
+      pattern = "[%level{lowercase=true}] [%d{yyyy-MM-dd'T'HH:mm:ssXXX}] [%logger] %msg%n%nopex"
+    }
+    ...
+  ]
+```
+
+The pattern follows the classic's [PatternLayout](https://logback.qos.ch/manual/layouts.html#ClassicPatternLayout) pattern.
+
 ## Protocol
 
 The service relies on a WebSocket connection to a specified endpoint that

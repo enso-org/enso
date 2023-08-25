@@ -12,7 +12,7 @@ import org.enso.logging.LoggingSetupHelper
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** A helper for setting up the logging service in the Project Manager. */
-object Logging extends LoggingSetupHelper {
+object Logging extends LoggingSetupHelper(global) {
 
   /** @inheritdoc */
   override val defaultLogLevel: Level = Level.INFO
