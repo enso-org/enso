@@ -774,19 +774,26 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const doDeleteAll = () => {
-                            setModal(
-                                <ConfirmDeleteModal
-                                    description={`${innerSelectedKeys.size} selected ${pluralized}`}
-                                    doDelete={() => {
-                                        innerSetSelectedKeys(new Set())
-                                        dispatchAssetEvent({
-                                            type: assetEventModule.AssetEventType.deleteMultiple,
-                                            ids: innerSelectedKeys,
-                                        })
-                                        return Promise.resolve()
-                                    }}
-                                />
-                            )
+                            if (backend.type === backendModule.BackendType.remote) {
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.deleteMultiple,
+                                    ids: innerSelectedKeys,
+                                })
+                            } else {
+                                setModal(
+                                    <ConfirmDeleteModal
+                                        description={`${innerSelectedKeys.size} selected ${pluralized}`}
+                                        doDelete={() => {
+                                            innerSetSelectedKeys(new Set())
+                                            dispatchAssetEvent({
+                                                type: assetEventModule.AssetEventType
+                                                    .deleteMultiple,
+                                                ids: innerSelectedKeys,
+                                            })
+                                        }}
+                                    />
+                                )
+                            }
                         }
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax

@@ -188,12 +188,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.moveToTrash}
                     doAction={() => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${asset.type} '${asset.title}'`}
-                                doDelete={doDelete}
-                            />
-                        )
+                        if (backend.type === backendModule.BackendType.remote) {
+                            void doDelete()
+                        } else {
+                            setModal(
+                                <ConfirmDeleteModal
+                                    description={`the ${asset.type} '${asset.title}'`}
+                                    doDelete={doDelete}
+                                />
+                            )
+                        }
                     }}
                 />
                 <ContextMenuSeparator hidden={hidden} />
