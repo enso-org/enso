@@ -103,7 +103,8 @@ type Fitted_Model
         Fitted_Model.Logarithmic a b _ -> a.to_text + " * X.ln + " + b.to_text
         Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
-    ## Use the model to predict a value.
+    ## GROUP Calculations
+       Use the model to predict a value.
     predict : Number -> Number
     predict self x = case self of
         Fitted_Model.Linear slope intercept _ -> slope * x + intercept
@@ -112,13 +113,13 @@ type Fitted_Model
         Fitted_Model.Power a b _ -> a * (x ^ b)
         _ -> Error.throw (Illegal_Argument.Error "Unsupported model.")
 
-## PRIVATE
-
-   An error thrown when the linear regression cannot be computed.
-
-   Arguments:
-   - message: The error message.
+## An error thrown when the linear regression cannot be computed.
 type Fit_Error
+    ## PRIVATE
+       An error thrown when the linear regression cannot be computed.
+
+       Arguments:
+       - message: The error message.
     Error message
 
     ## PRIVATE

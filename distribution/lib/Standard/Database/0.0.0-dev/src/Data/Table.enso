@@ -102,7 +102,8 @@ type Table
         True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
         False -> self.to_sql.to_js_object
 
-    ## Returns the column with the given name.
+    ## GROUP Standard.Base.Selections
+       Returns the column with the given name.
 
        Arguments:
        - selector: The name or index of the column to get.
@@ -126,23 +127,28 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
-    ## Gets the first column.
+    ## GROUP Standard.Base.Selections
+       Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## Gets the second column
+    ## GROUP Standard.Base.Selections
+       Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## Gets the last column
+    ## GROUP Standard.Base.Selections
+       Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## Returns the number of columns in the table.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
 
-    ## ICON select_column
+    ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
@@ -198,6 +204,7 @@ type Table
         self.updated_columns new_columns
 
     ## ALIAS drop_columns
+       GROUP Standard.Base.Selections
        Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
@@ -249,8 +256,8 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## ALIAS select_na
-       ALIAS select_missing_columns
+    ## ALIAS select_missing_columns, select_na
+       GROUP Standard.Base.Selections
 
        Select columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -275,8 +282,8 @@ type Table
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 
-    ## ALIAS drop_na
-       ALIAS drop_missing_columns
+    ## ALIAS drop_missing_columns, drop_na
+       GROUP Standard.Base.Selections
 
        Remove columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -301,7 +308,8 @@ type Table
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 
-    ## Returns a new table with the specified selection of columns moved to
+    ## GROUP Standard.Base.Selections
+       Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
        Arguments:
@@ -354,7 +362,8 @@ type Table
         new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
         self.updated_columns new_columns
 
-    ## Returns a new table with the columns sorted by name according to the
+    ## GROUP Standard.Base.Selections
+       Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
        case-sensitive ascending order based on the normalized Unicode ordering.
 
@@ -381,7 +390,8 @@ type Table
         new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
         self.updated_columns new_columns
 
-    ## Returns a new table with the columns renamed based on either a mapping
+    ## GROUP Standard.Base.Metadata
+       Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
 
        Arguments:
@@ -448,7 +458,8 @@ type Table
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
-    ## Returns a new table with the columns renamed based on entries in the
+    ## GROUP Standard.Base.Metadata
+       Returns a new table with the columns renamed based on entries in the
        first row.
 
        Arguments:
@@ -486,7 +497,8 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error.Error "Column "+column.name)
 
-    ## ALIAS Filter Rows
+    ## ALIAS filter rows
+       GROUP Standard.Base.Selections
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -555,7 +567,8 @@ type Table
            table_at = self.at column
            self.filter table_at filter on_problems
 
-    ## ALIAS Filter Rows
+    ## ALIAS filter rows
+       GROUP Standard.Base.Selections
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -591,7 +604,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## Creates a new Table with the specified range of rows from the input
+    ## GROUP Standard.Base.Selections
+       Creates a new Table with the specified range of rows from the input
        Table.
 
        Arguments:
@@ -603,7 +617,8 @@ type Table
         msg = "`Table.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Creates a new Table from the input with the specified range of rows
+    ## GROUP Standard.Base.Selections
+       Creates a new Table from the input with the specified range of rows
        removed.
 
 
@@ -616,7 +631,8 @@ type Table
         msg = "`Table.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## ALIAS rank, record id, add index column
+    ## ALIAS add index column, rank, record id
+       GROUP Standard.Base.Values
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -688,6 +704,7 @@ type Table
 
 
     ## UNSTABLE
+       GROUP Standard.Base.Selections
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
@@ -722,7 +739,8 @@ type Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## ALIAS Add Column, Update Column, New Column
+    ## ALIAS add column, new column, update column
+       GROUP Standard.Base.Values
        Sets the column value at the given name.
 
        Arguments:
@@ -844,7 +862,8 @@ type Table
         Array_Proxy.new self.internal_columns.length i->
             self.make_column (self.internal_columns.at i)
 
-    ## Returns the vector of column names contained in this table.
+    ## GROUP Standard.Base.Metadata
+       Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
@@ -862,17 +881,20 @@ type Table
     rows self max_rows=1000 =
         self.read max_rows=max_rows . rows
 
-    ## Returns the first row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
         self.read max_rows=1 . rows . first
 
-    ## Returns the second row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
         self.read max_rows=2 . rows . second
 
-    ## Returns the last row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the last row of the table.
 
        In the database backend, this function has to scan through all the
        results of the query.
@@ -885,6 +907,7 @@ type Table
             table.rows.first
 
     ## ALIAS sort
+       GROUP Standard.Base.Selections
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -993,7 +1016,8 @@ type Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## Returns the distinct set of rows within the specified columns from the
+    ## GROUP Standard.Base.Selections
+       Returns the distinct set of rows within the specified columns from the
        input table.
 
        When multiple rows have the same values within the specified columns, the
@@ -1034,7 +1058,8 @@ type Table
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
 
-    ## Joins two tables according to the specified join conditions.
+    ## GROUP Standard.Base.Calculations
+       Joins two tables according to the specified join conditions.
 
        Arguments:
        - right: The table to join with.
@@ -1172,7 +1197,8 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS Cartesian Join
+    ## ALIAS cartesian join
+       GROUP Standard.Base.Calculations
        Joins tables by pairing every row of the left table with every row of the
        right table.
 
@@ -1224,7 +1250,8 @@ type Table
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
-    ## ALIAS Join By Row Position
+    ## ALIAS join by row position
+       GROUP Standard.Base.Calculations
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -1275,6 +1302,7 @@ type Table
         Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
 
     ## ALIAS append, concat
+       GROUP Standard.Base.Calculations
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -1430,6 +1458,7 @@ type Table
                     Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group by, summarize
+       GROUP Standard.Base.Calculations
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
@@ -1537,7 +1566,8 @@ type Table
                     if new_columns.is_empty then (Error.throw No_Output_Columns) else
                         self.updated_context_and_columns new_ctx new_columns subquery=True
 
-    ## Returns a new table with a chosen subset of columns left unchanged and
+    ## GROUP Standard.Base.Calculations
+       Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
 
@@ -1592,7 +1622,8 @@ type Table
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Returns a new table using a chosen field as the column header and then
+    ## GROUP Standard.Base.Calculations
+       Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
 
@@ -1652,7 +1683,8 @@ type Table
         msg = "Cross tab of database tables is not supported, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Parses columns within a Table to a specific value type.
+    ## GROUP Standard.Base.Conversions
+       Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
 
@@ -1709,7 +1741,8 @@ type Table
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
 
-    ## Splits a column of text into a set of new columns.
+    ## GROUP Standard.Base.Conversions
+       Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
        incrementing number after.
@@ -1731,7 +1764,8 @@ type Table
         _ = [column, delimiter, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
 
-    ## Splits a column of text into a set of new rows.
+    ## GROUP Standard.Base.Conversions
+       Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
        Arguments:
@@ -1744,7 +1778,8 @@ type Table
         _ = [column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
 
-    ## Tokenizes a column of text into a set of new columns using a regular
+    ## GROUP Standard.Base.Conversions
+       Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
@@ -1770,7 +1805,8 @@ type Table
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
-    ## Tokenizes a column of text into a set of new rows using a regular
+    ## GROUP Standard.Base.Conversions
+       Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
@@ -1790,7 +1826,8 @@ type Table
         _ = [column, pattern, case_sensitivity, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
-    ## Converts a Text column into new columns using a regular expression
+    ## GROUP Standard.Base.Conversions
+       Converts a Text column into new columns using a regular expression
        pattern.
 
        Each match becomes a row in the table.
@@ -1820,7 +1857,8 @@ type Table
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
-    ## Cast the selected columns to a specific type.
+    ## GROUP Standard.Base.Conversions
+       Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
        columns having the new types.
@@ -1878,8 +1916,8 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## ALIAS dropna
-       ALIAS drop_missing_rows
+    ## ALIAS drop_missing_rows, dropna
+       GROUP Standard.Base.Selections
        Remove rows which are all blank or containing blank values.
 
        Arguments:
@@ -1894,6 +1932,7 @@ type Table
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## ALIAS count
+       GROUP Standard.Base.Metadata
        Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
@@ -1910,7 +1949,8 @@ type Table
         table = self.connection.read_statement sql
         table.at column_name . at 0
 
-    ## Returns a materialized dataframe containing rows of this table.
+    ## GROUP Standard.Base.Input
+       Returns a materialized dataframe containing rows of this table.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -1938,7 +1978,8 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## Returns a Table describing this table's contents.
+    ## GROUP Standard.Base.Metadata
+       Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
        each column.
@@ -2051,7 +2092,8 @@ type Table
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 
-    ## This function writes the table into a file.
+    ## GROUP Standard.Base.Output
+       This function writes the table into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
 
@@ -2112,7 +2154,8 @@ type Table
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
 
-    ## ALIAS Fill Missing, if_nothing
+    ## ALIAS fill missing, if_nothing
+       GROUP Standard.Base.Values
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2134,7 +2177,8 @@ type Table
         transformer col = col.fill_nothing default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## ALIAS Fill Empty, if_empty
+    ## ALIAS fill empty, if_empty
+       GROUP Standard.Base.Values
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -2156,7 +2200,8 @@ type Table
         transformer col = col.fill_empty default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+    ## GROUP Standard.Base.Text
+       Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
 
@@ -2270,7 +2315,8 @@ check_db_table arg_name table =
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
                 True -> True
 
-## By default, join on the first column, unless it's a cross join, in which
+## PRIVATE
+   By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of

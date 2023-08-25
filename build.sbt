@@ -1230,6 +1230,7 @@ lazy val `runtime-language-epb` =
       truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
+    .dependsOn(`polyglot-api`)
 
 /** Runs gu (GraalVM updater) command with given `args`.
   * For example `runGu(Seq("install", "js"))`.
@@ -1404,7 +1405,6 @@ lazy val runtime = (project in file("engine/runtime"))
     Benchmark / parallelExecution := false
   )
   .dependsOn(`common-polyglot-core-utils`)
-  .dependsOn(`runtime-language-epb`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1532,6 +1532,7 @@ lazy val `runtime-with-instruments` =
     .dependsOn(`runtime-instrument-id-execution`)
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
+    .dependsOn(`runtime-language-epb`)
 
 /* runtime-with-polyglot
  * ~~~~~~~~~~~~~~~~~~~~~
@@ -1885,7 +1886,14 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     }
   )
   .settings(
-    bench := (Benchmark / run).toTask("").tag(Exclusive).value,
+    bench := Def
+      .task {
+        (Benchmark / run).toTask("").tag(Exclusive).value
+      }
+      .dependsOn(
+        buildEngineDistribution
+      )
+      .value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
@@ -2384,6 +2392,12 @@ buildEngineDistribution := {
     generateIndex       = true
   )
   log.info(s"Engine package created at $root")
+}
+
+// This makes the buildEngineDistribution task usable as a dependency
+// of other tasks.
+ThisBuild / buildEngineDistribution := {
+  buildEngineDistribution.result.value
 }
 
 lazy val buildEngineDistributionNoIndex =

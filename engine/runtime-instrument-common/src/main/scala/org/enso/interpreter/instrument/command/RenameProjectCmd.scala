@@ -4,7 +4,6 @@ import java.util.logging.Level
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
@@ -40,16 +39,23 @@ class RenameProjectCmd(
         Level.FINE,
         s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
       )
-      val projectModules = getProjectModules
+      val packageRepository =
+        ctx.executionService.getContext.getPackageRepository
+      val mainPackage = packageRepository.getMainProjectPackage
+        .getOrElse(throw new RenameProjectCmd.MainProjectPackageNotFound)
+      val projectModules =
+        packageRepository.getModulesForLibrary(mainPackage.libraryName)
+
+      val oldConfig = mainPackage.getConfig()
+      val newConfig = mainPackage
+        .reloadConfig()
+        .fold(
+          cause => throw new RenameProjectCmd.FailedToReloadConfig(cause),
+          identity
+        )
+
       projectModules.foreach { module =>
         module.setIndexed(false)
-        val newConfig = module.getPackage.reloadConfig()
-        if (newConfig.isFailure) {
-          logger.log(
-            Level.WARNING,
-            s"Failed to reload package's config: ${newConfig.failed.get.getMessage}"
-          )
-        }
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -76,11 +82,32 @@ class RenameProjectCmd(
         clearCache(stack)
       }
 
-      reply(Api.ProjectRenamed(request.namespace, request.newName))
+      reply(
+        Api.ProjectRenamed(
+          oldConfig.moduleName,
+          newConfig.moduleName,
+          newConfig.name
+        )
+      )
       logger.log(
         Level.INFO,
         s"Project renamed to ${request.namespace}.${request.newName}"
       )
+    } catch {
+      case ex: RenameProjectCmd.MainProjectPackageNotFound =>
+        logger.log(
+          Level.SEVERE,
+          "Main project package is not found.",
+          ex
+        )
+        reply(Api.ProjectRenameFailed(request.oldName, request.newName))
+      case ex: RenameProjectCmd.FailedToReloadConfig =>
+        logger.log(
+          Level.SEVERE,
+          "Failed to reload package config.",
+          ex
+        )
+        reply(Api.ProjectRenameFailed(request.oldName, request.newName))
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       logger.log(
@@ -133,13 +160,6 @@ class RenameProjectCmd(
     }
   }
 
-  private def getProjectModules(implicit ctx: RuntimeContext): Seq[Module] = {
-    val packageRepository = ctx.executionService.getContext.getPackageRepository
-    packageRepository.getMainProjectPackage
-      .map { pkg => packageRepository.getModulesForLibrary(pkg.libraryName) }
-      .getOrElse(List())
-  }
-
   private def clearCache(stack: Iterable[InstrumentFrame]): Unit = {
     stack.foreach(_.syncState.clearMethodPointersState())
     CacheInvalidation.run(
@@ -151,4 +171,13 @@ class RenameProjectCmd(
     )
   }
 
+}
+
+object RenameProjectCmd {
+
+  final private class MainProjectPackageNotFound
+      extends Exception("Main project package is not found.")
+
+  final private class FailedToReloadConfig(cause: Throwable)
+      extends Exception("Failed to reload config", cause)
 }

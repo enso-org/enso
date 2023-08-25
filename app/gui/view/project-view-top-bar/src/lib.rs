@@ -32,6 +32,8 @@ use project_name::ProjectName;
 
 pub mod project_name;
 
+pub use breadcrumbs::Breadcrumb;
+pub use breadcrumbs::Breadcrumbs;
 pub use breadcrumbs::LocalCall;
 
 
@@ -113,7 +115,7 @@ impl ProjectNameWithEnvironmentSelector {
 pub struct ProjectViewTopBar {
     #[display_object]
     root: display::object::Instance,
-    pub breadcrumbs: breadcrumbs::Breadcrumbs,
+    pub breadcrumbs: Breadcrumbs,
     pub project_name_with_environment_selector: ProjectNameWithEnvironmentSelector,
     network: frp::Network,
 }
@@ -122,14 +124,16 @@ impl ProjectViewTopBar {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new_named("ProjectViewTopBar");
-        let breadcrumbs = breadcrumbs::Breadcrumbs::new(app);
+        let breadcrumbs = Breadcrumbs::new(app);
         let project_name_with_environment_selector = ProjectNameWithEnvironmentSelector::new(app);
 
         root.add_child(&project_name_with_environment_selector);
         root.add_child(&breadcrumbs);
+        breadcrumbs.frp().set_size(Vector2::new(500.0, 32.0));
         root.use_auto_layout().set_children_alignment_center();
 
         app.display.default_scene.layers.panel.add(&root);
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.panel);
 
         let network = frp::Network::new("ProjectViewTopBar");
 
@@ -140,6 +144,7 @@ impl ProjectViewTopBar {
         let network = &self.network;
         let style_watch = StyleWatchFrp::new(&scene().style_sheet);
         let root = &self.root;
+        let breadcrumbs = &self.breadcrumbs;
 
         frp::extend! { network
             init <- source_();
@@ -152,6 +157,16 @@ impl ProjectViewTopBar {
             eval gap([root](g) { root.set_gap((*g, 0.0)); });
             eval padding_left([root](p) { root.set_padding_left(*p); });
             eval padding_top([root](p) { root.set_padding_top(*p); });
+
+            let breadcrumbs_background = style_watch.get_color(theme::breadcrumbs::background);
+            breadcrumbs.set_background_color <+ all(breadcrumbs_background, init)._0();
+            let breadcrumbs_text = style_watch.get_color(theme::breadcrumbs::entry::text::selected_color);
+            breadcrumbs.set_text_selected_color <+ all(breadcrumbs_text, init)._0();
+            let breadcrumbs_text_greyed_out_color = style_watch.get_color(theme::breadcrumbs::entry::text::greyed_out_color);
+            breadcrumbs.set_text_greyed_out_color <+ all(breadcrumbs_text_greyed_out_color, init)._0();
+            let breadcrumbs_separator_color = style_watch.get_color(theme::breadcrumbs::separator::color);
+            breadcrumbs.set_separator_color <+ all(breadcrumbs_separator_color, init)._0();
+
         }
         init.emit(());
         self

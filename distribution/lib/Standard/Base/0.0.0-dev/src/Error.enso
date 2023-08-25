@@ -4,7 +4,6 @@ import project.Data.Vector.Vector
 import project.Meta
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
-
 from project.Data.Boolean import Boolean, False, True
 from project.Function import const
 
@@ -67,7 +66,8 @@ type Error
     to_display_text : Text
     to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
-    ## Executes the provided handler on an error, or returns the value unchanged.
+    ## GROUP Errors
+       Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
        - error_type: The type of error to handle. Defaults to `Any` to handle
@@ -119,6 +119,7 @@ type Error
     map_error self f = self.catch Any (x -> Error.throw (f x))
 
     ## ADVANCED
+       GROUP Errors
 
        Returns the attached stack trace of the error.
 
@@ -128,7 +129,8 @@ type Error
     stack_trace self =
         Panic.get_attached_stack_trace self
 
-    ## Checks if `self` is an error.
+    ## GROUP Errors
+       Checks if `self` is an error.
 
        > Example
          Checking if the value 1 is an error.

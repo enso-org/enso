@@ -19,11 +19,11 @@ import * as assetsTable from './assetsTable'
 import * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
 import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
 import ManagePermissionsModal from './managePermissionsModal'
+import MenuEntry from './menuEntry'
 
 // ========================
 // === AssetContextMenu ===
@@ -85,7 +85,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
                 {asset.type === backendModule.AssetType.project && (
-                    <ContextMenuEntry
+                    <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.open}
                         doAction={() => {
@@ -93,6 +93,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
                                 id: asset.id,
+                                shouldAutomaticallySwitchPage: true,
                                 runInBackground: false,
                             })
                         }}
@@ -100,7 +101,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 {asset.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.remote && (
-                        <ContextMenuEntry
+                        <MenuEntry
                             hidden={hidden}
                             action={shortcuts.KeyboardAction.run}
                             doAction={() => {
@@ -108,6 +109,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                 dispatchAssetEvent({
                                     type: assetEventModule.AssetEventType.openProject,
                                     id: asset.id,
+                                    shouldAutomaticallySwitchPage: false,
                                     runInBackground: true,
                                 })
                             }}
@@ -115,7 +117,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     )}
                 {asset.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.local && (
-                        <ContextMenuEntry
+                        <MenuEntry
                             hidden={hidden}
                             action={shortcuts.KeyboardAction.uploadToCloud}
                             doAction={async () => {
@@ -161,7 +163,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled={
                         asset.type !== backendModule.AssetType.project &&
@@ -176,7 +178,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         unsetModal()
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.snapshot}
@@ -184,7 +186,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.moveToTrash}
                     doAction={() => {
@@ -198,7 +200,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 />
                 <ContextMenuSeparator hidden={hidden} />
                 {managesThisAsset && (
-                    <ContextMenuEntry
+                    <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.share}
                         doAction={() => {
@@ -219,7 +221,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.label}
@@ -228,7 +230,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     }}
                 />
                 <ContextMenuSeparator hidden={hidden} />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
@@ -236,7 +238,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.copy}
@@ -244,7 +246,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.cut}
@@ -252,7 +254,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.download}

@@ -19,7 +19,7 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS Load, Open
+## ALIAS load, open
    GROUP Input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
@@ -60,9 +60,9 @@ read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
-##  ALIAS Load Text, Open Text
-    GROUP Input
-    Open and read the file at the provided `path`.
+## ALIAS load text, open text
+   GROUP Input
+   Open and read the file at the provided `path`.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
@@ -142,8 +142,8 @@ list_directory : (File | Text) -> Text -> Boolean -> Vector File
 list_directory directory name_filter=Nothing recursive=False =
     File.new directory . list name_filter=name_filter recursive=recursive
 
-## ALIAS Download, HTTP Get
-   GROUP Web
+## ALIAS download, http get
+   GROUP Input
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -169,7 +169,8 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
         if try_auto_parse.not then response else
             response.decode if_unsupported=response . catch handler=(_->response)
 
-## ALIAS Download, HTTP Get
+## ALIAS download, http get
+   GROUP Input
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.

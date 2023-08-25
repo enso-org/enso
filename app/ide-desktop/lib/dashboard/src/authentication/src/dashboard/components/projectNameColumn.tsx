@@ -107,6 +107,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
                             id: createdProject.projectId,
+                            shouldAutomaticallySwitchPage: true,
                             runInBackground: false,
                         })
                     } catch (error) {
@@ -209,6 +210,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: asset.id,
+                        shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
                 } else if (
@@ -218,6 +220,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: asset.id,
+                        shouldAutomaticallySwitchPage: false,
                         runInBackground: true,
                     })
                 } else if (
@@ -239,8 +242,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
-                openIde={() => {
-                    doOpenIde(asset)
+                openIde={switchPage => {
+                    doOpenIde(asset, switchPage)
                 }}
                 onClose={doCloseIde}
             />

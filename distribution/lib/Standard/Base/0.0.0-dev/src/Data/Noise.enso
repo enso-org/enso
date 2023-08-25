@@ -12,7 +12,8 @@ polyglot java import java.util.Random
    It produces what is commonly termed "white" noise, where any value in the
    range has an equal chance of occurring.
 type Deterministic_Random
-    ## Step the generator to produce the next value.
+    ## GROUP Random
+       Step the generator to produce the next value.
 
        Arguments:
        - input: The seed number to perturb.
@@ -35,7 +36,8 @@ type Deterministic_Random
         val = gen.nextDouble
         (val * value_range) + offset
 
-## Generate noise based on the input number.
+## GROUP Random
+   Generate noise based on the input number.
 
    Arguments:
    - interval: An interval in which the noise should be generated.

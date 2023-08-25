@@ -6,6 +6,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
@@ -68,6 +69,6 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
             context.safepoint();
         }
 
-        return new LongStorage(out, storage.size(), isMissing);
+        return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
     }
 }

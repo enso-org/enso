@@ -4,6 +4,8 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
+## PRIVATE
+   Functions for parsing and handling Enso expressions.
 type Expression
     ## PRIVATE
        ADVANCED

@@ -1,0 +1,52 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type
+
+from Standard.Test import Bench, Faker
+
+polyglot java import java.lang.Long as Java_Long
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)
+
+
+create_table : Table
+create_table num_rows =
+    x = Vector.new num_rows i->
+        i+1
+    y = Vector.new num_rows i->
+        if i % 10 < 2 then Java_Long.MAX_VALUE else i+1
+    u = Vector.new num_rows i->
+        10 + (i % 100)
+
+    t = Table.new [["X", x], ["Y", y], ["U", u]]
+
+    assert condition =
+        if condition.not then Panic.throw "Assertion failed"
+
+    assert ((t.at "X" . value_type) == Value_Type.Integer)
+    assert ((t.at "Y" . value_type) == Value_Type.Integer)
+    assert ((t.at "U" . value_type) == Value_Type.Integer)
+    t
+
+
+type Data
+    Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+
+collect_benches = Bench.build builder->
+    num_rows = 1000000
+    data = Data.create num_rows
+
+    builder.group ("Column_Arithmetic_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Plus_Fitting" <|
+            (data.table.at "X") + (data.table.at "U")
+        group_builder.specify "Plus_Overflowing" <|
+            (data.table.at "Y") + (data.table.at "U")
+        group_builder.specify "Multiply_Fitting" <|
+            (data.table.at "X") * (data.table.at "U")
+        group_builder.specify "Multiply_Overflowing" <|
+            (data.table.at "Y") * (data.table.at "U")
+
+main = collect_benches . run_main

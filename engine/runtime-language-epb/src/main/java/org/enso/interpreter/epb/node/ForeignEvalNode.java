@@ -6,6 +6,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
@@ -17,7 +18,6 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.ForeignParsingException;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
-import org.graalvm.polyglot.Context;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
@@ -51,7 +51,11 @@ public class ForeignEvalNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     ensureParsed();
     if (foreign != null) {
-      return foreign.execute(frame.getArguments());
+      try {
+        return foreign.execute(frame.getArguments());
+      } catch (InteropException ex) {
+        throw new ForeignParsingException(ex.getMessage(), this);
+      }
     } else {
       CompilerDirectives.transferToInterpreter();
       throw parseException;
@@ -72,7 +76,8 @@ public class ForeignEvalNode extends RootNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         var foreignLang = code.getLanguage();
         String truffleLangId = foreignLang.getTruffleId();
-        var installedLanguages = Context.getCurrent().getEngine().getLanguages();
+        var context = EpbContext.get(this);
+        var installedLanguages = context.getEnv().getInternalLanguages();
         if (!installedLanguages.containsKey(truffleLangId)) {
           this.parseException =
               new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
