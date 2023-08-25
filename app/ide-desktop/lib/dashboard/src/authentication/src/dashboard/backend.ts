@@ -157,6 +157,7 @@ export interface Project extends ListedProject {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+    openedBy?: EmailAddress
 }
 
 /** Information required to open a project. */

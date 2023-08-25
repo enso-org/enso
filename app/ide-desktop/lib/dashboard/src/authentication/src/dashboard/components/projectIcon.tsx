@@ -7,6 +7,7 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
@@ -75,6 +76,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         openIde,
     } = props
     const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
@@ -100,6 +102,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
+    const [isSomeoneElseUsingProject, setIsOtherUserUsingProject] = React.useState(false)
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
@@ -111,7 +114,30 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         state !== backendModule.ProjectState.opened
                     ) {
                         setToastId(toast.toast.loading(LOADING_MESSAGE))
-                        await backend.openProject(item.id, null, item.title)
+                        try {
+                            await backend.openProject(item.id, null, item.title)
+                            setIsOtherUserUsingProject(false)
+                        } catch (error) {
+                            // Assume the project was opened by another user.
+                            const project = await backend.getProjectDetails(item.id, item.title)
+                            const newState = project.state.type
+                            if (
+                                newState !== backendModule.ProjectState.openInProgress &&
+                                newState !== backendModule.ProjectState.opened
+                            ) {
+                                toastAndLog('Could not open project', error)
+                            } else {
+                                setState(newState)
+                            }
+                            setIsOtherUserUsingProject(
+                                project.openedBy != null && project.openedBy !== organization?.email
+                            )
+                        }
+                    } else {
+                        const project = await backend.getProjectDetails(item.id, item.title)
+                        setIsOtherUserUsingProject(
+                            project.openedBy != null && project.openedBy !== organization?.email
+                        )
                     }
                     const abortController = new AbortController()
                     setOpenProjectAbortController(abortController)
@@ -143,6 +169,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         state,
         backend,
         item,
+        organization?.email,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
     ])
@@ -299,7 +326,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.placeholder:
             return (
                 <button
-                    className="w-6"
+                    disabled={isSomeoneElseUsingProject}
+                    {...(isSomeoneElseUsingProject
+                        ? { title: 'Someone else has this project open.' }
+                        : {})}
+                    className="w-6 disabled:opacity-50"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -316,7 +347,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             return (
                 <>
                     <button
-                        className="w-6"
+                        disabled={isSomeoneElseUsingProject}
+                        {...(isSomeoneElseUsingProject
+                            ? { title: 'Someone else has this project open.' }
+                            : {})}
+                        className="w-6 disabled:opacity-50"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -328,16 +363,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         </div>
                         <SvgMask src={StopIcon} />
                     </button>
-                    <button
-                        className="w-6"
-                        onClick={clickEvent => {
-                            clickEvent.stopPropagation()
-                            unsetModal()
-                            openIde(true)
-                        }}
-                    >
-                        <SvgMask src={ArrowUpIcon} />
-                    </button>
+                    {!isSomeoneElseUsingProject && (
+                        <button
+                            className="w-6"
+                            onClick={clickEvent => {
+                                clickEvent.stopPropagation()
+                                unsetModal()
+                                openIde(true)
+                            }}
+                        >
+                            <SvgMask src={ArrowUpIcon} />
+                        </button>
+                    )}
                 </>
             )
     }
