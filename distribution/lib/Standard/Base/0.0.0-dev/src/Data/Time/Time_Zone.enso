@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
 import project.Error.Error
 import project.Errors.Time_Error.Time_Error
 import project.Panic.Panic
@@ -156,6 +157,13 @@ type Time_Zone
              example_zone_id = Time_Zone.system.zone_id
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
+
+    ## Get the offset in seconds at given date time.
+       Arguments:
+       - at: The date to compute offset at.
+
+    offset : Date_Time -> Integer
+    offset self at = @Builtin_Method "Time_Zone.offset"
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Time_Zone.

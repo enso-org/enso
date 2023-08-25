@@ -2,7 +2,8 @@ package org.enso.interpreter.epb.node;
 
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 
 /** A node responsible for performing foreign JS calls. */
@@ -30,19 +31,13 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
   @Specialization
   Object doExecute(
-      Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
+      Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary)
+      throws InteropException {
     int newLength = getArity() - 1;
     Object[] positionalArgs = new Object[newLength];
     System.arraycopy(arguments, 1, positionalArgs, 0, newLength);
-    try {
-      return coercePrimitiveNode.execute(
-          interopLibrary.invokeMember(
-              getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs)));
-    } catch (UnsupportedMessageException
-        | UnknownIdentifierException
-        | ArityException
-        | UnsupportedTypeException e) {
-      throw new IllegalStateException("Invalid JS function resulted from parsing.");
-    }
+    return coercePrimitiveNode.execute(
+        interopLibrary.invokeMember(
+            getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs)));
   }
 }
