@@ -4,7 +4,6 @@ import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-import Standard.Base.Meta
 
 polyglot java import java.lang.System as Java_System
 
@@ -36,5 +35,9 @@ spec =
             Data.post url_post (TestType.Bbb 123) . at "headers" . at "Content-Type" . should_equal "application/json"
             Data.post url_post (Request_Body.Text "abcd") . at "headers" . at "Content-Type" . should_equal "text/plain"
             Data.post url_post (Request_Body.Json '{ "a" : 1 }') . at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Correctly posts a file" <|
+            test_file = enso_project.data / "sample.txt"
+            Data.post url_post test_file . at "data" . should_contain "sample=Cupcake+ipsum+dolor+sit+amet"
 
 main = Test_Suite.run_main spec

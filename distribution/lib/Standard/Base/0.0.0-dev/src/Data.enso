@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Pair.Pair
+import Standard.Base.Network.HTTP.Form.Form
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -174,13 +175,14 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
 #post : (URI | Text) -> Text | Request_Body | Any -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 #post uri data method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
-post : (URI | Text) -> Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post uri body mime_type=Nothing headers=[] try_auto_parse=True =
-    parsed_headers = headers . map h-> case h of
-        _ : Vector -> Header.new (h.at 0) (h.at 1)
-        _ : Pair -> Header.new (h.at 0) (h.at 1)
-        _ : Header -> h
-        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+    parsed_headers =
+        headers . map h-> case h of
+            _ : Vector -> Header.new (h.at 0) (h.at 1)
+            _ : Pair -> Header.new (h.at 0) (h.at 1)
+            _ : Header -> h
+            _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
     request = case body of
         _ : Request_Body ->
@@ -191,16 +193,21 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
             request_body_ctor = if mime_type == "text/plain" || mime_type.is_nothing then Request_Body.Text else if mime_type == "application/json" then Request_Body.Json else
                 Error.throw (Illegal_Argument.Error "When posting a Text object, mime type must be 'text/plain' or 'application/json'")
             Request.new HTTP_Method.Post uri parsed_headers (request_body_ctor body)
+        _ : File ->
+            if mime_type.is_nothing.not then
+                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting a File")
+            parts = [Form.file_field "sample" body]
+            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Form (Form.new parts))
         _ ->
             if mime_type.is_nothing.not then
                 Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting an Enso object as JSON")
             json = body.to_json
             Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Json json)
-        #_ -> Error.throw (Illegal_Argument.Error "Unsupported post body type " + (Meta.get_simple_type_name body) + ": " + body.to_display_text)
 
     IO.println 'AAA'
     IO.println request
     response = HTTP.new.request request
+    IO.println 'AAA1'
     IO.println response
     IO.println <| Meta.get_simple_type_name response
 
