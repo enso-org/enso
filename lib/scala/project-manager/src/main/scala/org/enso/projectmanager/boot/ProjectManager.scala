@@ -267,11 +267,6 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       case 1 => Level.DEBUG
       case _ => Level.TRACE
     }
-
-    // TODO [RW] at some point we may want to allow customization of color
-    //  output in CLI flags
-    val colorMode = ColorMode.Auto
-
     ZIO
       .attempt {
         Logging.initLogger()

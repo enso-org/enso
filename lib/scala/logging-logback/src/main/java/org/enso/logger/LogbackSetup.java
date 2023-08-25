@@ -181,8 +181,7 @@ public class LogbackSetup extends LoggerSetup {
 
     @Override
     public boolean setupConsoleAppender(Level logLevel) {
-            LoggerAndContext env = contextInit(logLevel, config);
-
+        LoggerAndContext env = contextInit(logLevel, config);
         org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
         final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         try {
@@ -198,7 +197,7 @@ public class LogbackSetup extends LoggerSetup {
         consoleAppender.setEncoder(encoder);
 
         env.finalizeAppender(consoleAppender);
-         return true;
+        return true;
     }
 
     @Override
