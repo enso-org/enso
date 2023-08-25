@@ -49,7 +49,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { dispatchAssetEvent, dispatchAssetListEvent },
+            state: { filterBy, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
@@ -81,7 +81,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         },
         [/* should never change */ setItem]
     )
-    return (
+    return filterBy === backendModule.FilterBy.trashed ? (
+        <ContextMenus hidden={hidden} key={asset.id} event={event}>
+            <ContextMenu hidden={hidden}>
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.open}
+                    doAction={() => {
+                        unsetModal()
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.restoreFromTrash,
+                            id: asset.id,
+                        })
+                    }}
+                />
+            </ContextMenu>
+        </ContextMenus>
+    ) : (
         <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
                 {asset.type === backendModule.AssetType.project && (

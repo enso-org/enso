@@ -109,6 +109,7 @@ function insertAssetTreeNodeChildren(
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     appRunner: AppRunner | null
+    filterBy: backendModule.FilterBy
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -145,6 +146,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     appRunner: AppRunner | null
     query: string
+    filterBy: backendModule.FilterBy
     initialProjectName: string | null
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
@@ -163,6 +165,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         appRunner,
         query,
+        filterBy,
         initialProjectName,
         assetEvents,
         dispatchAssetEvent,
@@ -181,7 +184,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { setModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const [initialized, setInitialized] = React.useState(false)
-    const [filterBy, setFilterBy] = React.useState<backendModule.FilterBy | null>(null)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [extraColumns, setExtraColumns] = React.useState(
@@ -681,6 +683,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             appRunner,
+            filterBy,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -695,6 +698,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }),
         [
             appRunner,
+            filterBy,
             sortColumn,
             sortDirection,
             assetEvents,
@@ -778,23 +782,25 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 />
                             )
                         }
-                        setModal(
-                            <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                {innerSelectedKeys.size !== 0 && (
-                                    <ContextMenu>
-                                        <MenuEntry
-                                            action={shortcuts.KeyboardAction.moveAllToTrash}
-                                            doAction={doDeleteAll}
-                                        />
-                                    </ContextMenu>
-                                )}
-                                <GlobalContextMenu
-                                    directoryKey={null}
-                                    directoryId={null}
-                                    dispatchAssetListEvent={dispatchAssetListEvent}
-                                />
-                            </ContextMenus>
-                        )
+                        if (filterBy !== backendModule.FilterBy.trashed) {
+                            setModal(
+                                <ContextMenus key={uniqueString.uniqueString()} event={event}>
+                                    {innerSelectedKeys.size !== 0 && (
+                                        <ContextMenu>
+                                            <MenuEntry
+                                                action={shortcuts.KeyboardAction.moveAllToTrash}
+                                                doAction={doDeleteAll}
+                                            />
+                                        </ContextMenu>
+                                    )}
+                                    <GlobalContextMenu
+                                        directoryKey={null}
+                                        directoryId={null}
+                                        dispatchAssetListEvent={dispatchAssetListEvent}
+                                    />
+                                </ContextMenus>
+                            )
+                        }
                     }}
                 />
             </div>

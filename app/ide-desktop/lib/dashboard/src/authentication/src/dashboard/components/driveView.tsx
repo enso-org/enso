@@ -58,6 +58,7 @@ export default function DriveView(props: DriveViewProps) {
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [filterBy, setFilterBy] = React.useState(backendModule.FilterBy.active)
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -122,6 +123,7 @@ export default function DriveView(props: DriveViewProps) {
                         : 'Local Drive'}
                 </h1>
                 <DriveBar
+                    filterBy={filterBy}
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
@@ -131,11 +133,12 @@ export default function DriveView(props: DriveViewProps) {
             <div className="flex flex-1 gap-3 overflow-hidden">
                 {backend.type === backendModule.BackendType.remote && (
                     <div className="flex flex-col gap-4 py-1">
-                        <CategorySwitcher />
+                        <CategorySwitcher filterBy={filterBy} setFilterBy={setFilterBy} />
                     </div>
                 )}
                 <AssetsTable
                     query={query}
+                    filterBy={filterBy}
                     appRunner={appRunner}
                     initialProjectName={initialProjectName}
                     assetEvents={assetEvents}

@@ -7,6 +7,8 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import * as backend from '../backend'
+
 import SvgMask from '../../authentication/components/svgMask'
 
 // ============================
@@ -53,8 +55,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // === CategorySwitcher ===
 // ========================
 
+/** Props for a {@link CategorySwitcher}. */
+export interface CategorySwitcherProps {
+    filterBy: backend.FilterBy
+    setFilterBy: (filterBy: backend.FilterBy) => void
+}
+
 /** A switcher to choose the currently visible assets table category. */
-export default function CategorySwitcher() {
+export default function CategorySwitcher(props: CategorySwitcherProps) {
+    const { filterBy, setFilterBy } = props
     return (
         <div className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
@@ -81,13 +90,12 @@ export default function CategorySwitcher() {
                 }}
             />
             <CategorySwitcherItem
-                active
-                disabled
+                active={filterBy === backend.FilterBy.active}
+                disabled={filterBy === backend.FilterBy.active}
                 image={Home2Icon}
                 name="Home"
                 onClick={() => {
-                    // Not implemented yet - waiting on implementation details to determine how to
-                    // switch back to the home category.
+                    setFilterBy(backend.FilterBy.active)
                 }}
             />
             <CategorySwitcherItem
@@ -100,10 +108,12 @@ export default function CategorySwitcher() {
                 }}
             />
             <CategorySwitcherItem
+                active={filterBy === backend.FilterBy.trashed}
+                disabled={filterBy === backend.FilterBy.trashed}
                 image={Trash2Icon}
                 name="Trash"
                 onClick={() => {
-                    // No backend support yet.
+                    setFilterBy(backend.FilterBy.trashed)
                 }}
             />
         </div>
