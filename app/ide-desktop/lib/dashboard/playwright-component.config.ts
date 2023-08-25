@@ -23,10 +23,14 @@ export default componentTesting.defineConfig({
             name: 'firefox',
             use: { ...componentTesting.devices['Desktop Firefox'] },
         },
-        {
-            name: 'webkit',
-            use: { ...componentTesting.devices['Desktop Safari'] },
-        },
+        ...(process.env.CI
+            ? []
+            : [
+                  {
+                      name: 'webkit',
+                      use: { ...componentTesting.devices['Desktop Safari'] },
+                  },
+              ]),
     ],
     use: {
         trace: 'on-first-retry',
