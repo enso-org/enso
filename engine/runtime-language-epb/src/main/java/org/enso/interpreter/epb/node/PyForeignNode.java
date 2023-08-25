@@ -12,9 +12,13 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 
 @NodeField(name = "foreignFunction", type = Object.class)
@@ -70,7 +74,7 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
   }
 
   private Object wrapPythonZone(ZoneId zone, LocalTime time, LocalDate date)
-  throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+          throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     var ctx = EpbContext.get(this);
     if (nodePythonZone == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -78,28 +82,22 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       from datetime import timezone, timedelta, tzinfo
 
       class EnsoTzInfo(tzinfo):
-        def __init__(self, name, rules):
-          self._name = name
+        def __init__(self, rules):
           self._rules = rules
 
         def utcoffset(self, when):
           when = when.replace(tzinfo=None)
-          zoneOffset = self._rules.getOffset(when)
-          d = timedelta(seconds=zoneOffset.getTotalSeconds())
+          d = timedelta(seconds=self._rules.offset(when))
           return d
 
         def tzname(self, dt):
-          return self._name
+          return self._rules.name(dt)
 
         def dst(self, dt):
-          if self._rules.isDaylightSavings(dt):
-              return 3600
-          else:
-              return 0
+          return self._rules.dst(dt);
 
-
-      def conv(name, rules):
-          return EnsoTzInfo(name, rules)
+      def conv(rules):
+          return EnsoTzInfo(rules)
 
       conv
       """, "convert_time_zone.py").build();
@@ -107,13 +105,11 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       fnPythonZone = ctx.getEnv().parsePublic(src).call();
       nodePythonZone = insert(InteropLibrary.getFactory().create(fnPythonZone));
     }
-    // XXX: Avoid asGuestValue
-    var rules = ctx.getEnv().asGuestValue(zone.getRules());
-    return nodePythonZone.execute(fnPythonZone, zone.getId(), rules);
+    return nodePythonZone.execute(fnPythonZone, new ZoneWrapper(zone));
   }
 
   private Object combinePythonDateTimeZone(Object date, Object time, Object zone)
-  throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+          throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     if (nodePythonCombine == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EpbContext.get(this);
@@ -135,9 +131,9 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
 
   @Specialization
   public Object doExecute(
-      Object[] arguments,
-      @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
-      @CachedLibrary(limit="3") InteropLibrary iop
+          Object[] arguments,
+          @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
+          @CachedLibrary(limit = "3") InteropLibrary iop
   ) throws InteropException {
     for (int i = 0; i < arguments.length; i++) {
       var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
@@ -156,5 +152,59 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       }
     }
     return coercePrimitiveNode.execute(interopLibrary.execute(getForeignFunction(), arguments));
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class ZoneWrapper implements TruffleObject {
+
+    private final ZoneId zone;
+
+    ZoneWrapper(ZoneId zone) {
+      this.zone = zone;
+    }
+
+    @ExportMessage
+    boolean hasMembers() {
+      return true;
+    }
+
+    @ExportMessage
+    boolean isMemberInvocable(String member) {
+      return switch (member) {
+        case "dst", "name", "offset" ->
+          true;
+        default ->
+          false;
+      };
+    }
+
+    @ExportMessage
+    Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+      return this;
+    }
+
+    @ExportMessage
+    @CompilerDirectives.TruffleBoundary
+    Object invokeMember(
+      String name, Object[] args,
+      @CachedLibrary(limit = "3") InteropLibrary iop
+    ) throws UnknownIdentifierException, UnsupportedMessageException {
+      var date = iop.asDate(args[0]);
+      var time = iop.asTime(args[0]);
+      var when = date.atTime(time);
+      return switch (name) {
+        case "dst" -> {
+          var instant = when.toInstant(zone.getRules().getOffset(when));
+          var std = zone.getRules().getStandardOffset(instant);
+          var now = zone.getRules().getOffset(instant);
+          yield now.getTotalSeconds() - std.getTotalSeconds();
+        }
+        case "name" -> zone.getId();
+        case "offset" ->
+          zone.getRules().getOffset(when).getTotalSeconds();
+        default ->
+          throw UnknownIdentifierException.create(name);
+      };
+    }
   }
 }
