@@ -31,10 +31,12 @@ test.test('sign up flow', async ({ page }) => {
     await actions.locateSetUsernameButton(page).click()
     await test.expect(page).toHaveScreenshot()
 
+    // Screenshot #3: Logged in, and account enabled
     const currentUser = api.currentUser
     if (currentUser != null) {
         currentUser.isEnabled = true
     }
+    await page.goto('/')
     await test.expect(page).toHaveScreenshot()
 
     test.expect(api.currentUser?.email, 'new user has correct email').toBe(email)
