@@ -39,6 +39,7 @@ get_format callback =
                 @Tail_Call reader (idx + 1)
     reader 0
 
+## Automatically detects the file format based on the file extension or mime-type.
 type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -70,6 +71,7 @@ type Auto_Detect
     get_web_parser content_type uri =
         get_format f-> f.for_web content_type uri
 
+## Interface for all file formats.
 type File_Format
     ## PRIVATE
        ADVANCED
@@ -110,7 +112,9 @@ type File_Format
         make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
         Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
+## A file format for plain text files.
 type Plain_Text_Format
+    ## A file format for plain text files with the specified encoding.
     @encoding Encoding.default_widget
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
@@ -155,6 +159,7 @@ type Plain_Text_Format
     read_web self response =
         Text.from_bytes response.body.bytes self.encoding
 
+## A file format for reading or writing files as a sequence of bytes.
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -184,6 +189,7 @@ type Bytes
         _ = [on_problems]
         file.read_bytes
 
+## A file format for reading and writing files as JSON.
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.

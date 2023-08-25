@@ -8,6 +8,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
+## PRIVATE
 type SQL_Type_Mapping
     ## PRIVATE
        ADVANCED

@@ -9,7 +9,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
-
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
@@ -21,7 +20,8 @@ from project.Function import const
    be used in that position.
 @Builtin_Type
 type Any
-    ## Generic conversion of an arbitrary Enso value to a corresponding textual
+    ## GROUP Conversions
+       Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
        > Example
@@ -52,7 +52,8 @@ type Any
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
-    ## ALIAS Equals
+    ## ALIAS equals
+       GROUP Operators
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -99,7 +100,8 @@ type Any
     == : Any -> Boolean
     == self that = @Builtin_Method "Any.=="
 
-    ## ALIAS Not Equals
+    ## ALIAS not equals
+       GROUP Operators
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -121,7 +123,8 @@ type Any
     != : Any -> Boolean
     != self that = (self == that).not
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Operators
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -148,7 +151,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Greater Than or Equal
+    ## ALIAS greater than or equal
+       GROUP Operators
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -177,7 +181,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Operators
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -204,7 +209,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Less Than or Equal
+    ## ALIAS less than or equal
+       GROUP Operators
        Checks if `self` is less than or equal to `that`.
 
        Arguments:
@@ -235,7 +241,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## Checks if the type is an instance of `Nothing`.
+    ## GROUP Logical
+       Checks if the type is an instance of `Nothing`.
 
        Nothing in Enso is used as a universal value to indicate the lack of presence
        of a value. This function is primarily useful in the IDE.
@@ -247,7 +254,8 @@ type Any
     is_nothing : Boolean
     is_nothing self = False
 
-    ## If `self` is Nothing then returns `function`.
+    ## GROUP Logical
+       If `self` is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".
@@ -257,7 +265,8 @@ type Any
     if_nothing self ~other =
         const self other
 
-    ## Executes the provided handler on an error, or returns the value unchanged.
+    ## GROUP Errors
+       Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
        - error_type: The type of error to handle. Defaults to `Any` to handle
@@ -321,7 +330,8 @@ type Any
     map_error self ~f =
         const self f
 
-    ## Checks if `self` is an error.
+    ## GROUP Errors
+       Checks if `self` is an error.
 
        > Example
          Checking if the provided value is an error.
@@ -369,6 +379,7 @@ type Any
 
     ## PRIVATE
        ADVANCED
+       GROUP Operators
        Applies the function on the right hand side to the argument on the left.
 
        Arguments
@@ -390,7 +401,8 @@ type Any
     |> : (Any -> Any) -> Any
     |> self ~function = function self
 
-    ## Checks if any warnings (either all or of a specified type) are attached to the value.
+    ## GROUP Errors
+       Checks if any warnings (either all or of a specified type) are attached to the value.
 
        Arguments:
        - warning_type: The type to check if attached to the value. Defaults to any warning.
@@ -399,7 +411,8 @@ type Any
         _ = warning_type
         False
 
-    ## Remove the warnings (either all or of a specified type) attached to the value.
+    ## GROUP Errors
+       Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
@@ -408,7 +421,8 @@ type Any
         _ = warning_type
         self
 
-    ## Throws the first matching warning (either all or of a specified type) as a data flow error.
+    ## GROUP Errors
+       Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.

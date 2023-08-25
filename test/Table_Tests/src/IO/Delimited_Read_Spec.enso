@@ -250,7 +250,7 @@ spec =
                 r5.should_fail_with File_Error
                 r5.catch.should_be_a File_Error.Corrupted_Format
 
-        Test.specify "should fail in presence of a mismatched quote (2)" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+        Test.specify "should fail in presence of a mismatched quote (2)" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb->
                 format = (Delimited "," headers=True value_formatter=Nothing)
                 format3 = format . with_quotes quote_escape="\"
@@ -263,7 +263,7 @@ spec =
                 r6.catch.should_be_a File_Error.Corrupted_Format
                 f6.delete
 
-        Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="TODO: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
+        Test.specify "should handle quotes if they are opened in the middle of an unquoted cell in a sane way" pending="ToDo: To be fixed in https://github.com/enso-org/enso/issues/5839" <|
             t1 = Data.read (enso_project.data / "mismatched_quote_at_end.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.column_names . should_equal ["a", "b", "c"]
             t1.at 'a' . to_vector . should_equal ['1', 'abc', '7']

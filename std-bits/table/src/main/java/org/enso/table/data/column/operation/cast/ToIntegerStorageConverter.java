@@ -4,30 +4,32 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 
+import java.util.BitSet;
+
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
-  private final double min;
-  private final double max;
+  private final IntegerType targetType;
 
   public ToIntegerStorageConverter(IntegerType targetType) {
-    this.min = (double) targetType.getMinValue();
-    this.max = (double) targetType.getMaxValue();
-
-    if (targetType.bits() != Bits.BITS_64) {
-      throw new IllegalStateException("Internal error: Only 64-bit integers are currently supported. To support other sizes, this class will need a few adaptations.");
-    }
+    this.targetType = targetType;
   }
 
   public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
-    if (storage instanceof LongStorage longStorage) {
-      return longStorage;
+    if (storage instanceof AbstractLongStorage longStorage) {
+      if (longStorage.getType().equals(targetType)) {
+        return longStorage;
+      } else {
+        return convertLongStorage(longStorage, problemBuilder);
+      }
     } else if (storage instanceof DoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
@@ -41,7 +43,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
+    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -50,14 +52,19 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         builder.appendLong(booleanAsLong(b));
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
-        builder.appendLong(x);
+        if (targetType.fits(x)) {
+          builder.appendLongUnchecked(x);
+        } else {
+          problemBuilder.reportNumberOutOfRange(x);
+          builder.appendNulls(1);
+        }
       } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
-        if (fitsInTargetRange(x)) {
+        if (targetType.fits(x)) {
           long converted = (long) x;
-          builder.appendLong(converted);
+          builder.appendLongUnchecked(converted);
         } else {
-          problemBuilder.reportConversionFailure(o);
+          problemBuilder.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
       } else {
@@ -72,14 +79,10 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return builder.seal();
   }
 
-  private boolean fitsInTargetRange(double value) {
-    return value >= min && value <= max;
-  }
-
   private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -98,13 +101,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItem(i);
-        if (fitsInTargetRange(value)) {
+        if (targetType.fits(value)) {
           long converted = (long) value;
           builder.appendLong(converted);
         } else {
@@ -118,6 +121,35 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
     problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
+  }
+
+  private Storage<Long> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+    boolean isWidening = targetType.fits(longStorage.getType());
+    if (isWidening) {
+      // If the target type is larger than the source type, we can just widen the storage without doing any checks.
+      return longStorage.widen(targetType);
+    } else {
+      // Otherwise we have to check for elements that may not fit.
+      Context context = Context.getCurrent();
+      int n = longStorage.size();
+      long[] data = new long[n];
+      BitSet isMissing = BitSets.makeDuplicate(longStorage.getIsMissing());
+      for (int i = 0; i < n; i++) {
+        if (!isMissing.get(i)) {
+          long value = longStorage.getItem(i);
+          if (targetType.fits(value)) {
+            data[i] = value;
+          } else {
+            isMissing.set(i);
+            problemBuilder.reportNumberOutOfRange(value);
+          }
+        }
+
+        context.safepoint();
+      }
+
+      return new LongStorage(data, n, isMissing, targetType);
+    }
   }
 
   public static long booleanAsLong(boolean value) {

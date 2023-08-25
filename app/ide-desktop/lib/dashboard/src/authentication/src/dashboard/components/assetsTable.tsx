@@ -644,6 +644,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
+            case assetListEventModule.AssetListEventType.willDelete: {
+                if (selectedKeys.has(event.key)) {
+                    setSelectedKeys(oldSelectedKeys => {
+                        const newSelectedKeys = new Set(oldSelectedKeys)
+                        newSelectedKeys.delete(event.key)
+                        return newSelectedKeys
+                    })
+                }
+                break
+            }
             case assetListEventModule.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== event.key)

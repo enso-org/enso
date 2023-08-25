@@ -1,3 +1,6 @@
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
 ## A library that defines the documentation for the hand-curated searcher
    categories.
 
@@ -6,10 +9,9 @@
    simple mechanism for placing documentation for these categories within the
    suggestions database.
 
-from Standard.Base import all
-import Standard.Base.Errors.Unimplemented.Unimplemented
 
-## ALIAS Text Input
+## ALIAS text input
+   GROUP Standard.Base.Constants
 
    Creating text in Enso is as simple as adding a node that contains the text
    that you would like to create.
@@ -20,7 +22,8 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
          "Hello, Enso!"
 text_input = Unimplemented.throw "This function should not be called."
 
-## ALIAS Number Input
+## ALIAS number input
+   GROUP Standard.Base.Constants
 
    Creating a number in Enso is as simple as adding a node that contains the
    number that you would like to create.
@@ -38,7 +41,8 @@ text_input = Unimplemented.throw "This function should not be called."
          0.0
 number_input = Unimplemented.throw "This function should not be called."
 
-## ALIAS Table Input
+## ALIAS table input
+   GROUP Standard.Base.Constants
 
    Creating a table in Enso is usually done directly from data. Nevertheless, it
    can be useful to create tables manually.

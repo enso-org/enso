@@ -50,7 +50,8 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
    "13:45.30.123456789" can be stored in a `Time_Of_Day`.
 @Builtin_Type
 type Time_Of_Day
-    ## Obtains the current time from the system clock in the default time-zone.
+    ## GROUP DateTime
+       Obtains the current time from the system clock in the default time-zone.
 
        > Example
          Get the current time in the default time zone.
@@ -61,7 +62,8 @@ type Time_Of_Day
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+    ## GROUP DateTime
+       Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 
        Arguments:
@@ -93,7 +95,8 @@ type Time_Of_Day
         Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
-    ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+    ## GROUP Conversions
+       Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
        Arguments:
        - text: The text to parse as a time of day.
@@ -169,7 +172,8 @@ type Time_Of_Day
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex
 
-    ## Get the hour portion of the time of day.
+    ## GROUP Metadata
+       Get the hour portion of the time of day.
 
        > Example
          Get the current hour.
@@ -180,7 +184,8 @@ type Time_Of_Day
     hour : Integer
     hour self = @Builtin_Method "Time_Of_Day.hour"
 
-    ## Get the minute portion of the time of day.
+    ## GROUP Metadata
+       Get the minute portion of the time of day.
 
        > Example
          Get the current minute.
@@ -191,7 +196,8 @@ type Time_Of_Day
     minute : Integer
     minute self = @Builtin_Method "Time_Of_Day.minute"
 
-    ## Get the second portion of the time of day.
+    ## GROUP Metadata
+       Get the second portion of the time of day.
 
        > Example
          Get the current second.
@@ -202,7 +208,8 @@ type Time_Of_Day
     second : Integer
     second self = @Builtin_Method "Time_Of_Day.second"
 
-    ## Get the millisecond portion of the time of day.
+    ## GROUP Metadata
+       Get the millisecond portion of the time of day.
 
        > Example
          Get the current millisecond.
@@ -213,7 +220,8 @@ type Time_Of_Day
     millisecond : Integer
     millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
 
-    ## Get the microsecond portion of the time of day.
+    ## GROUP Metadata
+       Get the microsecond portion of the time of day.
 
        > Example
          Get the current microsecond.
@@ -224,7 +232,8 @@ type Time_Of_Day
     microsecond : Integer
     microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
 
-    ## Get the nanosecond portion of the time of day.
+    ## GROUP Metadata
+       Get the nanosecond portion of the time of day.
 
        Arguments:
        - include_milliseconds: Specifies if the whole fractional part of the
@@ -241,15 +250,18 @@ type Time_Of_Day
     nanosecond self include_milliseconds=False =
         self.nanosecond_builtin include_milliseconds
 
-    ## Returns the first time within the `Time_Period` containing self.
+    ## GROUP DateTime
+       Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
     start_of self period=Time_Period.Day = period.adjust_start self
 
-    ## Returns the last time within the `Time_Period` containing self.
+    ## GROUP DateTime
+       Returns the last time within the `Time_Period` containing self.
     end_of : Time_Period -> Time_Of_Day
     end_of self period=Time_Period.Day = period.adjust_end self
 
-    ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
+    ## GROUP Conversions
+       Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
        > Example
          Convert the current time into elapsed seconds in the day.
@@ -260,7 +272,8 @@ type Time_Of_Day
     to_seconds : Integer
     to_seconds self = @Builtin_Method "Time_Of_Day.to_seconds"
 
-    ## Combine this time of day with a date to create a point in time.
+    ## GROUP Conversions
+       Combine this time of day with a date to create a point in time.
 
        Arguments:
        - date: The date on which this time should occur.
@@ -277,7 +290,8 @@ type Time_Of_Day
         Time_Utils.make_zoned_date_time date self zone
 
 
-    ## Returns a requested time part as integer.
+    ## GROUP DateTime
+       Returns a requested time part as integer.
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
         case period of
@@ -289,7 +303,8 @@ type Time_Of_Day
             Time_Period.Microsecond -> self.microsecond
             Time_Period.Nanosecond  -> self.nanosecond
 
-    ## Computes a time difference between the two times of day.
+    ## GROUP DateTime
+       Computes a time difference between the two times of day.
 
        It returns an integer expressing how many periods fit between the two
        times of day.
@@ -306,7 +321,8 @@ type Time_Of_Day
         _ ->
             Time_Utils.unit_time_difference period.to_java_unit self end
 
-    ## Shifts the time of day by a specified period.
+    ## GROUP DateTime
+       Shifts the time of day by a specified period.
 
        Arguments:
        - amount: An integer specifying by how many periods to shift the time.
@@ -318,7 +334,8 @@ type Time_Of_Day
         _ ->
             Time_Utils.unit_time_add period.to_java_unit self amount
 
-    ## ALIAS Add Duration
+    ## ALIAS add duration
+       GROUP Operators
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
@@ -345,7 +362,8 @@ type Time_Of_Day
             time_period : Time_Period ->
                 self + time_period.to_duration
 
-    ## ALIAS Subtract Duration
+    ## ALIAS subtract duration
+       GROUP Operators
        Subtract the  specified amount of time from this instant to get a new
        instant.
 
@@ -393,7 +411,8 @@ type Time_Of_Day
         if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
             self.format "HH:mm:ss.n"
 
-    ## Format this time of day using the provided formatter pattern.
+    ## GROUP Conversions
+       Format this time of day using the provided formatter pattern.
 
        Arguments:
        - pattern: The pattern specifying how to format the time of day.

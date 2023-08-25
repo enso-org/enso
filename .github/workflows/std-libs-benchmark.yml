@@ -1,7 +1,7 @@
 # This file is auto-generated. Do not edit it manually!
 # Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
 
-name: Benchmark Engine
+name: Benchmark Standard Libraries
 on:
   schedule:
     - cron: 0 0 * * *
@@ -13,8 +13,8 @@ on:
         type: boolean
         default: false
 jobs:
-  benchmark-engine:
-    name: Benchmark Engine
+  benchmark-standard-libraries:
+    name: Benchmark Standard Libraries
     runs-on:
       - benchmark
     steps:
@@ -55,7 +55,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend benchmark runtime
+      - run: ./run backend benchmark enso-jmh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
@@ -69,7 +69,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    timeout-minutes: 480
+    timeout-minutes: 240
 env:
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

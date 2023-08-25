@@ -173,7 +173,8 @@ type Image
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
-    ## Calculates the per-element sum of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element sum of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -222,7 +223,8 @@ type Image
     + : (Number | Vector | Matrix) -> Image ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any core_op_handler
 
-    ## Calculates the per-element difference between an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element difference between an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -271,7 +273,8 @@ type Image
     - : (Number | Vector | Matrix) -> Image ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any core_op_handler
 
-    ## Calculates the per-element product of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element product of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -320,7 +323,8 @@ type Image
     * : (Number | Vector | Matrix) -> Image ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any core_op_handler
 
-    ## Performs per-element division of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Performs per-element division of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -466,4 +470,5 @@ type Image_Comparator
     hash : Image -> Integer
     hash x = x.opencv_mat.hashCode
 
+## PRIVATE
 Comparable.from (_:Image) = Image_Comparator

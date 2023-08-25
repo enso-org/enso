@@ -42,7 +42,7 @@ type Data
         Data.Value create_ints create_dates create_objects create_ints_table create_dates_table create_objects_table
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+options = Bench.options . set_warmup (Bench.phase_conf 1 7) . set_measure (Bench.phase_conf 1 3)
 
 
 collect_benches = Bench.build builder->
