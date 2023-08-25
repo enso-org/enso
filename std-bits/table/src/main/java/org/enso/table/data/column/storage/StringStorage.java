@@ -21,17 +21,20 @@ import java.util.BitSet;
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
 
+  private final TextType type;
   /**
    * @param data the underlying data
    * @param size the number of items stored
+   * @param type the type of the column
    */
-  public StringStorage(String[] data, int size) {
+  public StringStorage(String[] data, int size, TextType type) {
     super(data, size, buildOps());
+    this.type = type;
   }
 
   @Override
   protected SpecializedStorage<String> newInstance(String[] data, int size) {
-    return new StringStorage(data, size);
+    return new StringStorage(data, size, type);
   }
 
   @Override
@@ -40,15 +43,15 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public StorageType getType() {
-    // TODO [RW] constant length strings support
-    return TextType.VARIABLE_LENGTH;
+  public TextType getType() {
+    return type;
   }
 
   @Override
   public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
-      return fillMissingHelper(arg, new StringBuilder(size()));
+      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
+      return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
       return super.fillMissing(arg);
     }
@@ -56,7 +59,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new StringBuilder(capacity);
+    return new StringBuilder(capacity, type);
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
@@ -149,6 +152,11 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected String doString(String a, String b) {
             return a + b;
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.concatTypes(a, b);
           }
         });
     return t;

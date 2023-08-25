@@ -553,6 +553,8 @@
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 - [Expose `Text.normalize`.][7425]
+- [Implemented new value types (various sizes of `Integer` type, fixed-length
+  and length-limited `Char` type) for the in-memory `Table` backend.][7557]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -786,6 +788,7 @@
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
+[7557]: https://github.com/enso-org/enso/pull/7557
 
 #### Enso Compiler
 
@@ -919,6 +922,7 @@
 - [Support renaming variable or function][7515]
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
+- [Notification about the project rename action][7613]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1052,6 +1056,7 @@
 [7515]: https://github.com/enso-org/enso/pull/7515
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
+[7613]: https://github.com/enso-org/enso/pull/7613
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

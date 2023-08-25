@@ -41,41 +41,49 @@ type Set
     empty : Set
     empty = Set.Value Map.empty
 
-    ## Returns a vector containing all elements of this set.
+    ## GROUP Conversions
+       Returns a vector containing all elements of this set.
     to_vector : Vector
     to_vector self = self.underlying_map.keys
 
-    ## Returns the number of elements in this set.
+    ## GROUP Metadata
+       Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_map.size
 
-    ## Checks if the set is empty.
+    ## GROUP Logical
+       Checks if the set is empty.
     is_empty : Boolean
     is_empty self = self.underlying_map.is_empty
 
-    ## Checks if the set is not empty.
+    ## GROUP Logical
+       Checks if the set is not empty.
     not_empty : Boolean
     not_empty self = self.underlying_map.not_empty
 
-    ## Checks if this set contains a given value.
+    ## GROUP Logical
+       Checks if this set contains a given value.
     contains : Any -> Boolean
     contains self value = self.underlying_map.contains_key value
 
-    ## ALIAS Add
+    ## ALIAS add
+       GROUP Calculations
        Adds a value to this set.
     insert : Any -> Set
     insert self value =
         new_map = self.underlying_map.insert value Nothing
         Set.Value new_map
 
-    ## Creates a union of the two sets.
+    ## GROUP Calculations
+       Creates a union of the two sets.
     union : Set -> Set
     union self (other : Set) =
         start_map = self.underlying_map
         new_map = other.to_vector.fold start_map m-> el-> m.insert el Nothing
         Set.Value new_map
 
-    ## Creates an intersection of the two sets.
+    ## GROUP Calculations
+       Creates an intersection of the two sets.
     intersection : Set -> Set
     intersection self (other : Set) =
         other_map = other.underlying_map

@@ -170,6 +170,7 @@ export interface AuthProviderProps {
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: (accessToken: string | null) => void
     children: React.ReactNode
+    projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
@@ -180,6 +181,7 @@ export function AuthProvider(props: AuthProviderProps) {
         authService,
         onAuthenticated,
         children,
+        projectManagerUrl,
     } = props
     const logger = loggerProvider.useLogger()
     const { cognito } = authService
@@ -199,7 +201,7 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend(null))
+            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl, null))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
@@ -207,6 +209,7 @@ export function AuthProvider(props: AuthProviderProps) {
             setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
         }
     }, [
+        /* should never change */ projectManagerUrl,
         /* should never change */ supportsLocalBackend,
         /* should never change */ logger,
         /* should never change */ setBackendWithoutSavingType,

@@ -80,7 +80,6 @@ type From_Spec
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
 
-
 ## PRIVATE
 type From_Spec_Comparator
     ## PRIVATE
@@ -99,4 +98,5 @@ type From_Spec_Comparator
             Default_Comparator.hash table_name
         _ -> Default_Comparator.hash x
 
+## PRIVATE
 Comparable.from (_ : From_Spec) = From_Spec_Comparator

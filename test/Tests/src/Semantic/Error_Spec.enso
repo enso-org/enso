@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -16,6 +17,8 @@ import Standard.Test.Extensions
 
 type My_Type
     Value foo
+    Multi_Value foo bar
+    Default_Value foo=2 bar
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
@@ -340,5 +343,67 @@ spec =
                 Panic.with_finalizer do_finalize do_act
             c2 . should_equal "finalizer"
             v2.to_vector . should_equal [1, 2]
+
+    Test.group "Type Errors" <|
+        my_func x y =
+            x + y
+
+        my_defaulted_func x=5 y =
+            x + y
+
+        neg n:Number = -n
+
+        extract x:My_Type = x.foo
+
+        Test.specify "everything is ok" <|
+            neg (my_func -5 -2) . should_equal 7
+
+        Test.specify "try to apply one argument" <|
+            r = Panic.recover Type_Error <| neg (my_func -5)
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply y argument."
+
+        Test.specify "try to apply two arguments" <|
+            r = Panic.recover Type_Error <| neg my_func
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply x, y arguments."
+
+        Test.specify "apply two arguments with one defaulted" <|
+            r = Panic.recover Type_Error <| neg my_defaulted_func
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply y argument."
+
+        Test.specify "report unapplied constructor nicely" <|
+            r = Panic.recover Type_Error <| extract My_Type.Value
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply foo argument."
+
+        Test.specify "report unapplied constructor with default value nicely" <|
+            r = Panic.recover Type_Error <| extract My_Type.Default_Value
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply bar argument."
+
+        Test.specify "report partially applied constructor nicely" <|
+            r = Panic.recover Type_Error <| extract (My_Type.Multi_Value 42)
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply bar argument."
+
+        Test.specify "try to apply two arguments with over-saturated" <|
+            r = Panic.recover Type_Error <| neg (my_func z=10)
+            r . should_fail_with Type_Error
+            r.to_display_text . should_contain "Try to apply x, y arguments"
+
+        Test.specify "types and unapplied arguments" <|
+            c = C.Baz C.to_text
+            r = Panic.recover Type_Error <| neg (c.to_num c=3)
+            r . should_fail_with Type_Error
+            r.to_display_text . should_contain "Try to apply a, b arguments"
+
+
+
+type C
+    Baz x
+
+C.to_num self a b c = a+b+c
 
 main = Test_Suite.run_main spec

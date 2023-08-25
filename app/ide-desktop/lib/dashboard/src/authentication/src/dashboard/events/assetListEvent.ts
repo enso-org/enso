@@ -19,6 +19,7 @@ export enum AssetListEventType {
     uploadFiles = 'upload-files',
     newSecret = 'new-secret',
     closeFolder = 'close-folder',
+    willDelete = 'will-delete',
     delete = 'delete',
     removeSelf = 'remove-self',
 }
@@ -35,6 +36,7 @@ interface AssetListEvents {
     uploadFiles: AssetListUploadFilesEvent
     newSecret: AssetListNewSecretEvent
     closeFolder: AssetListCloseFolderEvent
+    willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
     removeSelf: AssetListRemoveSelfEvent
 }
@@ -84,6 +86,11 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
     id: backend.DirectoryId
     key: backend.DirectoryId
+}
+
+/** A signal that a file will be deleted. */
+interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
+    key: backend.AssetId
 }
 
 /** A signal that a file has been deleted. This must not be called before the request is

@@ -327,7 +327,7 @@ private class DefaultPackageRepository(
           Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
         case Right(componentGroups) =>
           logger.debug(
-            s"Resolving component groups of package [${pkg.module}]."
+            s"Resolving component groups of package [${pkg.normalizedName}]."
           )
 
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)

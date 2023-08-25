@@ -95,6 +95,12 @@ export default function Editor(props: EditorProps) {
                                 : {
                                       projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                                   }
+                        const originalUrl = window.location.href
+                        if (backendType === backendModule.BackendType.remote) {
+                            // The URL query contains commandline options when running in the desktop,
+                            // which will break the entrypoint for opening a fresh IDE instance.
+                            history.replaceState(null, '', new URL('.', originalUrl))
+                        }
                         try {
                             await appRunner.runApp(
                                 {
@@ -119,8 +125,12 @@ export default function Editor(props: EditorProps) {
                                 accessToken,
                                 { projectId: project.projectId }
                             )
-                        } catch {
-                            // Ignored.
+                        } catch (error) {
+                            toastAndLog('Could not open editor', error)
+                        }
+                        if (backendType === backendModule.BackendType.remote) {
+                            // Restore original URL so that initialization works correctly on refresh.
+                            history.replaceState(null, '', originalUrl)
                         }
                     }
                     if (supportsLocalBackend) {
@@ -133,13 +143,7 @@ export default function Editor(props: EditorProps) {
                             ])
                             setInitialized(true)
                         }
-                        const originalUrl = window.location.href
-                        // The URL query contains commandline options when running in the desktop,
-                        // which will break the entrypoint for opening a fresh IDE instance.
-                        history.replaceState(null, '', new URL('.', originalUrl))
                         await runNewProject()
-                        // Restore original URL so that initialization works correctly on refresh.
-                        history.replaceState(null, '', originalUrl)
                     }
                 }
             })()

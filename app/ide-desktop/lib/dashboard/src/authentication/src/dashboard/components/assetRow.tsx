@@ -77,6 +77,10 @@ export default function AssetRow(props: AssetRowProps) {
             })
         }
         try {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.willDelete,
+                key: item.key,
+            })
             if (
                 asset.type === backendModule.AssetType.project &&
                 backend.type === backendModule.BackendType.local

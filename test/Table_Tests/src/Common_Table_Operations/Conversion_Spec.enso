@@ -27,6 +27,7 @@ spec setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
+    supports_conversion_failure_reporting = setup.is_database.not
     Test.group prefix+"Table/Column.cast - to text" <|
         Test.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
@@ -76,6 +77,15 @@ spec setup =
                 # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
                 Problems.assume_no_problems c
 
+            Test.specify "should allow to cast a text column to variable-length with a max size" <|
+                t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=True)
+                c.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
+                c.to_vector . should_equal ["a", "DEF", "a s"]
+
+                # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
+                Problems.assume_no_problems c
+
             Test.specify "should allow casting a non-text column to fixed-length text" <|
                 t = table_builder [["X", [1, 22, 333]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
@@ -83,14 +93,21 @@ spec setup =
                 c.to_vector . should_equal ["1  ", "22 ", "333"]
                 Problems.assume_no_problems c
 
-            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Conversion_Failure is not supported in Database yet.") <|
+            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if supports_conversion_failure_reporting.not then "Conversion_Failure is not supported in Database yet.") <|
                 t = table_builder [["X", [15, 1000000, 123456, 1000, 1000]]]
-                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
-                c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
-                c.to_vector . should_equal ["15 ", "100", "123"]
-                warning = Problems.expect_warning Conversion_Failure c
-                warning.affected_rows_count . should_equal 4
-                warning.to_display_text . should_contain "['1000000', '123456', '1000' and 1 other case] have a text representation that does not fit the target type"
+                c1 = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+                c1.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                c1.to_vector . should_equal ["15 ", "100", "123", "100", "100"]
+                w1 = Problems.expect_warning Conversion_Failure c1
+                w1.affected_rows_count . should_equal 4
+                w1.to_display_text . should_contain "['1000000', '123456', '1000' and 1 other case] have a text representation that does not fit the target type"
+
+                c2 = t.at "X" . cast (Value_Type.Char size=3 variable_length=True)
+                c2.value_type . should_equal (Value_Type.Char size=3 variable_length=True)
+                # No padding in variable length, but also truncated.
+                c2.to_vector . should_equal ["15", "100", "123", "100", "100"]
+                w2 = Problems.expect_warning Conversion_Failure c2
+                w2.affected_rows_count . should_equal 4
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -107,30 +124,60 @@ spec setup =
             c.value_type.is_floating_point . should_be_true
             c.to_vector . should_equal [1.0, 2.0, 3.0]
 
-        Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" pending="TODO: #5159" <|
-            t = table_builder [["X", [1, 2, 3]]]
-            c = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
-            c.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            c.to_vector . should_equal [1, 2, 3]
+        if setup.test_selection.different_size_integer_types then
+            Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                c = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
+                c.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                c.to_vector . should_equal [1, 2, 3]
+                Problems.assume_no_problems c
 
-            t2 = table_builder [["X", [1, 2, 12000000]]]
-            c2 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16)
-            c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            c2.to_vector . should_equal [1, 2, Nothing]
-            # This can likely only be checked on in-memory.
-            Problems.expect_warning Conversion_Failure c2
+                t2 = table_builder [["X", [1, 2, 12000000]]]
+                c2 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16)
+                if supports_conversion_failure_reporting then
+                    c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                    c2.to_vector . should_equal [1, 2, Nothing]
 
-            r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
-            r3.should_fail_with Conversion_Failure
+                    w2 = Problems.expect_warning Conversion_Failure c2
+                    w2.affected_rows_count . should_equal 1
+                    w2.to_display_text . should_contain "out of the range of the target type"
 
-            # Now converting the 16-bit column `c` into 32 bits.
-            c3 = c.cast (Value_Type.Integer Bits.Bits_32)
-            c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-            c3.to_vector . should_equal [1, 2, 3]
+                    r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
+                    r3.should_fail_with Conversion_Failure
 
-            c4 = c.cast Value_Type.Byte
-            c4.value_type . should_equal Value_Type.Byte
-            c4.to_vector . should_equal [1, 2, 3]
+                # Now converting the 16-bit column `c` into 32 bits.
+                c3 = c.cast (Value_Type.Integer Bits.Bits_32)
+                c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                c3.to_vector . should_equal [1, 2, 3]
+
+        if setup.test_selection.supports_8bit_integer then
+            Test.specify "should allow to cast an integer column to a byte and back" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                c1 = t.at "X" . cast Value_Type.Byte
+                c1.value_type . should_equal Value_Type.Byte
+                c1.to_vector . should_equal [1, 2, 3]
+
+                # And converting byte back to 64 bits.
+                c2 = c1.cast (Value_Type.Integer Bits.Bits_64)
+                c2.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                c2.to_vector . should_equal [1, 2, 3]
+
+                if supports_conversion_failure_reporting then
+                    t2 = table_builder [["X", [1, 2, 257, -300, 0]]]
+                    c1 = t2.at "X" . cast Value_Type.Byte
+                    c1.value_type . should_equal Value_Type.Byte
+                    c1.to_vector . should_equal [1, 2, Nothing, Nothing, 0]
+                    w1 = Problems.expect_warning Conversion_Failure c1
+                    w1.affected_rows_count . should_equal 2
+                    w1.to_display_text . should_contain "out of the range of the target type"
+
+                    c2 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16)
+                    c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                    c2.to_vector . should_equal [1, 2, 257, -300, 0]
+
+                    c3 = c1.cast (Value_Type.Integer Bits.Bits_32)
+                    c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                    c3.to_vector . should_equal [1, 2, Nothing, Nothing, 0]
 
         Test.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
@@ -281,13 +328,18 @@ spec setup =
             t2.at "Z" . to_vector . should_equal ["7", "8", "9"]
             t2.at "A" . to_vector . should_equal [True, False, True]
 
-        if setup.test_selection.fixed_length_text_columns then
-            Test.specify "should preserve the overridden types when materialized" pending="TODO: #5159 needed" <|
-                t = table_builder [["X", [1, 2, 100]], ["Y", ["a", "abcdef", "abc"]]]
-                t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=3 variable_length=False)
-
+        if setup.test_selection.different_size_integer_types then
+            Test.specify "should preserve the overridden types when materialized (Integer)" <|
+                t = table_builder [["X", [1, 2, 100]]]
+                t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16)
                 t3 = materialize t2
-                t3.at "X" . value_type . should_equal (t2.at "X" . value_type)
+                t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+
+        if setup.test_selection.fixed_length_text_columns then
+            Test.specify "should preserve the overridden types when materialized (Char)" <|
+                t = table_builder [["Y", ["a", "abcdef", "abc"]]]
+                t2 = t . cast "Y" (Value_Type.Char size=3 variable_length=False)
+                t3 = materialize t2
                 t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
 
@@ -335,6 +387,21 @@ spec setup =
                 w1 = Problems.expect_warning Conversion_Failure c1
                 w1.affected_rows_count . should_equal 9
 
+                # Also check that integer range is checked in Mixed conversions.
+                t3 = table_builder [["numbermix", ["a", 34, 300, 10^12]]]
+                c1_2 = t3.at "numbermix" . cast (Value_Type.Integer Bits.Bits_16)
+                c1_2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                c1_2.to_vector . should_equal [Nothing, 34, 300, Nothing]
+                # We should have 2 separate warnings: for values of wrong type and for integers that just did not fit the range.
+                w1_2 = Problems.get_attached_warnings c1_2
+                w1_2.each w-> w.affected_rows_count . should_equal 1
+                w1_2.find (w-> w.to_display_text . contains "out of the range") . should_not_equal Nothing
+                w1_2.find (w-> w.to_display_text . contains "could not be converted") . should_not_equal Nothing
+                w1_2.length . should_equal 2
+                c1_3 = t3.at "numbermix" . cast Value_Type.Byte
+                c1_3.value_type . should_equal Value_Type.Byte
+                c1_3.to_vector . should_equal [Nothing, 34, Nothing, Nothing]
+
                 c2 = t2.cast "super-mix" Value_Type.Float . at "super-mix"
                 c2.value_type . should_equal Value_Type.Float
                 c2.to_vector . should_equal ([1.0, 2.25] + (nulls 8) + [1.0, Nothing, Nothing])
@@ -350,7 +417,7 @@ spec setup =
                 if setup.test_selection.fixed_length_text_columns then
                     c3_2 = t2.cast "super-mix" (Value_Type.Char size=2) . at "super-mix"
                     c3_2.value_type . should_equal (Value_Type.Char size=2)
-                    c3.to_vector . should_equal ["1.", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
+                    c3_2.to_vector . should_equal ["1.", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
                     w3_2 = Problems.expect_warning Conversion_Failure c3_2
                     w3_2.affected_rows_count . should_equal 10
 

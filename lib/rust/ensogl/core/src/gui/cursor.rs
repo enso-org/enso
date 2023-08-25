@@ -58,6 +58,8 @@ define_style! {
     press: f32,
     trash: f32,
     plus: f32,
+    double_arrow: f32,
+    double_arrow_rotation: f32,
 }
 
 
@@ -106,6 +108,14 @@ impl Style {
         let plus = Some(StyleValue::new(1.0));
         Self { plus, ..default() }
     }
+
+    /// Show the cursor as a double arrow. The rotation is in radians. The arrow is horizontal by
+    /// default.
+    pub fn double_arrow(rotation: f32) -> Self {
+        let double_arrow = Some(StyleValue::new(1.0));
+        let double_arrow_rotation = Some(StyleValue::new(rotation));
+        Self { double_arrow, double_arrow_rotation, ..default() }
+    }
 }
 
 
@@ -142,6 +152,25 @@ impl Style {
 // === CursorView ===
 // ==================
 
+/// Double arrow shape for use in the cursor.
+///
+/// The `double_arrow` parameter is a weight between 0.0 and 1.0 that indicates the visibility of
+/// the double arrow. The `rotation` parameter is in radians. The arrow is horizontal by default.
+fn double_arrow_shape(double_arrow: &Var<f32>, rotation: &Var<f32>) -> AnyShape {
+    let line = Rect(((double_arrow * 13.0).px(), (double_arrow * 1.5).px()));
+    let triangle = Triangle(5.0, 4.0).rotate((PI / 2.0).radians());
+    let left_head = triangle.translate_x((double_arrow * 6.0).px());
+    let right_head = triangle.rotate(PI.radians()).translate_x((double_arrow * (-6.0)).px());
+    let double_arrow_shape = line + left_head + right_head;
+    let rotation: Var<Radians> = rotation.clone().into();
+    let shape = double_arrow_shape.rotate(rotation);
+    let transparent: Var<color::Rgba> = color::Rgba::transparent().into();
+    let color: Var<color::Rgba> = color::Rgba::new(0.0, 0.0, 0.0, 0.8).into();
+    let color = transparent.mix(&color, double_arrow);
+    let shape = shape.fill(color);
+    shape.into()
+}
+
 /// Canvas shape definition.
 pub mod shape {
     use super::*;
@@ -155,6 +184,8 @@ pub mod shape {
             color: Vector4,
             trash: f32,
             plus: f32,
+            double_arrow: f32,
+            double_arrow_rotation: f32,
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -162,8 +193,9 @@ pub mod shape {
             let press_diff        = press_side_shrink * &press;
             let radius            = radius.px() - &press_diff;
             let sides_padding     = SIDES_PADDING.px();
-            let width             = &width  - &press_diff * 2.0 - &sides_padding;
-            let height            = &height - &press_diff * 2.0 - &sides_padding;
+            let scale             = Var::from(1.0) - &double_arrow;
+            let width             = (&width  - &press_diff * 2.0 - &sides_padding) * &scale;
+            let height            = (&height - &press_diff * 2.0 - &sides_padding) * scale;
             let cursor            = Rect((&width,&height)).corners_radius(radius);
 
             let color: Var<color::Rgba> = color.into();
@@ -186,7 +218,9 @@ pub mod shape {
             let plus_sign = plus_bar1 + plus_bar2;
             let plus_sign = plus_sign.fill(color::Rgba::new(1.0,1.0,1.0,0.8));
 
-            let cursor = cursor + trash_bar_x + plus_sign;
+            let double_arrow = double_arrow_shape(&double_arrow, &double_arrow_rotation);
+
+            let cursor = cursor + double_arrow + trash_bar_x + plus_sign;
             cursor.into()
         }
     }
@@ -327,6 +361,8 @@ impl Cursor {
         let custom_layer_weight = Animation::<f32>::new(network);
         let trash = Animation::<f32>::new(network);
         let plus = Animation::<f32>::new(network);
+        let double_arrow = Animation::<f32>::new(network);
+        let double_arrow_rotation = Animation::<f32>::new(network);
 
 
         let fade_out_spring = inactive_fade.simulator.spring() * 0.2;
@@ -384,6 +420,8 @@ impl Cursor {
             });
             eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
             eval plus.value ((v) model.for_each_view(|vw| vw.plus.set(*v)));
+            eval double_arrow.value ((v) model.for_each_view(|vw| vw.double_arrow.set(*v)));
+            eval double_arrow_rotation.value ((v) model.for_each_view(|vw| vw.double_arrow_rotation.set(*v)));
 
             let weight = &custom_layer_weight.value;
             anim_color <- color.value.all_with(&inactive_fade.value, |c, f| c.multiply_alpha(*f));
@@ -455,6 +493,16 @@ impl Cursor {
                 match &new_style.plus {
                     None => plus.target.emit(0.0),
                     Some(t) => plus.target.emit(t.value.unwrap_or(0.0)),
+                }
+
+                match &new_style.double_arrow {
+                    None => double_arrow.target.emit(0.0),
+                    Some(t) => double_arrow.target.emit(t.value.unwrap_or(0.0)),
+                }
+
+                match &new_style.double_arrow_rotation {
+                    None => double_arrow_rotation.target.emit(0.0),
+                    Some(t) => double_arrow_rotation.target.emit(t.value.unwrap_or(0.0)),
                 }
 
                 let pointer_events = match &new_style.pointer_events {

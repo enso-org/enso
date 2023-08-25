@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Test import Bench, Faker
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
 
 
 check_all text_vector pattern_vector mode =

@@ -166,7 +166,8 @@ type Matrix
             Nothing -> Matrix.Value (self.opencv_mat.reshape self.channels rows)
             _ -> Matrix.Value (self.opencv_mat.reshape channels rows)
 
-    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -202,7 +203,8 @@ type Matrix
     + : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch core_op_handler
 
-    ## Calculates the per-element difference of two matrices or of a matrix and
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element difference of two matrices or of a matrix and
        a scalar.
 
        Arguments:
@@ -239,7 +241,8 @@ type Matrix
     - : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch core_op_handler
 
-    ## Calculates the per-element product of two matrices or a matrix and a
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element product of two matrices or a matrix and a
        scalar.
 
        Arguments:
@@ -281,7 +284,8 @@ type Matrix
     * : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch core_op_handler
 
-    ## Performs per-element division of two matrices or a matrix and a scalar.
+    ## GROUP Standard.Base.Operators
+       Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -427,4 +431,5 @@ type Matrix_Comparator
     hash : Matrix -> Number
     hash x = x.opencv_mat.hashCode
 
+## PRIVATE
 Comparable.from (_:Matrix) = Matrix_Comparator
