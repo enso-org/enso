@@ -1,13 +1,8 @@
 package org.enso.logger;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.file.Path;
-
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.nio.file.Path;
 import org.enso.logger.config.LoggingServiceConfig;
 import org.enso.logger.config.MissingConfigurationField;
 import org.slf4j.event.Level;
@@ -17,13 +12,13 @@ public abstract class LoggerSetup {
 
   private static LoggerSetup _instance = null;
   private static Object lock = new Object();
+
   public static LoggerSetup get() {
     if (_instance == null) {
       synchronized (lock) {
         if (_instance == null) {
 
           Config c = ConfigFactory.load("enso-logging");
-          //System.err.println(c.hasPath(implClassKey) + " and " + c.hasPath("akka"));
           if (c.hasPath(implClassKey)) {
             try {
               String clazzName = c.getString(implClassKey);
@@ -31,7 +26,8 @@ public abstract class LoggerSetup {
               _instance = (LoggerSetup) clazz.getConstructor().newInstance();
             } catch (Throwable e) {
               e.printStackTrace();
-              System.err.println("Failed to initialize LoggerSetup configuration class: " + e.getMessage());
+              System.err.println(
+                  "Failed to initialize LoggerSetup configuration class: " + e.getMessage());
             }
           } else {
             System.err.println("Missing log configuration class key:" + implClassKey);
@@ -41,7 +37,6 @@ public abstract class LoggerSetup {
     }
     return _instance;
   }
-
 
   /** Returns parsed application config used to create this instance * */
   public abstract LoggingServiceConfig getConfig();

@@ -56,8 +56,8 @@ public abstract class LoggingSetupHelper {
   }
 
   /**
-   * Starts a logging server, if necessary, that accepts logs from different components.
-   * Once started, logs in this service are being setup to be forwarded to that logging server.
+   * Starts a logging server, if necessary, that accepts logs from different components. Once
+   * started, logs in this service are being setup to be forwarded to that logging server.
    *
    * @param logLevel maximal level of log events to be forwarded
    * @param logMasking true if masking of sensitive data should be applied to all log messages
@@ -102,10 +102,12 @@ public abstract class LoggingSetupHelper {
   }
 
   /**
-   * Initializes logging for this service using the URI of the dedicated logging server.
-   * If connecting to the logging server failed, or the optional address is missing, log events will be handled purely based on configuration packaged with this service.
+   * Initializes logging for this service using the URI of the dedicated logging server. If
+   * connecting to the logging server failed, or the optional address is missing, log events will be
+   * handled purely based on configuration packaged with this service.
    *
-   * @param logLevel optional maximal level of log events that will be handled by the logging infrastructure
+   * @param logLevel optional maximal level of log events that will be handled by the logging
+   *     infrastructure
    * @param connectToExternalLogger optional address of the logging server
    * @param logMasking true if sensitive data should be masked in log events, false otherwise
    * @throws MissingConfigurationField if the config file has been mis-configured
