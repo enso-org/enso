@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import java.io.OutputStream;
 import java.nio.file.Paths;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -99,6 +100,24 @@ public class ExecCompilerTest {
     assertTrue("We get an error value back", error.isException());
     assertTrue("The error value also represents null", error.isNull());
     assertEquals("(Error: Uninitialized value)", error.toString());
+  }
+  @Test
+  public void dotUnderscore() throws Exception {
+    var module = ctx.eval("enso", """
+    run op =
+      op._
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var error = run.execute("false_hope");
+      fail("Should never return, but: " + error);
+    } catch (PolyglotException e) {
+      assertTrue("It is exception", e.getGuestObject().isException());
+      assertEquals("Panic", e.getGuestObject().getMetaObject().getMetaSimpleName());
+      if (!e.getMessage().contains("Compiler Internal Error")) {
+        fail("Expecting Compiler Internal Error, but was: " + e.getMessage());
+      }
+    }
   }
 
   @Test
