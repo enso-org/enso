@@ -639,13 +639,13 @@ impl Dirty {
 ///
 /// Please note that the composer can be empty if the context was either not provided yet or it was
 /// lost.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
     dom:          Rc<Dom>,
     variables:    Rc<RefCell<UniformScope>>,
-    pub pipeline: Rc<CloneCell<render::Pipeline>>,
-    pub composer: Rc<RefCell<Option<render::Composer>>>,
+    pub pipeline: CloneCell<render::Pipeline>,
+    pub composer: RefCell<Option<render::Composer>>,
 }
 
 impl Renderer {
