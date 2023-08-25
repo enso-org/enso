@@ -147,6 +147,7 @@ interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
+    projectManagerUrl: string | null
     isInAuthenticationFlow: boolean
     shouldUseAuthentication: boolean
     shouldUseNewDashboard: boolean
@@ -263,6 +264,11 @@ class Main implements AppRunner {
                 configOptions.groups.startup.options.entry.value ===
                 configOptions.groups.startup.options.entry.default
             const initialProjectName = configOptions.groups.startup.options.project.value || null
+            // This does not need to be removed from the URL, but only because local projects
+            // also use the Project Manager URL, and remote (cloud) projects remove the URL
+            // completely.
+            const projectManagerUrl =
+                configOptions.groups.engine.options.projectManagerUrl.value || null
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
@@ -272,6 +278,7 @@ class Main implements AppRunner {
             if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
                 this.runAuthentication({
                     isInAuthenticationFlow,
+                    projectManagerUrl,
                     shouldUseAuthentication,
                     shouldUseNewDashboard,
                     initialProjectName,
@@ -299,6 +306,7 @@ class Main implements AppRunner {
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
+            projectManagerUrl: config.projectManagerUrl,
             isAuthenticationDisabled: !config.shouldUseAuthentication,
             shouldShowDashboard: config.shouldUseNewDashboard,
             initialProjectName: config.initialProjectName,

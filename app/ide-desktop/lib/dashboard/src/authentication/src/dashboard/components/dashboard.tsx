@@ -48,11 +48,12 @@ export interface DashboardProps {
     supportsLocalBackend: boolean
     appRunner: AppRunner
     initialProjectName: string | null
+    projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner, initialProjectName } = props
+    const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
     const navigate = hooks.useNavigate()
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
@@ -161,6 +162,7 @@ export default function Dashboard(props: DashboardProps) {
         ) {
             setBackend(
                 new localBackend.LocalBackend(
+                    projectManagerUrl,
                     localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
                 )
             )
@@ -212,7 +214,7 @@ export default function Dashboard(props: DashboardProps) {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend(null))
+                        setBackend(new localBackend.LocalBackend(projectManagerUrl, null))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
@@ -224,7 +226,13 @@ export default function Dashboard(props: DashboardProps) {
                 }
             }
         },
-        [backend.type, logger, session.accessToken, setBackend]
+        [
+            backend.type,
+            session.accessToken,
+            logger,
+            /* should never change */ projectManagerUrl,
+            /* should never change */ setBackend,
+        ]
     )
 
     const doCreateProject = React.useCallback(

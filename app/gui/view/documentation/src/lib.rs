@@ -168,7 +168,8 @@ impl Model {
         self.dom.set_dom_size(dom_size);
         self.dom.set_xy(dom_size / 2.0);
         self.overlay.set_size(visible_part);
-        self.breadcrumbs.set_xy(Vector2(style.breadcrumbs_padding_x, size.y));
+        self.breadcrumbs
+            .set_xy(Vector2(style.breadcrumbs_padding_x, size.y - style.breadcrumbs_height));
         self.breadcrumbs.frp().set_size(Vector2(visible_part.x, style.breadcrumbs_height));
         self.background.set_size(visible_part);
     }
@@ -292,12 +293,15 @@ impl View {
         let scene = &app.display.default_scene;
         let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
+        let breadcrumbs = &model.breadcrumbs;
         let frp = &self.frp;
         let display_delay = frp::io::timer::Timeout::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
         let width_anim = Animation::new(network);
         frp::extend! { network
+
+            init <- source_();
 
             // === Displaying documentation ===
 
@@ -358,9 +362,22 @@ impl View {
 
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
+
+
+            // == Breadcrumbs ==
+
+            let breadcrumbs_background = style_frp.get_color(theme::breadcrumbs::background);
+            breadcrumbs.set_background_color <+ all(breadcrumbs_background, init)._0();
+            let breadcrumbs_text = style_frp.get_color(theme::breadcrumbs::entry::text::selected_color);
+            breadcrumbs.set_text_selected_color <+ all(breadcrumbs_text, init)._0();
+            let breadcrumbs_text_greyed_out_color = style_frp.get_color(theme::breadcrumbs::entry::text::greyed_out_color);
+            breadcrumbs.set_text_greyed_out_color <+ all(breadcrumbs_text_greyed_out_color, init)._0();
+            let breadcrumbs_separator_color = style_frp.get_color(theme::breadcrumbs::separator::color);
+            breadcrumbs.set_separator_color <+ all(breadcrumbs_separator_color, init)._0();
         }
         model.set_initial_breadcrumbs();
         frp.set_visible(true);
+        init.emit(());
         self
     }
 }
