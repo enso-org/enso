@@ -79,6 +79,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
@@ -95,7 +96,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         },
         [/* should never change */ setItem]
     )
-    const { localStorage } = localStorageProvider.useLocalStorage()
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
         ((state: spinner.SpinnerState | null) => void) | null
