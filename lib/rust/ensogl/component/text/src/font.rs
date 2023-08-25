@@ -960,9 +960,11 @@ impl FontWithGpuData {
 
     fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
-        self.update_atlas();
     }
 
+    /// Upload the current atlas to the GPU if it is dirty (contains more glyphs than the currently-
+    /// uploaded version); drop the `gpu::Texture` if context has been lost.
+    #[profile(Debug)]
     fn update_atlas(&self) {
         if let Some(context) = self.context.borrow().as_ref() {
             let num_glyphs = self.font.msdf_texture().glyphs();
@@ -1002,6 +1004,7 @@ impl FontWithGpuData {
 #[derive(Clone, CloneRef, Derivative)]
 #[derivative(Debug)]
 pub struct Registry {
+    frp:                registry::Frp,
     fonts:              Rc<HashMap<Name, FontWithGpuData>>,
     #[derivative(Debug = "ignore")]
     set_context_handle: Rc<dyn Fn(Option<&Context>)>,
@@ -1051,7 +1054,19 @@ impl Registry {
                 font.set_context(context);
             }
         });
-        Self { fonts, set_context_handle }
+        let frp = registry::Frp::new();
+        let on_before_rendering = ensogl_core::animation::on_before_rendering();
+        let network = frp.network();
+        frp::extend! { network
+            eval_ on_before_rendering([fonts] Self::update(&fonts));
+        }
+        Self { frp, fonts, set_context_handle }
+    }
+
+    fn update(fonts: impl AsRef<HashMap<Name, FontWithGpuData>>) {
+        for font in fonts.as_ref().values() {
+            font.update_atlas()
+        }
     }
 }
 
@@ -1059,6 +1074,21 @@ impl scene::Extension for Registry {
     fn init(scene: &scene::Scene) -> Self {
         let fonts = Embedded::default().into_fonts();
         Self::new(scene, fonts)
+    }
+}
+
+
+// === Frp ===
+
+mod registry {
+    use super::*;
+
+    // Although the font registry doesn't (currently) define any FRP endpoints, it needs to own a
+    // network in order to attach a handler to `ensogl_core::animation::on_before_rendering()` so
+    // that it can check for a dirty state.
+    ensogl_core::define_endpoints_2! {
+        Input { }
+        Output { }
     }
 }
 
