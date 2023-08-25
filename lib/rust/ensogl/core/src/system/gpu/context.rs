@@ -223,7 +223,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
                 e.prevent_default();
             ));
             let restored: Handler = Closure::new(f_!([display, native]
-                warn!("Trying to restore the WebGL context.");
+                warn!("Restoring the WebGL context.");
                 let new_context = Context::from_native(native.clone());
                 display.set_context(Some(&new_context))
             ));
