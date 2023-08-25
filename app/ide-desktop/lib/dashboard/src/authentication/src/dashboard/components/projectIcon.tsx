@@ -118,6 +118,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     const abortController = new AbortController()
                     setOpenProjectAbortController(abortController)
                     await remoteBackend.waitUntilProjectIsReady(backend, item, abortController)
+                    setToastId(null)
                     if (!abortController.signal.aborted) {
                         setState(oldState =>
                             oldState === backendModule.ProjectState.openInProgress
