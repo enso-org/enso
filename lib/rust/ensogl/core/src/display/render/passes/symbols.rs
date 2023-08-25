@@ -17,7 +17,7 @@ use crate::system::gpu::context::ContextLost;
 // === SymbolsRenderPass ===
 // =========================
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct Framebuffers {
     composed: pass::Framebuffer,
     mask:     pass::Framebuffer,
@@ -57,7 +57,7 @@ impl Framebuffers {
 }
 
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SymbolsRenderPass {
     layers:           scene::HardcodedLayers,
     framebuffers:     Option<Framebuffers>,
@@ -209,6 +209,20 @@ impl SymbolsRenderPass {
             if first_scissor_usage {
                 self.disable_scissor_test(instance)
             }
+        }
+    }
+}
+
+// The `pass::Definition` interface relies on cloning to re-initialize passes; however, some fields
+// are not shareable types and should not be cloned. We set these fields to default values, and they
+// will be updated when the cloned value is initialized.
+impl Clone for SymbolsRenderPass {
+    fn clone(&self) -> Self {
+        Self {
+            layers:           self.layers.clone(),
+            framebuffers:     default(),
+            mask_composer:    self.mask_composer.clone(),
+            overlay_composer: self.overlay_composer.clone(),
         }
     }
 }

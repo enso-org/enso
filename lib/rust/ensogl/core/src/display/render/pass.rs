@@ -190,7 +190,7 @@ impl OutputDefinition {
 /// A native WebGL framebuffer object bound to the gl context.
 // NOTE: This type must not derive `Clone`, as the resulting shared `native` would be deleted when
 // either instance is dropped.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Framebuffer {
     context: Context,
     native:  web_sys::WebGlFramebuffer,

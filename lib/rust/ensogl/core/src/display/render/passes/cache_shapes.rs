@@ -31,7 +31,7 @@ use crate::gui::component::AnyShapeView;
 /// Once given shape system is ready to render (has shader compiled), we call "render" only on its
 /// symbol. There is no need to render previous shapes again, because we don't clear texture at any
 /// point.
-#[derive(Clone, Derivative)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
     framebuffer: Option<pass::Framebuffer>,
@@ -148,6 +148,23 @@ impl pass::Definition for CacheShapesPass {
 
     fn is_screen_size_independent(&self) -> bool {
         true
+    }
+}
+
+// The `pass::Definition` interface relies on cloning to re-initialize passes; however, some fields
+// are not shareable types and should not be cloned. We set these fields to default values, and they
+// will be updated when the cloned value is initialized.
+impl Clone for CacheShapesPass {
+    fn clone(&self) -> Self {
+        Self {
+            framebuffer: default(),
+            texture: default(),
+            shapes_to_render: self.shapes_to_render.clone(),
+            texture_size_device: self.texture_size_device,
+            layer: self.layer.clone(),
+            camera_ready: self.camera_ready.clone(),
+            display_object_update_handler: self.display_object_update_handler.clone(),
+        }
     }
 }
 

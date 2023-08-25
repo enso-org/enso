@@ -97,38 +97,36 @@ impl Texture {
         let data: &[u8] = bytemuck::cast_slice(data);
         self.context.bind_texture(*target, Some(&self.gl_texture));
         let error = match self.layers {
-            0 => {
-                self.context
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-                        *target,
-                        level,
-                        xoffset,
-                        yoffset,
-                        self.width,
-                        self.height,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .err()
-            }
-            _ => {
-                self.context
-                    .tex_sub_image_3d_with_opt_u8_array(
-                        *target,
-                        level,
-                        xoffset,
-                        yoffset,
-                        zoffset,
-                        self.width,
-                        self.height,
-                        self.layers,
-                        format,
-                        elem_type,
-                        Some(data),
-                    )
-                    .err()
-            }
+            0 => self
+                .context
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+                    *target,
+                    level,
+                    xoffset,
+                    yoffset,
+                    self.width,
+                    self.height,
+                    format,
+                    elem_type,
+                    Some(data),
+                )
+                .err(),
+            _ => self
+                .context
+                .tex_sub_image_3d_with_opt_u8_array(
+                    *target,
+                    level,
+                    xoffset,
+                    yoffset,
+                    zoffset,
+                    self.width,
+                    self.height,
+                    self.layers,
+                    format,
+                    elem_type,
+                    Some(data),
+                )
+                .err(),
         };
         if let Some(error) = error {
             if !self.context.is_context_lost() {
