@@ -236,7 +236,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     setShouldOpenWhenReady(false)
-                    void closeProject(false)
+                    if (!isSomeoneElseUsingProject) {
+                        void closeProject(false)
+                    }
                 } else {
                     setShouldOpenWhenReady(true)
                     setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
@@ -250,7 +252,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setOnSpinnerStateChange(null)
                 openProjectAbortController?.abort()
                 setOpenProjectAbortController(null)
-                void closeProject(false)
+                if (!isSomeoneElseUsingProject) {
+                    void closeProject(false)
+                }
                 break
             }
             case assetEventModule.AssetEventType.newProject: {
