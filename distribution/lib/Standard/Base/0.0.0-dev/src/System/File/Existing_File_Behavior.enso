@@ -80,7 +80,7 @@ type Existing_File_Behavior
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
-    parent = file.parent
+    parent = file.absolute.parent
     bak_file = parent / file.name+".bak"
     go i =
         new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
@@ -127,7 +127,7 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
        Thus we add this additional check to ensure the operation will proceed
        only if it is allowed. Other scenarios do not need this check, as they
        write to the file directly and will fail if the file is not writable.
-    if file.parent.exists.not then Error.throw (File_Error.Not_Found file.parent) else
+    if parent.exists.not then Error.throw (File_Error.Not_Found file.parent) else
         if file.is_writable.not then File_Error.access_denied file else
             go 0
 
