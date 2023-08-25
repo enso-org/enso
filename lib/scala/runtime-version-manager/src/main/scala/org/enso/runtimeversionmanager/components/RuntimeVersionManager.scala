@@ -464,7 +464,10 @@ class RuntimeVersionManager(
       engineRelease.manifest
     )
     if (!isCompatible) {
-      throw UpgradeRequiredError(engineRelease.manifest.minimumRequiredVersion)
+      throw UpgradeRequiredError(
+        CurrentVersion.version,
+        engineRelease.manifest.minimumRequiredVersion
+      )
     }
     if (engineRelease.isBroken) {
       val continue = userInterface.shouldInstallBrokenEngine(version)
@@ -726,7 +729,12 @@ class RuntimeVersionManager(
   ): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
       if (!isEngineVersionCompatibleWithThisInstaller(manifest)) {
-        Failure(UpgradeRequiredError(manifest.minimumRequiredVersion))
+        Failure(
+          UpgradeRequiredError(
+            CurrentVersion.version,
+            manifest.minimumRequiredVersion
+          )
+        )
       } else Success(manifest)
     }
   }

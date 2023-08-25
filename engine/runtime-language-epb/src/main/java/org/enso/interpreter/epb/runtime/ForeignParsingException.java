@@ -24,10 +24,19 @@ public class ForeignParsingException extends AbstractTruffleException {
    * @param location Location node passed to {@link AbstractTruffleException}.
    */
   public ForeignParsingException(String truffleLangId, Set<String> installedLangs, Node location) {
-    super(createMessage(truffleLangId, installedLangs), location);
-    this.message = createMessage(truffleLangId, installedLangs);
+    this(createMessage(truffleLangId, installedLangs), location);
   }
 
+  /**
+   * @param msg message of the exception
+   * @param location Location node passed to {@link AbstractTruffleException}.
+   */
+  public ForeignParsingException(String msg, Node location) {
+    super(msg, location);
+    this.message = msg;
+  }
+
+  @TruffleBoundary
   private static String createMessage(String truffleLangId, Set<String> installedLangs) {
     return String.format(
         "Cannot parse foreign %s method. Only available languages are %s",

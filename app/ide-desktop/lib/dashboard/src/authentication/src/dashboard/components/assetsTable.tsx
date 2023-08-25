@@ -115,9 +115,9 @@ export interface AssetsTableState {
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
-    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -127,7 +127,8 @@ export interface AssetsTableState {
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (
         project: backendModule.ProjectAsset,
-        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
 }
@@ -150,13 +151,17 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     initialProjectName: string | null
-    assetEvents: assetEventModule.AssetEvent[]
-    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     doOpenIde: (
         project: backendModule.ProjectAsset,
-        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
     loadingProjectManagerDidFail: boolean
@@ -170,10 +175,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         initialProjectName,
-        assetEvents,
-        dispatchAssetEvent,
+        queuedAssetEvents: rawQueuedAssetEvents,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
         loadingProjectManagerDidFail,
@@ -197,6 +203,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
+    const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
     const nodeMap = React.useMemo(
@@ -250,6 +257,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree, sortColumn, sortDirection])
 
     React.useEffect(() => {
+        if (rawQueuedAssetEvents.length !== 0) {
+            setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
+        }
+    }, [rawQueuedAssetEvents])
+
+    React.useEffect(() => {
         setIsLoading(true)
     }, [backend])
 
@@ -281,10 +294,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
+            setQueuedAssetEvents(oldQueuedAssetEvents => {
+                if (oldQueuedAssetEvents.length !== 0) {
+                    window.setTimeout(() => {
+                        for (const event of oldQueuedAssetEvents) {
+                            dispatchAssetEvent(event)
+                        }
+                    }, 0)
+                }
+                return []
+            })
             if (!initialized) {
                 setInitialized(true)
                 if (initialProjectName != null) {
@@ -737,6 +761,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent({
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
+                shouldAutomaticallySwitchPage: true,
             })
         },
         [/* should never change */ dispatchAssetEvent]
