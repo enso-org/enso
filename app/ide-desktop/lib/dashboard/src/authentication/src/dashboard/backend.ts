@@ -5,15 +5,9 @@ import * as newtype from '../newtype'
 import * as permissions from './permissions'
 import * as uniqueString from '../uniqueString'
 
-// =============
-// === Types ===
-// =============
-
-/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-    local = 'local',
-    remote = 'remote',
-}
+// ================
+// === Newtypes ===
+// ================
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
@@ -75,6 +69,46 @@ export type Subject = newtype.Newtype<string, 'Subject'>
 export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
+
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE_PROJECT: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
+
+// =============
+// === Types ===
+// =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -291,19 +325,6 @@ export interface SimpleUser {
     id: Subject
     name: string
     email: EmailAddress
-}
-
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
 }
 
 /** User permission for a specific user. */

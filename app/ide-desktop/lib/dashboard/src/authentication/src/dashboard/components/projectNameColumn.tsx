@@ -1,11 +1,15 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import NetworkIcon from 'enso-assets/network.svg'
+
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as assetTreeNode from '../assetTreeNode'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
@@ -17,6 +21,7 @@ import * as validation from '../validation'
 import * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ===================
 // === ProjectName ===
@@ -47,6 +52,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     } = props
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
@@ -54,6 +60,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         throw new Error('`ProjectNameColumn` can only display project assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const ownPermission =
+        asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
+        null
+    const hasPermissionsToOpenProject =
+        ownPermission != null &&
+        backendModule.PERMISSION_ACTION_CAN_EXECUTE_PROJECT[ownPermission.permission]
 
     const doRename = async (newName: string) => {
         try {
@@ -68,7 +80,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )
             return
         } catch (error) {
-            toastAndLog('Unable to rename project', error)
+            toastAndLog(errorModule.tryGetMessage(error) ?? 'Could not rename project.')
             throw error
         }
     }
@@ -221,18 +233,22 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
             }}
         >
-            <ProjectIcon
-                keyProp={item.key}
-                item={asset}
-                setItem={setAsset}
-                assetEvents={assetEvents}
-                doOpenManually={doOpenManually}
-                appRunner={appRunner}
-                openIde={switchPage => {
-                    doOpenIde(asset, switchPage)
-                }}
-                onClose={doCloseIde}
-            />
+            {!hasPermissionsToOpenProject ? (
+                <SvgMask src={NetworkIcon} className="m-1" />
+            ) : (
+                <ProjectIcon
+                    keyProp={item.key}
+                    item={asset}
+                    setItem={setAsset}
+                    assetEvents={assetEvents}
+                    doOpenManually={doOpenManually}
+                    appRunner={appRunner}
+                    openIde={switchPage => {
+                        doOpenIde(asset, switchPage)
+                    }}
+                    onClose={doCloseIde}
+                />
+            )}
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
@@ -263,7 +279,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       }
                     : {})}
                 className={`bg-transparent grow px-2 ${
-                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                    rowState.isEditingName
+                        ? 'cursor-text'
+                        : hasPermissionsToOpenProject
+                        ? 'cursor-pointer'
+                        : ''
                 }`}
             >
                 {asset.title}

@@ -11,6 +11,8 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
 import * as remoteBackend from '../remoteBackend'
 
@@ -93,6 +95,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         },
         [/* should never change */ setItem]
     )
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
         ((state: spinner.SpinnerState | null) => void) | null
@@ -269,6 +272,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }, [shouldOpenWhenReady, shouldSwitchPage, state, openIde])
 
     const closeProject = async (triggerOnClose = true) => {
+        if (triggerOnClose) {
+            onClose()
+            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+        }
         setToastId(null)
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closing)
@@ -281,9 +288,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             state !== backendModule.ProjectState.closing &&
             state !== backendModule.ProjectState.closed
         ) {
-            if (triggerOnClose) {
-                onClose()
-            }
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
@@ -312,7 +316,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6"
+                    className="w-6 disabled:opacity-50"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
