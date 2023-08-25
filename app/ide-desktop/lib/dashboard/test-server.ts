@@ -33,8 +33,10 @@ OPTS.plugins.push({
     setup: build => {
         build.onResolve({ filter: /^\..+$/ }, async args => {
             const sourcePath = path.resolve(path.dirname(args.importer), args.path)
-            if (sourcePath.includes('/lib/dashboard/src/')) {
-                const mockPath = sourcePath.replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
+            if (/[\\/]lib[\\/]dashboard[\\/]src[\\/]/.test(sourcePath)) {
+                const mockPath = sourcePath
+                    .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
+                    .replace('\\lib\\dashboard\\src\\', '\\lib\\dashboard\\mock\\')
                 try {
                     await fs.access(mockPath + '.ts', fs.constants.R_OK)
                     return { path: mockPath + '.ts' }
