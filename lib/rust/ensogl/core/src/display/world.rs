@@ -35,11 +35,13 @@ use web::JsCast;
 use web::JsValue;
 
 
+
 // ==============
 // === Export ===
 // ==============
 
 pub use crate::display::symbol::types::*;
+
 
 
 // =================
@@ -524,7 +526,7 @@ impl WorldData {
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key == "KeyG" {
                     enso_debug_api::open_gpu_debug_info();
-                } else if key == "KeyX" {
+                } else if key == "KeyX" && event.shift_key() {
                     if let Some(restore) = restore_context.take() {
                         restore.restore_context();
                     } else if let Some(context) = scene().context.borrow().as_ref() {

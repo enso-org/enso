@@ -43,6 +43,7 @@ use std::any::TypeId;
 use web::HtmlElement;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -58,6 +59,7 @@ pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTargetId;
 pub use pointer_target::PointerTarget_DEPRECATED;
+
 
 
 // =====================
@@ -1007,10 +1009,10 @@ pub struct SceneData {
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
     pub shader_compiler: shader::compiler::Controller,
-    initial_shader_compilation: Rc<Cell<TaskState>>,
+    initial_shader_compilation: Cell<TaskState>,
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
-    disable_context_menu: Rc<EventListenerHandle>,
+    disable_context_menu: EventListenerHandle,
     #[derivative(Debug = "ignore")]
     on_set_context: RefCell<Vec<Weak<dyn Fn(Option<&Context>)>>>,
 }
@@ -1041,7 +1043,7 @@ impl SceneData {
             &mut variables.borrow_mut(),
             &display_mode,
         );
-        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
+        let disable_context_menu = web::ignore_context_menu(&dom.root);
         let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;
         let extensions = Extensions::default();
