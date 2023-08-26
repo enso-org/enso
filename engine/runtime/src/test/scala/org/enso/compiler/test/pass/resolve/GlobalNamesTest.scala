@@ -5,7 +5,6 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap.{
 //  Cons,
-  ModuleReference,
   Resolution,
 //  ResolvedConstructor,
   ResolvedModule
@@ -14,14 +13,15 @@ import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.test.CompilerTest
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.ModuleTestUtils
 
 class GlobalNamesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  def mkModuleContext: ModuleContext =
-    buildModuleContext(
+  def mkModuleContext: (ModuleContext, Module) =
+    buildModuleContextModule(
       freshNameSupply = Some(new FreshNameSupply)
     )
 
@@ -57,7 +57,8 @@ class GlobalNamesTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Method definition resolution" should {
-    implicit val ctx: ModuleContext = mkModuleContext
+    val both: (ModuleContext, Module) = mkModuleContext
+    implicit val ctx: ModuleContext   = both._1
 
     val code         = """
                  |main =
@@ -82,9 +83,9 @@ class GlobalNamesTest extends CompilerTest {
                  |""".stripMargin
     val parsed       = code.toIrModule
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
-    ModuleTestUtils.unsafeSetIr(ctx.module, moduleMapped)
+    ModuleTestUtils.unsafeSetIr(both._2, moduleMapped)
 
-    new ExportsResolution().run(List(ctx.module))
+    new ExportsResolution().run(List(both._2))
     val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
     val ir            = allPrecursors.analyse
 
@@ -110,7 +111,7 @@ class GlobalNamesTest extends CompilerTest {
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+        Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
 
@@ -128,7 +129,7 @@ class GlobalNamesTest extends CompilerTest {
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+        Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
 
@@ -139,7 +140,7 @@ class GlobalNamesTest extends CompilerTest {
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+        Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
 
@@ -151,7 +152,7 @@ class GlobalNamesTest extends CompilerTest {
 
   "Undefined names" should {
     "be detected and reported" in {
-      implicit val ctx: ModuleContext = mkModuleContext
+      implicit val ctx: ModuleContext = mkModuleContext._1
 
       val ir =
         """
@@ -174,7 +175,7 @@ class GlobalNamesTest extends CompilerTest {
     }
 
     "should include here" in {
-      implicit val ctx: ModuleContext = mkModuleContext
+      implicit val ctx: ModuleContext = mkModuleContext._1
 
       val ir =
         """

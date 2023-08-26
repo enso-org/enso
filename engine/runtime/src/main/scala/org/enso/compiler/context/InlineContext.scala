@@ -4,9 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.node.BaseNode.TailStatus
-import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.node.ExpressionNode
 import com.oracle.truffle.api.source.Source
@@ -24,7 +22,7 @@ import com.oracle.truffle.api.source.Source
   * @param pkgRepo the compiler's package repository
   */
 case class InlineContext(
-  private val module: Module,
+  private val module: ModuleContext,
   compilerConfig: CompilerConfig,
   localScope: Option[LocalScope]               = None,
   isInTailPosition: Option[Boolean]            = None,
@@ -32,10 +30,7 @@ case class InlineContext(
   passConfiguration: Option[PassConfiguration] = None,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  final def bindingsAnalysis() = module.getIr.unsafeGetMetadata(
-    BindingAnalysis,
-    "No binding analysis on the module"
-  )
+  final def bindingsAnalysis() = module.bindingsAnalysis()
 
   final def truffleRunInline(
     context: CompilerContext,
@@ -44,7 +39,7 @@ case class InlineContext(
     ir: IR.Expression
   ): ExpressionNode = {
     val s = localScope.getOrElse(LocalScope.root)
-    return context.truffleRunInline(source, s, module, config, ir)
+    return module.truffleRunInline(context, source, s, config, ir)
   }
 }
 object InlineContext {
@@ -66,7 +61,7 @@ object InlineContext {
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
-      module           = moduleScope.getModule,
+      module           = ModuleContext(moduleScope.getModule, compilerConfig),
       isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),
       compilerConfig   = compilerConfig
     )
@@ -81,7 +76,7 @@ object InlineContext {
   def fromModuleContext(moduleContext: ModuleContext): InlineContext = {
     InlineContext(
       localScope        = None,
-      module            = moduleContext.module,
+      module            = moduleContext,
       isInTailPosition  = None,
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,
