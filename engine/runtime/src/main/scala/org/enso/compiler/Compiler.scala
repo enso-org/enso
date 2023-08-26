@@ -672,7 +672,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(truffleCodegenInline(compilerOutput, source, newContext))
+      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
     }
   }
 
@@ -1212,22 +1212,6 @@ class Compiler(
     scope: ModuleScope
   ): Unit = {
     context.truffleRunCodegen(source, scope, config, ir)
-  }
-
-  /** Generates code for the truffle interpreter in an inline context.
-    *
-    * @param ir the prorgam to translate
-    * @param source the source code of the program represented by `ir`
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return the runtime representation of the program represented by `ir`
-    */
-  def truffleCodegenInline(
-    ir: IR.Expression,
-    source: Source,
-    inlineContext: InlineContext
-  ): RuntimeExpression = {
-    context.truffleRunInline(source, inlineContext, config, ir);
   }
 
   /** Performs shutdown actions for the compiler.

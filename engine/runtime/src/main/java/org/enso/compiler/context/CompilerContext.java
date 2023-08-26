@@ -16,6 +16,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.QualifiedName;
@@ -59,7 +60,7 @@ public interface CompilerContext {
   void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, IR.Module ir);
 
   ExpressionNode truffleRunInline(
-      Source source, InlineContext scope, CompilerConfig config, IR.Expression ir);
+      Source source, LocalScope localScope, Module module, CompilerConfig config, IR.Expression ir);
 
   // module related
 

@@ -125,12 +125,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public ExpressionNode truffleRunInline(Source source, InlineContext inlineContext, CompilerConfig config, IR.Expression ir) {
-    var localScope
-            = inlineContext.localScope().isDefined()
-            ? inlineContext.localScope().get()
-            : LocalScope.root();
-    return new IrToTruffle(context, source, inlineContext.module().getScope(), config)
+  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, Module module, CompilerConfig config, IR.Expression ir) {
+    return new IrToTruffle(context, source, module.getScope(), config)
             .runInline(ir, localScope, "<inline_source>");
   }
 
