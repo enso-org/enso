@@ -10,6 +10,8 @@ import java.util.logging.Level;
 import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
+import org.enso.compiler.Passes;
+import org.enso.compiler.SerializationManager;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
@@ -60,6 +62,17 @@ public interface CompilerContext {
       Source source, InlineContext scope, CompilerConfig config, IR.Expression ir);
 
   // module related
+
+  void runStubsGenerator(Module module);
+
+  boolean typeContainsValues(String name);
+
+  void initializeBuiltinsIr(
+      boolean irCachingEnabled,
+      SerializationManager serializationManager,
+      FreshNameSupply freshNameSupply,
+      Passes passes);
+
   QualifiedName getModuleName(Module module);
 
   CharSequence getCharacters(Module module) throws IOException;
