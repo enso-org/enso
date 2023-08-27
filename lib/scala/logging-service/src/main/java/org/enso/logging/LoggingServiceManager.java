@@ -28,10 +28,14 @@ public class LoggingServiceManager {
     } else {
       if (config.appenders().containsKey(config.appender())) {
         currentLevel = logLevel;
-        var server = LoggingServiceFactory.get().localServerFor(port);
-        loggingService = server;
-        Appender appender = config.appenders().get(config.appender());
-        return Future.apply(() -> server.start(logLevel, logPath, logFileSuffix, appender), ec);
+        return Future.apply(
+            () -> {
+              var server = LoggingServiceFactory.get().localServerFor(port);
+              loggingService = server;
+              Appender appender = config.appenders().get(config.appender());
+              return server.start(logLevel, logPath, logFileSuffix, appender);
+            },
+            ec);
       } else {
         throw new LoggerInitializationFailed();
       }

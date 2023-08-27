@@ -735,10 +735,9 @@ lazy val `logging-logback` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"    % "slf4j-api"      % slf4jVersion,
-      "com.typesafe" % "config"         % typesafeConfigVersion,
-      "io.sentry"    % "sentry-logback" % "6.28.0" % Provided,
-      akkaHttp
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "io.sentry"        % "sentry-logback"          % "6.28.0"           % Provided,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
   )
   .dependsOn(`logging-config`)

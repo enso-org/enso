@@ -29,9 +29,6 @@
         "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
       },
       {
-        "pattern":"\\Qenso-logging.conf\\E"
-      },
-      {
         "pattern":"\\Qapplication.conf\\E"
       },
       {

@@ -26,6 +26,7 @@ import org.enso.logger.config.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
+@org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public class LogbackSetup extends LoggerSetup {
     private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
         this.config = config;

@@ -221,31 +221,6 @@
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
-    "name": "org.enso.logging.LogbackLoggingServiceFactory",
-    "methods": [{ "name": "<init>", "parameterTypes": [] } ]
-  },
-  { "name": "org.enso.logger.LogbackSetup",
-    "methods": [{ "name": "get" }]
-  },
-  {
-    "name": "org.enso.logging.LogbackLoggingServiceFactory",
-    "methods": [
-      {
-        "name": "<init>",
-        "parameterTypes": []
-      }
-    ]
-  },
-  {
-    "name": "org.enso.logger.LogbackSetup",
-    "methods": [
-      {
-        "name": "<init>",
-        "parameterTypes": []
-      }
-    ]
-  },
-  {
     "name":"ch.qos.logback.classic.pattern.DateConverter",
     "methods":[{"name":"<init>","parameterTypes":[] }]
   },

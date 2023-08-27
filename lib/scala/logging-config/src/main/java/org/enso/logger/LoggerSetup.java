@@ -1,8 +1,7 @@
 package org.enso.logger;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import java.nio.file.Path;
+import java.util.ServiceLoader;
 import org.enso.logger.config.LoggingServiceConfig;
 import org.enso.logger.config.MissingConfigurationField;
 import org.slf4j.event.Level;
@@ -10,6 +9,8 @@ import org.slf4j.event.Level;
 /** Base class to be implemented by the underlying logging implementation. */
 public abstract class LoggerSetup {
 
+  private static final ServiceLoader<LoggerSetup> loader =
+      ServiceLoader.load(LoggerSetup.class, LoggerSetup.class.getClassLoader());
   private static LoggerSetup _instance = null;
   private static Object lock = new Object();
 
@@ -17,21 +18,7 @@ public abstract class LoggerSetup {
     if (_instance == null) {
       synchronized (lock) {
         if (_instance == null) {
-
-          Config c = ConfigFactory.load("enso-logging");
-          if (c.hasPath(implClassKey)) {
-            try {
-              String clazzName = c.getString(implClassKey);
-              Class<?> clazz = Class.forName(clazzName);
-              _instance = (LoggerSetup) clazz.getConstructor().newInstance();
-            } catch (Throwable e) {
-              e.printStackTrace();
-              System.err.println(
-                  "Failed to initialize LoggerSetup configuration class: " + e.getMessage());
-            }
-          } else {
-            System.err.println("Missing log configuration class key:" + implClassKey);
-          }
+          _instance = loader.findFirst().get();
         }
       }
     }
