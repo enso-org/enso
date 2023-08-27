@@ -30,12 +30,12 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  final def isSynthetic() = module.isSynthetic()
-  final def bindingsAnalysis() = module.getIr.unsafeGetMetadata(
+  def isSynthetic() = module.isSynthetic()
+  def bindingsAnalysis() = module.getIr.unsafeGetMetadata(
     BindingAnalysis,
     "No binding analysis on the module"
   )
-  final def truffleRunInline(
+  def truffleRunInline(
     context: CompilerContext,
     source: Source,
     s: LocalScope,
@@ -44,9 +44,9 @@ case class ModuleContext(
   ): ExpressionNode = {
     return context.truffleRunInline(source, s, module, config, ir)
   }
-  final def getName(): QualifiedName = module.getName()
-  final def getPackage(): Package[_] = module.getPackage()
-  final def getSource(): Source      = module.getSource()
-  final def moduleReference(): ModuleReference.Concrete =
+  def getName(): QualifiedName = module.getName()
+  def getPackage(): Package[_] = module.getPackage()
+  def getSource(): Source      = module.getSource()
+  def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
 }
