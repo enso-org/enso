@@ -1,9 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
@@ -29,7 +25,11 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.RuntimeOptions;
 
-import scala.Some;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
+
+import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -214,20 +214,22 @@ final class TruffleCompilerContext implements CompilerContext {
       builtins.initializeBuiltinsSource();
 
       if (irCachingEnabled) {
-        switch (serializationManager.deserialize(builtinsModule)) {
-          case Some x when (boolean) x.get() ->
-            // Ensure that builtins doesn't try and have codegen run on it.
-            updateModule(
-                    builtinsModule,
-                    u -> u.compilationStage(CompilationStage.AFTER_CODEGEN)
-            );
-          default -> {
-            builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
-            updateModule(
-                    builtinsModule,
-                    u -> u.hasCrossModuleLinks(true)
-            );
-          }
+        if (
+          serializationManager.deserialize(builtinsModule) instanceof Option<?> op &&
+          op.isDefined() &&
+          op.get() instanceof Boolean b && b
+        ) {
+          // Ensure that builtins doesn't try and have codegen run on it.
+          updateModule(
+            builtinsModule,
+            u -> u.compilationStage(CompilationStage.AFTER_CODEGEN)
+          );
+        } else {
+          builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
+          updateModule(
+            builtinsModule,
+            u -> u.hasCrossModuleLinks(true)
+          );
         }
       } else {
         builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
