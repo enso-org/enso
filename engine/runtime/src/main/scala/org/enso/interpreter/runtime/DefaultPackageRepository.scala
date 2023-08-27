@@ -52,7 +52,7 @@ private class DefaultPackageRepository(
   notificationHandler: NotificationHandler
 ) extends PackageRepository {
 
-  private lazy val logger = Logger[DefaultPackageRepository]
+  private val logger = Logger[DefaultPackageRepository]
 
   implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
   private val packageManager                               = new PackageManager[TruffleFile]

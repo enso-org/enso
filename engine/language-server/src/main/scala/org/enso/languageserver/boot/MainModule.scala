@@ -297,7 +297,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .option(
       RuntimeOptions.LOG_LEVEL,
       Converter.toJavaLevel(logLevel).getName
-      //JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)

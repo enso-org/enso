@@ -3,7 +3,6 @@ package org.enso.projectmanager.util
 import akka.actor.Actor
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.logger.akka.AkkaConverter
-//import org.enso.loggingservice.LogLevel
 import org.slf4j.event.Level
 
 trait UnhandledLogging extends LazyLogging { this: Actor =>
@@ -13,7 +12,6 @@ trait UnhandledLogging extends LazyLogging { this: Actor =>
     .orElse(Level.ERROR)
 
   override def unhandled(message: Any): Unit = {
-    //if (implicitly[Ordering[LogLevel]].lteq(LogLevel.Warning, akkaLogLevel)) {
     if (Level.WARN.toInt <= akkaLogLevel.toInt) {
       logger.warn("Received unknown message: {}", message.getClass)
     }

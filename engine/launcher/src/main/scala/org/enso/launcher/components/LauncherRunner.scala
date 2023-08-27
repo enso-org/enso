@@ -8,7 +8,6 @@ import org.enso.launcher.project.ProjectManager
 import org.enso.logger.masking.MaskedPath
 
 import java.net.URI
-//import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._

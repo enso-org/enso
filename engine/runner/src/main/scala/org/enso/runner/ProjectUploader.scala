@@ -5,7 +5,6 @@ import org.enso.cli.ProgressBar
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
 import org.enso.libraryupload.{auth, LibraryUploader}
-//import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.slf4j.event.Level
 

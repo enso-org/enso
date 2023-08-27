@@ -1,6 +1,5 @@
 package org.enso.projectmanager.boot
 
-//import org.enso.loggingservice.LogLevel
 import org.slf4j.event.Level
 
 import java.io.File

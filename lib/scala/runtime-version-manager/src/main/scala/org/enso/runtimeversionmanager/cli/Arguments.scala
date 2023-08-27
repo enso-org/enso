@@ -31,7 +31,6 @@ object Arguments {
     val provided = LoggerUtils.backwardCompatibleName(string.toLowerCase)
     Level
       .values()
-      //LogLevel.allLevels
       .find(_.toString.toLowerCase == provided)
       .toRight(
         OptsParseError(s"`$string` is not a valid log level.")

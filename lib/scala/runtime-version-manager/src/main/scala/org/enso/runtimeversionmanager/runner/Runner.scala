@@ -9,7 +9,6 @@ import org.enso.logger.masking.MaskedString
 import org.slf4j.event.Level
 
 import java.net.URI
-//import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,

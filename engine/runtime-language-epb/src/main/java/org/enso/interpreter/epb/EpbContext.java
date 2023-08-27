@@ -73,13 +73,13 @@ public class EpbContext {
               cdl.countDown();
               try {
                 for (var l : langs.split(",")) {
-                  log.log(Level.FINEST, "Initializing language {}", l);
+                  log.log(Level.FINEST, "Initializing language {0}", l);
                   long then = System.currentTimeMillis();
                   var res = context.initializeInternal(null, l);
                   long took = System.currentTimeMillis() - then;
                   log.log(
                       Level.FINE,
-                      "Done initializing language {} with {} in {} ms",
+                      "Done initializing language {0} with {1} in {2} ms",
                       new Object[] {l, res, took});
                 }
               } finally {

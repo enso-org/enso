@@ -5,7 +5,6 @@ import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.logger.akka.AkkaConverter
-//import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig

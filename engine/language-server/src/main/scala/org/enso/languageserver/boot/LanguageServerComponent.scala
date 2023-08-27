@@ -38,7 +38,8 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    val module  = new MainModule(config, logLevel)
+    logger.debug("Started [{}].", sampler.getClass.getName)
+    val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)

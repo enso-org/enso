@@ -5,7 +5,6 @@ import org.enso.languageserver.boot.{
   LanguageServerConfig
 }
 import org.slf4j.event.Level
-//import org.enso.loggingservice.LogLevel
 
 import java.util.concurrent.Semaphore
 

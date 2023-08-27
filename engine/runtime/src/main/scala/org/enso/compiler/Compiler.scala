@@ -200,8 +200,7 @@ class Compiler(
             context.log(
               Level.SEVERE,
               "Could not find entry point for compilation in package [{0}.{1}]",
-              pkg.namespace,
-              pkg.normalizedName
+              Array(pkg.namespace, pkg.normalizedName)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
