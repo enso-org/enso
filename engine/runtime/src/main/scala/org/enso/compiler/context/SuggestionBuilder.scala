@@ -428,8 +428,7 @@ final class SuggestionBuilder[A: IndexedSource](
           case 0 =>
             val isBuiltinTypeWithValues =
               tp.tp.builtinType &&
-              Option(compiler.builtins.getBuiltinType(tp.tp.name))
-                .exists(_.containsValues())
+              compiler.context.typeContainsValues(tp.tp.name)
             if (isBuiltinTypeWithValues) {
               TypeArg.Sum(Some(tp.qualifiedName), Seq())
             } else {

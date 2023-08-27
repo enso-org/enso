@@ -1,20 +1,20 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
 import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
+import org.enso.compiler.Passes;
 import org.enso.compiler.SerializationManager;
 import org.enso.compiler.codegen.IrToTruffle;
+import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
-import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
@@ -25,15 +25,24 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.RuntimeOptions;
 
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
+
+import scala.Option;
+
 final class TruffleCompilerContext implements CompilerContext {
+
   private final EnsoContext context;
   private final TruffleLogger compiler;
   private final TruffleLogger serializationManager;
+  private final RuntimeStubsGenerator stubsGenerator;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.compiler = context.getLogger(Compiler.class);
     this.serializationManager = context.getLogger(SerializationManager.class);
+    this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
   @Override
@@ -44,9 +53,9 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean isUseGlobalCacheLocations() {
     return context
-        .getEnvironment()
-        .getOptions()
-        .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+            .getEnvironment()
+            .getOptions()
+            .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
   }
 
   @Override
@@ -110,20 +119,14 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(
-      Source source, ModuleScope scope, CompilerConfig config, IR.Module ir) {
+  public void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, IR.Module ir) {
     new IrToTruffle(context, source, scope, config).run(ir);
   }
 
   @Override
-  public ExpressionNode truffleRunInline(
-      Source source, InlineContext inlineContext, CompilerConfig config, IR.Expression ir) {
-    var localScope =
-        inlineContext.localScope().isDefined()
-            ? inlineContext.localScope().get()
-            : LocalScope.root();
-    return new IrToTruffle(context, source, inlineContext.module().getScope(), config)
-        .runInline(ir, localScope, "<inline_source>");
+  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, Module module, CompilerConfig config, IR.Expression ir) {
+    return new IrToTruffle(context, source, module.getScope(), config)
+            .runInline(ir, localScope, "<inline_source>");
   }
 
   // module related
@@ -181,11 +184,76 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public <T> Optional<TruffleFile> saveCache(
-      Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
+          Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
     return cache.save(entry, context, useGlobalCacheLocations);
   }
 
+  @Override
+  public boolean typeContainsValues(String name) {
+    var type = context.getBuiltins().getBuiltinType(name);
+    return type != null && type.containsValues();
+  }
+
+  /**
+   * Lazy-initializes the IR for the builtins module.
+   */
+  @Override
+  public void initializeBuiltinsIr(
+          boolean irCachingEnabled, SerializationManager serializationManager,
+          FreshNameSupply freshNameSupply, Passes passes
+  ) {
+    var builtins = context.getBuiltins();
+    var builtinsModule = builtins.getModule();
+    if (!builtins.isIrInitialized()) {
+      log(
+              Level.FINE,
+              "Initialising IR for [{0}].",
+              builtinsModule.getName()
+      );
+
+      builtins.initializeBuiltinsSource();
+
+      if (irCachingEnabled) {
+        if (
+          serializationManager.deserialize(builtinsModule) instanceof Option<?> op &&
+          op.isDefined() &&
+          op.get() instanceof Boolean b && b
+        ) {
+          // Ensure that builtins doesn't try and have codegen run on it.
+          updateModule(
+            builtinsModule,
+            u -> u.compilationStage(CompilationStage.AFTER_CODEGEN)
+          );
+        } else {
+          builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
+          updateModule(
+            builtinsModule,
+            u -> u.hasCrossModuleLinks(true)
+          );
+        }
+      } else {
+        builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
+        updateModule(
+                builtinsModule,
+                u -> u.hasCrossModuleLinks(true)
+        );
+      }
+
+      if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
+        serializationManager.serializeModule(
+                builtinsModule, true, true
+        );
+      }
+    }
+  }
+
+  @Override
+  public void runStubsGenerator(Module module) {
+    stubsGenerator.run(module);
+  }
+
   private final class ModuleUpdater implements Updater, AutoCloseable {
+
     private final Module module;
     private IR.Module ir;
     private CompilationStage stage;
@@ -230,10 +298,18 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void close() {
-      if (ir != null) module.unsafeSetIr(ir);
-      if (stage != null) module.unsafeSetCompilationStage(stage);
-      if (loadedFromCache != null) module.setLoadedFromCache(loadedFromCache);
-      if (hasCrossModuleLinks != null) module.setHasCrossModuleLinks(hasCrossModuleLinks);
+      if (ir != null) {
+        module.unsafeSetIr(ir);
+      }
+      if (stage != null) {
+        module.unsafeSetCompilationStage(stage);
+      }
+      if (loadedFromCache != null) {
+        module.setLoadedFromCache(loadedFromCache);
+      }
+      if (hasCrossModuleLinks != null) {
+        module.setHasCrossModuleLinks(hasCrossModuleLinks);
+      }
       if (resetScope) {
         module.ensureScopeExists();
         module.getScope().reset();
