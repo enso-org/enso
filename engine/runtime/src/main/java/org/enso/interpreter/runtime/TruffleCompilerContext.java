@@ -19,7 +19,6 @@ import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;

@@ -30,9 +30,9 @@ case class InlineContext(
   passConfiguration: Option[PassConfiguration] = None,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  final def bindingsAnalysis() = module.bindingsAnalysis()
+  def bindingsAnalysis() = module.bindingsAnalysis()
 
-  final def truffleRunInline(
+  def truffleRunInline(
     context: CompilerContext,
     source: Source,
     config: CompilerConfig,

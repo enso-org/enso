@@ -24,6 +24,9 @@ import org.enso.polyglot.CompilationStage;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
+ * It is implemented by {@code TruffleCompilerContext}. This adds an abstraction between {@link
+ * Compiler} and the information it needs from the runtime. The ultimate state is to compile the
+ * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
 public interface CompilerContext {
   boolean isIrCachingDisabled();
