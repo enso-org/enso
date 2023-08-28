@@ -11,6 +11,9 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
+/** The `id` attribute of the loading spinner element created by the wasm entrypoint. */
+const LOADER_ELEMENT_ID = 'loader'
+
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
@@ -51,6 +54,31 @@ export default function Editor(props: EditorProps) {
             }
         }
     }, [visible])
+
+    React.useEffect(() => {
+        if (projectStartupInfo != null && !visible) {
+            // A workaround to hide the spinner, when the previous project is being loaded in
+            // the background. This `MutationObserver` is disconnected when the loader is
+            // removed from the DOM.
+            const observer = new MutationObserver(mutations => {
+                for (const mutation of mutations) {
+                    for (const node of Array.from(mutation.addedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            node.style.display = 'none'
+                        }
+                    }
+                    for (const node of Array.from(mutation.removedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            observer.disconnect()
+                        }
+                    }
+                }
+            })
+            observer.observe(document.body, { childList: true })
+        }
+    }, [projectStartupInfo, visible])
 
     let hasEffectRun = false
 
@@ -95,6 +123,12 @@ export default function Editor(props: EditorProps) {
                                 : {
                                       projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                                   }
+                        const originalUrl = window.location.href
+                        if (backendType === backendModule.BackendType.remote) {
+                            // The URL query contains commandline options when running in the desktop,
+                            // which will break the entrypoint for opening a fresh IDE instance.
+                            history.replaceState(null, '', new URL('.', originalUrl))
+                        }
                         await appRunner.runApp(
                             {
                                 loader: {
@@ -118,6 +152,10 @@ export default function Editor(props: EditorProps) {
                             accessToken,
                             { projectId: project.projectId }
                         )
+                        if (backendType === backendModule.BackendType.remote) {
+                            // Restore original URL so that initialization works correctly on refresh.
+                            history.replaceState(null, '', originalUrl)
+                        }
                     }
                     if (supportsLocalBackend) {
                         await runNewProject()
@@ -129,13 +167,7 @@ export default function Editor(props: EditorProps) {
                             ])
                             setInitialized(true)
                         }
-                        const originalUrl = window.location.href
-                        // The URL query contains commandline options when running in the desktop,
-                        // which will break the entrypoint for opening a fresh IDE instance.
-                        history.replaceState(null, '', new URL('.', originalUrl))
                         await runNewProject()
-                        // Restore original URL so that initialization works correctly on refresh.
-                        history.replaceState(null, '', originalUrl)
                     }
                 }
             })()
