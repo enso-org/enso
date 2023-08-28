@@ -9,6 +9,7 @@ import org.enso.pkg.PackageManager
 
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success}
 
 /** A default implementation of [[LocalLibraryProvider]]. */
@@ -33,38 +34,61 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
     libraryName: LibraryName,
     searchPaths: List[Path]
   ): Option[Path] = searchPaths match {
-    case head :: tail =>
-      val potentialPath =
-        LocalLibraryProvider.resolveLibraryPath(head, libraryName)
-      val found = if (Files.exists(potentialPath) && Files.isDirectory(potentialPath)) {
-        logger.trace(
-          s"Found a candidate ${libraryName.name} at " +
-          s"[${MaskedPath(potentialPath).applyMasking()}]."
-        )
-
-        PackageManager.Default.loadPackage(potentialPath.toFile) match {
-          case Failure(exception) =>
-            logger.trace("Failed to load the candidate library package description.", exception)
-            None
-          case Success(pkg) =>
-            if (pkg.libraryName == libraryName) {
-              logger.trace(s"The candidate library [$libraryName] at [${MaskedPath(potentialPath).applyMasking()}] matches the namespace.")
-              Some(potentialPath)
-            } else {
-              logger.trace(s"The candidate library at [${MaskedPath(potentialPath).applyMasking()}] does not match (${pkg.libraryName} != $libraryName).")
-              None
-            }
-        }
-      } else {
+    case potentialPath :: tail =>
+      val candidates = findCandidates(libraryName, potentialPath)
+      if (candidates.isEmpty) {
         logger.trace(
           s"Local library $libraryName not found at " +
           s"[${MaskedPath(potentialPath).applyMasking()}]."
         )
-        None
+        findLibraryHelper(libraryName, tail)
+      } else {
+        if (candidates.size > 1) {
+          logger.warn(
+            s"Found multiple libraries with the same name and namespace in a single directory: " +
+            s"${candidates.map(_.getFileName.toString).mkString(", ")}. " +
+            s"Choosing the first one."
+          )
+          Some(candidates.minBy(_.getFileName.toString))
+        } else {
+          val found = candidates.head
+          logger.trace(
+            s"Resolved library [$libraryName] at [${MaskedPath(found).applyMasking()}]."
+          )
+          Some(found)
+        }
       }
-
-      if (found.isDefined) found else findLibraryHelper(libraryName, tail)
     case Nil => None
+  }
+
+  private def findCandidates(
+    libraryName: LibraryName,
+    librariesPath: Path
+  ): List[Path] = {
+    val subdirectories = Files.list(librariesPath).filter(Files.isDirectory(_))
+    subdirectories
+      .filter { potentialPath =>
+        val isGood =
+          PackageManager.Default.loadPackage(potentialPath.toFile) match {
+            case Failure(exception) =>
+              logger.trace(
+                s"Failed to load the candidate library package description at [${MaskedPath(potentialPath)
+                  .applyMasking()}].",
+                exception
+              )
+              false
+            case Success(pkg) => pkg.libraryName == libraryName
+          }
+        if (isGood) {
+          logger.trace(
+            s"Found candidate library [$libraryName] at [${MaskedPath(potentialPath).applyMasking()}]."
+          )
+        }
+        isGood
+      }
+      .toList
+      .asScala
+      .toList
   }
 }
 

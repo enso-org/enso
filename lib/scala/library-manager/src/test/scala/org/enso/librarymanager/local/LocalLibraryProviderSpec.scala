@@ -39,9 +39,10 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
       // later.
       val provider = new DefaultLocalLibraryProvider(libraryPath)
       val ambiguousName =
-        LibraryName("ambiguous_developer", "Ambiguous_Library_2")
+        LibraryName("ambiguous_developer", "Ambiguous_Library")
       inside(provider.findLibrary(ambiguousName)) { case Some(root) =>
-        root.location shouldEqual primaryPath.resolve("ambiguous1")
+        val expectedPath = primaryPath.resolve("ambiguous1")
+        root.location shouldEqual expectedPath
       }
     }
 
