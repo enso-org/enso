@@ -69,7 +69,7 @@ pub const COMMENT_MARGIN: f32 = 10.0;
 
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-/// Size of the gap between the lower edge of the node and the top of the visualization.
+/// Distance between the origin of the node and the top of the visualization.
 const VISUALIZATION_OFFSET_Y: f32 = 25.0;
 const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, -VISUALIZATION_OFFSET_Y);
 
@@ -947,12 +947,11 @@ fn bounding_box(
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
-    let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
+    let node_bbox = BoundingBox::from_bottom_left_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
         let visualization_pos = node_position + VISUALIZATION_OFFSET;
-        let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
-            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
+            BoundingBox::from_top_left_position_and_size(visualization_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
         node_bbox
