@@ -181,7 +181,7 @@ function SharedWithColumn(props: AssetColumnProps) {
     const {
         item: { item },
         setItem,
-        state: { dispatchAssetEvent },
+        state: { filterBy, dispatchAssetEvent },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -190,7 +190,8 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        self?.permission === backend.PermissionAction.own ||
+        (filterBy !== backend.FilterBy.trashed &&
+            self?.permission === backend.PermissionAction.own) ||
         self?.permission === backend.PermissionAction.admin
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
