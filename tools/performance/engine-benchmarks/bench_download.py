@@ -81,7 +81,7 @@ except ModuleNotFoundError as err:
 DATE_FORMAT = "%Y-%m-%d"
 ENGINE_BENCH_WORKFLOW_ID = 29450898
 """
-Workflod ID of engine benchmarks, got via `gh api 
+Workflow ID of engine benchmarks, got via `gh api 
 '/repos/enso-org/enso/actions/workflows'`.
 The name of the workflow is 'Benchmark Engine'
 """
