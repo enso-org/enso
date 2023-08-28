@@ -7,8 +7,10 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
@@ -79,6 +81,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
         openIde,
     } = props
     const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
@@ -88,10 +92,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
             if (typeof stateOrUpdater === 'function') {
                 setItem(oldItem => ({
                     ...oldItem,
-                    projectState: { type: stateOrUpdater(oldItem.projectState.type) },
+                    projectState: {
+                        ...oldItem.projectState,
+                        type: stateOrUpdater(oldItem.projectState.type),
+                    },
                 }))
             } else {
-                setItem(oldItem => ({ ...oldItem, projectState: { type: stateOrUpdater } }))
+                setItem(oldItem => ({
+                    ...oldItem,
+                    projectState: { ...oldItem.projectState, type: stateOrUpdater },
+                }))
             }
         },
         [/* should never change */ setItem]
@@ -105,16 +115,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
+    const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote: {
-                    if (
-                        state !== backendModule.ProjectState.openInProgress &&
-                        state !== backendModule.ProjectState.opened
-                    ) {
+                    if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[state]) {
                         setToastId(toast.toast.loading(LOADING_MESSAGE))
                         await backend.openProject(item.id, null, item.title)
                     }
@@ -142,7 +150,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             }
         } catch (error) {
-            toastAndLog(`Could not open project '${item.title}'`, error)
+            const project = await backend.getProjectDetails(item.id, item.title)
+            setItem(oldItem => ({
+                ...oldItem,
+                projectState: project.state,
+            }))
+            toastAndLog(
+                errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                    `Could not open project '${item.title}'`
+            )
             setState(backendModule.ProjectState.closed)
         }
     }, [
@@ -151,18 +167,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
         item,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
+        /* should never change */ setItem,
     ])
 
     React.useEffect(() => {
-        if (item.projectState.type === backendModule.ProjectState.openInProgress) {
-            void openProject()
-        }
-        // This MUST only run once, when the component is initially mounted.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    React.useEffect(() => {
-        setItem(oldItem => ({ ...oldItem, projectState: { type: state } }))
+        setItem(oldItem => ({ ...oldItem, projectState: { ...oldItem.projectState, type: state } }))
     }, [state, /* should never change */ setItem])
 
     React.useEffect(() => {
@@ -212,7 +221,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     setShouldOpenWhenReady(false)
-                    void closeProject(false)
+                    if (!isOtherUserUsingProject) {
+                        void closeProject(false)
+                    }
                 } else {
                     setShouldOpenWhenReady(true)
                     setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
@@ -226,7 +237,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setOnSpinnerStateChange(null)
                 openProjectAbortController?.abort()
                 setOpenProjectAbortController(null)
-                void closeProject(false)
+                if (!isOtherUserUsingProject) {
+                    void closeProject(false)
+                }
                 break
             }
             case assetEventModule.AssetEventType.newProject: {
@@ -292,7 +305,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6"
+                    className="w-6 disabled:opacity-50"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -307,7 +320,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.placeholder:
             return (
                 <button
-                    className="w-6"
+                    disabled={isOtherUserUsingProject}
+                    {...(isOtherUserUsingProject
+                        ? { title: 'Someone else is using this project.' }
+                        : {})}
+                    className="w-6 disabled:opacity-50"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -324,7 +341,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             return (
                 <>
                     <button
-                        className="w-6"
+                        disabled={isOtherUserUsingProject}
+                        {...(isOtherUserUsingProject
+                            ? { title: 'Someone else has this project open.' }
+                            : {})}
+                        className="w-6 disabled:opacity-50"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -336,16 +357,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         </div>
                         <SvgMask src={StopIcon} />
                     </button>
-                    <button
-                        className="w-6"
-                        onClick={clickEvent => {
-                            clickEvent.stopPropagation()
-                            unsetModal()
-                            openIde(true)
-                        }}
-                    >
-                        <SvgMask src={ArrowUpIcon} />
-                    </button>
+                    {!isOtherUserUsingProject && (
+                        <button
+                            className="w-6"
+                            onClick={clickEvent => {
+                                clickEvent.stopPropagation()
+                                unsetModal()
+                                openIde(true)
+                            }}
+                        >
+                            <SvgMask src={ArrowUpIcon} />
+                        </button>
+                    )}
                 </>
             )
     }

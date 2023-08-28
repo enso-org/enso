@@ -91,7 +91,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         // and `organization` is absent only when offline - in which case the user should only
         // be able to access the local backend.
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
-        throw new Error('Unable to share projects on the local backend.')
+        throw new Error('Cannot share projects on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
@@ -190,7 +190,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     const usernames = addedUsersPermissions.map(
                         userPermissions => userPermissions.user.user_name
                     )
-                    toastAndLog(`Unable to set permissions for ${usernames.join(', ')}`, error)
+                    toastAndLog(`Could not set permissions for ${usernames.join(', ')}`, error)
                 }
             }
         }
@@ -221,7 +221,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             )
                         )
                     }
-                    toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
+                    toastAndLog(`Could not set permissions of '${userToDelete.user_email}'`, error)
                 }
             }
         }

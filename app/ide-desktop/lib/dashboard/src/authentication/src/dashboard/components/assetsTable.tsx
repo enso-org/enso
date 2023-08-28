@@ -538,7 +538,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                    projectState: { type: backendModule.ProjectState.placeholder },
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    projectState: { type: backendModule.ProjectState.placeholder, volume_id: '' },
                     type: backendModule.AssetType.project,
                 }
                 if (
@@ -588,9 +589,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
-                        projectState: {
-                            type: backendModule.ProjectState.new,
-                        },
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        projectState: { type: backendModule.ProjectState.new, volume_id: '' },
                     }))
                 if (
                     event.parentId != null &&

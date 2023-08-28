@@ -5,15 +5,9 @@ import * as newtype from '../newtype'
 import * as permissions from './permissions'
 import * as uniqueString from '../uniqueString'
 
-// =============
-// === Types ===
-// =============
-
-/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-    local = 'local',
-    remote = 'remote',
-}
+// ================
+// === Newtypes ===
+// ================
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
@@ -76,6 +70,46 @@ export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
+
+// =============
+// === Types ===
+// =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
+
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
     id: UserOrOrganizationId
@@ -112,6 +146,28 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
     type: ProjectState
+    /* eslint-disable @typescript-eslint/naming-convention */
+    volume_id: string
+    instance_id?: string
+    execute_async?: boolean
+    address?: string
+    security_group_id?: string
+    ec2_id?: string
+    ec2_public_ip_address?: string
+    current_session_id?: string
+    opened_by?: string
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export const IS_PROJECT_STATE_OPENING_OR_OPENED: Record<ProjectState, boolean> = {
+    [ProjectState.created]: false,
+    [ProjectState.new]: false,
+    [ProjectState.openInProgress]: true,
+    [ProjectState.provisioned]: true,
+    [ProjectState.opened]: true,
+    [ProjectState.closed]: false,
+    [ProjectState.placeholder]: true,
+    [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -158,6 +214,7 @@ export interface Project extends ListedProject {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+    openedBy?: EmailAddress
 }
 
 /** Information required to open a project. */
@@ -291,19 +348,6 @@ export interface SimpleUser {
     id: Subject
     name: string
     email: EmailAddress
-}
-
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
 }
 
 /** User permission for a specific user. */
