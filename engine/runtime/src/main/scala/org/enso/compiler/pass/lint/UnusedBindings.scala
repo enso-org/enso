@@ -2,6 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -42,9 +43,9 @@ case object UnusedBindings extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = if (moduleContext.compilerConfig.warningsEnabled) {
+  ): Module = if (moduleContext.compilerConfig.warningsEnabled) {
     ir.mapExpressions(
       runExpression(
         _,
@@ -65,11 +66,11 @@ case object UnusedBindings extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = if (inlineContext.compilerConfig.warningsEnabled) {
+  ): Expression = if (inlineContext.compilerConfig.warningsEnabled) {
     ir.transformExpressions {
-      case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
+      case binding: Expression.Binding => lintBinding(binding, inlineContext)
       case function: IR.Function          => lintFunction(function, inlineContext)
       case cse: IR.Case                   => lintCase(cse, inlineContext)
     }
@@ -84,9 +85,9 @@ case object UnusedBindings extends IRPass {
     * @return `binding`, with any lints attached
     */
   def lintBinding(
-    binding: IR.Expression.Binding,
+    binding: Expression.Binding,
     context: InlineContext
-  ): IR.Expression.Binding = {
+  ): Expression.Binding = {
     val isIgnored = binding
       .unsafeGetMetadata(
         IgnoredBindings,
@@ -307,7 +308,7 @@ case object UnusedBindings extends IRPass {
     * @param expression the expression to check
     * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
     */
-  private def isBuiltinMethod(expression: IR.Expression): Boolean = {
+  private def isBuiltinMethod(expression: Expression): Boolean = {
     expression
       .getMetadata(ExpressionAnnotations)
       .exists(

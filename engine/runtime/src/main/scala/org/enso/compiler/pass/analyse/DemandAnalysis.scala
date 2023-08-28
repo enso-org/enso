@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Empty, Expression, Module}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -16,7 +17,7 @@ import org.enso.compiler.pass.resolve.OverloadsResolution
   *
   * - Nothing
   *
-  * Additionally, all members of [[IR.IRKind.Primitive]] must have been removed
+  * Additionally, all members of [[org.enso.compiler.core.ir.IRKind.Primitive]] must have been removed
   * from the IR by the time it runs.
   */
 case object DemandAnalysis extends IRPass {
@@ -40,9 +41,9 @@ case object DemandAnalysis extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.copy(bindings =
       ir.bindings.map(t =>
         t.mapExpressions(
@@ -66,9 +67,9 @@ case object DemandAnalysis extends IRPass {
     * @return `ir`, transformed to correctly force terms
     */
   override def runExpression(
-    expression: IR.Expression,
+    expression: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     analyseExpression(
       expression,
       isInsideCallArgument = false
@@ -83,11 +84,11 @@ case object DemandAnalysis extends IRPass {
     * @return `expression`, transformed by the demand analysis process
     */
   def analyseExpression(
-    expression: IR.Expression,
+    expression: Expression,
     isInsideCallArgument: Boolean
-  ): IR.Expression = {
+  ): Expression = {
     expression match {
-      case empty: IR.Empty => empty
+      case empty: Empty => empty
       case fn: IR.Function => analyseFunction(fn)
       case name: IR.Name   => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>
@@ -96,14 +97,14 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideCallArgument)
       case cse: IR.Case =>
         analyseCase(cse, isInsideCallArgument)
-      case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
+      case block @ Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
           expressions = expressions.map(x =>
             analyseExpression(x, isInsideCallArgument = false)
           ),
           returnValue = analyseExpression(retVal, isInsideCallArgument = false)
         )
-      case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
+      case binding @ Expression.Binding(_, expression, _, _, _) =>
         binding.copy(expression =
           analyseExpression(
             expression,
@@ -160,7 +161,7 @@ case object DemandAnalysis extends IRPass {
   def analyseName(
     name: IR.Name,
     isInsideCallArgument: Boolean
-  ): IR.Expression = {
+  ): Expression = {
     if (isInsideCallArgument) {
       name
     } else {

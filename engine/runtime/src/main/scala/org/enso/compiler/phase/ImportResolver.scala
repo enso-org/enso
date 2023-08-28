@@ -2,7 +2,10 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
+import org.enso.compiler.core.IR.AsMetadata
+import org.enso.compiler.core.ir.{Module => IRModule}
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ModuleReference,
@@ -57,10 +60,10 @@ class ImportResolver(compiler: Compiler) {
           ) || !current.hasCrossModuleLinks
       ) {
         val importedModules: List[
-          (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+          (Import, Option[BindingsMap.ResolvedImport])
         ] =
           ir.imports.map {
-            case imp: IR.Module.Scope.Import.Module =>
+            case imp: Import.Module =>
               tryResolveImport(ir, imp)
             case other => (other, None)
           }
@@ -160,9 +163,9 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveImport(
-    module: IR.Module,
+    module: IRModule,
     imp: Import.Module
-  ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
+  ): (Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
       .collect { case ex: Export.Module if ex.name.name == impName => ex }
@@ -174,7 +177,7 @@ class ImportResolver(compiler: Compiler) {
           case e if e.onlyNames.isEmpty => e
         }
         val qualifiedImports = fromAllExports.collect {
-          case IR.Module.Scope.Export.Module(
+          case Export.Module(
                 _,
                 _,
                 _,
@@ -188,7 +191,7 @@ class ImportResolver(compiler: Compiler) {
             onlyNames.map(_.name)
         }
         val importsWithHiddenNames = fromAllExports.collect {
-          case e @ IR.Module.Scope.Export.Module(
+          case e @ Export.Module(
                 _,
                 _,
                 _,

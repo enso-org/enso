@@ -2,7 +2,8 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.{Expression, Module, Empty}
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -21,7 +22,7 @@ import scala.collection.mutable
   *
   * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
   *
-  * It requires that all members of [[IR.IRKind.Primitive]] have been removed
+  * It requires that all members of [[org.enso.compiler.core.ir.IRKind.Primitive]] have been removed
   * from the IR by the time it runs.
   */
 //noinspection DuplicatedCode
@@ -46,9 +47,9 @@ case object DataflowAnalysis extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val dependencyInfo = new DependencyInfo
     ir.copy(
       bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
@@ -63,9 +64,9 @@ case object DataflowAnalysis extends IRPass {
     * @return `ir`
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val localScope = inlineContext.localScope.getOrElse(
       throw new CompilerError(
         "A valid local scope is required for the inline flow."
@@ -80,7 +81,7 @@ case object DataflowAnalysis extends IRPass {
     copyOfIr: T
   ): T = {
     (sourceIr, copyOfIr) match {
-      case (sourceIr: IR.Module, copyOfIr: IR.Module) =>
+      case (sourceIr: Module, copyOfIr: Module) =>
         val sourceMeta =
           sourceIr.unsafeGetMetadata(this, "Dataflow Analysis must have run.")
         val copyMeta = DependencyInfo(
@@ -115,11 +116,11 @@ case object DataflowAnalysis extends IRPass {
     */
   // TODO [AA] Can I abstract the pattern here?
   def analyseModuleDefinition(
-    binding: IR.Module.Scope.Definition,
+    binding: Definition,
     info: DependencyInfo
-  ): IR.Module.Scope.Definition = {
+  ): Definition = {
     binding match {
-      case m: Method.Conversion =>
+      case m: Definition.Method.Conversion =>
         val bodyDep       = asStatic(m.body)
         val methodDep     = asStatic(m)
         val sourceTypeDep = asStatic(m.sourceTypeName)
@@ -131,7 +132,7 @@ case object DataflowAnalysis extends IRPass {
           body           = analyseExpression(m.body, info),
           sourceTypeName = m.sourceTypeName.updateMetadata(this -->> info)
         ).updateMetadata(this -->> info)
-      case method @ IR.Module.Scope.Definition.Method
+      case method @ Definition.Method
             .Explicit(_, body, _, _, _) =>
         val bodyDep   = asStatic(body)
         val methodDep = asStatic(method)
@@ -141,7 +142,7 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
-      case tp @ IR.Module.Scope.Definition.Type(_, params, members, _, _, _) =>
+      case tp @ Definition.Type(_, params, members, _, _, _) =>
         val tpDep = asStatic(tp)
         val newParams = params.map { param =>
           val paramDep = asStatic(param)
@@ -167,12 +168,12 @@ case object DataflowAnalysis extends IRPass {
         }
         tp.copy(params = newParams, members = newMembers)
           .updateMetadata(this -->> info)
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
           "analysis."
         )
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "dataflow analysis."
@@ -209,11 +210,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `expression`, with attached dependency information
     */
   def analyseExpression(
-    expression: IR.Expression,
+    expression: Expression,
     info: DependencyInfo
-  ): IR.Expression = {
+  ): Expression = {
     expression match {
-      case empty: IR.Empty       => empty.updateMetadata(this -->> info)
+      case empty: Empty       => empty.updateMetadata(this -->> info)
       case function: IR.Function => analyseFunction(function, info)
       case app: IR.Application   => analyseApplication(app, info)
       case typ: IR.Type          => analyseType(typ, info)
@@ -224,7 +225,7 @@ case object DataflowAnalysis extends IRPass {
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> info)
 
-      case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
+      case block @ Expression.Block(expressions, returnValue, _, _, _, _) =>
         val retValDep = asStatic(returnValue)
         val blockDep  = asStatic(block)
         info.dependents.updateAt(retValDep, Set(blockDep))
@@ -236,7 +237,7 @@ case object DataflowAnalysis extends IRPass {
             returnValue = analyseExpression(returnValue, info)
           )
           .updateMetadata(this -->> info)
-      case binding @ IR.Expression.Binding(name, expression, _, _, _) =>
+      case binding @ Expression.Binding(name, expression, _, _, _) =>
         val expressionDep = asStatic(expression)
         val nameDep       = asStatic(name)
         val bindingDep    = asStatic(binding)

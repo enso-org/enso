@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
@@ -38,26 +40,26 @@ case object MethodDefinitions extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val availableSymbolsMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "MethodDefinitionResolution is being run before BindingResolution"
     )
     val newDefs = ir.bindings.map {
-      case method: IR.Module.Scope.Definition.Method =>
+      case method: Definition.Method =>
         val methodRef = method.methodReference
         val resolvedTypeRef =
           methodRef.typePointer.map(resolveType(_, availableSymbolsMap))
         val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
 
         method match {
-          case method: IR.Module.Scope.Definition.Method.Explicit =>
+          case method: Definition.Method.Explicit =>
             val resolvedMethod =
               method.copy(methodReference = resolvedMethodRef)
             resolvedMethod
-          case method: IR.Module.Scope.Definition.Method.Conversion =>
+          case method: Definition.Method.Conversion =>
             val sourceTypeExpr = method.sourceTypeName
 
             val resolvedName: IR.Name = sourceTypeExpr match {
@@ -84,7 +86,7 @@ case object MethodDefinitions extends IRPass {
     }
 
     val withStaticAliases = newDefs.flatMap {
-      case method: IR.Module.Scope.Definition.Method.Explicit
+      case method: Definition.Method.Explicit
           if !method.isStatic =>
         method.methodReference.typePointer.flatMap(
           _.getMetadata(this)
@@ -199,8 +201,8 @@ case object MethodDefinitions extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
 }

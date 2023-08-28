@@ -2,15 +2,11 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module, Empty}
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
@@ -73,9 +69,9 @@ case object LambdaConsolidate extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.mapExpressions(
       runExpression(
         _,
@@ -96,9 +92,9 @@ case object LambdaConsolidate extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "A fresh name supply is required for lambda consolidation."
@@ -159,7 +155,7 @@ case object LambdaConsolidate extends IRPass {
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
-              IR.IdentifiedLocation(
+              IdentifiedLocation(
                 Location(
                   location.start,
                   chainedLambdas.last.location.getOrElse(location).location.end
@@ -211,7 +207,7 @@ case object LambdaConsolidate extends IRPass {
                 s
             }
 
-            val shadower: IR = mShadower.getOrElse(IR.Empty(spec.location))
+            val shadower: IR = mShadower.getOrElse(Empty(spec.location))
 
             spec.diagnostics.add(
               IR.Warning.Shadowed
@@ -232,9 +228,9 @@ case object LambdaConsolidate extends IRPass {
     * @param body the function body to optimise
     * @return the directly chained lambdas in `body`
     */
-  def gatherChainedLambdas(body: IR.Expression): List[IR.Function.Lambda] = {
+  def gatherChainedLambdas(body: Expression): List[IR.Function.Lambda] = {
     body match {
-      case IR.Expression.Block(expressions, lam: IR.Function.Lambda, _, _, _, _)
+      case Expression.Block(expressions, lam: IR.Function.Lambda, _, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
       case l @ IR.Function.Lambda(_, body, _, _, _, _) =>
@@ -255,11 +251,11 @@ case object LambdaConsolidate extends IRPass {
     *        by the new name
     */
   def replaceUsages(
-    body: IR.Expression,
-    defaults: List[Option[IR.Expression]],
+    body: Expression,
+    defaults: List[Option[Expression]],
     argument: IR.DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
-  ): (IR.Expression, List[Option[IR.Expression]]) = {
+  ): (Expression, List[Option[Expression]]) = {
     (
       replaceInExpression(body, argument, toReplaceExpressionIds),
       defaults.map(
@@ -280,10 +276,10 @@ case object LambdaConsolidate extends IRPass {
     * @return `expr`, with occurrences of the symbol for `argument` replaced
     */
   def replaceInExpression(
-    expr: IR.Expression,
+    expr: Expression,
     argument: IR.DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
-  ): IR.Expression = {
+  ): Expression = {
     expr.transformExpressions { case name: IR.Name =>
       replaceInName(name, argument, toReplaceExpressionIds)
     }
@@ -431,9 +427,9 @@ case object LambdaConsolidate extends IRPass {
     */
   def computeReplacedExpressions(
     args: List[IR.DefinitionArgument],
-    body: IR.Expression,
+    body: Expression,
     usageIdsForShadowed: List[Set[IR.Identifier]]
-  ): (List[IR.DefinitionArgument], IR.Expression) = {
+  ): (List[IR.DefinitionArgument], Expression) = {
     var newBody     = body
     var newDefaults = args.map(_.defaultValue)
 

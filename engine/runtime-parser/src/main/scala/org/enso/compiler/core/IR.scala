@@ -1,10 +1,9 @@
 package org.enso.compiler.core
 
 import org.enso.compiler.core.ConstantsNames
-import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
+//import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
-import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
-import org.enso.compiler.core.ir.ProcessingPass
+import org.enso.compiler.core.ir.{DiagnosticStorage, Expression, IRKind, IdentifiedLocation, MetadataStorage, ProcessingPass}
 import org.enso.syntax.text.{Debug, Location}
 import com.oracle.truffle.api.source.Source
 
@@ -30,7 +29,7 @@ import scala.annotation.unused
   *
   * See also: Note [IR Equality and hashing]
   */
-sealed trait IR extends Serializable {
+trait IR extends Serializable {
 
   /** Storage for metadata that the node has been tagged with as the result of
     * various compiler passes.
@@ -156,36 +155,6 @@ object IR {
   /** The type of external identifiers */
   type ExternalId = UUID
 
-  /** Couples a location with a possible source identifier.
-    *
-    * @param location the code location.
-    * @param id the identifier for the location.
-    */
-  case class IdentifiedLocation(location: Location, id: Option[UUID]) {
-
-    /** @return the character index of the start of this source location.
-      */
-    def start: Int = location.start
-
-    /** @return the character index of the end of this source location.
-      */
-    def end: Int = location.end
-
-    /** @return the length in characters of this location.
-      */
-    def length: Int = location.length
-  }
-  object IdentifiedLocation {
-
-    /** Utility constructor, building a location without an ID.
-      *
-      * @param location the code location.
-      * @return an [[IdentifiedLocation]] corresponding to the input location.
-      */
-    def apply(location: Location): IdentifiedLocation =
-      IdentifiedLocation(location, None)
-  }
-
   /** Generates an indent of `n` spaces.
     *
     * @param n the number of spaces
@@ -196,7 +165,7 @@ object IR {
   }
 
   private def fileLocationFromSection(
-    loc: IR.IdentifiedLocation,
+    loc: IdentifiedLocation,
     source: Source
   ): String = {
     val section =
@@ -211,1837 +180,6 @@ object IR {
 
   /** The size of a single indentation level. */
   val indentLevel: Int = 4
-
-  // === Basic Shapes =========================================================
-
-  /** A node representing an empty IR construct that can be used in any place.
-    *
-    * @param location the source location that the node corresponds to
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
-    */
-  sealed case class Empty(
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends IR
-      with Expression
-      with Diagnostic
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
-
-    /** Creates a copy of `this`
-      *
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      * @param id the identifier for the new node
-      * @return a copy of `this` with the specified fields updated
-      */
-    def copy(
-      location: Option[IdentifiedLocation] = location,
-      passData: MetadataStorage            = passData,
-      diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
-    ): Empty = {
-      val res = Empty(location, passData, diagnostics)
-      res.id = id
-      res
-    }
-
-    /** @inheritdoc */
-    override def duplicate(
-      keepLocations: Boolean   = true,
-      keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true,
-      keepIdentifiers: Boolean = false
-    ): Empty =
-      copy(
-        location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
-      )
-
-    /** @inheritdoc */
-    override def setLocation(location: Option[IdentifiedLocation]): Empty =
-      copy(location = location)
-
-    /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Empty = this
-
-    /** @inheritdoc */
-    override def toString: String =
-      s"""
-      |IR.Empty(
-      |location = $location,
-      |passData = ${this.showPassData},
-      |diagnostics = $diagnostics,
-      |id = $id
-      |)
-      |""".toSingleLine
-
-    /** @inheritdoc */
-    override def children: List[IR] = List()
-
-    /** @inheritdoc */
-    override def message: String =
-      "Empty IR: Please report this as a compiler bug."
-
-    /** @inheritdoc */
-    override def diagnosticKeys(): Array[Any] = Array()
-
-    /** @inheritdoc */
-    override def showCode(indent: Int): String = "IR.Empty"
-  }
-
-  // === Module ===============================================================
-
-  /** A representation of a top-level Enso module.
-    *
-    * Modules may only contain imports and top-level bindings, with no top-level
-    * executable code.
-    *
-    * @param imports the import statements that bring other modules into scope
-    * @param exports the export statements for this module
-    * @param bindings the top-level bindings for this module
-    * @param location the source location that the node corresponds to
-    * @param passData the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
-    */
-  @SerialVersionUID(
-    6655L // SuggestionBuilder needs to send ascribedType of constructor parameters
-  )       // prevents reading broken caches, see PR-3692 for details
-  sealed case class Module(
-    imports: List[Module.Scope.Import],
-    exports: List[Module.Scope.Export],
-    bindings: List[Module.Scope.Definition],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends IR
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
-
-    /** Creates a copy of `this`.
-      *
-      * @param imports the import statements that bring other modules into scope
-      * @param exports the export statements for this module
-      * @param bindings the top-level bindings for this module
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      * @param id the identifier for the new node
-      * @return a copy of `this`, updated with the specified values
-      */
-    def copy(
-      imports: List[Module.Scope.Import]      = imports,
-      exports: List[Module.Scope.Export]      = exports,
-      bindings: List[Module.Scope.Definition] = bindings,
-      location: Option[IdentifiedLocation]    = location,
-      passData: MetadataStorage               = passData,
-      diagnostics: DiagnosticStorage          = diagnostics,
-      id: Identifier                          = id
-    ): Module = {
-      val res =
-        Module(imports, exports, bindings, location, passData, diagnostics)
-      res.id = id
-      res
-    }
-
-    /** @inheritdoc */
-    override def duplicate(
-      keepLocations: Boolean   = true,
-      keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true,
-      keepIdentifiers: Boolean = false
-    ): Module =
-      copy(
-        imports = imports.map(
-          _.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
-          )
-        ),
-        bindings = bindings.map(
-          _.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
-          )
-        ),
-        location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
-      )
-
-    /** @inheritdoc */
-    override def setLocation(location: Option[IdentifiedLocation]): Module =
-      copy(location = location)
-
-    /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Module = {
-      copy(
-        imports  = imports.map(_.mapExpressions(fn)),
-        exports  = exports.map(_.mapExpressions(fn)),
-        bindings = bindings.map(_.mapExpressions(fn))
-      )
-    }
-
-    /** @inheritdoc */
-    override def children: List[IR] = imports ++ exports ++ bindings
-
-    /** @inheritdoc */
-    override def toString: String =
-      s"""
-      |IR.Module(
-      |imports = $imports,
-      |exports = $exports,
-      |bindings = $bindings,
-      |location = $location,
-      |passData = ${this.showPassData},
-      |diagnostics = $diagnostics,
-      |id = $id
-      |)
-      |""".toSingleLine
-
-    /** @inheritdoc */
-    override def showCode(indent: Int): String = {
-      val importsString = imports.map(_.showCode(indent)).mkString("\n")
-      val exportsString = exports.map(_.showCode(indent)).mkString("\n")
-      val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
-
-      List(importsString, exportsString, defsString).mkString("\n\n")
-    }
-  }
-
-  object Module {
-
-    /** A representation of constructs that can only occur in the top-level
-      * module scope
-      */
-    sealed trait Scope extends IR {
-
-      /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): Scope
-
-      /** @inheritdoc */
-      override def setLocation(location: Option[IdentifiedLocation]): Scope
-
-      /** @inheritdoc */
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true,
-        keepIdentifiers: Boolean = false
-      ): Scope
-    }
-    object Scope {
-
-      /** An export statement */
-      sealed trait Export extends Scope {
-
-        /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): Export
-
-        /** @inheritdoc */
-        override def setLocation(location: Option[IdentifiedLocation]): Export
-
-        /** @inheritdoc */
-        override def duplicate(
-          keepLocations: Boolean   = true,
-          keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true,
-          keepIdentifiers: Boolean = false
-        ): Export
-      }
-
-      object Export {
-
-        /** An export statement.
-          *
-          * @param name the full path representing the export
-          * @param rename the name this export is visible as
-          * @param isAll is this an unqualified export
-          * @param onlyNames exported names selected from the exported module
-          * @param hiddenNames exported names hidden from the exported module
-          * @param location the source location that the node corresponds to
-          * @param isSynthetic is this export compiler-generated
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class Module(
-          name: IR.Name.Qualified,
-          rename: Option[IR.Name.Literal],
-          isAll: Boolean,
-          onlyNames: Option[List[IR.Name.Literal]],
-          hiddenNames: Option[List[IR.Name.Literal]],
-          override val location: Option[IdentifiedLocation],
-          isSynthetic: Boolean                        = false,
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends IR
-            with IRKind.Primitive
-            with Export {
-          override protected var id: Identifier = randomId
-
-          /** Creates a copy of `this`.
-            *
-            * @param name the full path representing the export
-            * @param rename the name this export is visible as
-            * @param isAll is this an unqualified export
-            * @param onlyNames exported names selected from the exported module
-            * @param hiddenNames exported names hidden from the exported module
-            * @param location the source location that the node corresponds to
-            * @param isSynthetic is this import compiler-generated
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
-            */
-          def copy(
-            name: IR.Name.Qualified                    = name,
-            rename: Option[IR.Name.Literal]            = rename,
-            isAll: Boolean                             = isAll,
-            onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
-            hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-            location: Option[IdentifiedLocation]       = location,
-            isSynthetic: Boolean                       = isSynthetic,
-            passData: MetadataStorage                  = passData,
-            diagnostics: DiagnosticStorage             = diagnostics,
-            id: Identifier                             = id
-          ): Module = {
-            val res = Module(
-              name,
-              rename,
-              isAll,
-              onlyNames,
-              hiddenNames,
-              location,
-              isSynthetic,
-              passData,
-              diagnostics
-            )
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Module =
-            copy(
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def setLocation(
-            location: Option[IdentifiedLocation]
-          ): Module =
-            copy(location = location)
-
-          /** @inheritdoc */
-          override def mapExpressions(
-            fn: Expression => Expression
-          ): Module = this
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-             |IR.Module.Scope.Export.Module(
-             |name = $name,
-             |rename = $rename,
-             |isAll = $isAll,
-             |onlyNames = $onlyNames,
-             |hidingNames = $hiddenNames,
-             |location = $location,
-             |passData = ${this.showPassData},
-             |diagnostics = $diagnostics,
-             |id = $id
-             |)
-             |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] =
-            name :: List(
-              rename.toList,
-              onlyNames.getOrElse(List()),
-              hiddenNames.getOrElse(List())
-            ).flatten
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-            if (isAll) {
-              val onlyPart = onlyNames
-                .map(names => " " + names.map(_.name).mkString(", "))
-                .getOrElse("")
-              val hidingPart = hiddenNames
-                .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-                .getOrElse("")
-              val all = if (onlyNames.isDefined) "" else " all"
-              s"from ${name.name}$renameCode export$onlyPart$all$hidingPart"
-            } else {
-              s"export ${name.name}$renameCode"
-            }
-          }
-
-          /** Gets the name of the module visible in the importing scope,
-            * either the original name or the rename.
-            *
-            * @return the name of this export visible in code
-            */
-          def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
-
-          /** Checks whether the export statement allows use of the given
-            * exported name.
-            *
-            * Note that it does not verify if the name is actually exported
-            * by the module, only checks if it is syntactically allowed.
-            *
-            * @param name the name to check
-            * @return whether the name could be accessed or not
-            */
-          def allowsAccess(name: String): Boolean = {
-            if (!isAll) return false;
-            if (onlyNames.isDefined) {
-              onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-            } else if (hiddenNames.isDefined) {
-              !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-            } else {
-              true
-            }
-          }
-        }
-      }
-
-      /** Module-level import statements. */
-      sealed trait Import extends Scope {
-
-        /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): Import
-
-        /** @inheritdoc */
-        override def setLocation(location: Option[IdentifiedLocation]): Import
-
-        /** @inheritdoc */
-        override def duplicate(
-          keepLocations: Boolean   = true,
-          keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true,
-          keepIdentifiers: Boolean = false
-        ): Import
-      }
-
-      object Import {
-
-        /** An import statement.
-          *
-          * @param name the full path representing the import
-          * @param rename the name this import is visible as
-          * @param isAll is this importing exported names
-          * @param onlyNames exported names selected from the imported module
-          * @param hiddenNames exported names hidden from the imported module
-          * @param location the source location that the node corresponds to
-          * @param isSynthetic is this import compiler-generated
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class Module(
-          name: IR.Name.Qualified,
-          rename: Option[IR.Name.Literal],
-          isAll: Boolean,
-          onlyNames: Option[List[IR.Name.Literal]],
-          hiddenNames: Option[List[IR.Name.Literal]],
-          override val location: Option[IdentifiedLocation],
-          isSynthetic: Boolean                        = false,
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Import
-            with IRKind.Primitive {
-          override protected var id: Identifier = randomId
-
-          /** Creates a copy of `this`.
-            *
-            * @param name the full `.`-separated path representing the import
-            * @param rename the name this import is visible as
-            * @param isAll is this importing exported names
-            * @param onlyNames exported names selected from the imported module
-            * @param hiddenNames exported names hidden from the imported module
-            * @param location the source location that the node corresponds to
-            * @param isSynthetic is this import compiler-generated
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
-            */
-          def copy(
-            name: IR.Name.Qualified                    = name,
-            rename: Option[IR.Name.Literal]            = rename,
-            isAll: Boolean                             = isAll,
-            onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
-            hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-            location: Option[IdentifiedLocation]       = location,
-            isSynthetic: Boolean                       = isSynthetic,
-            passData: MetadataStorage                  = passData,
-            diagnostics: DiagnosticStorage             = diagnostics,
-            id: Identifier                             = id
-          ): Module = {
-            val res = Module(
-              name,
-              rename,
-              isAll,
-              onlyNames,
-              hiddenNames,
-              location,
-              isSynthetic,
-              passData,
-              diagnostics
-            )
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Module =
-            copy(
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def setLocation(
-            location: Option[IdentifiedLocation]
-          ): Module =
-            copy(location = location)
-
-          /** @inheritdoc */
-          override def mapExpressions(
-            fn: Expression => Expression
-          ): Module = this
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-            |IR.Module.Scope.Import.Module(
-            |name = $name,
-            |rename = $rename,
-            |onlyNames = $onlyNames,
-            |hiddenNames = $hiddenNames,
-            |isAll = $isAll,
-            |location = $location,
-            |passData = ${this.showPassData},
-            |diagnostics = $diagnostics,
-            |id = $id
-            |)
-            |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] =
-            name :: List(
-              rename.toList,
-              onlyNames.getOrElse(List()),
-              hiddenNames.getOrElse(List())
-            ).flatten
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-            if (isAll) {
-              val onlyPart = onlyNames
-                .map(names => " " + names.map(_.name).mkString(", "))
-                .getOrElse("")
-              val hidingPart = hiddenNames
-                .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-                .getOrElse("")
-              val all = if (onlyNames.isDefined) "" else " all"
-              s"from ${name.name}$renameCode import$onlyPart$all$hidingPart"
-            } else {
-              s"import ${name.name}$renameCode"
-            }
-          }
-
-          /** Gets the name of the module visible in this scope, either the
-            * original name or the rename.
-            *
-            * @return the name of this import visible in code
-            */
-          def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
-
-          /** Checks whether the import statement allows use of the given
-            * exported name.
-            *
-            * Note that it does not verify if the name is actually exported
-            * by the module, only checks if it is syntactically allowed.
-            *
-            * @param name the name to check
-            * @return whether the name could be accessed or not
-            */
-          def allowsAccess(name: String): Boolean = {
-            if (!isAll) return false;
-            if (onlyNames.isDefined) {
-              onlyNames.get.exists(_.name == name)
-            } else if (hiddenNames.isDefined) {
-              !hiddenNames.get.exists(_.name == name)
-            } else {
-              true
-            }
-          }
-        }
-
-        object Polyglot {
-
-          /** Represents language-specific polyglot import data. */
-          sealed trait Entity {
-            val langName: String
-
-            /** Returns the name this object is visible as from Enso code.
-              *
-              * @return the visible name of this object
-              */
-            def getVisibleName: String
-
-            def showCode(indent: Int = 0): String
-          }
-
-          /** Represents an import of a Java class.
-            *
-            * @param packageName the name of the package containing the imported
-            *                    class
-            * @param className the class name
-            */
-          case class Java(packageName: String, className: String)
-              extends Entity {
-            val langName = "java"
-
-            override def getVisibleName: String = className
-
-            /** Returns the fully qualified Java name of this object.
-              *
-              * @return the Java-side name of the imported entity
-              */
-            def getJavaName: String = s"$packageName.$className"
-
-            override def showCode(indent: Int): String =
-              s"$packageName.$className"
-          }
-        }
-
-        /** An import of a polyglot class.
-          *
-          * @param entity language-specific information on the imported entity
-          * @param rename the name this object should be visible under in the
-          *               importing scope
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class Polyglot(
-          entity: Polyglot.Entity,
-          rename: Option[String],
-          override val location: Option[IdentifiedLocation],
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Import
-            with IRKind.Primitive {
-          override protected var id: Identifier = randomId
-
-          /** Creates a copy of `this`.
-            *
-            * @param entity language-specific information on the imported entity
-            * @param rename the name this object should be visible under in the
-            *               importing scope
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
-            */
-          def copy(
-            entity: Polyglot.Entity              = entity,
-            rename: Option[String]               = rename,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage            = passData,
-            diagnostics: DiagnosticStorage       = diagnostics,
-            id: Identifier                       = id
-          ): Polyglot = {
-            val res =
-              Polyglot(entity, rename, location, passData, diagnostics)
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Polyglot =
-            copy(
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def setLocation(
-            location: Option[IdentifiedLocation]
-          ): Polyglot = copy(location = location)
-
-          /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Polyglot =
-            this
-
-          /** Returns the name this object is visible as from Enso code.
-            *
-            * @return the visible name of this object
-            */
-          def getVisibleName: String = rename.getOrElse(entity.getVisibleName)
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-            |IR.Module.Scope.Import.Polyglot(
-            |entity = $entity,
-            |rename = $rename,
-            |location = $location,
-            |passData = ${this.showPassData},
-            |diagnostics = $diagnostics,
-            |id = $id
-            |)
-            |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] = List()
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val renamePart = rename.map(name => s"as $name").getOrElse("")
-            s"polyglot ${entity.langName} import ${entity.showCode(indent)} $renamePart"
-          }
-        }
-      }
-
-      /** A representation of top-level definitions. */
-      sealed trait Definition extends Scope {
-
-        /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): Definition
-
-        /** @inheritdoc */
-        override def setLocation(
-          location: Option[IdentifiedLocation]
-        ): Definition
-
-        /** @inheritdoc */
-        override def duplicate(
-          keepLocations: Boolean   = true,
-          keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true,
-          keepIdentifiers: Boolean = false
-        ): Definition
-      }
-      object Definition {
-
-        /** The definition of a union type and its members.
-          *
-          * NB: this should probably be removed once we propagate the union
-          * types logic through the runtime and implement statics – the whole
-          * notion of desugaring complex type definitions becomes obsolete then.
-          *
-          * @param name the name of the union
-          * @param members the members of this union
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class Type(
-          name: IR.Name,
-          params: List[IR.DefinitionArgument],
-          members: List[IR.Module.Scope.Definition.Data],
-          override val location: Option[IdentifiedLocation],
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Definition
-            with IRKind.Primitive {
-          override protected var id: Identifier = randomId
-
-          def copy(
-            name: IR.Name                                  = name,
-            params: List[IR.DefinitionArgument]            = params,
-            members: List[IR.Module.Scope.Definition.Data] = members,
-            location: Option[IdentifiedLocation]           = location,
-            passData: MetadataStorage                      = passData,
-            diagnostics: DiagnosticStorage                 = diagnostics,
-            id: Identifier                                 = id
-          ): Type = {
-            val res =
-              Type(name, params, members, location, passData, diagnostics)
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Type =
-            copy(
-              name = name.duplicate(
-                keepLocations,
-                keepMetadata,
-                keepDiagnostics,
-                keepIdentifiers
-              ),
-              members = members.map(
-                _.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                )
-              ),
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def setLocation(
-            location: Option[IdentifiedLocation]
-          ): Type =
-            copy(location = location)
-
-          /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Type =
-            copy(
-              params  = params.map(_.mapExpressions(fn)),
-              members = members.map(_.mapExpressions(fn))
-            )
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-               |IR.Module.Scope.Definition.Type(
-               |name = $name,
-               |params = $params,
-               |members = $members,
-               |location = $location,
-               |passData = ${this.showPassData},
-               |diagnostics = $diagnostics,
-               |id = $id
-               |)
-               |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] = name :: (params :++ members)
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val fields = members.map(_.showCode(indent)).mkString(" | ")
-
-            s"type ${name.showCode(indent)} = $fields"
-          }
-        }
-
-        /** The definition of an atom constructor and its associated arguments.
-          *
-          * @param name the name of the atom
-          * @param arguments the arguments to the atom constructor
-          * @param annotations the list of annotations
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class Data(
-          name: IR.Name,
-          arguments: List[DefinitionArgument],
-          annotations: List[IR.Name.GenericAnnotation],
-          override val location: Option[IdentifiedLocation],
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends IR
-            with IRKind.Primitive {
-          override protected var id: Identifier = randomId
-
-          /** Creates a copy of `this`.
-            *
-            * @param name the name of the atom
-            * @param arguments the arguments to the atom constructor
-            * @param annotations the list of annotations
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
-            */
-          def copy(
-            name: IR.Name                                = name,
-            arguments: List[DefinitionArgument]          = arguments,
-            annotations: List[IR.Name.GenericAnnotation] = annotations,
-            location: Option[IdentifiedLocation]         = location,
-            passData: MetadataStorage                    = passData,
-            diagnostics: DiagnosticStorage               = diagnostics,
-            id: Identifier                               = id
-          ): Data = {
-            val res = Data(
-              name,
-              arguments,
-              annotations,
-              location,
-              passData,
-              diagnostics
-            )
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Data =
-            copy(
-              name = name.duplicate(
-                keepLocations,
-                keepMetadata,
-                keepDiagnostics,
-                keepIdentifiers
-              ),
-              arguments = arguments.map(
-                _.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                )
-              ),
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def setLocation(location: Option[IdentifiedLocation]): Data =
-            copy(location = location)
-
-          /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Data = {
-            copy(
-              name        = name.mapExpressions(fn),
-              arguments   = arguments.map(_.mapExpressions(fn)),
-              annotations = annotations.map(_.mapExpressions(fn))
-            )
-          }
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-            |IR.Module.Scope.Definition.Data(
-            |name = $name,
-            |arguments = $arguments,
-            |annotations = $annotations,
-            |location = $location,
-            |passData = ${this.showPassData},
-            |diagnostics = $diagnostics,
-            |id = $id
-            |)
-            |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] = name :: arguments ::: annotations
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val fields = arguments.map(_.showCode(indent)).mkString(" ")
-
-            s"type ${name.showCode(indent)} $fields"
-          }
-        }
-
-        /** The definition of a complex type definition that may contain
-          * multiple atom and method definitions.
-          *
-          * @param name the name of the complex type
-          * @param arguments the (type) arguments to the complex type
-          * @param body the body of the complex type
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        sealed case class SugaredType(
-          name: IR.Name,
-          arguments: List[DefinitionArgument],
-          body: List[IR],
-          override val location: Option[IdentifiedLocation],
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Definition
-            with IRKind.Sugar {
-          override protected var id: Identifier = randomId
-
-          /** Creates a copy of `this`.
-            *
-            * @param name the name of the complex type
-            * @param arguments the (type) arguments to the complex type
-            * @param body the body of the complex type
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
-            */
-          def copy(
-            name: IR.Name                        = name,
-            arguments: List[DefinitionArgument]  = arguments,
-            body: List[IR]                       = body,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage            = passData,
-            diagnostics: DiagnosticStorage       = diagnostics,
-            id: Identifier                       = id
-          ): SugaredType = {
-            val res = SugaredType(
-              name,
-              arguments,
-              body,
-              location,
-              passData,
-              diagnostics
-            )
-            res.id = id
-            res
-          }
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): SugaredType =
-            copy(
-              name = name.duplicate(
-                keepLocations,
-                keepMetadata,
-                keepDiagnostics,
-                keepIdentifiers
-              ),
-              arguments = arguments.map(
-                _.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                )
-              ),
-              body = body.map(
-                _.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                )
-              ),
-              location = if (keepLocations) location else None,
-              passData =
-                if (keepMetadata) passData.duplicate else MetadataStorage(),
-              diagnostics =
-                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-              id = if (keepIdentifiers) id else randomId
-            )
-
-          /** @inheritdoc */
-          override def mapExpressions(
-            fn: Expression => Expression
-          ): SugaredType =
-            copy(body = body.map(_.mapExpressions(fn)))
-
-          /** @inheritdoc */
-          override def setLocation(
-            location: Option[IdentifiedLocation]
-          ): SugaredType = copy(location = location)
-
-          /** @inheritdoc */
-          override def toString: String =
-            s"""
-            |IR.Module.Scope.Definition.SugaredType(
-            |name = $name,
-            |arguments = $arguments,
-            |body = $body,
-            |location = $location,
-            |passData = ${this.showPassData},
-            |diagnostics = $diagnostics,
-            |id = $id
-            |)
-            |""".toSingleLine
-
-          /** @inheritdoc */
-          override def children: List[IR] = (name :: arguments) ::: body
-
-          /** @inheritdoc */
-          override def showCode(indent: Int): String = {
-            val headerArgs = arguments.map(_.showCode(indent)).mkString(" ")
-            val header     = s"type ${name.name} $headerArgs"
-            val newIndent  = indent + indentLevel
-            val bodyStr = body
-              .map(mkIndent(newIndent) + _.showCode(newIndent))
-              .mkString("\n\n")
-
-            s"$header\n$bodyStr"
-          }
-        }
-
-        /** A trait representing method definitions in Enso. */
-        sealed trait Method extends Definition {
-          val methodReference: IR.Name.MethodReference
-          val body: Expression
-
-          /** @inheritdoc */
-          override def setLocation(location: Option[IdentifiedLocation]): Method
-
-          /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Method
-
-          /** @inheritdoc */
-          override def duplicate(
-            keepLocations: Boolean   = true,
-            keepMetadata: Boolean    = true,
-            keepDiagnostics: Boolean = true,
-            keepIdentifiers: Boolean = false
-          ): Method
-
-          /** Get the type name for the method. */
-          def typeName: Option[IR.Name] = methodReference.typePointer
-
-          /** Get the name of the method. */
-          def methodName: IR.Name = methodReference.methodName
-        }
-        object Method {
-
-          /** The definition of a method for a given constructor.
-            *
-            * @param methodReference a reference to the method being defined
-            * @param body the body of the method
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            */
-          sealed case class Explicit(
-            override val methodReference: IR.Name.MethodReference,
-            override val body: Expression,
-            override val location: Option[IdentifiedLocation],
-            override val passData: MetadataStorage      = MetadataStorage(),
-            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-          ) extends Method
-              with IRKind.Primitive {
-            override protected var id: Identifier = randomId
-
-            /** Creates a copy of `this`.
-              *
-              * @param methodReference a reference to the method being defined
-              * @param body the body of the method
-              * @param location the source location that the node corresponds to
-              * @param passData the pass metadata associated with this node
-              * @param diagnostics compiler diagnostics for this node
-              * @param id the identifier for the new node
-              * @return a copy of `this`, updated with the specified values
-              */
-            def copy(
-              methodReference: IR.Name.MethodReference = methodReference,
-              body: Expression                         = body,
-              location: Option[IdentifiedLocation]     = location,
-              passData: MetadataStorage                = passData,
-              diagnostics: DiagnosticStorage           = diagnostics,
-              id: Identifier                           = id
-            ): Explicit = {
-              val res = Explicit(
-                methodReference,
-                body,
-                location,
-                passData,
-                diagnostics
-              )
-              res.id = id
-              res
-            }
-
-            /** @inheritdoc */
-            override def duplicate(
-              keepLocations: Boolean   = true,
-              keepMetadata: Boolean    = true,
-              keepDiagnostics: Boolean = true,
-              keepIdentifiers: Boolean = false
-            ): Explicit =
-              copy(
-                methodReference = methodReference.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                body = body.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                location = if (keepLocations) location else None,
-                passData =
-                  if (keepMetadata) passData.duplicate else MetadataStorage(),
-                diagnostics =
-                  if (keepDiagnostics) diagnostics.copy
-                  else DiagnosticStorage(),
-                id = if (keepIdentifiers) id else randomId
-              )
-
-            /** @inheritdoc */
-            override def setLocation(
-              location: Option[IdentifiedLocation]
-            ): Explicit =
-              copy(location = location)
-
-            /** @inheritdoc */
-            override def mapExpressions(
-              fn: Expression => Expression
-            ): Explicit = {
-              copy(
-                methodReference = methodReference.mapExpressions(fn),
-                body            = fn(body)
-              )
-            }
-
-            /** @inheritdoc */
-            override def toString: String =
-              s"""
-              |IR.Module.Scope.Definition.Method.Explicit(
-              |methodReference = $methodReference,
-              |body = $body,
-              |location = $location,
-              |passData = ${this.showPassData},
-              |diagnostics = $diagnostics,
-              |id = $id
-              |)
-              |""".toSingleLine
-
-            /** @inheritdoc */
-            override def children: List[IR] = List(methodReference, body)
-
-            /** @inheritdoc */
-            override def showCode(indent: Int): String = {
-              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
-                s"\n${body.showCode(indent)}"
-              } else {
-                s"${body.showCode(indent)}"
-              }
-
-              s"${methodReference.showCode(indent)} = $exprStr"
-            }
-
-            def isStatic: Boolean = body match {
-              case function: Function.Lambda =>
-                function.arguments.headOption.map(_.name) match {
-                  case Some(IR.Name.Self(_, true, _, _)) => true
-                  case _                                 => false
-                }
-              case _ =>
-                true // if it's not a function, it has no arguments, therefore no `self`
-            }
-
-            def isStaticWrapperForInstanceMethod: Boolean = body match {
-              case function: Function.Lambda =>
-                function.arguments.map(_.name) match {
-                  case IR.Name.Self(_, true, _, _) :: IR.Name.Self(
-                        _,
-                        false,
-                        _,
-                        _
-                      ) :: _ =>
-                    true
-                  case _ => false
-                }
-              case _ => false
-            }
-
-          }
-
-          /** The definition of a method for a given constructor using sugared
-            * syntax.
-            *
-            * @param methodReference a reference to the method being defined
-            * @param arguments the arguments to the method
-            * @param body the body of the method
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            */
-          sealed case class Binding(
-            override val methodReference: IR.Name.MethodReference,
-            arguments: List[IR.DefinitionArgument],
-            override val body: Expression,
-            override val location: Option[IdentifiedLocation],
-            override val passData: MetadataStorage      = MetadataStorage(),
-            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-          ) extends Method
-              with IRKind.Sugar {
-            override protected var id: Identifier = randomId
-
-            /** Creates a copy of `this`.
-              *
-              * @param methodReference a reference to the method being defined
-              * @param arguments the arguments to the method
-              * @param body the body of the method
-              * @param location the source location that the node corresponds to
-              * @param passData the pass metadata associated with this node
-              * @param diagnostics compiler diagnostics for this node
-              * @param id the identifier for the new node
-              * @return a copy of `this`, updated with the specified values
-              */
-            def copy(
-              methodReference: IR.Name.MethodReference = methodReference,
-              arguments: List[IR.DefinitionArgument]   = arguments,
-              body: Expression                         = body,
-              location: Option[IdentifiedLocation]     = location,
-              passData: MetadataStorage                = passData,
-              diagnostics: DiagnosticStorage           = diagnostics,
-              id: Identifier                           = id
-            ): Binding = {
-              val res = Binding(
-                methodReference,
-                arguments,
-                body,
-                location,
-                passData,
-                diagnostics
-              )
-              res.id = id
-              res
-            }
-
-            /** @inheritdoc */
-            override def duplicate(
-              keepLocations: Boolean   = true,
-              keepMetadata: Boolean    = true,
-              keepDiagnostics: Boolean = true,
-              keepIdentifiers: Boolean = false
-            ): Binding =
-              copy(
-                methodReference = methodReference.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                arguments = arguments.map(
-                  _.duplicate(
-                    keepLocations,
-                    keepMetadata,
-                    keepDiagnostics,
-                    keepIdentifiers
-                  )
-                ),
-                body = body.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                location = if (keepLocations) location else None,
-                passData =
-                  if (keepMetadata) passData.duplicate else MetadataStorage(),
-                diagnostics =
-                  if (keepDiagnostics) diagnostics.copy
-                  else DiagnosticStorage(),
-                id = if (keepIdentifiers) id else randomId
-              )
-
-            /** @inheritdoc */
-            override def setLocation(
-              location: Option[IdentifiedLocation]
-            ): Binding =
-              copy(location = location)
-
-            /** @inheritdoc */
-            override def mapExpressions(
-              fn: Expression => Expression
-            ): Binding = {
-              copy(
-                methodReference = methodReference.mapExpressions(fn),
-                arguments       = arguments.map(_.mapExpressions(fn)),
-                body            = fn(body)
-              )
-            }
-
-            /** @inheritdoc */
-            override def toString: String =
-              s"""
-              |IR.Module.Scope.Definition.Method.Binding(
-              |methodReference = $methodReference,
-              |arguments = $arguments,
-              |body = $body,
-              |location = $location,
-              |passData = ${this.showPassData},
-              |diagnostics = $diagnostics,
-              |id = $id
-              |)
-              |""".toSingleLine
-
-            /** @inheritdoc */
-            override def children: List[IR] =
-              (methodReference :: arguments) :+ body
-
-            /** @inheritdoc */
-            override def showCode(indent: Int): String = {
-              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
-                s"\n${body.showCode(indent)}"
-              } else {
-                s"${body.showCode(indent)}"
-              }
-
-              val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
-
-              s"${methodReference.showCode(indent)} $argsStr = $exprStr"
-            }
-          }
-
-          /** A method that represents a conversion from one type to another.
-            *
-            * @param methodReference a reference to the type on which the
-            *                        conversion is being defined
-            * @param sourceTypeName the type of the source value for this
-            *                       conversion
-            * @param body the body of the method
-            * @param location the source location that the node corresponds to
-            * @param passData the pass metadata associated with this node
-            * @param diagnostics compiler diagnostics for this node
-            */
-          sealed case class Conversion(
-            override val methodReference: Name.MethodReference,
-            sourceTypeName: Expression,
-            override val body: Expression,
-            override val location: Option[IdentifiedLocation],
-            override val passData: MetadataStorage      = MetadataStorage(),
-            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-          ) extends Method
-              with IRKind.Primitive {
-            override protected var id: Identifier = randomId
-
-            /** Creates a copy of `this`.
-              *
-              * @param methodReference a reference to the type on which the
-              *                        conversion is being defined
-              * @param sourceTypeName the type of the source value for this
-              *                       conversion
-              * @param body the body of the method
-              * @param location the source location that the node corresponds to
-              * @param passData the pass metadata associated with this node
-              * @param diagnostics compiler diagnostics for this node
-              * @param id the identifier for the new node
-              * @return a copy of `this`, updated with the specified values
-              */
-            def copy(
-              methodReference: Name.MethodReference = methodReference,
-              sourceTypeName: Expression            = sourceTypeName,
-              body: Expression                      = body,
-              location: Option[IdentifiedLocation]  = location,
-              passData: MetadataStorage             = passData,
-              diagnostics: DiagnosticStorage        = diagnostics,
-              id: Identifier                        = id
-            ): Conversion = {
-              val res = Conversion(
-                methodReference,
-                sourceTypeName,
-                body,
-                location,
-                passData,
-                diagnostics
-              )
-              res.id = id
-              res
-            }
-
-            /** @inheritdoc */
-            override def duplicate(
-              keepLocations: Boolean,
-              keepMetadata: Boolean,
-              keepDiagnostics: Boolean = true,
-              keepIdentifiers: Boolean = false
-            ): Conversion = {
-              copy(
-                methodReference = methodReference.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                sourceTypeName = sourceTypeName.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                body = body.duplicate(
-                  keepLocations,
-                  keepMetadata,
-                  keepDiagnostics,
-                  keepIdentifiers
-                ),
-                location = if (keepLocations) location else None,
-                passData =
-                  if (keepMetadata) passData.duplicate else MetadataStorage(),
-                diagnostics =
-                  if (keepDiagnostics) diagnostics.copy
-                  else DiagnosticStorage(),
-                id = if (keepIdentifiers) id else randomId
-              )
-            }
-
-            /** @inheritdoc */
-            override def setLocation(
-              location: Option[IdentifiedLocation]
-            ): Conversion = copy(location = location)
-
-            /** @inheritdoc */
-            override def mapExpressions(
-              fn: Expression => Expression
-            ): Conversion = {
-              copy(
-                methodReference = methodReference.mapExpressions(fn),
-                sourceTypeName  = sourceTypeName.mapExpressions(fn),
-                body            = fn(body)
-              )
-            }
-
-            /** @inheritdoc */
-            override def toString: String =
-              s"""
-                 |IR.Module.Scope.Definition.Method.Conversion(
-                 |methodReference = $methodReference,
-                 |sourceTypeName = $sourceTypeName,
-                 |body = $body,
-                 |location = $location,
-                 |passData = ${this.showPassData},
-                 |diagnostics = $diagnostics,
-                 |id = $id
-                 |)
-                 |""".toSingleLine
-
-            /** @inheritdoc */
-            override def children: List[IR] =
-              List(methodReference, sourceTypeName, body)
-
-            /** @inheritdoc */
-            override def showCode(indent: Int): String = {
-              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
-                s"\n${body.showCode(indent)}"
-              } else {
-                s"${body.showCode(indent)}"
-              }
-
-              s"${methodReference.showCode(indent)} = $exprStr"
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // === Expression ===========================================================
-  sealed trait Expression extends IR {
-
-    /** Performs a recursive traversal of the IR, potentially transforming it.
-      *
-      * @param fn the function to apply across the IR
-      * @return the IR, potentially transformed
-      */
-    def transformExpressions(
-      fn: PartialFunction[Expression, Expression]
-    ): Expression = {
-      if (fn.isDefinedAt(this)) {
-        fn(this)
-      } else {
-        mapExpressions(_.transformExpressions(fn))
-      }
-    }
-
-    /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Expression
-
-    /** @inheritdoc */
-    override def setLocation(location: Option[IdentifiedLocation]): Expression
-
-    /** @inheritdoc */
-    override def duplicate(
-      keepLocations: Boolean   = true,
-      keepMetadata: Boolean    = true,
-      keepDiagnostics: Boolean = true,
-      keepIdentifiers: Boolean = false
-    ): Expression
-  }
-  object Expression {
-
-    // TODO Remove suspended blocks from Enso.
-    /** A block expression.
-      *
-      * @param expressions the expressions in the block
-      * @param returnValue the final expression in the block
-      * @param location the source location that the node corresponds to
-      * @param suspended whether or not the block is suspended
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      */
-    sealed case class Block(
-      expressions: List[Expression],
-      returnValue: Expression,
-      override val location: Option[IdentifiedLocation],
-      suspended: Boolean                          = false,
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Expression
-        with IRKind.Primitive {
-      override protected var id: Identifier = randomId
-
-      /** Creates a copy of `this`.
-        *
-        * @param expressions the expressions in the block
-        * @param returnValue the final expression in the block
-        * @param location the source location that the node corresponds to
-        * @param suspended whether or not the block is suspended
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        expressions: List[Expression]        = expressions,
-        returnValue: Expression              = returnValue,
-        location: Option[IdentifiedLocation] = location,
-        suspended: Boolean                   = suspended,
-        passData: MetadataStorage            = passData,
-        diagnostics: DiagnosticStorage       = diagnostics,
-        id: Identifier                       = id
-      ): Block = {
-        val res = Block(
-          expressions,
-          returnValue,
-          location,
-          suspended,
-          passData,
-          diagnostics
-        )
-        res.id = id
-        res
-      }
-
-      /** @inheritdoc */
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true,
-        keepIdentifiers: Boolean = false
-      ): Block =
-        copy(
-          expressions = expressions.map(
-            _.duplicate(
-              keepLocations,
-              keepMetadata,
-              keepDiagnostics,
-              keepIdentifiers
-            )
-          ),
-          returnValue = returnValue.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
-          ),
-          location = if (keepLocations) location else None,
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = if (keepIdentifiers) id else randomId
-        )
-
-      /** @inheritdoc */
-      override def setLocation(location: Option[IdentifiedLocation]): Block =
-        copy(location = location)
-
-      /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): Block = {
-        copy(
-          expressions = expressions.map(fn),
-          returnValue = fn(returnValue)
-        )
-      }
-
-      /** @inheritdoc */
-      override def toString: String =
-        s"""
-        |IR.Expression.Block(
-        |expressions = $expressions,
-        |returnValue = $returnValue,
-        |location = $location,
-        |suspended = $suspended,
-        |passData = ${this.showPassData},
-        |diagnostics = $diagnostics,
-        |id = $id
-        |)
-        |""".toSingleLine
-
-      /** @inheritdoc */
-      override def children: List[IR] = expressions :+ returnValue
-
-      /** @inheritdoc */
-      override def showCode(indent: Int): String = {
-        val newIndent = indent + indentLevel
-        val expressionsStr = expressions
-          .map(mkIndent(newIndent) + _.showCode(newIndent))
-          .mkString("\n")
-        val returnStr = mkIndent(newIndent) + returnValue.showCode(newIndent)
-
-        s"\n$expressionsStr\n$returnStr"
-      }
-    }
-
-    /** A binding expression of the form `name = expr`
-      *
-      * To create a binding that binds no available name, set the name of the
-      * binding to an [[IR.Name.Blank]] (e.g. _ = foo a b).
-      *
-      * @param name the name being bound to
-      * @param expression the expression being bound to `name`
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      */
-    sealed case class Binding(
-      name: IR.Name,
-      expression: Expression,
-      override val location: Option[IdentifiedLocation],
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Expression
-        with IRKind.Primitive {
-      override protected var id: Identifier = randomId
-
-      /** Creates a copy of `this`.
-        *
-        * @param name the name being bound to
-        * @param expression the expression being bound to `name`
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        name: IR.Name                        = name,
-        expression: Expression               = expression,
-        location: Option[IdentifiedLocation] = location,
-        passData: MetadataStorage            = passData,
-        diagnostics: DiagnosticStorage       = diagnostics,
-        id: Identifier                       = id
-      ): Binding = {
-        val res = Binding(name, expression, location, passData, diagnostics)
-        res.id = id
-        res
-      }
-
-      /** @inheritdoc */
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true,
-        keepIdentifiers: Boolean = false
-      ): Binding =
-        copy(
-          name = name.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
-          ),
-          expression = expression.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
-          ),
-          location = if (keepLocations) location else None,
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = if (keepIdentifiers) id else randomId
-        )
-
-      /** @inheritdoc */
-      override def setLocation(location: Option[IdentifiedLocation]): Binding =
-        copy(location = location)
-
-      /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): Binding = {
-        copy(name = name.mapExpressions(fn), expression = fn(expression))
-      }
-
-      /** @inheritdoc */
-      override def toString: String =
-        s"""
-        |IR.Expression.Binding(
-        |name = $name,
-        |expression = $expression,
-        |location = $location
-        |passData = ${this.showPassData},
-        |diagnostics = $diagnostics,
-        |id = $id
-        |)
-        |""".toSingleLine
-
-      /** @inheritdoc */
-      override def children: List[IR] = List(name, expression)
-
-      /** @inheritdoc */
-      override def showCode(indent: Int): String =
-        s"${name.showCode(indent)} = ${expression.showCode(indent)}"
-    }
-  }
 
   // === Literals =============================================================
 
@@ -2780,7 +918,7 @@ object IR {
     }
 
     /** Base trait for annotations. */
-    sealed trait Annotation extends Name with IR.Module.Scope.Definition {
+    sealed trait Annotation extends Name with ir.module.scope.Definition {
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Annotation
@@ -3246,7 +1384,7 @@ object IR {
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Type
-        with Module.Scope.Definition
+        with ir.module.scope.Definition
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -4434,7 +2572,7 @@ object IR {
       /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val args = arguments.map(_.showCode(indent)).mkString(" ")
-        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+        val bodyStr = if (body.isInstanceOf[ir.Expression.Block]) {
           s"\n${body.showCode(indent)}"
         } else {
           s"${body.showCode(indent)}"
@@ -4571,7 +2709,7 @@ object IR {
       /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
-        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+        val bodyStr = if (body.isInstanceOf[ir.Expression.Block]) {
           s"\n${body.showCode(indent)}"
         } else {
           s"${body.showCode(indent)}"
@@ -4622,7 +2760,7 @@ object IR {
   object DefinitionArgument {
 
     /** The representation of an argument from a [[Function]] or
-      * [[IR.Module.Scope.Definition.Data]] definition site.
+      * [[ir.module.scope.Definition.Data]] definition site.
       *
       * To create an ignored argument, the argument name should be an
       * [[IR.Name.Blank]].
@@ -6109,7 +4247,7 @@ object IR {
       /** @inheritdoc */
       override def showCode(indent: Int): String = {
         val newIndent = indent + indentLevel
-        val bodyStr = if (expression.isInstanceOf[IR.Expression.Block]) {
+        val bodyStr = if (expression.isInstanceOf[ir.Expression.Block]) {
           s"\n${mkIndent(newIndent)}${expression.showCode(newIndent)}"
         } else {
           s"${expression.showCode(indent)}"
@@ -6688,7 +4826,7 @@ object IR {
   // === Comments =============================================================
 
   /** Enso comment entities. */
-  sealed trait Comment extends Expression with Module.Scope.Definition {
+  sealed trait Comment extends Expression with ir.module.scope.Definition {
 
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Comment
@@ -6901,7 +5039,7 @@ object IR {
   // === Diagnostics ==========================================================
 
   /** A representation of various kinds of diagnostic in the IR. */
-  sealed trait Diagnostic extends Serializable {
+  trait Diagnostic extends Serializable {
 
     /** @return a human-readable description of this error condition.
       */
@@ -7012,7 +5150,7 @@ object IR {
 
     case class DuplicatedImport(
       override val location: Option[IdentifiedLocation],
-      originalImport: IR.Module.Scope.Import,
+      originalImport: ir.module.scope.Import,
       symbolName: String,
       source: Source
     ) extends Warning {
@@ -7206,7 +5344,7 @@ object IR {
   /** A trait for all errors in Enso's IR. */
   sealed trait Error
       extends Expression
-      with IR.Module.Scope.Definition
+      with ir.module.scope.Definition
       with Diagnostic {
 
     /** @inheritdoc */
@@ -7689,9 +5827,9 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
         with Diagnostic.Kind.Interactive
-        with IR.Module.Scope.Definition
-        with IR.Module.Scope.Export
-        with IR.Module.Scope.Import
+        with ir.module.scope.Definition
+        with ir.module.scope.Export
+        with ir.module.scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -8114,7 +6252,7 @@ object IR {
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
           with Diagnostic.Kind.Interactive
-          with Module.Scope.Definition
+          with ir.module.scope.Definition
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -8237,7 +6375,7 @@ object IR {
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
           with Diagnostic.Kind.Interactive
-          with Module.Scope.Definition
+          with ir.module.scope.Definition
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -8359,7 +6497,7 @@ object IR {
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
           with Diagnostic.Kind.Interactive
-          with Module.Scope.Definition
+          with ir.module.scope.Definition
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -8478,7 +6616,7 @@ object IR {
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
           with Diagnostic.Kind.Interactive
-          with Module.Scope.Definition
+          with ir.module.scope.Definition
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -8572,7 +6710,7 @@ object IR {
         * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Binding(
-        invalidBinding: IR.Expression.Binding,
+        invalidBinding: ir.Expression.Binding,
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
@@ -8589,7 +6727,7 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          invalidBinding: IR.Expression.Binding = invalidBinding,
+          invalidBinding: ir.Expression.Binding = invalidBinding,
           passData: MetadataStorage             = passData,
           diagnostics: DiagnosticStorage        = diagnostics,
           id: Identifier                        = id
@@ -8709,7 +6847,7 @@ object IR {
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Unexpected
           with IRKind.Primitive
-          with IR.Module.Scope.Definition {
+          with org.enso.compiler.core.ir.module.scope.Definition {
         override val entity: String = "type signature"
 
         override protected var id: Identifier = randomId
@@ -8846,7 +6984,7 @@ object IR {
         * @param source Location of the original import.
         */
       case class AmbiguousImport(
-        originalImport: IR.Module.Scope.Import,
+        originalImport: ir.module.scope.Import,
         originalSymbolPath: String,
         symbolName: String,
         symbolPath: String,
@@ -8880,8 +7018,8 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
         with Diagnostic.Kind.Interactive
-        with IR.Module.Scope.Import
-        with IR.Module.Scope.Export
+        with org.enso.compiler.core.ir.module.scope.Import
+        with org.enso.compiler.core.ir.module.scope.Export
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -8959,7 +7097,7 @@ object IR {
       override def showCode(indent: Int): String = "Import_Export_Error"
     }
   }
-
+/*
   // ==========================================================================
   // === Primitive / Sugar ====================================================
   // ==========================================================================
@@ -8989,7 +7127,7 @@ object IR {
       */
     sealed trait Optimisation extends IRKind
   }
-
+*/
   // ==========================================================================
   // === Extension Methods ====================================================
   // ==========================================================================

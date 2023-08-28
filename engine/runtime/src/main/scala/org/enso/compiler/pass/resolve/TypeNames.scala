@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
@@ -35,9 +37,9 @@ case object TypeNames extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
@@ -46,7 +48,7 @@ case object TypeNames extends IRPass {
         Nil,
         bindingsMap,
         mapped match {
-          case typ: IR.Module.Scope.Definition.Type =>
+          case typ: Definition.Type =>
             typ.members.foreach(m =>
               m.arguments.foreach(a =>
                 doResolveType(typ.params.map(_.name), bindingsMap, a)
@@ -61,9 +63,9 @@ case object TypeNames extends IRPass {
 
   private def resolveExpression(
     bindingsMap: BindingsMap,
-    ir: IR.Expression
-  ): IR.Expression = {
-    def go(ir: IR.Expression): IR.Expression = {
+    ir: Expression
+  ): Expression = {
+    def go(ir: Expression): Expression = {
       val processedIr = ir match {
         case fn: IR.Function.Lambda =>
           fn.copy(arguments =
@@ -95,8 +97,8 @@ case object TypeNames extends IRPass {
   private def resolveSignature(
     typeParams: List[IR.Name],
     bindingsMap: BindingsMap,
-    expression: IR.Expression
-  ): IR.Expression =
+    expression: Expression
+  ): Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
@@ -144,9 +146,9 @@ case object TypeNames extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir
   }
 

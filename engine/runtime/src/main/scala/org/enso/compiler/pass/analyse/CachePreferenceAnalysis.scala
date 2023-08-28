@@ -2,7 +2,8 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -45,9 +46,9 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return ir annotated with the preference information
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val weights = WeightInfo()
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
       .updateMetadata(this -->> weights)
@@ -61,9 +62,9 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return ir annotated with the preference information
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     analyseExpression(ir, WeightInfo())
 
   // === Pass Internals =======================================================
@@ -75,26 +76,26 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `binding`, with attached preference information
     */
   def analyseModuleDefinition(
-    binding: IR.Module.Scope.Definition,
+    binding: Definition,
     weights: WeightInfo
-  ): IR.Module.Scope.Definition =
+  ): Definition =
     binding match {
-      case _: IR.Module.Scope.Definition.Type => binding
-      case method: Method.Conversion =>
+      case _: Definition.Type => binding
+      case method: Definition.Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))
           .updateMetadata(this -->> weights)
-      case method @ IR.Module.Scope.Definition.Method
+      case method @ Definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(body = analyseExpression(body, weights))
           .updateMetadata(this -->> weights)
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during cache " +
           "preference analysis."
         )
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during cache " +
           "preference analysis."
@@ -125,11 +126,11 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `expression`, with attached preference information
     */
   def analyseExpression(
-    expression: IR.Expression,
+    expression: Expression,
     weights: WeightInfo
-  ): IR.Expression = {
+  ): Expression = {
     expression.transformExpressions {
-      case binding: IR.Expression.Binding =>
+      case binding: Expression.Binding =>
         binding.getExternalId.foreach(weights.update(_, Weight.Never))
         binding.expression.getExternalId
           .foreach(weights.update(_, Weight.Always))

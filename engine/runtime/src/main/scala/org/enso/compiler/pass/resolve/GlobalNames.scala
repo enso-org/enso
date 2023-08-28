@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
@@ -50,9 +52,9 @@ case object GlobalNames extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val scopeMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis on the module"
@@ -77,9 +79,9 @@ case object GlobalNames extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val scopeMap = inlineContext.bindingsAnalysis()
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
@@ -92,20 +94,20 @@ case object GlobalNames extends IRPass {
   /** @inheritdoc */
 
   private def processModuleDefinition(
-    definition: IR.Module.Scope.Definition,
+    definition: Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply
-  ): IR.Module.Scope.Definition = {
+  ): Definition = {
     definition match {
       case asc: IR.Type.Ascription => asc
-      case method: IR.Module.Scope.Definition.Method =>
+      case method: Definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
           processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
-      case tp: IR.Module.Scope.Definition.Type =>
+      case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
             _.mapExpressions(
@@ -128,13 +130,13 @@ case object GlobalNames extends IRPass {
   }
 
   private def processExpression(
-    ir: IR.Expression,
+    ir: Expression,
     bindings: BindingsMap,
     params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions {
       case selfTp: IR.Name.SelfType =>
         selfTypeResolution
@@ -250,7 +252,7 @@ case object GlobalNames extends IRPass {
     params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
-  ): IR.Expression = {
+  ): Expression = {
     val processedFun = processExpression(
       app.function,
       bindingsMap,
@@ -293,7 +295,7 @@ case object GlobalNames extends IRPass {
     params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
-  ): IR.Expression = {
+  ): Expression = {
     val processedFun =
       processExpression(
         app.function,
@@ -343,9 +345,9 @@ case object GlobalNames extends IRPass {
   private def buildConsApplication(
     originalApp: IR.Application.Prefix,
     calledCons: BindingsMap.Cons,
-    newFun: IR.Expression,
+    newFun: Expression,
     newArgs: List[IR.CallArgument]
-  ): IR.Expression = {
+  ): Expression = {
     if (
       newArgs.isEmpty && (!originalApp.hasDefaultsSuspended || calledCons.arity == 0)
     ) {
@@ -358,7 +360,7 @@ case object GlobalNames extends IRPass {
   private def buildSymbolFor(
     cons: BindingsMap.ResolvedConstructor,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     freshNameSupply
       .newName()
       .updateMetadata(this -->> BindingsMap.Resolution(cons))

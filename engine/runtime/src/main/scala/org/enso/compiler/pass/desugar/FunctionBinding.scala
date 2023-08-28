@@ -3,8 +3,8 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -61,9 +61,9 @@ case object FunctionBinding extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
+  ): Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
     *
@@ -74,9 +74,9 @@ case object FunctionBinding extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = desugarExpression(ir)
+  ): Expression = desugarExpression(ir)
 
   // === Pass Internals =======================================================
 
@@ -85,7 +85,7 @@ case object FunctionBinding extends IRPass {
     * @param ir the expression to desugar
     * @return `ir`, with any function definition sugar removed
     */
-  def desugarExpression(ir: IR.Expression): IR.Expression = {
+  def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
       case IR.Function.Binding(
             name,
@@ -108,7 +108,7 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[IR.Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        IR.Expression.Binding(name, lambda, location, passData, diagnostics)
+        Expression.Binding(name, lambda, location, passData, diagnostics)
     }
   }
 
@@ -118,21 +118,21 @@ case object FunctionBinding extends IRPass {
     * @return `definition`, with any function definition sugar removed
     */
   def desugarModuleSymbol(
-    definition: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition = {
+    definition: Definition
+  ): Definition = {
     definition match {
       case _: Definition.Type => definition.mapExpressions(desugarExpression)
-      case _: Method.Explicit =>
+      case _: Definition.Method.Explicit =>
         throw new CompilerError(
           "Explicit method definitions should not exist during function " +
           "binding desugaring."
         )
-      case _: Method.Conversion =>
+      case _: Definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion method nodes should not exist during function binding " +
           "desugaring."
         )
-      case meth @ Method.Binding(
+      case meth @ Definition.Method.Binding(
             methRef,
             args,
             body,
@@ -149,7 +149,7 @@ case object FunctionBinding extends IRPass {
               IR.Function.Lambda(List(arg), body, None)
             )
 
-          Method.Explicit(
+          Definition.Method.Explicit(
             methRef,
             newBody,
             loc,
@@ -219,7 +219,7 @@ case object FunctionBinding extends IRPass {
             def transformRemainingArgs(
               requiredArgs: List[DefinitionArgument],
               remainingArgs: List[DefinitionArgument]
-            ): Either[IR.Error, IR.Module.Scope.Definition.Method] = {
+            ): Either[IR.Error, Definition.Method] = {
               remaining
                 .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
                 .find(_.defaultValue.isEmpty) match {
@@ -239,7 +239,7 @@ case object FunctionBinding extends IRPass {
                       IR.Function.Lambda(List(arg), body, None)
                     )
                   Right(
-                    Method.Conversion(
+                    Definition.Method.Conversion(
                       methRef,
                       firstArgumentType,
                       newBody,
@@ -301,7 +301,7 @@ case object FunctionBinding extends IRPass {
               .fold(identity, identity)
           }
         }
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "function binding desugaring."

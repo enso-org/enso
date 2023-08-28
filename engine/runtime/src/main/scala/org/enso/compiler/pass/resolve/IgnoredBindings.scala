@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -55,9 +56,9 @@ case object IgnoredBindings extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.mapExpressions(
       runExpression(
         _,
@@ -78,9 +79,9 @@ case object IgnoredBindings extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "Desugaring underscore arguments to lambdas requires a fresh name " +
@@ -110,11 +111,11 @@ case object IgnoredBindings extends IRPass {
     * @return `expression`, with any ignored bidings desugared
     */
   private def resolveExpression(
-    expression: IR.Expression,
+    expression: Expression,
     supply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     expression.transformExpressions {
-      case binding: IR.Expression.Binding => resolveBinding(binding, supply)
+      case binding: Expression.Binding => resolveBinding(binding, supply)
       case function: IR.Function          => resolveFunction(function, supply)
       case cse: IR.Case                   => resolveCase(cse, supply)
     }
@@ -127,9 +128,9 @@ case object IgnoredBindings extends IRPass {
     * @return `binding`, with any ignored bindings desugared
     */
   def resolveBinding(
-    binding: IR.Expression.Binding,
+    binding: Expression.Binding,
     supply: FreshNameSupply
-  ): IR.Expression.Binding = {
+  ): Expression.Binding = {
     if (isIgnore(binding.name)) {
       val newName = supply
         .newName()

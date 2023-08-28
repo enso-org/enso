@@ -2,14 +2,10 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  GenericAnnotations,
-  MethodDefinitions,
-  TypeNames,
-  TypeSignatures
-}
+import org.enso.compiler.pass.resolve.{DocumentationComments, GenericAnnotations, MethodDefinitions, TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
@@ -52,7 +48,7 @@ final class SuggestionBuilder[A: IndexedSource](
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Type(
+          case Definition.Type(
                 tpName,
                 params,
                 List(),
@@ -64,7 +60,7 @@ final class SuggestionBuilder[A: IndexedSource](
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case IR.Module.Scope.Definition.Type(
+          case Definition.Type(
                 tpName,
                 params,
                 members,
@@ -75,7 +71,7 @@ final class SuggestionBuilder[A: IndexedSource](
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.map {
-              case data @ IR.Module.Scope.Definition.Data(
+              case data @ Definition.Data(
                     name,
                     arguments,
                     annotations,
@@ -105,7 +101,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case m @ IR.Module.Scope.Definition.Method
+          case m @ Definition.Method
                 .Explicit(
                   IR.Name.MethodReference(typePtr, methodName, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
@@ -144,7 +140,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case IR.Module.Scope.Definition.Method
+          case Definition.Method
                 .Conversion(
                   IR.Name.MethodReference(_, _, _, _, _),
                   IR.Name.Literal(sourceTypeName, _, _, _, _),
@@ -164,7 +160,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
-          case IR.Expression.Binding(
+          case Expression.Binding(
                 name,
                 IR.Function.Lambda(args, body, _, _, _, _),
                 _,
@@ -187,7 +183,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case IR.Expression.Binding(name, expr, _, _, _)
+          case Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
@@ -478,9 +474,9 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of type arguments
     */
   private def buildTypeSignature(
-    typeExpr: IR.Expression
+    typeExpr: Expression
   ): Vector[TypeArg] = {
-    def go(expr: IR.Expression): TypeArg = expr match {
+    def go(expr: Expression): TypeArg = expr match {
       case fn: IR.Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
       case union: IR.Type.Set.Union =>
@@ -788,7 +784,7 @@ object SuggestionBuilder {
       * @param location the identified IR location
       * @return new scope
       */
-    def apply(items: Seq[IR], location: Option[IR.IdentifiedLocation]): Scope =
+    def apply(items: Seq[IR], location: Option[IdentifiedLocation]): Scope =
       new Scope(mutable.Queue(items: _*), location.map(_.location))
   }
 

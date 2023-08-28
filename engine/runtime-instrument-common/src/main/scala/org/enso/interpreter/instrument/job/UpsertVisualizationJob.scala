@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.job
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
@@ -390,7 +391,7 @@ object UpsertVisualizationJob {
     visualizationExpression match {
       case Api.VisualizationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
-          .collect { case method: IR.Module.Scope.Definition.Method =>
+          .collect { case method: Definition.Method =>
             val methodReference        = method.methodReference
             val methodReferenceName    = methodReference.methodName.name
             val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)

@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -35,9 +36,9 @@ case object ExpressionAnnotations extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(doExpression)
   }
 
@@ -51,17 +52,17 @@ case object ExpressionAnnotations extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     doExpression(ir)
   }
 
   /** @inheritdoc */
 
   private def doExpression(
-    ir: IR.Expression
-  ): IR.Expression =
+    ir: Expression
+  ): Expression =
     ir.transformExpressions {
       case app @ IR.Application.Prefix(
             ann: IR.Name.BuiltinAnnotation,

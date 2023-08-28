@@ -2,6 +2,8 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.{CompilerError, IR}
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
@@ -20,17 +22,17 @@ object NoSelfInStatic extends IRPass {
   override val invalidatedPasses: Seq[IRPass] = List()
 
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case method: IR.Module.Scope.Definition.Method.Explicit
+        case method: Definition.Method.Explicit
             if isStaticMethod(method) =>
           method.copy(
             body = method.body.transformExpressions(transformSelfToError)
           )
-        case method: IR.Module.Scope.Definition.Method.Binding =>
+        case method: Definition.Method.Binding =>
           throw new CompilerError(
             s"unexpected Method.Binding $method present in pass NoSelfInStatic"
           )
@@ -40,7 +42,7 @@ object NoSelfInStatic extends IRPass {
   }
 
   private def transformSelfToError
-    : PartialFunction[IR.Expression, IR.Expression] = {
+    : PartialFunction[Expression, Expression] = {
     case IR.Name.Self(location, false, passData, diagnostics) =>
       IR.Error.Syntax(
         location.get,
@@ -56,7 +58,7 @@ object NoSelfInStatic extends IRPass {
     * @return
     */
   private def isStaticMethod(
-    method: IR.Module.Scope.Definition.Method
+    method: Definition.Method
   ): Boolean = {
     def findSelfArgument(
       arguments: List[IR.DefinitionArgument]
@@ -97,7 +99,7 @@ object NoSelfInStatic extends IRPass {
   }
 
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 }

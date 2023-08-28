@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
@@ -30,9 +32,9 @@ object Patterns extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val bindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
@@ -50,19 +52,19 @@ object Patterns extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val bindings = inlineContext.bindingsAnalysis()
     doExpression(ir, bindings, None)
   }
 
   private def doDefinition(
-    ir: IR.Module.Scope.Definition,
+    ir: Definition,
     bindings: BindingsMap
-  ): IR.Module.Scope.Definition = {
+  ): Definition = {
     ir match {
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: Definition.Method.Explicit =>
         val resolution = method.methodReference.typePointer
           .flatMap(
             _.getMetadata(MethodDefinitions)
@@ -75,10 +77,10 @@ object Patterns extends IRPass {
   }
 
   private def doExpression(
-    expr: IR.Expression,
+    expr: Expression,
     bindings: BindingsMap,
     selfTypeResolution: Option[BindingsMap.ResolvedName]
-  ): IR.Expression = {
+  ): Expression = {
     expr.transformExpressions { case caseExpr: IR.Case.Expr =>
       val newBranches = caseExpr.branches.map { branch =>
         val resolvedPattern = branch.pattern match {

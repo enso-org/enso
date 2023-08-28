@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -40,9 +41,9 @@ case object OperatorToFunction extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val new_bindings = ir.bindings.map { a =>
       a.mapExpressions(
         runExpression(
@@ -66,9 +67,9 @@ case object OperatorToFunction extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     ir.transformExpressions {
       case asc: IR.Type.Ascription =>
         asc.copy(typed = runExpression(asc.typed, inlineContext))

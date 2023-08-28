@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedConstructor}
 import org.enso.compiler.pass.IRPass
@@ -28,9 +29,9 @@ object FullyAppliedFunctionUses extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.mapExpressions(doExpression)
+  ): Module = ir.mapExpressions(doExpression)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.
@@ -42,11 +43,11 @@ object FullyAppliedFunctionUses extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = doExpression(ir)
+  ): Expression = doExpression(ir)
 
-  private def doExpression(expr: IR.Expression): IR.Expression = {
+  private def doExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case app: IR.Application.Prefix =>
         app.copy(arguments = app.arguments.map(_.mapExpressions(doExpression)))

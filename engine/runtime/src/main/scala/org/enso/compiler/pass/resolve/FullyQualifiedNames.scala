@@ -3,6 +3,9 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -49,9 +52,9 @@ case object FullyQualifiedNames extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val scopeMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis on the module"
@@ -104,7 +107,7 @@ case object FullyQualifiedNames extends IRPass {
             if (allStarting.nonEmpty) {
               ir.exports.foreach { export =>
                 export match {
-                  case m: IR.Module.Scope.Export.Module
+                  case m: Export.Module
                       if m.name.name == resolution.qualifiedName.toString =>
                     m.addDiagnostic(
                       IR.Warning.Shadowed.TypeInModuleNameConflicts(
@@ -142,9 +145,9 @@ case object FullyQualifiedNames extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val scopeMap = inlineContext.bindingsAnalysis()
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
@@ -162,21 +165,21 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def processModuleDefinition(
-    definition: IR.Module.Scope.Definition,
+    definition: Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
     pkgRepo: Option[PackageRepository]
-  ): IR.Module.Scope.Definition = {
+  ): Definition = {
     definition match {
       case asc: IR.Type.Ascription => asc
-      case method: IR.Module.Scope.Definition.Method =>
+      case method: Definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
           processExpression(_, bindings, freshNameSupply, resolution, pkgRepo)
         )
-      case tp: IR.Module.Scope.Definition.Type =>
+      case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
             _.mapExpressions(
@@ -199,12 +202,12 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def processExpression(
-    ir: IR.Expression,
+    ir: Expression,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     pkgRepo: Option[PackageRepository]
-  ): IR.Expression =
+  ): Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
         if (!lit.isMethod && !isLocalVar(lit)) {
@@ -270,7 +273,7 @@ case object FullyQualifiedNames extends IRPass {
     freshNameSupply: FreshNameSupply,
     pkgRepo: Option[PackageRepository],
     selfTypeResolution: Option[Resolution]
-  ): IR.Expression = {
+  ): Expression = {
     val processedFun =
       processExpression(
         app.function,
@@ -321,7 +324,7 @@ case object FullyQualifiedNames extends IRPass {
     thisResolution: ResolvedLibrary,
     consName: IR.Name.Literal,
     optPkgRepo: Option[PackageRepository]
-  ): Either[IR.Expression, Option[FQNResolution]] = {
+  ): Either[Expression, Option[FQNResolution]] = {
     optPkgRepo
       .flatMap { pkgRepo =>
         val libName = LibraryName(thisResolution.namespace, consName.name)

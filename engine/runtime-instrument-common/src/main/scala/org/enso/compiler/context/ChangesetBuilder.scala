@@ -4,6 +4,7 @@ import com.oracle.truffle.api.source.Source
 import java.util.UUID
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -513,7 +514,7 @@ object ChangesetBuilder {
     ir.preorder.find(_.getId == id).collect {
       case name: IR.Name =>
         name.name
-      case method: IR.Module.Scope.Definition.Method =>
+      case method: Definition.Method =>
         method.methodName.name
     }
 

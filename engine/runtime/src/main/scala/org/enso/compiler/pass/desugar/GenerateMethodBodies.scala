@@ -2,7 +2,8 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.{Module, Expression}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -59,12 +60,12 @@ case object GenerateMethodBodies extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case m: IR.Module.Scope.Definition.Method => processMethodDef(m)
+        case m: Definition.Method => processMethodDef(m)
         case x                                    => x
       }
     )
@@ -77,17 +78,17 @@ case object GenerateMethodBodies extends IRPass {
     *         correct format
     */
   def processMethodDef(
-    ir: IR.Module.Scope.Definition.Method
-  ): IR.Module.Scope.Definition.Method = {
+    ir: Definition.Method
+  ): Definition.Method = {
     ir match {
-      case ir: IR.Module.Scope.Definition.Method.Explicit =>
+      case ir: Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
             case fun: IR.Function => processBodyFunction(fun, ir.methodName)
             case expression       => processBodyExpression(expression, ir.methodName)
           }
         )
-      case ir: Method.Conversion =>
+      case ir: Definition.Method.Conversion =>
         ir.copy(
           body = ir.body match {
             case fun: IR.Function =>
@@ -99,7 +100,7 @@ case object GenerateMethodBodies extends IRPass {
               )
           }
         )
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: Definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +
           "generation."
@@ -120,7 +121,7 @@ case object GenerateMethodBodies extends IRPass {
   def processBodyFunction(
     fun: IR.Function,
     funName: IR.Name
-  ): IR.Expression = {
+  ): Expression = {
     val chainedFunctionArgs = collectChainedFunctionArgs(fun, 0)
     val selfArgs = chainedFunctionArgs.collect {
       case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
@@ -231,9 +232,9 @@ case object GenerateMethodBodies extends IRPass {
     * @return `expr` converted to a function taking the `self` argument
     */
   def processBodyExpression(
-    expr: IR.Expression,
+    expr: Expression,
     funName: IR.Name
-  ): IR.Expression = {
+  ): Expression = {
     IR.Function.Lambda(
       arguments =
         if (funName.name == MAIN_FUNCTION_NAME) Nil
@@ -269,9 +270,9 @@ case object GenerateMethodBodies extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   /** Collects the argument list of a chain of function definitions.
     *
@@ -297,7 +298,7 @@ case object GenerateMethodBodies extends IRPass {
 
   @tailrec
   private def findForeignDefinition(
-    body: IR.Expression,
+    body: Expression,
     lang: Option[ForeignLanguage]
   ): Option[IR.Foreign.Definition] = {
     body match {

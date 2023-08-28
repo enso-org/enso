@@ -1,25 +1,19 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
-import org.enso.compiler.context.{
-  CompilerContext,
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext
-}
+import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{IdentifiedLocation, Module => IRModule, Expression}
+import org.enso.compiler.core.ir.module.scope.Export
+import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver
-}
+import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.scope.ModuleScope
@@ -30,14 +24,7 @@ import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
-import java.util.concurrent.{
-  CompletableFuture,
-  ExecutorService,
-  Future,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
-  TimeUnit
-}
+import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -518,14 +505,14 @@ class Compiler(
   def gatherImportStatements(module: Module): Array[String] = {
     ensureParsed(module)
     val importedModules = context.getIr(module).imports.flatMap {
-      case imp: IR.Module.Scope.Import.Module =>
+      case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
           case List(namespace, name) => List(LibraryName(namespace, name))
           case _ =>
             throw new CompilerError(s"Invalid module name: [${imp.name}].")
         }
 
-      case _: IR.Module.Scope.Import.Polyglot =>
+      case _: Import.Polyglot =>
         // Note [Polyglot Imports In Dependency Gathering]
         Nil
       case other =>
@@ -687,7 +674,7 @@ class Compiler(
     */
   def processImport(
     qualifiedName: String,
-    loc: Option[IR.IdentifiedLocation],
+    loc: Option[IdentifiedLocation],
     source: Source
   ): ModuleScope = {
     val module = context.getTopScope
@@ -760,9 +747,9 @@ class Compiler(
     * @return enhanced
     */
   private def injectSyntheticModuleExports(
-    ir: IR.Module,
+    ir: IRModule,
     modules: java.util.List[QualifiedName]
-  ): IR.Module = {
+  ): IRModule = {
     import scala.jdk.CollectionConverters._
 
     val moduleNames = modules.asScala.map { q =>
@@ -775,7 +762,7 @@ class Compiler(
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>
-        IR.Module.Scope.Import.Module(
+        Import.Module(
           m,
           rename      = None,
           isAll       = false,
@@ -786,7 +773,7 @@ class Compiler(
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
-        IR.Module.Scope.Export.Module(
+        Export.Module(
           m,
           rename      = None,
           isAll       = false,
@@ -800,9 +787,9 @@ class Compiler(
   }
 
   private def recognizeBindings(
-    module: IR.Module,
+    module: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(
       module,
       moduleContext,
@@ -816,16 +803,16 @@ class Compiler(
     * @return the output result of the
     */
   private def runMethodBodyPasses(
-    ir: IR.Module,
+    ir: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
   private def runGlobalTypingPasses(
-    ir: IR.Module,
+    ir: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 
@@ -837,9 +824,9 @@ class Compiler(
     * @return the output result of the
     */
   def runCompilerPhasesInline(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     passManager.runPassesInline(ir, inlineContext)
   }
 
@@ -851,7 +838,7 @@ class Compiler(
     * @param inlineContext the inline compilation context.
     */
   def runErrorHandlingInline(
-    ir: IR.Expression,
+    ir: Expression,
     source: Source,
     inlineContext: InlineContext
   ): Unit =
@@ -1182,7 +1169,7 @@ class Compiler(
   }
 
   private def fileLocationFromSection(
-    loc: Option[IR.IdentifiedLocation],
+    loc: Option[IdentifiedLocation],
     source: Source
   ): String = {
     val srcLocation = loc
@@ -1207,7 +1194,7 @@ class Compiler(
     * @param scope the module scope in which the code is to be generated
     */
   def truffleCodegen(
-    ir: IR.Module,
+    ir: IRModule,
     source: Source,
     scope: ModuleScope
   ): Unit = {
@@ -1260,7 +1247,7 @@ class Compiler(
     * @return the result of updating metadata in `copyOfIr` globally using
     *         information from `sourceIr`
     */
-  def updateMetadata(sourceIr: IR.Module, copyOfIr: IR.Module): IR.Module = {
+  def updateMetadata(sourceIr: IRModule, copyOfIr: IRModule): IRModule = {
     passManager.runMetadataUpdate(sourceIr, copyOfIr)
   }
 }

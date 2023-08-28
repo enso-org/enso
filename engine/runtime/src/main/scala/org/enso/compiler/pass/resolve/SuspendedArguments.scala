@@ -2,8 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.{Empty, Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Type
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -66,9 +66,9 @@ case object SuspendedArguments extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.copy(
       bindings = ir.bindings.map(resolveModuleBinding)
     )
@@ -82,9 +82,9 @@ case object SuspendedArguments extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = resolveExpression(ir)
+  ): Expression = resolveExpression(ir)
 
   /** @inheritdoc */
 
@@ -99,10 +99,10 @@ case object SuspendedArguments extends IRPass {
     * @return `binding`, with any suspended arguments resolved
     */
   private def resolveModuleBinding(
-    binding: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition = {
+    binding: Definition
+  ): Definition = {
     binding match {
-      case method: Method.Conversion =>
+      case method: Definition.Method.Conversion =>
         method.body match {
           case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
             method.getMetadata(TypeSignatures) match {
@@ -150,7 +150,7 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case explicit @ Method.Explicit(_, body, _, _, _) =>
+      case explicit @ Definition.Method.Explicit(_, body, _, _, _) =>
         body match {
           case lam @ IR.Function.Lambda(args, lamBody, _, _, _, _) =>
             explicit.getMetadata(TypeSignatures) match {
@@ -176,7 +176,7 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Method.Binding  => throw new CompilerError("")
+      case _: Definition.Method.Binding  => throw new CompilerError("")
       case _: Definition.Type => binding
       case err: IR.Error      => err
       case _: Definition.SugaredType =>
@@ -201,9 +201,9 @@ case object SuspendedArguments extends IRPass {
     * @param expression the expression to perform resolution in
     * @return `expression`, with any suspended arguments resolved
     */
-  private def resolveExpression(expression: IR.Expression): IR.Expression = {
+  private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ IR.Expression.Binding(_, expr, _, _, _) =>
+      case bind @ Expression.Binding(_, expr, _, _, _) =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
           case Some(Signature(signature)) =>
             expr match {
@@ -239,7 +239,7 @@ case object SuspendedArguments extends IRPass {
     * @param signature the type signature to split
     * @return the segments of `signature`
     */
-  private def toSegments(signature: IR.Expression): List[IR.Expression] = {
+  private def toSegments(signature: Expression): List[Expression] = {
     signature match {
       case IR.Type.Function(args, ret, _, _, _) => args :+ ret
       case _                                    => List(signature)
@@ -252,7 +252,7 @@ case object SuspendedArguments extends IRPass {
     * @return `true` if `value` represents a suspended argument, otherwise
     *         `false`
     */
-  def representsSuspended(value: IR.Expression): Boolean = {
+  def representsSuspended(value: Expression): Boolean = {
     value match {
       case IR.Name.Literal("Suspended", _, _, _, _) => true
       case _                                        => false
@@ -266,7 +266,7 @@ case object SuspendedArguments extends IRPass {
     * @return the argument from `pair`, with its suspension marked appropriately
     */
   private def markSuspended(
-    pair: (IR.DefinitionArgument, IR.Expression)
+    pair: (IR.DefinitionArgument, Expression)
   ): IR.DefinitionArgument =
     pair match {
       case (arg, typ) =>
@@ -286,7 +286,7 @@ case object SuspendedArguments extends IRPass {
     */
   private def computeSuspensions(
     args: List[IR.DefinitionArgument],
-    signature: IR.Expression
+    signature: Expression
   ): List[IR.DefinitionArgument] = {
     val signatureSegments = toSegments(signature)
 
@@ -296,7 +296,7 @@ case object SuspendedArguments extends IRPass {
       } else if (args.length > signatureSegments.length) {
         val additionalSegments = signatureSegments ::: List.fill(
           args.length - signatureSegments.length
-        )(IR.Empty(None))
+        )(Empty(None))
 
         args.zip(additionalSegments)
       } else {

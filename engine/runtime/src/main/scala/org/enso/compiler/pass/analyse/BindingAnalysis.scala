@@ -2,6 +2,9 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Cons
@@ -45,11 +48,11 @@ case object BindingAnalysis extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val definedSumTypes = ir.bindings.collect {
-      case sumType: IR.Module.Scope.Definition.Type =>
+      case sumType: Definition.Type =>
         val isBuiltinType = sumType
           .getMetadata(ModuleAnnotations)
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))
@@ -66,11 +69,11 @@ case object BindingAnalysis extends IRPass {
         )
     }
     val importedPolyglot = ir.imports.collect {
-      case poly: IR.Module.Scope.Import.Polyglot =>
+      case poly: Import.Polyglot =>
         BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
     val moduleMethods = ir.bindings
-      .collect { case method: IR.Module.Scope.Definition.Method.Explicit =>
+      .collect { case method: Definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
           case Some(IR.Name.Qualified(List(), _, _, _)) =>
@@ -109,7 +112,7 @@ case object BindingAnalysis extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 }

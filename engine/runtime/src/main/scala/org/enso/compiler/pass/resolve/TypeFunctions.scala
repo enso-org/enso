@@ -2,16 +2,13 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Application, IdentifiedLocation}
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.IR.Application
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
-}
+import org.enso.compiler.pass.desugar.{LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 import org.enso.compiler.pass.lint.UnusedBindings
 
 import scala.annotation.unused
@@ -52,9 +49,9 @@ case object TypeFunctions extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
     ir.copy(bindings = new_bindings)
   }
@@ -68,9 +65,9 @@ case object TypeFunctions extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     ir.transformExpressions { case a =>
       resolveExpression(a)
     }
@@ -95,7 +92,7 @@ case object TypeFunctions extends IRPass {
     * @param expr the expression to perform resolution in
     * @return `expr`, with any typing functions resolved
     */
-  def resolveExpression(expr: IR.Expression): IR.Expression = {
+  def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case asc: IR.Type.Ascription => asc
       case app: IR.Application =>
@@ -112,7 +109,7 @@ case object TypeFunctions extends IRPass {
     * @param app the application to perform resolution in
     * @return `app`, with any typing functions resolved
     */
-  def resolveApplication(app: IR.Application): IR.Expression = {
+  def resolveApplication(app: IR.Application): Expression = {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
@@ -144,7 +141,7 @@ case object TypeFunctions extends IRPass {
     }
   }
 
-  def flattenUnion(expr: IR.Expression): List[IR.Expression] = {
+  def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
       case Application.Prefix(n: IR.Name, args, _, _, _, _)
           if n.name == IR.Type.Set.Union.name =>
@@ -163,7 +160,7 @@ case object TypeFunctions extends IRPass {
     arguments: List[IR.CallArgument],
     location: Option[IdentifiedLocation],
     originalIR: IR
-  ): IR.Expression = {
+  ): Expression = {
     val expectedNumArgs = 2
     val lengthIsValid   = arguments.length == expectedNumArgs
     val argsAreValid    = arguments.forall(isValidCallArg)

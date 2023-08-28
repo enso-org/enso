@@ -4,88 +4,43 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Import
+import org.enso.compiler.core.ir.{Empty, Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name.Special
-import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.core.IR.{Error, Pattern}
+import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  BindingAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis, DataflowAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{
-  ExpressionAnnotations,
-  GenericAnnotations,
-  GlobalNames,
-  MethodDefinitions,
-  Patterns,
-  TypeNames,
-  TypeSignatures
-}
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GenericAnnotations, GlobalNames, MethodDefinitions, Patterns, TypeNames, TypeSignatures}
 import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{
-  BlockNode,
-  CreateFunctionNode
-}
+import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.callable.{
-  ApplicationNode,
-  InvokeCallableNode,
-  SequenceLiteralNode
-}
+import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode, SequenceLiteralNode}
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{
-  ConstantNode,
-  QualifiedAccessorNode
-}
+import org.enso.interpreter.node.expression.atom.{ConstantNode, QualifiedAccessorNode}
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.node.{
-  BaseNode,
-  ClosureRootNode,
-  MethodRootNode,
-  ExpressionNode => RuntimeExpression
-}
+import org.enso.interpreter.node.{BaseNode, ClosureRootNode, MethodRootNode, ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable.argument.{
-  ArgumentDefinition,
-  CallArgument
-}
+import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
 import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
-import org.enso.interpreter.runtime.callable.function.{
-  FunctionSchema,
-  Function => RuntimeFunction
-}
-import org.enso.interpreter.runtime.callable.{
-  UnresolvedConversion,
-  UnresolvedSymbol,
-  Annotation => RuntimeAnnotation
-}
+import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
+import org.enso.interpreter.runtime.callable.{UnresolvedConversion, UnresolvedSymbol, Annotation => RuntimeAnnotation}
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{
-  FramePointer,
-  LocalScope,
-  ModuleScope
-}
+import org.enso.interpreter.runtime.scope.{FramePointer, LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -129,7 +84,7 @@ class IrToTruffle(
     *
     * @param ir the IR to generate code for
     */
-  def run(ir: IR.Module): Unit = processModule(ir)
+  def run(ir: Module): Unit = processModule(ir)
 
   /** Executes the codegen pass on an inline input.
     *
@@ -139,7 +94,7 @@ class IrToTruffle(
     * @return an truffle expression representing `ir`
     */
   def runInline(
-    ir: IR.Expression,
+    ir: Expression,
     localScope: LocalScope,
     scopeName: String
   ): RuntimeExpression = {
@@ -158,7 +113,7 @@ class IrToTruffle(
     *
     * @param module the module for which code should be generated
     */
-  private def processModule(module: IR.Module): Unit = {
+  private def processModule(module: Module): Unit = {
     generateReExportBindings(module)
     val bindingsMap =
       module
@@ -176,7 +131,7 @@ class IrToTruffle(
       }
     val imports = module.imports
     val methodDefs = module.bindings.collect {
-      case method: IR.Module.Scope.Definition.Method.Explicit => method
+      case method: Definition.Method.Explicit => method
     }
 
     bindingsMap.resolvedImports.foreach { imp =>
@@ -210,7 +165,7 @@ class IrToTruffle(
     }
 
     val typeDefs = module.bindings.collect {
-      case tp: IR.Module.Scope.Definition.Type => tp
+      case tp: Definition.Type => tp
     }
 
     typeDefs.foreach { tpDef =>
@@ -335,7 +290,7 @@ class IrToTruffle(
       )
 
       @tailrec
-      def getContext(tp: IR.Expression): Option[String] = tp match {
+      def getContext(tp: Expression): Option[String] = tp match {
         case fn: IR.Type.Function => getContext(fn.result)
         case ctx: IR.Type.Context =>
           ctx.context match {
@@ -587,7 +542,7 @@ class IrToTruffle(
     })
 
     val conversionDefs = module.bindings.collect {
-      case conversion: IR.Module.Scope.Definition.Method.Conversion =>
+      case conversion: Definition.Method.Conversion =>
         conversion
     }
 
@@ -661,7 +616,7 @@ class IrToTruffle(
   // ==========================================================================
 
   private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
-    def extractAscribedType(t: IR.Expression): List[Type] = t match {
+    def extractAscribedType(t: Expression): List[Type] = t match {
       case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
       case p: IR.Application.Prefix => extractAscribedType(p.function)
       case _: IR.Type.Function =>
@@ -686,7 +641,7 @@ class IrToTruffle(
     * @param expression the expression to check
     * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
     */
-  private def isBuiltinMethod(expression: IR.Expression): Boolean = {
+  private def isBuiltinMethod(expression: Expression): Boolean = {
     expression
       .getMetadata(ExpressionAnnotations)
       .exists(
@@ -747,7 +702,7 @@ class IrToTruffle(
     }
 
   private def getTailStatus(
-    expression: IR.Expression
+    expression: Expression
   ): BaseNode.TailStatus = {
     val isTailPosition =
       expression.getMetadata(TailCall).contains(TailCall.TailPosition.Tail)
@@ -782,7 +737,7 @@ class IrToTruffle(
     expr
   }
 
-  private def generateReExportBindings(module: IR.Module): Unit = {
+  private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
       new RuntimeFunction(
         new QualifiedAccessorNode(language, constructor).getCallTarget,
@@ -935,27 +890,27 @@ class IrToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def run(
-      ir: IR.Expression,
+      ir: Expression,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = run(ir, false, subjectToInstrumentation)
 
     private def run(
-      ir: IR.Expression,
+      ir: Expression,
       binding: Boolean,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
       val runtimeExpression = ir match {
-        case block: IR.Expression.Block => processBlock(block)
+        case block: Expression.Block => processBlock(block)
         case literal: IR.Literal        => processLiteral(literal)
         case app: IR.Application =>
           processApplication(app, subjectToInstrumentation)
         case name: IR.Name                  => processName(name)
         case function: IR.Function          => processFunction(function, binding)
-        case binding: IR.Expression.Binding => processBinding(binding)
+        case binding: Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case =>
           processCase(caseExpr, subjectToInstrumentation)
         case typ: IR.Type => processType(typ)
-        case _: IR.Empty =>
+        case _: Empty =>
           throw new CompilerError(
             "Empty IR nodes should not exist during code generation."
           )
@@ -980,7 +935,7 @@ class IrToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def runInline(ir: IR.Expression): RuntimeExpression = {
+    def runInline(ir: Expression): RuntimeExpression = {
       val expression = run(ir, false)
       expression
     }
@@ -992,7 +947,7 @@ class IrToTruffle(
       * @param block the block to generate code for
       * @return the truffle nodes corresponding to `block`
       */
-    private def processBlock(block: IR.Expression.Block): RuntimeExpression = {
+    private def processBlock(block: Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val scopeInfo = block
           .unsafeGetMetadata(
@@ -1460,7 +1415,7 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     private def processBinding(
-      binding: IR.Expression.Binding
+      binding: Expression.Binding
     ): RuntimeExpression = {
       val occInfo = binding
         .unsafeGetMetadata(
@@ -1730,7 +1685,7 @@ class IrToTruffle(
       */
     class BuildFunctionBody(
       val arguments: List[IR.DefinitionArgument],
-      val body: IR.Expression,
+      val body: Expression,
       val effectContext: Option[String],
       val subjectToInstrumentation: Boolean
     ) {
@@ -1835,7 +1790,7 @@ class IrToTruffle(
       */
     private def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
-      body: IR.Expression,
+      body: Expression,
       location: Option[IdentifiedLocation],
       binding: Boolean = false
     ): CreateFunctionNode = {

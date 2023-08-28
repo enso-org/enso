@@ -2,6 +2,7 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -49,9 +50,9 @@ case object ApplicationSaturation extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val passConfig = moduleContext.passConfiguration
     ir.mapExpressions(
       runExpression(
@@ -74,9 +75,9 @@ case object ApplicationSaturation extends IRPass {
     */
   //noinspection DuplicatedCode
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val knownFunctions =
       inlineContext.passConfiguration
         .flatMap(configs => configs.get(this))
@@ -114,7 +115,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -125,7 +126,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -137,7 +138,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -150,7 +151,7 @@ case object ApplicationSaturation extends IRPass {
                   func
                     .copy(
                       arguments = args.map(
-                        _.mapExpressions((ir: IR.Expression) =>
+                        _.mapExpressions((ir: Expression) =>
                           runExpression(ir, inlineContext)
                         )
                       )

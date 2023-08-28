@@ -2,6 +2,9 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.ComplexType
 
@@ -27,12 +30,12 @@ case object ModuleNameConflicts extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     if (moduleContext.compilerConfig.warningsEnabled) {
       val syntheticExports = ir.exports.flatMap {
-        case mod @ IR.Module.Scope.Export.Module(
+        case mod @ Export.Module(
               _,
               _,
               false,
@@ -44,7 +47,7 @@ case object ModuleNameConflicts extends IRPass {
               _
             ) =>
           Some(mod)
-        case mod: IR.Module.Scope.Export.Module
+        case mod: Export.Module
             if moduleContext.isSynthetic() =>
           Some(mod)
         case _ =>
@@ -66,9 +69,9 @@ case object ModuleNameConflicts extends IRPass {
     * @return unchanged ir.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     ir
 
   // === Pass Internals =======================================================
@@ -80,13 +83,13 @@ case object ModuleNameConflicts extends IRPass {
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
   private def lintBinding(
-    binding: IR.Module.Scope.Definition,
-    syntheticExports: List[IR.Module.Scope.Export.Module]
-  ): IR.Module.Scope.Definition = {
+    binding: Definition,
+    syntheticExports: List[Export.Module]
+  ): Definition = {
     val exports = syntheticExports.map(e => (e.name.parts.last.name, e)).toMap
 
     binding match {
-      case cons: IR.Module.Scope.Definition.Type
+      case cons: Definition.Type
           if exports.contains(cons.name.name) =>
         val atomName = cons.name.name
         val `export` = exports(atomName)

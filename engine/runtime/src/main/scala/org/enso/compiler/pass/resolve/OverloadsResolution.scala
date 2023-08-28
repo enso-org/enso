@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
@@ -44,18 +46,18 @@ case object OverloadsResolution extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     var seenTypes: Set[String]                                   = Set()
     var seenMethods: Map[Option[String], Set[(String, Boolean)]] = Map()
 
     val types = ir.bindings.collect {
-      case tp: IR.Module.Scope.Definition.Type =>
+      case tp: Definition.Type =>
         tp
     }
     ir.bindings.collect {
-      case meth: IR.Module.Scope.Definition.Method.Explicit =>
+      case meth: Definition.Method.Explicit =>
         seenMethods += meth.typeName.map(_.name) -> Set()
         meth
     }
@@ -63,7 +65,7 @@ case object OverloadsResolution extends IRPass {
       mutable.Map()
 
     val newBindings = ir.bindings.map {
-      case tp: IR.Module.Scope.Definition.Type =>
+      case tp: Definition.Type =>
         if (seenTypes.contains(tp.name.name)) {
           IR.Error.Redefined.Type(tp.name, tp.location)
         } else {
@@ -71,7 +73,7 @@ case object OverloadsResolution extends IRPass {
           tp
         }
 
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: Definition.Method.Explicit =>
         if (
           seenMethods(method.typeName.map(_.name))
             .contains((method.methodName.name, method.isStatic))
@@ -95,7 +97,7 @@ case object OverloadsResolution extends IRPass {
           }
         }
 
-      case m: IR.Module.Scope.Definition.Method.Conversion =>
+      case m: Definition.Method.Conversion =>
         val fromName = m.sourceTypeName.asInstanceOf[IR.Name]
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
@@ -119,7 +121,7 @@ case object OverloadsResolution extends IRPass {
         throw new CompilerError(
           "Type ascriptions should not be present during the overloads resolution."
         )
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: Definition.Method.Binding =>
         throw new CompilerError(
           "Method bindings should not be present during the overloads resolution."
         )
@@ -131,7 +133,7 @@ case object OverloadsResolution extends IRPass {
         throw new CompilerError(
           "Documentation comments should not be present during the overloads resolution."
         )
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Sugared types should not be present during the overloads resolution."
         )
@@ -149,9 +151,9 @@ case object OverloadsResolution extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   /** @inheritdoc */
 

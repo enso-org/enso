@@ -2,15 +2,11 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{IdentifiedLocation, Pattern}
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 import org.enso.syntax.text.Location
@@ -66,9 +62,9 @@ case object UnreachableMatchBranches extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(optimizeExpression)
   }
 
@@ -81,9 +77,9 @@ case object UnreachableMatchBranches extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions { case x =>
       optimizeExpression(x)
     }
@@ -97,7 +93,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param expression the expression to optimize
     * @return `expression` with unreachable case branches removed
     */
-  def optimizeExpression(expression: IR.Expression): IR.Expression = {
+  def optimizeExpression(expression: Expression): Expression = {
     expression.transformExpressions { case cse: IR.Case =>
       optimizeCase(cse)
     }

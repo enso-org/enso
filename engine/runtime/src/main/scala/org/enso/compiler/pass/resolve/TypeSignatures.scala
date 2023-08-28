@@ -2,6 +2,9 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -45,9 +48,9 @@ case object TypeSignatures extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = resolveModule(ir)
+  ): Module = resolveModule(ir)
 
   /** Resolves type signatures in an expression.
     *
@@ -58,9 +61,9 @@ case object TypeSignatures extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = resolveExpression(ir)
+  ): Expression = resolveExpression(ir)
 
   /** @inheritdoc */
 
@@ -71,15 +74,15 @@ case object TypeSignatures extends IRPass {
     * @param mod the module to resolve signatures in
     * @return `mod`, with type signatures resolved
     */
-  private def resolveModule(mod: IR.Module): IR.Module = {
+  private def resolveModule(mod: Module): Module = {
     var lastSignature: Option[IR.Type.Ascription] = None
 
-    val newBindings: List[IR.Module.Scope.Definition] = mod.bindings.flatMap {
+    val newBindings: List[Definition] = mod.bindings.flatMap {
       case sig: IR.Type.Ascription =>
         val res = lastSignature.map(IR.Error.Unexpected.TypeSignature(_))
         lastSignature = Some(sig)
         res
-      case meth: IR.Module.Scope.Definition.Method =>
+      case meth: Definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
         newMethod.body.preorder.foreach {
           case fn: IR.Function => verifyAscribedArguments(fn.arguments)
@@ -128,7 +131,7 @@ case object TypeSignatures extends IRPass {
 
         lastSignature = None
         res
-      case ut: IR.Module.Scope.Definition.Type =>
+      case ut: Definition.Type =>
         ut.members.foreach(d => verifyAscribedArguments(d.arguments))
         Some(
           ut
@@ -140,7 +143,7 @@ case object TypeSignatures extends IRPass {
         )
       case err: IR.Error                  => Some(err)
       case ann: IR.Name.GenericAnnotation => Some(ann)
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +
           "signature resolution."
@@ -183,16 +186,16 @@ case object TypeSignatures extends IRPass {
     * @param expr the expression to resolve signatures in
     * @return `expr`, with any type signatures resolved
     */
-  private def resolveExpression(expr: IR.Expression): IR.Expression = {
+  private def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
-      case block: IR.Expression.Block => resolveBlock(block)
+      case block: Expression.Block => resolveBlock(block)
       case sig: IR.Type.Ascription    => resolveAscription(sig)
     }
   }
 
   private def resolveDefinitionData(
-    data: IR.Module.Scope.Definition.Data
-  ): IR.Module.Scope.Definition.Data = {
+    data: Definition.Data
+  ): Definition.Data = {
     data.copy(
       arguments = data.arguments.map(resolveArgument)
     )
@@ -225,7 +228,7 @@ case object TypeSignatures extends IRPass {
     * @param sig the signature to convert
     * @return the typed expression in `sig`, with `signature` attached
     */
-  private def resolveAscription(sig: IR.Type.Ascription): IR.Expression = {
+  private def resolveAscription(sig: IR.Type.Ascription): Expression = {
     val newTyped = sig.typed.mapExpressions(resolveExpression)
     val newSig   = sig.signature.mapExpressions(resolveExpression)
     newTyped.updateMetadata(this -->> Signature(newSig))
@@ -236,7 +239,7 @@ case object TypeSignatures extends IRPass {
     * @param block the block to resolve signatures in
     * @return `block`, with any type signatures resolved
     */
-  private def resolveBlock(block: IR.Expression.Block): IR.Expression.Block = {
+  private def resolveBlock(block: Expression.Block): Expression.Block = {
     var lastSignature: Option[IR.Type.Ascription] = None
     val allBlockExpressions =
       block.expressions :+ block.returnValue
@@ -250,7 +253,7 @@ case object TypeSignatures extends IRPass {
 
         lastSignature = Some(sig)
         res
-      case binding: IR.Expression.Binding =>
+      case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
           case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
@@ -300,7 +303,7 @@ case object TypeSignatures extends IRPass {
     *
     * @param signature the expression for the type signature
     */
-  case class Signature(signature: IR.Expression) extends IRPass.IRMetadata {
+  case class Signature(signature: Expression) extends IRPass.IRMetadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
     /** @inheritdoc */

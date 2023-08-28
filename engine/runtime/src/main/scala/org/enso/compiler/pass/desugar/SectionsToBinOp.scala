@@ -3,6 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application.Operator.Section
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -41,9 +42,9 @@ case object SectionsToBinOp extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.mapExpressions(
       runExpression(
         _,
@@ -64,9 +65,9 @@ case object SectionsToBinOp extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "A fresh name supply is required for sections desugaring."
@@ -92,7 +93,7 @@ case object SectionsToBinOp extends IRPass {
   def desugarSections(
     section: IR.Application.Operator.Section,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     section match {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
         val rightArgName = freshNameSupply.newName()

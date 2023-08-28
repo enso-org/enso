@@ -2,6 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -53,9 +54,9 @@ case object ShadowedPatternFields extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(lintExpression)
   }
 
@@ -68,9 +69,9 @@ case object ShadowedPatternFields extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions { case x =>
       lintExpression(x)
     }
@@ -84,8 +85,8 @@ case object ShadowedPatternFields extends IRPass {
     * @return `expression`, with warnings for any shadowed pattern variables
     */
   def lintExpression(
-    expression: IR.Expression
-  ): IR.Expression = {
+    expression: Expression
+  ): Expression = {
     expression.transformExpressions { case cse: IR.Case =>
       lintCase(cse)
     }

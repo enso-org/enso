@@ -2,6 +2,9 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Module, Expression}
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.pass.IRPass
 
 /** Desugars shorthand syntaxes in import and export statements.
@@ -37,11 +40,11 @@ case object Imports extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val newImports = ir.imports.map {
-      case i: IR.Module.Scope.Import.Module =>
+      case i: Import.Module =>
         desugarCurrentProjectAlias(i.name, moduleContext)
           .map { newName =>
             val parts = newName.parts
@@ -65,7 +68,7 @@ case object Imports extends IRPass {
       case other => other
     }
     val newExports = ir.exports.map {
-      case ex: IR.Module.Scope.Export.Module =>
+      case ex: Export.Module =>
         desugarCurrentProjectAlias(ex.name, moduleContext)
           .map { newName =>
             val parts = newName.parts
@@ -101,9 +104,9 @@ case object Imports extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   private def computeRename(
     originalRename: Option[IR.Name.Literal],

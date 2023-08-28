@@ -2,6 +2,10 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.Export
+import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.IR.Case.Branch
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -39,9 +43,9 @@ case object DocumentationComments extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = resolveModule(ir)
+  ): Module = resolveModule(ir)
 
   /** Collects comments for an expression.
     *
@@ -52,9 +56,9 @@ case object DocumentationComments extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = resolveExpression(ir)
+  ): Expression = resolveExpression(ir)
 
   /** @inheritdoc */
 
@@ -65,9 +69,9 @@ case object DocumentationComments extends IRPass {
     * @param ir the IR node to resolve comments in
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
-  private def resolveExpression(ir: IR.Expression): IR.Expression =
+  private def resolveExpression(ir: Expression): Expression =
     ir.transformExpressions({
-      case block: IR.Expression.Block =>
+      case block: Expression.Block =>
         val newLines       = resolveList(block.expressions :+ block.returnValue)
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
@@ -135,23 +139,23 @@ case object DocumentationComments extends IRPass {
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
   private def resolveDefinition(
-    ir: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition =
+    ir: Definition
+  ): Definition =
     ir match {
-      case _: IR.Module.Scope.Definition.Method.Conversion =>
+      case _: Definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion methods should not yet be present in the compiler " +
           "pipeline."
         )
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: Definition.Type =>
         throw new CompilerError(
           "Union types should not yet be present in the compiler pipeline."
         )
-      case method: IR.Module.Scope.Definition.Method.Binding =>
+      case method: Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: Definition.Method.Explicit =>
         method.copy(body = resolveExpression(method.body))
-      case tpe: IR.Module.Scope.Definition.SugaredType =>
+      case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
       case doc: IR.Comment.Documentation  => doc
       case tySig: IR.Type.Ascription      => tySig
@@ -169,7 +173,7 @@ case object DocumentationComments extends IRPass {
     * @param ir the module to resolve comments in
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
-  private def resolveModule(ir: IR.Module): IR.Module = {
+  private def resolveModule(ir: Module): Module = {
     // All entities that came from source (the only ones we care about).
     val allModuleEntities: List[IR] =
       (ir.imports ++ ir.exports ++ ir.bindings)
@@ -203,12 +207,12 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: IR.Module                     => resolveModule(module)
-      case expr: IR.Expression                   => resolveExpression(expr)
-      case df: IR.Module.Scope.Definition        => resolveDefinition(df)
-      case data: IR.Module.Scope.Definition.Data => data
-      case imp: IR.Module.Scope.Import           => imp
-      case exp: IR.Module.Scope.Export.Module    => exp
+      case module: Module                     => resolveModule(module)
+      case expr: Expression                   => resolveExpression(expr)
+      case df: Definition        => resolveDefinition(df)
+      case data: Definition.Data => data
+      case imp: Import           => imp
+      case exp: Export.Module    => exp
       case arg: IR.CallArgument                  => arg
       case arg: IR.DefinitionArgument            => arg
       case pat: IR.Pattern                       => pat

@@ -2,9 +2,10 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.IdentifiedLocation
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.IdentifiedLocation
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.CompilerError
@@ -72,9 +73,9 @@ case object ComplexType extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.copy(
       bindings = ir.bindings.flatMap {
         case typ: Definition.SugaredType => desugarComplexType(typ)
@@ -91,9 +92,9 @@ case object ComplexType extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   // === Pass Internals =======================================================
 
@@ -103,8 +104,8 @@ case object ComplexType extends IRPass {
     * @return the top-level definitions corresponding to the desugaring of `typ`
     */
   private def desugarComplexType(
-    typ: IR.Module.Scope.Definition.SugaredType
-  ): List[IR.Module.Scope.Definition] = {
+    typ: Definition.SugaredType
+  ): List[Definition] = {
     val annotations     = typ.getMetadata(ModuleAnnotations)
     var lastAnnotations = Seq.empty[IR.Name.GenericAnnotation]
     var seenAnnotations = Set.empty[IR.Name.GenericAnnotation]
@@ -113,7 +114,7 @@ case object ComplexType extends IRPass {
         case ann: IR.Name.GenericAnnotation =>
           lastAnnotations :+= ann
           None
-        case d: IR.Module.Scope.Definition.Data =>
+        case d: Definition.Data =>
           val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
           seenAnnotations ++= lastAnnotations
           lastAnnotations = Seq()
@@ -137,7 +138,7 @@ case object ComplexType extends IRPass {
       )
 
     val remainingEntities = typ.body.filterNot {
-      case _: IR.Module.Scope.Definition.Data => true
+      case _: Definition.Data => true
       case ann: IR.Name.GenericAnnotation     => seenAnnotations.contains(ann)
       case _                                  => false
     }
@@ -154,7 +155,7 @@ case object ComplexType extends IRPass {
     def matchSignaturesAndGenerate(
       name: IR.Name,
       defn: IR
-    ): List[IR.Module.Scope.Definition] = {
+    ): List[Definition] = {
       var unusedSig: Option[IR.Type.Ascription] = None
       val sig = lastSignature match {
         case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
@@ -187,7 +188,7 @@ case object ComplexType extends IRPass {
         val res = lastSignature
         lastSignature = Some(sig)
         res
-      case binding @ IR.Expression.Binding(name, _, _, _, _) =>
+      case binding @ Expression.Binding(name, _, _, _, _) =>
         matchSignaturesAndGenerate(name, binding)
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
@@ -198,7 +199,7 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    val sumType = IR.Module.Scope.Definition.Type(
+    val sumType = Definition.Type(
       typ.name,
       typ.arguments,
       atomDefs,
@@ -232,11 +233,11 @@ case object ComplexType extends IRPass {
     ir: IR,
     typeName: IR.Name,
     signature: Option[IR.Type.Ascription]
-  ): List[IR.Module.Scope.Definition] = {
+  ): List[Definition] = {
     ir match {
-      case IR.Expression.Binding(name, expr, location, passData, diagnostics) =>
+      case Expression.Binding(name, expr, location, passData, diagnostics) =>
         val realExpr = expr match {
-          case b @ IR.Expression.Block(_, _, _, suspended, _, _) if suspended =>
+          case b @ Expression.Block(_, _, _, suspended, _, _) if suspended =>
             b.copy(suspended = false)
           case _ => expr
         }
@@ -291,12 +292,12 @@ case object ComplexType extends IRPass {
     typeName: IR.Name,
     name: IR.Name,
     args: List[IR.DefinitionArgument],
-    body: IR.Expression,
+    body: Expression,
     location: Option[IdentifiedLocation],
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage,
     signature: Option[IR.Type.Ascription]
-  ): List[IR.Module.Scope.Definition] = {
+  ): List[Definition] = {
     val methodRef = IR.Name.MethodReference(
       Some(IR.Name.Qualified(List(typeName), typeName.location)),
       name,
@@ -306,7 +307,7 @@ case object ComplexType extends IRPass {
     val newSig =
       signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
 
-    val binding = Method.Binding(
+    val binding = Definition.Method.Binding(
       methodRef.duplicate(),
       args.map(_.duplicate()),
       body.duplicate(),

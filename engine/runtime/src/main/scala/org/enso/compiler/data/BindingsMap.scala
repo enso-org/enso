@@ -3,6 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -669,8 +670,8 @@ object BindingsMap {
     * @param target the module or type this import resolves to
     */
   case class ResolvedImport(
-    importDef: IR.Module.Scope.Import.Module,
-    exports: List[IR.Module.Scope.Export.Module],
+    importDef: ir.module.scope.Import.Module,
+    exports: List[ir.module.scope.Export.Module],
     target: ImportTarget
   ) {
 
@@ -894,13 +895,13 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def getIr: Option[IR.Module.Scope.Definition] = {
+    def getIr: Option[ir.module.scope.Definition] = {
       val moduleIr = module match {
         case ModuleReference.Concrete(module) => Some(module.getIr)
         case ModuleReference.Abstract(_)      => None
       }
       moduleIr.flatMap(_.bindings.find {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
+        case method: ir.module.scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
             .forall(
               _.getMetadata(MethodDefinitions)
@@ -910,7 +911,7 @@ object BindingsMap {
       })
     }
 
-    def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
+    def unsafeGetIr(missingMessage: String): ir.module.scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
 
     override def qualifiedName: QualifiedName =
