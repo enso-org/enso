@@ -7809,6 +7809,11 @@ object IR {
           s"Syntax is not supported yet: $syntaxName"
       }
 
+      case object InvalidUnderscore extends Reason {
+        override def explanation: String =
+          s"Invalid use of _"
+      }
+
       case object InvalidPattern extends Reason {
         override def explanation: String =
           s"Cannot define a pattern outside a pattern context"

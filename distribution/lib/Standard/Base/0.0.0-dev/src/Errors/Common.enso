@@ -4,6 +4,8 @@ import project.Errors.Common.Arithmetic_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Function.Function
+import project.Data.Text.Extensions
 
 from project.Data.Boolean import Boolean, False, True
 
@@ -59,15 +61,22 @@ type Type_Error
     Error expected actual name
 
     ## PRIVATE
-       Infer the type of the actual value in a human-readable format.
-    type_of_actual self =
-        tpe = Meta.type_of self.actual
-        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
-
-    ## PRIVATE
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+    to_display_text self =
+        type_of_actual =
+           tpe = Meta.type_of self.actual
+           if tpe.is_error then self.actual.to_display_text else case self.actual of
+               fn:Function ->
+                    fn_info = fn.to_text
+                    missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)
+                    fn_info + case missing_args.length of
+                        0 -> ""
+                        1 -> ". Try to apply " + (missing_args.at 0) + " argument"
+                        _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
+               _ -> tpe.to_display_text
+
+        "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
 
 @Builtin_Type
 type Compile_Error

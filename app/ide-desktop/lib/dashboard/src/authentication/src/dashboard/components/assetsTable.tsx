@@ -117,9 +117,9 @@ export interface AssetsTableState {
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
-    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -127,7 +127,7 @@ export interface AssetsTableState {
     ) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
+    doOpenIde: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseIde: () => void
 }
 
@@ -151,11 +151,14 @@ export interface AssetsTableProps {
     query: string
     filterBy: backendModule.FilterBy
     initialProjectName: string | null
-    assetEvents: assetEventModule.AssetEvent[]
-    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    doOpenIde: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseIde: () => void
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -170,10 +173,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         query,
         filterBy,
         initialProjectName,
-        assetEvents,
-        dispatchAssetEvent,
+        queuedAssetEvents: rawQueuedAssetEvents,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
         loadingProjectManagerDidFail,
@@ -195,6 +199,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
+    const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
     const nodeMap = React.useMemo(
@@ -248,6 +253,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree, sortColumn, sortDirection])
 
     React.useEffect(() => {
+        if (rawQueuedAssetEvents.length !== 0) {
+            setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
+        }
+    }, [rawQueuedAssetEvents])
+
+    React.useEffect(() => {
         setIsLoading(true)
     }, [backend, filterBy])
 
@@ -279,10 +290,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
+            setQueuedAssetEvents(oldQueuedAssetEvents => {
+                if (oldQueuedAssetEvents.length !== 0) {
+                    window.setTimeout(() => {
+                        for (const event of oldQueuedAssetEvents) {
+                            dispatchAssetEvent(event)
+                        }
+                    }, 0)
+                }
+                return []
+            })
             if (!initialized) {
                 setInitialized(true)
                 if (initialProjectName != null) {
@@ -528,7 +550,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                    projectState: { type: backendModule.ProjectState.placeholder },
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    projectState: { type: backendModule.ProjectState.placeholder, volume_id: '' },
                     type: backendModule.AssetType.project,
                 }
                 if (
@@ -578,9 +601,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
-                        projectState: {
-                            type: backendModule.ProjectState.new,
-                        },
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        projectState: { type: backendModule.ProjectState.new, volume_id: '' },
                     }))
                 if (
                     event.parentId != null &&
@@ -656,6 +678,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
+            case assetListEventModule.AssetListEventType.willDelete: {
+                if (selectedKeys.has(event.key)) {
+                    setSelectedKeys(oldSelectedKeys => {
+                        const newSelectedKeys = new Set(oldSelectedKeys)
+                        newSelectedKeys.delete(event.key)
+                        return newSelectedKeys
+                    })
+                }
+                break
+            }
             case assetListEventModule.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== event.key)
@@ -670,6 +702,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent({
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
+                shouldAutomaticallySwitchPage: true,
             })
         },
         [/* should never change */ dispatchAssetEvent]

@@ -67,6 +67,10 @@ export default function AssetRow(props: AssetRowProps) {
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
         try {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.willDelete,
+                key: item.key,
+            })
             if (
                 asset.type === backendModule.AssetType.project &&
                 backend.type === backendModule.BackendType.local
@@ -90,7 +94,7 @@ export default function AssetRow(props: AssetRowProps) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            toastAndLog('Unable to delete project', error)
+            toastAndLog(`Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
         backend,
@@ -169,7 +173,10 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
-                        toastAndLog('Unable to delete project', error)
+                        toastAndLog(
+                            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`,
+                            error
+                        )
                     }
                 }
                 break

@@ -116,7 +116,10 @@ public abstract class Atom implements EnsoObject {
       sb.append(suffix);
     }
     if (obj != null) {
-      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      var errorMessage = switch (obj) {
+        case Function fn -> fn.toString(false);
+        default -> InteropLibrary.getUncached().toDisplayString(obj);
+      };
       if (errorMessage != null) {
         sb.append(errorMessage);
       } else {

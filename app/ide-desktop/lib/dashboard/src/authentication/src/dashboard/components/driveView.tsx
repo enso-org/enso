@@ -24,11 +24,16 @@ export interface DriveViewProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: string
     doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (project: backendModule.ProjectAsset) => void
+    doOpenEditor: (project: backendModule.ProjectAsset, switchPage: boolean) => void
     doCloseEditor: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
@@ -43,9 +48,12 @@ export default function DriveView(props: DriveViewProps) {
         page,
         hidden,
         initialProjectName,
+        queuedAssetEvents,
         query,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doCreateProject,
         doOpenEditor,
         doCloseEditor,
@@ -60,7 +68,6 @@ export default function DriveView(props: DriveViewProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const [filterBy, setFilterBy] = React.useState(
         () =>
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
@@ -148,6 +155,7 @@ export default function DriveView(props: DriveViewProps) {
                     filterBy={filterBy}
                     appRunner={appRunner}
                     initialProjectName={initialProjectName}
+                    queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}

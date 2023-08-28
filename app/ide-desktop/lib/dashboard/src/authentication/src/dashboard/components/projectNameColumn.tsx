@@ -1,11 +1,15 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import NetworkIcon from 'enso-assets/network.svg'
+
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as assetTreeNode from '../assetTreeNode'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
@@ -17,6 +21,7 @@ import * as validation from '../validation'
 import * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ===================
 // === ProjectName ===
@@ -48,6 +53,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     } = props
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
@@ -55,6 +61,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         throw new Error('`ProjectNameColumn` can only display project assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+    const ownPermission =
+        asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
+        null
+    const canExecute =
+        ownPermission != null &&
+        backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]
+    const isOtherUserUsingProject = asset.projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -69,7 +82,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )
             return
         } catch (error) {
-            toastAndLog('Unable to rename project', error)
+            toastAndLog(errorModule.tryGetMessage(error) ?? 'Could not rename project.')
             throw error
         }
     }
@@ -105,11 +118,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         setAsset({
                             ...asset,
                             id: createdProject.projectId,
-                            projectState: { type: backendModule.ProjectState.placeholder },
+                            projectState: {
+                                ...asset.projectState,
+                                type: backendModule.ProjectState.placeholder,
+                            },
                         })
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
                             id: createdProject.projectId,
+                            shouldAutomaticallySwitchPage: true,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
@@ -204,11 +221,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 item.depth
             )}`}
             onClick={event => {
-                if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
+                if (
+                    !rowState.isEditingName &&
+                    !isOtherUserUsingProject &&
+                    eventModule.isDoubleClick(event)
+                ) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: asset.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 } else if (
                     eventModule.isSingleClick(event) &&
@@ -222,18 +244,22 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
             }}
         >
-            <ProjectIcon
-                keyProp={item.key}
-                item={asset}
-                setItem={setAsset}
-                assetEvents={assetEvents}
-                doOpenManually={doOpenManually}
-                appRunner={appRunner}
-                openIde={() => {
-                    doOpenIde(asset)
-                }}
-                onClose={doCloseIde}
-            />
+            {!canExecute ? (
+                <SvgMask src={NetworkIcon} className="m-1" />
+            ) : (
+                <ProjectIcon
+                    keyProp={item.key}
+                    item={asset}
+                    setItem={setAsset}
+                    assetEvents={assetEvents}
+                    doOpenManually={doOpenManually}
+                    appRunner={appRunner}
+                    openIde={switchPage => {
+                        doOpenIde(asset, switchPage)
+                    }}
+                    onClose={doCloseIde}
+                />
+            )}
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
@@ -264,7 +290,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       }
                     : {})}
                 className={`bg-transparent grow px-2 ${
-                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                    rowState.isEditingName
+                        ? 'cursor-text'
+                        : canExecute && !isOtherUserUsingProject
+                        ? 'cursor-pointer'
+                        : ''
                 }`}
             >
                 {asset.title}
