@@ -95,7 +95,7 @@ export default function AssetRow(props: AssetRowProps) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            toastAndLog('Unable to delete project', error)
+            toastAndLog(`Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
         backend,
@@ -147,7 +147,10 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
-                        toastAndLog('Unable to delete project', error)
+                        toastAndLog(
+                            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`,
+                            error
+                        )
                     }
                 }
                 break

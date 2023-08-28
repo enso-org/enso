@@ -78,6 +78,8 @@ export class LocalBackend extends backend.Backend {
                     : project.id === LocalBackend.currentlyOpeningProjectId
                     ? backend.ProjectState.openInProgress
                     : backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
         }))
     }
@@ -94,6 +96,8 @@ export class LocalBackend extends backend.Backend {
             packageName: project.name,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
             jsonAddress: null,
             binaryAddress: null,
@@ -120,6 +124,8 @@ export class LocalBackend extends backend.Backend {
             packageName: body.projectName,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
         }
     }
@@ -137,7 +143,7 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to close project ${
+                `Could not close project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
@@ -180,6 +186,8 @@ export class LocalBackend extends backend.Backend {
                                 : project.lastOpened != null
                                 ? backend.ProjectState.closed
                                 : backend.ProjectState.created,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        volume_id: '',
                     },
                 }
             }
@@ -201,6 +209,8 @@ export class LocalBackend extends backend.Backend {
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    volume_id: '',
                 },
             }
         }
@@ -225,7 +235,7 @@ export class LocalBackend extends backend.Backend {
                 return
             } catch (error) {
                 throw new Error(
-                    `Unable to open project ${
+                    `Could not open project ${
                         title != null ? `'${title}'` : `with ID '${projectId}'`
                     }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
                 )
@@ -293,7 +303,7 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to delete project ${
+                `Could not delete project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
@@ -324,7 +334,7 @@ export class LocalBackend extends backend.Backend {
     /** @throws An error stating that the operation is intentionally unavailable on the local
      * backend. */
     invalidOperation(): never {
-        throw new Error('Unable to manage users, folders, files, and secrets on the local backend.')
+        throw new Error('Cannot manage users, folders, files, and secrets on the local backend.')
     }
 
     /** Return an empty array. This function should never need to be called. */

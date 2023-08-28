@@ -396,7 +396,7 @@ export default [
             '@typescript-eslint/no-magic-numbers': [
                 'error',
                 {
-                    ignore: [0, 1, 2, 3, 4, 5],
+                    ignore: [-1, 0, 1, 2, 3, 4, 5],
                     ignoreArrayIndexes: true,
                     ignoreEnums: true,
                     detectObjects: true,
