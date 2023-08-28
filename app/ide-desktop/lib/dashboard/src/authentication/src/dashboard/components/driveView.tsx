@@ -30,6 +30,7 @@ export interface DriveViewProps {
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: string
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (
         project: backendModule.ProjectAsset,
@@ -51,6 +52,7 @@ export default function DriveView(props: DriveViewProps) {
         initialProjectName,
         queuedAssetEvents,
         query,
+        projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
         assetEvents,
@@ -146,6 +148,7 @@ export default function DriveView(props: DriveViewProps) {
                 <AssetsTable
                     query={query}
                     initialProjectName={initialProjectName}
+                    projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}

@@ -401,12 +401,13 @@ export default function Dashboard(props: DashboardProps) {
                             hidden={page !== pageSwitcher.Page.drive}
                             page={page}
                             initialProjectName={initialProjectName}
+                            query={query}
+                            projectStartupInfo={projectStartupInfo}
                             queuedAssetEvents={queuedAssetEvents}
                             assetListEvents={assetListEvents}
                             dispatchAssetListEvent={dispatchAssetListEvent}
                             assetEvents={assetEvents}
                             dispatchAssetEvent={dispatchAssetEvent}
-                            query={query}
                             doCreateProject={doCreateProject}
                             doOpenEditor={openEditor}
                             doCloseEditor={closeEditor}

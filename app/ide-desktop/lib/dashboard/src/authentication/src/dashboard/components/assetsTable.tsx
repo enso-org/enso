@@ -151,6 +151,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     initialProjectName: string | null
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
     queuedAssetEvents: assetEventModule.AssetEvent[]
@@ -175,6 +176,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         initialProjectName,
+        projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
         assetListEvents,
         dispatchAssetListEvent,
@@ -769,13 +771,14 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     const doCloseIde = React.useCallback(
         (project: backendModule.ProjectAsset) => {
-            // FIXME: should not do this if the project is different
-            dispatchAssetEvent({
-                type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
-            })
-            rawDoCloseIde(project)
+            if (project.id === projectStartupInfo?.projectAsset.id) {
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
+                })
+                rawDoCloseIde(project)
+            }
         },
-        [rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+        [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
     )
 
     const state = React.useMemo(
