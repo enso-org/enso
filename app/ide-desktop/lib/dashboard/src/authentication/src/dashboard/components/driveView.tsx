@@ -7,6 +7,8 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
@@ -55,10 +57,15 @@ export default function DriveView(props: DriveViewProps) {
     } = props
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
-    const [filterBy, setFilterBy] = React.useState(backendModule.FilterBy.active)
+    const [filterBy, setFilterBy] = React.useState(
+        () =>
+            localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
+            backendModule.FilterBy.active
+    )
 
     React.useEffect(() => {
         const onBlur = () => {

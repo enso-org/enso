@@ -17,6 +17,7 @@ export enum LocalStorageKey {
     extraColumns = 'extra-columns',
     isTemplatesListOpen = 'is-templates-list-open',
     projectStartupInfo = 'project-startup-info',
+    driveCategory = 'drive-category',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
@@ -26,6 +27,7 @@ interface LocalStorageData {
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
     [LocalStorageKey.isTemplatesListOpen]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
+    [LocalStorageKey.driveCategory]: backend.FilterBy
 }
 
 /** A LocalStorage data manager. */

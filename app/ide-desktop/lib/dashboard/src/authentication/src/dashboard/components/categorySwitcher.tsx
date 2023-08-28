@@ -8,6 +8,8 @@ import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as backend from '../backend'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 
 import SvgMask from '../../authentication/components/svgMask'
 
@@ -66,6 +68,12 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
     const { filterBy, setFilterBy } = props
+    const { localStorage } = localStorageProvider.useLocalStorage()
+
+    React.useEffect(() => {
+        localStorage.set(localStorageModule.LocalStorageKey.driveCategory, filterBy)
+    }, [filterBy, /* should never change */ localStorage])
+
     return (
         <div className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
