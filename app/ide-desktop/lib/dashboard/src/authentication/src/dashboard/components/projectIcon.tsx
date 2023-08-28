@@ -31,6 +31,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
     [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
+    [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -42,6 +43,7 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
     [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
+    [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -116,6 +118,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     const abortController = new AbortController()
                     setOpenProjectAbortController(abortController)
                     await remoteBackend.waitUntilProjectIsReady(backend, item, abortController)
+                    setToastId(null)
                     if (!abortController.signal.aborted) {
                         setState(oldState =>
                             oldState === backendModule.ProjectState.openInProgress
@@ -296,6 +299,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
+        case backendModule.ProjectState.provisioned:
         case backendModule.ProjectState.placeholder:
             return (
                 <button
