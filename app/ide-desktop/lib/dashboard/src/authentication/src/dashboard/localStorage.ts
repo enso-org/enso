@@ -30,6 +30,18 @@ interface LocalStorageData {
     [LocalStorageKey.driveCategory]: backend.FilterBy
 }
 
+/** Whether each {@link LocalStorageKey} is user specific.
+ * The type annotation ensures that this object MUST be edited when a new {@link LocalStorageKey}
+ * is added. */
+const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
+    [LocalStorageKey.page]: false,
+    [LocalStorageKey.backendType]: false,
+    [LocalStorageKey.extraColumns]: false,
+    [LocalStorageKey.isTemplatesListOpen]: false,
+    [LocalStorageKey.projectStartupInfo]: true,
+    [LocalStorageKey.driveCategory]: false,
+}
+
 /** A LocalStorage data manager. */
 export class LocalStorage {
     localStorageKey = common.PRODUCT_NAME.toLowerCase()
@@ -60,10 +72,17 @@ export class LocalStorage {
         return oldValue
     }
 
-    /** Delete all entries from the stored data, and save. */
-    clear() {
-        this.values = {}
-        localStorage.removeItem(this.localStorageKey)
+    /** Delete user-specific entries from the stored data, and save. */
+    clearUserSpecificEntries() {
+        for (const [key, isUserSpecific] of Object.entries(IS_USER_SPECIFIC)) {
+            if (isUserSpecific) {
+                // This is SAFE. The only reason this does not typecheck is because `Object.entries`
+                // types the keys as `strings`, because objects may have extra keys due to width
+                // subtyping.
+                // eslint-disable-next-line no-restricted-syntax
+                this.delete(key as LocalStorageKey)
+            }
+        }
     }
 
     /** Save the current value of the stored data.. */
