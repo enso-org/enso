@@ -114,7 +114,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote: {
-                    if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[state]) {
+                    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
                         setToastId(toast.toast.loading(LOADING_MESSAGE))
                         await backend.openProject(item.id, null, item.title)
                     }

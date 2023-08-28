@@ -4,7 +4,9 @@ import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
+    /** When true, the button is not faded out even when not hovered. */
     active?: boolean
+    /** When true, the button is not clickable. */
     disabled?: boolean
     disabledOpacityClassName?: string
     image: string

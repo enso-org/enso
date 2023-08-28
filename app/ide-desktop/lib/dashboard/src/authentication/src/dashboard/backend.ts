@@ -160,7 +160,7 @@ export interface ProjectStateType {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const IS_PROJECT_STATE_OPENING_OR_OPENED: Record<ProjectState, boolean> = {
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
     [ProjectState.created]: false,
     [ProjectState.new]: false,
     [ProjectState.openInProgress]: true,
