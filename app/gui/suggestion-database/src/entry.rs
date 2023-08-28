@@ -1010,7 +1010,7 @@ where
                 let label = chain_to_label(&chain);
                 let qualified_name = entry.qualified_name();
                 let parent_module = qualified_name.parent();
-                let required_import = parent_module.as_ref().map(|n| n.to_string());
+                let required_import = Some(qualified_name.to_string());
                 let is_atom_closure = || -> FallibleResult<bool> {
                     let entry_id = db.lookup_by_qualified_name(&qualified_name)?.0;
                     let is_atom = db.lookup_constructors_count(entry_id)? == 0;
