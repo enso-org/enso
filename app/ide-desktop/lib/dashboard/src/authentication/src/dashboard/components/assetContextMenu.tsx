@@ -65,9 +65,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
+    const ownsThisAsset = self?.permission === backendModule.PermissionAction.own
     const managesThisAsset =
-        self?.permission === backendModule.PermissionAction.own ||
-        self?.permission === backendModule.PermissionAction.admin
+        ownsThisAsset || self?.permission === backendModule.PermissionAction.admin
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
@@ -82,21 +82,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         [/* should never change */ setItem]
     )
     return filterBy === backendModule.FilterBy.trashed ? (
-        <ContextMenus hidden={hidden} key={asset.id} event={event}>
-            <ContextMenu hidden={hidden}>
-                <MenuEntry
-                    hidden={hidden}
-                    action={shortcuts.KeyboardAction.restoreFromTrash}
-                    doAction={() => {
-                        unsetModal()
-                        dispatchAssetEvent({
-                            type: assetEventModule.AssetEventType.restoreMultiple,
-                            ids: new Set([asset.id]),
-                        })
-                    }}
-                />
-            </ContextMenu>
-        </ContextMenus>
+        !ownsThisAsset ? null : (
+            <ContextMenus hidden={hidden} key={asset.id} event={event}>
+                <ContextMenu hidden={hidden}>
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.restoreFromTrash}
+                        doAction={() => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                ids: new Set([asset.id]),
+                            })
+                        }}
+                    />
+                </ContextMenu>
+            </ContextMenus>
+        )
     ) : (
         <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
@@ -184,22 +186,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                <MenuEntry
-                    hidden={hidden}
-                    action={shortcuts.KeyboardAction.moveToTrash}
-                    doAction={() => {
-                        if (backend.type === backendModule.BackendType.remote) {
-                            void doDelete()
-                        } else {
-                            setModal(
-                                <ConfirmDeleteModal
-                                    description={`the ${asset.type} '${asset.title}'`}
-                                    doDelete={doDelete}
-                                />
-                            )
-                        }
-                    }}
-                />
+                {ownsThisAsset && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.moveToTrash}
+                        doAction={() => {
+                            if (backend.type === backendModule.BackendType.remote) {
+                                void doDelete()
+                            } else {
+                                setModal(
+                                    <ConfirmDeleteModal
+                                        description={`the ${asset.type} '${asset.title}'`}
+                                        doDelete={doDelete}
+                                    />
+                                )
+                            }
+                        }}
+                    />
+                )}
                 <ContextMenuSeparator hidden={hidden} />
                 {managesThisAsset && (
                     <MenuEntry

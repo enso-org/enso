@@ -771,6 +771,20 @@ export default function AssetsTable(props: AssetsTableProps) {
                         event.preventDefault()
                         event.stopPropagation()
                         const pluralized = pluralize(innerSelectedKeys.size)
+                        // This works because all items are mutated, ensuring their value stays
+                        // up to date.
+                        const ownsAllSelectedAssets =
+                            organization != null &&
+                            Array.from(innerSelectedKeys, key => {
+                                const userPermissions = nodeMap.get(key)?.item.permissions
+                                const selfPermission = userPermissions?.find(
+                                    permission => permission.user.user_email === organization.email
+                                )
+                                return (
+                                    selfPermission?.permission ===
+                                    backendModule.PermissionAction.own
+                                )
+                            }).every(isOwner => isOwner)
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const doDeleteAll = () => {
@@ -821,7 +835,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         } else {
                             setModal(
                                 <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                    {innerSelectedKeys.size !== 0 && (
+                                    {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
                                         <ContextMenu>
                                             <MenuEntry
                                                 action={shortcuts.KeyboardAction.moveAllToTrash}
