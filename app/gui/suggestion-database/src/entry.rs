@@ -176,7 +176,7 @@ impl From<Import> for import::Info {
 // === Kind ===
 
 /// A type of suggestion entry.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant, Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant, serde::Serialize)]
 #[allow(missing_docs)]
 pub enum Kind {
     Type,
@@ -195,7 +195,7 @@ pub enum Kind {
 /// Methods are visible "Everywhere", as they are imported on a module level, so they are not
 /// specific to any particular span in the module file.
 /// However local variables and local function have limited visibility.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum Scope {
     /// The entry is visible in the whole module where it was defined. It can be also brought to
     /// other modules by import declarations.
@@ -207,51 +207,18 @@ pub enum Scope {
     /// To convert to bytes (or other system) one would need to know the whole module code which
     /// is not available to the suggestions database.
     #[allow(missing_docs)]
-    #[serde(serialize_with = "serialize_range")]
     InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
-}
-
-fn serialize_range<S>(
-    range: &RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
-    ser: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    use serde::ser::SerializeTupleStruct;
-    let lines = usize::from(range.start().line)..=usize::from(range.end().line);
-    let offsets = usize::from(range.start().offset)..=usize::from(range.end().offset);
-    let mut ts = ser.serialize_tuple_struct("Location", 2)?;
-    ts.serialize_field(&lines)?;
-    ts.serialize_field(&offsets)?;
-    ts.end()
 }
 
 
 // === Entry ===
-use serde::Serialize;
-use serde::Serializer;
-fn serialize_qn<S>(qfn: &QualifiedName, ser: S) -> Result<S::Ok, S::Error>
-where S: Serializer {
-    ser.serialize_str(&qfn.to_string())
-}
-
-fn serialize_optional_qn<S>(qfn: &Option<QualifiedName>, ser: S) -> Result<S::Ok, S::Error>
-where S: Serializer {
-    if let Some(qfn) = qfn {
-        serialize_qn(qfn, ser)
-    } else {
-        ser.serialize_none()
-    }
-}
 
 /// The Suggestion Database Entry.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct Entry {
     /// A type of suggestion.
     pub kind:          Kind,
     /// A module where the suggested object is defined.
-    #[serde(serialize_with = "serialize_qn")]
     pub defined_in:    QualifiedName,
     /// A name of suggested object.
     pub name:          ImString,
@@ -259,15 +226,12 @@ pub struct Entry {
     /// arguments, the list is empty.
     pub arguments:     Vec<Argument>,
     /// A type returned by the suggested object.
-    #[serde(serialize_with = "serialize_qn")]
     pub return_type:   QualifiedName,
     /// A module reexporting this entity.
-    #[serde(serialize_with = "serialize_optional_qn")]
     pub reexported_in: Option<QualifiedName>,
     /// A list of documentation sections associated with object.
     pub documentation: Vec<DocSection>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
-    #[serde(serialize_with = "serialize_optional_qn")]
     pub self_type:     Option<QualifiedName>,
     /// A flag set to true if the method is a static or module method.
     pub is_static:     bool,
