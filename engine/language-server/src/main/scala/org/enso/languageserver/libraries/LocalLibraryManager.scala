@@ -6,10 +6,7 @@ import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
 import org.enso.librarymanager.LibraryLocations
-import org.enso.librarymanager.local.{
-  DefaultLocalLibraryProvider,
-  LocalLibraryProvider
-}
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.validation.NameValidation
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
@@ -88,10 +85,10 @@ class LocalLibraryManager(
       )
     }
 
-    val libraryPath =
-      LocalLibraryProvider.resolveLibraryPath(librariesRoot, libraryName)
+    val libraryPath = librariesRoot.resolve(libraryName.name)
     if (Files.exists(libraryPath)) {
       // TODO [RW] we could try finding alternative names (as directory name does not matter for local libraries), to find a free name
+      // This can be done as part of #1877
       throw new RuntimeException("Local library already exists")
     }
 

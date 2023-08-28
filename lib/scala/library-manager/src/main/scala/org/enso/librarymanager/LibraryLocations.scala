@@ -28,7 +28,9 @@ object LibraryLocations {
     * which can provide paths to libraries bundled with the current language
     * version.
     *
-    * If a project root is provided, the local library search path will be extended with the parent directory of the current project, allowing to search for libraries located next to it.
+    * If a project root is provided, the local library search path will be
+    * extended with the parent directory of the current project, allowing to
+    * search for libraries located next to it.
     */
   def resolve(
     distributionManager: DistributionManager,
