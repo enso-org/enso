@@ -61,13 +61,25 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-8 py-0.5">
             <div className="flex gap-2.5">
                 <button
+                    disabled={filterBy === backendModule.FilterBy.trashed}
                     className="flex items-center bg-frame rounded-full h-8 px-2.5"
+                    {...(filterBy === backendModule.FilterBy.trashed
+                        ? {
+                              title: 'Cannot create a new project in Trash.',
+                          }
+                        : {})}
                     onClick={() => {
                         unsetModal()
                         doCreateProject(null)
                     }}
                 >
-                    <span className="font-semibold leading-5 h-6 py-px">New Project</span>
+                    <span
+                        className={`font-semibold leading-5 h-6 py-px ${
+                            filterBy === backendModule.FilterBy.trashed ? 'opacity-50' : ''
+                        }`}
+                    >
+                        New Project
+                    </span>
                 </button>
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
