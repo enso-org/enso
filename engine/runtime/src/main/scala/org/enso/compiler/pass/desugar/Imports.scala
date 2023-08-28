@@ -120,7 +120,7 @@ case object Imports extends IRPass {
   ): Option[IR.Name.Qualified] = {
     name.parts match {
       case head :: _ if head.name == currentProjectAlias =>
-        val pkg = Option(context.module.getPackage)
+        val pkg = Option(context.getPackage())
         pkg.map { pkg =>
           val namespace = IR.Name.Literal(
             pkg.namespace,

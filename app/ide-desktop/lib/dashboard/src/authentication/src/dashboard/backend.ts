@@ -132,6 +132,7 @@ export enum ProjectState {
     created = 'Created',
     new = 'New',
     openInProgress = 'OpenInProgress',
+    provisioned = 'Provisioned',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as

@@ -40,8 +40,6 @@ function responseIsSuccessful(response: Response) {
 
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
-/** The interval between requests checking whether the VM is ready. */
-const CHECK_RESOURCES_INTERVAL_MS = 1000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
@@ -52,6 +50,7 @@ export async function waitUntilProjectIsReady(
     let project = await backend.getProjectDetails(item.id, item.title)
     if (
         project.state.type !== backendModule.ProjectState.openInProgress &&
+        project.state.type !== backendModule.ProjectState.provisioned &&
         project.state.type !== backendModule.ProjectState.opened
     ) {
         await backend.openProject(item.id, null, item.title)
@@ -67,20 +66,6 @@ export async function waitUntilProjectIsReady(
         })
         nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
         project = await backend.getProjectDetails(item.id, item.title)
-    }
-    nextCheckTimestamp = 0
-    while (!abortController.signal.aborted) {
-        try {
-            await new Promise<void>(resolve => {
-                const delayMs = nextCheckTimestamp - Number(new Date())
-                setTimeout(resolve, Math.max(0, delayMs))
-            })
-            nextCheckTimestamp = Number(new Date()) + CHECK_RESOURCES_INTERVAL_MS
-            await backend.checkResources(item.id, item.title)
-            break
-        } catch {
-            // Ignored.
-        }
     }
 }
 
@@ -355,18 +340,9 @@ export class RemoteBackend extends backendModule.Backend {
                             type: asset.id.match(/^(.+?)-/)?.[1],
                         } as backendModule.AnyAsset)
                 )
-                .map(asset =>
-                    asset.type === backendModule.AssetType.project &&
-                    asset.projectState.type === backendModule.ProjectState.opened
-                        ? {
-                              ...asset,
-                              projectState: { type: backendModule.ProjectState.openInProgress },
-                          }
-                        : asset
-                )
                 .map(asset => ({
                     ...asset,
-                    permissions: (asset.permissions ?? []).sort(
+                    permissions: [...(asset.permissions ?? [])].sort(
                         backendModule.compareUserPermissions
                     ),
                 }))

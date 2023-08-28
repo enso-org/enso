@@ -49,7 +49,7 @@ case object UnusedBindings extends IRPass {
       runExpression(
         _,
         InlineContext(
-          moduleContext.module,
+          moduleContext,
           compilerConfig = moduleContext.compilerConfig
         )
       )
