@@ -82,7 +82,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
-    const { localStorage } = localStorageProvider.useLocalStorage()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
