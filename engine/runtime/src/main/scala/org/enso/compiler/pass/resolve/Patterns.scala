@@ -53,10 +53,7 @@ object Patterns extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val bindings = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "Binding resolution was not run before pattern resolution"
-    )
+    val bindings = inlineContext.bindingsAnalysis()
     doExpression(ir, bindings, None)
   }
 

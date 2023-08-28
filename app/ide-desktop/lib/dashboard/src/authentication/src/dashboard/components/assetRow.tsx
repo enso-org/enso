@@ -106,7 +106,7 @@ export default function AssetRow(props: AssetRowProps) {
             setPresence(presenceModule.Presence.present)
             toastAndLog(
                 errorModule.tryGetMessage(error)?.slice(0, -1) ??
-                    `Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+                    `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
             )
         }
     }, [
@@ -162,7 +162,7 @@ export default function AssetRow(props: AssetRowProps) {
                         setPresence(presenceModule.Presence.present)
                         toastAndLog(
                             errorModule.tryGetMessage(error)?.slice(0, -1) ??
-                                `Unable to delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+                                `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
                         )
                     }
                 }
