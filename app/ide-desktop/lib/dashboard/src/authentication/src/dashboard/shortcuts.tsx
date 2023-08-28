@@ -419,8 +419,10 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
     [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], DELETE)],
     [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
-    [KeyboardAction.restoreFromTrash]: [],
-    [KeyboardAction.restoreAllFromTrash]: [],
+    [KeyboardAction.restoreFromTrash]: [keybind(KeyboardAction.restoreFromTrash, [CTRL], 'R')],
+    [KeyboardAction.restoreAllFromTrash]: [
+        keybind(KeyboardAction.restoreAllFromTrash, [CTRL], 'R'),
+    ],
     [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
