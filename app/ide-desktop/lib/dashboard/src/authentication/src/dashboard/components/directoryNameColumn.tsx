@@ -56,9 +56,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         if (isHovered) {
             // Delay adding animation CSS attributes, to prevent animations for
             // the initial hover.
-            window.setTimeout(() => {
+            requestAnimationFrame(() => {
                 setShouldAnimate(true)
-            }, 0)
+            })
         } else {
             setShouldAnimate(false)
         }
