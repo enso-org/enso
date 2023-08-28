@@ -91,6 +91,7 @@ class LocalLibraryManager(
     val libraryPath =
       LocalLibraryProvider.resolveLibraryPath(librariesRoot, libraryName)
     if (Files.exists(libraryPath)) {
+      // TODO [RW] we could try finding alternative names (as directory name does not matter for local libraries), to find a free name
       throw new RuntimeException("Local library already exists")
     }
 
