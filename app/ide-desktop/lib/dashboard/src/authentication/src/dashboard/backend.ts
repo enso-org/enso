@@ -162,6 +162,7 @@ export interface Project extends ListedProject {
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
     project: Project
+    projectAsset: ProjectAsset
     backendType: BackendType
     accessToken: string | null
 }

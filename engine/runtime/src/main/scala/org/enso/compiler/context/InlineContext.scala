@@ -1,11 +1,13 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.core.IR
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.interpreter.node.BaseNode.TailStatus
-import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.node.ExpressionNode
+import com.oracle.truffle.api.source.Source
 
 /** A type containing the information about the execution context for an inline
   * expression.
@@ -20,14 +22,26 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   * @param pkgRepo the compiler's package repository
   */
 case class InlineContext(
-  module: Module,
+  private val module: ModuleContext,
   compilerConfig: CompilerConfig,
   localScope: Option[LocalScope]               = None,
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
   pkgRepo: Option[PackageRepository]           = None
-)
+) {
+  def bindingsAnalysis() = module.bindingsAnalysis()
+
+  def truffleRunInline(
+    context: CompilerContext,
+    source: Source,
+    config: CompilerConfig,
+    ir: IR.Expression
+  ): ExpressionNode = {
+    val s = localScope.getOrElse(LocalScope.root)
+    return module.truffleRunInline(context, source, s, config, ir)
+  }
+}
 object InlineContext {
 
   /** Implements a null-safe conversion from nullable objects to Scala's option
@@ -47,7 +61,7 @@ object InlineContext {
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
-      module           = moduleScope.getModule,
+      module           = ModuleContext(moduleScope.getModule, compilerConfig),
       isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),
       compilerConfig   = compilerConfig
     )
@@ -62,7 +76,7 @@ object InlineContext {
   def fromModuleContext(moduleContext: ModuleContext): InlineContext = {
     InlineContext(
       localScope        = None,
-      module            = moduleContext.module,
+      module            = moduleContext,
       isInTailPosition  = None,
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,

@@ -84,6 +84,7 @@ object ProjectServiceFailure {
     * than what is currently running.
     */
   case class ProjectManagerUpgradeRequiredFailure(
+    currentVersion: SemVer,
     minimumRequiredVersion: SemVer
   ) extends ProjectServiceFailure
 

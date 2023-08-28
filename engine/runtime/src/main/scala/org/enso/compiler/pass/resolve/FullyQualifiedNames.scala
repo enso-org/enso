@@ -17,7 +17,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
 
 /** Partially resolves fully qualified names corresponding to the library names
   *
@@ -80,7 +79,7 @@ case object FullyQualifiedNames extends IRPass {
     // `Standard.Base.Error.Foo`, then accessing it via a fully qualified name,
     // `Standard.Base.Error.Foo`, will always lead to name conflicts with
     // the exported type `Error`.
-    if (isMainModule(moduleContext.module)) {
+    if (isMainModule(moduleContext)) {
       scopeMap.resolvedExports.foreach {
         case ExportedModule(
               resolution @ ResolvedType(exportedModuleRef, tpe),
@@ -127,8 +126,10 @@ case object FullyQualifiedNames extends IRPass {
     ir.copy(bindings = new_bindings)
   }
 
-  private def isMainModule(module: Module): Boolean = {
-    module.getName.item == Imports.mainModuleName.name && module.getName.path.length == 2
+  private def isMainModule(module: ModuleContext): Boolean = {
+    module
+      .getName()
+      .item == Imports.mainModuleName.name && module.getName().path.length == 2
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -144,10 +145,7 @@ case object FullyQualifiedNames extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val scopeMap = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "No binding analysis on the module"
-    )
+    val scopeMap = inlineContext.bindingsAnalysis()
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "No fresh name supply passed to UppercaseNames resolver."
