@@ -190,9 +190,9 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        (filterBy !== backend.FilterBy.trashed &&
-            self?.permission === backend.PermissionAction.own) ||
-        self?.permission === backend.PermissionAction.admin
+        filterBy !== backend.FilterBy.trashed && (
+            self?.permission === backend.PermissionAction.own ||
+        self?.permission === backend.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
