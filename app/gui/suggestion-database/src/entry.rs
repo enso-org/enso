@@ -944,7 +944,6 @@ pub fn to_span_tree_param(
     }
 }
 
-#[derive(Debug)]
 enum TagValueResolution<'a> {
     Resolved(Rc<Entry>, ast::opr::Chain),
     Parsed(ast::opr::Chain),
@@ -1003,7 +1002,7 @@ where
         chain.last_operand().map_or_default(|op| op.arg.repr()).replace('_', " ")
     };
 
-    let tmp = resolved
+    resolved
         .into_iter()
         .map(|resolution| match resolution {
             TagValueResolution::Resolved(entry, chain) => {
@@ -1033,8 +1032,7 @@ where
                 label:           None,
             },
         })
-        .collect_vec();
-    tmp
+        .collect_vec()
 }
 
 
