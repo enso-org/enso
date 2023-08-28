@@ -1051,7 +1051,6 @@ where
             },
         })
         .collect_vec();
-    console_log!("Tag values: {:?}", tmp);
     tmp
 }
 
