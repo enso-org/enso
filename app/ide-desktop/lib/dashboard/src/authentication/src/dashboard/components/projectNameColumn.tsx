@@ -37,6 +37,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         setRowState,
         state: {
             appRunner,
+            numberOfSelectedItems,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -211,7 +212,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     })
                 } else if (
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({

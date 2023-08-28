@@ -111,6 +111,7 @@ function insertAssetTreeNodeChildren(
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     appRunner: AppRunner | null
+    numberOfSelectedItems: number
     filterBy: backendModule.FilterBy
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
@@ -685,6 +686,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             appRunner,
+            numberOfSelectedItems: selectedKeys.size,
             filterBy,
             sortColumn,
             setSortColumn,
@@ -700,6 +702,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }),
         [
             appRunner,
+            selectedKeys.size,
             filterBy,
             sortColumn,
             sortDirection,

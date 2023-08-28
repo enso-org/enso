@@ -35,7 +35,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         setItem,
         selected,
         setSelected,
-        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion },
+        state: {
+            numberOfSelectedItems,
+            assetEvents,
+            dispatchAssetListEvent,
+            doToggleDirectoryExpansion,
+        },
         rowState,
         setRowState,
     } = props
@@ -115,7 +120,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
