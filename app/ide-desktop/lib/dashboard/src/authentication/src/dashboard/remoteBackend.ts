@@ -48,11 +48,7 @@ export async function waitUntilProjectIsReady(
     abortController: AbortController = new AbortController()
 ) {
     let project = await backend.getProjectDetails(item.id, item.title)
-    if (
-        project.state.type !== backendModule.ProjectState.openInProgress &&
-        project.state.type !== backendModule.ProjectState.provisioned &&
-        project.state.type !== backendModule.ProjectState.opened
-    ) {
+    if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[project.state.type]) {
         await backend.openProject(item.id, null, item.title)
     }
     let nextCheckTimestamp = 0

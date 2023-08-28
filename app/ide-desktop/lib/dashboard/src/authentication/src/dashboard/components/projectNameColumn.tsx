@@ -66,6 +66,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const canExecute =
         ownPermission != null &&
         backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]
+    const isOtherUserUsingProject = asset.projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -114,7 +115,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         setAsset({
                             ...asset,
                             id: createdProject.projectId,
-                            projectState: { type: backendModule.ProjectState.placeholder },
+                            projectState: {
+                                ...asset.projectState,
+                                type: backendModule.ProjectState.placeholder,
+                            },
                         })
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
@@ -214,7 +218,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 item.depth
             )}`}
             onClick={event => {
-                if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
+                if (
+                    !rowState.isEditingName &&
+                    !isOtherUserUsingProject &&
+                    eventModule.isDoubleClick(event)
+                ) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -279,7 +287,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                       }
                     : {})}
                 className={`bg-transparent grow px-2 ${
-                    rowState.isEditingName ? 'cursor-text' : canExecute ? 'cursor-pointer' : ''
+                    rowState.isEditingName
+                        ? 'cursor-text'
+                        : canExecute && !isOtherUserUsingProject
+                        ? 'cursor-pointer'
+                        : ''
                 }`}
             >
                 {asset.title}

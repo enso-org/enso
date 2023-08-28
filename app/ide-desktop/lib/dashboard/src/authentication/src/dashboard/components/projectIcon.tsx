@@ -10,6 +10,7 @@ import * as assetEventModule from '../events/assetEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
@@ -90,10 +91,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
             if (typeof stateOrUpdater === 'function') {
                 setItem(oldItem => ({
                     ...oldItem,
-                    projectState: { type: stateOrUpdater(oldItem.projectState.type) },
+                    projectState: {
+                        ...oldItem.projectState,
+                        type: stateOrUpdater(oldItem.projectState.type),
+                    },
                 }))
             } else {
-                setItem(oldItem => ({ ...oldItem, projectState: { type: stateOrUpdater } }))
+                setItem(oldItem => ({
+                    ...oldItem,
+                    projectState: { ...oldItem.projectState, type: stateOrUpdater },
+                }))
             }
         },
         [/* should never change */ setItem]
@@ -107,42 +114,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const [isSomeoneElseUsingProject, setIsOtherUserUsingProject] = React.useState(false)
+    const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote: {
-                    if (
-                        state !== backendModule.ProjectState.openInProgress &&
-                        state !== backendModule.ProjectState.opened
-                    ) {
+                    if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[state]) {
                         setToastId(toast.toast.loading(LOADING_MESSAGE))
-                        try {
-                            await backend.openProject(item.id, null, item.title)
-                            setIsOtherUserUsingProject(false)
-                        } catch (error) {
-                            // Assume the project was opened by another user.
-                            const project = await backend.getProjectDetails(item.id, item.title)
-                            const newState = project.state.type
-                            if (
-                                newState !== backendModule.ProjectState.openInProgress &&
-                                newState !== backendModule.ProjectState.opened
-                            ) {
-                                toastAndLog('Could not open project', error)
-                            } else {
-                                setState(newState)
-                            }
-                            setIsOtherUserUsingProject(
-                                project.openedBy != null && project.openedBy !== organization?.email
-                            )
-                        }
-                    } else {
-                        const project = await backend.getProjectDetails(item.id, item.title)
-                        setIsOtherUserUsingProject(
-                            project.openedBy != null && project.openedBy !== organization?.email
-                        )
+                        await backend.openProject(item.id, null, item.title)
                     }
                     const abortController = new AbortController()
                     setOpenProjectAbortController(abortController)
@@ -168,28 +149,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             }
         } catch (error) {
-            toastAndLog(`Could not open project '${item.title}'`, error)
+            const project = await backend.getProjectDetails(item.id, item.title)
+            setItem(oldItem => ({
+                ...oldItem,
+                projectState: project.state,
+            }))
+            toastAndLog(
+                errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                    `Could not open project '${item.title}'`
+            )
             setState(backendModule.ProjectState.closed)
         }
     }, [
         state,
         backend,
         item,
-        organization?.email,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
+        /* should never change */ setItem,
     ])
 
     React.useEffect(() => {
-        if (item.projectState.type === backendModule.ProjectState.openInProgress) {
-            void openProject()
-        }
-        // This MUST only run once, when the component is initially mounted.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    React.useEffect(() => {
-        setItem(oldItem => ({ ...oldItem, projectState: { type: state } }))
+        setItem(oldItem => ({ ...oldItem, projectState: { ...oldItem.projectState, type: state } }))
     }, [state, /* should never change */ setItem])
 
     React.useEffect(() => {
@@ -239,7 +220,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     setShouldOpenWhenReady(false)
-                    if (!isSomeoneElseUsingProject) {
+                    if (!isOtherUserUsingProject) {
                         void closeProject(false)
                     }
                 } else {
@@ -255,7 +236,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setOnSpinnerStateChange(null)
                 openProjectAbortController?.abort()
                 setOpenProjectAbortController(null)
-                if (!isSomeoneElseUsingProject) {
+                if (!isOtherUserUsingProject) {
                     void closeProject(false)
                 }
                 break
@@ -338,9 +319,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.placeholder:
             return (
                 <button
-                    disabled={isSomeoneElseUsingProject}
-                    {...(isSomeoneElseUsingProject
-                        ? { title: 'Someone else has this project open.' }
+                    disabled={isOtherUserUsingProject}
+                    {...(isOtherUserUsingProject
+                        ? { title: 'Someone else is using this project.' }
                         : {})}
                     className="w-6 disabled:opacity-50"
                     onClick={async clickEvent => {
@@ -359,8 +340,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
             return (
                 <>
                     <button
-                        disabled={isSomeoneElseUsingProject}
-                        {...(isSomeoneElseUsingProject
+                        disabled={isOtherUserUsingProject}
+                        {...(isOtherUserUsingProject
                             ? { title: 'Someone else has this project open.' }
                             : {})}
                         className="w-6 disabled:opacity-50"
@@ -375,7 +356,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         </div>
                         <SvgMask src={StopIcon} />
                     </button>
-                    {!isSomeoneElseUsingProject && (
+                    {!isOtherUserUsingProject && (
                         <button
                             className="w-6"
                             onClick={clickEvent => {
