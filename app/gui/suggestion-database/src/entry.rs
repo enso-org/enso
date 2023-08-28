@@ -1009,33 +1009,16 @@ where
             TagValueResolution::Resolved(entry, chain) => {
                 let label = chain_to_label(&chain);
                 let qualified_name = entry.qualified_name();
-                let parent_module = qualified_name.parent();
                 let required_import = Some(qualified_name.to_string());
-                let is_atom_closure = || -> FallibleResult<bool> {
-                    let entry_id = db.lookup_by_qualified_name(&qualified_name)?.0;
-                    let is_atom = db.lookup_constructors_count(entry_id)? == 0;
-                    Ok(is_atom)
-                };
-                let is_atom = if let Ok(is_atom) = is_atom_closure() {
-                    is_atom
+                // As we don't generate `this`, we will never follow the code path where
+                // `in_module` is used. That's why passing `default()` is valid.
+                let in_module = default();
+                let expression = entry.code_to_insert(false, in_module);
+                let expression = if entry.arguments.is_empty() {
+                    expression.to_string()
                 } else {
-                    console_log!("Error: {qualified_name}");
-                    false
+                    format!("({expression})")
                 };
-
-                let expression = if let Some(parent) = parent_module {
-                    let in_module_name = qualified_name.name();
-                    let parent_name = parent.name();
-                    if is_atom {
-                        in_module_name.to_owned()
-                    } else {
-                        [parent_name, in_module_name].join(opr::predefined::ACCESS)
-                    }
-                } else {
-                    qualified_name.to_string()
-                };
-                let expression =
-                    if entry.arguments.is_empty() { expression } else { format!("({expression})") };
 
                 span_tree::TagValue { required_import, expression, label: Some(label) }
             }
