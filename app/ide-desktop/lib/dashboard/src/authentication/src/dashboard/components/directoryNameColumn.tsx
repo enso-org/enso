@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import DirectoryIcon from 'enso-assets/folder.svg'
+import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -42,12 +43,26 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [isHovered, setIsHovered] = React.useState(false)
+    const [shouldAnimate, setShouldAnimate] = React.useState(false)
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
         throw new Error('`DirectoryNameColumn` can only display directory assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+
+    React.useEffect(() => {
+        if (isHovered) {
+            // Delay adding animation CSS attributes, to prevent animations for
+            // the initial hover.
+            window.setTimeout(() => {
+                setShouldAnimate(true)
+            }, 0)
+        } else {
+            setShouldAnimate(false)
+        }
+    }, [isHovered])
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -110,6 +125,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
                 item.depth
             )}`}
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
@@ -132,7 +153,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={DirectoryIcon} className="m-1" />
+            {isHovered ? (
+                <SvgMask
+                    src={TriangleDownIcon}
+                    className={`m-1 ${shouldAnimate ? 'transition-transform duration-300' : ''} ${
+                        item.children != null ? '' : '-rotate-90'
+                    }`}
+                />
+            ) : (
+                <SvgMask src={DirectoryIcon} className="m-1" />
+            )}
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
