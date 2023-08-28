@@ -80,10 +80,7 @@ case object GlobalNames extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val scopeMap = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "No binding analysis on the module"
-    )
+    val scopeMap = inlineContext.bindingsAnalysis()
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "No fresh name supply passed to UppercaseNames resolver."

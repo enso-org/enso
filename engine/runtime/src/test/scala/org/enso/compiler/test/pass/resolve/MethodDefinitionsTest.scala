@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ModuleReference, Type}
+import org.enso.compiler.data.BindingsMap.Type
 import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -78,7 +78,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
+            ctx.moduleReference(),
             Type("Foo", List(), false)
           )
         )
@@ -95,7 +95,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
+          BindingsMap.ResolvedModule(ctx.moduleReference())
         )
       )
 
@@ -113,7 +113,7 @@ class MethodDefinitionsTest extends CompilerTest {
       ) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
+            ctx.moduleReference(),
             Type("Foo", List(), false)
           )
         )
@@ -121,7 +121,7 @@ class MethodDefinitionsTest extends CompilerTest {
       conv1.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
+            ctx.moduleReference(),
             Type("Bar", List(), false)
           )
         )
@@ -135,7 +135,7 @@ class MethodDefinitionsTest extends CompilerTest {
       ) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
+            ctx.moduleReference(),
             Type("Bar", List(), false)
           )
         )
@@ -149,7 +149,7 @@ class MethodDefinitionsTest extends CompilerTest {
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
+            ctx.moduleReference(),
             Type("Foo", List(), false)
           )
         )

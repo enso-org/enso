@@ -1,7 +1,6 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
-import org.enso.compiler.codegen.RuntimeStubsGenerator
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
@@ -23,7 +22,6 @@ import org.enso.compiler.phase.{
 }
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
@@ -51,7 +49,6 @@ import scala.jdk.OptionConverters._
   */
 class Compiler(
   val context: CompilerContext,
-  val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
 ) extends CompilerStub {
@@ -59,11 +56,9 @@ class Compiler(
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
-  private val stubsGenerator: RuntimeStubsGenerator =
-    new RuntimeStubsGenerator(builtins)
-  private val irCachingEnabled        = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations = context.isUseGlobalCacheLocations
-  private val isInteractiveMode       = context.isInteractiveMode()
+  private val irCachingEnabled                 = !context.isIrCachingDisabled
+  private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
+  private val isInteractiveMode                = context.isInteractiveMode()
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val output: PrintStream =
@@ -92,7 +87,6 @@ class Compiler(
   def duplicateWithConfig(newConfig: CompilerConfig): Compiler = {
     new Compiler(
       context,
-      builtins,
       packageRepository,
       newConfig
     )
@@ -100,53 +94,13 @@ class Compiler(
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
-    initializeBuiltinsIr()
+    context.initializeBuiltinsIr(
+      irCachingEnabled,
+      serializationManager,
+      freshNameSupply,
+      passes
+    )
     packageRepository.initialize().left.foreach(reportPackageError)
-  }
-
-  /** Lazy-initializes the IR for the builtins module. */
-  private def initializeBuiltinsIr(): Unit = {
-    if (!builtins.isIrInitialized) {
-      context.log(
-        Compiler.defaultLogLevel,
-        "Initialising IR for [{0}].",
-        builtins.getModule.getName
-      )
-
-      builtins.initializeBuiltinsSource()
-
-      if (irCachingEnabled) {
-        serializationManager.deserialize(builtins.getModule) match {
-          case Some(true) =>
-            // Ensure that builtins doesn't try and have codegen run on it.
-            context.updateModule(
-              builtins.getModule,
-              { u =>
-                u.compilationStage(CompilationStage.AFTER_CODEGEN)
-              }
-            )
-          case _ =>
-            builtins.initializeBuiltinsIr(context, freshNameSupply, passes)
-            context.updateModule(
-              builtins.getModule,
-              u => u.hasCrossModuleLinks(true)
-            )
-        }
-      } else {
-        builtins.initializeBuiltinsIr(context, freshNameSupply, passes)
-        context.updateModule(
-          builtins.getModule,
-          u => u.hasCrossModuleLinks(true)
-        )
-      }
-
-      if (irCachingEnabled && !context.wasLoadedFromCache(builtins.getModule)) {
-        serializationManager.serializeModule(
-          builtins.getModule,
-          useGlobalCacheLocations = true // Builtins can't have a local cache.
-        )
-      }
-    }
   }
 
   /** @return the serialization manager instance. */
@@ -413,7 +367,7 @@ class Compiler(
             CompilationStage.AFTER_RUNTIME_STUBS
           )
       ) {
-        stubsGenerator.run(module)
+        context.runStubsGenerator(module)
         context.updateModule(
           module,
           { u =>
@@ -718,7 +672,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(truffleCodegenInline(compilerOutput, source, newContext))
+      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
     }
   }
 
@@ -1258,22 +1212,6 @@ class Compiler(
     scope: ModuleScope
   ): Unit = {
     context.truffleRunCodegen(source, scope, config, ir)
-  }
-
-  /** Generates code for the truffle interpreter in an inline context.
-    *
-    * @param ir the prorgam to translate
-    * @param source the source code of the program represented by `ir`
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return the runtime representation of the program represented by `ir`
-    */
-  def truffleCodegenInline(
-    ir: IR.Expression,
-    source: Source,
-    inlineContext: InlineContext
-  ): RuntimeExpression = {
-    context.truffleRunInline(source, inlineContext, config, ir);
   }
 
   /** Performs shutdown actions for the compiler.

@@ -45,7 +45,7 @@ case object ModuleNameConflicts extends IRPass {
             ) =>
           Some(mod)
         case mod: IR.Module.Scope.Export.Module
-            if moduleContext.module.isSynthetic =>
+            if moduleContext.isSynthetic() =>
           Some(mod)
         case _ =>
           None

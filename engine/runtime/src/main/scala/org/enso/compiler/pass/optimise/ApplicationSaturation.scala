@@ -57,7 +57,7 @@ case object ApplicationSaturation extends IRPass {
       runExpression(
         _,
         new InlineContext(
-          moduleContext.module,
+          moduleContext,
           passConfiguration = passConfig,
           compilerConfig    = moduleContext.compilerConfig
         )
