@@ -27,12 +27,10 @@ export default function ContextMenus(props: ContextMenusProps) {
     const contextMenuRef = React.useRef<HTMLDivElement>(null)
     const [left, setLeft] = React.useState(event.pageX)
     const [top, setTop] = React.useState(event.pageY)
-    // This must be the original height before the returned element affects the `scrollHeight`.
-    const [bodyHeight] = React.useState(document.body.scrollHeight)
 
     React.useLayoutEffect(() => {
         if (contextMenuRef.current != null) {
-            setTop(Math.min(top, bodyHeight - contextMenuRef.current.clientHeight))
+            setTop(Math.min(top, window.innerHeight - contextMenuRef.current.clientHeight))
             const boundingBox = contextMenuRef.current.getBoundingClientRect()
             setLeft(event.pageX - boundingBox.width / 2)
             const scrollBy = boundingBox.bottom - innerHeight + SCROLL_MARGIN
@@ -40,7 +38,7 @@ export default function ContextMenus(props: ContextMenusProps) {
                 scroll(scrollX, scrollY + scrollBy)
             }
         }
-    }, [bodyHeight, children, top, event.pageX])
+    }, [children, top, event.pageX])
 
     return hidden ? (
         <>{children}</>
