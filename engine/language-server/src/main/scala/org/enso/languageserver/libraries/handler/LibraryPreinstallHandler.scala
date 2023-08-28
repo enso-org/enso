@@ -216,7 +216,8 @@ class LibraryPreinstallHandler(
         progressReporter     = notificationReporter,
         languageHome         = config.installerConfig.languageHome,
         edition              = edition,
-        preferLocalLibraries = preferLocalLibraries
+        preferLocalLibraries = preferLocalLibraries,
+        projectRoot          = Some(editionReferenceResolver.projectRoot.toPath)
       )
       dependencyResolver = new DependencyResolver(
         localLibraryProvider     = config.localLibraryProvider,

@@ -628,8 +628,10 @@ private object DefaultPackageRepository {
     val editionManager = EditionManager(distributionManager, homeManager)
     val edition        = editionManager.resolveEdition(rawEdition).get
 
-    // TODO
-    val projectRoot = projectPackage.map(_.root)
+    val projectRoot = projectPackage.map { pkg =>
+      val root = pkg.root
+      Path.of(root.getAbsoluteFile.toUri)
+    }
 
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(

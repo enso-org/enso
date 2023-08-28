@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries
 
 import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.{DistributionManager, FileSystem}
+import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
 import org.enso.librarymanager.LibraryLocations
