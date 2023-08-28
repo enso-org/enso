@@ -12,7 +12,7 @@ export function assert(invariant: boolean, message: string, logger: Logger = con
     }
 }
 
-// This is required to make the definition `Object.prototype.d` not error.
+// This is required to make the definition `Object.prototype.$d$` not error.
 // eslint-disable-next-line no-restricted-syntax
 declare global {
     // Documentation is already inherited.

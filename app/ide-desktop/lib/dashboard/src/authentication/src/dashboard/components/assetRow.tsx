@@ -10,6 +10,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as download from '../../download'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
@@ -66,6 +67,15 @@ export default function AssetRow(props: AssetRowProps) {
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
+        if (asset.type === backendModule.AssetType.directory) {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.closeFolder,
+                id: asset.id,
+                // This is SAFE, as this asset is already known to be a directory.
+                // eslint-disable-next-line no-restricted-syntax
+                key: item.key as backendModule.DirectoryId,
+            })
+        }
         try {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.willDelete,
@@ -94,7 +104,10 @@ export default function AssetRow(props: AssetRowProps) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            toastAndLog(`Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+            toastAndLog(
+                errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                    `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+            )
         }
     }, [
         backend,
@@ -112,6 +125,7 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
@@ -147,8 +161,8 @@ export default function AssetRow(props: AssetRowProps) {
                     } catch (error) {
                         setPresence(presenceModule.Presence.present)
                         toastAndLog(
-                            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`,
-                            error
+                            errorModule.tryGetMessage(error)?.slice(0, -1) ??
+                                `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
                         )
                     }
                 }
@@ -217,9 +231,11 @@ export default function AssetRow(props: AssetRowProps) {
         case backendModule.AssetType.specialLoading: {
             return hidden ? null : (
                 <tr>
-                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
                         <div
-                            className={`flex justify-center py-2 ${indent.indentClass(item.depth)}`}
+                            className={`flex justify-center rounded-full h-8 py-1 ${indent.indentClass(
+                                item.depth
+                            )}`}
                         >
                             <StatelessSpinner
                                 size={24}
@@ -233,9 +249,9 @@ export default function AssetRow(props: AssetRowProps) {
         case backendModule.AssetType.specialEmpty: {
             return hidden ? null : (
                 <tr>
-                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
                         <div
-                            className={`flex items-center h-10 py-2 ${indent.indentClass(
+                            className={`flex items-center rounded-full h-8 py-2 ${indent.indentClass(
                                 item.depth
                             )}`}
                         >

@@ -47,19 +47,3 @@ export function spliceAfter<T>(array: T[], items: T[], predicate: (value: T) => 
 export function splicedAfter<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
     return spliceAfter(Array.from(array), items, predicate)
 }
-
-/** Insert items to replace the first item for which the `predicate` returns `true`.
- * Do not insert items if the `predicate` never returns `true`. */
-export function spliceReplacing<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    const index = array.findIndex(predicate)
-    if (index !== NOT_FOUND) {
-        array.splice(index, 1, ...items)
-    }
-    return array
-}
-
-/** Return a copy of the array, with items replacing the first item for which `predicate` is `true`.
- * The items are not inserted if the `predicate` never returns `true`. */
-export function splicedReplacing<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
-    return spliceReplacing(Array.from(array), items, predicate)
-}
