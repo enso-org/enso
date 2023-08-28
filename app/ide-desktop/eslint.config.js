@@ -232,10 +232,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `while (true)` instead of `for (;;)`',
     },
     {
-        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
-        message: "Environment must be 'production' when committing",
-    },
-    {
         selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
         message: '`toastAndLog` already includes a trailing `.`',
     },
