@@ -153,6 +153,7 @@ ensogl::define_endpoints! {
         start_node_creation_with_component_browser(),
         /// Accepts the currently selected input of the searcher.
         accept_searcher_input(),
+        /// Dump the suggestion database in JSON to the console.
         dump_suggestion_database(),
     }
 
@@ -181,6 +182,7 @@ ensogl::define_endpoints! {
         debug_mode                     (bool),
         /// The name of the command currently being handled due to shortcut being pressed.
         current_shortcut               (Option<ImString>),
+        /// Request the controller to dump the suggestion database in JSON to the console.
         request_dump_suggestion_database(),
     }
 }
@@ -601,7 +603,6 @@ impl View {
             // If we have no outstanding key presses, we can accept the selection as is.
             frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);
 
-            frp.source.request_dump_suggestion_database <+ frp.dump_suggestion_database;
 
             // === Closing the Searcher / End of Editing ===
 
@@ -709,6 +710,7 @@ impl View {
             debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
             frp.source.debug_mode <+ debug_mode;
             popup.is_enabled <+ debug_mode;
+            frp.source.request_dump_suggestion_database <+ frp.dump_suggestion_database;
         }
         self
     }
@@ -812,7 +814,7 @@ impl application::View for View {
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
-            (Press, "", "ctrl shift u", "dump_suggestion_database"),
+            (Press, "debug_mode", "ctrl shift u", "dump_suggestion_database"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

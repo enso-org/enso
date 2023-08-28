@@ -338,6 +338,7 @@ impl SuggestionDatabase {
         default()
     }
 
+    /// Dump all entries in JSON.
     pub fn dump_as_json(&self) -> String {
         let all_entries: Vec<Entry> =
             self.entries.borrow().values().map(|e| e.deref().clone()).collect_vec();
