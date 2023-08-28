@@ -10,6 +10,8 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
 import * as remoteBackend from '../remoteBackend'
 
@@ -78,6 +80,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
     const setState = React.useCallback(
@@ -245,6 +248,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }, [shouldOpenWhenReady, shouldSwitchPage, state, openIde])
 
     const closeProject = async (triggerOnClose = true) => {
+        if (triggerOnClose) {
+            onClose()
+            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+        }
         setToastId(null)
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closing)
@@ -257,9 +264,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             state !== backendModule.ProjectState.closing &&
             state !== backendModule.ProjectState.closed
         ) {
-            if (triggerOnClose) {
-                onClose()
-            }
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
