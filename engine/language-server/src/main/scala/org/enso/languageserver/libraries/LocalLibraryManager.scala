@@ -124,15 +124,11 @@ class LocalLibraryManager(
   private def findLocalLibraries(): Try[Seq[LibraryName]] = Try {
     for {
       searchPathRoot <- libraryLocations.localLibrarySearchPaths
-      namespaceDir <- FileSystem
+      projectDir <- FileSystem
         .listDirectory(searchPathRoot)
         .filter(Files.isDirectory(_))
-      nameDir <- FileSystem
-        .listDirectory(namespaceDir)
-        .filter(Files.isDirectory(_))
-      namespace = namespaceDir.getFileName.toString
-      name      = nameDir.getFileName.toString
-    } yield LibraryName(namespace, name)
+      pkg <- PackageManager.Default.loadPackage(projectDir.toFile).toOption
+    } yield pkg.libraryName
   }
 
   /** Finds the path on the filesystem to a local library. */
