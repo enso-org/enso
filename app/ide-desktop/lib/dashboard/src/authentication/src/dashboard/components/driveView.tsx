@@ -22,13 +22,22 @@ export interface DriveViewProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: string
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
     doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (project: backendModule.ProjectAsset) => void
-    doCloseEditor: () => void
-    appRunner: AppRunner | null
+    doOpenEditor: (
+        project: backendModule.ProjectAsset,
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
+    ) => void
+    doCloseEditor: (project: backendModule.ProjectAsset) => void
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -41,13 +50,16 @@ export default function DriveView(props: DriveViewProps) {
         page,
         hidden,
         initialProjectName,
+        queuedAssetEvents,
         query,
+        projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doCreateProject,
         doOpenEditor,
         doCloseEditor,
-        appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -57,7 +69,6 @@ export default function DriveView(props: DriveViewProps) {
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -136,8 +147,9 @@ export default function DriveView(props: DriveViewProps) {
                 )}
                 <AssetsTable
                     query={query}
-                    appRunner={appRunner}
                     initialProjectName={initialProjectName}
+                    projectStartupInfo={projectStartupInfo}
+                    queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}

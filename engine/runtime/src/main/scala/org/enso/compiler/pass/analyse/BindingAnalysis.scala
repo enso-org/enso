@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
+import org.enso.compiler.data.BindingsMap.Cons
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -77,12 +77,12 @@ case object BindingAnalysis extends IRPass {
             Some(ref.methodName.name)
           case Some(IR.Name.Qualified(List(n), _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n.name)
-            if (!shadowed && n.name == moduleContext.module.getName.item)
+            if (!shadowed && n.name == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
           case Some(IR.Name.Literal(n, _, _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n)
-            if (!shadowed && n == moduleContext.module.getName.item)
+            if (!shadowed && n == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
           case None => Some(ref.methodName.name)
@@ -94,7 +94,7 @@ case object BindingAnalysis extends IRPass {
     ir.updateMetadata(
       this -->> BindingsMap(
         definedSumTypes ++ importedPolyglot ++ moduleMethods,
-        ModuleReference.Concrete(moduleContext.module)
+        moduleContext.moduleReference()
       )
     )
   }

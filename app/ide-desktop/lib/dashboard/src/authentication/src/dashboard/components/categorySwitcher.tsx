@@ -15,7 +15,9 @@ import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
+    /** When true, the button is not faded out even when not hovered. */
     active?: boolean
+    /** When true, the button is not clickable. */
     disabled?: boolean
     image: string
     name: string
@@ -58,7 +60,9 @@ export default function CategorySwitcher() {
     return (
         <div className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
-                <span className="font-bold text-sm leading-144.5 h-6 py-0.5">Category</span>
+                <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
+                    Category
+                </span>
             </div>
             <CategorySwitcherItem
                 disabled
