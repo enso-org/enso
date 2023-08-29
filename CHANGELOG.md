@@ -219,6 +219,8 @@
   <kbd>enter</kbd>][7527]
 - [Connections to lamdas are displayed correctly][7550]. It is possible to drag
   a connection to any expression inside the lambda body.
+- [Atom types in dropdowns do not produce redundant imports][#7670]. The
+  possibility of imports conflicts is reduced.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -245,6 +247,7 @@
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
+[7670]: https://github.com/enso-org/enso/pull/7670
 
 #### EnsoGL (rendering engine)
 
