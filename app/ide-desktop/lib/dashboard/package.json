@@ -5,7 +5,8 @@
   "private": true,
   "comments": {
     "playwright": "If using a tiling window manager, ensure that the Playwright windows are",
-    "playwright (cont.)": "not tiled, otherwise the screenshots will be incorrect."
+    "playwright (cont.)": "not tiled, otherwise the screenshots will be incorrect.",
+    "FIXME[sb]": "Add `npm run test-e2e` back to the 'test' script when actions are fixed?"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -13,10 +14,10 @@
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts",
-    "test": "npx playwright install && npm run test-unit && npm run test-component && npm run test-e2e",
+    "test": "npx playwright install && npm run test-unit && npm run test-component",
     "test-unit": "playwright test",
     "test-component": "playwright test -c playwright-component.config.ts",
-    "test-e2e": "tsx test-e2e.ts"
+    "test-e2e": "playwright test -c playwright-e2e.config.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",

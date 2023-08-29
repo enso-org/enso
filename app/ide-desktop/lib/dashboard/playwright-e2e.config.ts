@@ -13,9 +13,11 @@ export default test.defineConfig({
     },
     use: {
         baseURL: 'http://localhost:8080',
-        // This MUST be `false`, otherwise `background-blur` does not work.
-        // (`--headless=new` does not fix this issue.)
-        headless: false,
+        // `--use-angle` is required for background-blur to work.
+        launchOptions: {
+            ignoreDefaultArgs: ['--headless'],
+            args: ['--headless=new', '--use-angle=swiftshader'],
+        },
     },
     webServer: {
         command: 'npx tsx test-server.ts',
