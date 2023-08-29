@@ -6,6 +6,9 @@ import Standard.Test.Extensions
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
+pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
+    Can't run Python tests, Python is not installed.
+
 spec =
     Test.group "Process" <|
         Test.specify "should call simple command" <|
@@ -128,7 +131,7 @@ spec =
             res.exit_code . should_equal Exit_Code.Success
             dir
 
-        Test.specify "Create Enso Project with numpy" <|
+        Test.specify "Create Enso Project with numpy" pending=pending_python_missing <|
             setup_venv dir =
                 gvm = File.new <| Java_System.getProperty "java.home"
                 python = gvm/"bin"/"graalpy"
