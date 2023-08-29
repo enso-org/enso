@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -90,7 +90,7 @@ case object DemandAnalysis extends IRPass {
     expression match {
       case empty: Empty    => empty
       case fn: IR.Function => analyseFunction(fn)
-      case name: IR.Name   => analyseName(name, isInsideCallArgument)
+      case name: Name      => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>
         analyseApplication(app, isInsideCallArgument)
       case typ: IR.Type =>
@@ -159,14 +159,14 @@ case object DemandAnalysis extends IRPass {
     * @return `name`, transformed by the demand analysis process
     */
   def analyseName(
-    name: IR.Name,
+    name: Name,
     isInsideCallArgument: Boolean
   ): Expression = {
     if (isInsideCallArgument) {
       name
     } else {
       name match {
-        case lit: IR.Name.Literal if isDefined(lit) =>
+        case lit: Name.Literal if isDefined(lit) =>
           val forceLocation   = name.location
           val newNameLocation = name.location.map(l => l.copy(id = None))
           val newName         = lit.copy(location = newNameLocation)
@@ -176,7 +176,7 @@ case object DemandAnalysis extends IRPass {
     }
   }
 
-  private def isDefined(name: IR.Name): Boolean = {
+  private def isDefined(name: Name): Boolean = {
     val aliasInfo = name
       .unsafeGetMetadata(
         AliasAnalysis,
@@ -201,8 +201,8 @@ case object DemandAnalysis extends IRPass {
     application match {
       case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
         val newFun = fn match {
-          case n: IR.Name => n
-          case e          => analyseExpression(e, isInsideCallArgument = false)
+          case n: Name => n
+          case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
           function  = newFun,

@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -187,12 +187,12 @@ case object DataflowAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "dataflow analysis."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "dataflow analysis."
         )
-      case ann: IR.Name.GenericAnnotation =>
+      case ann: Name.GenericAnnotation =>
         ann
           .copy(expression = analyseExpression(ann.expression, info))
           .updateMetadata(this -->> info)
@@ -218,7 +218,7 @@ case object DataflowAnalysis extends IRPass {
       case function: IR.Function => analyseFunction(function, info)
       case app: IR.Application   => analyseApplication(app, info)
       case typ: IR.Type          => analyseType(typ, info)
-      case name: IR.Name         => analyseName(name, info)
+      case name: Name            => analyseName(name, info)
       case cse: IR.Case          => analyseCase(cse, info)
       case literal: Literal =>
         literal.updateMetadata(this -->> info)
@@ -531,7 +531,7 @@ case object DataflowAnalysis extends IRPass {
     * @param info the dependency information for the module
     * @return `name`, with attached dependency information
     */
-  def analyseName(name: IR.Name, info: DependencyInfo): IR.Name = {
+  def analyseName(name: Name, info: DependencyInfo): Name = {
     val aliasInfo = name.passData
       .getUnsafe(AliasAnalysis)(
         "Name occurrence with missing aliasing information."
@@ -539,7 +539,7 @@ case object DataflowAnalysis extends IRPass {
       .unsafeAs[AliasAnalysis.Info.Occurrence]
 
     name match {
-      case _: IR.Name.Blank =>
+      case _: Name.Blank =>
         throw new CompilerError(
           "Blanks should not be present during dataflow analysis."
         )
@@ -1034,7 +1034,7 @@ case object DataflowAnalysis extends IRPass {
         * @param ir the IR node to create a dependency on
         * @return a dynamic dependency on `ir`
         */
-      def asDynamic(ir: IR.Name): Dynamic = {
+      def asDynamic(ir: Name): Dynamic = {
         Dynamic(ir.name, ir.getExternalId)
       }
     }

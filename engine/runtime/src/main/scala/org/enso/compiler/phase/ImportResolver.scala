@@ -4,6 +4,7 @@ import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
@@ -143,7 +144,7 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveAsType(
-    name: IR.Name.Qualified
+    name: Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")

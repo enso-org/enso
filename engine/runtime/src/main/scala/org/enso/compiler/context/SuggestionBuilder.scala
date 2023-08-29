@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal}
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
@@ -109,7 +109,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case m @ Definition.Method
                 .Explicit(
-                  IR.Name.MethodReference(typePtr, methodName, _, _, _),
+                  Name.MethodReference(typePtr, methodName, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -148,8 +148,8 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case Definition.Method
                 .Conversion(
-                  IR.Name.MethodReference(_, _, _, _, _),
-                  IR.Name.Literal(sourceTypeName, _, _, _, _),
+                  Name.MethodReference(_, _, _, _, _),
+                  Name.Literal(sourceTypeName, _, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -297,7 +297,7 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildFunction(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
-    name: IR.Name,
+    name: Name,
     args: Seq[IR.DefinitionArgument],
     location: Location,
     doc: Option[String],
@@ -375,7 +375,7 @@ final class SuggestionBuilder[A: IndexedSource](
     tp: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
-    genericAnnotations: Seq[IR.Name.GenericAnnotation],
+    genericAnnotations: Seq[Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
     Suggestion.Constructor(
@@ -396,7 +396,7 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion = {
     val getterName = argument.name.name
     val thisArg = IR.DefinitionArgument.Specified(
-      name         = IR.Name.Self(None),
+      name         = Name.Self(None),
       ascribedType = None,
       defaultValue = None,
       suspended    = false,
@@ -498,7 +498,7 @@ final class SuggestionBuilder[A: IndexedSource](
           go(bin.right.value),
           bin.operator.name
         )
-      case tname: IR.Name =>
+      case tname: Name =>
         tname
           .getMetadata(TypeNames)
           .map(t => buildResolvedTypeName(t.target))
@@ -539,7 +539,7 @@ final class SuggestionBuilder[A: IndexedSource](
       } else {
         vargs match {
           case IR.DefinitionArgument.Specified(
-                name: IR.Name.Self,
+                name: Name.Self,
                 _,
                 defaultValue,
                 suspended,

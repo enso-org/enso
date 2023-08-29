@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Empty, Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Type
 import org.enso.compiler.core.CompilerError
@@ -187,12 +188,12 @@ case object SuspendedArguments extends IRPass {
         throw new CompilerError("Type ascriptions should not be present.")
       case _: IR.Comment =>
         throw new CompilerError("Comments should not be present.")
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "suspended arguments analysis."
         )
-      case ann: IR.Name.GenericAnnotation => ann
+      case ann: Name.GenericAnnotation => ann
     }
   }
 
@@ -254,8 +255,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case IR.Name.Literal("Suspended", _, _, _, _) => true
-      case _                                        => false
+      case Name.Literal("Suspended", _, _, _, _) => true
+      case _                                     => false
     }
   }
 

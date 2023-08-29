@@ -4,6 +4,7 @@ import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
@@ -209,7 +210,7 @@ case object FullyQualifiedNames extends IRPass {
     pkgRepo: Option[PackageRepository]
   ): Expression =
     ir.transformExpressions {
-      case lit: IR.Name.Literal =>
+      case lit: Name.Literal =>
         if (!lit.isMethod && !isLocalVar(lit)) {
           val resolution = bindings.resolveName(lit.name)
           resolution match {
@@ -233,7 +234,7 @@ case object FullyQualifiedNames extends IRPass {
         }
       case app @ IR.Application.Prefix(_, List(_), _, _, _, _) =>
         app.function match {
-          case lit: IR.Name.Literal =>
+          case lit: Name.Literal =>
             if (lit.isMethod)
               resolveLocalApplication(
                 app,
@@ -298,7 +299,7 @@ case object FullyQualifiedNames extends IRPass {
     val processedApp = processedArgs match {
       case List(thisArg) =>
         (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
-          case (Some(resolved @ ResolvedLibrary(_)), name: IR.Name.Literal) =>
+          case (Some(resolved @ ResolvedLibrary(_)), name: Name.Literal) =>
             resolveQualName(resolved, name, pkgRepo).fold(
               err => Some(err),
               _.map(resolvedMod =>
@@ -322,7 +323,7 @@ case object FullyQualifiedNames extends IRPass {
 
   private def resolveQualName(
     thisResolution: ResolvedLibrary,
-    consName: IR.Name.Literal,
+    consName: Name.Literal,
     optPkgRepo: Option[PackageRepository]
   ): Either[Expression, Option[FQNResolution]] = {
     optPkgRepo
@@ -367,7 +368,7 @@ case object FullyQualifiedNames extends IRPass {
       .getOrElse(Right(None))
   }
 
-  private def isLocalVar(name: IR.Name.Literal): Boolean = {
+  private def isLocalVar(name: Name.Literal): Boolean = {
     val aliasInfo = name
       .unsafeGetMetadata(
         AliasAnalysis,

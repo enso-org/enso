@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
@@ -100,7 +101,7 @@ class DemandAnalysisTest extends CompilerTest {
         .expression
 
       boundX shouldBe an[IR.Application.Force]
-      boundX.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
+      boundX.asInstanceOf[IR.Application.Force].target shouldBe an[Name]
     }
 
     "work correctly when deeply nested" in {
@@ -116,7 +117,7 @@ class DemandAnalysisTest extends CompilerTest {
         .body
 
       xUsage shouldBe an[IR.Application.Force]
-      xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
+      xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[Name]
     }
 
     "not be forced when passed to functions" in {
@@ -134,12 +135,12 @@ class DemandAnalysisTest extends CompilerTest {
 
       app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .value shouldBe an[Name]
 
       app
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .value shouldBe an[Name]
     }
 
     "be forced when used in vector literals" in {
@@ -207,7 +208,7 @@ class DemandAnalysisTest extends CompilerTest {
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .value shouldBe an[Name]
     }
 
     "force terms in blocks passed directly as arguments" in {
@@ -226,7 +227,7 @@ class DemandAnalysisTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Application.Prefix]
 
-      oprCall.function.asInstanceOf[IR.Name].name shouldEqual "<|"
+      oprCall.function.asInstanceOf[Name].name shouldEqual "<|"
       oprCall.arguments.length shouldEqual 2
 
       val xArg = oprCall.arguments(1).asInstanceOf[IR.CallArgument.Specified]

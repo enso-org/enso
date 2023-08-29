@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.IR.{Pattern, Warning}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -66,11 +67,11 @@ class ShadowedPatternFieldsTest extends CompilerTest {
 
       pattern.fields.head
         .asInstanceOf[Pattern.Name]
-        .name shouldBe an[IR.Name.Blank]
+        .name shouldBe an[Name.Blank]
       pattern
         .fields(1)
         .asInstanceOf[Pattern.Name]
-        .name shouldBe an[IR.Name.Literal]
+        .name shouldBe an[Name.Literal]
     }
 
     "attach a shadowing warning to each shadowed field" in {

@@ -2,7 +2,13 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.ir.{
+  Empty,
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Name
+}
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -271,7 +277,7 @@ case object LambdaConsolidate extends IRPass {
 
   /** Replaces usages of a name in an expression.
     *
-    * As usages of a name can only be an [[IR.Name]], we can safely use the
+    * As usages of a name can only be an [[Name]], we can safely use the
     * expression transformation mechanism to do this.
     *
     * @param expr the expression to replace usages in
@@ -285,7 +291,7 @@ case object LambdaConsolidate extends IRPass {
     argument: IR.DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
   ): Expression = {
-    expr.transformExpressions { case name: IR.Name =>
+    expr.transformExpressions { case name: Name =>
       replaceInName(name, argument, toReplaceExpressionIds)
     }
   }
@@ -299,27 +305,27 @@ case object LambdaConsolidate extends IRPass {
     * @return `name`, with the symbol replaced by `argument.name`
     */
   def replaceInName(
-    name: IR.Name,
+    name: Name,
     argument: IR.DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
-  ): IR.Name = {
+  ): Name = {
     if (toReplaceExpressionIds.contains(name.getId)) {
       name match {
-        case spec: IR.Name.Literal =>
+        case spec: Name.Literal =>
           spec.copy(
             name = argument match {
               case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
             }
           )
-        case self: IR.Name.Self             => self
-        case selfType: IR.Name.SelfType     => selfType
-        case special: IR.Name.Special       => special
-        case blank: IR.Name.Blank           => blank
-        case ref: IR.Name.MethodReference   => ref
-        case qual: IR.Name.Qualified        => qual
-        case err: IR.Error.Resolution       => err
-        case err: IR.Error.Conversion       => err
-        case annotation: IR.Name.Annotation => annotation
+        case self: Name.Self             => self
+        case selfType: Name.SelfType     => selfType
+        case special: Name.Special       => special
+        case blank: Name.Blank           => blank
+        case ref: Name.MethodReference   => ref
+        case qual: Name.Qualified        => qual
+        case err: IR.Error.Resolution    => err
+        case err: IR.Error.Conversion    => err
+        case annotation: Name.Annotation => annotation
       }
     } else {
       name

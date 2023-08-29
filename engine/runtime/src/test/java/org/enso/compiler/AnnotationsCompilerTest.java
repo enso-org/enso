@@ -3,8 +3,8 @@ package org.enso.compiler;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Function$Binding;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.enso.compiler.core.IR$Name$Annotation;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -20,8 +20,8 @@ public class AnnotationsCompilerTest extends CompilerTest {
     foo a b = a b
     """);
 
-    var annotation1 = (IR$Name$Annotation) ir.bindings().apply(0);
-    var annotation2 = (IR$Name$Annotation) ir.bindings().apply(1);
+    var annotation1 = (Name.Annotation) ir.bindings().apply(0);
+    var annotation2 = (Name.Annotation) ir.bindings().apply(1);
 
     assertEquals(annotation1.name(), "a");
     assertEquals(annotation2.name(), "b");
@@ -35,8 +35,8 @@ public class AnnotationsCompilerTest extends CompilerTest {
     Foo.foo a b = a b
     """);
 
-    var annotation1 = (IR$Name$Annotation) ir.bindings().apply(0);
-    var annotation2 = (IR$Name$Annotation) ir.bindings().apply(1);
+    var annotation1 = (Name.Annotation) ir.bindings().apply(0);
+    var annotation2 = (Name.Annotation) ir.bindings().apply(1);
 
     assertEquals(annotation1.name(), "a");
     assertEquals(annotation2.name(), "b");
@@ -53,8 +53,8 @@ public class AnnotationsCompilerTest extends CompilerTest {
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
 
-    var annotation1 = (IR$Name$Annotation) typeDefinition.body().apply(0);
-    var annotation2 = (IR$Name$Annotation) typeDefinition.body().apply(1);
+    var annotation1 = (Name.Annotation) typeDefinition.body().apply(0);
+    var annotation2 = (Name.Annotation) typeDefinition.body().apply(1);
     var function = (IR$Function$Binding) typeDefinition.body().apply(2);
 
     assertEquals(annotation1.name(), "a");
@@ -73,8 +73,8 @@ public class AnnotationsCompilerTest extends CompilerTest {
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
 
-    var annotation1 = (IR$Name$Annotation) typeDefinition.body().apply(0);
-    var annotation2 = (IR$Name$Annotation) typeDefinition.body().apply(1);
+    var annotation1 = (Name.Annotation) typeDefinition.body().apply(0);
+    var annotation2 = (Name.Annotation) typeDefinition.body().apply(1);
     var constructor = (Definition.Data) typeDefinition.body().apply(2);
 
     assertEquals(annotation1.name(), "a");

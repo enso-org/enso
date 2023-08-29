@@ -2,7 +2,7 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -89,7 +89,7 @@ case object ApplicationSaturation extends IRPass {
     ir.transformExpressions {
       case func @ IR.Application.Prefix(fn, args, _, _, _, _) =>
         fn match {
-          case name: IR.Name =>
+          case name: Name =>
             val aliasInfo =
               name
                 .unsafeGetMetadata(

@@ -968,7 +968,7 @@ object BindingsMap {
     */
   case class ResolutionAmbiguous(candidates: List[ResolvedName])
       extends ResolutionError {
-    override def explain(originalName: IR.Name): String = {
+    override def explain(originalName: ir.Name): String = {
       val firstLine =
         s"The name ${originalName.name} is ambiguous. Possible candidates are:"
       val lines = candidates.map {
@@ -995,7 +995,7 @@ object BindingsMap {
   /** A resolution error due to the symbol not being found.
     */
   case object ResolutionNotFound extends ResolutionError {
-    override def explain(originalName: IR.Name): String =
+    override def explain(originalName: ir.Name): String =
       s"The name `${originalName.name}` could not be found"
   }
 

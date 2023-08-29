@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.IR.Application
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -117,10 +118,10 @@ case object TypeFunctions extends IRPass {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
-          case name: IR.Name if name.name == IR.Type.Set.Union.name =>
+          case name: Name if name.name == IR.Type.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
             IR.Type.Set.Union(members, app.location)
-          case name: IR.Name if knownTypingFunctions.contains(name.name) =>
+          case name: Name if knownTypingFunctions.contains(name.name) =>
             resolveKnownFunction(name, pre.arguments, pre.location, pre)
           case _ =>
             pre.copy(
@@ -147,7 +148,7 @@ case object TypeFunctions extends IRPass {
 
   def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
-      case Application.Prefix(n: IR.Name, args, _, _, _, _)
+      case Application.Prefix(n: Name, args, _, _, _, _)
           if n.name == IR.Type.Set.Union.name =>
         args.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
@@ -160,7 +161,7 @@ case object TypeFunctions extends IRPass {
     * @return the IR node representing `prefix`
     */
   def resolveKnownFunction(
-    name: IR.Name,
+    name: Name,
     arguments: List[IR.CallArgument],
     location: Option[IdentifiedLocation],
     originalIR: IR

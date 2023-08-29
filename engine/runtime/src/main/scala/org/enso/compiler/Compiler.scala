@@ -13,7 +13,8 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   IdentifiedLocation,
   Module => IRModule,
-  Expression
+  Expression,
+  Name
 }
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -774,11 +775,11 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(IR.Name.Literal(q.item, isMethod = false, location = None))
+        List(Name.Literal(q.item, isMethod = false, location = None))
       ) { case (part, acc) =>
-        IR.Name.Literal(part, isMethod = false, location = None) :: acc
+        Name.Literal(part, isMethod = false, location = None) :: acc
       }
-      IR.Name.Qualified(name, location = None)
+      Name.Qualified(name, location = None)
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>

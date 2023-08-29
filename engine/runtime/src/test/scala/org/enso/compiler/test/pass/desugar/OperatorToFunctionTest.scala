@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Empty
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.test.CompilerTest
@@ -23,7 +24,7 @@ class OperatorToFunctionTest extends CompilerTest {
     * @return an operator `name` and its corresponding function
     */
   def genOprAndFn(
-    name: IR.Name,
+    name: Name,
     left: Expression,
     right: Expression
   ): (IR.Application.Operator.Binary, IR.Application.Prefix) = {
@@ -48,7 +49,7 @@ class OperatorToFunctionTest extends CompilerTest {
 
   "Operators" should {
     val opName =
-      IR.Name.Literal("=:=", isMethod = true, None)
+      Name.Literal("=:=", isMethod = true, None)
     val left     = Empty(None)
     val right    = Empty(None)
     val rightArg = IR.CallArgument.Specified(None, Empty(None), None)

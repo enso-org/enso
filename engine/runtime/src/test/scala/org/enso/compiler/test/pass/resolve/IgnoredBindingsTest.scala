@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
@@ -67,7 +68,7 @@ class IgnoredBindingsTest extends CompilerTest {
       .asInstanceOf[IR.DefinitionArgument.Specified]
 
     "replace ignored arguments with fresh names" in {
-      blankArg.name shouldBe an[IR.Name.Literal]
+      blankArg.name shouldBe an[Name.Literal]
     }
 
     "mark ignored arguments as ignored" in {
@@ -85,7 +86,7 @@ class IgnoredBindingsTest extends CompilerTest {
         .head
         .asInstanceOf[IR.DefinitionArgument.Specified]
 
-      nestedIgnore.name shouldBe an[IR.Name.Literal]
+      nestedIgnore.name shouldBe an[Name.Literal]
       nestedIgnore.getMetadata(IgnoredBindings) shouldEqual Some(State.Ignored)
     }
   }
@@ -106,7 +107,7 @@ class IgnoredBindingsTest extends CompilerTest {
     val bindingBody = ir.expression.asInstanceOf[Expression.Block]
 
     "replace the ignored binding with a fresh name" in {
-      bindingName shouldBe an[IR.Name.Literal]
+      bindingName shouldBe an[Name.Literal]
     }
 
     "f is a regular definition of a function" in {
@@ -126,7 +127,7 @@ class IgnoredBindingsTest extends CompilerTest {
       val ignoredInBlock =
         bindingBody.expressions.head.asInstanceOf[Expression.Binding]
 
-      ignoredInBlock.name shouldBe an[IR.Name.Literal]
+      ignoredInBlock.name shouldBe an[Name.Literal]
     }
   }
 
@@ -157,7 +158,7 @@ class IgnoredBindingsTest extends CompilerTest {
     val nestedIgnoredPat = nestedPattern.fields(1).asInstanceOf[Pattern.Name]
 
     "replace the ignored binding with a fresh name" in {
-      ignoredPat.name should not be an[IR.Name.Blank]
+      ignoredPat.name should not be an[Name.Blank]
     }
 
     "mark the binding as ignored if it was" in {

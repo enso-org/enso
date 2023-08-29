@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Literal, Module}
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
@@ -221,7 +221,7 @@ object AutomaticParallelism extends IRPass {
     }: _*)
     val linesWithDeps = segment.parallelizable.map { line =>
       val deps = line.ir.preorder
-        .collect { case n: IR.Name.Literal =>
+        .collect { case n: Name.Literal =>
           n
         }
         .flatMap(_.getMetadata(AliasAnalysis))
@@ -287,7 +287,7 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           _,
           IR.Application.Prefix(
-            IR.Name.Special(IR.Name.Special.NewRef, None),
+            Name.Special(Name.Special.NewRef, None),
             List(),
             false,
             None
@@ -302,7 +302,7 @@ object AutomaticParallelism extends IRPass {
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
             val refWrite = IR.Application.Prefix(
-              IR.Name.Special(IR.Name.Special.WriteRef, None),
+              Name.Special(Name.Special.WriteRef, None),
               List(
                 IR.CallArgument
                   .Specified(None, refVars(bind.name).duplicate(), None),
@@ -315,7 +315,7 @@ object AutomaticParallelism extends IRPass {
           case other => List(other)
         }
       val spawn = IR.Application.Prefix(
-        IR.Name.Special(IR.Name.Special.RunThread, None),
+        Name.Special(Name.Special.RunThread, None),
         List(
           IR.CallArgument.Specified(
             None,
@@ -333,7 +333,7 @@ object AutomaticParallelism extends IRPass {
 
     val threadJoins = threadSpawns.map { bind =>
       IR.Application.Prefix(
-        IR.Name.Special(IR.Name.Special.JoinThread, None),
+        Name.Special(Name.Special.JoinThread, None),
         List(IR.CallArgument.Specified(None, bind.name.duplicate(), None)),
         false,
         None
@@ -345,7 +345,7 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           name.duplicate(),
           IR.Application.Prefix(
-            IR.Name.Special(IR.Name.Special.ReadRef, None),
+            Name.Special(Name.Special.ReadRef, None),
             List(IR.CallArgument.Specified(None, ref.duplicate(), None)),
             false,
             None
@@ -452,8 +452,8 @@ object AutomaticParallelism extends IRPass {
       case app: IR.Application.Operator.Binary =>
         if (app.operator.name == "in") {
           app.right.value match {
-            case lit: IR.Name.Literal => Some(lit.name)
-            case _                    => None
+            case lit: Name.Literal => Some(lit.name)
+            case _                 => None
           }
         } else if (app.operator.name == "->") { getMonad(app.right.value) }
         else None
@@ -492,7 +492,7 @@ object AutomaticParallelism extends IRPass {
           case _ => Pinned
         }
       case bind: Expression.Binding => getParallelismStatus(bind.expression)
-      case _: IR.Name               => Pure
+      case _: Name                  => Pure
       case _: Literal               => Pure
       case _: IR.Function.Lambda    => Pure
       case _                        => Pinned

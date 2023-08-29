@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
@@ -119,12 +119,12 @@ case object TailCall extends IRPass {
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "tail call analysis."
         )
-      case ann: IR.Name.GenericAnnotation =>
+      case ann: Name.GenericAnnotation =>
         ann
           .copy(expression =
             analyseExpression(ann.expression, isInTailPosition = true)
@@ -157,7 +157,7 @@ case object TailCall extends IRPass {
       case caseExpr: IR.Case   => analyseCase(caseExpr, isInTailPosition)
       case typ: IR.Type        => analyseType(typ, isInTailPosition)
       case app: IR.Application => analyseApplication(app, isInTailPosition)
-      case name: IR.Name       => analyseName(name, isInTailPosition)
+      case name: Name          => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: Literal => analyseLiteral(literal, isInTailPosition)
@@ -200,7 +200,7 @@ case object TailCall extends IRPass {
     * @param isInTailPosition whether the name occurs in tail position or not
     * @return `name`, annotated with tail position metadata
     */
-  def analyseName(name: IR.Name, isInTailPosition: Boolean): IR.Name = {
+  def analyseName(name: Name, isInTailPosition: Boolean): Name = {
     name.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
   }
 

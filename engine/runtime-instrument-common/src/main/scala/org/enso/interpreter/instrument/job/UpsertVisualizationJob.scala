@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.job
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -480,7 +481,7 @@ object UpsertVisualizationJob {
             module.getIr.preorder
               .find(_.getExternalId.contains(expressionId))
               .collect {
-                case name: IR.Name =>
+                case name: Name.Literal =>
                   DataflowAnalysis.DependencyInfo.Type
                     .Dynamic(name.name, Some(expressionId))
                 case ir =>

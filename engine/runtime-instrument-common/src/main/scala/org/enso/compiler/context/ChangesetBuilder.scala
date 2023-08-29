@@ -5,6 +5,7 @@ import java.util.UUID
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
@@ -324,8 +325,8 @@ object ChangesetBuilder {
 
   /** Get the IR name if available. */
   private def getName(ir: IR): Option[String] = ir match {
-    case name: IR.Name => Some(name.name)
-    case _             => None
+    case name: Name => Some(name.name)
+    case _          => None
   }
 
   /** Build an internal representation of the [[IR]].
@@ -513,7 +514,7 @@ object ChangesetBuilder {
     */
   private def getExpressionName(ir: IR, id: IR.Identifier): Option[String] =
     ir.preorder.find(_.getId == id).collect {
-      case name: IR.Name =>
+      case name: Name =>
         name.name
       case method: Definition.Method =>
         method.methodName.name

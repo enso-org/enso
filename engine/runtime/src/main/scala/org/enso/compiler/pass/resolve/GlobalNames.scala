@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -138,7 +139,7 @@ case object GlobalNames extends IRPass {
     isInsideApplication: Boolean = false
   ): Expression = {
     ir.transformExpressions {
-      case selfTp: IR.Name.SelfType =>
+      case selfTp: Name.SelfType =>
         selfTypeResolution
           .map(res => selfTp.updateMetadata(this -->> res))
           .getOrElse(
@@ -147,7 +148,7 @@ case object GlobalNames extends IRPass {
               IR.Error.Resolution.ResolverError(ResolutionNotFound)
             )
           )
-      case lit: IR.Name.Literal =>
+      case lit: Name.Literal =>
         if (params.exists(p => p.name.name == lit.name)) {
           lit
         } else {
@@ -211,7 +212,7 @@ case object GlobalNames extends IRPass {
         }
       case app: IR.Application.Prefix =>
         app.function match {
-          case lit: IR.Name.Literal =>
+          case lit: Name.Literal =>
             if (!lit.isMethod)
               resolveReferantApplication(
                 app,
@@ -247,7 +248,7 @@ case object GlobalNames extends IRPass {
 
   private def resolveReferantApplication(
     app: IR.Application.Prefix,
-    fun: IR.Name.Literal,
+    fun: Name.Literal,
     bindingsMap: BindingsMap,
     params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
@@ -368,7 +369,7 @@ case object GlobalNames extends IRPass {
 
   private def resolveQualName(
     thisResolution: BindingsMap.Resolution,
-    consName: IR.Name.Literal
+    consName: Name.Literal
   ): Option[BindingsMap.ResolvedName] =
     thisResolution.target match {
       case BindingsMap.ResolvedModule(module) =>
@@ -396,14 +397,14 @@ case object GlobalNames extends IRPass {
     if (ix == -1) None else Some(ix)
   }
 
-  private def asGlobalVar(ir: IR): Option[IR.Name.Literal] =
+  private def asGlobalVar(ir: IR): Option[Name.Literal] =
     ir match {
-      case name: IR.Name.Literal =>
+      case name: Name.Literal =>
         if (isLocalVar(name)) None else Some(name)
       case _ => None
     }
 
-  private def isLocalVar(name: IR.Name.Literal): Boolean = {
+  private def isLocalVar(name: Name.Literal): Boolean = {
     val aliasInfo = name
       .unsafeGetMetadata(
         AliasAnalysis,

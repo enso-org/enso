@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.desugar.NestedPatternMatch
@@ -168,7 +169,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.scrutinee shouldBe an[Name.Literal]
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
@@ -179,8 +180,8 @@ class NestedPatternMatchTest extends CompilerTest {
         .asInstanceOf[Pattern.Constructor]
         .constructor
         .name shouldEqual "Nil"
-      nilBranch.expression shouldBe an[IR.Name.Literal]
-      nilBranch.expression.asInstanceOf[IR.Name].name shouldEqual "a"
+      nilBranch.expression shouldBe an[Name.Literal]
+      nilBranch.expression.asInstanceOf[Name].name shouldEqual "a"
       nilBranch.terminalBranch shouldBe true
     }
 
@@ -196,7 +197,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.scrutinee shouldBe an[Name.Literal]
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
@@ -232,7 +233,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.scrutinee shouldBe an[Name.Literal]
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
@@ -274,7 +275,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.scrutinee shouldBe an[Name.Literal]
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
@@ -295,7 +296,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consBranchBody.branches.head.terminalBranch shouldBe true
 
       tpePattern.name
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "num"
       tpePattern.tpe.name shouldEqual "Integer"
 

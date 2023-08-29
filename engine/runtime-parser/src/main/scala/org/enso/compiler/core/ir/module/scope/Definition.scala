@@ -6,7 +6,8 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
-  MetadataStorage
+  MetadataStorage,
+  Name
 }
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.IR.{
@@ -15,7 +16,6 @@ import org.enso.compiler.core.IR.{
   randomId,
   DefinitionArgument,
   Identifier,
-  Name,
   ToStringHelper
 }
 
@@ -54,7 +54,7 @@ object Definition {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Type(
-    name: IR.Name,
+    name: Name,
     params: List[IR.DefinitionArgument],
     members: List[Data],
     override val location: Option[IdentifiedLocation],
@@ -65,7 +65,7 @@ object Definition {
     override protected var id: Identifier = randomId
 
     def copy(
-      name: IR.Name                        = name,
+      name: Name                           = name,
       params: List[IR.DefinitionArgument]  = params,
       members: List[Data]                  = members,
       location: Option[IdentifiedLocation] = location,
@@ -156,9 +156,9 @@ object Definition {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Data(
-    name: IR.Name,
+    name: Name,
     arguments: List[DefinitionArgument],
-    annotations: List[IR.Name.GenericAnnotation],
+    annotations: List[Name.GenericAnnotation],
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -178,13 +178,13 @@ object Definition {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: IR.Name                                = name,
-      arguments: List[DefinitionArgument]          = arguments,
-      annotations: List[IR.Name.GenericAnnotation] = annotations,
-      location: Option[IdentifiedLocation]         = location,
-      passData: MetadataStorage                    = passData,
-      diagnostics: DiagnosticStorage               = diagnostics,
-      id: Identifier                               = id
+      name: Name                                = name,
+      arguments: List[DefinitionArgument]       = arguments,
+      annotations: List[Name.GenericAnnotation] = annotations,
+      location: Option[IdentifiedLocation]      = location,
+      passData: MetadataStorage                 = passData,
+      diagnostics: DiagnosticStorage            = diagnostics,
+      id: Identifier                            = id
     ): Data = {
       val res = Data(
         name,
@@ -276,7 +276,7 @@ object Definition {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class SugaredType(
-    name: IR.Name,
+    name: Name,
     arguments: List[DefinitionArgument],
     body: List[IR],
     override val location: Option[IdentifiedLocation],
@@ -298,7 +298,7 @@ object Definition {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: IR.Name                        = name,
+      name: Name                           = name,
       arguments: List[DefinitionArgument]  = arguments,
       body: List[IR]                       = body,
       location: Option[IdentifiedLocation] = location,
@@ -398,7 +398,7 @@ object Definition {
 
   /** A trait representing method definitions in Enso. */
   sealed trait Method extends Definition {
-    val methodReference: IR.Name.MethodReference
+    val methodReference: Name.MethodReference
     val body: Expression
 
     /** @inheritdoc */
@@ -416,10 +416,10 @@ object Definition {
     ): Method
 
     /** Get the type name for the method. */
-    def typeName: Option[IR.Name] = methodReference.typePointer
+    def typeName: Option[Name] = methodReference.typePointer
 
     /** Get the name of the method. */
-    def methodName: IR.Name = methodReference.methodName
+    def methodName: Name = methodReference.methodName
   }
 
   object Method {
@@ -433,7 +433,7 @@ object Definition {
       * @param diagnostics     compiler diagnostics for this node
       */
     sealed case class Explicit(
-      override val methodReference: IR.Name.MethodReference,
+      override val methodReference: Name.MethodReference,
       override val body: Expression,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -453,12 +453,12 @@ object Definition {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        methodReference: IR.Name.MethodReference = methodReference,
-        body: Expression                         = body,
-        location: Option[IdentifiedLocation]     = location,
-        passData: MetadataStorage                = passData,
-        diagnostics: DiagnosticStorage           = diagnostics,
-        id: Identifier                           = id
+        methodReference: Name.MethodReference = methodReference,
+        body: Expression                      = body,
+        location: Option[IdentifiedLocation]  = location,
+        passData: MetadataStorage             = passData,
+        diagnostics: DiagnosticStorage        = diagnostics,
+        id: Identifier                        = id
       ): Explicit = {
         val res = Explicit(
           methodReference,
@@ -546,8 +546,8 @@ object Definition {
       def isStatic: Boolean = body match {
         case function: IR.Function.Lambda =>
           function.arguments.headOption.map(_.name) match {
-            case Some(IR.Name.Self(_, true, _, _)) => true
-            case _                                 => false
+            case Some(Name.Self(_, true, _, _)) => true
+            case _                              => false
           }
         case _ =>
           true // if it's not a function, it has no arguments, therefore no `self`
@@ -556,7 +556,7 @@ object Definition {
       def isStaticWrapperForInstanceMethod: Boolean = body match {
         case function: IR.Function.Lambda =>
           function.arguments.map(_.name) match {
-            case IR.Name.Self(_, true, _, _) :: IR.Name.Self(
+            case Name.Self(_, true, _, _) :: Name.Self(
                   _,
                   false,
                   _,
@@ -581,7 +581,7 @@ object Definition {
       * @param diagnostics     compiler diagnostics for this node
       */
     sealed case class Binding(
-      override val methodReference: IR.Name.MethodReference,
+      override val methodReference: Name.MethodReference,
       arguments: List[IR.DefinitionArgument],
       override val body: Expression,
       override val location: Option[IdentifiedLocation],
@@ -603,13 +603,13 @@ object Definition {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        methodReference: IR.Name.MethodReference = methodReference,
-        arguments: List[IR.DefinitionArgument]   = arguments,
-        body: Expression                         = body,
-        location: Option[IdentifiedLocation]     = location,
-        passData: MetadataStorage                = passData,
-        diagnostics: DiagnosticStorage           = diagnostics,
-        id: Identifier                           = id
+        methodReference: Name.MethodReference  = methodReference,
+        arguments: List[IR.DefinitionArgument] = arguments,
+        body: Expression                       = body,
+        location: Option[IdentifiedLocation]   = location,
+        passData: MetadataStorage              = passData,
+        diagnostics: DiagnosticStorage         = diagnostics,
+        id: Identifier                         = id
       ): Binding = {
         val res = Binding(
           methodReference,

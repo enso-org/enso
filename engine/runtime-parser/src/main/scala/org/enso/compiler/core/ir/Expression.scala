@@ -170,7 +170,7 @@ object Expression {
   /** A binding expression of the form `name = expr`
     *
     * To create a binding that binds no available name, set the name of the
-    * binding to an [[IR.Name.Blank]] (e.g. _ = foo a b).
+    * binding to an [[Name.Blank]] (e.g. _ = foo a b).
     *
     * @param name        the name being bound to
     * @param expression  the expression being bound to `name`
@@ -179,7 +179,7 @@ object Expression {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Binding(
-    name: IR.Name,
+    name: Name,
     expression: Expression,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -199,7 +199,7 @@ object Expression {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: IR.Name                        = name,
+      name: Name                           = name,
       expression: Expression               = expression,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,

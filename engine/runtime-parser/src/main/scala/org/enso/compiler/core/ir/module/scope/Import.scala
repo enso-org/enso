@@ -8,7 +8,8 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
-  MetadataStorage
+  MetadataStorage,
+  Name
 }
 
 /** Module-level import statements. */
@@ -44,11 +45,11 @@ object Import {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Module(
-    name: IR.Name.Qualified,
-    rename: Option[IR.Name.Literal],
+    name: Name.Qualified,
+    rename: Option[Name.Literal],
     isAll: Boolean,
-    onlyNames: Option[List[IR.Name.Literal]],
-    hiddenNames: Option[List[IR.Name.Literal]],
+    onlyNames: Option[List[Name.Literal]],
+    hiddenNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
     isSynthetic: Boolean                        = false,
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -72,16 +73,16 @@ object Import {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: IR.Name.Qualified                    = name,
-      rename: Option[IR.Name.Literal]            = rename,
-      isAll: Boolean                             = isAll,
-      onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
-      hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-      location: Option[IdentifiedLocation]       = location,
-      isSynthetic: Boolean                       = isSynthetic,
-      passData: MetadataStorage                  = passData,
-      diagnostics: DiagnosticStorage             = diagnostics,
-      id: Identifier                             = id
+      name: Name.Qualified                    = name,
+      rename: Option[Name.Literal]            = rename,
+      isAll: Boolean                          = isAll,
+      onlyNames: Option[List[Name.Literal]]   = onlyNames,
+      hiddenNames: Option[List[Name.Literal]] = hiddenNames,
+      location: Option[IdentifiedLocation]    = location,
+      isSynthetic: Boolean                    = isSynthetic,
+      passData: MetadataStorage               = passData,
+      diagnostics: DiagnosticStorage          = diagnostics,
+      id: Identifier                          = id
     ): Module = {
       val res = Module(
         name,
@@ -170,7 +171,7 @@ object Import {
       *
       * @return the name of this import visible in code
       */
-    def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
+    def getSimpleName: Name = rename.getOrElse(name.parts.last)
 
     /** Checks whether the import statement allows use of the given
       * exported name.

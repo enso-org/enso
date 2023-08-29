@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.ModuleAnnotations
@@ -65,8 +66,8 @@ class ModuleAnnotationsTest extends CompilerTest {
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
-      anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_1"
-      anns(1).asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_2"
+      anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
+      anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
     }
 
     "associate annotations with complex type definitions" in {
@@ -82,8 +83,8 @@ class ModuleAnnotationsTest extends CompilerTest {
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
-      anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_1"
-      anns(1).asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_2"
+      anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
+      anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
     }
 
     "associate annotations with method definitions" in {
@@ -98,8 +99,8 @@ class ModuleAnnotationsTest extends CompilerTest {
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
-      anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_1"
-      anns(1).asInstanceOf[IR.Name].name shouldEqual "@My_Annotation_2"
+      anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
+      anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
     }
 
     "not associate annotations with comments" in {
@@ -114,7 +115,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       val anns =
         ir.bindings(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 1
-      anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation"
+      anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation"
     }
 
     "not associate generic annotations with method definitions" in {
@@ -125,8 +126,8 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe a[IR.Name.GenericAnnotation]
-      ir.bindings(1) shouldBe a[IR.Name.GenericAnnotation]
+      ir.bindings(0) shouldBe a[Name.GenericAnnotation]
+      ir.bindings(1) shouldBe a[Name.GenericAnnotation]
     }
 
   }
@@ -146,7 +147,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 2
-      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(0) shouldBe an[Name.GenericAnnotation]
       typ.body(1) shouldBe a[Definition.Data]
     }
 
@@ -163,7 +164,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
-      typ.body(1) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(1) shouldBe an[Name.GenericAnnotation]
       typ.body(2) shouldBe an[IR.Function.Binding]
     }
 
@@ -180,7 +181,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
-      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(0) shouldBe an[Name.GenericAnnotation]
       typ.body(1) shouldBe an[IR.Comment]
       typ.body(2) shouldBe a[Definition.Data]
     }

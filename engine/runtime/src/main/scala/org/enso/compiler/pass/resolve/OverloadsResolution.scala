@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -96,7 +97,7 @@ case object OverloadsResolution extends IRPass {
         }
 
       case m: Definition.Method.Conversion =>
-        val fromName = m.sourceTypeName.asInstanceOf[IR.Name]
+        val fromName = m.sourceTypeName.asInstanceOf[Name]
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
             if (elems.contains(fromName.name)) {
@@ -113,8 +114,8 @@ case object OverloadsResolution extends IRPass {
             m
         }
 
-      case diagnostic: IR.Diagnostic      => diagnostic
-      case ann: IR.Name.GenericAnnotation => ann
+      case diagnostic: IR.Diagnostic   => diagnostic
+      case ann: Name.GenericAnnotation => ann
       case _: IR.Type.Ascription =>
         throw new CompilerError(
           "Type ascriptions should not be present during the overloads resolution."
@@ -123,7 +124,7 @@ case object OverloadsResolution extends IRPass {
         throw new CompilerError(
           "Method bindings should not be present during the overloads resolution."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Builtin annotations should not be present during the overloads resolution."
         )

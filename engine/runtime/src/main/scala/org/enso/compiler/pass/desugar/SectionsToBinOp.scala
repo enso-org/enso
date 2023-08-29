@@ -3,7 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application.Operator.Section
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -107,7 +107,7 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+        if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
           val leftCallArg =
             IR.CallArgument.Specified(None, leftArgName, None)
@@ -231,7 +231,7 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+        if (arg.value.isInstanceOf[Name.Blank]) {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =

@@ -5,12 +5,14 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+
 class LambdaConsolidateTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -111,7 +113,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name]
+        .asInstanceOf[Name]
         .name shouldEqual "x"
     }
 
@@ -144,14 +146,14 @@ class LambdaConsolidateTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "x"
       ir.body
         .asInstanceOf[IR.Application.Prefix]
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "y"
 
       // The first argument `x` should be renamed
@@ -167,7 +169,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
         .defaultValue
         .get
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual newXName
       ir.arguments(2)
         .asInstanceOf[IR.DefinitionArgument.Specified]
@@ -178,7 +180,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual newXName
     }
 
@@ -223,7 +225,7 @@ class LambdaConsolidateTest extends CompilerTest {
           List(
             IR.DefinitionArgument
               .Specified(
-                IR.Name
+                Name
                   .Literal("a", isMethod = false, None),
                 None,
                 None,
@@ -231,7 +233,7 @@ class LambdaConsolidateTest extends CompilerTest {
                 None
               ),
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal("b", isMethod = false, None),
+              Name.Literal("b", isMethod = false, None),
               None,
               None,
               suspended = false,
@@ -241,7 +243,7 @@ class LambdaConsolidateTest extends CompilerTest {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
-                IR.Name
+                Name
                   .Literal("c", isMethod = false, None),
                 None,
                 None,
@@ -249,7 +251,7 @@ class LambdaConsolidateTest extends CompilerTest {
                 None
               )
             ),
-            IR.Name.Literal("c", isMethod = false, None),
+            Name.Literal("c", isMethod = false, None),
             None
           ),
           None

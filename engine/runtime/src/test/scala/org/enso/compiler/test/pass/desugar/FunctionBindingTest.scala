@@ -5,6 +5,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.FunctionBinding
 import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
@@ -106,7 +107,7 @@ class FunctionBindingTest extends CompilerTest {
       lambda1.arguments.head.name.name shouldEqual "a"
       lambda2.arguments.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldBe an[IR.Name.Blank]
+        .name shouldBe an[Name.Blank]
       cArg.name.name shouldEqual "c"
       cArg.defaultValue shouldBe defined
     }
@@ -156,7 +157,7 @@ class FunctionBindingTest extends CompilerTest {
       ir.bindings.head shouldBe an[Definition.Method.Conversion]
       val conversion = ir.bindings.head
         .asInstanceOf[Definition.Method.Conversion]
-      conversion.sourceTypeName.asInstanceOf[IR.Name].name shouldEqual "Other"
+      conversion.sourceTypeName.asInstanceOf[Name].name shouldEqual "Other"
       val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
       arguments.length shouldEqual 1
       arguments.head.name.name shouldEqual "that"
@@ -271,7 +272,7 @@ class FunctionBindingTest extends CompilerTest {
         .suspended shouldEqual true
       lambda2.arguments.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldBe an[IR.Name.Blank]
+        .name shouldBe an[Name.Blank]
       cArg.name.name shouldEqual "c"
       cArg.defaultValue shouldBe defined
     }
@@ -297,7 +298,7 @@ class FunctionBindingTest extends CompilerTest {
         .value
         .asInstanceOf[IR.Application.Prefix]
         .function
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "f"
 
       val body = ir.expression

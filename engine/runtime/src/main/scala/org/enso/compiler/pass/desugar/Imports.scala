@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.pass.IRPass
@@ -24,7 +24,7 @@ case object Imports extends IRPass {
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
   val mainModuleName =
-    IR.Name.Literal(
+    Name.Literal(
       "Main",
       isMethod = false,
       location = None
@@ -54,7 +54,7 @@ case object Imports extends IRPass {
                 rename = computeRename(
                   i.rename,
                   i.onlyNames.nonEmpty || i.isAll,
-                  parts(1).asInstanceOf[IR.Name.Literal]
+                  parts(1).asInstanceOf[Name.Literal]
                 )
               )
             } else { i.copy(name = newName) }
@@ -78,7 +78,7 @@ case object Imports extends IRPass {
                 rename = computeRename(
                   ex.rename,
                   ex.onlyNames.nonEmpty || ex.isAll,
-                  parts(1).asInstanceOf[IR.Name.Literal]
+                  parts(1).asInstanceOf[Name.Literal]
                 )
               )
             } else { ex.copy(name = newName) }
@@ -109,29 +109,29 @@ case object Imports extends IRPass {
   ): Expression = ir
 
   private def computeRename(
-    originalRename: Option[IR.Name.Literal],
+    originalRename: Option[Name.Literal],
     onlyNamesOrAll: Boolean,
-    qualName: IR.Name.Literal
-  ): Option[IR.Name.Literal] =
+    qualName: Name.Literal
+  ): Option[Name.Literal] =
     originalRename.orElse(Option.unless(onlyNamesOrAll)(qualName))
 
   val currentProjectAlias = "project"
 
   private def desugarCurrentProjectAlias(
-    name: IR.Name.Qualified,
+    name: Name.Qualified,
     context: ModuleContext
-  ): Option[IR.Name.Qualified] = {
+  ): Option[Name.Qualified] = {
     name.parts match {
       case head :: _ if head.name == currentProjectAlias =>
         val pkg = Option(context.getPackage())
         pkg.map { pkg =>
-          val namespace = IR.Name.Literal(
+          val namespace = Name.Literal(
             pkg.namespace,
             isMethod = false,
             location = None
           )
           val pkgName =
-            IR.Name.Literal(
+            Name.Literal(
               pkg.normalizedName,
               isMethod = false,
               location = None

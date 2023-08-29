@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.PassManager
@@ -14,7 +15,7 @@ class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
     val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
-    val plusOp = IR.Name.Literal("+", isMethod = true, None)
+    val plusOp = Name.Literal("+", isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
@@ -27,7 +28,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       List(
         IR.DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", isMethod = false, None),
+            Name.Literal("bar", isMethod = false, None),
             None,
             None,
             suspended = false,
@@ -52,23 +53,23 @@ class GatherDiagnosticsTest extends CompilerTest {
       val error3 = IR.Error.Syntax(null, IR.Error.Syntax.AmbiguousExpression)
 
       val typeName =
-        IR.Name.Literal("Foo", isMethod = false, None)
+        Name.Literal("Foo", isMethod = false, None)
       val method1Name =
-        IR.Name.Literal("bar", isMethod = false, None)
+        Name.Literal("bar", isMethod = false, None)
       val method2Name =
-        IR.Name.Literal("baz", isMethod = false, None)
+        Name.Literal("baz", isMethod = false, None)
       val fooName =
-        IR.Name.Literal("foo", isMethod = false, None)
+        Name.Literal("foo", isMethod = false, None)
 
       val method1Ref =
-        IR.Name.MethodReference(
-          Some(IR.Name.Qualified(List(typeName), None)),
+        Name.MethodReference(
+          Some(Name.Qualified(List(typeName), None)),
           method1Name,
           None
         )
       val method2Ref =
-        IR.Name.MethodReference(
-          Some(IR.Name.Qualified(List(typeName), None)),
+        Name.MethodReference(
+          Some(Name.Qualified(List(typeName), None)),
           method2Name,
           None
         )

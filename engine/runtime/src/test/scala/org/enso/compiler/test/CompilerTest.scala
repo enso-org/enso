@@ -5,6 +5,7 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
@@ -149,17 +150,17 @@ trait CompilerRunner {
       */
     def asMethod: Definition.Method = {
       Definition.Method.Explicit(
-        IR.Name.MethodReference(
+        Name.MethodReference(
           Some(
-            IR.Name.Qualified(
+            Name.Qualified(
               List(
-                IR.Name
+                Name
                   .Literal("TestType", isMethod = false, None)
               ),
               None
             )
           ),
-          IR.Name
+          Name
             .Literal("testMethod", isMethod = false, None),
           None
         ),
@@ -174,11 +175,11 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: Definition.Data = {
       Definition.Data(
-        IR.Name.Literal("TestAtom", isMethod = false, None),
+        Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
             .Specified(
-              IR.Name
+              Name
                 .Literal("arg", isMethod = false, None),
               None,
               Some(ir),

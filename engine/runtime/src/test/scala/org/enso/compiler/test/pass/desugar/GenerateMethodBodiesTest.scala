@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -63,8 +64,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val self = firstArg
         .asInstanceOf[IR.DefinitionArgument.Specified]
         .name
-      self shouldBe a[IR.Name.Self]
-      self.asInstanceOf[IR.Name.Self].synthetic shouldBe true
+      self shouldBe a[Name.Self]
+      self.asInstanceOf[Name.Self].synthetic shouldBe true
 
       restArgs shouldEqual irMethod.body
         .asInstanceOf[IR.Function.Lambda]
@@ -133,8 +134,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val self = bodyArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
         .name
-      self shouldBe a[IR.Name.Self]
-      self.asInstanceOf[IR.Name.Self].synthetic shouldBe false
+      self shouldBe a[Name.Self]
+      self.asInstanceOf[Name.Self].synthetic shouldBe false
     }
 
     "have the body of the function be equivalent to the expression" in {
@@ -193,7 +194,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual IR.Name.Self(
+      selfArg shouldEqual Name.Self(
         location  = irMethodSelfArg.name.location,
         synthetic = false
       )
@@ -206,7 +207,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg should not be an[IR.Name.Self]
+      selfArg should not be an[Name.Self]
       selfArg shouldEqual irFooFirstArg.name
     }
 
@@ -217,9 +218,9 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldBe an[IR.Name.Self]
+      selfArg shouldBe an[Name.Self]
       resultLambda.body shouldBe an[IR.Application.Operator.Binary]
-      selfArg shouldEqual IR.Name.Self(location = irBarFirstArg.location)
+      selfArg shouldEqual Name.Self(location = irBarFirstArg.location)
     }
 
     "not generate an auxiliary self parameter for the already present one but in a wrong position" in {
@@ -229,12 +230,12 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val firstArg = resultArgs.head.name
-      firstArg should not be an[IR.Name.Self]
+      firstArg should not be an[Name.Self]
 
       val bodyLambda = resultLambda.body.asInstanceOf[IR.Function.Lambda]
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
-      selfArg shouldEqual IR.Name.Self(location = irBazSndArg.location)
+      selfArg shouldEqual Name.Self(location = irBazSndArg.location)
       resultLambda.diagnostics.collect { case w: IR.Warning =>
         w
       }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
@@ -274,7 +275,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual IR.Name.Self(location =
+      selfArg shouldEqual Name.Self(location =
         irMethodAddSelfArg.head.name.location
       )
       resultLambda.diagnostics.collect { case w: IR.Warning =>
@@ -289,14 +290,14 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs(0).name
-      selfArg should not be an[IR.Name.Self]
+      selfArg should not be an[Name.Self]
       resultLambda.diagnostics.collect { case w: IR.Warning =>
         w
       }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
 
       val nestedLmabda = resultLambda.body.asInstanceOf[IR.Function.Lambda]
       nestedLmabda.arguments.size shouldEqual 1
-      nestedLmabda.arguments(0).name shouldBe an[IR.Name.Self]
+      nestedLmabda.arguments(0).name shouldBe an[Name.Self]
     }
   }
 
@@ -313,7 +314,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 2
-      body.arguments.head.name shouldBe a[IR.Name.Self]
+      body.arguments.head.name shouldBe a[Name.Self]
     }
 
     // FIXME: This should probably be prohibited
@@ -327,10 +328,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1
-      body.arguments.head.name shouldBe an[IR.Name.Self]
+      body.arguments.head.name shouldBe an[Name.Self]
       val nestedBody = body.body.asInstanceOf[IR.Function.Lambda]
       nestedBody.arguments.length shouldEqual 1
-      nestedBody.arguments.head.name shouldBe an[IR.Name.Literal]
+      nestedBody.arguments.head.name shouldBe an[Name.Literal]
       nestedBody.arguments.head.name.name shouldEqual Constants.Names.THAT_ARGUMENT
     }
 
@@ -344,7 +345,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1
-      body.arguments.head.name shouldBe an[IR.Name.Literal]
+      body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
 
       conversion.body.diagnostics.collect { case w: IR.Warning =>
@@ -362,7 +363,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1
-      body.arguments.head.name shouldBe an[IR.Name.Literal]
+      body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
 
       conversion.body.diagnostics.collect { case w: IR.Warning =>

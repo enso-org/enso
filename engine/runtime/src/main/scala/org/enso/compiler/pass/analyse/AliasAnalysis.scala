@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Expression, Literal, Module}
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -291,12 +291,12 @@ case object AliasAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "alias analysis."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
-      case ann: IR.Name.GenericAnnotation =>
+      case ann: Name.GenericAnnotation =>
         ann
           .copy(expression =
             analyseExpression(
@@ -334,7 +334,7 @@ case object AliasAnalysis extends IRPass {
     expression match {
       case fn: IR.Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
-      case name: IR.Name =>
+      case name: Name =>
         analyseName(
           name,
           isInPatternContext                = false,
@@ -475,7 +475,7 @@ case object AliasAnalysis extends IRPass {
   ): List[IR.DefinitionArgument] = {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(
-            selfName @ IR.Name.Self(_, true, _, _),
+            selfName @ Name.Self(_, true, _, _),
             _,
             _,
             _,
@@ -654,12 +654,12 @@ case object AliasAnalysis extends IRPass {
     * @return `name`, with alias analysis information attached
     */
   def analyseName(
-    name: IR.Name,
+    name: Name,
     isInPatternContext: Boolean,
     isConstructorNameInPatternContext: Boolean,
     graph: Graph,
     parentScope: Scope
-  ): IR.Name = {
+  ): Name = {
     val occurrenceId = graph.nextId()
 
     if (isInPatternContext && !isConstructorNameInPatternContext) {

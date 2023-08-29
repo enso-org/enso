@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Name
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
@@ -39,7 +39,7 @@ case object ModuleAnnotations extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[Name.Annotation] = Seq()
     val newBindings = ir.bindings.map {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
@@ -73,7 +73,7 @@ case object ModuleAnnotations extends IRPass {
   private def resolveComplexType(
     typ: Definition.SugaredType
   ): Definition.SugaredType = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[Name.Annotation] = Seq()
     val newBodyElems = typ.body.flatMap {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
@@ -112,7 +112,7 @@ case object ModuleAnnotations extends IRPass {
     *
     * @param annotations the initial annotations for the container
     */
-  case class Annotations(annotations: Seq[IR.Name.Annotation])
+  case class Annotations(annotations: Seq[Name.Annotation])
       extends IRPass.IRMetadata {
     override val metadataName: String                   = "Annotations"
     override def duplicate(): Option[IRPass.IRMetadata] = Some(this.copy())
@@ -122,7 +122,7 @@ case object ModuleAnnotations extends IRPass {
       * @param annotation the annotation to add
       * @return `this`, with `annotation` added to it
       */
-    def addAnnotation(annotation: IR.Name.Annotation): Annotations =
+    def addAnnotation(annotation: Name.Annotation): Annotations =
       this.copy(annotations = this.annotations :+ annotation)
 
     /** @inheritdoc */

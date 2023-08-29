@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -62,8 +63,8 @@ case object MethodDefinitions extends IRPass {
           case method: Definition.Method.Conversion =>
             val sourceTypeExpr = method.sourceTypeName
 
-            val resolvedName: IR.Name = sourceTypeExpr match {
-              case name: IR.Name => resolveType(name, availableSymbolsMap)
+            val resolvedName: Name = sourceTypeExpr match {
+              case name: Name => resolveType(name, availableSymbolsMap)
               case _ =>
                 IR.Error.Conversion(
                   sourceTypeExpr,
@@ -98,7 +99,7 @@ case object MethodDefinitions extends IRPass {
                 List(
                   IR.DefinitionArgument
                     .Specified(
-                      IR.Name.Self(None, true),
+                      Name.Self(None, true),
                       None,
                       None,
                       false,
@@ -129,14 +130,14 @@ case object MethodDefinitions extends IRPass {
     tp.members.nonEmpty || (tp.builtinType && (tp.name != "Nothing"))
 
   private def resolveType(
-    typePointer: IR.Name,
+    typePointer: Name,
     availableSymbolsMap: BindingsMap
-  ): IR.Name = {
+  ): Name = {
     typePointer match {
-      case _: IR.Name.Qualified | _: IR.Name.Literal =>
+      case _: Name.Qualified | _: Name.Literal =>
         val items = typePointer match {
-          case IR.Name.Qualified(names, _, _, _) => names.map(_.name)
-          case IR.Name.Literal(name, _, _, _, _) => List(name)
+          case Name.Qualified(names, _, _, _) => names.map(_.name)
+          case Name.Literal(name, _, _, _, _) => List(name)
           case _ =>
             throw new CompilerError("Impossible to reach.")
         }

@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Name
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -115,7 +115,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .arguments(0)
         .value
         .asInstanceOf[IR.Application.Prefix]
-      correct.function.asInstanceOf[IR.Name].name shouldEqual "bar"
+      correct.function.asInstanceOf[Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
       correct
         .getMetadata(ExpressionAnnotations)

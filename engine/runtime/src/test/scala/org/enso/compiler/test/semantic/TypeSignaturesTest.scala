@@ -3,6 +3,7 @@ package org.enso.compiler.test.semantic
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
@@ -53,7 +54,7 @@ trait TypeMatchers {
       sig: Sig,
       expr: Expression
     ): Option[(Sig, Expression, String)] = (sig, expr) match {
-      case (Name(n), t: IR.Name.Literal) =>
+      case (Name(n), t: ir.Name.Literal) =>
         Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
         val meta = expr.getMetadata(TypeNames)

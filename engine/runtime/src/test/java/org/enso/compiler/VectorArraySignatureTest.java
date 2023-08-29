@@ -12,8 +12,8 @@ import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$Function$Binding;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.enso.compiler.core.IR$Name$Self;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import org.junit.BeforeClass;
@@ -98,11 +98,11 @@ public class VectorArraySignatureTest {
       if (v instanceof IR$Comment$Documentation d) {
         lastDoc[0] = d;
       }
-      if (v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof IR$Name$Self) {
+      if (v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof Name.Self) {
         documentation.put(b, lastDoc[0]);
         lastDoc[0] = null;
       }
-      return v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof IR$Name$Self;
+      return v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof Name.Self;
     };
     var arrayFns = arrayIR.preorder().filter(filter);
     var vectorFns = vectorIR.preorder().filter(filter);

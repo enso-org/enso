@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -105,7 +106,7 @@ class ComplexTypeTest extends CompilerTest {
         .bindings(2)
         .asInstanceOf[IR.Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.MethodReference]
+        .asInstanceOf[Name.MethodReference]
       val isJustMethodName = ir
         .bindings(3)
         .asInstanceOf[Definition.Method.Binding]
@@ -120,7 +121,7 @@ class ComplexTypeTest extends CompilerTest {
         .bindings(4)
         .asInstanceOf[IR.Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.MethodReference]
+        .asInstanceOf[Name.MethodReference]
       val fMethodName = ir
         .bindings(5)
         .asInstanceOf[Definition.Method.Binding]
@@ -137,14 +138,14 @@ class ComplexTypeTest extends CompilerTest {
       ir.bindings(1)
         .asInstanceOf[IR.Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "invalid_sig"
 
       ir.bindings(6) shouldBe an[IR.Type.Ascription]
       ir.bindings(6)
         .asInstanceOf[IR.Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "bad_trailing_sig"
     }
   }

@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -81,12 +82,12 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val arg4Name = body
         .arguments(3)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       irFnArgName.name shouldEqual arg2Name.name
       irFnNestedArgName.name shouldEqual arg4Name.name
@@ -119,13 +120,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         app.arguments.head
           .asInstanceOf[IR.CallArgument.Specified]
           .value
-          .asInstanceOf[IR.Name.Literal]
+          .asInstanceOf[Name.Literal]
       val arg3Name =
         app
           .arguments(2)
           .asInstanceOf[IR.CallArgument.Specified]
           .value
-          .asInstanceOf[IR.Name.Literal]
+          .asInstanceOf[Name.Literal]
 
       irFnArgName.name shouldEqual arg1Name.name
       irFnNestedArgName.name shouldEqual arg3Name.name
@@ -148,7 +149,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       irFn.body shouldBe an[IR.Application.Prefix]
       val app = irFn.body.asInstanceOf[IR.Application.Prefix]
 
-      val fnName = app.function.asInstanceOf[IR.Name.Literal]
+      val fnName = app.function.asInstanceOf[Name.Literal]
 
       irFnArgName.name shouldEqual fnName.name
     }
@@ -172,7 +173,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val arg1Name = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       irFnArgName.name shouldEqual arg1Name.name
     }
@@ -197,9 +198,9 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       val lamBody = irLam.body.asInstanceOf[IR.Case.Expr]
 
-      lamBody.scrutinee shouldBe an[IR.Name.Literal]
+      lamBody.scrutinee shouldBe an[Name.Literal]
       lamBody.scrutinee
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual lamArgName.name
     }
 
@@ -219,7 +220,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
 
       val body     = irFn.body.asInstanceOf[IR.Application.Prefix]
-      val rightArg = body.arguments(1).value.asInstanceOf[IR.Name.Literal]
+      val rightArg = body.arguments(1).value.asInstanceOf[Name.Literal]
 
       argName.name shouldEqual rightArg.name
     }
@@ -245,9 +246,9 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       body.arguments.length shouldEqual 2
 
       val leftCallArgName =
-        body.arguments.head.value.asInstanceOf[IR.Name.Literal]
+        body.arguments.head.value.asInstanceOf[Name.Literal]
       val rightCallArgName =
-        body.arguments(1).value.asInstanceOf[IR.Name.Literal]
+        body.arguments(1).value.asInstanceOf[Name.Literal]
 
       underscoreArgName.name shouldEqual leftCallArgName.name
       rightArgLambdaArgName.name shouldEqual rightCallArgName.name
@@ -272,8 +273,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val app = irFn2.body.asInstanceOf[IR.Application.Prefix]
       app.arguments.length shouldEqual 2
 
-      val leftArg  = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
-      val rightArg = app.arguments(1).value.asInstanceOf[IR.Name.Literal]
+      val leftArg  = app.arguments.head.value.asInstanceOf[Name.Literal]
+      val rightArg = app.arguments(1).value.asInstanceOf[Name.Literal]
 
       arg1Name.name shouldEqual leftArg.name
       arg2Name.name shouldEqual rightArg.name
@@ -301,8 +302,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       app.arguments.length shouldEqual 2
 
-      val appLeftName  = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
-      val appRightName = app.arguments(1).value.asInstanceOf[IR.Name.Literal]
+      val appLeftName  = app.arguments.head.value.asInstanceOf[Name.Literal]
+      val appRightName = app.arguments(1).value.asInstanceOf[Name.Literal]
 
       leftArgName.name shouldEqual appLeftName.name
       rightArgName.name shouldEqual appRightName.name
@@ -361,7 +362,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val lamArgBodyArg1Name = lamArgBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
     }
@@ -399,7 +400,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val lamArgBodyArg1Name = lamArgBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
     }
@@ -432,7 +433,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val defBodyArg1Name = defBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       defaultArgName.name shouldEqual defBodyArg1Name.name
     }
@@ -468,7 +469,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val nilBodyBodyArg1Name = nilBodyBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       nilBodyArgName.name shouldEqual nilBodyBodyArg1Name.name
     }
@@ -531,7 +532,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val appArg1Name = lamBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name
       lamArg1Name shouldEqual appArg1Name
     }
@@ -562,13 +563,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val appArg1Name = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name]
+        .asInstanceOf[Name]
         .name
       val appArg2Name = app
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name]
+        .asInstanceOf[Name]
         .name
       firstLamArgName shouldEqual appArg1Name
       secondLamArgName shouldEqual appArg2Name

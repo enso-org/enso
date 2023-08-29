@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -110,13 +110,13 @@ case object CachePreferenceAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "cache preference analysis."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "cache preference analysis."
         )
-      case ann: IR.Name.GenericAnnotation => ann
-      case err: IR.Error                  => err
+      case ann: Name.GenericAnnotation => ann
+      case err: IR.Error               => err
     }
 
   /** Performs preference analysis on an arbitrary expression.

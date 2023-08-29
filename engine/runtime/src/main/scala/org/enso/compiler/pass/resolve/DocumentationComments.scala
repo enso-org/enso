@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -91,7 +92,7 @@ case object DocumentationComments extends IRPass {
   private def resolveList[T <: IR](items: List[T]): List[T] = {
     var lastDoc: Option[IR.Comment.Documentation] = None
     items.flatMap {
-      case annotation: IR.Name.Annotation =>
+      case annotation: Name.Annotation =>
         Some(annotation.asInstanceOf[T])
       case doc: IR.Comment.Documentation =>
         lastDoc = Some(doc)
@@ -157,11 +158,11 @@ case object DocumentationComments extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation  => doc
-      case tySig: IR.Type.Ascription      => tySig
-      case err: IR.Error                  => err
-      case ann: IR.Name.GenericAnnotation => ann
-      case _: IR.Name.BuiltinAnnotation =>
+      case doc: IR.Comment.Documentation => doc
+      case tySig: IR.Type.Ascription     => tySig
+      case err: IR.Error                 => err
+      case ann: Name.GenericAnnotation   => ann
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "documentation comment resolution."

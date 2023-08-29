@@ -1,8 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -74,14 +73,14 @@ case object BindingAnalysis extends IRPass {
       .collect { case method: Definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
-          case Some(IR.Name.Qualified(List(), _, _, _)) =>
+          case Some(Name.Qualified(List(), _, _, _)) =>
             Some(ref.methodName.name)
-          case Some(IR.Name.Qualified(List(n), _, _, _)) =>
+          case Some(Name.Qualified(List(n), _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
-          case Some(IR.Name.Literal(n, _, _, _, _)) =>
+          case Some(Name.Literal(n, _, _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n)
             if (!shadowed && n == moduleContext.getName().item)
               Some(ref.methodName.name)

@@ -9,11 +9,12 @@ import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
   Literal,
-  Module
+  Module,
+  Name
 }
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Name.Special
+import org.enso.compiler.core.ir.Name.Special
 import org.enso.compiler.core.IR.{Error, Pattern}
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
@@ -346,8 +347,8 @@ class IrToTruffle(
         case fn: IR.Type.Function => getContext(fn.result)
         case ctx: IR.Type.Context =>
           ctx.context match {
-            case lit: IR.Name.Literal => Some(lit.name)
-            case _                    => None
+            case lit: Name.Literal => Some(lit.name)
+            case _                 => None
           }
         case _ => None
       }
@@ -520,7 +521,7 @@ class IrToTruffle(
               methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
                 meta =>
                   meta.annotations
-                    .collect { case annotation: IR.Name.GenericAnnotation =>
+                    .collect { case annotation: Name.GenericAnnotation =>
                       val scopeElements = Seq(
                         cons.getName,
                         methodDef.methodName.name,
@@ -956,7 +957,7 @@ class IrToTruffle(
         case literal: Literal        => processLiteral(literal)
         case app: IR.Application =>
           processApplication(app, subjectToInstrumentation)
-        case name: IR.Name               => processName(name)
+        case name: Name                  => processName(name)
         case function: IR.Function       => processFunction(function, binding)
         case binding: Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case =>
@@ -1530,9 +1531,9 @@ class IrToTruffle(
       * @param name the name to generate code for
       * @return the truffle nodes corresponding to `name`
       */
-    def processName(name: IR.Name): RuntimeExpression = {
+    def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _, _, _) =>
+        case Name.Literal(nameStr, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -1554,23 +1555,23 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Self(location, _, passData, _) =>
+        case Name.Self(location, _, passData, _) =>
           processName(
-            IR.Name.Literal(
+            Name.Literal(
               Constants.Names.SELF_ARGUMENT,
               isMethod = false,
               location,
               passData
             )
           )
-        case n: IR.Name.SelfType =>
+        case n: Name.SelfType =>
           nodeForResolution(
             n.unsafeGetMetadata(
               GlobalNames,
               "a Self occurence must be resolved"
             ).target
           )
-        case IR.Name.Special(name, _, _, _) =>
+        case Name.Special(name, _, _, _) =>
           val fun = name match {
             case Special.NewRef    => context.getBuiltins.special().getNewRef
             case Special.ReadRef   => context.getBuiltins.special().getReadRef
@@ -1580,19 +1581,19 @@ class IrToTruffle(
               context.getBuiltins.special().getJoinThread
           }
           ConstantObjectNode.build(fun)
-        case _: IR.Name.Annotation =>
+        case _: Name.Annotation =>
           throw new CompilerError(
             "Annotation should not be present at codegen time."
           )
-        case _: IR.Name.Blank =>
+        case _: Name.Blank =>
           throw new CompilerError(
             "Blanks should not be present at codegen time."
           )
-        case _: IR.Name.MethodReference =>
+        case _: Name.MethodReference =>
           throw new CompilerError(
             "Method references should not be present at codegen time."
           )
-        case _: IR.Name.Qualified =>
+        case _: Name.Qualified =>
           throw new CompilerError(
             "Qualified names should not be present at codegen time."
           )
@@ -2019,7 +2020,7 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
           val shouldCreateClosureRootNode = value match {
-            case _: IR.Name        => false
+            case _: Name           => false
             case _: Literal.Text   => false
             case _: Literal.Number => false
             case _                 => true

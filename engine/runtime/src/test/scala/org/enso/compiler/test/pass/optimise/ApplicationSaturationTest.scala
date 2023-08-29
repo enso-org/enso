@@ -5,6 +5,7 @@ import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Empty
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -37,7 +38,7 @@ class ApplicationSaturationTest extends CompilerTest {
     val name = if (positional) {
       None
     } else {
-      Some(IR.Name.Literal("a", isMethod = false, None))
+      Some(Name.Literal("a", isMethod = false, None))
     }
 
     List.fill(n)(IR.CallArgument.Specified(name, Empty(None), None))
@@ -87,7 +88,7 @@ class ApplicationSaturationTest extends CompilerTest {
   "Known applications" should {
     val plusFn = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isMethod = true, None),
+        Name.Literal("+", isMethod = true, None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -97,7 +98,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val bazFn = IR.Application
       .Prefix(
-        IR.Name.Literal("baz", isMethod = false, None),
+        Name.Literal("baz", isMethod = false, None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -107,7 +108,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val fooFn = IR.Application
       .Prefix(
-        IR.Name.Literal("foo", isMethod = false, None),
+        Name.Literal("foo", isMethod = false, None),
         genNArgs(5),
         hasDefaultsSuspended = false,
         None
@@ -117,8 +118,8 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val fooFnByName = IR.Application
       .Prefix(
-        IR.Name.Literal("foo", isMethod = false, None),
-        genNArgs(4, positional          = false),
+        Name.Literal("foo", isMethod = false, None),
+        genNArgs(4, positional       = false),
         hasDefaultsSuspended = false,
         None
       )
@@ -163,7 +164,7 @@ class ApplicationSaturationTest extends CompilerTest {
   "Unknown applications" should {
     val unknownFn = IR.Application
       .Prefix(
-        IR.Name.Literal("unknown", isMethod = false, None),
+        Name.Literal("unknown", isMethod = false, None),
         genNArgs(10),
         hasDefaultsSuspended = false,
         None
@@ -184,7 +185,7 @@ class ApplicationSaturationTest extends CompilerTest {
     val empty = Empty(None)
     val knownPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isMethod = true, None),
+        Name.Literal("+", isMethod = true, None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -194,7 +195,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val undersaturatedPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isMethod = true, None),
+        Name.Literal("+", isMethod = true, None),
         genNArgs(1),
         hasDefaultsSuspended = false,
         None
@@ -204,7 +205,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val oversaturatedPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isMethod = true, None),
+        Name.Literal("+", isMethod = true, None),
         genNArgs(3),
         hasDefaultsSuspended = false,
         None
@@ -226,7 +227,7 @@ class ApplicationSaturationTest extends CompilerTest {
     def outerPlus(argExpr: Expression): IR.Application.Prefix = {
       IR.Application
         .Prefix(
-          IR.Name.Literal("+", isMethod = true, None),
+          Name.Literal("+", isMethod = true, None),
           List(
             IR.CallArgument.Specified(None, argExpr, None),
             IR.CallArgument.Specified(None, empty, None)

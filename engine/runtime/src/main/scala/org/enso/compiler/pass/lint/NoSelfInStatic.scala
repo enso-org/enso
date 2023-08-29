@@ -2,7 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
@@ -41,7 +41,7 @@ object NoSelfInStatic extends IRPass {
   }
 
   private def transformSelfToError: PartialFunction[Expression, Expression] = {
-    case IR.Name.Self(location, false, passData, diagnostics) =>
+    case Name.Self(location, false, passData, diagnostics) =>
       IR.Error.Syntax(
         location.get,
         IR.Error.Syntax.InvalidSelfArgUsage,
@@ -63,7 +63,7 @@ object NoSelfInStatic extends IRPass {
     ): Option[IR.DefinitionArgument] = {
       arguments.collectFirst {
         case arg @ IR.DefinitionArgument.Specified(
-              IR.Name.Self(_, false, _, _),
+              Name.Self(_, false, _, _),
               _,
               _,
               _,

@@ -2,9 +2,10 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -107,7 +108,7 @@ case object TypeSignatures extends IRPass {
               .getOrElse(newMethodWithDoc)
 
             typed match {
-              case ref: IR.Name.MethodReference =>
+              case ref: Name.MethodReference =>
                 if (ref isSameReferenceAs methodRef) {
                   Some(
                     newMethodWithAnnotations.updateMetadata(
@@ -141,14 +142,14 @@ case object TypeSignatures extends IRPass {
             )
             .mapExpressions(resolveExpression)
         )
-      case err: IR.Error                  => Some(err)
-      case ann: IR.Name.GenericAnnotation => Some(ann)
+      case err: IR.Error               => Some(err)
+      case ann: Name.GenericAnnotation => Some(ann)
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +
           "signature resolution."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "type signature resolution."
@@ -266,7 +267,7 @@ case object TypeSignatures extends IRPass {
               .getOrElse(newBinding)
 
             typed match {
-              case typedName: IR.Name =>
+              case typedName: Name =>
                 if (typedName.name == name.name) {
                   Some(
                     newBindingWithDoc.updateMetadata(this -->> Signature(sig))

@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.pass.desugar.SectionsToBinOp
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -73,7 +74,7 @@ class SectionsToBinOpTest extends CompilerTest {
           .arguments(1)
           .asInstanceOf[IR.CallArgument.Specified]
           .value
-          .asInstanceOf[IR.Name.Literal]
+          .asInstanceOf[Name.Literal]
 
       lamBodyFirstArg.name shouldEqual lamArgName.name
       lamBodyFirstArg.getId should not equal lamArgName.getId
@@ -109,12 +110,12 @@ class SectionsToBinOpTest extends CompilerTest {
       val lamBodyFirstArg = lamBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val lamBodySecondArg = lamBody
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       lamBodyFirstArg.name shouldEqual leftLamArgName.name
       lamBodySecondArg.name shouldEqual rightLamArgName.name
@@ -145,7 +146,7 @@ class SectionsToBinOpTest extends CompilerTest {
         lamBody.arguments.head
           .asInstanceOf[IR.CallArgument.Specified]
           .value
-          .asInstanceOf[IR.Name.Literal]
+          .asInstanceOf[Name.Literal]
 
       lamBodyFirstArg.name shouldEqual lamArgName.name
       lamBodyFirstArg.getId should not equal lamArgName.getId
@@ -198,11 +199,11 @@ class SectionsToBinOpTest extends CompilerTest {
       val appLeftName = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val appRightName = app
         .arguments(1)
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
 
       leftArgName.name shouldEqual appLeftName.name
       rightArgName.name shouldEqual appRightName.name

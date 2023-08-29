@@ -3,12 +3,13 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 
-/** A pass responsible for the discovery of [[IR.Name.GenericAnnotation]]
+/** A pass responsible for the discovery of [[Name.GenericAnnotation]]
   * annotations, and for associating them with the corresponding construct.
   *
   * Compilation pipeline of generic annotations:
@@ -38,9 +39,9 @@ case object GenericAnnotations extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
+    var lastAnnotations: Seq[Name.GenericAnnotation] = Seq()
     val newBindings = ir.bindings.map {
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           s"Builtin annotations should not be present at generic annotations pass."
         )
@@ -52,7 +53,7 @@ case object GenericAnnotations extends IRPass {
         throw new CompilerError(
           "Comments should not be present at generic annotations pass."
         )
-      case ann: IR.Name.GenericAnnotation =>
+      case ann: Name.GenericAnnotation =>
         lastAnnotations :+= ann
         None
       case entity =>

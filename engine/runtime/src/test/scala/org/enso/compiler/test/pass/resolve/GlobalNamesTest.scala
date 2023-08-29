@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
@@ -106,7 +107,7 @@ class GlobalNamesTest extends CompilerTest {
       val expr = bodyExprs(2)
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
-      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "constant"
+      app.function.asInstanceOf[Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))
@@ -124,7 +125,7 @@ class GlobalNamesTest extends CompilerTest {
       val expr = bodyExprs(4)
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
-      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
+      app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))
@@ -135,7 +136,7 @@ class GlobalNamesTest extends CompilerTest {
       val expr = bodyExprs(5)
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
-      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
+      app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))

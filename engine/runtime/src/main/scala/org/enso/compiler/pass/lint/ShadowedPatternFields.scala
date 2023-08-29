@@ -2,7 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -146,10 +146,10 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = named
             named
               .copy(
-                name = IR.Name.Blank(location = name.location)
+                name = Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else if (!name.isInstanceOf[IR.Name.Blank]) {
+          } else if (!name.isInstanceOf[Name.Blank]) {
             lastSeen(name.name) = named
             seenNames += name.name
             named
@@ -172,10 +172,10 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = typed
             typed
               .copy(
-                name = IR.Name.Blank(location = name.location)
+                name = Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else if (!name.isInstanceOf[IR.Name.Blank]) {
+          } else if (!name.isInstanceOf[Name.Blank]) {
             lastSeen(name.name) = typed
             seenNames += name.name
             typed

@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -169,12 +169,12 @@ case object FunctionBinding extends IRPass {
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name
             val newFirstArgument =
-              if (firstArgumentName.isInstanceOf[IR.Name.Blank]) {
+              if (firstArgumentName.isInstanceOf[Name.Blank]) {
                 val newName =
                   if (restArgs.nonEmpty)
-                    IR.Name.Self(firstArgumentName.location, synthetic = true)
+                    Name.Self(firstArgumentName.location, synthetic = true)
                   else
-                    IR.Name
+                    Name
                       .Literal(
                         Constants.Names.THAT_ARGUMENT,
                         firstArgumentName.isMethod,
@@ -191,8 +191,8 @@ case object FunctionBinding extends IRPass {
             val (sndArgument, remaining) = restArgs match {
               case snd :: rest =>
                 val sndArgName = snd.name
-                if (sndArgName.isInstanceOf[IR.Name.Blank]) {
-                  val newName = IR.Name
+                if (sndArgName.isInstanceOf[Name.Blank]) {
+                  val newName = Name
                     .Literal(
                       Constants.Names.THAT_ARGUMENT,
                       sndArgName.isMethod,
@@ -311,14 +311,14 @@ case object FunctionBinding extends IRPass {
           "Documentation should not be present during function binding" +
           "desugaring."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "function binding desugaring."
         )
-      case a: IR.Name.GenericAnnotation => a
-      case a: IR.Type.Ascription        => a
-      case e: IR.Error                  => e
+      case a: Name.GenericAnnotation => a
+      case a: IR.Type.Ascription     => a
+      case e: IR.Error               => e
     }
   }
 }

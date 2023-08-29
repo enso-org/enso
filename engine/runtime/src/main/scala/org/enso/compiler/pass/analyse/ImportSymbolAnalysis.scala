@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
@@ -91,7 +91,7 @@ case object ImportSymbolAnalysis extends IRPass {
   private def createErrorForUnresolvedSymbol(
     imp: Import,
     importTarget: BindingsMap.ImportTarget,
-    unresolvedSymbol: IR.Name.Literal
+    unresolvedSymbol: Name.Literal
   ): IR.Error.ImportExport = {
     importTarget match {
       case BindingsMap.ResolvedModule(module) =>
@@ -115,7 +115,7 @@ case object ImportSymbolAnalysis extends IRPass {
 
   private def isSymbolResolved(
     importTarget: BindingsMap.ImportTarget,
-    symbol: IR.Name.Literal
+    symbol: Name.Literal
   ): Boolean = {
     importTarget.findExportedSymbolsFor(symbol.name).nonEmpty
   }

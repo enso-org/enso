@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -87,9 +88,9 @@ object Patterns extends IRPass {
           case consPat: IR.Pattern.Constructor =>
             val consName = consPat.constructor
             val resolution = consName match {
-              case qual: IR.Name.Qualified =>
+              case qual: Name.Qualified =>
                 qual.parts match {
-                  case (_: IR.Name.SelfType) :: (others :+ item) =>
+                  case (_: Name.SelfType) :: (others :+ item) =>
                     selfTypeResolution.map(
                       bindings.resolveQualifiedNameIn(
                         _,
@@ -103,9 +104,9 @@ object Patterns extends IRPass {
                       bindings.resolveQualifiedName(parts)
                     )
                 }
-              case lit: IR.Name.Literal =>
+              case lit: Name.Literal =>
                 Some(bindings.resolveName(lit.name))
-              case _: IR.Name.SelfType =>
+              case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
             }
@@ -179,14 +180,14 @@ object Patterns extends IRPass {
             }
           case tpePattern @ IR.Pattern.Type(_, tpeName, _, _, _) =>
             val resolution = tpeName match {
-              case qual: IR.Name.Qualified =>
+              case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
                 Some(
                   bindings.resolveQualifiedName(parts)
                 )
-              case lit: IR.Name.Literal =>
+              case lit: Name.Literal =>
                 Some(bindings.resolveName(lit.name))
-              case _: IR.Name.SelfType =>
+              case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
             }

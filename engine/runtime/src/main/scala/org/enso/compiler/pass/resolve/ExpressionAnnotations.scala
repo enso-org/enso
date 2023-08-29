@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -65,7 +66,7 @@ case object ExpressionAnnotations extends IRPass {
   ): Expression =
     ir.transformExpressions {
       case app @ IR.Application.Prefix(
-            ann: IR.Name.BuiltinAnnotation,
+            ann: Name.BuiltinAnnotation,
             arguments,
             _,
             _,
@@ -99,7 +100,7 @@ case object ExpressionAnnotations extends IRPass {
             IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
           app.copy(function = err)
         }
-      case ann: IR.Name.BuiltinAnnotation =>
+      case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
           IR.Error.Resolution(
             ann,

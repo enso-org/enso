@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -79,7 +80,7 @@ case object TypeNames extends IRPass {
   }
 
   private def doResolveType[T <: IR](
-    typeParams: List[IR.Name],
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
     ir: T
   ): T = {
@@ -95,19 +96,19 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
-    typeParams: List[IR.Name],
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
     expression: Expression
   ): Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
-      case n: IR.Name.Literal =>
+      case n: Name.Literal =>
         if (typeParams.exists(_.name == n.name)) {
           n
         } else {
           processResolvedName(n, bindingsMap.resolveName(n.name))
         }
-      case n: IR.Name.Qualified =>
+      case n: Name.Qualified =>
         processResolvedName(
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
@@ -117,9 +118,9 @@ case object TypeNames extends IRPass {
     }
 
   private def processResolvedName(
-    name: IR.Name,
+    name: Name,
     resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
-  ): IR.Name =
+  ): Name =
     resolvedName
       .map(res => name.updateMetadata(this -->> Resolution(res)))
       .fold(

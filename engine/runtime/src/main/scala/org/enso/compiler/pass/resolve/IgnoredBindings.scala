@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -202,7 +203,7 @@ case object IgnoredBindings extends IRPass {
   ): IR.DefinitionArgument = {
     arg match {
       case spec @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, _, _, _),
+            Name.Self(_, _, _, _),
             _,
             _,
             _,
@@ -262,11 +263,11 @@ case object IgnoredBindings extends IRPass {
     * @param ir the name to check
     * @return `true` if `ir` represents an ignore, otherwise `false`
     */
-  def isIgnore(ir: IR.Name): Boolean = {
+  def isIgnore(ir: Name): Boolean = {
     ir match {
-      case _: IR.Name.Blank                  => true
-      case IR.Name.Literal(name, _, _, _, _) => name == "_"
-      case _                                 => false
+      case _: Name.Blank                  => true
+      case Name.Literal(name, _, _, _, _) => name == "_"
+      case _                              => false
     }
   }
 

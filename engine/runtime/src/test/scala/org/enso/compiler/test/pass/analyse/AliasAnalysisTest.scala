@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
@@ -867,7 +868,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "not add self to the scope" in {
       lambda.arguments.length shouldEqual 2
-      lambda.arguments(0).name shouldBe a[IR.Name.Self]
+      lambda.arguments(0).name shouldBe a[Name.Self]
       val topScope = graph.rootScope
       val lambdaScope = lambda
         .getMetadata(AliasAnalysis)
@@ -899,7 +900,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "add self as a definition" in {
       lambda.arguments.length shouldEqual 2
-      lambda.arguments(0).name shouldBe a[IR.Name.Self]
+      lambda.arguments(0).name shouldBe a[Name.Self]
       val lambdaScope = lambda
         .getMetadata(AliasAnalysis)
         .get
@@ -1045,7 +1046,7 @@ class AliasAnalysisTest extends CompilerTest {
     val caseBlock = lambda.body.asInstanceOf[Expression.Block]
     val scrutBinding =
       caseBlock.expressions.head.asInstanceOf[Expression.Binding]
-    val scrutBindingExpr = scrutBinding.expression.asInstanceOf[IR.Name.Literal]
+    val scrutBindingExpr = scrutBinding.expression.asInstanceOf[Name.Literal]
     val caseExpr         = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
 
     val graph = methodWithCase
@@ -1164,7 +1165,7 @@ class AliasAnalysisTest extends CompilerTest {
       val aUse = body.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val aUseId =
         aUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 
@@ -1172,7 +1173,7 @@ class AliasAnalysisTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val bUseId =
         bUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 
@@ -1204,7 +1205,7 @@ class AliasAnalysisTest extends CompilerTest {
         .arguments(0)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val numUseId =
         numUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 
@@ -1212,7 +1213,7 @@ class AliasAnalysisTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
       val integerUseId =
         integerUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 

@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -120,11 +120,11 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyFunction(
     fun: IR.Function,
-    funName: IR.Name
+    funName: Name
   ): Expression = {
     val chainedFunctionArgs = collectChainedFunctionArgs(fun, 0)
     val selfArgs = chainedFunctionArgs.collect {
-      case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
+      case (arg, idx) if arg.name.isInstanceOf[Name.Self] =>
         (arg, idx)
     }
 
@@ -180,7 +180,7 @@ case object GenerateMethodBodies extends IRPass {
 
   private def insertOrReplaceSelfInJSFunction(
     lam: IR.Function.Lambda,
-    funName: IR.Name,
+    funName: Name,
     replace: Boolean,
     argsIdx: Int = 0
   ): IR.Function.Lambda = {
@@ -233,7 +233,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyExpression(
     expr: Expression,
-    funName: IR.Name
+    funName: Name
   ): Expression = {
     IR.Function.Lambda(
       arguments =
@@ -250,7 +250,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   def genSyntheticSelf(): IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
-      IR.Name.Self(None, synthetic = true),
+      Name.Self(None, synthetic = true),
       None,
       defaultValue = None,
       suspended    = false,
