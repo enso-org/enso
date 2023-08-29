@@ -170,10 +170,10 @@ provide a truly seamless user experience.
 A polyglot block is introduced as follows:
 
 - The `foreign` keyword starts a block.
-- This must be followed by a language identifier (e.g. `java`).
+- This must be followed by a language identifier (e.g. `python`).
 - After the language identifier, the remaining syntax behaves like it is an Enso
   function definition until the `=`.
-- After the `=`, the user may write their foreign code.
+- After the `=`, the user may write their foreign code as a string.
 
 ```ruby
 foreign python concat a b = """
