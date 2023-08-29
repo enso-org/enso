@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Errors import all
 
@@ -122,3 +123,40 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
 Table.update_database_table : Table -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 Table.update_database_table self target_table (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns target_table) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     common_update_table self target_table update_action key_columns error_on_missing_columns on_problems
+
+## GROUP Standard.Base.Output
+   Removes rows from a database table.
+
+   It returns the count of the rows that have been deleted.
+
+   Arguments:
+   - key_values_to_delete: a table that contains the values of the primary key
+     columns of the rows to delete. The table must have all columns specified as
+     `key_columns`. Any other columns are ignored.
+   - key_columns: the names of the columns that are used to correlate rows from
+     `key_values_to_delete` with rows in the target table.
+
+   > Example
+
+   ! Error Conditions
+
+     - If the provided primary key columns are not present in the source or
+       target table, `Missing_Input_Columns` error is raised.
+     - An `SQL_Error` may be reported if there is a failure on the database
+       side.
+     - TODO shall we check for duplicates by key?
+
+     If an error has been raised, the table is not modified (that may not always
+     apply to `SQL_Error`).
+
+   ? Dry Run if Output disabled
+
+     If performing output actions is disabled, only a dry run is performed and
+     no permanent changes occur. The operation checks for errors like missing
+     columns, and returns the count of rows that would have been deleted by this
+     operation, with a `Dry_Run_Operation` warning attached.
+@key_columns Widget_Helpers.make_column_name_vector_selector
+Table.delete_rows : Table -> Vector Text | Nothing -> Integer ! Missing_Input_Columns | SQL_Error
+Table.delete_rows self (key_values_to_delete : Table | In_Memory_Table) (key_columns : Vector Text = default_key_columns_required self) =
+    check_target_table_for_update self <|
+        Error.throw "TODO"

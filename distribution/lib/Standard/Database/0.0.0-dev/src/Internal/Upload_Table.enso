@@ -468,6 +468,15 @@ default_key_columns (table : Database_Table | In_Memory_Table) =
         table.get_primary_key
 
 ## PRIVATE
+   A variant of `default_key_columns` that will raise an error if no key columns
+   were found.
+default_key_columns_required table =
+    key_columns = default_key_columns table
+    ok = key_columns.is_nothing.not && key_columns.not_empty
+    if ok then key_columns else
+        Error.throw (Illegal_Argument.Error "No primary key found to serve as a default value for `key_columns`. Please set the argument explicitly.")
+
+## PRIVATE
 dry_run_row_limit = 1000
 
 ## PRIVATE
