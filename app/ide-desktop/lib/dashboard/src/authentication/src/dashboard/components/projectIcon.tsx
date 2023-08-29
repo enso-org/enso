@@ -81,22 +81,32 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-            if (typeof stateOrUpdater === 'function') {
-                setItem(oldItem => ({
+            setItem(oldItem => {
+                let newState: backendModule.ProjectState
+                if (typeof stateOrUpdater === 'function') {
+                    newState = stateOrUpdater(oldItem.projectState.type)
+                } else {
+                    newState = stateOrUpdater
+                }
+                let newProjectState: backendModule.ProjectStateType = {
+                    ...oldItem.projectState,
+                    type: newState,
+                }
+                if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+                    const { opened_by, ...newProjectState2 } = newProjectState
+                    newProjectState = newProjectState2
+                } else if (organization != null) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    newProjectState = { ...newProjectState, opened_by: organization.email }
+                }
+                return {
                     ...oldItem,
-                    projectState: {
-                        ...oldItem.projectState,
-                        type: stateOrUpdater(oldItem.projectState.type),
-                    },
-                }))
-            } else {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    projectState: { ...oldItem.projectState, type: stateOrUpdater },
-                }))
-            }
+                    projectState: newProjectState,
+                }
+            })
         },
-        [/* should never change */ setItem]
+        [organization, /* should never change */ setItem]
     )
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -107,9 +117,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
+    const [closeProjectAbortController, setCloseProjectAbortController] =
+        React.useState<AbortController | null>(null)
     const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
+        closeProjectAbortController?.abort()
+        setCloseProjectAbortController(null)
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
@@ -157,6 +171,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         state,
         backend,
         item,
+        closeProjectAbortController,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
         /* should never change */ setItem,
@@ -273,10 +288,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setOnSpinnerStateChange(null)
         openProjectAbortController?.abort()
         setOpenProjectAbortController(null)
-        if (
-            state !== backendModule.ProjectState.closing &&
-            state !== backendModule.ProjectState.closed
-        ) {
+        const abortController = new AbortController()
+        setCloseProjectAbortController(abortController)
+        if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
@@ -292,7 +306,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     // Ignored. The project is already closed.
                 }
             } finally {
-                setState(backendModule.ProjectState.closed)
+                if (!abortController.signal.aborted) {
+                    setState(backendModule.ProjectState.closed)
+                }
             }
         }
     }
