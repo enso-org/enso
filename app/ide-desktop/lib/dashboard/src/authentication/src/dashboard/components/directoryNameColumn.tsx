@@ -160,6 +160,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     className={`h-4 w-4 m-1 ${
                         shouldAnimate ? 'transition-transform duration-300' : ''
                     } ${item.children != null ? '' : '-rotate-90'}`}
+                    onClick={event => {
+                        event.stopPropagation()
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                    }}
                 />
             ) : (
                 <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
