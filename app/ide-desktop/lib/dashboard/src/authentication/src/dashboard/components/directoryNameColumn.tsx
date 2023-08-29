@@ -157,7 +157,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             {isHovered ? (
                 <SvgMask
                     src={TriangleDownIcon}
-                    className={`h-4 w-4 m-1 ${
+                    className={`cursor-pointer h-4 w-4 m-1 ${
                         shouldAnimate ? 'transition-transform duration-300' : ''
                     } ${item.children != null ? '' : '-rotate-90'}`}
                     onClick={event => {
