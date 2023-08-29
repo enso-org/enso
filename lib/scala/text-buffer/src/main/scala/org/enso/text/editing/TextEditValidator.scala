@@ -64,19 +64,35 @@ object TextEditValidator {
   ): Either[TextEditValidationFailure, Unit] = {
     val lineCount = TextEditor[A].getLineCount(buffer)
     if (position.line >= lineCount) {
+      var extraInfo = ""
+      val lastLine  = TextEditor[A].getLine(buffer, lineCount - 1)
+      if (lineCount > 0) {
+        extraInfo = s", last line '$lastLine`"
+      }
+      if (lastLine.endsWith(System.lineSeparator())) {
+        extraInfo += ", ends with newline"
+      }
       Left(
         InvalidPosition(
           position,
-          reason + s" line (${position.line}) outside of buffer's line count (${lineCount})"
+          reason + s" line (${position.line}) outside of buffer's line count ($lineCount$extraInfo)"
         )
       )
     } else {
       val line = TextEditor[A].getLine(buffer, position.line)
       if (position.character > line.length) {
+        var extraInfo = ""
+        val lastLine  = TextEditor[A].getLine(buffer, lineCount - 1)
+        if (lineCount > 0) {
+          extraInfo = s", last line '$lastLine`"
+        }
+        if (lastLine.endsWith(System.lineSeparator())) {
+          extraInfo += ", ends with newline"
+        }
         Left(
           InvalidPosition(
             position,
-            s" character (${position.character}) is outside of line's length (${line.length})"
+            s" character (${position.character}) is outside of line's length (${line.length}$extraInfo)"
           )
         )
       } else {

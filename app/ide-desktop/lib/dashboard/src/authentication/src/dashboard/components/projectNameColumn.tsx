@@ -41,7 +41,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         rowState,
         setRowState,
         state: {
-            appRunner,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -91,6 +90,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
@@ -214,7 +214,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
             onClick={event => {
@@ -250,11 +250,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     setItem={setAsset}
                     assetEvents={assetEvents}
                     doOpenManually={doOpenManually}
-                    appRunner={appRunner}
                     openIde={switchPage => {
-                        doOpenIde(asset, switchPage)
+                        doOpenIde(asset, setAsset, switchPage)
                     }}
-                    onClose={doCloseIde}
+                    onClose={() => {
+                        doCloseIde(asset)
+                    }}
                 />
             )}
             <EditableSpan
@@ -286,7 +287,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow px-2 ${
+                className={`bg-transparent grow leading-170 h-6 px-2 py-px ${
                     rowState.isEditingName
                         ? 'cursor-text'
                         : canExecute && !isOtherUserUsingProject

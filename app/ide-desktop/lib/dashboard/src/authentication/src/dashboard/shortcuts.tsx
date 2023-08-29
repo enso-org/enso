@@ -7,6 +7,7 @@ import AddNetworkIcon from 'enso-assets/add_network.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
 import CameraIcon from 'enso-assets/camera.svg'
 import ChangePasswordIcon from 'enso-assets/change_password.svg'
+import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
 import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
@@ -47,6 +48,7 @@ export enum MouseAction {
 /** All possible keyboard actions for which shortcuts can be registered. */
 export enum KeyboardAction {
     open = 'open',
+    close = 'close',
     uploadToCloud = 'upload-to-cloud',
     rename = 'rename',
     snapshot = 'snapshot',
@@ -144,6 +146,7 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
     return {
         [KeyboardAction.open]: make(),
+        [KeyboardAction.close]: make(),
         [KeyboardAction.uploadToCloud]: make(),
         [KeyboardAction.rename]: make(),
         [KeyboardAction.snapshot]: make(),
@@ -209,7 +212,7 @@ export function getModifierKeysOfShortcut(event: KeyboardShortcut | MouseShortcu
 // === modifiersMatchEvent ===
 // ===========================
 
-/** Return `true` if and only if the modifiers match the event's modifier key states. */
+/** Whether the modifiers match the event's modifier key states. */
 function modifiersMatchEvent(
     modifiers: Modifiers,
     event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent
@@ -409,6 +412,7 @@ const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.close]: [],
     [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
@@ -436,6 +440,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
+    [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
     [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
     [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
     [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },

@@ -23,6 +23,7 @@ export enum AssetEventType {
     uploadFiles = 'upload-files',
     newSecret = 'new-secret',
     openProject = 'open-project',
+    closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
     downloadSelected = 'download-selected',
@@ -41,6 +42,7 @@ interface AssetEvents {
     uploadFiles: AssetUploadFilesEvent
     newSecret: AssetNewSecretEvent
     openProject: AssetOpenProjectEvent
+    closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
@@ -84,6 +86,11 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
     id: backendModule.ProjectId
     shouldAutomaticallySwitchPage: boolean
+}
+
+/** A signal to close the specified project. */
+export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
+    id: backendModule.ProjectId
 }
 
 /** A signal to cancel automatically opening any project that is currently opening. */

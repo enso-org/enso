@@ -29,6 +29,7 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
     showDelete?: boolean
+    /** When true, the button is not clickable. */
     disabled?: boolean
     /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
     typeSelectorYOffsetPx?: number
