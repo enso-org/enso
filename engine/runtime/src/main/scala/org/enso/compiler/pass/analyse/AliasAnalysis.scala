@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Literal, Module}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -426,13 +426,13 @@ case object AliasAnalysis extends IRPass {
     value match {
       case member @ IR.Type.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
-          case _: IR.Literal => parentScope
-          case _             => parentScope.addChild()
+          case _: Literal => parentScope
+          case _          => parentScope.addChild()
         }
 
         val valueScope = value match {
-          case _: IR.Literal => parentScope
-          case _             => parentScope.addChild()
+          case _: Literal => parentScope
+          case _          => parentScope.addChild()
         }
 
         val labelId = graph.nextId()
@@ -596,8 +596,8 @@ case object AliasAnalysis extends IRPass {
   ): List[IR.CallArgument] = {
     args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
-        case _: IR.Literal => parentScope
-        case _             => parentScope.addChild()
+        case _: Literal => parentScope
+        case _          => parentScope.addChild()
       }
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))

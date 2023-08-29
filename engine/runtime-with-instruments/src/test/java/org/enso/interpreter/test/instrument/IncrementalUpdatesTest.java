@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
-import org.enso.compiler.core.IR$Literal$Number;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
@@ -67,9 +67,9 @@ public class IncrementalUpdatesTest {
     sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
-    var numbers = m.getIr().preorder().filter((v1) -> v1 instanceof IR$Literal$Number);
+    var numbers = m.getIr().preorder().filter((v1) -> v1 instanceof Literal.Number);
     assertEquals("One number found: " + numbers, 1, numbers.size());
-    if (numbers.head() instanceof IR$Literal$Number n) {
+    if (numbers.head() instanceof Literal.Number n) {
       assertEquals("updated to 5", "5", n.value());
     }
   }

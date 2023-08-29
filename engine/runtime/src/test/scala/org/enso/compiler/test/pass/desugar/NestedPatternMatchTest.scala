@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -250,7 +251,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consBranchBody.branches.head.pattern
         .asInstanceOf[Pattern.Literal]
         .literal
-        .asInstanceOf[IR.Literal.Number]
+        .asInstanceOf[Literal.Number]
         .numericValue shouldEqual 1
       NestedPatternMatch.containsNestedPatterns(
         consBranchBody.branches.head.pattern

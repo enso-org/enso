@@ -4,7 +4,13 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, IdentifiedLocation, Module}
+import org.enso.compiler.core.ir.{
+  Empty,
+  Expression,
+  IdentifiedLocation,
+  Literal,
+  Module
+}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name.Special
@@ -410,7 +416,7 @@ class IrToTruffle(
             val fullMethodName = methodDef.body
               .asInstanceOf[IR.Function.Lambda]
               .body
-              .asInstanceOf[IR.Literal.Text]
+              .asInstanceOf[Literal.Text]
 
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
@@ -947,7 +953,7 @@ class IrToTruffle(
     ): RuntimeExpression = {
       val runtimeExpression = ir match {
         case block: Expression.Block => processBlock(block)
-        case literal: IR.Literal     => processLiteral(literal)
+        case literal: Literal        => processLiteral(literal)
         case app: IR.Application =>
           processApplication(app, subjectToInstrumentation)
         case name: IR.Name               => processName(name)
@@ -1292,7 +1298,7 @@ class IrToTruffle(
           )
 
           literalPattern.literal match {
-            case num: IR.Literal.Number =>
+            case num: Literal.Number =>
               num.numericValue match {
                 case doubleVal: Double =>
                   Right(
@@ -1323,7 +1329,7 @@ class IrToTruffle(
                     "Invalid literal numeric value"
                   )
               }
-            case text: IR.Literal.Text =>
+            case text: Literal.Text =>
               Right(
                 StringLiteralBranchNode.build(
                   text.text,
@@ -1647,16 +1653,16 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `literal`
       */
     @throws[CompilerError]
-    def processLiteral(literal: IR.Literal): RuntimeExpression =
+    def processLiteral(literal: Literal): RuntimeExpression =
       literal match {
-        case lit @ IR.Literal.Number(_, _, location, _, _) =>
+        case lit @ Literal.Number(_, _, location, _, _) =>
           val node = lit.numericValue match {
             case l: Long       => LiteralNode.build(l)
             case d: Double     => LiteralNode.build(d)
             case b: BigInteger => LiteralNode.build(b)
           }
           setLocation(node, location)
-        case IR.Literal.Text(text, location, _, _) =>
+        case Literal.Text(text, location, _, _) =>
           setLocation(LiteralNode.build(text), location)
       }
 
@@ -2013,10 +2019,10 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
           val shouldCreateClosureRootNode = value match {
-            case _: IR.Name           => false
-            case _: IR.Literal.Text   => false
-            case _: IR.Literal.Number => false
-            case _                    => true
+            case _: IR.Name        => false
+            case _: Literal.Text   => false
+            case _: Literal.Number => false
+            case _                 => true
           }
 
           val childScope = if (shouldCreateClosureRootNode) {

@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -321,7 +322,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       fun1.arguments(0).name shouldEqual vec.items(1)
       fun2.arguments(0).name shouldEqual vec.items(3)
-      vec.items(0) shouldBe an[IR.Literal.Number]
+      vec.items(0) shouldBe an[Literal.Number]
       vec.items(2) shouldBe an[IR.Application.Prefix]
     }
   }

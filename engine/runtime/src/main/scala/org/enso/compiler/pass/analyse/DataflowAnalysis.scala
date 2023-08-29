@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Empty, Expression, Module}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module}
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -220,7 +220,7 @@ case object DataflowAnalysis extends IRPass {
       case typ: IR.Type          => analyseType(typ, info)
       case name: IR.Name         => analyseName(name, info)
       case cse: IR.Case          => analyseCase(cse, info)
-      case literal: IR.Literal =>
+      case literal: Literal =>
         literal.updateMetadata(this -->> info)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> info)

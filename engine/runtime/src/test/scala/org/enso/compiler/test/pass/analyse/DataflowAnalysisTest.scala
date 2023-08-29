@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.data.CompilerConfig
@@ -1001,7 +1002,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val appFn = app.function.asInstanceOf[IR.Error.Resolution]
       val appArg10 =
         app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-      val appArg10Expr = appArg10.value.asInstanceOf[IR.Literal.Number]
+      val appArg10Expr = appArg10.value.asInstanceOf[Literal.Number]
       val appArg10Name = appArg10.name.get.asInstanceOf[IR.Name.Literal]
       val appArgFn =
         app.arguments(1).asInstanceOf[IR.CallArgument.Specified]
@@ -1119,7 +1120,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val block     = ir.asInstanceOf[Expression.Block]
       val xBind     = block.expressions.head.asInstanceOf[Expression.Binding]
       val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
-      val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
+      val xBindExpr = xBind.expression.asInstanceOf[Literal.Number]
 
       // The IDs
       val blockId     = mkStaticDep(block.getId)
@@ -1156,7 +1157,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
-      val bindingExpr = binding.expression.asInstanceOf[IR.Literal.Number]
+      val bindingExpr = binding.expression.asInstanceOf[Literal.Number]
 
       // The IDs
       val bindingId     = mkStaticDep(binding.getId)
@@ -1196,7 +1197,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val plusFn      = bindingExpr.function.asInstanceOf[IR.Name.Literal]
       val numArg =
         bindingExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-      val numArgExpr = numArg.value.asInstanceOf[IR.Literal.Number]
+      val numArgExpr = numArg.value.asInstanceOf[Literal.Number]
       val undefinedArg =
         bindingExpr
           .arguments(1)
@@ -1456,7 +1457,7 @@ class DataflowAnalysisTest extends CompilerTest {
       implicit val inlineContext: InlineContext = mkInlineContext
 
       "10".preprocessExpression.get.analyse
-        .asInstanceOf[IR.Literal]
+        .asInstanceOf[Literal]
         .hasDependencyInfo
     }
   }
@@ -1547,7 +1548,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val fooArg1     = fooExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val fooArg1Expr = fooArg1.value.asInstanceOf[IR.Name]
     val fooArg2     = fooExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
-    val fooArg2Expr = fooArg2.value.asInstanceOf[IR.Literal.Number]
+    val fooArg2Expr = fooArg2.value.asInstanceOf[Literal.Number]
 
     // The global symbols
     val fooSymbol = mkDynamicDep("Foo")

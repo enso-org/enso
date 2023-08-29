@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{
@@ -267,7 +268,7 @@ class TypeSignaturesTest extends CompilerTest {
       val arg2Value = ir.asInstanceOf[IR.Application.Prefix].arguments(1).value
       arg2Value shouldBe an[IR.Application.Prefix]
       val snd = arg2Value.asInstanceOf[IR.Application.Prefix]
-      snd.arguments(0).value shouldBe an[IR.Literal.Number]
+      snd.arguments(0).value shouldBe an[Literal.Number]
     }
   }
 }

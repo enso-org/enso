@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Empty, Expression, Module}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
@@ -160,7 +160,7 @@ case object TailCall extends IRPass {
       case name: IR.Name       => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
-      case literal: IR.Literal => analyseLiteral(literal, isInTailPosition)
+      case literal: Literal => analyseLiteral(literal, isInTailPosition)
       case _: IR.Comment =>
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
@@ -212,9 +212,9 @@ case object TailCall extends IRPass {
     * @return `literal`, annotated with tail position metdata
     */
   def analyseLiteral(
-    literal: IR.Literal,
+    literal: Literal,
     isInTailPosition: Boolean
-  ): IR.Literal = {
+  ): Literal = {
     literal.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
   }
 

@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
@@ -90,7 +91,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     }
 
     "associate the annotation with the annotated definition" in {
-      val builtinDef = items.expressions(2).asInstanceOf[IR.Literal.Text]
+      val builtinDef = items.expressions(2).asInstanceOf[Literal.Text]
       builtinDef.text shouldEqual "myBuiltin"
       builtinDef
         .unsafeGetMetadata(ExpressionAnnotations, "")

@@ -905,7 +905,7 @@ final class TreeToIr {
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
         switch (translateExpression(un.getRhs(), false)) {
-          case IR$Literal$Number n -> n.copy(
+          case Literal.Number n -> n.copy(
             n.copy$default$1(),
             "-" + n.copy$default$2(),
             n.copy$default$3(),
@@ -1171,10 +1171,10 @@ final class TreeToIr {
     };
     var fracPart = ast.getFractionalDigits();
     String literal = fracPart != null ? intPart.codeRepr() + "." + fracPart.getDigits().codeRepr() : intPart.codeRepr();
-    return new IR$Literal$Number(base, literal, getIdentifiedLocation(ast), meta(), diag());
+    return new Literal.Number(base, literal, getIdentifiedLocation(ast), meta(), diag());
   }
 
-  IR.Literal translateLiteral(Tree.TextLiteral txt) throws SyntaxException {
+  Literal translateLiteral(Tree.TextLiteral txt) throws SyntaxException {
     if (txt.getClose() == null) {
       if (txt.getOpen() == null || switch (txt.getOpen().codeRepr()) {
         case "'''" -> false;
@@ -1186,7 +1186,7 @@ final class TreeToIr {
     }
     // Splices are not yet supported in the IR.
     var value = buildTextConstant(txt, txt.getElements());
-    return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
+    return new Literal.Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
 
   private String buildTextConstant(Tree at, Iterable<TextElement> elements) throws SyntaxException {
@@ -1325,9 +1325,9 @@ final class TreeToIr {
       case Tree.TextLiteral lit ->
         new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       case Tree.Number num ->
-        new IR$Pattern$Literal((IR.Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
+        new IR$Pattern$Literal((Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
       case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
-        var n = (IR$Literal$Number) translateExpression(num.getRhs());
+        var n = (Literal.Number) translateExpression(num.getRhs());
         var t = n.copy(
           n.copy$default$1(),
           "-" + n.copy$default$2(),

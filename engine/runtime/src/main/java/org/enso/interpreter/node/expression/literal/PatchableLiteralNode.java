@@ -7,8 +7,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Predicate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.IR$Literal$Number;
-import org.enso.compiler.core.IR$Literal$Text;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -69,8 +68,8 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
 
   private static Object parseLiteralIr(Expression ir) {
     return switch (ir) {
-      case IR$Literal$Text t -> Text.create(t.text());
-      case IR$Literal$Number n -> n.numericValue();
+      case Literal.Text t -> Text.create(t.text());
+      case Literal.Number n -> n.numericValue();
       default -> null;
     };
   }

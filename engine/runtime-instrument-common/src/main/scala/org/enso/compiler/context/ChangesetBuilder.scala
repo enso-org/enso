@@ -4,6 +4,7 @@ import com.oracle.truffle.api.source.Source
 import java.util.UUID
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
@@ -81,7 +82,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           ir.preorder.filter(_.getExternalId == directlyAffectedId)
         val oldIr = literals.head
 
-        def newIR(edit: PendingEdit): Option[IR.Literal] = {
+        def newIR(edit: PendingEdit): Option[Literal] = {
           val value = edit match {
             case pending: PendingEdit.SetExpressionValue => pending.value
             case other: PendingEdit.ApplyEdit            => other.edit.text
@@ -92,16 +93,16 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             compiler
               .generateIRInline(compiler.parse(source.getCharacters()))
               .flatMap(_ match {
-                case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
-                case _              => None
+                case ir: Literal => Some(ir.setLocation(oldIr.location))
+                case _           => None
               })
           }.get
         }
 
         oldIr match {
-          case node: IR.Literal.Number =>
+          case node: Literal.Number =>
             newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
-          case node: IR.Literal.Text =>
+          case node: Literal.Text =>
             newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
           case _ => None
         }

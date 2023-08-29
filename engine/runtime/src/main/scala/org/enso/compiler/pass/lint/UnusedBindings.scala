@@ -2,7 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Literal, Module}
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -136,7 +136,7 @@ case object UnusedBindings extends IRPass {
         val lintedBody =
           if (isBuiltin)
             body match {
-              case _: IR.Literal.Text =>
+              case _: Literal.Text =>
                 body1
               case _ =>
                 body1.addDiagnostic(

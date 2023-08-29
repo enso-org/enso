@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation}
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
@@ -712,9 +712,9 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): Option[String] =
     expr match {
-      case IR.Literal.Number(_, value, _, _, _) => Some(value)
-      case IR.Literal.Text(text, _, _, _)       => Some(text)
-      case _                                    => None
+      case Literal.Number(_, value, _, _, _) => Some(value)
+      case Literal.Text(text, _, _, _)       => Some(text)
+      case _                                 => None
     }
 
   /** Build scope from the location. */

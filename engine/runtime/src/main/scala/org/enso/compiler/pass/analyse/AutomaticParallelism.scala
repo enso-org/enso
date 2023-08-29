@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Literal, Module}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
@@ -493,7 +493,7 @@ object AutomaticParallelism extends IRPass {
         }
       case bind: Expression.Binding => getParallelismStatus(bind.expression)
       case _: IR.Name               => Pure
-      case _: IR.Literal            => Pure
+      case _: Literal               => Pure
       case _: IR.Function.Lambda    => Pure
       case _                        => Pinned
     }
