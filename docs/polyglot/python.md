@@ -25,7 +25,7 @@ There is a support for using any Python library from Enso. Steps to include
 `numpy` in a new Enso project follows:
 
 ```bash
-$ enso-engine*/bin/enso new numenso
+$ enso-engine*/bin/enso --new numenso
 $ find numenso/
 numenso/
 numenso/src
