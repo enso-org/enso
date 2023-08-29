@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -15,7 +16,7 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.polyglot.ForeignLanguage
 
-import scala.annotation.{tailrec}
+import scala.annotation.tailrec
 
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
@@ -201,7 +202,7 @@ case object GenerateMethodBodies extends IRPass {
         lam.copy(
           arguments = args.reverse
         )
-      case _: IR.Foreign.Definition =>
+      case _: Foreign.Definition =>
         val args =
           if (argsIdx == 0) genSyntheticSelf() :: lam.arguments
           else lam.arguments
@@ -300,9 +301,9 @@ case object GenerateMethodBodies extends IRPass {
   private def findForeignDefinition(
     body: Expression,
     lang: Option[ForeignLanguage]
-  ): Option[IR.Foreign.Definition] = {
+  ): Option[Foreign.Definition] = {
     body match {
-      case foreignDef: IR.Foreign.Definition =>
+      case foreignDef: Foreign.Definition =>
         lang match {
           case None    => Some(foreignDef)
           case Some(l) => Option.when(l == foreignDef.lang)(foreignDef)

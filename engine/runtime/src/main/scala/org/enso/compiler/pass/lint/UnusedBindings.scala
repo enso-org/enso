@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
@@ -125,7 +126,7 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): IR.Function = {
     function match {
-      case IR.Function.Lambda(_, _: IR.Foreign.Definition, _, _, _, _) =>
+      case IR.Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
         function
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
         val isBuiltin = isBuiltinMethod(body)

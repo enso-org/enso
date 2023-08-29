@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Foreign;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -236,7 +237,7 @@ final class TreeToIr {
           yield cons(error, appendTo);
         }
         var text = buildTextConstant(body, body.getElements());
-        var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
+        var def = new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new org.enso.compiler.core.ir.module.scope.Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
         );
@@ -381,7 +382,7 @@ final class TreeToIr {
           yield cons(error, appendTo);
         }
         var text = buildTextConstant(body, body.getElements());
-        var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
+        var def = new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
       }

@@ -16,7 +16,12 @@ import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name.Special
 import org.enso.compiler.core.IR.{Error, Pattern}
-import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
+import org.enso.compiler.core.ir.expression.{
+  Application,
+  Foreign,
+  Operator,
+  Section
+}
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ResolvedConstructor,
@@ -973,7 +978,7 @@ class IrToTruffle(
             "Comments should not be present during codegen."
           )
         case err: IR.Error => processError(err)
-        case IR.Foreign.Definition(_, _, _, _, _) =>
+        case Foreign.Definition(_, _, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -1754,7 +1759,7 @@ class IrToTruffle(
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
-          case IR.Foreign.Definition(lang, code, _, _, _) =>
+          case Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
               ForeignLanguage.getBySyntacticTag(lang),
               code,

@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.OverloadsResolution
@@ -112,9 +112,9 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
-      case lit: Literal        => lit
-      case err: IR.Error       => err
-      case foreign: IR.Foreign => foreign
+      case lit: Literal     => lit
+      case err: IR.Error    => err
+      case foreign: Foreign => foreign
       case comment: IR.Comment =>
         comment.mapExpressions(x =>
           analyseExpression(

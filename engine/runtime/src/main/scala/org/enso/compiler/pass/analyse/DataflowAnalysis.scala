@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
@@ -223,7 +223,7 @@ case object DataflowAnalysis extends IRPass {
       case cse: IR.Case          => analyseCase(cse, info)
       case literal: Literal =>
         literal.updateMetadata(this -->> info)
-      case foreign: IR.Foreign =>
+      case foreign: Foreign =>
         foreign.updateMetadata(this -->> info)
 
       case block @ Expression.Block(expressions, returnValue, _, _, _, _) =>

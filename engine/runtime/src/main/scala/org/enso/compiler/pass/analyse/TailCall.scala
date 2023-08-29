@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
@@ -159,7 +159,7 @@ case object TailCall extends IRPass {
       case typ: IR.Type      => analyseType(typ, isInTailPosition)
       case app: Application  => analyseApplication(app, isInTailPosition)
       case name: Name        => analyseName(name, isInTailPosition)
-      case foreign: IR.Foreign =>
+      case foreign: Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: Literal => analyseLiteral(literal, isInTailPosition)
       case _: IR.Comment =>
