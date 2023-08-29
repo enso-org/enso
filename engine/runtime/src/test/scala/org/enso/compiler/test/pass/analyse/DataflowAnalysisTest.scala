@@ -7,8 +7,8 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.Pattern
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._

@@ -2,8 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name}
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{

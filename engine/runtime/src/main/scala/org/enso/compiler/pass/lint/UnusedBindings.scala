@@ -2,8 +2,8 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
-import org.enso.compiler.core.IR.{Case, Pattern}
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
+import org.enso.compiler.core.IR.Case
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
@@ -241,7 +241,7 @@ case object UnusedBindings extends IRPass {
     * @param pattern the pattern to lint
     * @return `pattern`, with any lints attached
     */
-  def lintPattern(pattern: IR.Pattern): IR.Pattern = {
+  def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
       case n @ Pattern.Name(name, _, _, _) =>
         val isIgnored = name

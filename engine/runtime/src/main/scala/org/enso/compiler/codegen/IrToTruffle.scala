@@ -10,12 +10,13 @@ import org.enso.compiler.core.ir.{
   IdentifiedLocation,
   Literal,
   Module,
-  Name
+  Name,
+  Pattern
 }
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name.Special
-import org.enso.compiler.core.IR.{Error, Pattern}
+import org.enso.compiler.core.IR.Error
 import org.enso.compiler.core.ir.expression.{
   Application,
   Foreign,

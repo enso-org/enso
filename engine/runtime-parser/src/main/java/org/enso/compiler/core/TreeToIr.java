@@ -881,7 +881,7 @@ final class TreeToIr {
           if (branch.getDocumentation() != null) {
             var comment = translateComment(cas, branch.getDocumentation());
             var loc = getIdentifiedLocation(cas);
-            var doc = new IR$Pattern$Documentation(comment.doc(), loc, meta(), diag());
+            var doc = new Pattern.Documentation(comment.doc(), loc, meta(), diag());
             var br= new IR$Case$Branch(
                     doc,
                     new Empty(Option.empty(), meta(), diag()),
@@ -1307,29 +1307,29 @@ final class TreeToIr {
     * @param block the case pattern to translate
     * @return
     */
-  IR.Pattern translatePattern(Tree block) throws SyntaxException {
+  Pattern translatePattern(Tree block) throws SyntaxException {
     var pattern = maybeManyParensed(block);
     var elements = unrollApp(pattern);
     var fields = translatePatternFields(elements.subList(1, elements.size()));
     return switch (elements.get(0)) {
       case Tree.Ident id when id.getToken().isTypeOrConstructor() || !fields.isEmpty() -> {
-        yield new IR$Pattern$Constructor(
+        yield new Pattern.Constructor(
                 sanitizeName(buildName(id)), fields,
                 getIdentifiedLocation(id), meta(), diag()
         );
       }
-      case Tree.Ident id -> new IR$Pattern$Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
+      case Tree.Ident id -> new Pattern.Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
       case Tree.OprApp app when ".".equals(app.getOpr().getRight().codeRepr()) -> {
         var qualifiedName = buildQualifiedName(app);
-        yield new IR$Pattern$Constructor(
+        yield new Pattern.Constructor(
           qualifiedName, fields, getIdentifiedLocation(app), meta(), diag()
         );
       }
       case Tree.Wildcard wild -> translateWildcardPattern(wild);
       case Tree.TextLiteral lit ->
-        new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
+        new Pattern.Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       case Tree.Number num ->
-        new IR$Pattern$Literal((Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
+        new Pattern.Literal((Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
       case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
         var n = (Literal.Number) translateExpression(num.getRhs());
         var t = n.copy(
@@ -1340,20 +1340,20 @@ final class TreeToIr {
           n.copy$default$5(),
           n.copy$default$6()
         );
-        yield new IR$Pattern$Literal(t, getIdentifiedLocation(num), meta(), diag());
+        yield new Pattern.Literal(t, getIdentifiedLocation(num), meta(), diag());
       }
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
-        yield new IR$Pattern$Type(expr, type instanceof Name ? (Name) type : null, Option.empty(), meta(), diag());
+        yield new Pattern.Type(expr, type instanceof Name ? (Name) type : null, Option.empty(), meta(), diag());
       }
       case Tree.Group group -> translatePattern(group.getBody());
       default -> throw translateEntity(pattern, "translatePattern");
     };
   }
 
-  private List<IR.Pattern> translatePatternFields(java.util.List<Tree> tail) throws SyntaxException {
-    List<IR.Pattern> args = nil();
+  private List<Pattern> translatePatternFields(java.util.List<Tree> tail) throws SyntaxException {
+    List<Pattern> args = nil();
     for (var t : tail) {
       var p = translatePattern(t);
       args = cons(p, args);
@@ -1362,10 +1362,10 @@ final class TreeToIr {
     return fields;
   }
 
-  private IR$Pattern$Name translateWildcardPattern(Tree.Wildcard wild) {
+  private Pattern.Name translateWildcardPattern(Tree.Wildcard wild) {
       var at = getIdentifiedLocation(wild);
       var blank = new Name.Blank(at, meta(), diag());
-      return new IR$Pattern$Name(blank, at, meta(), diag());
+      return new Pattern.Name(blank, at, meta(), diag());
   }
 
   private Name.Qualified buildQualifiedName(Tree t) throws SyntaxException {

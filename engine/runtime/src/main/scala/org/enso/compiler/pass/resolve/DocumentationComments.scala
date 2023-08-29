@@ -2,8 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -116,7 +115,7 @@ case object DocumentationComments extends IRPass {
   private def resolveBranches(items: Seq[Branch]): Seq[Branch] = {
     var lastDoc: Option[String] = None
     items.flatMap {
-      case Branch(IR.Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
+      case Branch(Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
         lastDoc = Some(doc)
         None
       case branch @ Branch(pattern, expression, _, _, _, _) =>
@@ -216,7 +215,7 @@ case object DocumentationComments extends IRPass {
       case exp: Export.Module         => exp
       case arg: IR.CallArgument       => arg
       case arg: IR.DefinitionArgument => arg
-      case pat: IR.Pattern            => pat
+      case pat: Pattern               => pat
     }
 
   // === Metadata =============================================================

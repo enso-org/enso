@@ -3,11 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.Literal
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
 import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -159,7 +155,7 @@ class NestedPatternMatchTest extends CompilerTest {
       ir.isNested shouldBe false
 
       consANilBranch.expression shouldBe an[Expression.Block]
-      consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      consANilBranch.pattern shouldBe an[Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consANilBranch.pattern) shouldEqual false
       consANilBranch.terminalBranch shouldBe false
@@ -187,7 +183,7 @@ class NestedPatternMatchTest extends CompilerTest {
 
     "desugar deeply nested patterns to simple patterns" in {
       consConsNilBranch.expression shouldBe an[Expression.Block]
-      consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      consConsNilBranch.pattern shouldBe an[Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsNilBranch.pattern) shouldEqual false
       consConsNilBranch.terminalBranch shouldBe false
@@ -223,7 +219,7 @@ class NestedPatternMatchTest extends CompilerTest {
 
     "desugar deeply nested patterns with literals to simple patterns" in {
       consConsOneNilBranch.expression shouldBe an[Expression.Block]
-      consConsOneNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      consConsOneNilBranch.pattern shouldBe an[Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsOneNilBranch.pattern) shouldEqual false
       consConsOneNilBranch.terminalBranch shouldBe false
@@ -263,7 +259,7 @@ class NestedPatternMatchTest extends CompilerTest {
 
     "desugar deeply nested patterns with type pattern to simple patterns" in {
       consConsIntegerNilBranch.expression shouldBe an[Expression.Block]
-      consConsIntegerNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      consConsIntegerNilBranch.pattern shouldBe an[Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(
           consConsIntegerNilBranch.pattern

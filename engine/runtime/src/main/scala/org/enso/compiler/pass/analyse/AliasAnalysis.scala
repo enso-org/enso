@@ -2,10 +2,9 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
 import org.enso.compiler.pass.IRPass
@@ -739,10 +738,10 @@ case object AliasAnalysis extends IRPass {
     * @return `pattern`, possibly with alias analysis information attached
     */
   def analysePattern(
-    pattern: IR.Pattern,
+    pattern: Pattern,
     graph: Graph,
     parentScope: Scope
-  ): IR.Pattern = {
+  ): Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
         named.copy(

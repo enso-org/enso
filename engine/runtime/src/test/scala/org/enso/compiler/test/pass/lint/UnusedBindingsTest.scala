@@ -3,10 +3,8 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.{Expression, Module, Pattern}
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings

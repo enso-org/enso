@@ -2,8 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -85,7 +84,7 @@ object Patterns extends IRPass {
     expr.transformExpressions { case caseExpr: IR.Case.Expr =>
       val newBranches = caseExpr.branches.map { branch =>
         val resolvedPattern = branch.pattern match {
-          case consPat: IR.Pattern.Constructor =>
+          case consPat: Pattern.Constructor =>
             val consName = consPat.constructor
             val resolution = consName match {
               case qual: Name.Qualified =>
@@ -178,7 +177,7 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
-          case tpePattern @ IR.Pattern.Type(_, tpeName, _, _, _) =>
+          case tpePattern @ Pattern.Type(_, tpeName, _, _, _) =>
             val resolution = tpeName match {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)

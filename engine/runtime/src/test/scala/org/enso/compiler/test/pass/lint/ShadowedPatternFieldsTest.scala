@@ -3,9 +3,8 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.IR.{Pattern, Warning}
+import org.enso.compiler.core.ir.{Expression, Name, Pattern}
+import org.enso.compiler.core.IR.Warning
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest

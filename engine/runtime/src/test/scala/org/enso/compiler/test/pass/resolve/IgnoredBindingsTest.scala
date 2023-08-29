@@ -3,9 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{Expression, Name, Pattern}
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}

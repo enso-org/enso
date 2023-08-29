@@ -2,8 +2,12 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Pattern
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{

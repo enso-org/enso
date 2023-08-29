@@ -3,11 +3,8 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis

@@ -2,9 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.IR.{Case, Pattern}
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.IR.Case
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -314,9 +313,9 @@ case object IgnoredBindings extends IRPass {
     * @return `pattern`, with any ignored bindings resolved
     */
   def resolvePattern(
-    pattern: IR.Pattern,
+    pattern: Pattern,
     supply: FreshNameSupply
-  ): IR.Pattern = {
+  ): Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
         if (isIgnore(name)) {

@@ -3,8 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.{Expression, Module, Pattern}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -82,15 +81,15 @@ class PatternsTest extends CompilerTest {
         .branches
         .map(_.pattern)
       patterns(0)
-        .asInstanceOf[IR.Pattern.Constructor]
+        .asInstanceOf[Pattern.Constructor]
         .constructor
         .getMetadata(Patterns) shouldBe defined
       patterns(1) shouldBe a[IR.Error.Pattern]
       patterns(2)
-        .asInstanceOf[IR.Pattern.Constructor]
+        .asInstanceOf[Pattern.Constructor]
         .constructor shouldBe a[IR.Error.Resolution]
       patterns(3)
-        .asInstanceOf[IR.Pattern.Type]
+        .asInstanceOf[Pattern.Type]
         .tpe
         .getMetadata(Patterns) shouldBe defined
     }
