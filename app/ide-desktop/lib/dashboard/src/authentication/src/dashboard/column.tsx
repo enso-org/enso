@@ -165,9 +165,9 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        filterBy !== backend.FilterBy.trashed && (
-            self?.permission === backend.PermissionAction.own ||
-        self?.permission === backend.PermissionAction.admin)
+        filterBy !== backend.FilterBy.trashed &&
+        (self?.permission === backend.PermissionAction.own ||
+            self?.permission === backend.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
@@ -250,7 +250,7 @@ export const COLUMN_HEADING: Record<
 > = {
     [Column.name]: props => {
         const {
-            state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
+            state: { filterBy, sortColumn, setSortColumn, sortDirection, setSortDirection },
         } = props
         const [isHovered, setIsHovered] = React.useState(false)
         const isSortActive = sortColumn === Column.name && sortDirection != null
@@ -273,16 +273,18 @@ export const COLUMN_HEADING: Record<
                 }}
             >
                 <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.name]}</span>
-                <img
-                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
-                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
-                />
+                {filterBy !== backend.FilterBy.recent && (
+                    <img
+                        src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                    />
+                )}
             </div>
         )
     },
     [Column.modified]: props => {
         const {
-            state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
+            state: { filterBy, sortColumn, setSortColumn, sortDirection, setSortDirection },
         } = props
         const [isHovered, setIsHovered] = React.useState(false)
         const isSortActive = sortColumn === Column.modified && sortDirection != null
@@ -306,10 +308,12 @@ export const COLUMN_HEADING: Record<
             >
                 <SvgMask src={TimeIcon} className="h-4 w-4" />
                 <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
-                <img
-                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
-                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
-                />
+                {filterBy !== backend.FilterBy.recent && (
+                    <img
+                        src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                    />
+                )}
             </div>
         )
     },

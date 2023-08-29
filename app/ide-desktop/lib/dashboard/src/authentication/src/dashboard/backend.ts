@@ -373,6 +373,7 @@ export interface Directory extends DirectoryAsset {}
 export enum FilterBy {
     all = 'All',
     active = 'Active',
+    recent = 'Recent',
     trashed = 'Trashed',
 }
 

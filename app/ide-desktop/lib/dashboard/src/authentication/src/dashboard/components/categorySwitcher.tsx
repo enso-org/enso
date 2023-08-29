@@ -84,13 +84,13 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 </span>
             </div>
             <CategorySwitcherItem
-                disabled
+                active={filterBy === backend.FilterBy.recent}
+                disabled={filterBy === backend.FilterBy.recent}
                 image={RecentIcon}
                 name="Recent"
-                error="Not implemented yet."
                 iconClassName="-ml-0.5"
                 onClick={() => {
-                    // No backend support yet.
+                    setFilterBy(backend.FilterBy.recent)
                 }}
             />
             <CategorySwitcherItem
