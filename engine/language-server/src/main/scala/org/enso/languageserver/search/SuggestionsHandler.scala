@@ -16,7 +16,7 @@ import org.enso.languageserver.data.{
   Config,
   ReceivesSuggestionsDatabaseUpdates
 }
-import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.event.{ClientEvent, InitializedEvent}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileDeletedEvent,
@@ -115,6 +115,9 @@ final class SuggestionsHandler(
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
+
+    context.system.eventStream
+      .subscribe(self, classOf[ClientEvent.ClientDisconnected])
   }
 
   override def receive: Receive =
@@ -313,6 +316,17 @@ final class SuggestionsHandler(
       suggestionsRepo.currentVersion
         .map(GetSuggestionsDatabaseResult(_, Seq()))
         .pipeTo(sender())
+      if (state.shouldStartBackgroundProcessing) {
+        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        context.become(
+          initialized(
+            projectName,
+            graph,
+            clients,
+            state.backgroundProcessingStarted()
+          )
+        )
+      }
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
@@ -434,6 +448,20 @@ final class SuggestionsHandler(
           state.suggestionLoadingComplete()
         )
       )
+
+    case ClientEvent.ClientDisconnected(_) =>
+      val action = for {
+        _ <- suggestionsRepo.clean
+      } yield SearchProtocol.InvalidateModulesIndex
+
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          timeout,
+          runtimeConnector
+        )
+      )
+      action.pipeTo(handler)
   }
 
   /** Transition the initialization process.

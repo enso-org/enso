@@ -3,6 +3,8 @@ package org.enso.interpreter.instrument.command
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.logging.Level
+
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that invalidates the modules index.
@@ -23,13 +25,26 @@ class InvalidateModulesIndexCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    for {
-      _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-    } yield {
+    val logger = ctx.executionService.getLogger
+    val writeCompilationLockTimestamp =
+      ctx.locking.acquireWriteCompilationLock()
+    try {
+      ctx.jobControlPlane.abortAllJobs()
       ctx.executionService.getContext.getTopScope.getModules
         .forEach(_.setIndexed(false))
       reply(Api.InvalidateModulesIndexResponse())
+    } finally {
+      ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [{0}] for {1} milliseconds.",
+        Array(
+          getClass.getSimpleName,
+          System.currentTimeMillis - writeCompilationLockTimestamp
+        )
+      )
     }
+    Future.successful(())
   }
 
 }
