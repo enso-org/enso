@@ -230,7 +230,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
     }, [query])
     const displayItems = React.useMemo(() => {
-        if (sortColumn == null || sortDirection == null) {
+        if (
+            sortColumn == null ||
+            sortDirection == null ||
+            filterBy === backendModule.FilterBy.recent
+        ) {
             return assetTreeNode.assetTreePreorderTraversal(assetTree)
         } else {
             const sortDescendingMultiplier = -1
@@ -262,7 +266,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 Array.from(tree).sort(compare)
             )
         }
-    }, [assetTree, sortColumn, sortDirection])
+    }, [assetTree, filterBy, sortColumn, sortDirection])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
