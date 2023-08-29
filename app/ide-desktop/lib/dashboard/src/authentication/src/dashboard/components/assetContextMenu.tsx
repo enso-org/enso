@@ -237,15 +237,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                <MenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.label}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
-                <ContextMenuSeparator hidden={hidden} />
+                {backend.type !== backendModule.BackendType.local && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.label}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
+                {(managesThisAsset || backend.type !== backendModule.BackendType.local) && (
+                    <ContextMenuSeparator hidden={hidden} />
+                )}
                 <MenuEntry
                     hidden={hidden}
                     disabled
