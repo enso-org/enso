@@ -2,8 +2,11 @@
 @import "react-toastify/dist/ReactToastify.css";
 
 body {
+  overflow: hidden;
+  height: 100vh;
   margin: 0;
-  background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
+  background: url("enso-assets/background.png") 0 0,
+    linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
   background-blend-mode: lighten;
 }
 
@@ -122,24 +125,25 @@ body {
       display: none; /* Safari and Chrome */
     }
 
-    .backface-invisible {
-      backface-visibility: hidden;
+    :where(
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td:not(.rounded-rows-skip-level),
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td.rounded-rows-skip-level
+          > *
+      ) {
+      background-color: rgba(0, 0, 0, 0.03);
     }
 
-    .rounded-rows > tbody > tr:nth-child(odd) {
-      > td {
-        background-color: rgba(0, 0, 0, 0.03);
-      }
-
-      > td.bg-transparent {
-        background-color: transparent;
-      }
-    }
-
-    .rounded-rows > tbody > tr.selected {
-      > td {
-        background-color: rgba(255, 255, 255, 0.4);
-      }
+    :where(
+        .rounded-rows > tbody > tr.selected > td:not(.rounded-rows-skip-level),
+        .rounded-rows > tbody > tr.selected > td.rounded-rows-skip-level > *
+      ) {
+      background-color: rgba(255, 255, 255, 0.4);
     }
 
     .h-templates-custom {

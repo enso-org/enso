@@ -40,6 +40,7 @@ export default function Login() {
     const [email, setEmail] = React.useState(initialEmail ?? '')
     const [password, setPassword] = React.useState('')
     const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const shouldReportValidityRef = React.useRef(true)
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center">
@@ -53,6 +54,9 @@ export default function Login() {
                     Login To Your Account
                 </div>
                 <button
+                    onMouseDown={() => {
+                        shouldReportValidityRef.current = false
+                    }}
                     onClick={async event => {
                         event.preventDefault()
                         await signInWithGoogle()
@@ -63,6 +67,9 @@ export default function Login() {
                     <span>Sign Up or Login with Google</span>
                 </button>
                 <button
+                    onMouseDown={() => {
+                        shouldReportValidityRef.current = false
+                    }}
                     onClick={async event => {
                         event.preventDefault()
                         await signInWithGitHub()
@@ -85,6 +92,7 @@ export default function Login() {
                             event.preventDefault()
                             setIsSubmitting(true)
                             await signInWithPassword(email, password)
+                            shouldReportValidityRef.current = true
                             setIsSubmitting(false)
                         }}
                     >
@@ -108,6 +116,7 @@ export default function Login() {
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
+                                    shouldReportValidityRef={shouldReportValidityRef}
                                 />
                             </div>
                         </div>
@@ -133,6 +142,7 @@ export default function Login() {
                                     error={validation.PASSWORD_ERROR}
                                     value={password}
                                     setValue={setPassword}
+                                    shouldReportValidityRef={shouldReportValidityRef}
                                 />
                             </div>
                         </div>

@@ -48,7 +48,7 @@ case object OperatorToFunction extends IRPass {
         runExpression(
           _,
           new InlineContext(
-            moduleContext.module,
+            moduleContext,
             compilerConfig = moduleContext.compilerConfig
           )
         )

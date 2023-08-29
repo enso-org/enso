@@ -143,10 +143,6 @@ ensogl::define_endpoints! {
         execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
-        /// Push a hardcoded breadcrumb without notifying the controller.
-        debug_push_breadcrumb(),
-        /// Pop a breadcrumb without notifying the controller.
-        debug_pop_breadcrumb(),
         /// Started creation of a new node using the AI searcher.
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
@@ -391,9 +387,6 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
-
-            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
-            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self

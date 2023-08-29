@@ -18,11 +18,20 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     error?: string
     validate?: boolean
     setValue: (value: string) => void
+    shouldReportValidityRef?: React.MutableRefObject<boolean>
 }
 
 /** A component for authentication from inputs, with preset styles. */
 export default function Input(props: InputProps) {
-    const { setValue, error, validate = false, onChange, onBlur, ...passThrough } = props
+    const {
+        setValue,
+        error,
+        validate = false,
+        shouldReportValidityRef,
+        onChange,
+        onBlur,
+        ...passThrough
+    } = props
     const [reportTimeoutHandle, setReportTimeoutHandle] = React.useState<number | null>(null)
     const [hasReportedValidity, setHasReportedValidity] = React.useState(false)
     const [wasJustBlurred, setWasJustBlurred] = React.useState(false)
@@ -39,17 +48,27 @@ export default function Input(props: InputProps) {
                     }
                     const currentTarget = event.currentTarget
                     if (error != null) {
-                        currentTarget.setCustomValidity('')
-                        currentTarget.setCustomValidity(currentTarget.checkValidity() ? '' : error)
+                        currentTarget.setCustomValidity(
+                            currentTarget.checkValidity() ||
+                                shouldReportValidityRef?.current === false
+                                ? ''
+                                : error
+                        )
                     }
                     if (hasReportedValidity) {
-                        if (currentTarget.checkValidity()) {
+                        if (
+                            shouldReportValidityRef?.current === false ||
+                            currentTarget.checkValidity()
+                        ) {
                             setHasReportedValidity(false)
                         }
                     } else {
                         setReportTimeoutHandle(
                             window.setTimeout(() => {
-                                if (!currentTarget.reportValidity()) {
+                                if (
+                                    shouldReportValidityRef?.current !== false &&
+                                    !currentTarget.reportValidity()
+                                ) {
                                     setHasReportedValidity(true)
                                 }
                             }, DEBOUNCE_MS)
@@ -65,9 +84,11 @@ export default function Input(props: InputProps) {
                               setHasReportedValidity(false)
                           } else {
                               const currentTarget = event.currentTarget
-                              setTimeout(() => {
-                                  currentTarget.reportValidity()
-                              }, 0)
+                              if (shouldReportValidityRef?.current !== false) {
+                                  if (!currentTarget.reportValidity()) {
+                                      event.preventDefault()
+                                  }
+                              }
                               setWasJustBlurred(true)
                           }
                       }

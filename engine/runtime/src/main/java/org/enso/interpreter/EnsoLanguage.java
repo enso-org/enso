@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.exception.CompilationAbortedException;
 import org.enso.compiler.exception.UnhandledEntity;
@@ -250,8 +251,15 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           true,
           scala.Option.apply(new PrintStream(outputRedirect))
       );
+      var moduleContext = new ModuleContext(
+        module, redirectConfigWithStrictErrors,
+        scala.Option.empty(),
+        scala.Option.empty(),
+        false,
+        scala.Option.empty()
+      );
       var inlineContext = new InlineContext(
-          module,
+          moduleContext,
           redirectConfigWithStrictErrors,
           scala.Some.apply(localScope),
           scala.Some.apply(false),
