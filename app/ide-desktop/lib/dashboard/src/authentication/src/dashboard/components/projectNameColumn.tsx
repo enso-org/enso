@@ -64,8 +64,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         null
     const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
     const canExecute =
-        ownPermission != null &&
-        backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]
+        backend.type === backendModule.BackendType.local ||
+        (ownPermission != null &&
+            backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
     const isOtherUserUsingProject = asset.projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
