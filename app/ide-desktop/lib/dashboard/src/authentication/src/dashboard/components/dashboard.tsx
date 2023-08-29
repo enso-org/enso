@@ -297,7 +297,11 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const openEditor = React.useCallback(
-        async (newProject: backendModule.ProjectAsset, switchPage: boolean) => {
+        async (
+            newProject: backendModule.ProjectAsset,
+            setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+            switchPage: boolean
+        ) => {
             if (switchPage) {
                 setPage(pageSwitcher.Page.editor)
             }
@@ -305,6 +309,7 @@ export default function Dashboard(props: DashboardProps) {
                 setProjectStartupInfo({
                     project: await backend.getProjectDetails(newProject.id, newProject.title),
                     projectAsset: newProject,
+                    setProjectAsset: setProjectAsset,
                     backendType: backend.type,
                     accessToken: session.accessToken,
                 })
@@ -313,8 +318,10 @@ export default function Dashboard(props: DashboardProps) {
         [backend, projectStartupInfo?.project.projectId, session.accessToken]
     )
 
-    const closeEditor = React.useCallback(() => {
-        setProjectStartupInfo(null)
+    const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+        setProjectStartupInfo(oldInfo =>
+            oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
+        )
     }, [])
 
     return (
@@ -330,6 +337,8 @@ export default function Dashboard(props: DashboardProps) {
             >
                 <TopBar
                     supportsLocalBackend={supportsLocalBackend}
+                    projectAsset={projectStartupInfo?.projectAsset ?? null}
+                    setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
                     page={page}
                     setPage={setPage}
                     asset={null}
@@ -339,6 +348,15 @@ export default function Dashboard(props: DashboardProps) {
                     setBackendType={setBackendType}
                     query={query}
                     setQuery={setQuery}
+                    doRemoveSelf={() => {
+                        if (projectStartupInfo?.projectAsset != null) {
+                            dispatchAssetListEvent({
+                                type: assetListEventModule.AssetListEventType.removeSelf,
+                                id: projectStartupInfo.projectAsset.id,
+                            })
+                            setProjectStartupInfo(null)
+                        }
+                    }}
                     onSignOut={() => {
                         if (page === pageSwitcher.Page.editor) {
                             setPage(pageSwitcher.Page.drive)
@@ -351,16 +369,16 @@ export default function Dashboard(props: DashboardProps) {
                     hidden={page !== pageSwitcher.Page.drive}
                     page={page}
                     initialProjectName={initialProjectName}
+                    query={query}
+                    projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}
                     assetListEvents={assetListEvents}
                     dispatchAssetListEvent={dispatchAssetListEvent}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
-                    query={query}
                     doCreateProject={doCreateProject}
                     doOpenEditor={openEditor}
                     doCloseEditor={closeEditor}
-                    appRunner={appRunner}
                     loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                     isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
@@ -368,7 +386,7 @@ export default function Dashboard(props: DashboardProps) {
                 />
                 <TheModal />
                 <Editor
-                    visible={page === pageSwitcher.Page.editor}
+                    hidden={page !== pageSwitcher.Page.editor}
                     supportsLocalBackend={supportsLocalBackend}
                     projectStartupInfo={projectStartupInfo}
                     appRunner={appRunner}

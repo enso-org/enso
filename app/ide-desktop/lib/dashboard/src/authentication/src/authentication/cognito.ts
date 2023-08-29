@@ -352,7 +352,7 @@ export class Cognito {
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     private customState() {
-        return detect.isRunningInElectron() ? window.location.pathname : null
+        return detect.isOnElectron() ? window.location.pathname : null
     }
 }
 

@@ -104,7 +104,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
                     onTemplateClick(null, newSpinnerState => {
                         setSpinnerState(newSpinnerState)
                         if (newSpinnerState === spinner.SpinnerState.done) {
-                            setTimeout(() => {
+                            window.setTimeout(() => {
                                 setSpinnerState(null)
                             }, SPINNER_DONE_DURATION_MS)
                         }
@@ -155,7 +155,7 @@ function ProjectTile(props: InternalProjectTileProps) {
         (newSpinnerState: spinner.SpinnerState | null) => {
             setSpinnerState(newSpinnerState)
             if (newSpinnerState === spinner.SpinnerState.done) {
-                setTimeout(() => {
+                window.setTimeout(() => {
                     setSpinnerState(null)
                 }, SPINNER_DONE_DURATION_MS)
             }
