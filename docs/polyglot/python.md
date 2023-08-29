@@ -34,8 +34,7 @@ numenso/package.yaml
 $ mkdir numenso/polyglot
 $ graalvm/bin/gu install python
 $ graalvm/bin/graalpy -m venv numenso/polyglot/python
-$ source ./numenso/polyglot/python/bin/activate
-(python) ~$ pip install numpy
+$ ./numenso/polyglot/python/bin/graalpy -m pip install numpy
 Successfully installed numpy-1.23.5
 ```
 
