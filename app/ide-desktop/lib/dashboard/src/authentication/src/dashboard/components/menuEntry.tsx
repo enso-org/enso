@@ -15,6 +15,7 @@ import SvgMask from '../../authentication/components/svgMask'
 export interface MenuEntryProps {
     hidden?: boolean
     action: shortcutsModule.KeyboardAction
+    /** When true, the button is not clickable. */
     disabled?: boolean
     title?: string
     paddingClassName?: string
