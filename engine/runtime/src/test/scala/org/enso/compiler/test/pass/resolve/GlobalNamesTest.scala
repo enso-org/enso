@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
@@ -105,8 +106,8 @@ class GlobalNamesTest extends CompilerTest {
 
     "resolve method names to applications" in {
       val expr = bodyExprs(2)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
+      expr shouldBe an[Application.Prefix]
+      val app = expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
@@ -116,15 +117,15 @@ class GlobalNamesTest extends CompilerTest {
 
     "not resolve uppercase method names to applications with arguments" in {
       val expr = bodyExprs(3)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
+      expr shouldBe an[Application.Prefix]
+      val app = expr.asInstanceOf[Application.Prefix]
       app.function shouldBe an[IR.Error.Resolution]
     }
 
     "resolve method names in applications by adding the self argument" in {
       val expr = bodyExprs(4)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
+      expr shouldBe an[Application.Prefix]
+      val app = expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
@@ -134,8 +135,8 @@ class GlobalNamesTest extends CompilerTest {
 
     "resolve method names in partial applications by adding the self argument" in {
       val expr = bodyExprs(5)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
+      expr shouldBe an[Application.Prefix]
+      val app = expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
@@ -144,7 +145,7 @@ class GlobalNamesTest extends CompilerTest {
     }
 
     "indicate resolution failures" in {
-      val app = bodyExprs(8).asInstanceOf[IR.Application.Prefix]
+      val app = bodyExprs(8).asInstanceOf[Application.Prefix]
       app.function shouldBe an[IR.Error.Resolution]
     }
   }

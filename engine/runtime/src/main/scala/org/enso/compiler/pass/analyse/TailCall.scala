@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
@@ -154,10 +155,10 @@ case object TailCall extends IRPass {
         empty.updateMetadata(this -->> TailPosition.NotTail)
       case function: IR.Function =>
         analyseFunction(function, isInTailPosition)
-      case caseExpr: IR.Case   => analyseCase(caseExpr, isInTailPosition)
-      case typ: IR.Type        => analyseType(typ, isInTailPosition)
-      case app: IR.Application => analyseApplication(app, isInTailPosition)
-      case name: Name          => analyseName(name, isInTailPosition)
+      case caseExpr: IR.Case => analyseCase(caseExpr, isInTailPosition)
+      case typ: IR.Type      => analyseType(typ, isInTailPosition)
+      case app: Application  => analyseApplication(app, isInTailPosition)
+      case name: Name        => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: Literal => analyseLiteral(literal, isInTailPosition)
@@ -226,36 +227,36 @@ case object TailCall extends IRPass {
     * @return `application`, annotated with tail position metadata
     */
   def analyseApplication(
-    application: IR.Application,
+    application: Application,
     isInTailPosition: Boolean
-  ): IR.Application = {
+  ): Application = {
     application match {
-      case app @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+      case app @ Application.Prefix(fn, args, _, _, _, _) =>
         app
           .copy(
             function  = analyseExpression(fn, isInTailPosition = false),
             arguments = args.map(analyseCallArg)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case force @ IR.Application.Force(target, _, _, _) =>
+      case force @ Application.Force(target, _, _, _) =>
         force
           .copy(
             target = analyseExpression(target, isInTailPosition)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      case vector @ Application.Sequence(items, _, _, _) =>
         vector
           .copy(items =
             items.map(analyseExpression(_, isInTailPosition = false))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet
           .copy(expression =
             expr.map(analyseExpression(_, isInTailPosition = false))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case _: IR.Application.Operator =>
+      case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")
     }
   }

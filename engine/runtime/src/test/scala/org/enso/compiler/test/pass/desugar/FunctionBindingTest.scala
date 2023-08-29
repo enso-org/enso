@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.FunctionBinding
 import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
@@ -293,10 +294,10 @@ class FunctionBindingTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
       aArg.name.name shouldEqual "a"
       aArg.defaultValue.get
-        .asInstanceOf[IR.Application.Operator.Binary]
+        .asInstanceOf[Operator.Binary]
         .left
         .value
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .function
         .asInstanceOf[Name.Literal]
         .name shouldEqual "f"

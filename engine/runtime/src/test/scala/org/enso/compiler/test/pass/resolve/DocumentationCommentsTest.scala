@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.expression.Operator
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
@@ -255,7 +256,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         .asInstanceOf[Expression.Block]
 
       body.expressions.length shouldEqual 2
-      body.expressions.head shouldBe an[IR.Application.Operator.Binary]
+      body.expressions.head shouldBe an[Operator.Binary]
       getDoc(body.expressions.head) shouldEqual " Id"
       getDoc(body.returnValue) shouldEqual " Return thing"
     }

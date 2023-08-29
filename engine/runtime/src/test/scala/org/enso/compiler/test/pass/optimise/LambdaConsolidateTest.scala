@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -91,7 +92,7 @@ class LambdaConsolidateTest extends CompilerTest {
           .asInstanceOf[IR.Function.Lambda]
 
       ir.arguments.length shouldEqual 3
-      ir.body shouldBe an[IR.Application]
+      ir.body shouldBe an[Application]
     }
 
     "rename shadowed parameters" in {
@@ -108,7 +109,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .name
         .name should not equal "x"
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -141,7 +142,7 @@ class LambdaConsolidateTest extends CompilerTest {
 
       // Usages of `x` and `y` should be untouched
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -149,7 +150,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .asInstanceOf[Name.Literal]
         .name shouldEqual "x"
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
@@ -175,7 +176,7 @@ class LambdaConsolidateTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
         .defaultValue
         .get
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]

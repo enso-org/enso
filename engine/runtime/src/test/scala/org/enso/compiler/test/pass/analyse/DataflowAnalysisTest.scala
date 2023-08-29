@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
@@ -308,7 +309,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     // The `IO.println` expression
     val printlnExpr =
-      fnBody.expressions.head.asInstanceOf[IR.Application.Prefix]
+      fnBody.expressions.head.asInstanceOf[Application.Prefix]
     val printlnFn = printlnExpr.function.asInstanceOf[Name.Literal]
     val printlnArgIO =
       printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -320,7 +321,7 @@ class DataflowAnalysisTest extends CompilerTest {
     // The `c =` expression
     val cBindExpr  = fnBody.expressions(1).asInstanceOf[Expression.Binding]
     val cBindName  = cBindExpr.name.asInstanceOf[Name.Literal]
-    val plusExpr   = cBindExpr.expression.asInstanceOf[IR.Application.Prefix]
+    val plusExpr   = cBindExpr.expression.asInstanceOf[Application.Prefix]
     val plusExprFn = plusExpr.function.asInstanceOf[Name.Literal]
     val plusExprArgA =
       plusExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -330,7 +331,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val plusExprArgBExpr = plusExprArgB.value.asInstanceOf[Name.Literal]
 
     // The `frobnicate` return expression
-    val frobExpr = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val frobExpr = fnBody.returnValue.asInstanceOf[Application.Prefix]
     val frobFn   = frobExpr.function.asInstanceOf[IR.Error.Resolution]
     val frobArgA =
       frobExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -940,7 +941,7 @@ class DataflowAnalysisTest extends CompilerTest {
         fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
       val fnArgY =
         fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
-      val fnBody = fn.body.asInstanceOf[IR.Application.Prefix]
+      val fnBody = fn.body.asInstanceOf[Application.Prefix]
       val plusFn = fnBody.function.asInstanceOf[Name.Literal]
       val plusArgX =
         fnBody.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -999,7 +1000,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val app   = ir.asInstanceOf[IR.Application.Prefix]
+      val app   = ir.asInstanceOf[Application.Prefix]
       val appFn = app.function.asInstanceOf[IR.Error.Resolution]
       val appArg10 =
         app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -1010,7 +1011,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val lam = appArgFn.value.asInstanceOf[IR.Function.Lambda]
       val lamArgX =
         lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-      val mul   = lam.body.asInstanceOf[IR.Application.Prefix]
+      val mul   = lam.body.asInstanceOf[Application.Prefix]
       val mulFn = mul.function.asInstanceOf[Name.Literal]
       val mulArg1 =
         mul.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -1194,7 +1195,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[Name.Literal]
-      val bindingExpr = binding.expression.asInstanceOf[IR.Application.Prefix]
+      val bindingExpr = binding.expression.asInstanceOf[Application.Prefix]
       val plusFn      = bindingExpr.function.asInstanceOf[Name.Literal]
       val numArg =
         bindingExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
@@ -1265,7 +1266,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val vector = ir.body
-        .asInstanceOf[IR.Application.Literal.Sequence]
+        .asInstanceOf[Application.Sequence]
 
       val xUseId = mkStaticDep(vector.items(0).getId)
       val yId    = mkStaticDep(vector.items(1).getId)
@@ -1300,7 +1301,7 @@ class DataflowAnalysisTest extends CompilerTest {
       if (!ir.isInstanceOf[IR.Error.Syntax]) {
         val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-        val literal           = ir.asInstanceOf[IR.Application.Literal.Typeset]
+        val literal           = ir.asInstanceOf[Application.Typeset]
         val literalExpression = literal.expression.get
 
         val literalId           = mkStaticDep(literal.getId)
@@ -1328,7 +1329,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val caseBinding =
         caseBlock.expressions.head.asInstanceOf[Expression.Binding]
       val caseBindingExpr =
-        caseBinding.expression.asInstanceOf[IR.Application.Prefix]
+        caseBinding.expression.asInstanceOf[Application.Prefix]
       val caseBindingName = caseBinding.name.asInstanceOf[Name.Literal]
       val caseExpr        = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
       val consBranch      = caseExpr.branches.head
@@ -1344,7 +1345,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val consBranchBDef = consBranchBPattern.name
 
       val consBranchExpression =
-        consBranch.expression.asInstanceOf[IR.Application.Prefix]
+        consBranch.expression.asInstanceOf[Application.Prefix]
       val consBranchFn =
         consBranchExpression.function.asInstanceOf[Name.Literal]
       val aArg = consBranchExpression.arguments.head
@@ -1544,7 +1545,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val fnBody = lambda.body.asInstanceOf[Expression.Block]
 
     // The `Foo` application
-    val fooExpr     = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val fooExpr     = fnBody.returnValue.asInstanceOf[Application.Prefix]
     val fooFunction = fooExpr.function.asInstanceOf[Name]
     val fooArg1     = fooExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val fooArg1Expr = fooArg1.value.asInstanceOf[Name]

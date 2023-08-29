@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.resolve.{
@@ -286,7 +287,7 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           _,
-          IR.Application.Prefix(
+          Application.Prefix(
             Name.Special(Name.Special.NewRef, None),
             List(),
             false,
@@ -301,7 +302,7 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = IR.Application.Prefix(
+            val refWrite = Application.Prefix(
               Name.Special(Name.Special.WriteRef, None),
               List(
                 IR.CallArgument
@@ -314,7 +315,7 @@ object AutomaticParallelism extends IRPass {
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = IR.Application.Prefix(
+      val spawn = Application.Prefix(
         Name.Special(Name.Special.RunThread, None),
         List(
           IR.CallArgument.Specified(
@@ -332,7 +333,7 @@ object AutomaticParallelism extends IRPass {
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      IR.Application.Prefix(
+      Application.Prefix(
         Name.Special(Name.Special.JoinThread, None),
         List(IR.CallArgument.Specified(None, bind.name.duplicate(), None)),
         false,
@@ -344,7 +345,7 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           name.duplicate(),
-          IR.Application.Prefix(
+          Application.Prefix(
             Name.Special(Name.Special.ReadRef, None),
             List(IR.CallArgument.Specified(None, ref.duplicate(), None)),
             false,
@@ -449,7 +450,7 @@ object AutomaticParallelism extends IRPass {
   private def getMonad(signature: Expression): Option[String] =
     signature match {
       case lam: IR.Function.Lambda => getMonad(lam.body)
-      case app: IR.Application.Operator.Binary =>
+      case app: Operator.Binary =>
         if (app.operator.name == "in") {
           app.right.value match {
             case lit: Name.Literal => Some(lit.name)
@@ -467,7 +468,7 @@ object AutomaticParallelism extends IRPass {
     */
   private def getParallelismStatus(expr: Expression): ParallelismStatus =
     expr match {
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         // The base status of an application is computed based on the type of
         // the called function. It is then sequenced with statuses of the
         // arguments.

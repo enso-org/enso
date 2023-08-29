@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
@@ -65,7 +66,7 @@ case object ExpressionAnnotations extends IRPass {
     ir: Expression
   ): Expression =
     ir.transformExpressions {
-      case app @ IR.Application.Prefix(
+      case app @ Application.Prefix(
             ann: Name.BuiltinAnnotation,
             arguments,
             _,
@@ -86,7 +87,7 @@ case object ExpressionAnnotations extends IRPass {
             case realFun :: args =>
               val recurFun = doExpression(realFun.value)
               val (finalFun, preArgs) = recurFun match {
-                case IR.Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
+                case Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
                   (nextFun, moreArgs)
                 case _ => (recurFun, List())
               }

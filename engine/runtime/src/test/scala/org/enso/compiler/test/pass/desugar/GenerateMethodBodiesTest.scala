@@ -5,6 +5,7 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Operator
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -219,7 +220,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
       selfArg shouldBe an[Name.Self]
-      resultLambda.body shouldBe an[IR.Application.Operator.Binary]
+      resultLambda.body shouldBe an[Operator.Binary]
       selfArg shouldEqual Name.Self(location = irBarFirstArg.location)
     }
 

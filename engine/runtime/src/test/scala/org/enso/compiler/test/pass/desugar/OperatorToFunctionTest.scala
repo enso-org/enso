@@ -5,6 +5,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Empty
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.IdentifiedLocation
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.Location
@@ -27,15 +28,15 @@ class OperatorToFunctionTest extends CompilerTest {
     name: Name,
     left: Expression,
     right: Expression
-  ): (IR.Application.Operator.Binary, IR.Application.Prefix) = {
+  ): (Operator.Binary, Application.Prefix) = {
     val loc = IdentifiedLocation(Location(1, 33))
 
     val leftArg  = IR.CallArgument.Specified(None, left, left.location)
     val rightArg = IR.CallArgument.Specified(None, right, right.location)
 
     val binOp =
-      IR.Application.Operator.Binary(leftArg, name, rightArg, Some(loc))
-    val opFn = IR.Application.Prefix(
+      Operator.Binary(leftArg, name, rightArg, Some(loc))
+    val opFn = Application.Prefix(
       name,
       List(leftArg, rightArg),
       hasDefaultsSuspended = false,
@@ -72,8 +73,8 @@ class OperatorToFunctionTest extends CompilerTest {
 
     "be translated recursively" in {
       val recursiveIR =
-        IR.Application.Operator.Binary(oprArg, opName, rightArg, None)
-      val recursiveIRResult = IR.Application.Prefix(
+        Operator.Binary(oprArg, opName, rightArg, None)
+      val recursiveIRResult = Application.Prefix(
         opName,
         List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,

@@ -9,8 +9,8 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.IR.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -33,7 +33,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val two = rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -49,7 +49,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val two = rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -65,7 +65,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val two = rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -111,7 +111,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs  = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs  = ir.expression.asInstanceOf[Application.Prefix]
       val plus = rhs.function
       val two  = rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified].value
 
@@ -129,7 +129,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val x   = ir.name
       val one = rhs.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
 
@@ -148,7 +148,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Expression.Binding]
       val x   = ir.name
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val one = rhs.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -181,7 +181,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val rhs = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val undefinedArg =
         rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified]
       val undefinedError = undefinedArg.value.asInstanceOf[IR.Error.Resolution]
@@ -204,7 +204,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[IR.Function.Lambda]
       val secondLine =
-        ir.body.children(1).asInstanceOf[IR.Application.Prefix]
+        ir.body.children(1).asInstanceOf[Application.Prefix]
       val y =
         secondLine.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
       val plus = secondLine.function
@@ -265,9 +265,9 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[IR.Function.Lambda]
       val secondLine = ir.body.children(1).asInstanceOf[Expression.Binding]
-      val z          = secondLine.expression.asInstanceOf[IR.Application.Force].target
+      val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine =
-        ir.body.children(2).asInstanceOf[IR.Application.Prefix]
+        ir.body.children(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
       val plus = thirdLine.function
@@ -293,7 +293,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Expression.Binding]
       val x    = ir.name
-      val rhs  = ir.expression.asInstanceOf[IR.Application.Prefix]
+      val rhs  = ir.expression.asInstanceOf[Application.Prefix]
       val one  = rhs.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
       val plus = rhs.function
 
@@ -322,7 +322,7 @@ class ChangesetBuilderTest extends CompilerTest {
       val body       = ir.expression.asInstanceOf[IR.Function.Lambda].body
       val secondLine = body.children(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
-      val thirdLine  = body.children(2).asInstanceOf[IR.Application.Prefix]
+      val thirdLine  = body.children(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[IR.CallArgument.Specified].value
       val plus = thirdLine.function
@@ -359,7 +359,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .body
         .asInstanceOf[Expression.Block]
       val x     = mainBody.expressions(0).asInstanceOf[Expression.Binding]
-      val xExpr = x.expression.asInstanceOf[IR.Application.Prefix]
+      val xExpr = x.expression.asInstanceOf[Application.Prefix]
       val undefinedName = xExpr
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]

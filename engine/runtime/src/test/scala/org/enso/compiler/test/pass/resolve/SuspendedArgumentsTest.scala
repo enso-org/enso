@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.SuspendedArguments
@@ -197,7 +198,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       val lam = ir.body
         .asInstanceOf[IR.Function.Lambda]
       val bodyBlock = lam.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
       lam.arguments.length shouldEqual 2
       lam.arguments(1).suspended shouldBe true

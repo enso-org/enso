@@ -5,6 +5,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.enso.compiler.core.ir.*;
+import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Operator;
+import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -407,7 +410,7 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private IR.Application translateTypeApplication(Tree.App app) throws SyntaxException {
+  private Application translateTypeApplication(Tree.App app) throws SyntaxException {
       List<IR.CallArgument> args = nil();
       Tree t = app;
       Name.Literal in = null;
@@ -449,10 +452,10 @@ final class TreeToIr {
         }
       };
       if (in == null) {
-        return new IR$Application$Prefix(type, args, false, getIdentifiedLocation(app), meta(), diag());
+        return new Application.Prefix(type, args, false, getIdentifiedLocation(app), meta(), diag());
       } else {
         var fn = new IR$CallArgument$Specified(Option.empty(), type, getIdentifiedLocation(app), meta(), diag());
-        return new IR$Application$Operator$Binary(fn, in, args.head(), getIdentifiedLocation(app), meta(), diag());
+        return new Operator.Binary(fn, in, args.head(), getIdentifiedLocation(app), meta(), diag());
       }
     }
     private Expression translateFunction(Tree fun, Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
@@ -580,7 +583,7 @@ final class TreeToIr {
           }
           java.util.Collections.reverse(args);
           var argsList = CollectionConverters.asScala(args.iterator()).toList();
-          return new IR$Application$Prefix(
+          return new Application.Prefix(
                   func, argsList,
                   hasDefaultsSuspended,
                   getIdentifiedLocation(ast),
@@ -712,13 +715,13 @@ final class TreeToIr {
             );
             var loc = getIdentifiedLocation(app);
             if (lhs == null && rhs == null) {
-              yield new IR$Application$Operator$Section$Sides(name, loc, meta(), diag());
+              yield new Section.Sides(name, loc, meta(), diag());
             } else if (lhs == null) {
-              yield new IR$Application$Operator$Section$Right(name, rhs, loc, meta(), diag());
+              yield new Section.Right(name, rhs, loc, meta(), diag());
             } else if (rhs == null) {
-              yield new IR$Application$Operator$Section$Left(lhs, name, loc, meta(), diag());
+              yield new Section.Left(lhs, name, loc, meta(), diag());
             } else {
-              yield new IR$Application$Operator$Binary(lhs, name, rhs, loc,meta(), diag());
+              yield new Operator.Binary(lhs, name, rhs, loc,meta(), diag());
             }
           }
         };
@@ -736,7 +739,7 @@ final class TreeToIr {
             items = cons(exp, items);
           }
         }
-        yield new IR$Application$Literal$Sequence(
+        yield new Application.Sequence(
           items.reverse(),
           getIdentifiedLocation(arr), meta(), diag()
         );
@@ -769,7 +772,7 @@ final class TreeToIr {
         if (!checkArgs(args)) {
           yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
         }
-        yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
+        yield new Application.Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.BodyBlock body -> {
         var expressions = new java.util.ArrayList<Expression>();
@@ -841,7 +844,7 @@ final class TreeToIr {
             }
           }
           yield switch (fn) {
-            case IR$Application$Prefix pref -> patchPrefixWithBlock(pref, block, args);
+            case Application.Prefix pref -> patchPrefixWithBlock(pref, block, args);
             default -> block;
           };
         } else {
@@ -852,7 +855,7 @@ final class TreeToIr {
       case Tree.Group group -> {
           yield switch (translateExpression(group.getBody(), false)) {
               case null -> translateSyntaxError(group, IR$Error$Syntax$EmptyParentheses$.MODULE$);
-              case IR$Application$Prefix pref -> {
+              case Application.Prefix pref -> {
                   final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1, pref.getExternalId());
                   yield pref.setLocation(groupWithoutParenthesis);
               }
@@ -916,7 +919,7 @@ final class TreeToIr {
           case Expression expr -> {
             var negate = new Name.Literal("negate", true, Option.empty(), meta(), diag());
             var arg = new IR$CallArgument$Specified(Option.empty(), expr, expr.location(), meta(), diag());
-            yield new IR$Application$Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
+            yield new Application.Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
           }
         };
       case Tree.TypeSignature sig -> {
@@ -929,7 +932,7 @@ final class TreeToIr {
         );
         var opName = buildName(Option.empty(), sig.getOperator(), true);
         var signature = translateTypeCallArgument(sig.getType());
-        yield new IR$Application$Operator$Binary(methodReference, opName, signature, getIdentifiedLocation(sig), meta(), diag());
+        yield new Operator.Binary(methodReference, opName, signature, getIdentifiedLocation(sig), meta(), diag());
       }
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta(), diag());
@@ -944,7 +947,7 @@ final class TreeToIr {
           var fn = translateExpression(app.getFunc(), isMethod);
           var loc = getIdentifiedLocation(app);
           if (app.getArg() instanceof Tree.AutoScope) {
-              yield new IR$Application$Prefix(fn, nil(), true, loc, meta(), diag());
+              yield new Application.Prefix(fn, nil(), true, loc, meta(), diag());
           } else {
               yield fn.setLocation(loc);
           }
@@ -1069,7 +1072,7 @@ final class TreeToIr {
                     meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
-            yield new IR$Application$Operator$Binary(lhs, name, rhs, loc, meta(), diag());
+            yield new Operator.Binary(lhs, name, rhs, loc, meta(), diag());
           }
         };
       }
@@ -1083,7 +1086,7 @@ final class TreeToIr {
             items = cons(exp, items);
           }
         }
-        yield new IR$Application$Literal$Sequence(
+        yield new Application.Literal.Sequence(
                 items.reverse(),
                 getIdentifiedLocation(arr), meta(), diag()
         );
@@ -1107,7 +1110,7 @@ final class TreeToIr {
     var type = translateTypeCallArgument(anno.getType());
     var expr = translateCallArgument(anno.getExpression());
     var opName = new Name.Literal(anno.getOperator().codeRepr(), true, Option.empty(), meta(), diag());
-    return new IR$Application$Operator$Binary(
+    return new Operator.Binary(
             expr,
             opName,
             type,
@@ -1117,7 +1120,7 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private Expression patchPrefixWithBlock(IR$Application$Prefix pref, Expression.Block block, List<IR.CallArgument> args) {
+  private Expression patchPrefixWithBlock(Application.Prefix pref, Expression.Block block, List<IR.CallArgument> args) {
     if (block.expressions().isEmpty() && block.returnValue() instanceof Name.Blank) {
       return pref;
     }
@@ -1130,10 +1133,10 @@ final class TreeToIr {
     if (!checkArgs(withBlockArgs)) {
       return translateSyntaxError(pref.location().get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$);
     }
-    return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
+    return new Application.Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
-  private IR$Application$Prefix translateAnnotation(Name.BuiltinAnnotation ir, Tree expr, List<IR.CallArgument> callArgs) {
+  private Application.Prefix translateAnnotation(Name.BuiltinAnnotation ir, Tree expr, List<IR.CallArgument> callArgs) {
     return switch (expr) {
       case Tree.App fn -> {
         var fnAsArg = translateCallArgument(fn.getArg());
@@ -1150,7 +1153,7 @@ final class TreeToIr {
         yield translateAnnotation(ir, null, callArgs);
       }
       case null -> {
-        yield new IR$Application$Prefix(ir, callArgs, false, ir.location(), meta(), diag());
+        yield new Application.Prefix(ir, callArgs, false, ir.location(), meta(), diag());
       }
       default -> {
         var arg = translateCallArgument(expr);

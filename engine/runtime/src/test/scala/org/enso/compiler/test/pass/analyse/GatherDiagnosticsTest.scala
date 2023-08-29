@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.CallArgument
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
@@ -16,7 +17,7 @@ class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
     val plusOp = Name.Literal("+", isMethod = true, None)
-    val plusApp = IR.Application.Prefix(
+    val plusApp = Application.Prefix(
       plusOp,
       List(
         CallArgument.Specified(None, error1, None)

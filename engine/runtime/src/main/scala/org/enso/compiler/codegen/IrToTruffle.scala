@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name.Special
 import org.enso.compiler.core.IR.{Error, Pattern}
+import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ResolvedConstructor,
@@ -670,8 +671,8 @@ class IrToTruffle(
 
   private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
     def extractAscribedType(t: Expression): List[Type] = t match {
-      case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
-      case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case u: IR.Type.Set.Union  => u.operands.flatMap(extractAscribedType)
+      case p: Application.Prefix => extractAscribedType(p.function)
       case _: IR.Type.Function =>
         List(context.getTopScope().getBuiltins().function())
       case t => {
@@ -955,7 +956,7 @@ class IrToTruffle(
       val runtimeExpression = ir match {
         case block: Expression.Block => processBlock(block)
         case literal: Literal        => processLiteral(literal)
-        case app: IR.Application =>
+        case app: Application =>
           processApplication(app, subjectToInstrumentation)
         case name: Name                  => processName(name)
         case function: IR.Function       => processFunction(function, binding)
@@ -1895,23 +1896,23 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `application`
       */
     private def processApplication(
-      application: IR.Application,
+      application: Application,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       application match {
-        case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
+        case Application.Prefix(fn, Nil, true, _, _, _) =>
           run(fn, subjectToInstrumentation)
-        case app: IR.Application.Prefix =>
+        case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case IR.Application.Force(expr, location, _, _) =>
+        case Application.Force(expr, location, _, _) =>
           setLocation(
             ForceNode.build(this.run(expr, subjectToInstrumentation)),
             location
           )
-        case IR.Application.Literal.Sequence(items, location, _, _) =>
+        case Application.Sequence(items, location, _, _) =>
           val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
-        case _: IR.Application.Literal.Typeset =>
+        case _: Application.Typeset =>
           setLocation(
             ErrorNode.build(
               context.getBuiltins
@@ -1924,11 +1925,11 @@ class IrToTruffle(
             ),
             application.location
           )
-        case op: IR.Application.Operator.Binary =>
+        case op: Operator.Binary =>
           throw new CompilerError(
             s"Explicit operators not supported during codegen but $op found"
           )
-        case sec: IR.Application.Operator.Section =>
+        case sec: Section =>
           throw new CompilerError(
             s"Explicit operator sections not supported during codegen but " +
             s"$sec found"
@@ -1936,10 +1937,10 @@ class IrToTruffle(
       }
 
     private def processApplicationWithArgs(
-      application: IR.Application.Prefix,
+      application: Application.Prefix,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
         application
       val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 

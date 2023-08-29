@@ -4,6 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -119,7 +120,7 @@ case object LambdaShorthandToLambda extends IRPass {
   ): Expression = {
     ir.transformExpressions {
       case asc: IR.Type.Ascription => asc
-      case app: IR.Application     => desugarApplication(app, freshNameSupply)
+      case app: Application        => desugarApplication(app, freshNameSupply)
       case caseExpr: IR.Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
       case name: Name              => desugarName(name, freshNameSupply)
     }
@@ -165,11 +166,11 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return `application`, with any lambda shorthand arguments desugared
     */
   def desugarApplication(
-    application: IR.Application,
+    application: Application,
     freshNameSupply: FreshNameSupply
   ): Expression = {
     application match {
-      case p @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+      case p @ Application.Prefix(fn, args, _, _, _, _) =>
         // Determine which arguments are lambda shorthand
         val argIsUnderscore = determineLambdaShorthand(args)
 
@@ -245,9 +246,9 @@ case object LambdaShorthandToLambda extends IRPass {
           case lam: IR.Function.Lambda => lam.copy(location = p.location)
           case result                  => result
         }
-      case f @ IR.Application.Force(tgt, _, _, _) =>
+      case f @ Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
-      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      case vector @ Application.Sequence(items, _, _, _) =>
         var bindings: List[Name] = List()
         val newItems = items.map {
           case blank: Name.Blank =>
@@ -274,9 +275,9 @@ case object LambdaShorthandToLambda extends IRPass {
           )
           IR.Function.Lambda(List(defArg), body, locWithoutId)
         }
-      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
-      case _: IR.Application.Operator =>
+      case _: Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +
           "to lambda conversion."

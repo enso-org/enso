@@ -1,10 +1,10 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
@@ -57,7 +57,7 @@ object MethodCalls extends IRPass {
   private def doExpression(
     expr: Expression
   ): Expression = {
-    expr.transformExpressions { case app: IR.Application.Prefix =>
+    expr.transformExpressions { case app: Application.Prefix =>
       def fallback = app.mapExpressions(doExpression(_))
       app.function match {
         case name: Name if name.isMethod =>

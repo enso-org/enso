@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -73,8 +74,8 @@ case object OperatorToFunction extends IRPass {
     ir.transformExpressions {
       case asc: IR.Type.Ascription =>
         asc.copy(typed = runExpression(asc.typed, inlineContext))
-      case IR.Application.Operator.Binary(l, op, r, loc, passData, diag) =>
-        IR.Application.Prefix(
+      case Operator.Binary(l, op, r, loc, passData, diag) =>
+        Application.Prefix(
           op,
           List(
             l.mapExpressions(runExpression(_, inlineContext)),

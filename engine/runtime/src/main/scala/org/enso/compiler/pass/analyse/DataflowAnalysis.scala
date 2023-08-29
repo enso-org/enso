@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
@@ -216,7 +217,7 @@ case object DataflowAnalysis extends IRPass {
     expression match {
       case empty: Empty          => empty.updateMetadata(this -->> info)
       case function: IR.Function => analyseFunction(function, info)
-      case app: IR.Application   => analyseApplication(app, info)
+      case app: Application      => analyseApplication(app, info)
       case typ: IR.Type          => analyseType(typ, info)
       case name: Name            => analyseName(name, info)
       case cse: IR.Case          => analyseCase(cse, info)
@@ -303,11 +304,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `application`, with attached dependency information
     */
   def analyseApplication(
-    application: IR.Application,
+    application: Application,
     info: DependencyInfo
-  ): IR.Application = {
+  ): Application = {
     application match {
-      case prefix @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+      case prefix @ Application.Prefix(fn, args, _, _, _, _) =>
         val fnDep     = asStatic(fn)
         val prefixDep = asStatic(prefix)
         info.dependents.updateAt(fnDep, Set(prefixDep))
@@ -324,7 +325,7 @@ case object DataflowAnalysis extends IRPass {
             arguments = args.map(analyseCallArgument(_, info))
           )
           .updateMetadata(this -->> info)
-      case force @ IR.Application.Force(target, _, _, _) =>
+      case force @ Application.Force(target, _, _, _) =>
         val targetDep = asStatic(target)
         val forceDep  = asStatic(force)
         info.dependents.updateAt(targetDep, Set(forceDep))
@@ -333,7 +334,7 @@ case object DataflowAnalysis extends IRPass {
         force
           .copy(target = analyseExpression(target, info))
           .updateMetadata(this -->> info)
-      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      case vector @ Application.Sequence(items, _, _, _) =>
         val vectorDep = asStatic(vector)
         items.foreach(it => {
           val itemDep = asStatic(it)
@@ -344,7 +345,7 @@ case object DataflowAnalysis extends IRPass {
         vector
           .copy(items = items.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
-      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         val tSetDep = asStatic(tSet)
         expr.foreach(exp => {
           val exprDep = asStatic(exp)
@@ -355,7 +356,7 @@ case object DataflowAnalysis extends IRPass {
         tSet
           .copy(expression = expr.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
-      case _: IR.Application.Operator =>
+      case _: Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
     }
   }

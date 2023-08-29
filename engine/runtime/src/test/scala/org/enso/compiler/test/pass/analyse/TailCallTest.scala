@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
@@ -214,12 +215,12 @@ class TailCallTest extends CompilerTest {
       fnBody
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments(2)
         .value
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .function
         .diagnostics
         .filter(_.isInstanceOf[IR.Warning.WrongTco])
@@ -261,7 +262,7 @@ class TailCallTest extends CompilerTest {
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
-          branch.expression.asInstanceOf[IR.Application.Prefix]
+          branch.expression.asInstanceOf[Application.Prefix]
 
         branchExpression.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
@@ -295,7 +296,7 @@ class TailCallTest extends CompilerTest {
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
-          branch.expression.asInstanceOf[IR.Application.Prefix]
+          branch.expression.asInstanceOf[Application.Prefix]
 
         branchExpression.getMetadata(TailCall) shouldEqual Some(
           TailPosition.Tail
@@ -363,7 +364,7 @@ class TailCallTest extends CompilerTest {
       nonTailCallBody.expressions.head
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .foreach(arg =>
           arg.getMetadata(TailCall) shouldEqual Some(
@@ -372,7 +373,7 @@ class TailCallTest extends CompilerTest {
         )
 
       tailCallBody.returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .foreach(arg =>
           arg.getMetadata(TailCall) shouldEqual Some(

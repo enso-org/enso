@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.desugar.SectionsToBinOp
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -67,7 +68,7 @@ class SectionsToBinOpTest extends CompilerTest {
       val lamArgName =
         irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
 
-      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
+      val lamBody = irLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg =
         lamBody
@@ -105,7 +106,7 @@ class SectionsToBinOpTest extends CompilerTest {
         .asInstanceOf[IR.DefinitionArgument.Specified]
         .name
 
-      val lamBody = rightLam.body.asInstanceOf[IR.Application.Prefix]
+      val lamBody = rightLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg = lamBody.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -140,7 +141,7 @@ class SectionsToBinOpTest extends CompilerTest {
       val lamArgName =
         irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
 
-      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
+      val lamBody = irLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg =
         lamBody.arguments.head
@@ -163,11 +164,11 @@ class SectionsToBinOpTest extends CompilerTest {
 
       ir.body
         .asInstanceOf[IR.Function.Lambda]
-        .body shouldBe an[IR.Application.Prefix]
+        .body shouldBe an[Application.Prefix]
       ir.body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .length shouldEqual 2
     }
@@ -193,8 +194,8 @@ class SectionsToBinOpTest extends CompilerTest {
       val leftArgName =
         irFn2.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
 
-      irFn2.body shouldBe an[IR.Application.Prefix]
-      val app = irFn2.body.asInstanceOf[IR.Application.Prefix]
+      irFn2.body shouldBe an[Application.Prefix]
+      val app = irFn2.body.asInstanceOf[Application.Prefix]
 
       val appLeftName = app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]

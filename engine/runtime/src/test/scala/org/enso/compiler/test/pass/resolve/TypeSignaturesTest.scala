@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{
@@ -260,14 +261,14 @@ class TypeSignaturesTest extends CompilerTest {
         |""".stripMargin.preprocessExpression.get.resolve
 
     "associate the signature with the typed expression" in {
-      ir shouldBe an[IR.Application.Prefix]
+      ir shouldBe an[Application.Prefix]
       ir.getMetadata(TypeSignatures) shouldBe defined
     }
 
     "work recursively" in {
-      val arg2Value = ir.asInstanceOf[IR.Application.Prefix].arguments(1).value
-      arg2Value shouldBe an[IR.Application.Prefix]
-      val snd = arg2Value.asInstanceOf[IR.Application.Prefix]
+      val arg2Value = ir.asInstanceOf[Application.Prefix].arguments(1).value
+      arg2Value shouldBe an[Application.Prefix]
+      val snd = arg2Value.asInstanceOf[Application.Prefix]
       snd.arguments(0).value shouldBe an[Literal.Number]
     }
   }

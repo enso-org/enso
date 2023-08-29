@@ -4,9 +4,9 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.IR.Application
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
@@ -100,7 +100,7 @@ case object TypeFunctions extends IRPass {
   def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case asc: IR.Type.Ascription => asc
-      case app: IR.Application =>
+      case app: Application =>
         val result = resolveApplication(app)
         app
           .getMetadata(DocumentationComments)
@@ -114,7 +114,7 @@ case object TypeFunctions extends IRPass {
     * @param app the application to perform resolution in
     * @return `app`, with any typing functions resolved
     */
-  def resolveApplication(app: IR.Application): Expression = {
+  def resolveApplication(app: Application): Expression = {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
@@ -131,15 +131,15 @@ case object TypeFunctions extends IRPass {
         }
       case force @ Application.Force(target, _, _, _) =>
         force.copy(target = resolveExpression(target))
-      case seq @ Application.Literal.Sequence(items, _, _, _) =>
+      case seq @ Application.Sequence(items, _, _, _) =>
         seq.copy(
           items = items.map(resolveExpression)
         )
-      case tSet @ Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(
           expression = expr.map(resolveExpression)
         )
-      case _: Application.Operator =>
+      case _: Operator =>
         throw new CompilerError(
           "Operators should not be present during typing functions lifting."
         )

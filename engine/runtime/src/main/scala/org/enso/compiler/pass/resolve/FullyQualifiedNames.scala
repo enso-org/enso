@@ -17,6 +17,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedType
 }
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.Imports
@@ -232,7 +233,7 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           lit
         }
-      case app @ IR.Application.Prefix(_, List(_), _, _, _, _) =>
+      case app @ Application.Prefix(_, List(_), _, _, _, _) =>
         app.function match {
           case lit: Name.Literal =>
             if (lit.isMethod)
@@ -269,7 +270,7 @@ case object FullyQualifiedNames extends IRPass {
     }
 
   private def resolveLocalApplication(
-    app: IR.Application.Prefix,
+    app: Application.Prefix,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
     pkgRepo: Option[PackageRepository],

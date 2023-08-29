@@ -1,9 +1,9 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedConstructor}
 import org.enso.compiler.pass.IRPass
@@ -50,14 +50,14 @@ object FullyAppliedFunctionUses extends IRPass {
 
   private def doExpression(expr: Expression): Expression = {
     expr.transformExpressions {
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         app.copy(arguments = app.arguments.map(_.mapExpressions(doExpression)))
       case name: Name.Literal =>
         val meta = name.getMetadata(GlobalNames)
         meta match {
           case Some(Resolution(ResolvedConstructor(_, cons)))
               if cons.allFieldsDefaulted && cons.arity > 0 =>
-            IR.Application.Prefix(name, List(), false, None);
+            Application.Prefix(name, List(), false, None);
           case _ => name
         }
     }

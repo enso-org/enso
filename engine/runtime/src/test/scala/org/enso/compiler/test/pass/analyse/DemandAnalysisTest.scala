@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
@@ -100,8 +101,8 @@ class DemandAnalysisTest extends CompilerTest {
         .asInstanceOf[Expression.Binding]
         .expression
 
-      boundX shouldBe an[IR.Application.Force]
-      boundX.asInstanceOf[IR.Application.Force].target shouldBe an[Name]
+      boundX shouldBe an[Application.Force]
+      boundX.asInstanceOf[Application.Force].target shouldBe an[Name]
     }
 
     "work correctly when deeply nested" in {
@@ -116,8 +117,8 @@ class DemandAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
 
-      xUsage shouldBe an[IR.Application.Force]
-      xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[Name]
+      xUsage shouldBe an[Application.Force]
+      xUsage.asInstanceOf[Application.Force].target shouldBe an[Name]
     }
 
     "not be forced when passed to functions" in {
@@ -131,7 +132,7 @@ class DemandAnalysisTest extends CompilerTest {
       val app = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
       app.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -154,11 +155,11 @@ class DemandAnalysisTest extends CompilerTest {
       val vec = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Literal.Sequence]
+        .asInstanceOf[Application.Sequence]
 
-      vec.items(0) shouldBe an[IR.Application.Force]
-      vec.items(1) shouldBe an[IR.Application.Force]
-      vec.items(2) shouldBe an[IR.Application.Force]
+      vec.items(0) shouldBe an[Application.Force]
+      vec.items(1) shouldBe an[Application.Force]
+      vec.items(2) shouldBe an[Application.Force]
 
     }
   }
@@ -184,9 +185,9 @@ class DemandAnalysisTest extends CompilerTest {
       irBody
         .expressions(1)
         .asInstanceOf[Expression.Binding]
-        .expression shouldBe an[IR.Application.Force]
+        .expression shouldBe an[Application.Force]
 
-      irBody.returnValue shouldBe an[IR.Application.Force]
+      irBody.returnValue shouldBe an[Application.Force]
     }
 
     "not be forced when passed to a function" in {
@@ -204,7 +205,7 @@ class DemandAnalysisTest extends CompilerTest {
         .body
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -225,7 +226,7 @@ class DemandAnalysisTest extends CompilerTest {
       val oprCall = barFunc.body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
       oprCall.function.asInstanceOf[Name].name shouldEqual "<|"
       oprCall.arguments.length shouldEqual 2
@@ -235,7 +236,7 @@ class DemandAnalysisTest extends CompilerTest {
       xArg.value shouldBe an[Expression.Block]
       xArg.value
         .asInstanceOf[Expression.Block]
-        .returnValue shouldBe an[IR.Application.Force]
+        .returnValue shouldBe an[Application.Force]
     }
   }
 }

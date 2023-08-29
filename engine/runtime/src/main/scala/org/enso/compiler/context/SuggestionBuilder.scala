@@ -2,6 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap
@@ -487,12 +488,12 @@ final class SuggestionBuilder[A: IndexedSource](
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
       case union: IR.Type.Set.Union =>
         TypeArg.Sum(None, union.operands.map(go))
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         TypeArg.Application(
           go(app.function),
           app.arguments.map(c => go(c.value)).toVector
         )
-      case bin: IR.Application.Operator.Binary =>
+      case bin: Operator.Binary =>
         TypeArg.Binary(
           go(bin.left.value),
           go(bin.right.value),

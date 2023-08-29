@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -83,7 +84,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
     "create an error when discovering an unknown annotation" in {
       val unknown =
-        items.expressions(1).asInstanceOf[IR.Application.Prefix].function
+        items.expressions(1).asInstanceOf[Application.Prefix].function
       unknown shouldBe an[IR.Error.Resolution]
       unknown
         .asInstanceOf[IR.Error.Resolution]
@@ -99,7 +100,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .head
         .name shouldEqual ExpressionAnnotations.builtinMethodName
 
-      val parallelDef = items.expressions(3).asInstanceOf[IR.Application.Prefix]
+      val parallelDef = items.expressions(3).asInstanceOf[Application.Prefix]
       parallelDef.function shouldBe a[Name.Literal]
       val fn = parallelDef.function.asInstanceOf[Name.Literal]
       fn.name shouldEqual "f"
@@ -111,10 +112,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .name shouldEqual ExpressionAnnotations.autoParallelName
 
       val correct = items.returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments(0)
         .value
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
       correct.function.asInstanceOf[Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
       correct
@@ -128,7 +129,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     "create an error on a misplaced annotation" in {
       val misplaced = items
         .expressions(4)
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments(0)
         .value
       misplaced shouldBe an[IR.Error.Resolution]

@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
@@ -401,7 +402,7 @@ case object AliasAnalysis extends IRPass {
         } else {
           IR.Error.Redefined.Binding(binding)
         }
-      case app: IR.Application =>
+      case app: Application =>
         analyseApplication(app, graph, parentScope)
       case tpe: IR.Type => analyseType(tpe, graph, parentScope)
       case x =>
@@ -552,30 +553,30 @@ case object AliasAnalysis extends IRPass {
     * @return `application`, possibly with aliasing information attached
     */
   def analyseApplication(
-    application: IR.Application,
+    application: Application,
     graph: AliasAnalysis.Graph,
     scope: AliasAnalysis.Graph.Scope
-  ): IR.Application = {
+  ): Application = {
     application match {
-      case app @ IR.Application.Prefix(fun, arguments, _, _, _, _) =>
+      case app @ Application.Prefix(fun, arguments, _, _, _, _) =>
         app.copy(
           function  = analyseExpression(fun, graph, scope),
           arguments = analyseCallArguments(arguments, graph, scope)
         )
-      case app @ IR.Application.Force(expr, _, _, _) =>
+      case app @ Application.Force(expr, _, _, _) =>
         app.copy(target = analyseExpression(expr, graph, scope))
-      case app @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      case app @ Application.Sequence(items, _, _, _) =>
         app.copy(items = items.map(analyseExpression(_, graph, scope)))
-      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         val newScope = scope.addChild()
         tSet
           .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
           .updateMetadata(this -->> Info.Scope.Child(graph, newScope))
-      case _: IR.Application.Operator.Binary =>
+      case _: Operator.Binary =>
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
         )
-      case _: IR.Application.Operator.Section =>
+      case _: Section =>
         throw new CompilerError(
           "Operator section occurred during Alias Analysis."
         )

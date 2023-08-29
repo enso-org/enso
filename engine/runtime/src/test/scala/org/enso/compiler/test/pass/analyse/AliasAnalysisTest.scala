@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
@@ -495,7 +496,7 @@ class AliasAnalysisTest extends CompilerTest {
     val childLambdaBody = childLambda.body
       .asInstanceOf[IR.Function.Lambda]
       .body
-      .asInstanceOf[IR.Application.Prefix]
+      .asInstanceOf[Application.Prefix]
 
     "assign Info.Scope.Root metadata to the method" in {
       val meta = methodWithLambda.getMetadata(AliasAnalysis)
@@ -634,7 +635,7 @@ class AliasAnalysisTest extends CompilerTest {
         .scope
 
       val cUseScope = topLambdaBody.returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -706,7 +707,7 @@ class AliasAnalysisTest extends CompilerTest {
           .id
 
       val nestedLambdaAUseId = childLambdaBody
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .function
         .getMetadata(AliasAnalysis)
         .get
@@ -714,7 +715,7 @@ class AliasAnalysisTest extends CompilerTest {
         .id
 
       val nestedLambdaBUseId = childLambdaBody
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -731,14 +732,14 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[Info.Occurrence]
         .id
       val dUseId = topLambdaBody.returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .function
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[Info.Occurrence]
         .id
       val dDefCUseId = topLambdaBody.returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
@@ -762,7 +763,7 @@ class AliasAnalysisTest extends CompilerTest {
         .expression
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .function
         .getMetadata(AliasAnalysis)
         .get
@@ -885,8 +886,8 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[Info.Occurrence]
         .id
-      lambda.body shouldBe an[IR.Application.Prefix]
-      val app = lambda.body.asInstanceOf[IR.Application.Prefix]
+      lambda.body shouldBe an[Application.Prefix]
+      val app = lambda.body.asInstanceOf[Application.Prefix]
       val valueUseId = app
         .arguments(1)
         .value
@@ -931,7 +932,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     val lambda     = conversionMethod.body.asInstanceOf[IR.Function.Lambda]
     val lambdaBody = lambda.body.asInstanceOf[Expression.Block]
-    val app        = lambdaBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val app        = lambdaBody.returnValue.asInstanceOf[Application.Prefix]
 
     "assign Info.Scope.Root metatata to the method" in {
       val meta = conversionMethod.getMetadata(AliasAnalysis)
@@ -988,7 +989,7 @@ class AliasAnalysisTest extends CompilerTest {
         arg.getMetadata(AliasAnalysis).get.as[Info.Occurrence] shouldBe defined
       )
       val firstAppArg =
-        app.arguments.head.value.asInstanceOf[IR.Application.Prefix]
+        app.arguments.head.value.asInstanceOf[Application.Prefix]
       val innerAppArg = firstAppArg.arguments.head.value
       innerAppArg
         .getMetadata(AliasAnalysis)
@@ -1004,7 +1005,7 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[Info.Occurrence]
         .id
       val valueUseId = app.arguments.head.value
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
         .value
@@ -1143,7 +1144,7 @@ class AliasAnalysisTest extends CompilerTest {
     "correctly link to pattern variables" in {
       val consBranch = caseExpr.branches.head
       val pattern    = consBranch.pattern.asInstanceOf[Pattern.Constructor]
-      val body       = consBranch.expression.asInstanceOf[IR.Application.Prefix]
+      val body       = consBranch.expression.asInstanceOf[Application.Prefix]
 
       val consBranchADef = pattern.fields.head
         .asInstanceOf[Pattern.Name]
@@ -1184,7 +1185,7 @@ class AliasAnalysisTest extends CompilerTest {
     "correctly link to pattern variables in type patterns" in {
       val tpeBranch = caseExpr.branches(2)
       val pattern   = tpeBranch.pattern.asInstanceOf[Pattern.Type]
-      val body      = tpeBranch.expression.asInstanceOf[IR.Application.Prefix]
+      val body      = tpeBranch.expression.asInstanceOf[Application.Prefix]
 
       val tpeBranchNameDef   = pattern.name
       val tpeTpeBranchTpeDef = pattern.tpe
@@ -1243,7 +1244,7 @@ class AliasAnalysisTest extends CompilerTest {
     "create a new scope for the literal" in {
       if (!block.returnValue.isInstanceOf[IR.Error.Syntax]) {
         val literal =
-          block.returnValue.asInstanceOf[IR.Application.Literal.Typeset]
+          block.returnValue.asInstanceOf[Application.Typeset]
         val literalScope =
           literal
             .unsafeGetMetadata(AliasAnalysis, "")

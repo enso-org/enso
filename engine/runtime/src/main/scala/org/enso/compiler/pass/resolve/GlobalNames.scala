@@ -14,6 +14,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule
 }
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
@@ -185,7 +186,7 @@ case object GlobalNames extends IRPass {
                         name     = method.name,
                         location = None
                       )
-                      val app = IR.Application.Prefix(
+                      val app = Application.Prefix(
                         fun,
                         List(IR.CallArgument.Specified(None, self, None)),
                         hasDefaultsSuspended = false,
@@ -210,7 +211,7 @@ case object GlobalNames extends IRPass {
               }
           }
         }
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         app.function match {
           case lit: Name.Literal =>
             if (!lit.isMethod)
@@ -247,7 +248,7 @@ case object GlobalNames extends IRPass {
   }
 
   private def resolveReferantApplication(
-    app: IR.Application.Prefix,
+    app: Application.Prefix,
     fun: Name.Literal,
     bindingsMap: BindingsMap,
     params: List[IR.DefinitionArgument],
@@ -291,7 +292,7 @@ case object GlobalNames extends IRPass {
   }
 
   private def resolveLocalApplication(
-    app: IR.Application.Prefix,
+    app: Application.Prefix,
     bindings: BindingsMap,
     params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
@@ -344,7 +345,7 @@ case object GlobalNames extends IRPass {
   }
 
   private def buildConsApplication(
-    originalApp: IR.Application.Prefix,
+    originalApp: Application.Prefix,
     calledCons: BindingsMap.Cons,
     newFun: Expression,
     newArgs: List[IR.CallArgument]

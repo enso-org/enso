@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.OverloadsResolution
@@ -91,7 +92,7 @@ case object DemandAnalysis extends IRPass {
       case empty: Empty    => empty
       case fn: IR.Function => analyseFunction(fn)
       case name: Name      => analyseName(name, isInsideCallArgument)
-      case app: IR.Application =>
+      case app: Application =>
         analyseApplication(app, isInsideCallArgument)
       case typ: IR.Type =>
         analyseType(typ, isInsideCallArgument)
@@ -170,7 +171,7 @@ case object DemandAnalysis extends IRPass {
           val forceLocation   = name.location
           val newNameLocation = name.location.map(l => l.copy(id = None))
           val newName         = lit.copy(location = newNameLocation)
-          IR.Application.Force(newName, forceLocation)
+          Application.Force(newName, forceLocation)
         case _ => name
       }
     }
@@ -195,11 +196,11 @@ case object DemandAnalysis extends IRPass {
     * @return `application`, transformed by the demand analysis process
     */
   def analyseApplication(
-    application: IR.Application,
+    application: Application,
     isInsideCallArgument: Boolean
-  ): IR.Application =
+  ): Application =
     application match {
-      case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+      case pref @ Application.Prefix(fn, args, _, _, _, _) =>
         val newFun = fn match {
           case n: Name => n
           case e       => analyseExpression(e, isInsideCallArgument = false)
@@ -208,14 +209,14 @@ case object DemandAnalysis extends IRPass {
           function  = newFun,
           arguments = args.map(analyseCallArgument)
         )
-      case force @ IR.Application.Force(target, _, _, _) =>
+      case force @ Application.Force(target, _, _, _) =>
         force.copy(target =
           analyseExpression(
             target,
             isInsideCallArgument
           )
         )
-      case vec @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      case vec @ Application.Sequence(items, _, _, _) =>
         vec.copy(items =
           items.map(
             analyseExpression(
@@ -224,12 +225,12 @@ case object DemandAnalysis extends IRPass {
             )
           )
         )
-      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(
           expression =
             expr.map(analyseExpression(_, isInsideCallArgument = false))
         )
-      case _: IR.Application.Operator =>
+      case _: Operator =>
         throw new CompilerError(
           "Operators should not be present during demand analysis."
         )

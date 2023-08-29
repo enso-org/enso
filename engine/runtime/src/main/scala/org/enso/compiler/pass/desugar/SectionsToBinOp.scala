@@ -2,9 +2,9 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Application.Operator.Section
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Section}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -74,7 +74,7 @@ case object SectionsToBinOp extends IRPass {
       )
     )
 
-    ir.transformExpressions { case sec: IR.Application.Operator.Section =>
+    ir.transformExpressions { case sec: Section =>
       desugarSections(sec, freshNameSupply)
     }
   }
@@ -91,7 +91,7 @@ case object SectionsToBinOp extends IRPass {
     */
   //noinspection DuplicatedCode
   def desugarSections(
-    section: IR.Application.Operator.Section,
+    section: Section,
     freshNameSupply: FreshNameSupply
   ): Expression = {
     section match {
@@ -118,7 +118,7 @@ case object SectionsToBinOp extends IRPass {
             suspended = false,
             None
           )
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
@@ -140,7 +140,7 @@ case object SectionsToBinOp extends IRPass {
           )
 
         } else {
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(arg, rightCallArg),
             hasDefaultsSuspended = false,
@@ -178,7 +178,7 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        val opCall = IR.Application.Prefix(
+        val opCall = Application.Prefix(
           function             = op,
           arguments            = List(leftCallArg, rightCallArg),
           hasDefaultsSuspended = false,
@@ -244,7 +244,7 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
@@ -265,7 +265,7 @@ case object SectionsToBinOp extends IRPass {
             loc
           )
         } else {
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, arg),
             hasDefaultsSuspended = false,
