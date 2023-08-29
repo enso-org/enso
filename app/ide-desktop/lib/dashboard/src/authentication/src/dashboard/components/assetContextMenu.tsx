@@ -68,6 +68,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const ownsThisAsset = self?.permission === backendModule.PermissionAction.own
     const managesThisAsset =
         ownsThisAsset || self?.permission === backendModule.PermissionAction.admin
+    const isRunningProject =
+        asset.type === backendModule.AssetType.project &&
+        backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
     const canExecute =
         self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission]
     const isOtherUserUsingProject =
@@ -110,6 +113,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             <ContextMenu hidden={hidden}>
                 {asset.type === backendModule.AssetType.project &&
                     canExecute &&
+                    !isRunningProject &&
                     !isOtherUserUsingProject && (
                         <MenuEntry
                             hidden={hidden}
@@ -120,6 +124,22 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                     type: assetEventModule.AssetEventType.openProject,
                                     id: asset.id,
                                     shouldAutomaticallySwitchPage: true,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
+                    canExecute &&
+                    isRunningProject &&
+                    !isOtherUserUsingProject && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.close}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.closeProject,
+                                    id: asset.id,
                                 })
                             }}
                         />

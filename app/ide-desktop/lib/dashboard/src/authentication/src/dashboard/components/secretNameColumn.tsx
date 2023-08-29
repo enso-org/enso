@@ -61,6 +61,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.restoreMultiple:
@@ -104,7 +105,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
             onClick={event => {
@@ -120,7 +121,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={SecretIcon} />{' '}
+            <SvgMask src={SecretIcon} />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
@@ -144,7 +145,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="bg-transparent grow px-2"
+                className="bg-transparent grow leading-170 h-6 py-px"
             >
                 {asset.title}
             </EditableSpan>

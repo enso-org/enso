@@ -1,4 +1,5 @@
 /** @file Type definitions common between all backends. */
+import * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
@@ -159,7 +160,7 @@ export interface ProjectStateType {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const IS_PROJECT_STATE_OPENING_OR_OPENED: Record<ProjectState, boolean> = {
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
     [ProjectState.created]: false,
     [ProjectState.new]: false,
     [ProjectState.openInProgress]: true,
@@ -221,6 +222,8 @@ export interface Project extends ListedProject {
 export interface ProjectStartupInfo {
     project: Project
     projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
     backendType: BackendType
     accessToken: string | null
 }

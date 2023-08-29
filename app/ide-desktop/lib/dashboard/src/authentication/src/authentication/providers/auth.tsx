@@ -293,7 +293,9 @@ export function AuthProvider(props: AuthProviderProps) {
                         // This prevents a busy loop when request blocking is enabled in DevTools.
                         // The UI will be blank indefinitely. This is intentional, since for real
                         // network outages, `navigator.onLine` will be false.
-                        await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
+                        await new Promise<void>(resolve => {
+                            window.setTimeout(resolve, REQUEST_DELAY_MS)
+                        })
                     }
                 }
                 const url = new URL(location.href)

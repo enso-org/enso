@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/folder.svg'
+import FolderIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -60,7 +60,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 await backend.updateDirectory(asset.id, { title: newName }, asset.title)
                 return
             } catch (error) {
-                toastAndLog('Error renaming folder', error)
+                toastAndLog('Could not rename folder', error)
                 throw error
             }
         }
@@ -72,6 +72,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.restoreMultiple:
@@ -85,7 +86,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.newFolder: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Folders cannot be created on the local backend')
+                        toastAndLog('Cannot create folders on the local drive')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -103,7 +104,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 key: item.key,
                             })
-                            toastAndLog('Error creating new folder', error)
+                            toastAndLog('Could not create new folder', error)
                         }
                     }
                 }
@@ -114,7 +115,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
             onClick={event => {
@@ -139,7 +140,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={DirectoryIcon} className="m-1" />
+            <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
@@ -163,7 +164,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="cursor-pointer bg-transparent grow px-2"
+                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
             >
                 {asset.title}
             </EditableSpan>

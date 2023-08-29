@@ -83,32 +83,32 @@ export default function DriveBar(props: DriveBarProps) {
                 </button>
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
-                        <>
-                            <Button
-                                active={filterBy !== backendModule.FilterBy.trashed}
-                                disabled={filterBy === backendModule.FilterBy.trashed}
-                                error="Cannot create a new folder in Trash."
-                                image={AddFolderIcon}
-                                disabledOpacityClassName="opacity-20"
-                                onClick={() => {
-                                    unsetModal()
-                                    doCreateDirectory()
-                                }}
-                            />
-                            <Button
-                                disabled
-                                image={AddConnectorIcon}
-                                error={
-                                    filterBy === backendModule.FilterBy.trashed
-                                        ? 'Cannot create a new data connector in Trash.'
-                                        : 'Not implemented yet.'
-                                }
-                                disabledOpacityClassName="opacity-20"
-                                onClick={() => {
-                                    // No backend support yet.
-                                }}
-                            />
-                        </>
+                        <Button
+                            active={filterBy !== backendModule.FilterBy.trashed}
+                            disabled={filterBy === backendModule.FilterBy.trashed}
+                            error="Cannot create a new folder in Trash."
+                            image={AddFolderIcon}
+                            disabledOpacityClassName="opacity-20"
+                            onClick={() => {
+                                unsetModal()
+                                doCreateDirectory()
+                            }}
+                        />
+                    )}
+                    {backend.type !== backendModule.BackendType.local && (
+                        <Button
+                            disabled
+                            image={AddConnectorIcon}
+                            error={
+                                filterBy === backendModule.FilterBy.trashed
+                                    ? 'Cannot create a new data connector in Trash.'
+                                    : 'Not implemented yet.'
+                            }
+                            disabledOpacityClassName="opacity-20"
+                            onClick={() => {
+                                // No backend support yet.
+                            }}
+                        />
                     )}
                     <input
                         ref={uploadFilesRef}
