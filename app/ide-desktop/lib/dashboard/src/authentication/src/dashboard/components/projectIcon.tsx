@@ -107,7 +107,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
