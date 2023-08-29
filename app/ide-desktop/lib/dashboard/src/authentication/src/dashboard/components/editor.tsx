@@ -11,6 +11,9 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
+/** The `id` attribute of the loading spinner element created by the wasm entrypoint. */
+const LOADER_ELEMENT_ID = 'loader'
+
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
@@ -27,7 +30,7 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-    visible: boolean
+    hidden: boolean
     supportsLocalBackend: boolean
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     appRunner: AppRunner
@@ -35,22 +38,47 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-    const { visible, supportsLocalBackend, projectStartupInfo, appRunner } = props
+    const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
     React.useEffect(() => {
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement != null) {
-            if (visible) {
-                ideElement.style.top = ''
-                ideElement.style.display = 'absolute'
-            } else {
+            if (hidden) {
                 ideElement.style.top = '-100vh'
                 ideElement.style.display = 'fixed'
+            } else {
+                ideElement.style.top = ''
+                ideElement.style.display = 'absolute'
             }
         }
-    }, [visible])
+    }, [hidden])
+
+    React.useEffect(() => {
+        if (projectStartupInfo != null && hidden) {
+            // A workaround to hide the spinner, when the previous project is being loaded in
+            // the background. This `MutationObserver` is disconnected when the loader is
+            // removed from the DOM.
+            const observer = new MutationObserver(mutations => {
+                for (const mutation of mutations) {
+                    for (const node of Array.from(mutation.addedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            node.style.display = 'none'
+                        }
+                    }
+                    for (const node of Array.from(mutation.removedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            observer.disconnect()
+                        }
+                    }
+                }
+            })
+            observer.observe(document.body, { childList: true })
+        }
+    }, [projectStartupInfo, hidden])
 
     let hasEffectRun = false
 
@@ -101,29 +129,33 @@ export default function Editor(props: EditorProps) {
                             // which will break the entrypoint for opening a fresh IDE instance.
                             history.replaceState(null, '', new URL('.', originalUrl))
                         }
-                        await appRunner.runApp(
-                            {
-                                loader: {
-                                    assetsUrl: `${assetsRoot}dynamic-assets`,
-                                    wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                        try {
+                            await appRunner.runApp(
+                                {
+                                    loader: {
+                                        assetsUrl: `${assetsRoot}dynamic-assets`,
+                                        wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                        jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                                    },
+                                    engine: {
+                                        ...engineConfig,
+                                        ...(project.engineVersion != null
+                                            ? { preferredVersion: project.engineVersion.value }
+                                            : {}),
+                                    },
+                                    startup: {
+                                        project: project.packageName,
+                                    },
+                                    window: {
+                                        topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                                    },
                                 },
-                                engine: {
-                                    ...engineConfig,
-                                    ...(project.engineVersion != null
-                                        ? { preferredVersion: project.engineVersion.value }
-                                        : {}),
-                                },
-                                startup: {
-                                    project: project.packageName,
-                                },
-                                window: {
-                                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
-                                },
-                            },
-                            accessToken,
-                            { projectId: project.projectId }
-                        )
+                                accessToken,
+                                { projectId: project.projectId }
+                            )
+                        } catch (error) {
+                            toastAndLog('Could not open editor', error)
+                        }
                         if (backendType === backendModule.BackendType.remote) {
                             // Restore original URL so that initialization works correctly on refresh.
                             history.replaceState(null, '', originalUrl)

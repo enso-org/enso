@@ -202,14 +202,37 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig,
     isGeneratingDocs: Boolean                    = false
-  ): ModuleContext = {
-    ModuleContext(
-      module            = Module.empty(moduleName, null),
+  ) = buildModuleContextModule(
+    moduleName,
+    freshNameSupply,
+    passConfiguration,
+    compilerConfig,
+    isGeneratingDocs
+  )._1
+
+  /** Builds a module context with a mocked module for testing purposes.
+    *
+    * @param moduleName the name of the test module.
+    * @param freshNameSupply the fresh name supply to use in tests.
+    * @param passConfiguration any additional pass configuration.
+    * @return an pair of module context and module.
+    */
+  def buildModuleContextModule(
+    moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None,
+    compilerConfig: CompilerConfig               = defaultConfig,
+    isGeneratingDocs: Boolean                    = false
+  ): (ModuleContext, Module) = {
+    val mod = Module.empty(moduleName, null)
+    val ctx = ModuleContext(
+      module            = mod,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
       isGeneratingDocs  = isGeneratingDocs
     )
+    (ctx, mod)
   }
 
   /** Builds an inline context with a mocked module for testing purposes.
@@ -243,8 +266,12 @@ trait CompilerRunner {
       mod,
       CompilationStage.AFTER_CODEGEN
     )
+    val mc = ModuleContext(
+      module         = mod,
+      compilerConfig = compilerConfig
+    )
     InlineContext(
-      module            = mod,
+      module            = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,

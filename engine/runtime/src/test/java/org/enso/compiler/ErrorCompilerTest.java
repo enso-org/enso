@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidUnderscore$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnclosedTextLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
@@ -14,6 +15,7 @@ import org.enso.syntax.text.Location;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+
 import scala.collection.immutable.List;
 
 public class ErrorCompilerTest extends CompilerTest {
@@ -25,6 +27,26 @@ public class ErrorCompilerTest extends CompilerTest {
     """);
 
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+  }
+
+  @Test
+  public void dotUnderscore() throws Exception {
+    var ir = parse("""
+    run op =
+      op._
+    """);
+
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
+  public void dotUnderscore2() throws Exception {
+    var ir = parse("""
+    run op =
+      op._.something
+    """);
+
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
   }
 
   @Test

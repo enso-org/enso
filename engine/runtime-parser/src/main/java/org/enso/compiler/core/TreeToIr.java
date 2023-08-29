@@ -3,61 +3,7 @@ package org.enso.compiler.core;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
-import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Application$Literal$Sequence;
-import org.enso.compiler.core.IR$Application$Operator$Binary;
-import org.enso.compiler.core.IR$Application$Operator$Section$Left;
-import org.enso.compiler.core.IR$Application$Operator$Section$Right;
-import org.enso.compiler.core.IR$Application$Operator$Section$Sides;
-import org.enso.compiler.core.IR$Application$Prefix;
-import org.enso.compiler.core.IR$CallArgument$Specified;
-import org.enso.compiler.core.IR$Case$Branch;
-import org.enso.compiler.core.IR$Case$Expr;
-import org.enso.compiler.core.IR$Comment$Documentation;
-import org.enso.compiler.core.IR$DefinitionArgument$Specified;
-import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
-import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
-import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
-import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
-import org.enso.compiler.core.IR$Error$Syntax$Reason;
-import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
-import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
-import org.enso.compiler.core.IR$Expression$Binding;
-import org.enso.compiler.core.IR$Expression$Block;
-import org.enso.compiler.core.IR$Foreign$Definition;
-import org.enso.compiler.core.IR$Function$Lambda;
-import org.enso.compiler.core.IR$Function$Binding;
-import org.enso.compiler.core.IR$Literal$Text;
-import org.enso.compiler.core.IR$Literal$Number;
-import org.enso.compiler.core.IR$Module$Scope$Definition;
-import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
-import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
-import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
-import org.enso.compiler.core.IR$Module$Scope$Export;
-import org.enso.compiler.core.IR$Module$Scope$Export$Module;
-import org.enso.compiler.core.IR$Module$Scope$Import;
-import org.enso.compiler.core.IR$Module$Scope$Import$Module;
-import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
-import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
-import org.enso.compiler.core.IR$Name$BuiltinAnnotation;
-import org.enso.compiler.core.IR$Name$GenericAnnotation;
-import org.enso.compiler.core.IR$Name$Blank;
-import org.enso.compiler.core.IR$Name$Literal;
-import org.enso.compiler.core.IR$Name$Self;
-import org.enso.compiler.core.IR$Name$SelfType;
-import org.enso.compiler.core.IR$Name$MethodReference;
-import org.enso.compiler.core.IR$Name$Qualified;
-import org.enso.compiler.core.IR$Pattern$Constructor;
-import org.enso.compiler.core.IR$Pattern$Documentation;
-import org.enso.compiler.core.IR$Pattern$Name;
-import org.enso.compiler.core.IR$Pattern$Literal;
-import org.enso.compiler.core.IR$Pattern$Type;
-import org.enso.compiler.core.IR$Type$Ascription;
-import org.enso.compiler.core.IR$Type$Function;
+
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -71,6 +17,7 @@ import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 
 import org.enso.syntax2.Tree.Invalid;
+
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -1470,9 +1417,20 @@ final class TreeToIr {
   }
   private List<IR.Name> qualifiedNameSegments(Tree t, boolean generateId) throws SyntaxException {
     List<IR.Name> result = nil();
+    var first = true;
     for (var segment : unrollOprRhs(t, ".")) {
-      var qns = qualifiedNameSegment(segment, generateId);
+      var qns = switch (qualifiedNameSegment(segment, generateId)) {
+        case IR$Name$Blank underscore -> {
+          if (first) {
+            yield underscore;
+          } else {
+            throw new SyntaxException(segment, IR$Error$Syntax$InvalidUnderscore$.MODULE$);
+          }
+        }
+        case IR.Name any -> any;
+      };
       result = cons(qns, result);
+      first = false;
     }
     return result.reverse();
   }

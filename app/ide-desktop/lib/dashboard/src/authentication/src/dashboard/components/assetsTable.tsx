@@ -17,6 +17,7 @@ import * as presenceModule from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
+import * as style from '../style'
 import * as uniqueString from '../../uniqueString'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -37,6 +38,8 @@ import Table from './table'
 // === Constants ===
 // =================
 
+/** The number of pixels the header bar should shrink when the extra tab selector is visible. */
+const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 274
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
 const COMPARE_LESS_THAN = -1
@@ -108,14 +111,13 @@ function insertAssetTreeNodeChildren(
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-    appRunner: AppRunner | null
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
-    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -123,8 +125,12 @@ export interface AssetsTableState {
     ) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    doOpenIde: (
+        project: backendModule.ProjectAsset,
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
+    ) => void
+    doCloseIde: (project: backendModule.ProjectAsset) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -143,15 +149,22 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-    appRunner: AppRunner | null
     query: string
     initialProjectName: string | null
-    assetEvents: assetEventModule.AssetEvent[]
-    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
+    /** These events will be dispatched the next time the assets list is refreshed, rather than
+     * immediately. */
+    queuedAssetEvents: assetEventModule.AssetEvent[]
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    assetEvents: assetEventModule.AssetEvent[]
+    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    doOpenIde: (
+        project: backendModule.ProjectAsset,
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
+    ) => void
+    doCloseIde: (project: backendModule.ProjectAsset) => void
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -161,13 +174,14 @@ export interface AssetsTableProps {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
     const {
-        appRunner,
         query,
         initialProjectName,
-        assetEvents,
-        dispatchAssetEvent,
+        projectStartupInfo,
+        queuedAssetEvents: rawQueuedAssetEvents,
         assetListEvents,
         dispatchAssetListEvent,
+        assetEvents,
+        dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
         loadingProjectManagerDidFail,
@@ -189,6 +203,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+    const headerRowRef = React.useRef<HTMLTableRowElement>(null)
+    const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
     const nodeMap = React.useMemo(
@@ -242,6 +259,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree, sortColumn, sortDirection])
 
     React.useEffect(() => {
+        if (rawQueuedAssetEvents.length !== 0) {
+            setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
+        }
+    }, [rawQueuedAssetEvents])
+
+    React.useEffect(() => {
         setIsLoading(true)
     }, [backend])
 
@@ -273,10 +296,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
+                        shouldAutomaticallySwitchPage: true,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
+            setQueuedAssetEvents(oldQueuedAssetEvents => {
+                if (oldQueuedAssetEvents.length !== 0) {
+                    window.setTimeout(() => {
+                        for (const event of oldQueuedAssetEvents) {
+                            dispatchAssetEvent(event)
+                        }
+                    }, 0)
+                }
+                return []
+            })
             if (!initialized) {
                 setInitialized(true)
                 if (initialProjectName != null) {
@@ -302,7 +336,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (initialized) {
             overwriteAssets([])
         }
-        // `setAssets` is a callback, not a dependency.
+        // `overwriteAssets` is a callback, not a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend])
 
@@ -347,6 +381,42 @@ export default function AssetsTable(props: AssetsTableProps) {
             setExtraColumns(new Set(savedExtraColumns))
         }
     }, [/* should never change */ localStorage])
+
+    // Clip the header bar so that the background behind the extra colums selector is visible.
+    React.useEffect(() => {
+        const headerRow = headerRowRef.current
+        const scrollContainer = scrollContainerRef.current
+        if (
+            backend.type === backendModule.BackendType.remote &&
+            headerRow != null &&
+            scrollContainer != null
+        ) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                const hasVerticalScrollbar =
+                    scrollContainer.scrollHeight > scrollContainer.clientHeight
+                const shrinkage =
+                    TABLE_HEADER_WIDTH_SHRINKAGE_PX +
+                    (hasVerticalScrollbar ? style.SCROLLBAR_WIDTH_PX : 0)
+                const rightOffset = `calc(100vw - ${shrinkage}px + ${scrollContainer.scrollLeft}px)`
+                headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [backend.type])
 
     React.useEffect(() => {
         if (initialized) {
@@ -398,9 +468,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
-                        const childAssetNodes = childAssets.map(
-                            assetTreeNode.assetTreeNodeFromAsset
-                        )
                         setAssetTree(oldAssetTree =>
                             assetTreeNode.assetTreeMap(oldAssetTree, item => {
                                 if (item.key !== key) {
@@ -410,6 +477,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         child =>
                                             child.item.type !==
                                             backendModule.AssetType.specialLoading
+                                    )
+                                    const childAssetsMap = new Map(
+                                        childAssets.map(asset => [asset.id, asset])
+                                    )
+                                    for (const child of initialChildren ?? []) {
+                                        const newChild = childAssetsMap.get(child.item.id)
+                                        if (newChild != null) {
+                                            child.item = newChild
+                                            childAssetsMap.delete(child.item.id)
+                                        }
+                                    }
+                                    const childAssetNodes = Array.from(
+                                        childAssetsMap.values(),
+                                        child =>
+                                            assetTreeNode.assetTreeNodeFromAsset(
+                                                child,
+                                                item.depth + 1
+                                            )
                                     )
                                     const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
                                         (initialChildren != null && initialChildren.length !== 0) ||
@@ -430,9 +515,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             : [...initialChildren, ...childAssetNodes].sort(
                                                   assetTreeNode.compareAssetTreeNodes
                                               )
-                                    for (const child of children) {
-                                        child.depth = item.depth + 1
-                                    }
                                     return {
                                         ...item,
                                         children,
@@ -516,7 +598,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                    projectState: { type: backendModule.ProjectState.placeholder },
+                    projectState: {
+                        type: backendModule.ProjectState.placeholder,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        volume_id: '',
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        ...(organization != null ? { opened_by: organization.email } : {}),
+                    },
                     type: backendModule.AssetType.project,
                 }
                 if (
@@ -546,9 +634,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
                 const parentId = event.parentId ?? backend.rootDirectoryId(organization)
-                const placeholderFiles: backendModule.FileAsset[] = reversedFiles
-                    .filter(backendModule.fileIsNotProject)
-                    .map(file => ({
+                const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
+                    (file): backendModule.FileAsset => ({
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
@@ -556,10 +643,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
-                    }))
-                const placeholderProjects: backendModule.ProjectAsset[] = reversedFiles
-                    .filter(backendModule.fileIsProject)
-                    .map(file => ({
+                    })
+                )
+                const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
+                    (file): backendModule.ProjectAsset => ({
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
                         title: file.name,
@@ -568,8 +655,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: {
                             type: backendModule.ProjectState.new,
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            volume_id: '',
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            ...(organization != null ? { opened_by: organization.email } : {}),
                         },
-                    }))
+                    })
+                )
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
@@ -660,6 +752,19 @@ export default function AssetsTable(props: AssetsTableProps) {
                 )
                 break
             }
+            case assetListEventModule.AssetListEventType.removeSelf: {
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.removeSelf,
+                    id: event.id,
+                })
+                break
+            }
+            case assetListEventModule.AssetListEventType.closeFolder: {
+                if (nodeMap.get(event.key)?.children != null) {
+                    doToggleDirectoryExpansion(event.id, event.key)
+                }
+                break
+            }
         }
     })
 
@@ -668,22 +773,27 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent({
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
+                shouldAutomaticallySwitchPage: true,
             })
         },
         [/* should never change */ dispatchAssetEvent]
     )
 
-    const doCloseIde = React.useCallback(() => {
-        dispatchAssetEvent({
-            type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
-        })
-        rawDoCloseIde()
-    }, [rawDoCloseIde, /* should never change */ dispatchAssetEvent])
+    const doCloseIde = React.useCallback(
+        (project: backendModule.ProjectAsset) => {
+            if (project.id === projectStartupInfo?.projectAsset.id) {
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.cancelOpeningAllProjects,
+                })
+                rawDoCloseIde(project)
+            }
+        },
+        [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+    )
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
-            appRunner,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -697,7 +807,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
         }),
         [
-            appRunner,
             sortColumn,
             sortDirection,
             assetEvents,
@@ -713,30 +822,32 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     return (
-        <div className="flex-1 overflow-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
             <div className="flex flex-col w-min min-w-full h-full">
-                <div className="h-0">
-                    <div className="block sticky right-0 px-2 py-1 ml-auto mt-0.5 w-29 z-1">
-                        <div className="inline-flex gap-3">
-                            {columnModule.EXTRA_COLUMNS.map(column => (
-                                <Button
-                                    key={column}
-                                    active={extraColumns.has(column)}
-                                    image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                                    onClick={() => {
-                                        const newExtraColumns = new Set(extraColumns)
-                                        if (extraColumns.has(column)) {
-                                            newExtraColumns.delete(column)
-                                        } else {
-                                            newExtraColumns.add(column)
-                                        }
-                                        setExtraColumns(newExtraColumns)
-                                    }}
-                                />
-                            ))}
+                {backend.type !== backendModule.BackendType.local && (
+                    <div className="sticky top-0 h-0">
+                        <div className="block sticky right-0 ml-auto w-29 p-2 z-1">
+                            <div className="inline-flex gap-3">
+                                {columnModule.EXTRA_COLUMNS.map(column => (
+                                    <Button
+                                        key={column}
+                                        active={extraColumns.has(column)}
+                                        image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                                        onClick={() => {
+                                            const newExtraColumns = new Set(extraColumns)
+                                            if (extraColumns.has(column)) {
+                                                newExtraColumns.delete(column)
+                                            } else {
+                                                newExtraColumns.add(column)
+                                            }
+                                            setExtraColumns(newExtraColumns)
+                                        }}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
                 <Table<
                     assetTreeNode.AssetTreeNode,
                     AssetsTableState,
@@ -744,6 +855,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     backendModule.AssetId
                 >
                     footer={<tfoot className="h-full"></tfoot>}
+                    scrollContainerRef={scrollContainerRef}
+                    headerRowRef={headerRowRef}
                     rowComponent={AssetRow}
                     items={displayItems}
                     filter={filter}
