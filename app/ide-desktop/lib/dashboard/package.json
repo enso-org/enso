@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "comments": {
+    "playwright": "If using a tiling window manager, ensure that the Playwright windows are",
+    "playwright (cont.)": "not tiled, otherwise the screenshots will be incorrect."
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
@@ -12,7 +16,7 @@
     "test": "npx playwright install && npm run test-unit && npm run test-component && npm run test-e2e",
     "test-unit": "playwright test",
     "test-component": "playwright test -c playwright-component.config.ts",
-    "test-e2e": "playwright test -c playwright-e2e.config.ts"
+    "test-e2e": "tsx test-e2e.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
