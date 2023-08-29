@@ -14,7 +14,7 @@
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts",
-    "test": "npx playwright install && npm run test-unit && npm run test-component",
+    "test": "npx playwright install && npm run test-unit && npm run test-component && npm run test-e2e",
     "test-unit": "playwright test",
     "test-component": "playwright test -c playwright-component.config.ts",
     "test-e2e": "playwright test -c playwright-e2e.config.ts"
