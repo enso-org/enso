@@ -1,2 +1,4 @@
 *.vsix
 nbcode
+!.idea
+.idea/*

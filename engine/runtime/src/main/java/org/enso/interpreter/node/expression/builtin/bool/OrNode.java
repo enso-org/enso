@@ -4,7 +4,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.state.State;
     inlineable = true)
 public abstract class OrNode extends Node {
 
-  private final ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile conditionProfile = CountingConditionProfile.create();
 
   public static OrNode build() {
     return OrNodeGen.create();
@@ -27,7 +27,7 @@ public abstract class OrNode extends Node {
   abstract Object execute(VirtualFrame frame, State state, boolean self, @Suspend Object that);
 
   @Specialization
-  Object executeBool(
+  Object doIt(
       VirtualFrame frame,
       State state,
       boolean self,

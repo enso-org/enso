@@ -5,7 +5,6 @@
 use crate::prelude::*;
 
 use crate::get_graal_version;
-use crate::get_java_major_version;
 use crate::paths::generated;
 
 use artifact::IsArtifact;
@@ -89,6 +88,8 @@ pub enum Benchmarks {
     Runtime,
     /// Run benchmarks written in pure Enso.
     Enso,
+    /// Run Enso benchmarks via JMH
+    EnsoJMH,
 }
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
@@ -104,6 +105,7 @@ impl Benchmarks {
             Benchmarks::All => Some("bench"),
             Benchmarks::Runtime => Some("runtime/bench"),
             Benchmarks::Enso => None,
+            Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
         }
     }
 }
@@ -304,7 +306,6 @@ pub async fn deduce_graal(
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
         graal_version: get_graal_version(&build_sbt_content)?,
-        java_version: get_java_major_version(&build_sbt_content)?,
         os: TARGET_OS,
         arch: TARGET_ARCH,
     })

@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import java.util.Optional;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.data.Type;
 
 /** Tracks the specifics about how arguments are defined at the callable definition site. */
 public final class ArgumentDefinition {
@@ -25,33 +26,29 @@ public final class ArgumentDefinition {
 
   private final int position;
   private final String name;
-  private final Optional<ExpressionNode> defaultValue;
+  private final Type[] checkType;
+  private final ExpressionNode defaultValue;
   private final boolean isSuspended;
-
-  /**
-   * Creates a new argument definition without a default value.
-   *
-   * @param position the position of the argument at the definition site
-   * @param name the name of the argument
-   * @param executionMode the execution mode for this argument
-   */
-  public ArgumentDefinition(int position, String name, ExecutionMode executionMode) {
-    this(position, name, null, executionMode);
-  }
 
   /**
    * Creates a new argument definition with a default value.
    *
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
-   * @param defaultValue the default value of the argument
+   * @param checkType {@code null} or type the argument must match
+   * @param defaultValue the default value of the argument or {@code null}
    * @param executionMode the execution mode for this argument
    */
   public ArgumentDefinition(
-      int position, String name, ExpressionNode defaultValue, ExecutionMode executionMode) {
+      int position,
+      String name,
+      Type[] checkType,
+      ExpressionNode defaultValue,
+      ExecutionMode executionMode) {
     this.position = position;
     this.name = name;
-    this.defaultValue = Optional.ofNullable(defaultValue);
+    this.checkType = checkType;
+    this.defaultValue = defaultValue;
     this.isSuspended = executionMode.isSuspended();
   }
 
@@ -79,7 +76,7 @@ public final class ArgumentDefinition {
    * @return the default value, if present, otherwise {@link Optional#empty()}
    */
   public Optional<ExpressionNode> getDefaultValue() {
-    return this.defaultValue;
+    return Optional.ofNullable(this.defaultValue);
   }
 
   /**
@@ -88,7 +85,7 @@ public final class ArgumentDefinition {
    * @return {@code true} if a default value is present, otherwise {@code false}
    */
   public boolean hasDefaultValue() {
-    return this.defaultValue.isPresent();
+    return this.defaultValue != null;
   }
 
   /**
@@ -98,5 +95,15 @@ public final class ArgumentDefinition {
    */
   public boolean isSuspended() {
     return isSuspended;
+  }
+
+  /**
+   * Types to check argument for. When the argument is ascribed with a type, this method returns
+   * non-{@code null}.
+   *
+   * @return {@code null} or list of types to check argument against
+   */
+  public Type[] getCheckType() {
+    return checkType;
   }
 }

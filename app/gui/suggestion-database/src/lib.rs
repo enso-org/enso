@@ -1358,7 +1358,7 @@ pub mod test {
         };
         let expected_ids: HashSet<_> = expected.iter().map(id_from_name).collect();
         let name_from_id = |id: &entry::Id| {
-            db.lookup(*id).map(|e| e.name.clone()).unwrap_or_else(|_| "<not found>".to_string())
+            db.lookup(*id).map(|e| e.name.clone()).unwrap_or_else(|_| "<not found>".into())
         };
         let actual = actual_ids.iter().map(name_from_id).collect::<Vec<_>>();
         assert_eq!(actual_ids, &expected_ids, "Actual {actual:?} != expected {expected:?}");

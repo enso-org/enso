@@ -1,6 +1,5 @@
 import project.Data.Numbers.Number
 import project.Data.Text.Text
-
 from project.Data.Boolean import Boolean, False, True
 
 ## A type representing an interval bound over any order-able type.
@@ -49,7 +48,8 @@ type Interval_Type
 
 ## A type representing an interval over real numbers.
 type Interval
-    ## Creates an interval.
+    ## GROUP DateTime
+       Creates an interval.
 
        Arguments:
        - start: The start of the interval. (Included by default)
@@ -100,7 +100,8 @@ type Interval
        - end: The end of the interval.
     Between (start : Bound) (end : Bound)
 
-    ## Checks if the interval contains `that`.
+    ## GROUP Logical
+       Checks if the interval contains `that`.
 
        Arguments:
        - that: The item to check if it is contained in the interval.
@@ -121,7 +122,8 @@ type Interval
                 Bound.Exclusive e -> that < e
                 Bound.Inclusive e -> that <= e
 
-    ## Check if this interval is empty.
+    ## GROUP Logical
+       Check if this interval is empty.
 
        > Example
          Check if the interval from 0 to 0 is empty.
@@ -138,7 +140,8 @@ type Interval
             Bound.Exclusive e -> s >= e
             Bound.Inclusive e -> s > e
 
-    ## Check if this interval is not empty.
+    ## GROUP Logical
+       Check if this interval is not empty.
 
        > Example
          Check if the interval from 0 to 0.001 is not empty.

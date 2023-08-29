@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -10,6 +11,7 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -31,11 +34,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
@@ -99,7 +100,7 @@ public abstract class SortVectorNode extends Node {
         "areAllDefaultComparators(interop, hostValueToEnsoNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
-      })
+      }, limit = "3")
   Object sortPrimitives(
       State state,
       Object self,
@@ -109,12 +110,12 @@ public abstract class SortVectorNode extends Node {
       Object byFunc,
       Object onFunc,
       long problemBehavior,
-      @Cached LessThanNode lessThanNode,
-      @Cached EqualsNode equalsNode,
+      @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
-      @Cached TypeOfNode typeOfNode,
-      @Cached AnyToTextNode toTextNode,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
     try {
@@ -182,13 +183,13 @@ public abstract class SortVectorNode extends Node {
       Object byFunc,
       Object onFunc,
       long problemBehaviorNum,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warningsLib,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached LessThanNode lessThanNode,
-      @Cached EqualsNode equalsNode,
-      @Cached TypeOfNode typeOfNode,
-      @Cached AnyToTextNode toTextNode,
+      @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+      @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
       @Cached(value = "build()", uncached = "build()") HostValueToEnsoNode hostValueToEnsoNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
@@ -247,7 +248,7 @@ public abstract class SortVectorNode extends Node {
         }
         resultVec.addAll(group.elems);
       }
-      var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
+      var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(resultVec.toArray());
       // Attach gathered warnings along with different comparators warning
       switch (problemBehavior) {
         case REPORT_ERROR -> {
@@ -289,7 +290,7 @@ public abstract class SortVectorNode extends Node {
   private Object sortPrimitiveVector(Object[] elems, DefaultSortComparator javaComparator)
       throws CompareException {
     Arrays.sort(elems, javaComparator);
-    var sortedVector = Vector.fromArray(new Array(elems));
+    var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(elems);
 
     if (javaComparator.hasWarnings()) {
       return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());

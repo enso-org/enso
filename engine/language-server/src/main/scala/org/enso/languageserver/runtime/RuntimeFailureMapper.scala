@@ -53,7 +53,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   /** Convert the runtime failure message to the context registry protocol
     * representation.
     *
-    * @param error the error message
+    * @param result the api execution result
     * @return the registry protocol representation fo the diagnostic message
     */
   def toProtocolFailure(

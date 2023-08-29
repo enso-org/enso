@@ -36,22 +36,27 @@
 
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import * as toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '../authentication/service'
+import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
+import * as shortcutsModule from '../dashboard/shortcuts'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
+import * as localStorageProvider from '../providers/localStorage'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
+import * as shortcutsProvider from '../providers/shortcuts'
 
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
+import EnterOfflineMode from '../authentication/components/enterOfflineMode'
 import ForgotPassword from '../authentication/components/forgotPassword'
 import Login from '../authentication/components/login'
 import Registration from '../authentication/components/registration'
@@ -76,6 +81,8 @@ export const FORGOT_PASSWORD_PATH = '/forgot-password'
 export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
+/** Path to the offline mode entrypoint. */
+export const ENTER_OFFLINE_MODE_PATH = '/offline'
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
     `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
@@ -111,7 +118,8 @@ export interface AppProps {
     shouldShowDashboard: boolean
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
-    onAuthenticated: () => void
+    onAuthenticated: (accessToken: string | null) => void
+    projectManagerUrl: string | null
     appRunner: AppRunner
 }
 
@@ -120,15 +128,22 @@ export interface AppProps {
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
-function App(props: AppProps) {
+export default function App(props: AppProps) {
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
+    const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster toastOptions={{ style: { maxWidth: '100%' } }} position="top-center" />
+            <toastify.ToastContainer
+                position="top-center"
+                theme="light"
+                closeOnClick={false}
+                draggable={false}
+                toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+                transition={toastify.Zoom}
+            />
             <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>
@@ -152,12 +167,31 @@ function AppRouter(props: AppProps) {
         isAuthenticationDisabled,
         shouldShowDashboard,
         onAuthenticated,
+        projectManagerUrl,
     } = props
     const navigate = hooks.useNavigate()
     if (IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
+    const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            const isTargetEditable =
+                event.target instanceof HTMLInputElement ||
+                (event.target instanceof HTMLElement && event.target.isContentEditable)
+            const shouldHandleEvent = isTargetEditable
+                ? !shortcutsModule.isTextInputEvent(event)
+                : true
+            if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
+                event.preventDefault()
+            }
+        }
+        document.body.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.removeEventListener('keydown', onKeyDown)
+        }
+    }, [shortcuts])
     const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -165,8 +199,8 @@ function AppRouter(props: AppProps) {
     }, [navigate, props])
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
-    const initialBackend: backendProvider.AnyBackendAPI = isAuthenticationDisabled
-        ? new localBackend.LocalBackend()
+    const initialBackend: backend.Backend = isAuthenticationDisabled
+        ? new localBackend.LocalBackend(projectManagerUrl, null)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!
@@ -193,9 +227,12 @@ function AppRouter(props: AppProps) {
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
+                <router.Route path={ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
             </React.Fragment>
         </router.Routes>
     )
+    /** {@link backendProvider.BackendProvider} depends on
+     * {@link localStorageProvider.LocalStorageProvider}. */
     return (
         <loggerProvider.LoggerProvider logger={logger}>
             <sessionProvider.SessionProvider
@@ -203,19 +240,24 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider initialBackend={initialBackend}>
-                    <authProvider.AuthProvider
-                        shouldStartInOfflineMode={isAuthenticationDisabled}
-                        supportsLocalBackend={supportsLocalBackend}
-                        authService={authService}
-                        onAuthenticated={onAuthenticated}
-                    >
-                        <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
-                    </authProvider.AuthProvider>
-                </backendProvider.BackendProvider>
+                <localStorageProvider.LocalStorageProvider>
+                    <backendProvider.BackendProvider initialBackend={initialBackend}>
+                        <authProvider.AuthProvider
+                            shouldStartInOfflineMode={isAuthenticationDisabled}
+                            supportsLocalBackend={supportsLocalBackend}
+                            authService={authService}
+                            onAuthenticated={onAuthenticated}
+                            projectManagerUrl={projectManagerUrl}
+                        >
+                            <modalProvider.ModalProvider>
+                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                                    {routes}
+                                </shortcutsProvider.ShortcutsProvider>
+                            </modalProvider.ModalProvider>
+                        </authProvider.AuthProvider>
+                    </backendProvider.BackendProvider>
+                </localStorageProvider.LocalStorageProvider>
             </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )
 }
-
-export default App

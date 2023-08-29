@@ -1,0 +1,111 @@
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
+
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
+polyglot java import org.enso.table.data.column.builder.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+
+## This tests an operation on a boxed value (e.g. ends_with on a String).
+   It is the basic benchmark for comparing the performance between the vectorized Java op and approaches relying on Enso.
+   We would like to see the Enso approach to have comparable performance to the Java one.
+type Boxed_Map_Test
+    Instance text_column (suffix : Text)
+
+    current_implementation self =
+        self.text_column.ends_with self.suffix
+
+    java_map self =
+        Column.from_storage "result" <|
+            MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
+
+    enso_map_as_vector self convert_polyglot_dates =
+        suffix = self.suffix
+        vector_proxy = self.text_column.to_vector
+        mapped = vector_proxy.map x-> x.ends_with suffix
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder self =
+        suffix = self.suffix
+        n = self.text_column.length
+        builder = BoolBuilder.new n
+        storage = self.text_column.java_column.getStorage
+        0.up_to n . each i->
+            item = storage.getItemBoxed i
+            case item of
+                Nothing ->
+                    builder.appendNulls 1
+                _ ->
+                    b = item.ends_with suffix
+                    builder.appendBoolean b
+        Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
+## This tests an operation on a primitive value, that in Java is stored as unboxed (e.g. + on LongStorage).
+   This is a more demanding benchmark, because the Java side has an advantage of easily using the unboxed values everywhere.
+   Here it may be harder to achieve comparable performance, but we want to know what is the difference, and ideally we want to be getting closer here as well.
+type Primitive_Map_Test
+    Instance int_column (shift : Integer)
+
+    current_implementation self =
+        self.int_column + self.shift
+
+    java_map self =
+        Column.from_storage "result" <|
+            MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
+
+    enso_map_as_vector self convert_polyglot_dates =
+        shift = self.shift
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map x-> x + shift
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder self =
+        shift = self.shift
+        n = self.int_column.length
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.int_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.isNa i of
+                True ->
+                    builder.appendNulls 1
+                False ->
+                    item = storage.getItem i
+                    x = item + shift
+                    builder.appendLong x
+        Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
+main = spec Common_Setup.Config
+
+spec setup =
+    t = setup.generate_input_table
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
+
+    primitive_map = Primitive_Map_Test.Instance (t.at "ints") 42
+    primitive_map.verify_correctness
+    Bench.measure (primitive_map.current_implementation) "Primitive_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.java_map) "Primitive_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_with_builder) "Primitive_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+
+    # This one seems slowest so I put it at the end.
+    boxed_map = Boxed_Map_Test.Instance (t.at "text") "5"
+    boxed_map.verify_correctness
+    Bench.measure (boxed_map.current_implementation) "Boxed_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.java_map) "Boxed_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder) "Boxed_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc

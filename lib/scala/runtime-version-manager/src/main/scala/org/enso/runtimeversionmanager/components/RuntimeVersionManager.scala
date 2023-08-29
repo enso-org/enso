@@ -464,7 +464,10 @@ class RuntimeVersionManager(
       engineRelease.manifest
     )
     if (!isCompatible) {
-      throw UpgradeRequiredError(engineRelease.manifest.minimumRequiredVersion)
+      throw UpgradeRequiredError(
+        CurrentVersion.version,
+        engineRelease.manifest.minimumRequiredVersion
+      )
     }
     if (engineRelease.isBroken) {
       val continue = userInterface.shouldInstallBrokenEngine(version)
@@ -630,8 +633,9 @@ class RuntimeVersionManager(
 
   /** Returns name of the directory containing the runtime of that version.
     */
-  private def graalRuntimeNameForVersion(version: GraalVMVersion): String =
-    s"graalvm-ce-java${version.java}-${version.graalVersion}"
+  private def graalRuntimeNameForVersion(version: GraalVMVersion): String = {
+    s"graalvm-ce-java${version.javaVersion}-${version.graalVersion}"
+  }
 
   /** Loads the GraalVM runtime definition.
     */
@@ -682,7 +686,7 @@ class RuntimeVersionManager(
   private def parseGraalRuntimeVersionString(
     name: String
   ): Option[GraalVMVersion] = {
-    val regex = """graalvm-ce-java(\d+)-(.+)""".r
+    val regex = """graalvm-ce-java(.+)-(.+)""".r
     name match {
       case regex(javaVersionString, graalVersionString) =>
         Some(GraalVMVersion(graalVersionString, javaVersionString))
@@ -725,7 +729,12 @@ class RuntimeVersionManager(
   ): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
       if (!isEngineVersionCompatibleWithThisInstaller(manifest)) {
-        Failure(UpgradeRequiredError(manifest.minimumRequiredVersion))
+        Failure(
+          UpgradeRequiredError(
+            CurrentVersion.version,
+            manifest.minimumRequiredVersion
+          )
+        )
       } else Success(manifest)
     }
   }
@@ -762,7 +771,7 @@ class RuntimeVersionManager(
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
       val localTmpDirectory =
         temporaryDirectoryManager.temporarySubdirectory(
-          s"runtime-${runtimeVersion.graalVersion}-java${runtimeVersion.java}"
+          s"runtime-${runtimeVersion.graalVersion}-java${runtimeVersion.javaVersion}"
         )
 
       val extractionTask = Archive.extractArchive(
@@ -863,7 +872,7 @@ class RuntimeVersionManager(
     Path.of(version.toString())
 
   private def graalDirectoryForVersion(version: GraalVMVersion): Path =
-    Path.of(s"graalvm-ce-java${version.java}-${version.graalVersion}")
+    Path.of(s"graalvm-ce-java${version.javaVersion}-${version.graalVersion}")
 
   /** Removes runtimes that are not used by any installed engines.
     *

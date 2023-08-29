@@ -1,0 +1,9 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M0 9.5V13.5C0 14.8807 3.58172 16 8 16C12.4183 16 16 14.8807 16 13.5V9.5C16 10.8807 12.4183 12 8 12C3.58172 12 0 10.8807 0 9.5Z"
+        fill="black" />
+    <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M0 4V8C0 9.38071 3.58172 10.5 8 10.5C12.4183 10.5 16 9.38071 16 8V4C16 5.38071 12.4183 6.5 8 6.5C3.58172 6.5 0 5.38071 0 4Z"
+        fill="black" />
+    <ellipse cx="8" cy="2.5" rx="8" ry="2.5" fill="black" />
+</svg>

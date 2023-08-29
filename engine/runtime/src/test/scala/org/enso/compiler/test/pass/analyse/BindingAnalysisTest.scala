@@ -7,7 +7,6 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Cons,
   ModuleMethod,
-  ModuleReference,
   PolyglotSymbol,
   Type
 }
@@ -85,12 +84,12 @@ class BindingAnalysisTest extends CompilerTest {
         PolyglotSymbol("Renamed_Class"),
         ModuleMethod("foo")
       )
-      metadata.currentModule shouldEqual ModuleReference.Concrete(ctx.module)
+      metadata.currentModule shouldEqual ctx.moduleReference()
     }
 
     "properly assign module-level methods when a type with the same name as module is defined" in {
       implicit val ctx: ModuleContext = mkModuleContext
-      val moduleName                  = ctx.module.getName.item
+      val moduleName                  = ctx.getName().item
       val ir =
         s"""
            |type $moduleName

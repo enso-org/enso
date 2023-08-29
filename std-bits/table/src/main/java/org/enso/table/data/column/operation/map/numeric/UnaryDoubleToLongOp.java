@@ -1,9 +1,11 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 /** An operation that takes a single double argumebnt and returns a long. */
@@ -16,7 +18,8 @@ public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, Doub
   protected abstract long doOperation(double value);
 
   @Override
-  protected LongStorage run(DoubleStorage storage) {
+  protected LongStorage runUnaryMap(
+      DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];
@@ -30,6 +33,6 @@ public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, Doub
       context.safepoint();
     }
 
-    return new LongStorage(newVals, newVals.length, newMissing);
+    return new LongStorage(newVals, newVals.length, newMissing, IntegerType.INT_64);
   }
 }

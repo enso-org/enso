@@ -84,7 +84,11 @@ export type RegisterOpenAuthenticationUrlCallbackFn = () => void
 /** AWS region in which our Cognito pool is located. */
 export const AWS_REGION = AwsRegion('eu-west-1')
 /** Complete list of OAuth scopes used by the app. */
-export const OAUTH_SCOPES = [OAuthScope('email'), OAuthScope('openid')]
+export const OAUTH_SCOPES = [
+    OAuthScope('email'),
+    OAuthScope('openid'),
+    OAuthScope('aws.cognito.signin.user.admin'),
+]
 /** OAuth response type used in the OAuth flows. */
 export const OAUTH_RESPONSE_TYPE = OAuthResponseType('code')
 

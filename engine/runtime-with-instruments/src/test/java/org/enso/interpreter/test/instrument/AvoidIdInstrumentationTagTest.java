@@ -15,6 +15,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
@@ -39,7 +40,7 @@ public class AvoidIdInstrumentationTagTest {
         )
         .logHandler(OutputStream.nullOutputStream())
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .build();
 

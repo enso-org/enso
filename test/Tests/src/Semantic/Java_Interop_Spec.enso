@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Compile_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -9,6 +10,7 @@ polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
+polyglot java import java.lang.Thread.State
 polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
@@ -65,5 +67,28 @@ spec =
             april1st.year.should_equal 2022
             april1st.month.should_equal 4
             april1st.day.should_equal 1
+
+    Test.group "Java case of" <|
+        Test.specify "case on Thread.State enum" <|
+            match x = case x of
+                State.NEW -> "new"
+                _ -> "unknown"
+            match State.NEW . should_equal "new"
+            match State.BLOCKED . should_equal "unknown"
+
+        Test.specify "case on String static field" <|
+            match x = case x of
+                String.CASE_INSENSITIVE_ORDER -> "match"
+                _ -> "unknown"
+            match String.CASE_INSENSITIVE_ORDER . should_equal "match"
+
+        Test.specify "case on non-existing field yields Compile_Error" <|
+            match x = case x of
+                State.NON_EXISTING -> "match"
+                _ -> "unknown"
+            err = Panic.recover Any (match State.BLOCKED)
+            err . should_fail_with Compile_Error
+            err.to_text . contains "NON_EXISTING" . should_be_true
+            err.to_text . contains "is not visible in this scope" . should_be_true
 
 main = Test_Suite.run_main spec

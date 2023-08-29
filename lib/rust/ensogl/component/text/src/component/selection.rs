@@ -65,6 +65,7 @@ pub mod shape {
     use super::*;
 
     ensogl_core::shape! {
+        above = [ensogl_core::display::shape::compound::rectangle];
         pointer_events = false;
         alignment = center;
         (style:Style, selection:f32, start_time:f32, not_blinking:f32, color_rgb:Vector3<f32>) {
@@ -136,10 +137,11 @@ ensogl_core::define_endpoints_2! {
 /// used for smooth glyph animation. For example, after several glyphs were selected and removed,
 /// the selection will gradually shrink. Making all following glyphs children of the `right_side`
 /// object will make the following glyphs animate while the selection is shrinking.
-#[derive(Clone, CloneRef, Deref)]
+#[derive(Clone, CloneRef, Deref, display::Object)]
 pub struct Selection {
     #[deref]
     frp:   Frp,
+    #[display_object]
     model: SelectionModel,
 }
 
@@ -277,19 +279,13 @@ impl Selection {
     }
 }
 
-impl display::Object for Selection {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 
 
 // ======================
 // === SelectionModel ===
 // ======================
 
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, display::Object)]
 pub struct SelectionModel {
     view:           shape::View,
     display_object: display::object::Instance,

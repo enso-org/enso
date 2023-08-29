@@ -1,5 +1,4 @@
-//! Documentation view visualization generating and presenting Enso Documentation under
-//! the documented node.
+//! Documentation view presenting the documentation in the Component Browser.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -26,17 +25,13 @@ use ensogl::system::web::traits::*;
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::LinkedDocPage;
-use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Scene;
-use ensogl::display::shape::primitive::StyleWatch;
+use ensogl::display::style::FromTheme;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
-use ensogl_component::shadow;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
@@ -48,14 +43,17 @@ use ide_view_graph_editor as graph_editor;
 
 pub mod html;
 
+pub use ensogl_breadcrumbs as breadcrumbs;
+
 
 
 // =================
 // === Constants ===
 // =================
 
-/// The caption is hidden if its height is less than this value.
-const MIN_CAPTION_HEIGHT: f32 = 1.0;
+
+
+const INITIAL_SECTION_NAME: &str = "Popular";
 /// Delay before updating the displayed documentation.
 const DISPLAY_DELAY_MS: i32 = 0;
 
@@ -66,12 +64,16 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width: f32,
-    height: f32,
-    background: color::Rgba,
-    caption_height: f32,
-    caption_animation_spring_multiplier: f32,
-    corner_radius: f32,
+    width:                 f32,
+    height:                f32,
+    background:            color::Rgba,
+    corner_radius:         f32,
+    #[theme_path = "theme::breadcrumbs::height"]
+    breadcrumbs_height:    f32,
+    #[theme_path = "theme::breadcrumbs::padding_x"]
+    breadcrumbs_padding_x: f32,
+    #[theme_path = "theme::breadcrumbs::padding_y"]
+    breadcrumbs_padding_y: f32,
 }
 
 
@@ -81,63 +83,58 @@ pub struct Style {
 
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:      DomSymbol,
-    caption_dom:    DomSymbol,
-    inner_dom:      DomSymbol,
+    style_container: DomSymbol,
+    dom:             DomSymbol,
+    pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:        Rectangle,
-    display_object: display::object::Instance,
-    event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
+    overlay:         Rectangle,
+    background:      Rectangle,
+    display_object:  display::object::Instance,
+    event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
 
 impl Model {
     /// Constructor.
-    fn new(scene: &Scene) -> Self {
+    fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let outer_div = web::document.create_div_or_panic();
-        let outer_dom = DomSymbol::new(&outer_div);
-        let inner_div = web::document.create_div_or_panic();
-        let inner_dom = DomSymbol::new(&inner_div);
+        let style_div = web::document.create_div_or_panic();
+        let style_container = DomSymbol::new(&style_div);
+        let div = web::document.create_div_or_panic();
+        let dom = DomSymbol::new(&div);
+        let background = Rectangle::new();
         let overlay = Rectangle::new().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
-        let caption_div = web::document.create_div_or_panic();
-        let caption_dom = DomSymbol::new(&caption_div);
-        caption_dom.set_inner_html(&html::caption_html());
 
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        // system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
+        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
+        display_object.add_child(&breadcrumbs);
 
-        outer_dom.dom().set_style_or_warn("white-space", "normal");
-        outer_dom.dom().set_style_or_warn("overflow-y", "auto");
-        outer_dom.dom().set_style_or_warn("overflow-x", "auto");
-        outer_dom.dom().set_style_or_warn("pointer-events", "auto");
-        shadow::add_to_dom_element(&outer_dom, &styles);
+        dom.dom().set_attribute_or_warn("class", "scrollable");
+        dom.dom().set_style_or_warn("white-space", "normal");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("overflow-x", "auto");
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
-        inner_dom.dom().set_attribute_or_warn("class", "scrollable");
-        inner_dom.dom().set_style_or_warn("white-space", "normal");
-        inner_dom.dom().set_style_or_warn("overflow-y", "auto");
-        inner_dom.dom().set_style_or_warn("overflow-x", "auto");
-        inner_dom.dom().set_style_or_warn("pointer-events", "auto");
-
-        display_object.add_child(&outer_dom);
-        outer_dom.add_child(&caption_dom);
-        outer_dom.add_child(&inner_dom);
+        display_object.add_child(&background);
+        display_object.add_child(&style_container);
+        display_object.add_child(&dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.node_searcher.manage(&outer_dom);
-        scene.dom.layers.node_searcher.manage(&inner_dom);
-        scene.dom.layers.node_searcher.manage(&caption_dom);
+
+        scene.dom.layers.node_searcher.manage(&style_container);
+        scene.dom.layers.node_searcher.manage(&dom);
 
         Model {
-            outer_dom,
-            inner_dom,
-            caption_dom,
+            style_container,
+            dom,
+            breadcrumbs,
             overlay,
+            background,
             display_object,
             event_handlers: default(),
         }
@@ -149,29 +146,51 @@ impl Model {
         self
     }
 
-    /// Add `<style>` tag with the stylesheet to the `outer_dom`.
+    /// Add `<style>` tag with the stylesheet to the `style_container`.
     fn load_css_stylesheet(&self) {
         let stylesheet = include_str!("../assets/styles.css");
         let element = web::document.create_element_or_panic("style");
         element.set_inner_html(stylesheet);
-        self.outer_dom.append_or_warn(&element);
+        self.style_container.append_or_warn(&element);
+    }
+
+    fn set_initial_breadcrumbs(&self) {
+        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME, None);
+        self.breadcrumbs.set_entries(vec![breadcrumb]);
+        self.breadcrumbs.show_ellipsis(false);
     }
 
     /// Set size of the documentation view.
-    fn set_size(&self, size: Vector2) {
-        self.overlay.set_size(size);
-        self.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
-        self.outer_dom.set_dom_size(Vector2(size.x, size.y));
+    fn size_changed(&self, size: Vector2, width_fraction: f32, style: &Style) {
+        let visible_part = Vector2(size.x * width_fraction, size.y);
+        let dom_size =
+            Vector2(size.x, size.y - style.breadcrumbs_height - style.breadcrumbs_padding_y);
+        self.dom.set_dom_size(dom_size);
+        self.dom.set_xy(dom_size / 2.0);
+        self.overlay.set_size(visible_part);
+        self.breadcrumbs
+            .set_xy(Vector2(style.breadcrumbs_padding_x, size.y - style.breadcrumbs_height));
+        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, style.breadcrumbs_height));
+        self.background.set_size(visible_part);
     }
 
-    /// Display the documentation and scroll to the qualified name if needed.
+    /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
+    fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
+        let percentage = (1.0 - fraction) * 100.0;
+        let clip_path =
+            format!("inset(0 {percentage}% 0 0 round 0px 0px {0}px {0}px)", style.corner_radius);
+        self.dom.set_style_or_warn("clip-path", clip_path);
+        self.size_changed(size, fraction, style);
+    }
+
+    /// Display the documentation and scroll to default position.
     fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
         let linked_pages = docs.linked_doc_pages();
         let html = html::render(&docs);
-        self.inner_dom.dom().set_inner_html(&html);
+        self.dom.dom().set_inner_html(&html);
         self.set_link_handlers(linked_pages, display_doc);
         // Scroll to the top of the page.
-        self.inner_dom.dom().set_scroll_top(0);
+        self.dom.dom().set_scroll_top(0);
     }
 
     /// Setup event handlers for links on the documentation page.
@@ -199,30 +218,16 @@ impl Model {
     /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
-        self.inner_dom.dom().set_inner_html(spinner)
+        self.dom.dom().set_inner_html(spinner)
     }
 
     fn update_style(&self, style: Style) {
-        self.set_size(Vector2(style.width, style.height));
+        // Size is updated separately in [`size_changed`] method.
         self.overlay.set_corner_radius(style.corner_radius);
-        self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        let bg_color = style.background.to_javascript_string();
-        self.outer_dom.set_style_or_warn("background-color", bg_color);
-        self.set_caption_height(0.0, &style);
-    }
+        self.dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
 
-    fn set_caption_height(&self, height: f32, style: &Style) {
-        let panel_size = Vector2(style.width, style.height);
-        self.inner_dom.set_dom_size(Vector2(panel_size.x, panel_size.y - height));
-        self.inner_dom.set_xy(Vector2(0.0, -height / 2.0));
-        self.caption_dom.set_dom_size(Vector2(panel_size.x, height));
-        self.caption_dom.set_xy(Vector2(0.0, panel_size.y / 2.0 - height / 2.0));
-        if height < MIN_CAPTION_HEIGHT {
-            self.outer_dom.remove_child(&self.caption_dom);
-        } else {
-            self.outer_dom.add_child(&self.caption_dom);
-        }
+        self.background.set_color(style.background);
+        self.background.set_corner_radius(style.corner_radius);
     }
 }
 
@@ -236,7 +241,10 @@ ensogl::define_endpoints! {
     Input {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
-        show_hovered_item_preview_caption(bool),
+        /// Set documentation visibility. It will appear or disappear with animation.
+        set_visible(bool),
+        /// Skip show/hide animation.
+        skip_animation(),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -259,31 +267,22 @@ ensogl::define_endpoints! {
 /// however we're unable to summarize methods and atoms of types.
 ///
 /// The default format is the docstring.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
     #[deref]
+    #[display_object]
     pub model:             Model,
     pub visualization_frp: visualization::instance::Frp,
     pub frp:               Frp,
 }
 
 impl View {
-    /// Definition of this visualization.
-    pub fn definition() -> visualization::Definition {
-        let path = visualization::Path::builtin("Documentation View");
-        visualization::Definition::new(
-            visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |app| Ok(Self::new(app).into()),
-        )
-    }
-
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
-        let model = Model::new(scene);
+        let model = Model::new(app);
         model.load_waiting_screen();
         Self { model, visualization_frp, frp }.init(app)
     }
@@ -294,12 +293,14 @@ impl View {
         let scene = &app.display.default_scene;
         let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
+        let breadcrumbs = &model.breadcrumbs;
         let frp = &self.frp;
         let display_delay = frp::io::timer::Timeout::new(network);
-        let caption_anim = Animation::<f32>::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
+        let width_anim = Animation::new(network);
         frp::extend! { network
+
             init <- source_();
 
             // === Displaying documentation ===
@@ -315,27 +316,22 @@ impl View {
             );
 
 
-            // === Hovered item preview caption ===
-
-            spring_muliplier <- style.update.map(|s| s.caption_animation_spring_multiplier);
-            caption_anim.set_spring <+ spring_muliplier.map(|m| Spring::default() * m);
-            show_caption <- frp.show_hovered_item_preview_caption.on_true();
-            hide_caption <- frp.show_hovered_item_preview_caption.on_false();
-            caption_anim.target <+ show_caption.constant(1.0);
-            caption_anim.target <+ hide_caption.constant(0.0);
-            _eval <- all_with(&caption_anim.value, &style.update, f!((value, style) {
-                model.set_caption_height(value * style.caption_height, style)
-            }));
-
-
             // === Size ===
 
-            size <- style.update.map(|s| Vector2(s.width, s.height));
-            eval size((size) model.set_size(*size));
+            size <- style.map(|s| Vector2(s.width, s.height));
+
 
             // === Style ===
 
-            eval style.update((style) model.update_style(*style));
+            eval style((style) model.update_style(*style));
+
+
+            // === Show/hide animation ===
+
+            width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
+            width_anim.skip <+ frp.skip_animation;
+            size_change <- all3(&width_anim.value, &size, &style);
+            eval size_change(((f, sz, st)) model.width_animation_changed(st, *sz, *f));
 
 
             // === Activation ===
@@ -366,21 +362,33 @@ impl View {
 
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
+
+
+            // == Breadcrumbs ==
+
+            let breadcrumbs_background = style_frp.get_color(theme::breadcrumbs::background);
+            breadcrumbs.set_background_color <+ all(breadcrumbs_background, init)._0();
+            let breadcrumbs_text = style_frp.get_color(theme::breadcrumbs::entry::text::selected_color);
+            breadcrumbs.set_text_selected_color <+ all(breadcrumbs_text, init)._0();
+            let breadcrumbs_text_greyed_out_color = style_frp.get_color(theme::breadcrumbs::entry::text::greyed_out_color);
+            breadcrumbs.set_text_greyed_out_color <+ all(breadcrumbs_text_greyed_out_color, init)._0();
+            let breadcrumbs_separator_color = style_frp.get_color(theme::breadcrumbs::separator::color);
+            breadcrumbs.set_separator_color <+ all(breadcrumbs_separator_color, init)._0();
         }
+        model.set_initial_breadcrumbs();
+        frp.set_visible(true);
         init.emit(());
-        style.init.emit(());
         self
     }
 }
 
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
-        Self::new(&t, &t.visualization_frp, &t.frp.network, Some(t.model.outer_dom.clone_ref()))
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        Self::new(
+            &t,
+            &t.visualization_frp,
+            &t.frp.network,
+            Some(t.model.style_container.clone_ref()),
+        )
     }
 }

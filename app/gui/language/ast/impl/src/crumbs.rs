@@ -687,7 +687,7 @@ pub trait TraversableAst: Sized {
             position += child_offset;
             ast = child;
         }
-        Ok(text::Range::new(position, position + ast.len()))
+        Ok(text::Range::new(position, position + ast.repr_len()))
     }
 }
 

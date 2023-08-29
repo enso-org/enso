@@ -20,7 +20,7 @@ spec setup =
     table_builder = setup.table_builder
     test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
-        "TODO: order_by is not yet supported by this backend."
+        "ToDo: order_by is not yet supported by this backend."
     Test.group prefix+"Table.order_by" pending=order_by_pending <|
         mk_table =
             col1 = ["alpha", [3, 2, 1, 0]]

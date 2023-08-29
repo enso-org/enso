@@ -17,7 +17,6 @@ use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_conda;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::wrap_expression;
-use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
@@ -80,6 +79,10 @@ pub mod secret {
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
     pub const ECR_PUSH_RUNTIME_ACCESS_KEY_ID: &str = "ECR_PUSH_RUNTIME_ACCESS_KEY_ID";
+
+    // === Enso Cloud deployment ===
+    /// Static token for admin requests on our Lambdas.
+    pub const ENSO_ADMIN_TOKEN: &str = "ENSO_ADMIN_TOKEN";
 
 
     // === Apple Code Signing & Notarization ===
@@ -459,10 +462,7 @@ pub fn gui() -> Result<Workflow> {
 
 pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut permissions = BTreeMap::new();
-    // Required for `dorny/test-reporter`.
-    permissions.insert("checks".to_string(), Access::Write);
-    let mut workflow = Workflow { name: "Engine CI".into(), on, permissions, ..default() };
+    let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
     workflow.add(PRIMARY_OS, job::CancelWorkflow);
     for os in TARGETED_SYSTEMS {
         workflow.add(os, job::CiCheckBackend);
@@ -470,7 +470,15 @@ pub fn backend() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn benchmark() -> Result<Workflow> {
+pub fn engine_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+}
+
+pub fn std_libs_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+}
+
+fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean{default: Some(false)},
@@ -483,7 +491,7 @@ pub fn benchmark() -> Result<Workflow> {
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
     };
-    let mut workflow = Workflow { name: "Benchmark Engine".into(), on, ..default() };
+    let mut workflow = Workflow { name: name.into(), on, ..default() };
     // Note that we need to use `true == input` instead of `input` because that interprets input as
     // `false` rather than empty string. Empty string is not falsy enough.
     workflow.env(
@@ -491,12 +499,12 @@ pub fn benchmark() -> Result<Workflow> {
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let mut benchmark_job =
-        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime");
-    benchmark_job.timeout_minutes = Some(60 * 8);
+    let mut benchmark_job = plain_job(&BenchmarkRunner, name, cmd_line);
+    benchmark_job.timeout_minutes = timeout;
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }
+
 
 /// Generate workflows for the CI.
 pub fn generate(
@@ -507,7 +515,8 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
-        (repo_root.benchmark_yml.to_path_buf(), benchmark()?),
+        (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
+        (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

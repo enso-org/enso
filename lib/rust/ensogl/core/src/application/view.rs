@@ -49,7 +49,7 @@ impl Registry {
     /// the outset.
     pub fn register<V: View>(&self) {
         let label = V::label().into();
-        for shortcut in V::default_shortcuts() {
+        for shortcut in V::global_shortcuts() {
             self.shortcut_registry.add(shortcut)
         }
         self.definitions.borrow_mut().insert(label);
@@ -66,7 +66,20 @@ impl Registry {
             self.register::<V>();
         }
         let view = V::new(app);
-        self.command_registry.register_instance(&view);
+        let id = self.command_registry.register_instance(&view);
+        let focused_shortcuts = V::focused_shortcuts();
+        if !focused_shortcuts.is_empty() {
+            let network = V::network(&view);
+            let registry = app.shortcuts.instance_bound_child_in_network(
+                id,
+                &view,
+                &app.display.default_scene,
+                network,
+            );
+            for shortcut in focused_shortcuts {
+                registry.add(shortcut)
+            }
+        }
         view
     }
 }

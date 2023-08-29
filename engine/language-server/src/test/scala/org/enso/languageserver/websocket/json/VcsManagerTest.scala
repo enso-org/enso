@@ -306,7 +306,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
     }
 
     "force all pending saves" taggedAs Retry in withCleanRoot { client =>
-      this.timingsConfig.withAutoSave(5.seconds)
+      this.timingsConfig.withAutoSave(10.seconds)
 
       val fooPath = testContentRoot.file.toPath.resolve("foo_pending_save.txt")
       fooPath.toFile.createNewFile()

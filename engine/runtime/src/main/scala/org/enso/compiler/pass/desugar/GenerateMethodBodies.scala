@@ -12,8 +12,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.interpreter.epb.EpbParser
-import org.enso.interpreter.epb.EpbParser.ForeignLanguage
+import org.enso.polyglot.ForeignLanguage
 
 import scala.annotation.{tailrec}
 
@@ -299,7 +298,7 @@ case object GenerateMethodBodies extends IRPass {
   @tailrec
   private def findForeignDefinition(
     body: IR.Expression,
-    lang: Option[EpbParser.ForeignLanguage]
+    lang: Option[ForeignLanguage]
   ): Option[IR.Foreign.Definition] = {
     body match {
       case foreignDef: IR.Foreign.Definition =>

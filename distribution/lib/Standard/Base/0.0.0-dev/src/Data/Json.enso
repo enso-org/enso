@@ -27,7 +27,8 @@ from project.Metadata.Widget import Single_Choice
 
 ## Methods for serializing from and to JSON.
 type Json
-    ## ALIAS From Text
+    ## ALIAS from text
+       GROUP Conversions
 
        Parse a Text value into a `JS_Object` or an Enso primitive value (like
        `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -142,7 +143,8 @@ type JS_Object
             value = get_value self.js_object key
             make_enso value
 
-    ## Get a value for a key of the object.
+    ## GROUP Selections
+       Get a value for a key of the object.
        If the key is not found, throws a `No_Such_Key` error.
 
        Arguments:
@@ -151,17 +153,20 @@ type JS_Object
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Get the keys of the object.
+    ## GROUP Metadata
+       Get the keys of the object.
     field_names : Vector
     field_names self =
         Vector.from_polyglot_array (get_property_names self.js_object)
 
-    ## Gets the number of keys in the object.
+    ## GROUP Metadata
+       Gets the number of keys in the object.
     length : Number
     length self =
         get_property_names self.js_object . length
 
-    ## Convert the object to a Vector of Pairs.
+    ## GROUP Conversions
+       Convert the object to a Vector of Pairs.
     to_vector : Vector
     to_vector self =
         keys = get_property_names self.js_object
@@ -184,7 +189,8 @@ type JS_Object
     to_display_text self =
         self.to_text.to_display_text
 
-    ## Convert to a JSON representation.
+    ## PRIVATE
+       Convert to a JSON representation.
     to_json : Text
     to_json self = self.to_text
 
@@ -215,6 +221,7 @@ type JS_Object_Comparator
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 
+## PRIVATE
 Comparable.from (_:JS_Object) = JS_Object_Comparator
 
 ## PRIVATE

@@ -255,7 +255,7 @@ impl Uniforms {
 // =============
 
 /// The root object for EnsoGL scenes.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, display::Object)]
 pub struct World {
     rc: Rc<WorldDataWithLoop>,
 }
@@ -283,12 +283,6 @@ impl Deref for World {
     type Target = WorldDataWithLoop;
     fn deref(&self) -> &Self::Target {
         &self.rc
-    }
-}
-
-impl display::Object for World {
-    fn display_object(&self) -> &display::object::Instance {
-        self.default_scene.display_object()
     }
 }
 
@@ -422,11 +416,12 @@ pub fn scene() -> Scene {
 // =================
 
 /// The data kept by the [`World`].
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct WorldData {
     #[deref]
     frp: api::private::Output,
+    #[display_object]
     pub default_scene: Scene,
     scene_dirty: dirty::SharedBool,
     uniforms: Uniforms,

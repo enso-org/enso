@@ -536,6 +536,10 @@ where
     fn display_object(&self) -> &display::object::Instance {
         self.model.grid.display_object()
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.model.grid.focus_receiver()
+    }
 }
 
 
@@ -553,7 +557,7 @@ mod tests {
     use ensogl_core::application::frp::API;
     use ensogl_core::application::Application;
 
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, display::Object)]
     struct TestEntry {
         parent: ParentEntry,
     }
@@ -574,12 +578,6 @@ mod tests {
 
         fn frp(&self) -> &EntryFrp<Self> {
             self.parent.frp()
-        }
-    }
-
-    impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance {
-            self.parent.display_object()
         }
     }
 

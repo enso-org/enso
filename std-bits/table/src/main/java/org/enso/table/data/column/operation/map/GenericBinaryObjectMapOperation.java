@@ -9,7 +9,7 @@ import org.graalvm.polyglot.Context;
 
 public abstract class GenericBinaryObjectMapOperation<
         InputType, InputStorageType extends Storage<InputType>, OutputType>
-    extends MapOperation<InputType, InputStorageType> {
+    extends BinaryMapOperation<InputType, InputStorageType> {
 
   protected GenericBinaryObjectMapOperation(
       String name,
@@ -28,7 +28,7 @@ public abstract class GenericBinaryObjectMapOperation<
   protected abstract OutputType run(InputType value, InputType other);
 
   @Override
-  public Storage<?> runMap(
+  public Storage<?> runBinaryMap(
       InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     arg = Polyglot_Utils.convertPolyglotValue(arg);
     if (arg == null) {

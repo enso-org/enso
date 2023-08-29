@@ -1,7 +1,28 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
+@import "react-toastify/dist/ReactToastify.css";
 
 body {
+  overflow: hidden;
+  height: 100vh;
   margin: 0;
+  background: url("enso-assets/background.png") 0 0,
+    linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
+  background-blend-mode: lighten;
+}
+
+.Toastify--animate {
+  animation-duration: 0.2s;
+}
+
+.enso-dashboard {
+  position: absolute;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}
+
+.enso-dashboard > * {
+  pointer-events: auto;
 }
 
 /* These styles MUST still be copied
@@ -42,8 +63,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  border: 1px solid rgba(220, 220, 220, 0.5);
-  background-color: rgba(190, 190, 190, 0.5);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 ::-webkit-scrollbar-corner {
@@ -57,39 +77,16 @@ body {
   @tailwind utilities;
 
   @layer components {
-    .clip-path-top-left {
-      clip-path: polygon(
-        0 0,
-        calc(50% - 2px) 0,
-        calc(50% - 2px) calc(50% - 2px),
-        0 calc(50% - 2px)
-      );
+    .clip-path-top {
+      clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }
 
-    .clip-path-top-right {
+    .clip-path-bottom {
       clip-path: polygon(
-        calc(50% + 2px) 0,
-        100% 0,
-        100% calc(50% - 2px),
-        calc(50% + 2px) calc(50% - 2px)
-      );
-    }
-
-    .clip-path-bottom-left {
-      clip-path: polygon(
-        0 calc(50% + 2px),
-        calc(50% - 2px) calc(50% + 2px),
-        calc(50% - 2px) 100%,
-        0 100%
-      );
-    }
-
-    .clip-path-bottom-right {
-      clip-path: polygon(
-        calc(50% + 2px) calc(50% + 2px),
-        100% calc(50% + 2px),
+        0 calc(50% + 1px),
+        100% calc(50% + 1px),
         100% 100%,
-        calc(50% + 2px) 100%
+        0 100%
       );
     }
 
@@ -119,23 +116,6 @@ body {
       background-image: url("enso-assets/dashed_border.svg");
     }
 
-    .blink-background {
-      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
-      animation: blink 0.5s ease-in-out;
-    }
-
-    @keyframes blink {
-      0% {
-        background: #f0f1f3;
-      }
-      33% {
-        background: #e2e4e9;
-      }
-      100% {
-        background: #f0f1f3;
-      }
-    }
-
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
@@ -145,11 +125,40 @@ body {
       display: none; /* Safari and Chrome */
     }
 
+    :where(
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td:not(.rounded-rows-skip-level),
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td.rounded-rows-skip-level
+          > *
+      ) {
+      background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    :where(
+        .rounded-rows > tbody > tr.selected > td:not(.rounded-rows-skip-level),
+        .rounded-rows > tbody > tr.selected > td.rounded-rows-skip-level > *
+      ) {
+      background-color: rgba(255, 255, 255, 0.4);
+    }
+
     .h-templates-custom {
       height: 21.5rem;
 
-      @media screen and (min-width: 1771px) {
+      @media screen and (min-width: 110.6875rem) {
         height: 11rem;
+      }
+    }
+
+    .search-bar.search-bar {
+      @media screen and (max-width: 59rem) {
+        position: unset;
+        transform: unset;
+        left: unset;
       }
     }
   }

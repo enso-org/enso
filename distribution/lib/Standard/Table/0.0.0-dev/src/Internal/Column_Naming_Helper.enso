@@ -1,0 +1,171 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Internal.Naming_Properties.Unlimited_Naming_Properties
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from project.Errors import Clashing_Column_Name, Invalid_Column_Names
+from project.Internal.Table_Helpers import is_column
+
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## PRIVATE
+   An utility module for validating and generating column names.
+type Column_Naming_Helper
+    ## PRIVATE
+    Value naming_properties
+
+    ## PRIVATE
+    has_length_limit : Boolean
+    has_length_limit self = self.naming_properties.size_limit.is_nothing.not
+
+    ## PRIVATE
+       Creates a `Unique_Name_Strategy` that will generate names keeping the
+       column naming limitations in mind.
+    create_unique_name_strategy : Unique_Name_Strategy
+    create_unique_name_strategy self =
+        Unique_Name_Strategy.new self.naming_properties
+
+    ## PRIVATE
+       Checks if the name is valid and runs the action, otherwise raises an error.
+    ensure_name_is_valid self name ~action =
+        checked = Invalid_Column_Names.handle_java_exception <|
+            Java_Column.ensureNameIsValid name
+        checked.if_not_error <| case self.naming_properties.size_limit of
+            Nothing -> action
+            max_size ->
+                name_size = self.naming_properties.encoded_size name
+                if name_size <= max_size then action else
+                    self.naming_properties.raise_name_too_long_error "column" name
+
+    ## PRIVATE
+       Checks if the names are valid and runs the action, otherwise raises an error.
+    validate_many_column_names self names ~action =
+        names.all (name-> self.ensure_name_is_valid name True) . if_not_error action
+
+    ## PRIVATE
+       Ensures that the name does not contain the null character.
+    sanitize_name : Text -> Text
+    sanitize_name self name =
+        # Using the regex matcher due to the #5831 bug.
+        cleaned = name.replace '\0'.to_regex '\\0'
+        case self.naming_properties.size_limit of
+            Nothing  -> cleaned
+            max_size -> self.naming_properties.truncate cleaned max_size
+
+    ## PRIVATE
+       Checks if the new name is unambiguously different from the existing ones.
+       In particular, it is used for case-insensitive backends to ensure that
+       there are no two columns that while not equal, are equal ignoring case -
+       which could introduce problems.
+    check_ambiguity : Vector Text -> Text -> Any -> Any ! Clashing_Column_Name
+    check_ambiguity self existing_names new_name ~continuation =
+        case self.naming_properties.is_case_sensitive of
+            # Nothing to check for case-sensitive backends.
+            True -> continuation
+            False ->
+                case_insensitive_match = existing_names.find if_missing=Nothing name-> name.equals_ignore_case new_name
+                case case_insensitive_match of
+                    # No matches at all, so we can continue.
+                    Nothing -> continuation
+                    # We've got a match.
+                    existing_name ->
+                        is_exact = existing_name == new_name
+                        if is_exact then continuation else
+                            # If the match was not exact, we have ambiguity.
+                            Error.throw (Clashing_Column_Name.Error new_name existing_name)
+
+    ## PRIVATE
+       Generates a column name for a binary operation.
+    binary_operation_name : Text -> Any -> Any -> Text
+    binary_operation_name self operation_name left right =
+        lhs = self.to_expression_text left
+        rhs = self.to_expression_text right
+        self.concat add_spaces=True [lhs, operation_name, rhs]
+
+    ## PRIVATE
+       Generates a column name for a function-like transformation.
+    function_name : Text -> Vector Any -> Text
+    function_name self function_name arguments =
+        arguments_as_expr = arguments.map self.to_expression_text
+        arguments_with_commas = [arguments_as_expr.first] + (arguments_as_expr.drop 1).flat_map arg-> [", ", arg]
+        self.concat add_spaces=False <|
+            [function_name, "("] + arguments_with_commas + [")"]
+
+    ## PRIVATE
+       Serializes a given object into an expression-like text approximation.
+
+       For columns, it will return its name wrapped in `[` and `]`, with the `]`
+       symbols in the name escaped as `]]`, according to the expression rules.
+       For other objects, it will return its pretty-printed representation.
+    to_expression_text self value =
+        if is_column value then "[" + value.name.replace "]" "]]" + "]" else
+            value.pretty
+
+    ## PRIVATE
+       Concatenates a vector of texts that are meant to make a single column
+       name, ensuring it will fit within the limit.
+
+       It may truncate the whole text or also truncate individual parts to try
+       to display every part.
+    concat : Vector Text -> Boolean -> Text
+    concat self texts add_spaces=True =
+        separator = if add_spaces then " " else ""
+        joined = texts.join separator
+        case self.naming_properties.size_limit of
+            Nothing  -> joined
+            max_size ->
+                base_size = self.naming_properties.encoded_size joined
+                # If it still fits the limit, we are ok.
+                if base_size <= max_size then joined else
+                    # If not, we need to truncate.
+                    separator_size = case add_spaces of
+                        False -> 0
+                        True -> self.naming_properties.encoded_size separator
+
+                    # Estimate the space left for each part to be concatenated.
+                    remaining_space = max_size - (separator_size * (texts.length - 1))
+                    min_bytes_per_part = 5
+
+                    ## If there are so many parts, each of them has very little space,
+                       we cannot fit all of them - so we just keep the first few and the last one.
+                    parts_to_include = case remaining_space <= min_bytes_per_part * texts.length of
+                        # If there is too little space, we will just pick a few parts:
+                        True ->
+                            mid = Math.min (texts.length-1) (remaining_space.div min_bytes_per_part)
+                            texts.take (First 1+mid) + texts.take (Last 1)
+                        False -> texts
+                    new_remaining_space = max_size - (separator_size * (parts_to_include.length - 1))
+                    initial_size_per_part = new_remaining_space.div parts_to_include.length
+
+                    # Now we compute how many parts will fit the initial_size_per_part without truncating - these shorter parts fit as a whole.
+                    part_sizes = parts_to_include.map self.naming_properties.encoded_size
+                    needs_truncating = part_sizes.map (size-> size > initial_size_per_part)
+                    non_truncated_parts_size = part_sizes.zip needs_truncating (size-> is_truncated-> if is_truncated then 0 else size) . fold 0 (+)
+                    truncated_parts_count = needs_truncating.fold 0 acc-> is_truncated->
+                        if is_truncated then acc+1 else acc
+
+                    ## Now having accounted for the parts that do not need truncation,
+                       we distribute the remaining space among the ones that do.
+                    truncated_part_size = (new_remaining_space - non_truncated_parts_size).div truncated_parts_count
+                    truncated_suffix = "..."
+                    truncated_suffix_size = self.naming_properties.encoded_size truncated_suffix
+                    transformed_parts = parts_to_include.zip needs_truncating part-> is_truncated->
+                        case is_truncated of
+                            False -> part
+                            True ->
+                                ## Caveat: we now have more space for each part than when computing `needs_truncating`,
+                                   so some parts may no longer need to be truncated if they were just slightly over the limit.
+                                still_needs_truncation = self.naming_properties.encoded_size part > truncated_part_size
+                                if still_needs_truncation.not then part else
+                                    self.naming_properties.truncate part (truncated_part_size - truncated_suffix_size) + truncated_suffix
+                    new_joined = transformed_parts.join separator
+
+                    # Just to be sure, we still truncate the end result.
+                    self.naming_properties.truncate new_joined max_size
+
+    ## PRIVATE
+       A `Column_Naming_Helper` for the in-memory backend - having no length limits.
+    in_memory : Column_Naming_Helper
+    in_memory =
+        Column_Naming_Helper.Value Unlimited_Naming_Properties.Instance

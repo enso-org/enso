@@ -23,6 +23,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -52,7 +53,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, Unsupported_Name
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
@@ -101,7 +102,8 @@ type Table
         True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
         False -> self.to_sql.to_js_object
 
-    ## Returns the column with the given name.
+    ## GROUP Standard.Base.Selections
+       Returns the column with the given name.
 
        Arguments:
        - selector: The name or index of the column to get.
@@ -125,23 +127,28 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
-    ## Gets the first column.
+    ## GROUP Standard.Base.Selections
+       Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## Gets the second column
+    ## GROUP Standard.Base.Selections
+       Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## Gets the last column
+    ## GROUP Standard.Base.Selections
+       Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## Returns the number of columns in the table.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
 
-    ## ICON select_column
+    ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
@@ -197,6 +204,7 @@ type Table
         self.updated_columns new_columns
 
     ## ALIAS drop_columns
+       GROUP Standard.Base.Selections
        Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
@@ -248,8 +256,8 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## ALIAS select_na
-       ALIAS select_missing_columns
+    ## ALIAS select_missing_columns, select_na
+       GROUP Standard.Base.Selections
 
        Select columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -274,8 +282,8 @@ type Table
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 
-    ## ALIAS drop_na
-       ALIAS drop_missing_columns
+    ## ALIAS drop_missing_columns, drop_na
+       GROUP Standard.Base.Selections
 
        Remove columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -300,7 +308,8 @@ type Table
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 
-    ## Returns a new table with the specified selection of columns moved to
+    ## GROUP Standard.Base.Selections
+       Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
        Arguments:
@@ -353,7 +362,8 @@ type Table
         new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
         self.updated_columns new_columns
 
-    ## Returns a new table with the columns sorted by name according to the
+    ## GROUP Standard.Base.Selections
+       Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
        case-sensitive ascending order based on the normalized Unicode ordering.
 
@@ -380,7 +390,8 @@ type Table
         new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
         self.updated_columns new_columns
 
-    ## Returns a new table with the columns renamed based on either a mapping
+    ## GROUP Standard.Base.Metadata
+       Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
 
        Arguments:
@@ -401,13 +412,13 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
+         - If any of the new names are invalid, an `Invalid_Column_Names`
+           error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
                name mapping, a `Ambiguous_Column_Rename`.
              - If in `By_Position` mode and more names than columns are
                provided, a `Too_Many_Column_Names_Provided`.
-             - If any of the new names are invalid, an
-               `Invalid_Output_Column_Names`.
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
@@ -441,11 +452,34 @@ type Table
 
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+
+    ## GROUP Standard.Base.Metadata
+       Returns a new table with the columns renamed based on entries in the
+       first row.
+
+       Arguments:
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If any of the new names are invalid, an
+           `Invalid_Column_Names`.
+         - If any of the new names clash either with existing names or each
+           other, a Duplicate_Output_Column_Names.
+
+       > Example
+         Rename the column based on the first row
+
+              table.use_first_row_as_names
+    use_first_row_as_names : Problem_Behavior -> Table
+    use_first_row_as_names self (on_problems=Report_Warning) =
+        _ = on_problems
+        Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## PRIVATE
 
@@ -463,7 +497,8 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error.Error "Column "+column.name)
 
-    ## ALIAS Filter Rows
+    ## ALIAS filter rows
+       GROUP Standard.Base.Selections
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -532,7 +567,8 @@ type Table
            table_at = self.at column
            self.filter table_at filter on_problems
 
-    ## ALIAS Filter Rows
+    ## ALIAS filter rows
+       GROUP Standard.Base.Selections
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -568,7 +604,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## Creates a new Table with the specified range of rows from the input
+    ## GROUP Standard.Base.Selections
+       Creates a new Table with the specified range of rows from the input
        Table.
 
        Arguments:
@@ -580,7 +617,8 @@ type Table
         msg = "`Table.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Creates a new Table from the input with the specified range of rows
+    ## GROUP Standard.Base.Selections
+       Creates a new Table from the input with the specified range of rows
        removed.
 
 
@@ -593,7 +631,8 @@ type Table
         msg = "`Table.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## ALIAS rank, record id, add index column
+    ## ALIAS add index column, rank, record id
+       GROUP Standard.Base.Values
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -665,6 +704,7 @@ type Table
 
 
     ## UNSTABLE
+       GROUP Standard.Base.Selections
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
@@ -699,7 +739,8 @@ type Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## ALIAS Add Column, Update Column, New Column
+    ## ALIAS add column, new column, update column
+       GROUP Standard.Base.Values
        Sets the column value at the given name.
 
        Arguments:
@@ -712,8 +753,6 @@ type Table
 
        ! Error Conditions
 
-         - In the Database backend, if the column name is not valid, an
-           `Unsupported_Name` dataflow error is raised.
          - If the column name is already present and `set_mode` is `Add`, a
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
@@ -743,11 +782,13 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
-            _ : Column -> column
+            _ : Column ->
+                if Helpers.check_integrity self column then column else
+                    Error.throw (Integrity_Error.Error "Column "+column.name)
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
@@ -757,13 +798,13 @@ type Table
            Nothing -> resolved
            _ : Text -> resolved.rename new_name
 
-        renamed.if_not_error <|
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
-            to_add = case set_mode of
+            check_add = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
                 Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
-            if to_add then
+            check_add.if_not_error <|
                 new_col = renamed.as_internal
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
                     Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
@@ -796,7 +837,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
+        result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -821,7 +862,8 @@ type Table
         Array_Proxy.new self.internal_columns.length i->
             self.make_column (self.internal_columns.at i)
 
-    ## Returns the vector of column names contained in this table.
+    ## GROUP Standard.Base.Metadata
+       Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
@@ -839,17 +881,20 @@ type Table
     rows self max_rows=1000 =
         self.read max_rows=max_rows . rows
 
-    ## Returns the first row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
         self.read max_rows=1 . rows . first
 
-    ## Returns the second row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
         self.read max_rows=2 . rows . second
 
-    ## Returns the last row of the table.
+    ## GROUP Standard.Base.Selections
+       Returns the last row of the table.
 
        In the database backend, this function has to scan through all the
        results of the query.
@@ -862,6 +907,7 @@ type Table
             table.rows.first
 
     ## ALIAS sort
+       GROUP Standard.Base.Selections
        Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -970,7 +1016,8 @@ type Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## Returns the distinct set of rows within the specified columns from the
+    ## GROUP Standard.Base.Selections
+       Returns the distinct set of rows within the specified columns from the
        input table.
 
        When multiple rows have the same values within the specified columns, the
@@ -1011,7 +1058,8 @@ type Table
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
 
-    ## Joins two tables according to the specified join conditions.
+    ## GROUP Standard.Base.Calculations
+       Joins two tables according to the specified join conditions.
 
        Arguments:
        - right: The table to join with.
@@ -1084,7 +1132,7 @@ type Table
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
-    join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Text -> Problem_Behavior -> Table
+    join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right (join_kind : Join_Kind = Join_Kind.Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=Report_Warning) =
         self.join_or_cross_join right join_kind on right_prefix on_problems
 
@@ -1102,20 +1150,25 @@ type Table
                     True
         if can_proceed then
             left = self
-            new_table_name = left.name + "_" + right.name
+            table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+            table_name_deduplicator.mark_used [left.name, right.name]
+            new_table_name = table_name_deduplicator.make_unique <|
+                left.name + "_" + right.name
 
             needed_indicators = case join_kind of
                 Join_Kind.Left_Exclusive  -> Pair.new False True
                 Join_Kind.Right_Exclusive -> Pair.new True False
                 _ -> Pair.new False False
-            subquery_setups = Database_Join_Helper.prepare_subqueries left right needed_indicators.first needed_indicators.second
+            subquery_setups = Database_Join_Helper.prepare_subqueries self.connection left right needed_indicators.first needed_indicators.second
             left_setup = subquery_setups.first
             right_setup = subquery_setups.second
 
             problem_builder = Problem_Builder.new
             join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
-            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+
+            column_naming_helper = self.connection.base_connection.column_naming_helper
+            result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
 
             ## TODO proper equality of nulls in join conditions, see:
                https://www.pivotaltracker.com/story/show/184109759
@@ -1144,7 +1197,8 @@ type Table
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 Table.Value new_table_name self.connection result_columns new_ctx
 
-    ## ALIAS Cartesian Join
+    ## ALIAS cartesian join
+       GROUP Standard.Base.Calculations
        Joins tables by pairing every row of the left table with every row of the
        right table.
 
@@ -1196,7 +1250,8 @@ type Table
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
-    ## ALIAS Join By Row Position
+    ## ALIAS join by row position
+       GROUP Standard.Base.Calculations
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -1247,6 +1302,7 @@ type Table
         Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
 
     ## ALIAS append, concat
+       GROUP Standard.Base.Calculations
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -1379,7 +1435,10 @@ type Table
                             [c.name, c.expression]
                         Query.Select pairs t.context
 
-                    union_alias = all_tables.map .name . join "_"
+                    table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                    table_name_deduplicator.mark_used (all_tables.map .name)
+                    union_alias = table_name_deduplicator.make_unique <|
+                        all_tables.map .name . join "_"
                     new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
                     ## TODO [RW] The result type is currently fetched
@@ -1399,6 +1458,7 @@ type Table
                     Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group by, summarize
+       GROUP Standard.Base.Calculations
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
@@ -1441,7 +1501,7 @@ type Table
          - The following additional problems may be reported according to the
            `on_problems` settings:
            - If there are invalid column names in the output table,
-             a `Invalid_Output_Column_Names`.
+             a `Invalid_Column_Names`.
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
@@ -1456,9 +1516,9 @@ type Table
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->
             column = self.make_column internal_column
@@ -1506,7 +1566,8 @@ type Table
                     if new_columns.is_empty then (Error.throw No_Output_Columns) else
                         self.updated_context_and_columns new_ctx new_columns subquery=True
 
-    ## Returns a new table with a chosen subset of columns left unchanged and
+    ## GROUP Standard.Base.Calculations
+       Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
 
@@ -1561,7 +1622,8 @@ type Table
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Returns a new table using a chosen field as the column header and then
+    ## GROUP Standard.Base.Calculations
+       Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
 
@@ -1583,6 +1645,8 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If a column name generated from the input data is invalid,
+           `Invalid_Column_Names` error is raised.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
            raised.
          - Additionally, the following problems may be reported according to the
@@ -1611,7 +1675,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1619,7 +1683,8 @@ type Table
         msg = "Cross tab of database tables is not supported, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Parses columns within a Table to a specific value type.
+    ## GROUP Standard.Base.Conversions
+       Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
 
@@ -1676,7 +1741,8 @@ type Table
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
 
-    ## Splits a column of text into a set of new columns.
+    ## GROUP Standard.Base.Conversions
+       Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
        incrementing number after.
@@ -1695,10 +1761,11 @@ type Table
     @delimiter make_delimiter_selector
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
-        _ = [column delimiter column_count on_problems]
+        _ = [column, delimiter, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
 
-    ## Splits a column of text into a set of new rows.
+    ## GROUP Standard.Base.Conversions
+       Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
        Arguments:
@@ -1708,10 +1775,11 @@ type Table
     @delimiter make_delimiter_selector
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
-        _ = [column delimiter]
+        _ = [column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
 
-    ## Tokenizes a column of text into a set of new columns using a regular
+    ## GROUP Standard.Base.Conversions
+       Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
@@ -1734,10 +1802,11 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
-        _ = [column pattern case_sensitivity column_count on_problems]
+        _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
-    ## Tokenizes a column of text into a set of new rows using a regular
+    ## GROUP Standard.Base.Conversions
+       Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned.
@@ -1757,7 +1826,8 @@ type Table
         _ = [column, pattern, case_sensitivity, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
-    ## Converts a Text column into new columns using a regular expression
+    ## GROUP Standard.Base.Conversions
+       Converts a Text column into new columns using a regular expression
        pattern.
 
        Each match becomes a row in the table.
@@ -1782,12 +1852,13 @@ type Table
        If the new name is already in use it will be renamed following the normal
        suffixing strategy.
     @column Widget_Helpers.make_column_name_selector
-    parse_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+    parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
-    ## Cast the selected columns to a specific type.
+    ## GROUP Standard.Base.Conversions
+       Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
        columns having the new types.
@@ -1845,8 +1916,8 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## ALIAS dropna
-       ALIAS drop_missing_rows
+    ## ALIAS drop_missing_rows, dropna
+       GROUP Standard.Base.Selections
        Remove rows which are all blank or containing blank values.
 
        Arguments:
@@ -1861,6 +1932,7 @@ type Table
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## ALIAS count
+       GROUP Standard.Base.Metadata
        Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
@@ -1877,7 +1949,8 @@ type Table
         table = self.connection.read_statement sql
         table.at column_name . at 0
 
-    ## Returns a materialized dataframe containing rows of this table.
+    ## GROUP Standard.Base.Input
+       Returns a materialized dataframe containing rows of this table.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -1905,7 +1978,8 @@ type Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## Returns a Table describing this table's contents.
+    ## GROUP Standard.Base.Metadata
+       Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
        each column.
@@ -1944,6 +2018,10 @@ type Table
     columns_helper : Table_Column_Helper
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
+
+    ## PRIVATE
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
 
@@ -2014,7 +2092,8 @@ type Table
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 
-    ## This function writes the table into a file.
+    ## GROUP Standard.Base.Output
+       This function writes the table into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
 
@@ -2075,7 +2154,8 @@ type Table
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
 
-    ## ALIAS Fill Missing, if_nothing
+    ## ALIAS fill missing, if_nothing
+       GROUP Standard.Base.Values
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2097,7 +2177,8 @@ type Table
         transformer col = col.fill_nothing default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## ALIAS Fill Empty, if_empty
+    ## ALIAS fill empty, if_empty
+       GROUP Standard.Base.Values
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -2119,7 +2200,8 @@ type Table
         transformer col = col.fill_empty default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+    ## GROUP Standard.Base.Text
+       Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
 
@@ -2165,14 +2247,24 @@ type Table
    - columns: List of columns to fetch. Each column is represented by a pair of
      column name and its expected SQL Type.
    - ctx: The context to use for the table.
-make_table : Connection -> Text -> Vector -> Context -> Table
-make_table connection table_name columns ctx =
+   - on_problems: The behavior to use when problems are encountered.
+make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> Table
+make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
+        problem_builder = Problem_Builder.new
+        column_names_validator = connection.base_connection.column_naming_helper.create_unique_name_strategy
         cols = columns.map p->
-            name = p.first
+            raw_name = p.first
             sql_type = p.second
-            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name)
-        Table.Value table_name connection cols ctx
+            # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
+            enso_name = column_names_validator.make_unique raw_name
+            # The expression keeps the original 'raw' name coming from the database.
+            expression = SQL_Expression.Column table_name raw_name
+            Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
+        problem_builder.report_unique_name_strategy column_names_validator
+        # We do not want to stop the table from being fetched, so we report the issues as warnings.
+        problem_builder.attach_problems_before on_problems <|
+            Table.Value table_name connection cols ctx
 
 ## PRIVATE
 
@@ -2206,39 +2298,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
         table + missing
 
 ## PRIVATE
-
-   Transforms `preferred_names` names in such a way to not collide with
-   `used_names`.
-
-   Arguments:
-   - used_names: The names that have already been used.
-   - preferred_names: The names that the user wants to use.
-
-   If a name from `preferred_names` does not collide with others, it is kept as
-   is, otherwise numerical suffixes are added.
-fresh_names : Vector Text -> Vector Text -> Vector Text
-fresh_names used_names preferred_names =
-   unique = Unique_Name_Strategy.new
-   unique.mark_used used_names
-   unique.make_all_unique preferred_names
-
-## PRIVATE
-
-   Ensures that the provided columns do not clash with the vector of names
-   provided as first argument.
-
-   Arguments:
-   - used_names: The already used names.
-   - columns: The columns to rename to avoid clashes.
-
-   Original column names are kept if possible, but if they would clash, the
-   columns are renamed.
-freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
-freshen_columns used_names columns =
-    new_names = fresh_names used_names (columns.map .name)
-    Helpers.rename_internal_columns columns new_names
-
-## PRIVATE
 type Wrapped_Error
     ## PRIVATE
     Value value
@@ -2256,7 +2315,8 @@ check_db_table arg_name table =
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
                 True -> True
 
-## By default, join on the first column, unless it's a cross join, in which
+## PRIVATE
+   By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of

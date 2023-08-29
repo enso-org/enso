@@ -42,7 +42,7 @@ rename_columns_if_needed table name on_problems build_table_from_columns =
     if column_names.contains name . not then table else
         problems = [Duplicate_Output_Column_Names.Error [name]]
         on_problems.attach_problems_before problems <|
-            unique_name_strategy = Unique_Name_Strategy.new
+            unique_name_strategy = table.column_naming_helper.create_unique_name_strategy
             unique_name_strategy.mark_used column_names
             new_name = unique_name_strategy.make_unique name
             new_columns = table.columns.map column->

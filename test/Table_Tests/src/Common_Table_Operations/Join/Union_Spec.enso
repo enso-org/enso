@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import all
 
@@ -338,3 +339,24 @@ spec setup =
             t4 = table_builder [["A", [1.5]]]
             e5 = t1.union t4 allow_type_widening=False on_problems=Problem_Behavior.Ignore
             e5.should_fail_with No_Output_Columns
+
+        t1 = table_builder [["X", [0, 1, 2]], ["Y", ['aa', 'bb', 'cc']]] . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=2 variable_length=False)
+        t2 = table_builder [["X", [3, 4, 5]], ["Y", ['x', 'y', 'z']]] . cast "X" (Value_Type.Integer Bits.Bits_32) . cast "Y" (Value_Type.Char size=1 variable_length=False)
+        supports_complex_types = (t1.is_error || t2.is_error || Problems.get_attached_warnings t1 . not_empty).not
+        if supports_complex_types then
+            Test.specify "should find a common type (2)" <|
+                t12 = t1.union t2
+                Problems.assume_no_problems t12
+                t12.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                t12.at "Y" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
+
+                t12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
+                t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
+
+            Test.specify "should fail to find a common type if widening is not allowed (2)" <|
+                # ToDo No_Output_Columns should have Column_Type_Mismatch as its cause for better readability (#7635)
+                t1.union t2 allow_type_widening=False . should_fail_with No_Output_Columns
+
+                # And this should report Column_Type_Mismatch as the more important error too.
+                #t1.union t2 allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with Column_Type_Mismatch
+                t1.union t2 allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with No_Output_Columns

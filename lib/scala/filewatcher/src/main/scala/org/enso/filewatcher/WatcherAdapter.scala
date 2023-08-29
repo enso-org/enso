@@ -12,11 +12,10 @@ import java.nio.file.Path
   */
 final class WatcherAdapter(
   root: Path,
-  eventCallback: WatcherAdapter.WatcherEvent => Unit,
-  errorCallback: WatcherAdapter.WatcherError => Unit
-) extends DirectoryChangeListener {
-
-  import WatcherAdapter._
+  eventCallback: Watcher.WatcherEvent => Unit,
+  errorCallback: Watcher.WatcherError => Unit
+) extends Watcher
+    with DirectoryChangeListener {
 
   private val watcher: DirectoryWatcher = DirectoryWatcher
     .builder()
@@ -24,87 +23,57 @@ final class WatcherAdapter(
     .listener(this)
     .build()
 
-  def start(): Unit = {
+  /** @inheritdoc */
+  override def start(): Unit = {
     watcher.watch()
   }
 
-  def stop(): Unit = {
+  /** @inheritdoc */
+  override def stop(): Unit = {
     watcher.close()
   }
 
   /** A callback executed by `DirectoryWatcher` on file system event. */
   override def onEvent(event: DirectoryChangeEvent): Unit = {
-    WatcherEvent
-      .from(event)
+    WatcherAdapter
+      .watcherEvent(event)
       .foreach(eventCallback)
   }
 
   override def onException(e: Exception): Unit = {
-    errorCallback(WatcherAdapter.WatcherError(e))
+    errorCallback(Watcher.WatcherError(e))
   }
 }
 
 object WatcherAdapter {
 
-  /** Type of a file event. */
-  sealed trait EventType
-
-  private object EventType {
-
-    /** Creates [[EventType]] from file system event type.
-      *
-      * @param eventType file system event type
-      * @return watcher event type
-      */
-    def from(eventType: DirectoryChangeEvent.EventType): Option[EventType] =
-      eventType match {
-        case DirectoryChangeEvent.EventType.CREATE   => Some(EventTypeCreate)
-        case DirectoryChangeEvent.EventType.MODIFY   => Some(EventTypeModify)
-        case DirectoryChangeEvent.EventType.DELETE   => Some(EventTypeDelete)
-        case DirectoryChangeEvent.EventType.OVERFLOW => None
-      }
-  }
-
-  /** Event type indicating file creation. */
-  case object EventTypeCreate extends EventType
-
-  /** Event type indicating file modification. */
-  case object EventTypeModify extends EventType
-
-  /** Event type indicating file deletion. */
-  case object EventTypeDelete extends EventType
-
-  /** Object representing file system event.
+  /** Creates [[Watcher.EventType]] from file system event type.
     *
-    * @param path path to the file system object
-    * @param eventType event type
+    * @param eventType file system event type
+    * @return watcher event type
     */
-  case class WatcherEvent(path: Path, eventType: EventType)
+  private def eventType(
+    eventType: DirectoryChangeEvent.EventType
+  ): Option[Watcher.EventType] =
+    eventType match {
+      case DirectoryChangeEvent.EventType.CREATE =>
+        Some(Watcher.EventTypeCreate)
+      case DirectoryChangeEvent.EventType.MODIFY =>
+        Some(Watcher.EventTypeModify)
+      case DirectoryChangeEvent.EventType.DELETE =>
+        Some(Watcher.EventTypeDelete)
+      case DirectoryChangeEvent.EventType.OVERFLOW => None
+    }
 
-  object WatcherEvent {
-
-    /** Conversion form file system event to [[WatcherEvent]]
-      *
-      * @param event file system event
-      * @return watcher event
-      */
-    def from(event: DirectoryChangeEvent): Option[WatcherEvent] =
-      EventType
-        .from(event.eventType())
-        .map(WatcherEvent(event.path(), _))
-  }
-
-  /** Object representing en error.
+  /** Conversion form file system event to [[Watcher.WatcherEvent]]
     *
-    * @param exception an error
+    * @param event file system event
+    * @return watcher event
     */
-  case class WatcherError(exception: Exception)
-
-  def build(
-    root: Path,
-    eventCallback: WatcherEvent => Unit,
-    exceptionCallback: WatcherError => Unit
-  ): WatcherAdapter =
-    new WatcherAdapter(root, eventCallback, exceptionCallback)
+  private def watcherEvent(
+    event: DirectoryChangeEvent
+  ): Option[Watcher.WatcherEvent] =
+    eventType(event.eventType())
+      .map(Watcher.WatcherEvent(event.path(), _))
 
 }

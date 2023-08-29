@@ -387,6 +387,7 @@ the following flags:
   allow for manual analysis and discovery of optimisation failures.
 - `--showCompilations`: Prints the truffle compilation trace information.
 - `--printAssembly`: Prints the assembly output from the HotSpot JIT tier.
+- `--debugger`: Launches the JVM with the remote debugger enabled.
 
 For more information on this sbt command, please see
 [WithDebugCommand.scala](../project/WithDebugCommand.scala).
@@ -756,7 +757,8 @@ interface of the runner prints all server options when you execute it with
 Below are options uses by the Language Server:
 
 - `--server`: Runs the Language Server
-- `--root-id <uuid>`: Content root id.
+- `--root-id <uuid>`: Content root id. The Language Server chooses one randomly,
+  so any valid UUID can be passed.
 - `--path <path>`: Path to the content root.
 - `--interface <interface>`: Interface for processing all incoming connections.
   Default value is 127.0.0.1

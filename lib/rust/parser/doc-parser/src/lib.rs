@@ -34,6 +34,7 @@ use enso_prelude::*;
 pub mod doc_sections;
 
 pub use doc_sections::parse;
+pub use doc_sections::Argument;
 pub use doc_sections::DocSection;
 
 
@@ -63,6 +64,7 @@ pub enum Tag {
     Alias,
     Deprecated,
     Icon,
+    Group,
     Modified,
     Private,
     Removed,
@@ -92,6 +94,7 @@ impl Tag {
             "ALIAS" => Some(Alias),
             "DEPRECATED" => Some(Deprecated),
             "ICON" => Some(Icon),
+            "GROUP" => Some(Group),
             "MODIFIED" => Some(Modified),
             "PRIVATE" => Some(Private),
             "REMOVED" => Some(Removed),
@@ -110,6 +113,7 @@ impl Tag {
             Tag::Alias => "ALIAS",
             Tag::Deprecated => "DEPRECATED",
             Tag::Icon => "ICON",
+            Tag::Group => "GROUP",
             Tag::Modified => "MODIFIED",
             Tag::Private => "PRIVATE",
             Tag::Removed => "REMOVED",
@@ -687,4 +691,71 @@ pub trait TokenConsumer<L> {
     /// Close a scope, of specified type. As scopes form a stack, the scope closed will always be
     /// the most recently-opened scope that has not been closed.
     fn end(&mut self, scope: ScopeType);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_list_parsing() {
+        use crate::doc_sections::Argument;
+        use crate::DocSection::*;
+        use crate::Mark::*;
+        use crate::Tag::*;
+
+        let docs = r#"
+        ALIAS From Text
+
+        Parses a textual representation of an integer into an integer number, returning
+        a `Number_Parse_Error` if the text does not represent a valid integer.
+
+        Arguments:
+        - text: The text to parse into a integer.
+        - radix: The number base to use for parsing (defaults to 10). `radix`
+            must be between 2 and 36 (inclusive)
+        - arg argument without colon
+        - argument_without_description
+
+        - List item 1
+        - List item 2
+        - List item 3
+
+        > Example
+            Parse the text "20220216" into an integer number.
+
+                Integer.parse "20220216""#;
+        let res = parse(docs);
+        let expected = [
+            Tag { tag: Alias, body: "From Text".into() }, 
+            Paragraph { body: "Parses a textual representation of an integer into an integer number, \
+                returning a <code>Number_Parse_Error</code> if the text does not represent a valid integer.".into() },
+            Keyed { key: "Arguments".into(), body: "".into() },
+            Arguments { args: [
+                Argument {
+                    name: "text".into(),
+                    description: "The text to parse into a integer.".into() },
+                Argument {
+                    name: "radix".into(),
+                    description: "The number base to use for parsing (defaults to 10). <code>radix</code> \
+                    must be between 2 and 36 (inclusive)".into()
+                },
+                Argument {
+                    name: "arg".into(),
+                    description: "argument without colon".into()
+                },
+                Argument {
+                    name: "argument_without_description".into(),
+                    description: default(),
+                }].to_vec()
+            },
+            List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },
+            Marked {
+                mark: Example,
+                header: Some("Example".into()), 
+                body: "<p>Parse the text \"20220216\" into an integer number.<div class=\"example\">\nInteger.parse \"20220216\"</div>".into()
+            }].to_vec();
+        assert_eq!(res, expected);
+    }
 }

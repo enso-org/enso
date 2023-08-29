@@ -99,7 +99,7 @@ impl Drop for Guard {
 // =================
 
 /// A DOM element which is managed by the rendering engine.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct DomSymbol {
     #[deref]
     dom:            HtmlDivElement,
@@ -151,12 +151,6 @@ impl DomSymbol {
         self.size.set(size);
         self.dom.set_style_or_warn("width", format!("{}px", size.x));
         self.dom.set_style_or_warn("height", format!("{}px", size.y));
-    }
-}
-
-impl display::Object for DomSymbol {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

@@ -2,13 +2,14 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.operation.map.UnaryMapOperationWithProblemBuilder;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 public abstract class DoubleLongMapOpWithSpecialNumericHandling
-    extends UnaryMapOperationWithProblemBuilder<Double, DoubleStorage> {
+    extends UnaryMapOperation<Double, DoubleStorage> {
   public DoubleLongMapOpWithSpecialNumericHandling(String name) {
     super(name);
   }
@@ -16,8 +17,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
   protected abstract long doOperation(double a);
 
   @Override
-  public LongStorage run(
-      DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public LongStorage runUnaryMap(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();
@@ -39,6 +39,6 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
 
       context.safepoint();
     }
-    return new LongStorage(out, storage.size(), isMissing);
+    return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
   }
 }

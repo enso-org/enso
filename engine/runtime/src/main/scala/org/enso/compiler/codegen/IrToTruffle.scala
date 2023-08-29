@@ -1,6 +1,7 @@
 package org.enso.compiler.codegen
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -31,7 +32,7 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.interpreter.epb.EpbParser
+import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -251,8 +252,7 @@ class IrToTruffle(
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
             val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
-
-            val arg = argFactory.run(unprocessedArg, idx)
+            val arg            = argFactory.run(unprocessedArg, idx, runtimeTypes)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -369,6 +369,10 @@ class IrToTruffle(
                   case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
                     throw new CompilerError(
                       "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                    )
+                  case BindingsMap.ResolvedPolyglotField(_, _) =>
+                    throw new CompilerError(
+                      "Impossible polyglot field, should be caught by MethodDefinitions pass."
                     )
                   case _: BindingsMap.ResolvedMethod =>
                     throw new CompilerError(
@@ -731,6 +735,10 @@ class IrToTruffle(
           throw new CompilerError(
             "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
           )
+        case BindingsMap.ResolvedPolyglotField(_, _) =>
+          throw new CompilerError(
+            "Impossible polyglot field, should be caught by MethodDefinitions pass."
+          )
         case _: BindingsMap.ResolvedMethod =>
           throw new CompilerError(
             "Impossible here, should be caught by MethodDefinitions pass."
@@ -783,6 +791,8 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -797,6 +807,8 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -858,6 +870,7 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+            case BindingsMap.ResolvedPolyglotField(_, _)  =>
           }
         }
       case _ => throw new CompilerError("Unreachable")
@@ -1217,6 +1230,51 @@ class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
+                        BindingsMap.ResolvedPolyglotField(typ, symbol)
+                      )
+                    ) =>
+                  val mod = typ.module
+                  val polyClass = mod
+                    .unsafeAsModule()
+                    .getScope
+                    .getPolyglotSymbols
+                    .get(typ.symbol.name)
+
+                  val polyValueOrError =
+                    if (polyClass == null)
+                      Left(
+                        BadPatternMatch.NonVisiblePolyglotSymbol(
+                          typ.symbol.name
+                        )
+                      )
+                    else
+                      try {
+                        val iop = InteropLibrary.getUncached()
+                        if (!iop.isMemberReadable(polyClass, symbol)) {
+                          Left(BadPatternMatch.NonVisiblePolyglotSymbol(symbol))
+                        } else {
+                          if (iop.isMemberModifiable(polyClass, symbol)) {
+                            Left(
+                              BadPatternMatch.NonConstantPolyglotSymbol(symbol)
+                            )
+                          } else {
+                            Right(iop.readMember(polyClass, symbol))
+                          }
+                        }
+                      } catch {
+                        case _: Throwable =>
+                          Left(BadPatternMatch.NonVisiblePolyglotSymbol(symbol))
+                      }
+                  polyValueOrError.map(polyValue => {
+                    ObjectEqualityBranchNode
+                      .build(
+                        branchCodeNode.getCallTarget,
+                        polyValue,
+                        branch.terminalBranch
+                      )
+                  })
+                case Some(
+                      BindingsMap.Resolution(
                         BindingsMap.ResolvedMethod(_, _)
                       )
                     ) =>
@@ -1567,6 +1625,14 @@ class IrToTruffle(
               .getPolyglotSymbols
               .get(symbol.name)
           )
+        case BindingsMap.ResolvedPolyglotField(symbol, name) =>
+          ConstantObjectNode.build(
+            symbol.module
+              .unsafeAsModule()
+              .getScope
+              .getPolyglotSymbols
+              .get(name)
+          )
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(
             s"Impossible here, ${method.name} should be caught when translating application"
@@ -1681,7 +1747,7 @@ class IrToTruffle(
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
-              EpbParser.ForeignLanguage.getBySyntacticTag(lang),
+              ForeignLanguage.getBySyntacticTag(lang),
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1703,9 +1769,9 @@ class IrToTruffle(
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
-            val arg = argFactory.run(unprocessedArg, idx)
-            argDefinitions(idx) = arg
             val runtimeTypes = checkRuntimeTypes(unprocessedArg)
+            val arg          = argFactory.run(unprocessedArg, idx, runtimeTypes)
+            argDefinitions(idx) = arg
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -1743,12 +1809,12 @@ class IrToTruffle(
     }
 
     private def buildForeignBody(
-      language: EpbParser.ForeignLanguage,
+      language: ForeignLanguage,
       code: String,
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src = EpbParser.buildSource(language, code, scopeName)
+      val src = language.buildSource(code, scopeName)
       val foreignCt = context.getEnvironment
         .parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
@@ -2037,12 +2103,14 @@ class IrToTruffle(
       *
       * @param inputArg the argument to generate code for
       * @param position the position of `arg` at the function definition site
+      * @param types null or types to check the argument for
       * @return a truffle entity corresponding to the definition of `arg` for a
       *         given function
       */
     def run(
       inputArg: IR.DefinitionArgument,
-      position: Int
+      position: Int,
+      types: List[Type]
     ): ArgumentDefinition =
       inputArg match {
         case arg: IR.DefinitionArgument.Specified =>
@@ -2079,6 +2147,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             position,
             arg.name.name,
+            if (types == null || types.length == 0) null else types.toArray,
             defaultedValue,
             executionMode
           )

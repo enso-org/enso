@@ -9,7 +9,7 @@ import * as React from 'react'
 export interface SvgIconProps extends React.PropsWithChildren {}
 
 /** A fixed-size container for a SVG image. */
-function SvgIcon(props: SvgIconProps) {
+export default function SvgIcon(props: SvgIconProps) {
     const { children } = props
 
     return (
@@ -18,5 +18,3 @@ function SvgIcon(props: SvgIconProps) {
         </div>
     )
 }
-
-export default SvgIcon

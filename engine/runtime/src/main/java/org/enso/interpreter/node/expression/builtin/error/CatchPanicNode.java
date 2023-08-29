@@ -9,7 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
@@ -31,7 +31,7 @@ public abstract class CatchPanicNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child IsValueOfTypeNode isValueOfTypeNode = IsValueOfTypeNode.build();
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile profile = CountingConditionProfile.create();
 
   CatchPanicNode() {
     this.invokeCallableNode =

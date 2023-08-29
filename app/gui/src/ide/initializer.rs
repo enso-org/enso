@@ -88,7 +88,6 @@ impl Initializer {
         if enso_config::ARGS.groups.profile.options.emit_user_timing_measurements.value {
             ensogl_app.display.connect_profiler_to_user_timing();
         }
-        let status_bar = view.status_bar().clone_ref();
         ensogl_app.display.add_child(&view);
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
         //      issues to user, such information should be properly passed
@@ -102,7 +101,7 @@ impl Initializer {
             }
             Err(error) => {
                 let message = format!("Failed to initialize application: {error}");
-                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                ide_view::notification::logged::error(message, &None);
                 Err(FailedIde { view })
             }
         }
@@ -130,10 +129,17 @@ impl Initializer {
                 let controller = controller::ide::Desktop::new(project_manager, project_to_open);
                 Ok(Rc::new(controller.await?))
             }
-            LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
+            LanguageServer {
+                json_endpoint,
+                binary_endpoint,
+                namespace,
+                project_name,
+                displayed_name,
+            } => {
                 let json_endpoint = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
                 let namespace = namespace.clone();
+                let displayed_name = displayed_name.clone().into();
                 let project_name = project_name.clone().into();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
@@ -141,6 +147,7 @@ impl Initializer {
                 let controller = controller::ide::Plain::from_ls_endpoints(
                     namespace,
                     project_name,
+                    displayed_name,
                     version,
                     json_endpoint,
                     binary_endpoint,
@@ -259,8 +266,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ide_view::component_browser::View>();
     app.views.register::<ide_view::component_browser::component_list_panel::View>();
     app.views.register::<ide_view::component_browser::component_list_panel::grid::View>();
-    app.views
-        .register::<ide_view::component_browser::component_list_panel::breadcrumbs::Breadcrumbs>();
+    app.views.register::<ide_view::documentation::breadcrumbs::Breadcrumbs>();
     app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
@@ -270,10 +276,6 @@ pub fn register_views(app: &Application) {
     // ListView we use below.
     type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
-
-    if enso_config::ARGS.groups.startup.options.platform.value == "web" {
-        app.views.register::<ide_view::project_view_top_bar::window_control_buttons::View>();
-    }
 }
 
 

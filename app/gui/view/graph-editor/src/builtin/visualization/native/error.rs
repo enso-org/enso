@@ -80,10 +80,11 @@ pub struct Input {
 // =============
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Error {
     pub frp: visualization::instance::Frp,
+    #[display_object]
     model:   Model,
     network: frp::Network,
 }
@@ -152,9 +153,10 @@ impl Error {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
+    #[display_object]
     dom:       DomSymbol,
     size:      Rc<Cell<Vector2>>,
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -183,7 +185,7 @@ impl Model {
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("overflow-x", "hidden");
         dom.dom().set_style_or_warn("overflow-y", "auto");
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-family", "EnsoRegular");
         dom.dom().set_style_or_warn("font-size", "12px");
         dom.dom().set_style_or_warn("border-radius", "14px");
         dom.dom().set_style_or_warn("padding-left", &padding_text);
@@ -261,11 +263,5 @@ impl Model {
 impl From<Error> for Instance {
     fn from(t: Error) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.dom.clone_ref()))
-    }
-}
-
-impl display::Object for Error {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.dom.display_object()
     }
 }

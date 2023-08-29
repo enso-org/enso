@@ -1,20 +1,20 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
 
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as app from '../../components/app'
 import * as authModule from '../providers/auth'
-import * as svg from '../../components/svg'
+import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
+import * as app from '../../components/app'
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -29,27 +29,17 @@ const REGISTRATION_QUERY_PARAMS = {
 // ====================
 
 /** A form for users to register an account. */
-function Registration() {
+export default function Registration() {
     const auth = authModule.useAuth()
     const location = router.useLocation()
     const [email, setEmail] = React.useState('')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
-
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
     const { organizationId } = parseUrlSearchParams(location.search)
 
-    const onSubmit = () => {
-        /** The password & confirm password fields must match. */
-        if (password !== confirmPassword) {
-            toast.error('Passwords do not match.')
-            return Promise.resolve()
-        } else {
-            return auth.signUp(email, password, organizationId)
-        }
-    }
-
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
             <div
                 className={
                     'rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 ' +
@@ -63,7 +53,9 @@ function Registration() {
                 <form
                     onSubmit={async event => {
                         event.preventDefault()
-                        await onSubmit()
+                        setIsSubmitting(true)
+                        await auth.signUp(email, password, organizationId)
+                        setIsSubmitting(false)
                     }}
                 >
                     <div className="flex flex-col mb-4">
@@ -75,9 +67,11 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={AtIcon} />
+                                <SvgMask src={AtIcon} />
                             </SvgIcon>
                             <Input
+                                required
+                                validate
                                 id="email"
                                 type="email"
                                 name="email"
@@ -96,16 +90,17 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
+                                validate
                                 id="password"
                                 type="password"
                                 name="password"
                                 placeholder="Password"
                                 pattern={validation.PASSWORD_PATTERN}
-                                title={validation.PASSWORD_TITLE}
+                                error={validation.PASSWORD_ERROR}
                                 value={password}
                                 setValue={setPassword}
                             />
@@ -120,32 +115,35 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
+                                validate
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"
                                 placeholder="Confirm Password"
+                                pattern={string.regexEscape(password)}
+                                error={validation.CONFIRM_PASSWORD_ERROR}
                                 value={confirmPassword}
                                 setValue={setConfirmPassword}
                             />
                         </div>
                     </div>
-
                     <div className="flex w-full mt-6">
                         <button
+                            disabled={isSubmitting}
                             type="submit"
                             className={
                                 'flex items-center justify-center focus:outline-none text-white text-sm ' +
                                 'sm:text-base bg-indigo-600 hover:bg-indigo-700 rounded py-2 w-full transition ' +
-                                'duration-150 ease-in'
+                                'duration-150 ease-in disabled:opacity-50'
                             }
                         >
                             <span className="mr-2 uppercase">Register</span>
                             <span>
-                                <svg.SvgMask src={CreateAccountIcon} />
+                                <SvgMask src={CreateAccountIcon} />
                             </span>
                         </button>
                     </div>
@@ -160,7 +158,7 @@ function Registration() {
                     }
                 >
                     <span>
-                        <svg.SvgMask src={GoBackIcon} />
+                        <SvgMask src={GoBackIcon} />
                     </span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>
@@ -175,5 +173,3 @@ function parseUrlSearchParams(search: string) {
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
     return { organizationId }
 }
-
-export default Registration

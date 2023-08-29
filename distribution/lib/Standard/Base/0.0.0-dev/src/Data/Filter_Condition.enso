@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -192,10 +193,12 @@ type Filter_Condition
         Not_Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
             elem -> regex.matches elem . not
-        ## TODO once we have proper hashing we could create a hashmap and
-           answer quicker, currently we need to do a full scan for each element.
-        Is_In values -> values.contains
-        Not_In values -> elem -> values.contains elem . not
+        Is_In values ->
+            set = Set.from_vector values
+            set.contains
+        Not_In values ->
+            set = Set.from_vector values
+            elem -> set.contains elem . not
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.

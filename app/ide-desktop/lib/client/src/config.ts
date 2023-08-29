@@ -154,7 +154,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 options: {
                     backgroundThrottling: new contentConfig.Option({
                         passToWebApplication: true,
-                        value: true,
+                        value: false,
                         description: 'Throttle animations when run in background.',
                     }),
 
@@ -608,6 +608,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
 CONFIG.groups.startup.options.platform.value = process.platform
 
 CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
+
+CONFIG.groups.engine.options.projectManagerUrl.passToWebApplication = true
 
 /** The type of the full configuration object. */
 export type Args = typeof CONFIG

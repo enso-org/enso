@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, ActorRef, Props, Stash, Terminated}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.filewatcher.WatcherFactory
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityNotAcquiredResponse,
@@ -49,12 +50,14 @@ import org.enso.languageserver.util.UnhandledLogging
   *
   * @param config configuration
   * @param contentRootManager the content root manager
+  * @param watcherFactory the factory creating the file watcher
   * @param fs file system
   * @param exec executor of file system events
   */
 final class ReceivesTreeUpdatesHandler(
   config: Config,
   contentRootManager: ContentRootManager,
+  watcherFactory: WatcherFactory,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
@@ -96,6 +99,7 @@ final class ReceivesTreeUpdatesHandler(
             PathWatcher.props(
               config.pathWatcher,
               contentRootManager,
+              watcherFactory,
               fs,
               exec
             )
@@ -124,6 +128,7 @@ final class ReceivesTreeUpdatesHandler(
               PathWatcher.props(
                 config.pathWatcher,
                 contentRootManager,
+                watcherFactory,
                 fs,
                 exec
               )
@@ -198,14 +203,24 @@ object ReceivesTreeUpdatesHandler {
     *
     * @param config configuration
     * @param contentRootManager the content root manager
+    * @param watcherFactory the factory creating the file watcher
     * @param fs file system
     * @param exec executor of file system events
     */
   def props(
     config: Config,
     contentRootManager: ContentRootManager,
+    watcherFactory: WatcherFactory,
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new ReceivesTreeUpdatesHandler(config, contentRootManager, fs, exec))
+    Props(
+      new ReceivesTreeUpdatesHandler(
+        config,
+        contentRootManager,
+        watcherFactory,
+        fs,
+        exec
+      )
+    )
 }

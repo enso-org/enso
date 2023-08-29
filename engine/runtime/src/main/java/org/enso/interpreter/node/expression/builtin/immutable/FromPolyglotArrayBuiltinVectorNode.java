@@ -6,7 +6,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -21,16 +22,16 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
     return FromPolyglotArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object arr);
+  abstract EnsoObject execute(Object arr);
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
-  Vector doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {
-    return Vector.fromArray(arr);
+  EnsoObject doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {
+    return ArrayLikeHelpers.asVectorFromArray(arr);
   }
 
   @Fallback
-  Vector doOther(Object arr) {
-    EnsoContext ctx = EnsoContext.get(this);
+  EnsoObject doOther(Object arr) {
+    var ctx = EnsoContext.get(this);
     throw new PanicException(
         ctx.getBuiltins().error().makeTypeError("polyglot array", arr, "array"), this);
   }

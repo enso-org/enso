@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable.thunk;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
@@ -29,6 +30,7 @@ public abstract class ThunkExecutorNode extends Node {
    *
    * @return an instance of this node
    */
+  @NeverDefault
   public static ThunkExecutorNode build() {
     return ThunkExecutorNodeGen.create();
   }
@@ -58,7 +60,7 @@ public abstract class ThunkExecutorNode extends Node {
       State state,
       BaseNode.TailStatus isTail,
       @Cached("create(function.getCallTarget())") DirectCallNode callNode,
-      @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
+      @Exclusive @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     CompilerAsserts.partialEvaluationConstant(isTail);
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
@@ -79,7 +81,7 @@ public abstract class ThunkExecutorNode extends Node {
       State state,
       BaseNode.TailStatus isTail,
       @Cached IndirectCallNode callNode,
-      @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
+      @Exclusive @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return callNode.call(
           function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));

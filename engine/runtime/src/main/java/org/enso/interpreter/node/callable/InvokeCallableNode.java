@@ -114,7 +114,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.invokeMethodNode =
         InvokeMethodNode.build(
-            schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
+            schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, false);
     this.invokeConversionNode =
         InvokeConversionNode.build(
             schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);

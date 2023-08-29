@@ -1,0 +1,104 @@
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
+
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.StringBuilder
+
+# Adding two String columns
+type Boxed_Bi_Map_Test
+    Instance text_column_1 text_column_2
+
+    current_implementation self =
+        self.text_column_1 + self.text_column_2
+
+    java_map self =
+        Column.from_storage "result" <|
+            MapHelpers.stringConcatBimap self.text_column_1.java_column.getStorage self.text_column_2.java_column.getStorage
+
+    enso_map_as_vector self convert_polyglot_dates =
+        vector_proxy_1 = self.text_column_1.to_vector
+        vector_proxy_2 = self.text_column_2.to_vector
+        mapped = vector_proxy_1.zip vector_proxy_2 (+)
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder self =
+        n = self.text_column_1.length
+        if self.text_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
+            builder = StringBuilder.new n
+            storage_1 = self.text_column_1.java_column.getStorage
+            storage_2 = self.text_column_2.java_column.getStorage
+            0.up_to n . each i->
+                item_1 = storage_1.getItemBoxed i
+                item_2 = storage_2.getItemBoxed i
+                if item_1.is_nothing || item_2.is_nothing then builder.appendNulls 1 else
+                    res = item_1 + item_2
+                    builder.append res
+            Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
+# Adding two Long columns
+type Primitive_Bi_Map_Test
+    Instance int_column_1 int_column_2
+
+    current_implementation self =
+        self.int_column_1 + self.int_column_2
+
+    java_map self =
+        Column.from_storage "result" <|
+            MapHelpers.longAddBimap self.int_column_1.java_column.getStorage self.int_column_2.java_column.getStorage
+
+    enso_map_as_vector self convert_polyglot_dates =
+        vector_proxy_1 = self.int_column_1.to_vector
+        vector_proxy_2 = self.int_column_2.to_vector
+        mapped = vector_proxy_1.zip vector_proxy_2 (+)
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder self =
+        n = self.int_column_1.length
+        if self.int_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
+            builder = NumericBuilder.createLongBuilder n
+            storage_1 = self.int_column_1.java_column.getStorage
+            storage_2 = self.int_column_2.java_column.getStorage
+            0.up_to n . each i->
+                if storage_1.isNa i || storage_2.isNa i then builder.appendNulls 1 else
+                    item_1 = storage_1.getItem i
+                    item_2 = storage_2.getItem i
+                    res = item_1 + item_2
+                    builder.appendLong res
+            Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
+main = spec Common_Setup.Config
+
+spec setup =
+    t = setup.generate_input_table
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
+
+    primitive_bimap = Primitive_Bi_Map_Test.Instance (t.at "ints") (t.at "ints2")
+    primitive_bimap.verify_correctness
+    Bench.measure (primitive_bimap.current_implementation) "Primitive_Bi_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.java_map) "Primitive_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_with_builder) "Primitive_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+
+    boxed_bimap = Boxed_Bi_Map_Test.Instance (t.at "text") (t.at "text2")
+    boxed_bimap.verify_correctness
+    Bench.measure (boxed_bimap.current_implementation) "Boxed_Bi_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.java_map) "Boxed_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_with_builder) "Boxed_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc

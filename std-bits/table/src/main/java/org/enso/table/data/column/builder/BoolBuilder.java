@@ -34,7 +34,7 @@ public class BoolBuilder extends TypedBuilder {
           vals.set(size);
         }
       } else {
-        throw new UnsupportedOperationException("Cannot coerce " + o + " to a boolean type.");
+        throw new UnsupportedOperationException("Cannot coerce " + o + " (" + o.getClass().getCanonicalName() + ")" + " to a boolean type.");
       }
     }
     size++;

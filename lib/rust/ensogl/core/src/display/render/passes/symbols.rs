@@ -8,6 +8,7 @@ use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::UpdateStatus;
 use crate::display::symbol::MaskComposer;
+use crate::display::symbol::OverlayComposer;
 use crate::display::world;
 
 
@@ -32,9 +33,10 @@ impl Framebuffers {
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone, Debug)]
 pub struct SymbolsRenderPass {
-    layers:        scene::HardcodedLayers,
-    framebuffers:  Option<Framebuffers>,
-    mask_composer: MaskComposer,
+    layers:           scene::HardcodedLayers,
+    framebuffers:     Option<Framebuffers>,
+    mask_composer:    MaskComposer,
+    overlay_composer: OverlayComposer,
 }
 
 impl SymbolsRenderPass {
@@ -44,7 +46,8 @@ impl SymbolsRenderPass {
         let framebuffers = default();
         let mask_composer =
             MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { layers, framebuffers, mask_composer }
+        let overlay_composer = OverlayComposer::new("pass_layer_color", "pass_layer_id");
+        Self { layers, framebuffers, mask_composer, overlay_composer }
     }
 }
 
@@ -90,7 +93,7 @@ impl pass::Definition for SymbolsRenderPass {
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
 
             let mut scissor_stack = default();
-            self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
+            self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false, None);
             if !scissor_stack.is_empty() {
                 warn!(
                     "The scissor stack was not cleaned properly. \
@@ -117,8 +120,13 @@ impl SymbolsRenderPass {
         layer: &layer::Layer,
         scissor_stack: &mut Vec<layer::ScissorBox>,
         parent_masked: bool,
+        override_blend: Option<layer::BlendMode>,
     ) {
-        let framebuffers = self.framebuffers.as_ref().unwrap();
+        let has_symbols = layer.has_symbols();
+        if !has_symbols && !layer.has_main_pass_sublayers() {
+            return;
+        }
+
         let parent_scissor_box = scissor_stack.first().copied();
         let layer_scissor_box = layer.scissor_box();
         let scissor_box = parent_scissor_box.concat(layer_scissor_box);
@@ -141,34 +149,54 @@ impl SymbolsRenderPass {
         let was_ever_masked = is_masked || parent_masked;
         let nested_masking = is_masked && parent_masked;
 
+        let layer_mask = layer_mask.filter(|_| !nested_masking);
         if nested_masking {
             warn!("Nested layer masking is not supported yet. Skipping nested masks.");
-        } else if let Some(mask) = layer_mask {
-            framebuffers.mask.bind();
-            let black_transparent = [0.0, 0.0, 0.0, 0.0];
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &black_transparent);
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
-            self.render_layer(instance, &mask, scissor_stack, was_ever_masked);
+        }
+
+        if let Some(layer::Mask { layer, inverted }) = layer_mask.as_ref() {
+            let zero = [0.0, 0.0, 0.0, 0.0];
+
+            if !inverted {
+                let framebuffers = self.framebuffers.as_ref().unwrap();
+                framebuffers.mask.bind();
+                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
+                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
+                self.render_layer(instance, layer, scissor_stack, was_ever_masked, override_blend);
+            }
 
             let framebuffers = self.framebuffers.as_ref().unwrap();
             framebuffers.layer.bind();
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &black_transparent);
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
         }
 
-        world::with_context(|t| {
-            t.set_camera(&layer.camera());
-            t.render_symbols(&layer.symbols());
-        });
-        layer.for_each_sublayer(|sublayer| {
-            if sublayer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
-                self.render_layer(instance, &sublayer, scissor_stack, was_ever_masked);
+        if has_symbols {
+            world::with_context(|t| {
+                t.set_camera(&layer.camera());
+                let blend_mode = override_blend.unwrap_or_else(|| layer.blend_mode());
+                blend_mode.apply_to_context(&instance.context);
+                t.render_symbols(&layer.symbols());
+            });
+        }
+
+        layer.for_each_sublayer(|layer| {
+            if layer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
+                self.render_layer(instance, &layer, scissor_stack, was_ever_masked, override_blend);
             }
         });
 
-        if is_masked {
+        if let Some(layer::Mask { layer: mask_layer, inverted: true }) = layer_mask.as_ref() {
+            let blend = layer::BlendMode::ALPHA_CUTOUT;
+            self.render_layer(instance, mask_layer, scissor_stack, was_ever_masked, Some(blend));
             let framebuffers = self.framebuffers.as_ref().unwrap();
             framebuffers.composed.bind();
+            layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
+            self.overlay_composer.render();
+        } else if is_masked {
+            let framebuffers = self.framebuffers.as_ref().unwrap();
+            framebuffers.composed.bind();
+            layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
             self.mask_composer.render();
         }
 

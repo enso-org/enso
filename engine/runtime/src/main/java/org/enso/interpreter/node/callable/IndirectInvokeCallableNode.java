@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -103,7 +104,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Exclusive @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunctionNode.execute(
         function,
         callerFrame,
@@ -125,7 +126,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Exclusive @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunction(
         constructor.getConstructorFunction(),
         callerFrame,

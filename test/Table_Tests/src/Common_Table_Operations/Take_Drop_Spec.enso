@@ -19,7 +19,7 @@ spec setup =
     table_builder = setup.table_builder
     test_selection = setup.test_selection
     take_drop_by_pending = if test_selection.take_drop.not then
-        "TODO: take/drop are not yet supported by this backend."
+        "ToDo: take/drop are not yet supported by this backend."
     Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]

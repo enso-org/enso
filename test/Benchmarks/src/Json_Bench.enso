@@ -9,8 +9,22 @@ prep_json size =
     str = "[" + (many.join ",") + "]"
     str
 
-bench =
-    large_json = prep_json 1000000
-    Bench.measure (Json.parse large_json) "parse json" 10 10
+options = Bench.options . set_warmup (Bench.phase_conf 1 5) . set_measure (Bench.phase_conf 1 3)
 
-main = bench
+
+type Data
+    Value ~large_json
+
+    create =
+        Data.Value (prep_json 1000*1000)
+
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Json" options group_builder->
+        group_builder.specify "parse_json" <|
+            Json.parse data.large_json
+
+
+main = collect_benches . run_main

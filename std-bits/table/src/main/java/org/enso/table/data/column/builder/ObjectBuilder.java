@@ -5,13 +5,14 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.AggregatedProblems;
 
 import java.util.Arrays;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
-  private Object[] data;
-  private int currentSize = 0;
+  protected Object[] data;
+  protected int currentSize = 0;
 
   public ObjectBuilder(int size) {
     this.data = new Object[size];
@@ -124,7 +125,18 @@ public class ObjectBuilder extends TypedBuilder {
     resize(desiredCapacity);
   }
 
-  private void resize(int desiredCapacity) {
+  protected void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
+  }
+
+  private AggregatedProblems preExistingProblems = AggregatedProblems.of();
+
+  public void setPreExistingProblems(AggregatedProblems preExistingProblems) {
+    this.preExistingProblems = preExistingProblems;
+  }
+
+  @Override
+  public AggregatedProblems getProblems() {
+    return preExistingProblems;
   }
 }

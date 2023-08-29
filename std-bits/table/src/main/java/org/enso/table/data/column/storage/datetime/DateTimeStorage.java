@@ -6,7 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
@@ -20,14 +20,11 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
    * @param size the number of items stored
    */
   public DateTimeStorage(ZonedDateTime[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildOps());
   }
 
-  private static final MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> ops =
-      buildOps();
-
-  private static MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
-    MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
+  private static MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
+    MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     t.add(DatePartExtractors.year());

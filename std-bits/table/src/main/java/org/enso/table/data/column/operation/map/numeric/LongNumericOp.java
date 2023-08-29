@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.numeric.NumericStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
@@ -16,8 +17,11 @@ import java.util.BitSet;
 /**
  * An operation expecting a numeric argument and returning a boolean.
  */
-public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStorage> {
+public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLongStorage> {
   private final boolean alwaysCastToDouble;
+
+  // Regardless of input type, our operations return 64-bit integers.
+  private static final IntegerType INTEGER_RESULT_TYPE = IntegerType.INT_64;
 
   public LongNumericOp(String name, boolean alwaysCastToDouble) {
     super(name);
@@ -33,13 +37,13 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
   public abstract Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public NumericStorage<?> runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public NumericStorage<?> runBinaryMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     if (arg == null) {
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
       } else {
-        return LongStorage.makeEmpty(storage.size());
+        return LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
       }
     } else if (!alwaysCastToDouble && arg instanceof Long x) {
       BitSet newMissing = BitSets.makeDuplicate(storage.getIsMissing());
@@ -56,7 +60,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
 
         context.safepoint();
       }
-      return new LongStorage(newVals, newVals.length, newMissing);
+
+      return new LongStorage(newVals, newVals.length, newMissing, INTEGER_RESULT_TYPE);
     } else if (arg instanceof Double || arg instanceof Long) {
       double x = (arg instanceof Double) ? (Double) arg : (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -96,7 +101,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
 
         context.safepoint();
       }
-      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing);
+
+      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing, INTEGER_RESULT_TYPE);
     } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();

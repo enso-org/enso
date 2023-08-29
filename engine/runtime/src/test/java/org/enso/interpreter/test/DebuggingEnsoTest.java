@@ -36,6 +36,7 @@ import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,7 +61,7 @@ public class DebuggingEnsoTest {
     context = Context.newBuilder()
         .engine(engine)
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .build();
 

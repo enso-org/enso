@@ -69,6 +69,7 @@ import project.Runtime.Lazy_Spec
 import project.Runtime.Lazy_Generator_Spec
 import project.Runtime.Managed_Resource_Spec
 import project.Runtime.Ref_Spec
+import project.Runtime.State_Spec
 import project.Runtime.Stack_Traces_Spec
 
 import project.System.Environment_Spec
@@ -135,6 +136,7 @@ main = Test_Suite.run_main <|
     Runtime_Spec.spec
     Self_Type_Spec.spec
     Span_Spec.spec
+    State_Spec.spec
     Encoding_Spec.spec
     Text_Sub_Range_Spec.spec
     Managed_Resource_Spec.spec

@@ -256,3 +256,30 @@ macro_rules! gen_transform {
 gen_transform!(position);
 gen_transform!(rotation);
 gen_transform!(scale);
+
+
+/// Matrix wrapper with [`Display`] implementation that formats a transform matrix as a CSS
+/// transform property, trying to produce relatively short string when possible.
+#[derive(Debug)]
+pub struct CssTransformFormatter<'a>(pub &'a Matrix4<f32>);
+
+impl Display for CssTransformFormatter<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let transform = nalgebra::Transform3::from_matrix_unchecked(*self.0);
+        if let Some(t) = nalgebra::try_convert_ref::<_, nalgebra::Translation3<f32>>(&transform) {
+            if t.z == 0.0 {
+                write!(f, "translate({}px,{}px)", t.x, t.y)?;
+            } else {
+                write!(f, "translate3d({}px,{}px,{}px)", t.x, t.y, t.z)?;
+            }
+        } else {
+            let slice = transform.matrix().as_slice();
+            write!(f, "matrix3d({}", slice[0])?;
+            for v in &slice[1..] {
+                write!(f, ",{v}")?;
+            }
+            f.write_str(")")?;
+        }
+        Ok(())
+    }
+}

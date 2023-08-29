@@ -7,10 +7,12 @@
 
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
+import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -19,17 +21,20 @@ import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
-// eslint-disable-next-line no-restricted-syntax
+import * as detect from 'detect'
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
+import * as projectManagement from 'project-management'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
+
+import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -43,6 +48,8 @@ class App {
     window: electron.BrowserWindow | null = null
     server: server.Server | null = null
     args: config.Args = config.CONFIG
+    projectManagerHost: string | null = null
+    projectManagerPort: number | null = null
     isQuitting = false
 
     /** Initialize and run the Electron application. */
@@ -189,6 +196,8 @@ class App {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and enter a "zombie mode", where user is not aware of the app still running.
         try {
+            // Light theme is needed for vibrancy to be light colored on Windows.
+            // electron.nativeTheme.themeSource = 'light'
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
@@ -221,9 +230,29 @@ class App {
 
     /** Start the backend processes. */
     async startBackendIfEnabled() {
-        await this.runIfEnabled(this.args.options.engine, () => {
+        await this.runIfEnabled(this.args.options.engine, async () => {
+            // The first return value is the original string, which is not needed.
+            // These all cannot be null as the format is known at runtime.
+            const [, projectManagerHost, projectManagerPort] =
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                GLOBAL_CONFIG.projectManagerEndpoint.match(/^ws:\/\/(.+):(.+)$/)!
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.projectManagerHost ??= projectManagerHost!
+            this.projectManagerPort ??= await portfinder.getPortPromise({
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                port: parseInt(projectManagerPort!),
+            })
+            const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
+            this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
             const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-            projectManager.spawn(this.args, backendOpts)
+            const backendEnv = Object.assign({}, process.env, {
+                // These are environment variables, and MUST be in CONSTANT_CASE.
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_HOST: this.projectManagerHost,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                SERVER_PORT: `${this.projectManagerPort}`,
+            })
+            projectManager.spawn(this.args, backendOpts, backendEnv)
         })
     }
 
@@ -234,6 +263,9 @@ class App {
                 const serverCfg = new server.Config({
                     dir: paths.ASSETS_PATH,
                     port: this.args.groups.server.options.port.value,
+                    externalFunctions: {
+                        uploadProjectBundle: projectManagement.uploadBundle,
+                    },
                 })
                 this.server = await server.Server.create(serverCfg)
             })
@@ -262,9 +294,14 @@ class App {
                     width: windowSize.width,
                     height: windowSize.height,
                     frame: useFrame,
-                    transparent: false,
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-                    ...(useVibrancy ? { vibrancy: 'fullscreen-ui' } : {}),
+                    ...(useVibrancy && detect.supportsVibrancy()
+                        ? {
+                              vibrancy: 'fullscreen-ui',
+                              backgroundMaterial: 'acrylic',
+                              ...(os.platform() === 'win32' ? { transparent: true } : {}),
+                          }
+                        : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
@@ -335,6 +372,10 @@ class App {
         })
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
+        })
+        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
+            const info = projectManagement.importProjectFromPath(path)
+            event.reply(ipc.Channel.importProjectFromPath, path, info)
         })
     }
 

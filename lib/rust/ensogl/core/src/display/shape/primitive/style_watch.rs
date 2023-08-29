@@ -84,73 +84,100 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
-    pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
-        let network = &self.network;
+    /// Queries style sheet for a generic type. Emits a warning and returns a fallback value if not
+    /// found.
+    pub fn access<T: ThemeAccess>(&self, path: impl Into<Path>) -> frp::Sampler<T> {
         let path = path.into();
-        let warning = format!("Tried to access undefined number from theme: {}", &path);
+        let network = &self.network;
+        let path_str = path.to_string();
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value <- source.map(move |t| t.number().unwrap_or_else(|| {
-                warn!("{}", warning);
-                0.0
-            }));
-            sampler <- value.sampler();
+            sampler <- source.map(move |t| T::from_style_data(&path_str, t)).sampler();
         }
         source.emit(current);
         sampler
+    }
+
+    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
+    pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
+        self.access(path)
     }
 
     /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
-    pub fn get_color<T: Into<Path>>(&self, path: T) -> frp::Sampler<color::Rgba> {
-        let network = &self.network;
-        let path = path.into();
-        let warning = format!("Tried to access undefined color from theme: {}", &path);
-        let (source, current) = self.get_internal(path);
-        frp::extend! { network
-            value <- source.map(move |t| t.color().unwrap_or_else(|| {
-                warn!("{}", warning);
-                FALLBACK_COLOR
-            }));
-            sampler <- value.sampler();
-        }
-        source.emit(current);
-        sampler
+    pub fn get_color(&self, path: impl Into<Path>) -> frp::Sampler<color::Rgba> {
+        self.access(path)
+    }
+
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
+    pub fn get_color_lcha(&self, path: impl Into<Path>) -> frp::Sampler<color::Lcha> {
+        self.access(path)
     }
 
     /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
-    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<ImString> {
-        let network = &self.network;
-        let path = path.into();
-        let warning = format!("Tried to access undefined text from theme: {}", &path);
-        let (source, current) = self.get_internal(path);
-        frp::extend! { network
-            value <- source.map(move |t| {
-                t.im_string_or_else(|| {
-                    warn!("{}", warning);
-                    default()
-                })
-            });
-            sampler <- value.sampler();
-        }
-        source.emit(current);
-        sampler
+    pub fn get_text(&self, path: impl Into<Path>) -> frp::Sampler<ImString> {
+        self.access(path)
     }
 
     /// Queries style sheet number.
-    pub fn get_number_or<T: Into<Path>>(&self, path: T, fallback: f32) -> frp::Sampler<f32> {
+    pub fn get_number_or(&self, path: impl Into<Path>, fallback: f32) -> frp::Sampler<f32> {
         let network = &self.network;
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(move |t| t.number().unwrap_or(fallback));
-            sampler <- value.sampler();
+            sampler <- source.map(move |t| t.number().unwrap_or(fallback)).sampler();
         }
         source.emit(current);
         sampler
     }
 }
 
+/// Defines a way for a value of given type to be accessed from the style sheet.
+pub trait ThemeAccess: Debug + Clone + Default + 'static {
+    /// Convert raw style data to a value of given type. Uses `path_str` to report a warning in case
+    /// of an unexpected data type.
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self;
+}
 
+impl ThemeAccess for f32 {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.number().unwrap_or_else(|| {
+            warn!("Tried to access undefined number from theme: {path_str}");
+            0.0
+        })
+    }
+}
+
+impl ThemeAccess for Vector2 {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.vector().unwrap_or_else(|| {
+            warn!("Tried to access undefined vector from theme: {path_str}");
+            default()
+        })
+    }
+}
+
+impl ThemeAccess for ImString {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.im_string_or_else(|| {
+            warn!("Tried to access undefined text from theme: {path_str}");
+            default()
+        })
+    }
+}
+
+impl ThemeAccess for color::Rgba {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.color().unwrap_or_else(|| {
+            warn!("Tried to access undefined color from theme: {path_str}");
+            FALLBACK_COLOR
+        })
+    }
+}
+
+impl ThemeAccess for color::Lcha {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        <color::Rgba as ThemeAccess>::from_style_data(path_str, data).into()
+    }
+}
 
 // ==================
 // === StyleWatch ===
@@ -159,14 +186,19 @@ impl StyleWatchFrp {
 /// Style watch utility. It's reference is passed to shapes defined with the `shape`
 /// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
 /// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
-#[derive(Clone, CloneRef, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct StyleWatch {
+    data: Rc<RefCell<StyleWatchData>>,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+struct StyleWatchData {
     sheet:    style::Sheet,
-    vars:     Rc<RefCell<Vec<style::Var>>>,
-    handles:  Rc<RefCell<Vec<callback::Handle>>>,
+    vars:     HashSet<style::Var>,
+    handles:  Vec<callback::Handle>,
     #[derivative(Debug = "ignore")]
-    callback: Rc<RefCell<Box<dyn Fn()>>>,
+    callback: Rc<dyn Fn()>,
 }
 
 impl StyleWatch {
@@ -176,31 +208,36 @@ impl StyleWatch {
         let sheet = sheet.clone_ref();
         let vars = default();
         let handles = default();
-        let callback = Rc::new(RefCell::new(Box::new(|| {}) as Box<dyn Fn()>));
-        Self { sheet, vars, handles, callback }
+        let callback = Rc::new(|| {}) as Rc<dyn Fn()>;
+        let data = StyleWatchData { sheet, vars, handles, callback };
+        Self { data: Rc::new(RefCell::new(data)) }
     }
 
     /// Resets the state of style manager. Should be used on each new shape definition. It is
     /// called automatically when used by `shape`.
     pub fn reset(&self) {
-        *self.vars.borrow_mut() = default();
-        *self.handles.borrow_mut() = default();
+        let mut data = self.data.borrow_mut();
+        data.vars = default();
+        data.handles = default();
     }
 
     /// Sets the callback which will be used when dependent styles change.
     pub fn set_on_style_change<F: 'static + Fn()>(&self, callback: F) {
-        *self.callback.borrow_mut() = Box::new(callback);
+        self.data.borrow_mut().callback = Rc::new(callback);
     }
 
     /// Queries style sheet value for a value.
     pub fn get(&self, path: impl Into<Path>) -> Option<style::Data> {
+        let mut data = self.data.borrow_mut();
         let path = path.into();
-        let var = self.sheet.var(path);
+        let var = data.sheet.var(path);
         let value = var.value();
-        let callback = self.callback.clone_ref();
-        let handle = var.on_change(move |_: &Option<style::Data>| (callback.borrow())());
-        self.vars.borrow_mut().push(var);
-        self.handles.borrow_mut().push(handle);
+        if !data.vars.contains(&var) {
+            let callback = data.callback.clone_ref();
+            let handle = var.on_change(move |_: &Option<style::Data>| callback());
+            data.vars.insert(var);
+            data.handles.push(handle);
+        }
         value
     }
 
@@ -226,7 +263,7 @@ impl StyleWatch {
 
     /// A debug check of how many stylesheet variables are registered in this style watch.
     pub fn debug_var_count(&self) -> usize {
-        self.vars.borrow().len()
+        self.data.borrow().vars.len()
     }
 }
 

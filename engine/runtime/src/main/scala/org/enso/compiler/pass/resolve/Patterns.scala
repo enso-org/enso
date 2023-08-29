@@ -53,10 +53,7 @@ object Patterns extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val bindings = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "Binding resolution was not run before pattern resolution"
-    )
+    val bindings = inlineContext.bindingsAnalysis()
     doExpression(ir, bindings, None)
   }
 
@@ -133,6 +130,10 @@ object Patterns extends IRPass {
                   consName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
+                case Right(value: BindingsMap.ResolvedPolyglotField) =>
+                  consName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
 
                 case Right(_: BindingsMap.ResolvedMethod) =>
                   IR.Error.Resolution(
@@ -150,6 +151,7 @@ object Patterns extends IRPass {
                 case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                 case BindingsMap.ResolvedModule(_)            => 0
                 case BindingsMap.ResolvedPolyglotSymbol(_, _) => 0
+                case BindingsMap.ResolvedPolyglotField(_, _)  => 0
                 case BindingsMap.ResolvedMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
@@ -204,6 +206,10 @@ object Patterns extends IRPass {
                       .UnexpectedConstructor(s"type pattern case")
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+                  tpeName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+                case Right(value: BindingsMap.ResolvedPolyglotField) =>
                   tpeName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )

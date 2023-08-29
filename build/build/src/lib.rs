@@ -36,7 +36,6 @@ extern crate core;
 use crate::prelude::*;
 
 use anyhow::Context;
-use ide_ci::programs::java;
 use regex::Regex;
 
 
@@ -104,11 +103,6 @@ pub fn get_string_assignment_value(
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
     get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse2()
-}
-
-/// Get version of Enso from the `build.sbt` file contents.
-pub fn get_java_major_version(build_sbt_contents: &str) -> Result<java::LanguageVersion> {
-    get_string_assignment_value(build_sbt_contents, "javaVersion")?.parse2()
 }
 
 #[cfg(test)]

@@ -32,7 +32,11 @@ import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
-import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
+import org.enso.languageserver.refactoring.RefactoringApi.{
+  RenameProject,
+  RenameSymbol
+}
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -40,7 +44,10 @@ import org.enso.languageserver.requesthandler.monitoring.{
   InitialPingHandler,
   PingHandler
 }
-import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
+import org.enso.languageserver.requesthandler.refactoring.{
+  RenameProjectHandler,
+  RenameSymbolHandler
+}
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualization.{
   AttachVisualizationHandler,
@@ -51,6 +58,7 @@ import org.enso.languageserver.requesthandler.visualization.{
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.runtime.VisualizationApi.{
   AttachVisualization,
   DetachVisualization,
@@ -76,6 +84,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -123,6 +132,13 @@ class JsonConnectionController(
   import context.dispatcher
 
   implicit val timeout: Timeout = Timeout(requestTimeout)
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream
+      .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
+  }
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
@@ -408,6 +424,20 @@ class JsonConnectionController(
         )
       }
 
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
+      webActor ! Notification(
+        RefactoringApi.ProjectRenamed,
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
+      )
+
     case Api.ProgressNotification(payload) =>
       val translated: Notification[_, _] =
         translateProgressNotification(payload)
@@ -573,6 +603,18 @@ class JsonConnectionController(
         requestTimeout,
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
+      ),
+      RenameProject -> RenameProjectHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RenameSymbol -> RenameSymbolHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
+        requestTimeout,
+        runtimeConnector
       )
     )
   }

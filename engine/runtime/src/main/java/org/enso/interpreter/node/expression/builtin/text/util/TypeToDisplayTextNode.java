@@ -1,5 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.text.util;
 
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.type.TypesGen;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -7,10 +13,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.type.Types;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
 public abstract class TypeToDisplayTextNode extends Node {
@@ -61,7 +63,7 @@ public abstract class TypeToDisplayTextNode extends Node {
       return TypesGen.asUnresolvedSymbol(value).getName() + " (Unresolved_Symbol)";
     } else if (TypesGen.isManagedResource(value)) {
       return "Managed_Resource";
-    } else if (TypesGen.isArray(value)) {
+    } else if (objects.hasArrayElements(value)) {
       return "Array";
     } else if (TypesGen.isRef(value)) {
       return "Ref";
@@ -72,10 +74,11 @@ public abstract class TypeToDisplayTextNode extends Node {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
     } else {
-      // In case we forgot to handle some of the builtin types, the following
-      // piece of code will handle that.
-      String typeName = Types.getName(value);
-      return typeName != null ? typeName : "a polyglot object";
+      if (TypeOfNode.getUncached().execute(value) instanceof Type type) {
+        return type.getQualifiedName().toString();
+      } else {
+        return "a polyglot object";
+      }
     }
   }
 }

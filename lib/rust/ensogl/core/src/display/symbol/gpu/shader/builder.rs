@@ -173,8 +173,8 @@ impl Default for ShaderPrecision {
     fn default() -> Self {
         let mut map = BTreeMap::new();
         map.insert(glsl::PrimType::Int, glsl::Precision::High);
-        map.insert(glsl::PrimType::UInt, glsl::Precision::High);
         map.insert(glsl::PrimType::Float, glsl::Precision::High);
+        map.insert(glsl::PrimType::Sampler2dArray, glsl::Precision::Medium);
         let vertex = map.clone();
         let fragment = map;
         Self { vertex, fragment }
@@ -257,19 +257,14 @@ impl From<glsl::Type> for AttributeQualifier {
         let prec = default();
         let prim = &typ.prim;
         let storage = match prim {
-            glsl::PrimType::Int => glsl::LinkageStorage {
-                interpolation: Some(glsl::InterpolationStorage::Flat),
-                ..default()
-            },
-            glsl::PrimType::IVec2 => glsl::LinkageStorage {
-                interpolation: Some(glsl::InterpolationStorage::Flat),
-                ..default()
-            },
-            glsl::PrimType::IVec3 => glsl::LinkageStorage {
-                interpolation: Some(glsl::InterpolationStorage::Flat),
-                ..default()
-            },
-            glsl::PrimType::IVec4 => glsl::LinkageStorage {
+            glsl::PrimType::Int
+            | glsl::PrimType::IVec2
+            | glsl::PrimType::IVec3
+            | glsl::PrimType::IVec4
+            | glsl::PrimType::UInt
+            | glsl::PrimType::UVec2
+            | glsl::PrimType::UVec3
+            | glsl::PrimType::UVec4 => glsl::LinkageStorage {
                 interpolation: Some(glsl::InterpolationStorage::Flat),
                 ..default()
             },
