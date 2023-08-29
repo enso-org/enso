@@ -54,6 +54,14 @@ type Query
     Drop_Table (table_name:Text) (if_exists:Boolean)
 
     ## PRIVATE
+       An SQL query that removes all rows from a table, but does not drop the
+       table structure itself.
+
+       Arguments:
+       - table_name: the name of the table to truncate.
+    Truncate_Table (table_name:Text)
+
+    ## PRIVATE
        An INSERT INTO ... SELECT query that allows to insert results of a query
        into an existing table.
 

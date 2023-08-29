@@ -457,6 +457,8 @@ generate_query dialect query = case query of
     Query.Drop_Table name if_exists ->
         maybe_if_exists = if if_exists then Builder.code "IF EXISTS " else Builder.empty
         Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
+    Query.Truncate_Table name ->
+        Builder.code "DELETE FROM " ++ dialect.wrap_identifier name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query

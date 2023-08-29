@@ -135,19 +135,34 @@ Table.update_database_table self target_table (update_action : Update_Action = U
      `key_columns`. Any other columns are ignored.
    - key_columns: the names of the columns that are used to correlate rows from
      `key_values_to_delete` with rows in the target table.
+   - allow_duplicate_matches: specifies if the key values are expected to match
+     more than one row each. Defaults to `False`, meaning that if a key value
+     matches more than one row, an error will be reported and no rows will be
+     deleted. This setting is meant to prevent additional deletion of too many
+     rows.
 
    > Example
+
+     Remove students that have graduated from the `students` table.
+
+         students.delete_rows graduated_students key_columns=["student_id"]
 
    ! Error Conditions
 
      - If the provided primary key columns are not present in the source or
        target table, `Missing_Input_Columns` error is raised.
+     - If `allow_duplicate_matches` is set to `False` (the default) and a key
+       value matches more than one row,
+       a `Multiple_Target_Rows_Matched_For_Update` error is raised.
      - An `SQL_Error` may be reported if there is a failure on the database
        side.
-     - TODO shall we check for duplicates by key?
 
      If an error has been raised, the table is not modified (that may not always
      apply to `SQL_Error`).
+
+     Note that it is possible for a row in `key_values_to_delete` to have no
+     corresponding rows in the target table. That does not cause any error. This
+     can be detected by checking the returned count of deleted rows.
 
    ? Dry Run if Output disabled
 
@@ -156,7 +171,7 @@ Table.update_database_table self target_table (update_action : Update_Action = U
      columns, and returns the count of rows that would have been deleted by this
      operation, with a `Dry_Run_Operation` warning attached.
 @key_columns Widget_Helpers.make_column_name_vector_selector
-Table.delete_rows : Table -> Vector Text | Nothing -> Integer ! Missing_Input_Columns | SQL_Error
-Table.delete_rows self (key_values_to_delete : Table | In_Memory_Table) (key_columns : Vector Text = default_key_columns_required self) =
+Table.delete_rows : Table -> Vector Text | Nothing -> Boolean -> Integer ! Missing_Input_Columns | SQL_Error
+Table.delete_rows self (key_values_to_delete : Table | In_Memory_Table) (key_columns : Vector Text = default_key_columns_required self) (allow_duplicate_matches : Boolean = False) =
     check_target_table_for_update self <|
         Error.throw "TODO"
