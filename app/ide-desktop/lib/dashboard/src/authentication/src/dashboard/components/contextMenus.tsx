@@ -3,13 +3,6 @@ import * as React from 'react'
 
 import Modal from './modal'
 
-// =================
-// === Constants ===
-// =================
-
-/** The margin around the context menu, so that it is not at the edge of the screen. */
-const SCROLL_MARGIN = 12
-
 // ===================
 // === ContextMenu ===
 // ===================
@@ -33,17 +26,18 @@ export default function ContextMenus(props: ContextMenusProps) {
             setTop(Math.min(top, window.innerHeight - contextMenuRef.current.clientHeight))
             const boundingBox = contextMenuRef.current.getBoundingClientRect()
             setLeft(event.pageX - boundingBox.width / 2)
-            const scrollBy = boundingBox.bottom - innerHeight + SCROLL_MARGIN
-            if (scrollBy > 0) {
-                scroll(scrollX, scrollY + scrollBy)
-            }
         }
     }, [children, top, event.pageX])
 
     return hidden ? (
         <>{children}</>
     ) : (
-        <Modal className="absolute overflow-hidden bg-dim w-full h-full">
+        <Modal
+            className="absolute overflow-hidden bg-dim w-full h-full z-10"
+            onContextMenu={innerEvent => {
+                innerEvent.preventDefault()
+            }}
+        >
             <div
                 ref={contextMenuRef}
                 style={{ left, top }}

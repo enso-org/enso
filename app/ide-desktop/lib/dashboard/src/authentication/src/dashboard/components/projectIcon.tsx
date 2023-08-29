@@ -2,7 +2,6 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
-import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
@@ -24,6 +23,10 @@ import SvgMask from '../../authentication/components/svgMask'
 // === Constants ===
 // =================
 
+/** The size of the icon, in pixels. */
+const ICON_SIZE_PX = 24
+/** The styles of the icons. */
+const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -64,22 +67,12 @@ export interface ProjectIconProps {
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
-    appRunner: AppRunner | null
     openIde: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-    const {
-        keyProp: key,
-        item,
-        setItem,
-        assetEvents,
-        appRunner,
-        doOpenManually,
-        onClose,
-        openIde,
-    } = props
+    const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
     const { unsetModal } = modalProvider.useSetModal()
@@ -123,7 +116,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             try {
                 switch (backend.type) {
                     case backendModule.BackendType.remote: {
-                        if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[state]) {
+                        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
                             setToastId(toast.toast.loading(LOADING_MESSAGE))
                             await backend.openProject(
                                 item.id,
@@ -251,6 +244,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.closeProject: {
+                if (event.id === item.id) {
+                    setShouldOpenWhenReady(false)
+                    void closeProject(false)
+                }
+                break
+            }
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 if (!isRunningInBackground) {
                     setShouldOpenWhenReady(false)
@@ -282,7 +282,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setShouldOpenWhenReady(false)
             }
         }
-    }, [shouldOpenWhenReady, shouldSwitchPage, state, openIde])
+        // `openIde` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
     const closeProject = async (triggerOnClose = true) => {
         if (triggerOnClose) {
@@ -294,7 +296,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setState(backendModule.ProjectState.closing)
         onSpinnerStateChange?.(null)
         setOnSpinnerStateChange(null)
-        appRunner?.stopApp()
         openProjectAbortController?.abort()
         setOpenProjectAbortController(null)
         if (
@@ -329,14 +330,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6 disabled:opacity-50"
+                    className="w-6 h-6 disabled:opacity-50"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask src={PlayIcon} />
+                    <SvgMask className={ICON_CLASSES} src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -348,7 +349,30 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     {...(isOtherUserUsingProject
                         ? { title: 'Someone else is using this project.' }
                         : {})}
-                    className="w-6 disabled:opacity-50"
+                    className="w-6 h-6 disabled:opacity-50"
+                    onClick={async clickEvent => {
+                        clickEvent.stopPropagation()
+                        unsetModal()
+                        await closeProject(!isRunningInBackground)
+                    }}
+                >
+                    <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+                        <Spinner size={ICON_SIZE_PX} state={spinnerState} />
+                    </div>
+                    <SvgMask
+                        src={StopIcon}
+                        className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+                    />
+                </button>
+            )
+        case backendModule.ProjectState.opened:
+            return (
+                <button
+                    disabled={isOtherUserUsingProject}
+                    {...(isOtherUserUsingProject
+                        ? { title: 'Someone else has this project open.' }
+                        : {})}
+                    className="w-6 h-6 disabled:opacity-50"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -358,47 +382,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
                         <Spinner size={24} state={spinnerState} />
                     </div>
-                    <SvgMask src={StopIcon} className={isRunningInBackground ? 'text-green' : ''} />
+                    <SvgMask
+                        src={StopIcon}
+                        className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+                    />
                 </button>
-            )
-        case backendModule.ProjectState.opened:
-            return (
-                <>
-                    <button
-                        disabled={isOtherUserUsingProject}
-                        {...(isOtherUserUsingProject
-                            ? { title: 'Someone else has this project open.' }
-                            : {})}
-                        className="w-6 disabled:opacity-50"
-                        onClick={async clickEvent => {
-                            clickEvent.stopPropagation()
-                            unsetModal()
-                            await closeProject(!isRunningInBackground)
-                        }}
-                    >
-                        <div
-                            className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}
-                        >
-                            <Spinner size={24} state={spinnerState} />
-                        </div>
-                        <SvgMask
-                            src={StopIcon}
-                            className={isRunningInBackground ? 'text-green' : ''}
-                        />
-                    </button>
-                    {!isRunningInBackground && !isOtherUserUsingProject && (
-                        <button
-                            className="w-6"
-                            onClick={clickEvent => {
-                                clickEvent.stopPropagation()
-                                unsetModal()
-                                openIde(true)
-                            }}
-                        >
-                            <SvgMask src={ArrowUpIcon} />
-                        </button>
-                    )}
-                </>
             )
     }
 }
