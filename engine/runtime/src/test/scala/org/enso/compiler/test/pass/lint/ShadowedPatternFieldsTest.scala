@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.IR.{Pattern, Warning}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -26,14 +27,14 @@ class ShadowedPatternFieldsTest extends CompilerTest {
     *
     * @param ir the expression to lint
     */
-  implicit class LintExxpression(ir: IR.Expression) {
+  implicit class LintExxpression(ir: Expression) {
 
     /** Lints [[ir]] for shadowed pattern variables.
       *
       * @param inlineContext the context in which linting is taking place
       * @return [[ir]], with shadowed pattern variables linted
       */
-    def lint(implicit inlineContext: InlineContext): IR.Expression = {
+    def lint(implicit inlineContext: InlineContext): Expression = {
       ShadowedPatternFields.runExpression(ir, inlineContext)
     }
   }

@@ -3,7 +3,8 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -22,11 +23,11 @@ class ComplexTypeTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run complex type desugaring on an
-    * [[IR.Module]].
+    * [[Module]].
     *
     * @param ir the module to run desugaring on
     */
-  implicit class DesugarModule(ir: IR.Module) {
+  implicit class DesugarModule(ir: Module) {
 
     /** Runs desugaring on a module.
       *
@@ -34,7 +35,7 @@ class ComplexTypeTest extends CompilerTest {
       *                      place
       * @return [[ir]], with any complex type definitions desugared
       */
-    def desugar(implicit moduleContext: ModuleContext): IR.Module = {
+    def desugar(implicit moduleContext: ModuleContext): Module = {
       ComplexType.runModule(ir, moduleContext)
     }
   }

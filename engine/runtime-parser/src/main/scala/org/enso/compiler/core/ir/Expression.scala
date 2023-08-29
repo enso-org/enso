@@ -1,7 +1,12 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{ToStringHelper, indentLevel, mkIndent, randomId}
+import org.enso.compiler.core.IR.{
+  indentLevel,
+  mkIndent,
+  randomId,
+  ToStringHelper
+}
 
 // === Expression ===========================================================
 trait Expression extends IR {
@@ -12,8 +17,8 @@ trait Expression extends IR {
     * @return the IR, potentially transformed
     */
   def transformExpressions(
-                            fn: PartialFunction[Expression, Expression]
-                          ): Expression = {
+    fn: PartialFunction[Expression, Expression]
+  ): Expression = {
     if (fn.isDefinedAt(this)) {
       fn(this)
     } else {
@@ -29,11 +34,11 @@ trait Expression extends IR {
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Expression
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Expression
 }
 
 object Expression {
@@ -50,14 +55,14 @@ object Expression {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Block(
-                           expressions: List[Expression],
-                           returnValue: Expression,
-                           override val location: Option[IdentifiedLocation],
-                           suspended: Boolean = false,
-                           override val passData: MetadataStorage = MetadataStorage(),
-                           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                         ) extends Expression
-    with IRKind.Primitive {
+    expressions: List[Expression],
+    returnValue: Expression,
+    override val location: Option[IdentifiedLocation],
+    suspended: Boolean                          = false,
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Expression
+      with IRKind.Primitive {
     override protected var id: IR.Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -72,14 +77,14 @@ object Expression {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              expressions: List[Expression] = expressions,
-              returnValue: Expression = returnValue,
-              location: Option[IdentifiedLocation] = location,
-              suspended: Boolean = suspended,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: IR.Identifier = id
-            ): Block = {
+      expressions: List[Expression]        = expressions,
+      returnValue: Expression              = returnValue,
+      location: Option[IdentifiedLocation] = location,
+      suspended: Boolean                   = suspended,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: IR.Identifier                    = id
+    ): Block = {
       val res = Block(
         expressions,
         returnValue,
@@ -94,11 +99,11 @@ object Expression {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Block =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Block =
       copy(
         expressions = expressions.map(
           _.duplicate(
@@ -115,8 +120,7 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -175,13 +179,13 @@ object Expression {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Binding(
-                             name: IR.Name,
-                             expression: Expression,
-                             override val location: Option[IdentifiedLocation],
-                             override val passData: MetadataStorage = MetadataStorage(),
-                             override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                           ) extends Expression
-    with IRKind.Primitive {
+    name: IR.Name,
+    expression: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Expression
+      with IRKind.Primitive {
     override protected var id: IR.Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -195,13 +199,13 @@ object Expression {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              name: IR.Name = name,
-              expression: Expression = expression,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: IR.Identifier = id
-            ): Binding = {
+      name: IR.Name                        = name,
+      expression: Expression               = expression,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: IR.Identifier                    = id
+    ): Binding = {
       val res = Binding(name, expression, location, passData, diagnostics)
       res.id = id
       res
@@ -209,11 +213,11 @@ object Expression {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Binding =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Binding =
       copy(
         name = name.duplicate(
           keepLocations,
@@ -228,8 +232,7 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

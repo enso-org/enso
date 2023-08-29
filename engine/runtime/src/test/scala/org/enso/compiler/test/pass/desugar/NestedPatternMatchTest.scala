@@ -3,6 +3,8 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -22,11 +24,11 @@ class NestedPatternMatchTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run nested pattern desugaring on an
-    * [[IR.Module]].
+    * [[Module]].
     *
     * @param ir the module to run desugaring on
     */
-  implicit class DesugarModule(ir: IR.Module) {
+  implicit class DesugarModule(ir: Module) {
 
     /** Runs desugaring on a module.
       *
@@ -34,7 +36,7 @@ class NestedPatternMatchTest extends CompilerTest {
       *                      place
       * @return [[ir]], with any nested patterns desugared
       */
-    def desugar(implicit moduleContext: ModuleContext): IR.Module = {
+    def desugar(implicit moduleContext: ModuleContext): Module = {
       NestedPatternMatch.runModule(ir, moduleContext)
     }
   }
@@ -44,7 +46,7 @@ class NestedPatternMatchTest extends CompilerTest {
     *
     * @param ir the expression to desugar
     */
-  implicit class DesugarExpression(ir: IR.Expression) {
+  implicit class DesugarExpression(ir: Expression) {
 
     /** Runs desgaring on an expression.
       *
@@ -52,7 +54,7 @@ class NestedPatternMatchTest extends CompilerTest {
       *                      taking place
       * @return [[ir]], with nested patterns desugared
       */
-    def desugar(implicit inlineContext: InlineContext): IR.Expression = {
+    def desugar(implicit inlineContext: InlineContext): Expression = {
       NestedPatternMatch.runExpression(ir, inlineContext)
     }
   }
@@ -141,7 +143,7 @@ class NestedPatternMatchTest extends CompilerTest {
         |        Cons a Nil -> a
         |        _ -> 0
         |""".stripMargin.preprocessExpression.get.desugar
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -154,14 +156,14 @@ class NestedPatternMatchTest extends CompilerTest {
     "desugar nested constructors to simple patterns" in {
       ir.isNested shouldBe false
 
-      consANilBranch.expression shouldBe an[IR.Expression.Block]
+      consANilBranch.expression shouldBe an[Expression.Block]
       consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consANilBranch.pattern) shouldEqual false
       consANilBranch.terminalBranch shouldBe false
 
       val nestedCase = consANilBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -182,14 +184,14 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "desugar deeply nested patterns to simple patterns" in {
-      consConsNilBranch.expression shouldBe an[IR.Expression.Block]
+      consConsNilBranch.expression shouldBe an[Expression.Block]
       consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsNilBranch.pattern) shouldEqual false
       consConsNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsNilBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -199,15 +201,15 @@ class NestedPatternMatchTest extends CompilerTest {
 
       val consBranch = nestedCase.branches(0)
 
-      consBranch.expression shouldBe an[IR.Expression.Block]
+      consBranch.expression shouldBe an[Expression.Block]
 
       val consBranchBody = consBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
       consBranchBody.branches.length shouldEqual 1
-      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
+      consBranchBody.branches.head.expression shouldBe an[Expression.Block]
       consBranchBody.branches.head.pattern
         .asInstanceOf[Pattern.Constructor]
         .constructor
@@ -218,14 +220,14 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "desugar deeply nested patterns with literals to simple patterns" in {
-      consConsOneNilBranch.expression shouldBe an[IR.Expression.Block]
+      consConsOneNilBranch.expression shouldBe an[Expression.Block]
       consConsOneNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsOneNilBranch.pattern) shouldEqual false
       consConsOneNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsOneNilBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -235,16 +237,16 @@ class NestedPatternMatchTest extends CompilerTest {
 
       val consBranch = nestedCase.branches(0)
 
-      consBranch.expression shouldBe an[IR.Expression.Block]
+      consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false
 
       val consBranchBody = consBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
       consBranchBody.branches.length shouldEqual 1
-      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
+      consBranchBody.branches.head.expression shouldBe an[Expression.Block]
       consBranchBody.branches.head.pattern
         .asInstanceOf[Pattern.Literal]
         .literal
@@ -258,7 +260,7 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "desugar deeply nested patterns with type pattern to simple patterns" in {
-      consConsIntegerNilBranch.expression shouldBe an[IR.Expression.Block]
+      consConsIntegerNilBranch.expression shouldBe an[Expression.Block]
       consConsIntegerNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(
@@ -267,7 +269,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consConsIntegerNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsIntegerNilBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -277,16 +279,16 @@ class NestedPatternMatchTest extends CompilerTest {
 
       val consBranch = nestedCase.branches(0)
 
-      consBranch.expression shouldBe an[IR.Expression.Block]
+      consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false
 
       val consBranchBody = consBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
       consBranchBody.branches.length shouldEqual 1
-      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
+      consBranchBody.branches.head.expression shouldBe an[Expression.Block]
       val tpePattern = consBranchBody.branches.head.pattern
         .asInstanceOf[Pattern.Type]
       consBranchBody.branches.head.terminalBranch shouldBe true
@@ -301,7 +303,7 @@ class NestedPatternMatchTest extends CompilerTest {
       ) shouldEqual false
 
       val consTpeBranchBody = consBranchBody.branches.head.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
       consTpeBranchBody.branches.length shouldEqual 1
@@ -310,10 +312,10 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "work recursively" in {
-      catchAllBranch.expression shouldBe an[IR.Expression.Block]
+      catchAllBranch.expression shouldBe an[Expression.Block]
       catchAllBranch.terminalBranch shouldBe true
       val consANilCase = catchAllBranch.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -326,10 +328,10 @@ class NestedPatternMatchTest extends CompilerTest {
         consANilBranch2.pattern
       ) shouldEqual false
       consANilBranch2.terminalBranch shouldBe false
-      consANilBranch2.expression shouldBe an[IR.Expression.Block]
+      consANilBranch2.expression shouldBe an[Expression.Block]
       val consANilBranch2Expr =
         consANilBranch2.expression
-          .asInstanceOf[IR.Expression.Block]
+          .asInstanceOf[Expression.Block]
           .returnValue
           .asInstanceOf[IR.Case.Expr]
 

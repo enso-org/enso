@@ -47,8 +47,7 @@ case object ModuleNameConflicts extends IRPass {
               _
             ) =>
           Some(mod)
-        case mod: Export.Module
-            if moduleContext.isSynthetic() =>
+        case mod: Export.Module if moduleContext.isSynthetic() =>
           Some(mod)
         case _ =>
           None
@@ -89,8 +88,7 @@ case object ModuleNameConflicts extends IRPass {
     val exports = syntheticExports.map(e => (e.name.parts.last.name, e)).toMap
 
     binding match {
-      case cons: Definition.Type
-          if exports.contains(cons.name.name) =>
+      case cons: Definition.Type if exports.contains(cons.name.name) =>
         val atomName = cons.name.name
         val `export` = exports(atomName)
         binding.addDiagnostic(

@@ -189,7 +189,7 @@ case object TypeSignatures extends IRPass {
   private def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case block: Expression.Block => resolveBlock(block)
-      case sig: IR.Type.Ascription    => resolveAscription(sig)
+      case sig: IR.Type.Ascription => resolveAscription(sig)
     }
   }
 

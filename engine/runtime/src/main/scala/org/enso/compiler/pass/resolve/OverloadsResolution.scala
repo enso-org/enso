@@ -52,14 +52,12 @@ case object OverloadsResolution extends IRPass {
     var seenTypes: Set[String]                                   = Set()
     var seenMethods: Map[Option[String], Set[(String, Boolean)]] = Map()
 
-    val types = ir.bindings.collect {
-      case tp: Definition.Type =>
-        tp
+    val types = ir.bindings.collect { case tp: Definition.Type =>
+      tp
     }
-    ir.bindings.collect {
-      case meth: Definition.Method.Explicit =>
-        seenMethods += meth.typeName.map(_.name) -> Set()
-        meth
+    ir.bindings.collect { case meth: Definition.Method.Explicit =>
+      seenMethods += meth.typeName.map(_.name) -> Set()
+      meth
     }
     val conversionsForType: mutable.Map[Option[String], Set[String]] =
       mutable.Map()

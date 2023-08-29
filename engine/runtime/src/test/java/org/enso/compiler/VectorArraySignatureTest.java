@@ -12,7 +12,7 @@ import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$Function$Binding;
-import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.IR$Name$Self;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
@@ -76,7 +76,7 @@ public class VectorArraySignatureTest {
     var vectorSrc = Files.readString(vectorAndArray[1]);
 
     var arrayIR = ensoCompiler.compile(arraySrc).preorder().filter((v) -> {
-      if (v instanceof IR$Module$Scope$Definition$SugaredType t) {
+      if (v instanceof Definition.SugaredType t) {
         if ("Array".equals(t.name().name())) {
           return true;
         }
@@ -84,7 +84,7 @@ public class VectorArraySignatureTest {
       return false;
     }).head();
     var vectorIR = ensoCompiler.compile(vectorSrc).preorder().filter((v) -> {
-      if (v instanceof IR$Module$Scope$Definition$SugaredType t) {
+      if (v instanceof Definition.SugaredType t) {
         if ("Vector".equals(t.name().name())) {
           return true;
         }

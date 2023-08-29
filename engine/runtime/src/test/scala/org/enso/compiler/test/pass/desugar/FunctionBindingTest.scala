@@ -3,6 +3,9 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.FunctionBinding
 import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -21,11 +24,11 @@ class FunctionBindingTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run method and function desugaring on an
-    * [[IR.Module]].
+    * [[Module]].
     *
     * @param ir the module to run desugaring on
     */
-  implicit class DesugarModule(ir: IR.Module) {
+  implicit class DesugarModule(ir: Module) {
 
     /** Runs desugaring on a module.
       *
@@ -34,7 +37,7 @@ class FunctionBindingTest extends CompilerTest {
       * @return [[ir]], with any sugared function and method definitions
       *        desugared
       */
-    def desugar(implicit moduleContext: ModuleContext): IR.Module = {
+    def desugar(implicit moduleContext: ModuleContext): Module = {
       FunctionBinding.runModule(ir, moduleContext)
     }
   }
@@ -44,7 +47,7 @@ class FunctionBindingTest extends CompilerTest {
     *
     * @param ir the expression to desugar
     */
-  implicit class DesugarExpression(ir: IR.Expression) {
+  implicit class DesugarExpression(ir: Expression) {
 
     /** Runs desgaring on an expression.
       *
@@ -52,7 +55,7 @@ class FunctionBindingTest extends CompilerTest {
       *                      taking place
       * @return [[ir]], with any sugared function definitions desugared
       */
-    def desugar(implicit inlineContext: InlineContext): IR.Expression = {
+    def desugar(implicit inlineContext: InlineContext): Expression = {
       FunctionBinding.runExpression(ir, inlineContext)
     }
   }
@@ -84,11 +87,11 @@ class FunctionBindingTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     "desugar to standard method definitions" in {
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
+      ir.bindings.head shouldBe an[Definition.Method.Explicit]
     }
 
     val explicitMethod =
-      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      ir.bindings.head.asInstanceOf[Definition.Method.Explicit]
 
     "have the function arguments in the body functions" in {
       val lambda1 = explicitMethod.body.asInstanceOf[IR.Function.Lambda]
@@ -117,14 +120,14 @@ class FunctionBindingTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
 
       val body = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[Definition.Method.Explicit]
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
-      body.expressions.head shouldBe an[IR.Expression.Binding]
-      val binding = body.expressions.head.asInstanceOf[IR.Expression.Binding]
+      body.expressions.head shouldBe an[Expression.Binding]
+      val binding = body.expressions.head.asInstanceOf[Expression.Binding]
 
       binding.expression shouldBe an[IR.Function.Lambda]
     }
@@ -136,7 +139,7 @@ class FunctionBindingTest extends CompilerTest {
           |    y -> x + y
           |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
+      ir.bindings.head shouldBe an[Definition.Method.Explicit]
     }
   }
 
@@ -150,9 +153,9 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from (that : Other) ~config=Nothing = My_Type value.a
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
+      ir.bindings.head shouldBe an[Definition.Method.Conversion]
       val conversion = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+        .asInstanceOf[Definition.Method.Conversion]
       conversion.sourceTypeName.asInstanceOf[IR.Name].name shouldEqual "Other"
       val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
       arguments.length shouldEqual 1
@@ -182,9 +185,9 @@ class FunctionBindingTest extends CompilerTest {
            |My_Type.$from (that : Value) = that
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
+      ir.bindings.head shouldBe an[Definition.Method.Conversion]
       val conversion = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+        .asInstanceOf[Definition.Method.Conversion]
 
       val annotations =
         conversion.unsafeGetMetadata(ModuleAnnotations, "Should be present.")
@@ -246,8 +249,8 @@ class FunctionBindingTest extends CompilerTest {
         |""".stripMargin.preprocessExpression.get.desugar
 
     "desugar to a binding with a lambda" in {
-      ir shouldBe an[IR.Expression.Binding]
-      val binding = ir.asInstanceOf[IR.Expression.Binding]
+      ir shouldBe an[Expression.Binding]
+      val binding = ir.asInstanceOf[Expression.Binding]
 
       binding.name.name shouldEqual "f"
       binding.expression shouldBe an[IR.Function.Lambda]
@@ -255,7 +258,7 @@ class FunctionBindingTest extends CompilerTest {
 
     "work properly for complex argument definition types" in {
       val lambda1 = ir
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
         .asInstanceOf[IR.Function.Lambda]
       val lambda2 = lambda1.body.asInstanceOf[IR.Function.Lambda]
@@ -280,7 +283,7 @@ class FunctionBindingTest extends CompilerTest {
           |    g b = b
           |    g 1
           |""".stripMargin.preprocessExpression.get.desugar
-          .asInstanceOf[IR.Expression.Binding]
+          .asInstanceOf[Expression.Binding]
 
       val aArg = ir.expression
         .asInstanceOf[IR.Function.Lambda]
@@ -300,10 +303,10 @@ class FunctionBindingTest extends CompilerTest {
       val body = ir.expression
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
-      body.expressions.head shouldBe an[IR.Expression.Binding]
+        .asInstanceOf[Expression.Block]
+      body.expressions.head shouldBe an[Expression.Binding]
 
-      val gBinding = body.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val gBinding = body.expressions.head.asInstanceOf[Expression.Binding]
       gBinding.name.name shouldEqual "g"
       gBinding.expression shouldBe an[IR.Function.Lambda]
     }

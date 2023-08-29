@@ -374,7 +374,7 @@ case object AliasAnalysis extends IRPass {
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
           val isSuspended = expression match {
             case Expression.Block(_, _, _, isSuspended, _, _) => isSuspended
-            case _                                               => false
+            case _                                            => false
           }
           val occurrenceId = graph.nextId()
           val occurrence =
@@ -512,9 +512,8 @@ case object AliasAnalysis extends IRPass {
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {
-          val newDefault = value.map((ir: Expression) =>
-            analyseExpression(ir, graph, scope)
-          )
+          val newDefault =
+            value.map((ir: Expression) => analyseExpression(ir, graph, scope))
 
           val occurrenceId = graph.nextId()
           val definition = Graph.Occurrence.Def(

@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Module, Expression}
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.pass.IRPass

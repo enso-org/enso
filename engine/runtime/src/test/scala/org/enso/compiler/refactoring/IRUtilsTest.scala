@@ -1,6 +1,7 @@
 package org.enso.compiler.refactoring
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
@@ -23,7 +24,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
     private val Module = QualifiedName(List("Unnamed"), "Test")
 
-    def preprocessModule(name: QualifiedName): IR.Module = {
+    def preprocessModule(name: QualifiedName): Module = {
       val module = new runtime.Module(
         name,
         null,
@@ -33,13 +34,13 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
       module.getIr
     }
 
-    def preprocessModule: IR.Module =
+    def preprocessModule: Module =
       preprocessModule(Module)
 
   }
 
   private def findUsagesOfLiteral(
-    module: IR.Module,
+    module: Module,
     ir: IR
   ): Option[Set[IR.Name.Literal]] = {
     ir match {
@@ -52,7 +53,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
   private def findUsagesOfStaticMethod(
     moduleName: QualifiedName,
-    module: IR.Module,
+    module: Module,
     ir: IR
   ): Option[Set[IR.Name.Literal]] = {
     ir match {

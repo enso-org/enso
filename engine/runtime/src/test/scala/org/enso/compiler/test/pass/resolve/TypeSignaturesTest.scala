@@ -3,6 +3,9 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -29,14 +32,14 @@ class TypeSignaturesTest extends CompilerTest {
     *
     * @param ir the IR to add the extension method to
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Resolves type signatures in [[ir]].
       *
       * @param moduleContext the context in which resolution is taking place
       * @return [[ir]], with all type signatures resolved
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       TypeSignatures.runModule(ir, moduleContext)
     }
   }
@@ -46,14 +49,14 @@ class TypeSignaturesTest extends CompilerTest {
     *
     * @param ir the expression to add the extension method to
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Resolves type signatures in [[ir]].
       *
       * @param inlineContext the context in which resolution is taking place
       * @return [[ir]], with all type signatures resolved
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       TypeSignatures.runExpression(ir, inlineContext)
     }
   }
@@ -117,8 +120,8 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.length shouldEqual 5
       ir.bindings.head shouldBe an[IR.Error.Unexpected.TypeSignature]
       ir.bindings(1) shouldBe an[IR.Error.Unexpected.TypeSignature]
-      ir.bindings(2) shouldBe an[IR.Module.Scope.Definition.Method]
-      ir.bindings(3) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings(2) shouldBe an[Definition.Method]
+      ir.bindings(3) shouldBe an[Definition.Method]
       ir.bindings(4) shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
@@ -162,8 +165,8 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Type]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings(0) shouldBe an[Definition.Type]
+      ir.bindings(1) shouldBe an[Definition.Method]
       ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined
       ir.bindings(2) shouldBe an[IR.Error.Unexpected.TypeSignature]
@@ -183,12 +186,12 @@ class TypeSignaturesTest extends CompilerTest {
           |
           |    f 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Method]
+          .asInstanceOf[Definition.Method]
 
       val block = ir.body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       block.expressions.length shouldEqual 2
       block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
@@ -218,13 +221,13 @@ class TypeSignaturesTest extends CompilerTest {
         |
         |    bad_sig : Int
         |""".stripMargin.preprocessExpression.get.resolve
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
 
-    val block = ir.expression.asInstanceOf[IR.Expression.Block]
+    val block = ir.expression.asInstanceOf[Expression.Block]
 
     "associate signatures with bindings" in {
       val head = block.expressions.head
-      head shouldBe an[IR.Expression.Binding]
+      head shouldBe an[Expression.Binding]
       head.getMetadata(TypeSignatures) shouldBe defined
       head.getMetadata(DocumentationComments) shouldBe defined
     }
@@ -236,12 +239,12 @@ class TypeSignaturesTest extends CompilerTest {
     "work recursively" in {
       val nested = block
         .expressions(1)
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       val head = nested.expressions.head
-      head shouldBe an[IR.Expression.Binding]
+      head shouldBe an[Expression.Binding]
       head.getMetadata(TypeSignatures) shouldBe defined
       head.getMetadata(DocumentationComments) shouldBe defined
     }

@@ -116,8 +116,8 @@ case object IgnoredBindings extends IRPass {
   ): Expression = {
     expression.transformExpressions {
       case binding: Expression.Binding => resolveBinding(binding, supply)
-      case function: IR.Function          => resolveFunction(function, supply)
-      case cse: IR.Case                   => resolveCase(cse, supply)
+      case function: IR.Function       => resolveFunction(function, supply)
+      case cse: IR.Case                => resolveCase(cse, supply)
     }
   }
 

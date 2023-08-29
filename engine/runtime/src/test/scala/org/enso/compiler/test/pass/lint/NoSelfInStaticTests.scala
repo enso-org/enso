@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.lint.NoSelfInStatic
 import org.enso.compiler.test.CompilerTest
@@ -21,7 +22,7 @@ class NoSelfInStaticTests extends CompilerTest {
     *
     * @param ir the IR to lint
     */
-  implicit class LintModule(ir: IR.Module) {
+  implicit class LintModule(ir: Module) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -29,7 +30,7 @@ class NoSelfInStaticTests extends CompilerTest {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit moduleContext: ModuleContext): IR.Module = {
+    def lint(implicit moduleContext: ModuleContext): Module = {
       NoSelfInStatic.runModule(ir, moduleContext)
     }
   }

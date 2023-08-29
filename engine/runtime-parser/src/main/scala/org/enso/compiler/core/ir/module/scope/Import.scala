@@ -1,10 +1,15 @@
 package org.enso.compiler.core.ir.module.scope
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Identifier, randomId, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.compiler.core.ir.module.Scope
-import org.enso.compiler.core.ir.{DiagnosticStorage, Expression, IRKind, IdentifiedLocation, MetadataStorage}
-
+import org.enso.compiler.core.ir.{
+  DiagnosticStorage,
+  Expression,
+  IRKind,
+  IdentifiedLocation,
+  MetadataStorage
+}
 
 /** Module-level import statements. */
 trait Import extends Scope {
@@ -17,11 +22,11 @@ trait Import extends Scope {
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Import
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Import
 }
 
 object Import {
@@ -39,17 +44,17 @@ object Import {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Module(
-                            name: IR.Name.Qualified,
-                            rename: Option[IR.Name.Literal],
-                            isAll: Boolean,
-                            onlyNames: Option[List[IR.Name.Literal]],
-                            hiddenNames: Option[List[IR.Name.Literal]],
-                            override val location: Option[IdentifiedLocation],
-                            isSynthetic: Boolean = false,
-                            override val passData: MetadataStorage = MetadataStorage(),
-                            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                          ) extends Import
-    with IRKind.Primitive {
+    name: IR.Name.Qualified,
+    rename: Option[IR.Name.Literal],
+    isAll: Boolean,
+    onlyNames: Option[List[IR.Name.Literal]],
+    hiddenNames: Option[List[IR.Name.Literal]],
+    override val location: Option[IdentifiedLocation],
+    isSynthetic: Boolean                        = false,
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Import
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -67,17 +72,17 @@ object Import {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              name: IR.Name.Qualified = name,
-              rename: Option[IR.Name.Literal] = rename,
-              isAll: Boolean = isAll,
-              onlyNames: Option[List[IR.Name.Literal]] = onlyNames,
-              hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-              location: Option[IdentifiedLocation] = location,
-              isSynthetic: Boolean = isSynthetic,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Module = {
+      name: IR.Name.Qualified                    = name,
+      rename: Option[IR.Name.Literal]            = rename,
+      isAll: Boolean                             = isAll,
+      onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
+      hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
+      location: Option[IdentifiedLocation]       = location,
+      isSynthetic: Boolean                       = isSynthetic,
+      passData: MetadataStorage                  = passData,
+      diagnostics: DiagnosticStorage             = diagnostics,
+      id: Identifier                             = id
+    ): Module = {
       val res = Module(
         name,
         rename,
@@ -95,15 +100,14 @@ object Import {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Module =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Module =
       copy(
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -111,14 +115,14 @@ object Import {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Module =
+      location: Option[IdentifiedLocation]
+    ): Module =
       copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(
-                                 fn: Expression => Expression
-                               ): Module = this
+      fn: Expression => Expression
+    ): Module = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -210,8 +214,7 @@ object Import {
       *                    class
       * @param className   the class name
       */
-    case class Java(packageName: String, className: String)
-      extends Entity {
+    case class Java(packageName: String, className: String) extends Entity {
       val langName = "java"
 
       override def getVisibleName: String = className
@@ -237,13 +240,13 @@ object Import {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Polyglot(
-                              entity: Polyglot.Entity,
-                              rename: Option[String],
-                              override val location: Option[IdentifiedLocation],
-                              override val passData: MetadataStorage = MetadataStorage(),
-                              override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                            ) extends Import
-    with IRKind.Primitive {
+    entity: Polyglot.Entity,
+    rename: Option[String],
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Import
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -258,13 +261,13 @@ object Import {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              entity: Polyglot.Entity = entity,
-              rename: Option[String] = rename,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Polyglot = {
+      entity: Polyglot.Entity              = entity,
+      rename: Option[String]               = rename,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Polyglot = {
       val res =
         Polyglot(entity, rename, location, passData, diagnostics)
       res.id = id
@@ -273,15 +276,14 @@ object Import {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Polyglot =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Polyglot =
       copy(
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -289,8 +291,8 @@ object Import {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Polyglot = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Polyglot = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Polyglot =

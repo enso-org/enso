@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Module, Expression}
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -66,7 +66,7 @@ case object GenerateMethodBodies extends IRPass {
     ir.copy(
       bindings = ir.bindings.map {
         case m: Definition.Method => processMethodDef(m)
-        case x                                    => x
+        case x                    => x
       }
     )
   }

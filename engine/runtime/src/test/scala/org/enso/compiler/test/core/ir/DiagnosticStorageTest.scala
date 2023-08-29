@@ -1,6 +1,7 @@
 package org.enso.compiler.test.core.ir
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Empty
 import org.enso.compiler.core.ir.DiagnosticStorage
 import org.enso.compiler.test.CompilerTest
 
@@ -14,7 +15,7 @@ class DiagnosticStorageTest extends CompilerTest {
     * @return a new diagnostic
     */
   def mkDiagnostic(name: String): IR.Diagnostic = {
-    IR.Warning.Shadowed.FunctionParam(name, IR.Empty(None), None)
+    IR.Warning.Shadowed.FunctionParam(name, Empty(None), None)
   }
 
   // === The Tests ============================================================

@@ -3,6 +3,9 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -21,14 +24,14 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     *
     * @param ir the module
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Resolves documentation comments for [[ir]].
       *
       * @param moduleContext the context in which to resolve
       * @return [[ir]], with documentation resolved
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       DocumentationComments.runModule(ir, moduleContext)
     }
   }
@@ -37,14 +40,14 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     *
     * @param ir the expression
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Resolves documentation comments for [[ir]].
       *
       * @param inlineContext the context in which to resolve
       * @return [[ir]], with documentation resolved
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       DocumentationComments.runExpression(ir, inlineContext)
     }
   }
@@ -95,8 +98,8 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
     "be associated with atoms and methods" in {
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings.head shouldBe an[Definition.SugaredType]
+      ir.bindings(1) shouldBe an[Definition.Method]
 
       getDoc(ir.bindings.head) shouldEqual " This is doc for My_Atom"
       getDoc(ir.bindings(1)) shouldEqual " This is doc for my_method"
@@ -207,7 +210,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       body.expressions.length shouldEqual 1
       getDoc(body.expressions.head) shouldEqual " Do thing"
@@ -225,9 +228,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    z = x * y
           |""".stripMargin.preprocessModule.resolve
       val body = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+        .asInstanceOf[Definition.Method.Binding]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       body.expressions.length shouldEqual 1
       getDoc(body.expressions.head) shouldEqual " Do thing"
@@ -247,9 +250,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    f 1
           |""".stripMargin.preprocessModule.resolve
       val body = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+        .asInstanceOf[Definition.Method.Binding]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       body.expressions.length shouldEqual 2
       body.expressions.head shouldBe an[IR.Application.Operator.Binary]
@@ -280,7 +283,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        0
           |""".stripMargin.preprocessModule.resolve
       val tp =
-        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+        ir.bindings.head.asInstanceOf[Definition.SugaredType]
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"
@@ -288,7 +291,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(t2) shouldEqual " the included Unit"
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
       getDoc(method) shouldEqual " a method"
-      val block = method.body.asInstanceOf[IR.Expression.Block]
+      val block = method.body.asInstanceOf[Expression.Block]
       getDoc(block.expressions.head) shouldEqual " a statement"
       getDoc(block.returnValue) shouldEqual " the return"
     }
@@ -343,28 +346,26 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
       val t1 = ir.bindings.head
       getDoc(t1) shouldEqual " the type Foo"
-      inside(ir.bindings(1)) {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
-          getDoc(method) shouldEqual " a method"
-          inside(method.body) { case lambda: IR.Function.Lambda =>
-            inside(lambda.body) { case block: IR.Expression.Block =>
-              getDoc(block.expressions.head) shouldEqual " a statement"
-              getDoc(block.returnValue) shouldEqual " the return"
-            }
+      inside(ir.bindings(1)) { case method: Definition.Method.Explicit =>
+        getDoc(method) shouldEqual " a method"
+        inside(method.body) { case lambda: IR.Function.Lambda =>
+          inside(lambda.body) { case block: Expression.Block =>
+            getDoc(block.expressions.head) shouldEqual " a statement"
+            getDoc(block.returnValue) shouldEqual " the return"
           }
+        }
       }
 
-      inside(ir.bindings(2)) {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
-          inside(method.body) { case lambda: IR.Function.Lambda =>
-            inside(lambda.body) { case block: IR.Expression.Block =>
-              inside(block.returnValue) { case caseExpr: IR.Case.Expr =>
-                caseExpr.branches should have length 2
-                getDoc(caseExpr.branches.head) shouldEqual " case 1"
-                getDoc(caseExpr.branches(1)) shouldEqual " catchall"
-              }
+      inside(ir.bindings(2)) { case method: Definition.Method.Explicit =>
+        inside(method.body) { case lambda: IR.Function.Lambda =>
+          inside(lambda.body) { case block: Expression.Block =>
+            inside(block.returnValue) { case caseExpr: IR.Case.Expr =>
+              caseExpr.branches should have length 2
+              getDoc(caseExpr.branches.head) shouldEqual " case 1"
+              getDoc(caseExpr.branches(1)) shouldEqual " catchall"
             }
           }
+        }
       }
     }
   }

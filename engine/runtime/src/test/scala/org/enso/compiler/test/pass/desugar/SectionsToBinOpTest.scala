@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.pass.desugar.SectionsToBinOp
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -24,7 +25,7 @@ class SectionsToBinOpTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class DesugarExpression(ir: IR.Expression) {
+  implicit class DesugarExpression(ir: Expression) {
 
     /** Runs section desugaring on [[ir]].
       *
@@ -32,7 +33,7 @@ class SectionsToBinOpTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all sections desugared
       */
-    def desugar(implicit inlineContext: InlineContext): IR.Expression = {
+    def desugar(implicit inlineContext: InlineContext): Expression = {
       SectionsToBinOp.runExpression(ir, inlineContext)
     }
   }

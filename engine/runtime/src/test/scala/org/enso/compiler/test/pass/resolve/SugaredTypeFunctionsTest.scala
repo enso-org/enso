@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.pass.resolve.TypeFunctions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -24,14 +25,14 @@ class SugaredTypeFunctionsTest extends CompilerTest {
     *
     * @param ir the expression to resolve typing functions in
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Resolves typing functions on [[ir]].
       *
       * @param inlineContext the context win which resolution takes place
       * @return [[ir]], with typing functions resolved
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       TypeFunctions.runExpression(ir, inlineContext)
     }
   }

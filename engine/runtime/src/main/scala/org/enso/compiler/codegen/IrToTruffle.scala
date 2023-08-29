@@ -9,35 +9,81 @@ import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name.Special
 import org.enso.compiler.core.IR.{Error, Pattern}
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedConstructor, ResolvedModule}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  BindingAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GenericAnnotations, GlobalNames, MethodDefinitions, Patterns, TypeNames, TypeSignatures}
+import org.enso.compiler.pass.resolve.{
+  ExpressionAnnotations,
+  GenericAnnotations,
+  GlobalNames,
+  MethodDefinitions,
+  Patterns,
+  TypeNames,
+  TypeSignatures
+}
 import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
+import org.enso.interpreter.node.callable.function.{
+  BlockNode,
+  CreateFunctionNode
+}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode, SequenceLiteralNode}
+import org.enso.interpreter.node.callable.{
+  ApplicationNode,
+  InvokeCallableNode,
+  SequenceLiteralNode
+}
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{ConstantNode, QualifiedAccessorNode}
+import org.enso.interpreter.node.expression.atom.{
+  ConstantNode,
+  QualifiedAccessorNode
+}
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.node.{BaseNode, ClosureRootNode, MethodRootNode, ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.node.{
+  BaseNode,
+  ClosureRootNode,
+  MethodRootNode,
+  ExpressionNode => RuntimeExpression
+}
 import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
+import org.enso.interpreter.runtime.callable.argument.{
+  ArgumentDefinition,
+  CallArgument
+}
 import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
-import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
-import org.enso.interpreter.runtime.callable.{UnresolvedConversion, UnresolvedSymbol, Annotation => RuntimeAnnotation}
+import org.enso.interpreter.runtime.callable.function.{
+  FunctionSchema,
+  Function => RuntimeFunction
+}
+import org.enso.interpreter.runtime.callable.{
+  UnresolvedConversion,
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
+}
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{FramePointer, LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.{
+  FramePointer,
+  LocalScope,
+  ModuleScope
+}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -164,8 +210,8 @@ class IrToTruffle(
       case _: Error         =>
     }
 
-    val typeDefs = module.bindings.collect {
-      case tp: Definition.Type => tp
+    val typeDefs = module.bindings.collect { case tp: Definition.Type =>
+      tp
     }
 
     typeDefs.foreach { tpDef =>
@@ -901,11 +947,11 @@ class IrToTruffle(
     ): RuntimeExpression = {
       val runtimeExpression = ir match {
         case block: Expression.Block => processBlock(block)
-        case literal: IR.Literal        => processLiteral(literal)
+        case literal: IR.Literal     => processLiteral(literal)
         case app: IR.Application =>
           processApplication(app, subjectToInstrumentation)
-        case name: IR.Name                  => processName(name)
-        case function: IR.Function          => processFunction(function, binding)
+        case name: IR.Name               => processName(name)
+        case function: IR.Function       => processFunction(function, binding)
         case binding: Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case =>
           processCase(caseExpr, subjectToInstrumentation)

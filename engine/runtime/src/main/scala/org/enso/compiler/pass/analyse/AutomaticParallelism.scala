@@ -492,10 +492,10 @@ object AutomaticParallelism extends IRPass {
           case _ => Pinned
         }
       case bind: Expression.Binding => getParallelismStatus(bind.expression)
-      case _: IR.Name                  => Pure
-      case _: IR.Literal               => Pure
-      case _: IR.Function.Lambda       => Pure
-      case _                           => Pinned
+      case _: IR.Name               => Pure
+      case _: IR.Literal            => Pure
+      case _: IR.Function.Lambda    => Pure
+      case _                        => Pinned
     }
 
   private def withBodyBlock(

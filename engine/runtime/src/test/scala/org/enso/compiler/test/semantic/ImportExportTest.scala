@@ -1,6 +1,8 @@
 package org.enso.compiler.test.semantic
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime
@@ -72,7 +74,7 @@ class ImportExportTest
     }
   }
 
-  implicit private class UnwrapBindingMap(moduleIr: IR.Module) {
+  implicit private class UnwrapBindingMap(moduleIr: Module) {
     def unwrapBindingMap: BindingsMap = {
       moduleIr.unsafeGetMetadata(BindingAnalysis, "Should be present")
     }
@@ -430,7 +432,7 @@ class ImportExportTest
 
       mainIr.imports.size shouldEqual 1
       val in = mainIr.imports.head
-        .asInstanceOf[IR.Module.Scope.Import.Module]
+        .asInstanceOf[Import.Module]
 
       in.name.name.toString() should include("Test.Logical_Export.Main")
       in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")

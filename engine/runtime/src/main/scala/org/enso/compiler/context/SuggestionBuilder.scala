@@ -5,7 +5,13 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.resolve.{DocumentationComments, GenericAnnotations, MethodDefinitions, TypeNames, TypeSignatures}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  GenericAnnotations,
+  MethodDefinitions,
+  TypeNames,
+  TypeSignatures
+}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName

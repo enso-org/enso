@@ -3,7 +3,8 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.ModuleAnnotations
 import org.enso.compiler.test.CompilerTest
@@ -26,15 +27,15 @@ class ModuleAnnotationsTest extends CompilerTest {
     *
     * @param ir the IR to resolve
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
-    /** Runs annotation resolution on an [[IR.Module]].
+    /** Runs annotation resolution on an [[Module]].
       *
       * @param moduleContext the module context in which the resolution takes
       *                      place
       * @return [[ir]], with all module-level annotations resolved
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       ModuleAnnotations.runModule(ir, moduleContext)
     }
   }

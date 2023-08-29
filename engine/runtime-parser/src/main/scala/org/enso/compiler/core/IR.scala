@@ -3,7 +3,14 @@ package org.enso.compiler.core
 import org.enso.compiler.core.ConstantsNames
 //import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
-import org.enso.compiler.core.ir.{DiagnosticStorage, Expression, IRKind, IdentifiedLocation, MetadataStorage, ProcessingPass}
+import org.enso.compiler.core.ir.{
+  DiagnosticStorage,
+  Expression,
+  IRKind,
+  IdentifiedLocation,
+  MetadataStorage,
+  ProcessingPass
+}
 import org.enso.syntax.text.{Debug, Location}
 import com.oracle.truffle.api.source.Source
 
@@ -7097,37 +7104,37 @@ object IR {
       override def showCode(indent: Int): String = "Import_Export_Error"
     }
   }
-/*
+  /*
   // ==========================================================================
   // === Primitive / Sugar ====================================================
   // ==========================================================================
 
   /** A trait representing the classification of IR nodes into either primitive
-    * (constructs which will remain after desugaring) or sugar (constructs that
-    * should be removed by the desugaring passes).
-    */
+   * (constructs which will remain after desugaring) or sugar (constructs that
+   * should be removed by the desugaring passes).
+   */
   sealed trait IRKind
   object IRKind {
 
     /** This trait encodes that a given piece of the [[IR]] is considered to be
-      * a primitive construct in Enso.
-      */
+   * a primitive construct in Enso.
+   */
     sealed trait Primitive extends IRKind
 
     /** This trait encodes that a given piece of the [[IR]] is considered to
-      * represent syntax sugar in Enso.
-      *
-      * All [[Sugar]] constructs should be desugared into [[Primitive]]
-      * constructs as soon as possible.
-      */
+   * represent syntax sugar in Enso.
+   *
+   * All [[Sugar]] constructs should be desugared into [[Primitive]]
+   * constructs as soon as possible.
+   */
     sealed trait Sugar extends IRKind
 
     /** This trait encodes that a given piece of [[IR]] is used to represent an
-      * optimisation on the IR in Enso.
-      */
+   * optimisation on the IR in Enso.
+   */
     sealed trait Optimisation extends IRKind
   }
-*/
+   */
   // ==========================================================================
   // === Extension Methods ====================================================
   // ==========================================================================

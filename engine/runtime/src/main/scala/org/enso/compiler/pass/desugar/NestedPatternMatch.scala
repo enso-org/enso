@@ -6,7 +6,12 @@ import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 
 import scala.annotation.unused

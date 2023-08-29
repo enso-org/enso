@@ -60,7 +60,8 @@ public interface CompilerContext {
 
   void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
 
-  void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir);
+  void truffleRunCodegen(
+      Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir);
 
   ExpressionNode truffleRunInline(
       Source source, LocalScope localScope, Module module, CompilerConfig config, Expression ir);

@@ -3,7 +3,8 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -26,7 +27,7 @@ class OverloadsResolutionTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Runs section desugaring on [[ir]].
       *
@@ -34,7 +35,7 @@ class OverloadsResolutionTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all sections desugared
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       OverloadsResolution.runModule(ir, moduleContext)
     }
   }
@@ -90,8 +91,8 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe a[Method.Conversion]
-      ir.bindings(1) shouldBe a[Method.Conversion]
+      ir.bindings.head shouldBe a[Definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[Definition.Method.Conversion]
     }
 
     "raise an error if there are multiple definitions with the same source type" in {
@@ -102,8 +103,8 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings.head shouldBe a[Method.Conversion]
-      ir.bindings(1) shouldBe a[Method.Conversion]
+      ir.bindings.head shouldBe a[Definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[Definition.Method.Conversion]
       ir.bindings(2) shouldBe an[IR.Error.Redefined.Conversion]
     }
   }

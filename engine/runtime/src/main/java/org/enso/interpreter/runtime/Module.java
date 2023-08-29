@@ -69,7 +69,8 @@ public final class Module implements EnsoObject {
    * directory then contains submodules of this module that should be directly accessible from this
    * module - achieved by both filling in this list, and inserting synthetic imports and exports
    * into this module - See {@link
-   * org.enso.compiler.Compiler#injectSyntheticModuleExports(org.enso.compiler.core.ir.Module, List)}.
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(org.enso.compiler.core.ir.Module,
+   * List)}.
    */
   private List<QualifiedName> directModulesRefs;
 

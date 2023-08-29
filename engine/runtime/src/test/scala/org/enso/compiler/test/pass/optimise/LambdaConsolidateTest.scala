@@ -3,6 +3,8 @@ package org.enso.compiler.test.pass.optimise
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -25,17 +27,17 @@ class LambdaConsolidateTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(List(precursorPasses), passConfiguration)
 
-  /** Adds an extension method to run lambda consolidation on an [[IR.Module]].
+  /** Adds an extension method to run lambda consolidation on an [[Module]].
     *
     * @param ir the module to run lambda consolidation on
     */
-  implicit class OptimiseModule(ir: IR.Module) {
+  implicit class OptimiseModule(ir: Module) {
 
     /** Runs lambda consolidation on a module.
       *
       * @return [[ir]], with chained lambdas consolidated
       */
-    def optimise: IR.Module = {
+    def optimise: Module = {
       LambdaConsolidate.runModule(
         ir,
         buildModuleContext(passConfiguration = Some(passConfiguration))
@@ -44,11 +46,11 @@ class LambdaConsolidateTest extends CompilerTest {
   }
 
   /** Adds an extension method to run lambda consolidation on an
-    * [[IR.Expression]].
+    * [[Expression]].
     *
     * @param ir the expression to run lambda consolidation on
     */
-  implicit class OptimiseExpression(ir: IR.Expression) {
+  implicit class OptimiseExpression(ir: Expression) {
 
     /** Runs lambda consolidation on an expression.
       *
@@ -56,7 +58,7 @@ class LambdaConsolidateTest extends CompilerTest {
       *                      expression
       * @return [[ir]], with chained lambdas consolidated
       */
-    def optimise(implicit inlineContext: InlineContext): IR.Expression = {
+    def optimise(implicit inlineContext: InlineContext): Expression = {
       LambdaConsolidate.runExpression(ir, inlineContext)
     }
   }

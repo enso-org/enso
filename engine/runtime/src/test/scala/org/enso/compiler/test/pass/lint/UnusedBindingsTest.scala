@@ -3,6 +3,9 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
@@ -33,7 +36,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     *
     * @param ir the IR to lint
     */
-  implicit class LintExpression(ir: IR.Expression) {
+  implicit class LintExpression(ir: Expression) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -41,7 +44,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit inlineContext: InlineContext): IR.Expression = {
+    def lint(implicit inlineContext: InlineContext): Expression = {
       UnusedBindings.runExpression(ir, inlineContext)
     }
   }
@@ -62,7 +65,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     *
     * @param ir the IR to lint
     */
-  implicit class LintModule(ir: IR.Module) {
+  implicit class LintModule(ir: Module) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -70,7 +73,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit moduleContext: ModuleContext): IR.Module = {
+    def lint(implicit moduleContext: ModuleContext): Module = {
       UnusedBindings.runModule(ir, moduleContext)
     }
   }
@@ -114,17 +117,16 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |    f 0
           |""".stripMargin.preprocessModule.lint
 
-      inside(ir.bindings.head) {
-        case definition: IR.Module.Scope.Definition.Method.Explicit =>
-          inside(definition.body) { case f: IR.Function.Lambda =>
-            val lintMeta = f.arguments(1).diagnostics.collect {
-              case u: IR.Warning.Unused.FunctionArgument => u
-            }
-
-            lintMeta should not be empty
-            lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
-            lintMeta.head.name.name shouldEqual "x"
+      inside(ir.bindings.head) { case definition: Definition.Method.Explicit =>
+        inside(definition.body) { case f: IR.Function.Lambda =>
+          val lintMeta = f.arguments(1).diagnostics.collect {
+            case u: IR.Warning.Unused.FunctionArgument => u
           }
+
+          lintMeta should not be empty
+          lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
+          lintMeta.head.name.name shouldEqual "x"
+        }
       }
     }
 
@@ -151,7 +153,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |a = 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Binding]
+          .asInstanceOf[Expression.Binding]
 
       val lintMeta = ir.diagnostics.collect { case u: IR.Warning.Unused =>
         u
@@ -169,7 +171,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |_ = 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Binding]
+          .asInstanceOf[Expression.Binding]
 
       val lintMeta = ir.diagnostics.collect { case u: IR.Warning.Unused =>
         u
@@ -186,7 +188,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |case x of
           |    Cons a _ -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Block]
+          .asInstanceOf[Expression.Block]
           .returnValue
           .asInstanceOf[IR.Case.Expr]
 

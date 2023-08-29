@@ -3,7 +3,9 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
@@ -90,17 +92,17 @@ class DataflowAnalysisTest extends CompilerTest {
     DependencyInfo.Type.Dynamic(str, extId)
   }
 
-  /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
+  /** Adds an extension method to run dataflow analysis on an [[Module]].
     *
     * @param ir the module to run dataflow analysis on.
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Runs dataflow analysis on a module.
       *
       * @return [[ir]], with attached data dependency information
       */
-    def analyse: IR.Module = {
+    def analyse: Module = {
       DataflowAnalysis.runModule(
         ir,
         buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
@@ -108,11 +110,11 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-  /** Adds an extension method to run dataflow analysis on an [[IR.Expression]].
+  /** Adds an extension method to run dataflow analysis on an [[Expression]].
     *
     * @param ir the expression to run dataflow analysis on
     */
-  implicit class AnalyseExpresion(ir: IR.Expression) {
+  implicit class AnalyseExpresion(ir: Expression) {
 
     /** Runs dataflow analysis on an expression.
       *
@@ -120,7 +122,7 @@ class DataflowAnalysisTest extends CompilerTest {
       *                      expression
       * @return [[ir]], with attached data dependency information
       */
-    def analyse(implicit inlineContext: InlineContext): IR.Expression = {
+    def analyse(implicit inlineContext: InlineContext): Expression = {
       DataflowAnalysis.runExpression(ir, inlineContext)
     }
   }
@@ -294,13 +296,13 @@ class DataflowAnalysisTest extends CompilerTest {
 
     // The method and body
     val method =
-      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+      ir.bindings.head.asInstanceOf[Definition.Method]
     val fn = method.body.asInstanceOf[IR.Function.Lambda]
     val fnArgThis =
       fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
     val fnArgA = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
     val fnArgB = fn.arguments(2).asInstanceOf[IR.DefinitionArgument.Specified]
-    val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
+    val fnBody = fn.body.asInstanceOf[Expression.Block]
 
     // The `IO.println` expression
     val printlnExpr =
@@ -314,7 +316,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[IR.Name.Literal]
 
     // The `c =` expression
-    val cBindExpr  = fnBody.expressions(1).asInstanceOf[IR.Expression.Binding]
+    val cBindExpr  = fnBody.expressions(1).asInstanceOf[Expression.Binding]
     val cBindName  = cBindExpr.name.asInstanceOf[IR.Name.Literal]
     val plusExpr   = cBindExpr.expression.asInstanceOf[IR.Application.Prefix]
     val plusExprFn = plusExpr.function.asInstanceOf[IR.Name.Literal]
@@ -1114,8 +1116,8 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val block     = ir.asInstanceOf[IR.Expression.Block]
-      val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val block     = ir.asInstanceOf[Expression.Block]
+      val xBind     = block.expressions.head.asInstanceOf[Expression.Binding]
       val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
       val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
 
@@ -1152,7 +1154,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val binding     = ir.asInstanceOf[IR.Expression.Binding]
+      val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
       val bindingExpr = binding.expression.asInstanceOf[IR.Literal.Number]
 
@@ -1188,7 +1190,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val binding     = ir.asInstanceOf[IR.Expression.Binding]
+      val binding     = ir.asInstanceOf[Expression.Binding]
       val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
       val bindingExpr = binding.expression.asInstanceOf[IR.Application.Prefix]
       val plusFn      = bindingExpr.function.asInstanceOf[IR.Name.Literal]
@@ -1320,9 +1322,9 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val caseBlock = ir.asInstanceOf[IR.Expression.Block]
+      val caseBlock = ir.asInstanceOf[Expression.Block]
       val caseBinding =
-        caseBlock.expressions.head.asInstanceOf[IR.Expression.Binding]
+        caseBlock.expressions.head.asInstanceOf[Expression.Binding]
       val caseBindingExpr =
         caseBinding.expression.asInstanceOf[IR.Application.Prefix]
       val caseBindingName = caseBinding.name.asInstanceOf[IR.Name.Literal]
@@ -1486,10 +1488,10 @@ class DataflowAnalysisTest extends CompilerTest {
       .asInstanceOf[IR.Function.Lambda]
 
     val metadata  = ir.getMetadata(DataflowAnalysis).get
-    val blockBody = ir.body.asInstanceOf[IR.Expression.Block]
+    val blockBody = ir.body.asInstanceOf[Expression.Block]
 
     val aBind = blockBody.expressions.head
-      .asInstanceOf[IR.Expression.Binding]
+      .asInstanceOf[Expression.Binding]
     val aBindExpr = aBind.expression
 
     "store a mapping between internal and external identifiers" in {
@@ -1530,14 +1532,14 @@ class DataflowAnalysisTest extends CompilerTest {
     val depInfo = ir.getMetadata(DataflowAnalysis).get
 
     // The method and its body
-    val conversion = ir.bindings.head.asInstanceOf[Method.Conversion]
+    val conversion = ir.bindings.head.asInstanceOf[Definition.Method.Conversion]
     val sourceType = conversion.sourceTypeName.asInstanceOf[IR.Name]
     val lambda     = conversion.body.asInstanceOf[IR.Function.Lambda]
     val fnArgThis =
       lambda.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
     val fnArgValue =
       lambda.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
-    val fnBody = lambda.body.asInstanceOf[IR.Expression.Block]
+    val fnBody = lambda.body.asInstanceOf[Expression.Block]
 
     // The `Foo` application
     val fooExpr     = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]

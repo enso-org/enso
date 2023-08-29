@@ -3,6 +3,8 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap.ResolutionNotFound
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
@@ -26,14 +28,14 @@ class TypeNamesTest extends CompilerTest {
     *
     * @param ir the IR to add the extension method to
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Resolves type signatures in [[ir]].
       *
       * @param moduleContext the context in which resolution is taking place
       * @return [[ir]], with all type signatures resolved
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       TypeNames.runModule(ir, moduleContext)
     }
   }
@@ -43,14 +45,14 @@ class TypeNamesTest extends CompilerTest {
     *
     * @param ir the expression to add the extension method to
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Resolves type signatures in [[ir]].
       *
       * @param inlineContext the context in which resolution is taking place
       * @return [[ir]], with all type signatures resolved
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       TypeNames.runExpression(ir, inlineContext)
     }
   }

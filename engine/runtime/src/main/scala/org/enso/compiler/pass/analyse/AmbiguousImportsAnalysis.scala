@@ -107,29 +107,28 @@ case object AmbiguousImportsAnalysis extends IRPass {
             val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
               ListBuffer()
             val imp =
-              onlyNames.foldLeft(moduleImport: Import) {
-                case (imp, symbol) =>
-                  val symbolName = symbol.name
-                  importTarget.resolveExportedSymbol(symbolName) match {
-                    case Right(resolvedName) =>
-                      val symbolPath = resolvedName.qualifiedName.toString
-                      tryAddEncounteredSymbol(
-                        module,
-                        encounteredSymbols,
-                        imp,
-                        symbolName,
-                        symbolPath
-                      ) match {
-                        case Left(error) =>
-                          encounteredErrors += error
-                          imp
-                        case Right(imp) => imp
-                      }
-                    case Left(resolutionError) =>
-                      throw new CompilerError(
-                        s"Unreachable: (should have been resolved in previous passes) $resolutionError"
-                      )
-                  }
+              onlyNames.foldLeft(moduleImport: Import) { case (imp, symbol) =>
+                val symbolName = symbol.name
+                importTarget.resolveExportedSymbol(symbolName) match {
+                  case Right(resolvedName) =>
+                    val symbolPath = resolvedName.qualifiedName.toString
+                    tryAddEncounteredSymbol(
+                      module,
+                      encounteredSymbols,
+                      imp,
+                      symbolName,
+                      symbolPath
+                    ) match {
+                      case Left(error) =>
+                        encounteredErrors += error
+                        imp
+                      case Right(imp) => imp
+                    }
+                  case Left(resolutionError) =>
+                    throw new CompilerError(
+                      s"Unreachable: (should have been resolved in previous passes) $resolutionError"
+                    )
+                }
               }
             if (encounteredErrors.nonEmpty) {
               Left(encounteredErrors.toList)

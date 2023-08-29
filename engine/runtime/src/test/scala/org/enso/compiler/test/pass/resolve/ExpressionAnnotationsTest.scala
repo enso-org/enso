@@ -3,6 +3,9 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Name
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -36,20 +39,20 @@ class ExpressionAnnotationsTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *
       * @param context the module context in which analysis takes place
       * @return [[ir]], with tail call analysis metadata attached
       */
-    def analyse(implicit context: ModuleContext): IR.Module = {
+    def analyse(implicit context: ModuleContext): Module = {
       ExpressionAnnotations.runModule(ir, context)
     }
   }
 
-  implicit class AnalyseExpression(ir: IR.Expression) {
-    def analyse(implicit context: InlineContext): IR.Expression = {
+  implicit class AnalyseExpression(ir: Expression) {
+    def analyse(implicit context: InlineContext): Expression = {
       ExpressionAnnotations.runExpression(ir, context)
     }
   }
@@ -71,11 +74,11 @@ class ExpressionAnnotationsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     val items = ir.bindings.head
-      .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      .asInstanceOf[Definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body
-      .asInstanceOf[IR.Expression.Block]
+      .asInstanceOf[Expression.Block]
 
     "create an error when discovering an unknown annotation" in {
       val unknown =
@@ -144,11 +147,11 @@ class ExpressionAnnotationsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     val items = ir.bindings.head
-      .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      .asInstanceOf[Definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body
-      .asInstanceOf[IR.Expression.Block]
+      .asInstanceOf[Expression.Block]
 
     "create an error when discovering an unexpected annotation" in {
       items.expressions.size shouldBe 0

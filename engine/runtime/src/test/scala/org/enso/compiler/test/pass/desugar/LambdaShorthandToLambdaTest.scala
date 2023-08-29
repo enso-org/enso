@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -25,7 +26,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class DesugarExpression(ir: IR.Expression) {
+  implicit class DesugarExpression(ir: Expression) {
 
     /** Runs lambda shorthand desugaring on [[ir]].
       *
@@ -33,7 +34,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all lambda shorthand desugared
       */
-    def desugar(implicit inlineContext: InlineContext): IR.Expression = {
+    def desugar(implicit inlineContext: InlineContext): Expression = {
       LambdaShorthandToLambda.runExpression(ir, inlineContext)
     }
   }
@@ -481,8 +482,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |x = _
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Expression.Binding]
-      val expr = ir.asInstanceOf[IR.Expression.Binding].expression
+      ir shouldBe an[Expression.Binding]
+      val expr = ir.asInstanceOf[Expression.Binding].expression
 
       expr shouldBe an[IR.Function.Lambda]
     }

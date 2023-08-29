@@ -138,9 +138,9 @@ case object ComplexType extends IRPass {
       )
 
     val remainingEntities = typ.body.filterNot {
-      case _: Definition.Data => true
-      case ann: IR.Name.GenericAnnotation     => seenAnnotations.contains(ann)
-      case _                                  => false
+      case _: Definition.Data             => true
+      case ann: IR.Name.GenericAnnotation => seenAnnotations.contains(ann)
+      case _                              => false
     }
 
     var lastSignature: Option[IR.Type.Ascription] = None

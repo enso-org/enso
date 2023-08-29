@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -1268,18 +1268,18 @@ public class EnsoParserTest {
     assertIR(msg, old, now);
   }
 
-  private static IR.Module compile(String code) {
+  private static Module compile(String code) {
     return compile(ensoCompiler, code);
   }
 
-  public static IR.Module compile(EnsoParser c, String code) {
+  public static Module compile(EnsoParser c, String code) {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = c.compile(src.getCharacters());
     assertNotNull("IR was generated", ir);
     return ir;
   }
 
-  static void assertIR(String msg, IR.Module old, IR.Module now) throws IOException {
+  static void assertIR(String msg, Module old, Module now) throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);

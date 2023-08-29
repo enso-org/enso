@@ -86,8 +86,7 @@ case object MethodDefinitions extends IRPass {
     }
 
     val withStaticAliases = newDefs.flatMap {
-      case method: Definition.Method.Explicit
-          if !method.isStatic =>
+      case method: Definition.Method.Explicit if !method.isStatic =>
         method.methodReference.typePointer.flatMap(
           _.getMetadata(this)
         ) match {

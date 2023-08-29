@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
@@ -26,7 +27,7 @@ class IgnoredBindingsTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Runs ignores desugaring on [[ir]].
       *
@@ -34,7 +35,7 @@ class IgnoredBindingsTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all ignores desugared
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       IgnoredBindings.runExpression(ir, inlineContext)
     }
   }
@@ -99,10 +100,10 @@ class IgnoredBindingsTest extends CompilerTest {
         |    x = y
         |    10
         |""".stripMargin.preprocessExpression.get.resolve
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
 
     val bindingName = ir.name
-    val bindingBody = ir.expression.asInstanceOf[IR.Expression.Block]
+    val bindingBody = ir.expression.asInstanceOf[Expression.Block]
 
     "replace the ignored binding with a fresh name" in {
       bindingName shouldBe an[IR.Name.Literal]
@@ -114,7 +115,7 @@ class IgnoredBindingsTest extends CompilerTest {
 
     "mark the binding as not ignored if it wasn't" in {
       val nonIgnored =
-        bindingBody.expressions(1).asInstanceOf[IR.Expression.Binding]
+        bindingBody.expressions(1).asInstanceOf[Expression.Binding]
 
       nonIgnored.getMetadata(IgnoredBindings) shouldEqual Some(
         State.NotIgnored
@@ -123,7 +124,7 @@ class IgnoredBindingsTest extends CompilerTest {
 
     "work when deeply nested" in {
       val ignoredInBlock =
-        bindingBody.expressions.head.asInstanceOf[IR.Expression.Binding]
+        bindingBody.expressions.head.asInstanceOf[Expression.Binding]
 
       ignoredInBlock.name shouldBe an[IR.Name.Literal]
     }
@@ -138,7 +139,7 @@ class IgnoredBindingsTest extends CompilerTest {
         |    Cons a _ -> case y of
         |        MyCons a _ -> 10
         |""".stripMargin.preprocessExpression.get.resolve
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
@@ -147,7 +148,7 @@ class IgnoredBindingsTest extends CompilerTest {
     val ignoredPat = pattern.fields(1).asInstanceOf[Pattern.Name]
 
     val nestedCase = ir.branches.head.expression
-      .asInstanceOf[IR.Expression.Block]
+      .asInstanceOf[Expression.Block]
       .returnValue
       .asInstanceOf[IR.Case.Expr]
     val nestedPattern =

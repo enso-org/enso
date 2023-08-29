@@ -1,7 +1,7 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Identifier, randomId, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
 
 /** A representation of a top-level Enso module.
@@ -18,16 +18,16 @@ import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
   */
 @SerialVersionUID(
   6655L // SuggestionBuilder needs to send ascribedType of constructor parameters
-) // prevents reading broken caches, see PR-3692 for details
+)       // prevents reading broken caches, see PR-3692 for details
 sealed case class Module(
-                          imports: List[Import],
-                          exports: List[Export],
-                          bindings: List[Definition],
-                          override val location: Option[IdentifiedLocation],
-                          override val passData: MetadataStorage = MetadataStorage(),
-                          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                        ) extends IR
-  with IRKind.Primitive {
+  imports: List[Import],
+  exports: List[Export],
+  bindings: List[Definition],
+  override val location: Option[IdentifiedLocation],
+  override val passData: MetadataStorage      = MetadataStorage(),
+  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+) extends IR
+    with IRKind.Primitive {
   override protected var id: Identifier = randomId
 
   /** Creates a copy of `this`.
@@ -42,14 +42,14 @@ sealed case class Module(
     * @return a copy of `this`, updated with the specified values
     */
   def copy(
-            imports: List[Import] = imports,
-            exports: List[Export] = exports,
-            bindings: List[Definition] = bindings,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage = passData,
-            diagnostics: DiagnosticStorage = diagnostics,
-            id: Identifier = id
-          ): Module = {
+    imports: List[Import]                = imports,
+    exports: List[Export]                = exports,
+    bindings: List[Definition]           = bindings,
+    location: Option[IdentifiedLocation] = location,
+    passData: MetadataStorage            = passData,
+    diagnostics: DiagnosticStorage       = diagnostics,
+    id: Identifier                       = id
+  ): Module = {
     val res =
       Module(imports, exports, bindings, location, passData, diagnostics)
     res.id = id
@@ -58,11 +58,11 @@ sealed case class Module(
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Module =
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Module =
     copy(
       imports = imports.map(
         _.duplicate(
@@ -94,8 +94,8 @@ sealed case class Module(
   /** @inheritdoc */
   override def mapExpressions(fn: Expression => Expression): Module = {
     copy(
-      imports = imports.map(_.mapExpressions(fn)),
-      exports = exports.map(_.mapExpressions(fn)),
+      imports  = imports.map(_.mapExpressions(fn)),
+      exports  = exports.map(_.mapExpressions(fn)),
       bindings = bindings.map(_.mapExpressions(fn))
     )
   }
@@ -121,9 +121,8 @@ sealed case class Module(
   override def showCode(indent: Int): String = {
     val importsString = imports.map(_.showCode(indent)).mkString("\n")
     val exportsString = exports.map(_.showCode(indent)).mkString("\n")
-    val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
+    val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
 
     List(importsString, exportsString, defsString).mkString("\n\n")
   }
 }
-

@@ -3,24 +3,22 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{
-//  Cons,
-  Resolution,
-//  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 
 class GlobalNamesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  def mkModuleContext: (ModuleContext, Module) =
+  def mkModuleContext: (ModuleContext, runtime.Module) =
     buildModuleContextModule(
       freshNameSupply = Some(new FreshNameSupply)
     )
@@ -42,7 +40,7 @@ class GlobalNamesTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *
@@ -57,8 +55,8 @@ class GlobalNamesTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Method definition resolution" should {
-    val both: (ModuleContext, Module) = mkModuleContext
-    implicit val ctx: ModuleContext   = both._1
+    val both: (ModuleContext, runtime.Module) = mkModuleContext
+    implicit val ctx: ModuleContext           = both._1
 
     val code         = """
                  |main =
@@ -91,13 +89,13 @@ class GlobalNamesTest extends CompilerTest {
 
     val bodyExprs = ir
       .bindings(0)
-      .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      .asInstanceOf[Definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body
-      .asInstanceOf[IR.Expression.Block]
+      .asInstanceOf[Expression.Block]
       .expressions
-      .map(expr => expr.asInstanceOf[IR.Expression.Binding].expression)
+      .map(expr => expr.asInstanceOf[Expression.Binding].expression)
 
     "not resolve uppercase method names to applications with no arguments" in {
       val expr = bodyExprs(1)

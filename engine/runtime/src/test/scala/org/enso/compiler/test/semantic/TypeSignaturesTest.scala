@@ -1,6 +1,9 @@
 package org.enso.compiler.test.semantic
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -45,11 +48,11 @@ trait TypeMatchers {
 
   val Input = Name("Input")
 
-  case class TypeMatcher(sig: Sig) extends Matcher[IR.Expression] {
+  case class TypeMatcher(sig: Sig) extends Matcher[Expression] {
     private def findInequalityWitness(
       sig: Sig,
-      expr: IR.Expression
-    ): Option[(Sig, IR.Expression, String)] = (sig, expr) match {
+      expr: Expression
+    ): Option[(Sig, Expression, String)] = (sig, expr) match {
       case (Name(n), t: IR.Name.Literal) =>
         Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
@@ -94,7 +97,7 @@ trait TypeMatchers {
       case _ => Some((sig, expr, "constructors are incompatible"))
     }
 
-    override def apply(left: IR.Expression): MatchResult = {
+    override def apply(left: Expression): MatchResult = {
       findInequalityWitness(sig, left) match {
         case Some((s, t, r)) =>
           MatchResult(
@@ -148,7 +151,7 @@ class TypeSignaturesTest
   )
 
   implicit private class PreprocessModule(code: String) {
-    def preprocessModule: IR.Module = {
+    def preprocessModule: Module = {
       val module = new runtime.Module(Module, null, code)
       langCtx.getCompiler.run(module)
       module.getIr
@@ -156,11 +159,11 @@ class TypeSignaturesTest
   }
 
   private def getSignature(
-    module: IR.Module,
+    module: Module,
     methodName: String
-  ): IR.Expression = {
+  ): Expression = {
     val m = module.bindings.find {
-      case m: IR.Module.Scope.Definition.Method =>
+      case m: Definition.Method =>
         m.methodName.name == methodName
       case _ => false
     }.get

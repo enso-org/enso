@@ -1,6 +1,7 @@
 package org.enso.compiler;
 
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
@@ -427,7 +428,7 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   private void assertSingleSyntaxError(
-      IR.Module ir, IR$Error$Syntax$Reason type,
+      Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end
   ) {
     var errors = assertIR(ir, IR$Error$Syntax.class, 1);
@@ -438,7 +439,7 @@ public class ErrorCompilerTest extends CompilerTest {
     assertEquals(new Location(start, end), errors.head().location().get().location());
   }
 
-  private List<IR$Error$Syntax> assertIR(IR.Module ir, Class<IR$Error$Syntax> type, int count) {
+  private List<IR$Error$Syntax> assertIR(Module ir, Class<IR$Error$Syntax> type, int count) {
     var errors = ir.preorder().filter(type::isInstance).map(type::cast);
     assertEquals("Expecting errors: " + errors, count, errors.size());
     return errors;

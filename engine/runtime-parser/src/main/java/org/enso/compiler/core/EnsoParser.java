@@ -1,9 +1,9 @@
 package org.enso.compiler.core;
 
-import org.enso.syntax2.Parser;
-import org.enso.syntax2.Tree;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.syntax2.Parser;
+import org.enso.syntax2.Tree;
 
 public final class EnsoParser implements AutoCloseable {
   private final Parser parser;

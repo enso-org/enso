@@ -8,7 +8,11 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar.{
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
+}
 import org.enso.compiler.pass.lint.UnusedBindings
 
 import scala.annotation.unused

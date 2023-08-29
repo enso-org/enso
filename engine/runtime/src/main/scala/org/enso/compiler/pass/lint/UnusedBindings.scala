@@ -71,8 +71,8 @@ case object UnusedBindings extends IRPass {
   ): Expression = if (inlineContext.compilerConfig.warningsEnabled) {
     ir.transformExpressions {
       case binding: Expression.Binding => lintBinding(binding, inlineContext)
-      case function: IR.Function          => lintFunction(function, inlineContext)
-      case cse: IR.Case                   => lintCase(cse, inlineContext)
+      case function: IR.Function       => lintFunction(function, inlineContext)
+      case cse: IR.Case                => lintCase(cse, inlineContext)
     }
   } else ir
 

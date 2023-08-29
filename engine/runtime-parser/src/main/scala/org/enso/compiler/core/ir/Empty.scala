@@ -1,7 +1,7 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Diagnostic, randomId, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Diagnostic, ToStringHelper}
 
 // === Basic Shapes =========================================================
 
@@ -12,13 +12,13 @@ import org.enso.compiler.core.IR.{Diagnostic, randomId, ToStringHelper}
   * @param diagnostics compiler diagnostics for this node
   */
 sealed case class Empty(
-                         override val location: Option[IdentifiedLocation],
-                         override val passData: MetadataStorage = MetadataStorage(),
-                         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                       ) extends IR
-  with Expression
-  with Diagnostic
-  with IRKind.Primitive {
+  override val location: Option[IdentifiedLocation],
+  override val passData: MetadataStorage      = MetadataStorage(),
+  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+) extends IR
+    with Expression
+    with Diagnostic
+    with IRKind.Primitive {
   override protected var id: IR.Identifier = randomId
 
   /** Creates a copy of `this`
@@ -30,11 +30,11 @@ sealed case class Empty(
     * @return a copy of `this` with the specified fields updated
     */
   def copy(
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage = passData,
-            diagnostics: DiagnosticStorage = diagnostics,
-            id: IR.Identifier = id
-          ): Empty = {
+    location: Option[IdentifiedLocation] = location,
+    passData: MetadataStorage            = passData,
+    diagnostics: DiagnosticStorage       = diagnostics,
+    id: IR.Identifier                    = id
+  ): Empty = {
     val res = Empty(location, passData, diagnostics)
     res.id = id
     res
@@ -42,11 +42,11 @@ sealed case class Empty(
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Empty =
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Empty =
     copy(
       location = if (keepLocations) location else None,
       passData = if (keepMetadata) passData.duplicate else MetadataStorage(),

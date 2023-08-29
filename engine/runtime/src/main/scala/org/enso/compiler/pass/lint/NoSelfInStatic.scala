@@ -27,8 +27,7 @@ object NoSelfInStatic extends IRPass {
   ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case method: Definition.Method.Explicit
-            if isStaticMethod(method) =>
+        case method: Definition.Method.Explicit if isStaticMethod(method) =>
           method.copy(
             body = method.body.transformExpressions(transformSelfToError)
           )
@@ -41,8 +40,7 @@ object NoSelfInStatic extends IRPass {
     )
   }
 
-  private def transformSelfToError
-    : PartialFunction[Expression, Expression] = {
+  private def transformSelfToError: PartialFunction[Expression, Expression] = {
     case IR.Name.Self(location, false, passData, diagnostics) =>
       IR.Error.Syntax(
         location.get,

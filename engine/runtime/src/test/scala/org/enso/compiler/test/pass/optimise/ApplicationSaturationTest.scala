@@ -3,6 +3,8 @@ package org.enso.compiler.test.pass.optimise
 import org.enso.compiler.Passes
 import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Empty
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -38,7 +40,7 @@ class ApplicationSaturationTest extends CompilerTest {
       Some(IR.Name.Literal("a", isMethod = false, None))
     }
 
-    List.fill(n)(IR.CallArgument.Specified(name, IR.Empty(None), None))
+    List.fill(n)(IR.CallArgument.Specified(name, Empty(None), None))
   }
 
   // === Test Setup ===========================================================
@@ -179,7 +181,7 @@ class ApplicationSaturationTest extends CompilerTest {
   }
 
   "Known applications containing known applications" should {
-    val empty = IR.Empty(None)
+    val empty = Empty(None)
     val knownPlus = IR.Application
       .Prefix(
         IR.Name.Literal("+", isMethod = true, None),
@@ -210,7 +212,7 @@ class ApplicationSaturationTest extends CompilerTest {
       .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
-    implicit class InnerMeta(ir: IR.Expression) {
+    implicit class InnerMeta(ir: Expression) {
       def getInnerMetadata: Option[Metadata] = {
         ir.asInstanceOf[IR.Application.Prefix]
           .arguments
@@ -221,7 +223,7 @@ class ApplicationSaturationTest extends CompilerTest {
       }
     }
 
-    def outerPlus(argExpr: IR.Expression): IR.Application.Prefix = {
+    def outerPlus(argExpr: Expression): IR.Application.Prefix = {
       IR.Application
         .Prefix(
           IR.Name.Literal("+", isMethod = true, None),
@@ -303,16 +305,16 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val inputIR = rawIR.get
       .runPasses(passManagerKnown, knownCtx)
-      .asInstanceOf[IR.Expression]
+      .asInstanceOf[Expression]
 
     val result = ApplicationSaturation
       .runExpression(inputIR, knownCtx)
-      .asInstanceOf[IR.Expression.Binding]
+      .asInstanceOf[Expression.Binding]
 
     "be tagged as unknown even if their name is known" in {
       // Needs alias analysis to work
       result.expression
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
         .getMetadata(ApplicationSaturation)
         .foreach {

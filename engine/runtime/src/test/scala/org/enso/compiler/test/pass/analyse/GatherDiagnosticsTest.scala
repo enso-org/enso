@@ -3,6 +3,8 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
@@ -71,11 +73,11 @@ class GatherDiagnosticsTest extends CompilerTest {
           None
         )
 
-      val module = IR.Module(
+      val module = Module(
         List(),
         List(),
         List(
-          IR.Module.Scope.Definition.Type(
+          Definition.Type(
             typeName,
             List(
               IR.DefinitionArgument
@@ -84,9 +86,9 @@ class GatherDiagnosticsTest extends CompilerTest {
             List(),
             None
           ),
-          IR.Module.Scope.Definition.Method
+          Definition.Method
             .Explicit(method1Ref, lam, None),
-          IR.Module.Scope.Definition.Method
+          Definition.Method
             .Explicit(method2Ref, error3, None)
         ),
         None

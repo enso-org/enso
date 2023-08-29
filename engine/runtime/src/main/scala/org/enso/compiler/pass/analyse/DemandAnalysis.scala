@@ -88,7 +88,7 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Expression = {
     expression match {
-      case empty: Empty => empty
+      case empty: Empty    => empty
       case fn: IR.Function => analyseFunction(fn)
       case name: IR.Name   => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>

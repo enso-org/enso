@@ -207,15 +207,15 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: Module                     => resolveModule(module)
-      case expr: Expression                   => resolveExpression(expr)
-      case df: Definition        => resolveDefinition(df)
-      case data: Definition.Data => data
-      case imp: Import           => imp
-      case exp: Export.Module    => exp
-      case arg: IR.CallArgument                  => arg
-      case arg: IR.DefinitionArgument            => arg
-      case pat: IR.Pattern                       => pat
+      case module: Module             => resolveModule(module)
+      case expr: Expression           => resolveExpression(expr)
+      case df: Definition             => resolveDefinition(df)
+      case data: Definition.Data      => data
+      case imp: Import                => imp
+      case exp: Export.Module         => exp
+      case arg: IR.CallArgument       => arg
+      case arg: IR.DefinitionArgument => arg
+      case pat: IR.Pattern            => pat
     }
 
   // === Metadata =============================================================

@@ -369,7 +369,9 @@ final class SerializationManager(
     *         relinking being successful and `false` otherwise. [[None]] if the
     *         cache could not be deserialized.
     */
-  def deserialize(module: org.enso.interpreter.runtime.Module): Option[Boolean] = {
+  def deserialize(
+    module: org.enso.interpreter.runtime.Module
+  ): Option[Boolean] = {
     if (isWaitingForSerialization(module)) {
       abort(module)
       None
@@ -452,7 +454,9 @@ final class SerializationManager(
     * @param module the module to check
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
-  private def isWaitingForSerialization(module: org.enso.interpreter.runtime.Module): Boolean = {
+  private def isWaitingForSerialization(
+    module: org.enso.interpreter.runtime.Module
+  ): Boolean = {
     isWaitingForSerialization(module.getName)
   }
 
