@@ -8,6 +8,9 @@ export default test.defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     ...(process.env.CI ? { workers: 1 } : {}),
+    expect: {
+        toHaveScreenshot: { threshold: 0 },
+    },
     use: {
         baseURL: 'http://localhost:8080',
         // This MUST be `false`, otherwise `background-blur` does not work.
