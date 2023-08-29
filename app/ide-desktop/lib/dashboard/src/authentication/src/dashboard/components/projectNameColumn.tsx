@@ -62,6 +62,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const ownPermission =
         asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
         null
+    const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
     const canExecute =
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
@@ -219,11 +220,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 item.depth
             )}`}
             onClick={event => {
-                if (
-                    !rowState.isEditingName &&
-                    !isOtherUserUsingProject &&
-                    eventModule.isDoubleClick(event)
-                ) {
+                if (isRunning || rowState.isEditingName || isOtherUserUsingProject) {
+                    // The project should not be edited in these cases.
+                } else if (eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,

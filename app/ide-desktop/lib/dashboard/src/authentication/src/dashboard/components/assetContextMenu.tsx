@@ -75,8 +75,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission]
     const isOtherUserUsingProject =
         backendModule.assetIsProject(asset) &&
-        organization != null &&
-        asset.projectState.opened_by !== organization.email
+        asset.projectState.opened_by != null &&
+        asset.projectState.opened_by !== organization?.email
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
@@ -175,7 +175,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                {canExecute && !isOtherUserUsingProject && (
+                {canExecute && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         disabled={
@@ -200,7 +200,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                {managesThisAsset && !isOtherUserUsingProject && (
+                {managesThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.moveToTrash}
