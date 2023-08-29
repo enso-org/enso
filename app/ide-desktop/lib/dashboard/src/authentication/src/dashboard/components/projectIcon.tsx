@@ -2,6 +2,7 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
+import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
@@ -357,7 +358,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
         case backendModule.ProjectState.opened:
             return (
-                <>
+                <div>
                     <button
                         disabled={isOtherUserUsingProject}
                         {...(isOtherUserUsingProject
@@ -373,9 +374,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <SvgMask src={StopIcon} />
+                        <SvgMask style={ICON_STYLE} src={StopIcon} />
                     </button>
-                </>
+                    {!isOtherUserUsingProject && (
+                        <button
+                            className="w-6 h-6"
+                            onClick={clickEvent => {
+                                clickEvent.stopPropagation()
+                                unsetModal()
+                                openIde(true)
+                            }}
+                        >
+                            <SvgMask style={ICON_STYLE} src={ArrowUpIcon} />
+                        </button>
+                    )}
+                </div>
             )
     }
 }

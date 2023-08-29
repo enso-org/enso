@@ -250,7 +250,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                {managesThisAsset && <ContextMenuSeparator hidden={hidden} />}
+                {((managesThisAsset && self != null) ||
+                    backend.type !== backendModule.BackendType.local) && (
+                    <ContextMenuSeparator hidden={hidden} />
+                )}
                 <MenuEntry
                     hidden={hidden}
                     disabled
