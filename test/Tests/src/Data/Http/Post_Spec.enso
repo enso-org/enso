@@ -38,6 +38,7 @@ spec =
 
         Test.specify "Correctly posts a file" <|
             test_file = enso_project.data / "sample.txt"
-            Data.post url_post test_file . at "data" . should_contain "sample=Cupcake+ipsum+dolor+sit+amet"
+            returned_file = Data.post url_post test_file . at "data"
+            returned_file.should_equal test_file.read_text
 
 main = Test_Suite.run_main spec

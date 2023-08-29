@@ -196,8 +196,7 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
         _ : File ->
             if mime_type.is_nothing.not then
                 Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting a File")
-            parts = [Form.file_field "sample" body]
-            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Form (Form.new parts))
+            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.File body)
         _ ->
             if mime_type.is_nothing.not then
                 Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting an Enso object as JSON")

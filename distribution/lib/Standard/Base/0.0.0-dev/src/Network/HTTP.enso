@@ -25,6 +25,7 @@ polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpResponse
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
+polyglot java import java.nio.file.Path
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP
@@ -455,6 +456,10 @@ type HTTP
                         Pair.new req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
+                Request_Body.File file ->
+                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                    path = Path.of file.path
+                    Pair.new req (body_publishers.ofFile path)
                 Request_Body.Bytes bytes ->
                     builder.header Header.application_octet_stream.name Header.application_octet_stream.value
                     Pair.new req (body_publishers.ofByteArray bytes)

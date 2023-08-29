@@ -187,6 +187,30 @@ Any.should_start_with self that frames_to_skip=0 = case self of
         msg = self.to_text + " is not a `Text` value (at " + loc + ")."
         Test.fail msg
 
+## Asserts that `self` value is a Text value and ends with `that`.
+
+   Arguments:
+   - that: The value to check `self` ends with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should end with another.
+
+         from Standard.Test import Test
+
+         example_should_end_with = "Hello World!" . should_end_with "ld!"
+Any.should_end_with : Text -> Integer -> Test_Result
+Any.should_end_with self that frames_to_skip=0 = case self of
+    _ : Text -> if self.ends_with that then Test_Result.Success else
+        loc = Meta.get_source_location 3+frames_to_skip
+        msg = self.to_text + " does not end with " + that.to_text + " (at " + loc + ")."
+        Test.fail msg
+    _ ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+        Test.fail msg
+
 ## Asserts that `self` value is a Text value and starts with `that`.
 
    Arguments:
@@ -202,6 +226,24 @@ Any.should_start_with self that frames_to_skip=0 = case self of
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Error.should_start_with : Any -> Integer -> Test_Result
 Error.should_start_with self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value is a Text value and ends with `that`.
+
+   Arguments:
+   - that: The value to check `self` ends with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should end with another.
+
+         from Standard.Test import Test
+
+         example_should_end_with = "Hello World!" . should_end_with "ld!"
+Error.should_end_with : Any -> Integer -> Test_Result
+Error.should_end_with self that frames_to_skip=0 =
     _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
