@@ -4,8 +4,15 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.enso.compiler.core.ir.*;
+import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.core.ir.DiagnosticStorage;
+import org.enso.compiler.core.ir.Empty;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Foreign;
 import org.enso.compiler.core.ir.expression.Operator;
