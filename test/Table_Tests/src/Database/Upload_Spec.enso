@@ -892,6 +892,31 @@ spec make_new_connection prefix persistent_connector=True =
     Test.group prefix+"Appending a Database table to a Database table" <|
         test_table_append (database_table_builder "source-table") (database_table_builder "target-table")
 
+    test_table_delete source_table_builder target_table_builder =
+        Test.specify "should remove rows matching by key_columns" <|
+            TODO
+
+        Test.specify "does not fail if no rows matching the key_values_to_delete are found" <|
+            TODO
+
+        Test.specify "should fail if key_columns are missing in source or target tables" <|
+            TODO
+
+        Test.specify "should fail if multiple rows match a single key_values_to_delete row" <|
+            TODO
+
+        Test.specify "should allow multiple rows matching a single key if `allow_duplicate_matches` is set to True" <|
+            TODO
+
+        Test.specify "should fail if the target table does not exist" <|
+            TODO
+
+    Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
+        test_table_delete in_memory_table_builder (database_table_builder "target-table")
+
+    Test.group prefix+"Deleting rows from a Database table (source=Database)" <|
+        test_table_delete (database_table_builder "source-table") (database_table_builder "target-table")
+
     execution_context_group_name = prefix+"Output Execution Context for Database operations"
     Test.group execution_context_group_name <|
         Test.specify "should forbid executing updates" <|
@@ -1031,6 +1056,27 @@ spec make_new_connection prefix persistent_connector=True =
                     # But the data is not appended due to the dry-run - the table is unmodified.
                     r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
                     r1.is_trivial_query . should_be_true
+
+            Test.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged" <|
+                v = [1, 2, 3, 4, 4, 4, 1]
+                dest_data = Table.new [["X", v]]
+                dest = dest_data.select_into_database_table connection (Name_Generator.random_name "target-table-delete-dry-run") temporary=True primary_key=[]
+                Context.Output.with_disabled <|
+                    src = source_table_builder [["X", [2, 3]]]
+                    r1 = dest.delete_rows src key_columns=["X"]
+                    # 2 rows would be deleted
+                    r1.should_equal 2
+                    Problems.expect_warning Dry_Run_Operation r1
+
+                    # The target table is unaffected.
+                    dest.at "X" . to_vector . should_equal v
+
+                    src2 = source_table_builder [["X", [4]]]
+                    r2 = dest.delete_rows src2 key_columns=["X"]
+                    # 3 rows would be deleted
+                    r2.should_equal 3
+                    Problems.expect_warning Dry_Run_Operation r2
+                    dest.at "X" . to_vector . should_equal v
 
             if persistent_connector then
                 Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
