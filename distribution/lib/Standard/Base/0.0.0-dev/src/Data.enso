@@ -172,8 +172,6 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
         if try_auto_parse.not then response else
             response.decode if_unsupported=response . catch handler=(_->response)
 
-#post : (URI | Text) -> Text | Request_Body | Any -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-#post uri data method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
 post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post uri body mime_type=Nothing headers=[] try_auto_parse=True =
