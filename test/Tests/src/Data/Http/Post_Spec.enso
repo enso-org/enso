@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -10,6 +11,10 @@ polyglot java import java.lang.System as Java_System
 type TestType
     Aaa (s:Text)
     Bbb (i:Integer)
+
+type BadToJson
+    Aaa (s:Text)
+    to_json self = JS_Object.from_pairs [Pair.new [] 0]
 
 spec =
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
@@ -44,5 +49,8 @@ spec =
         Test.specify "Correctly posts a file via a form" <|
             test_file = enso_project.data / "sample.txt"
             Data.post_file_as_form url_post test_file "fn" . at "data" . should_contain "fn=Cupcake+ipsum+dolor+sit+amet"
+
+        Test.specify "can handle a bad .to_json" <|
+            Data.post url_post (BadToJson.Aaa "abcd") . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
