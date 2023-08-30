@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
@@ -89,9 +90,9 @@ class GatherDiagnosticsTest extends CompilerTest {
             List(),
             None
           ),
-          Definition.Method
+          definition.Method
             .Explicit(method1Ref, lam, None),
-          Definition.Method
+          definition.Method
             .Explicit(method2Ref, error3, None)
         ),
         None

@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
@@ -148,8 +149,8 @@ trait CompilerRunner {
       *
       * @return a method containing `ir` as its body
       */
-    def asMethod: Definition.Method = {
-      Definition.Method.Explicit(
+    def asMethod: definition.Method = {
+      definition.Method.Explicit(
         Name.MethodReference(
           Some(
             Name.Qualified(

@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
@@ -77,7 +77,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     val items = ir.bindings.head
-      .asInstanceOf[Definition.Method.Explicit]
+      .asInstanceOf[definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -150,7 +150,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     val items = ir.bindings.head
-      .asInstanceOf[Definition.Method.Explicit]
+      .asInstanceOf[definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body

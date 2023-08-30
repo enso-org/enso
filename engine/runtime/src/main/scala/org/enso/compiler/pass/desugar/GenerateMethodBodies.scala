@@ -3,7 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Warning}
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
@@ -67,7 +67,7 @@ case object GenerateMethodBodies extends IRPass {
   ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case m: Definition.Method => processMethodDef(m)
+        case m: definition.Method => processMethodDef(m)
         case x                    => x
       }
     )
@@ -80,17 +80,17 @@ case object GenerateMethodBodies extends IRPass {
     *         correct format
     */
   def processMethodDef(
-    ir: Definition.Method
-  ): Definition.Method = {
+    ir: definition.Method
+  ): definition.Method = {
     ir match {
-      case ir: Definition.Method.Explicit =>
+      case ir: definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
             case fun: IR.Function => processBodyFunction(fun, ir.methodName)
             case expression       => processBodyExpression(expression, ir.methodName)
           }
         )
-      case ir: Definition.Method.Conversion =>
+      case ir: definition.Method.Conversion =>
         ir.copy(
           body = ir.body match {
             case fun: IR.Function =>
@@ -102,7 +102,7 @@ case object GenerateMethodBodies extends IRPass {
               )
           }
         )
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +
           "generation."

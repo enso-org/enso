@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Expression, Module, Name}
@@ -120,21 +121,22 @@ case object FunctionBinding extends IRPass {
     * @return `definition`, with any function definition sugar removed
     */
   def desugarModuleSymbol(
-    definition: Definition
+    moduleDefinition: Definition
   ): Definition = {
-    definition match {
-      case _: Definition.Type => definition.mapExpressions(desugarExpression)
-      case _: Definition.Method.Explicit =>
+    moduleDefinition match {
+      case _: Definition.Type =>
+        moduleDefinition.mapExpressions(desugarExpression)
+      case _: definition.Method.Explicit =>
         throw new CompilerError(
           "Explicit method definitions should not exist during function " +
           "binding desugaring."
         )
-      case _: Definition.Method.Conversion =>
+      case _: definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion method nodes should not exist during function binding " +
           "desugaring."
         )
-      case meth @ Definition.Method.Binding(
+      case meth @ definition.Method.Binding(
             methRef,
             args,
             body,
@@ -151,7 +153,7 @@ case object FunctionBinding extends IRPass {
               IR.Function.Lambda(List(arg), body, None)
             )
 
-          Definition.Method.Explicit(
+          definition.Method.Explicit(
             methRef,
             newBody,
             loc,
@@ -221,7 +223,7 @@ case object FunctionBinding extends IRPass {
             def transformRemainingArgs(
               requiredArgs: List[DefinitionArgument],
               remainingArgs: List[DefinitionArgument]
-            ): Either[Error, Definition.Method] = {
+            ): Either[Error, definition.Method] = {
               remaining
                 .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
                 .find(_.defaultValue.isEmpty) match {
@@ -241,7 +243,7 @@ case object FunctionBinding extends IRPass {
                       IR.Function.Lambda(List(arg), body, None)
                     )
                   Right(
-                    Definition.Method.Conversion(
+                    definition.Method.Conversion(
                       methRef,
                       firstArgumentType,
                       newBody,

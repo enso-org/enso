@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
@@ -56,7 +57,7 @@ case object OverloadsResolution extends IRPass {
     val types = ir.bindings.collect { case tp: Definition.Type =>
       tp
     }
-    ir.bindings.collect { case meth: Definition.Method.Explicit =>
+    ir.bindings.collect { case meth: definition.Method.Explicit =>
       seenMethods += meth.typeName.map(_.name) -> Set()
       meth
     }
@@ -72,7 +73,7 @@ case object OverloadsResolution extends IRPass {
           tp
         }
 
-      case method: Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         if (
           seenMethods(method.typeName.map(_.name))
             .contains((method.methodName.name, method.isStatic))
@@ -96,7 +97,7 @@ case object OverloadsResolution extends IRPass {
           }
         }
 
-      case m: Definition.Method.Conversion =>
+      case m: definition.Method.Conversion =>
         val fromName = m.sourceTypeName.asInstanceOf[Name]
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
@@ -120,7 +121,7 @@ case object OverloadsResolution extends IRPass {
         throw new CompilerError(
           "Type ascriptions should not be present during the overloads resolution."
         )
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Method bindings should not be present during the overloads resolution."
         )

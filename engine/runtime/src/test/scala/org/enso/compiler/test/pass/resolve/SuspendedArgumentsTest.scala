@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.SuspendedArguments
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -95,7 +95,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |Any.id : Suspended -> a
           |Any.id self a = a
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method]
+          .asInstanceOf[definition.Method]
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
 
@@ -122,7 +122,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |
           |    lazy_id a
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method]
+          .asInstanceOf[definition.Method]
 
       val bodyBlock = ir.body
         .asInstanceOf[IR.Function.Lambda]
@@ -145,7 +145,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
           |File.with_output_stream open_options action = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method.Explicit]
+          .asInstanceOf[definition.Method.Explicit]
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
 
@@ -162,7 +162,7 @@ class SuspendedArgumentsTest extends CompilerTest {
         """File.from : Text -> Suspended -> Any
           |File.from (that : Text) config=Nothing = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method.Conversion]
+          .asInstanceOf[definition.Method.Conversion]
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
       val args    = bodyLam.arguments
@@ -194,7 +194,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |
           |foo 1 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method]
+          .asInstanceOf[definition.Method]
 
       val lam = ir.body
         .asInstanceOf[IR.Function.Lambda]

@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -108,7 +109,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case m @ Definition.Method
+          case m @ definition.Method
                 .Explicit(
                   Name.MethodReference(typePtr, methodName, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
@@ -147,7 +148,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case Definition.Method
+          case definition.Method
                 .Conversion(
                   Name.MethodReference(_, _, _, _, _),
                   Name.Literal(sourceTypeName, _, _, _, _),

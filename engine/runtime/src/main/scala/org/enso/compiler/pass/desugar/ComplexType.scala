@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.CompilerError
@@ -308,7 +309,7 @@ case object ComplexType extends IRPass {
     val newSig =
       signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
 
-    val binding = Definition.Method.Binding(
+    val binding = definition.Method.Binding(
       methodRef.duplicate(),
       args.map(_.duplicate()),
       body.duplicate(),

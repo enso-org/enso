@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Name
@@ -85,7 +86,7 @@ case object TypeSignatures extends IRPass {
         val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
         lastSignature = Some(sig)
         res
-      case meth: Definition.Method =>
+      case meth: definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
         newMethod.body.preorder.foreach {
           case fn: IR.Function => verifyAscribedArguments(fn.arguments)

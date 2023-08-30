@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -123,8 +124,8 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.length shouldEqual 5
       ir.bindings.head shouldBe an[errors.Unexpected.TypeSignature]
       ir.bindings(1) shouldBe an[errors.Unexpected.TypeSignature]
-      ir.bindings(2) shouldBe an[Definition.Method]
-      ir.bindings(3) shouldBe an[Definition.Method]
+      ir.bindings(2) shouldBe an[definition.Method]
+      ir.bindings(3) shouldBe an[definition.Method]
       ir.bindings(4) shouldBe an[errors.Unexpected.TypeSignature]
     }
 
@@ -169,7 +170,7 @@ class TypeSignaturesTest extends CompilerTest {
 
       ir.bindings.length shouldEqual 3
       ir.bindings(0) shouldBe an[Definition.Type]
-      ir.bindings(1) shouldBe an[Definition.Method]
+      ir.bindings(1) shouldBe an[definition.Method]
       ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined
       ir.bindings(2) shouldBe an[errors.Unexpected.TypeSignature]
@@ -189,7 +190,7 @@ class TypeSignaturesTest extends CompilerTest {
           |
           |    f 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Definition.Method]
+          .asInstanceOf[definition.Method]
 
       val block = ir.body
         .asInstanceOf[IR.Function.Lambda]

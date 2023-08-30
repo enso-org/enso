@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Pattern}
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
@@ -116,7 +116,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |    f 0
           |""".stripMargin.preprocessModule.lint
 
-      inside(ir.bindings.head) { case definition: Definition.Method.Explicit =>
+      inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: IR.Function.Lambda =>
           val lintMeta = f.arguments(1).diagnostics.collect {
             case u: warnings.Unused.FunctionArgument => u

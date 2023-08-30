@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.syntax.text.Location;
@@ -223,7 +224,7 @@ final class TreeToIr {
             var error = translateSyntaxError(inputAst, new Syntax.UnsupportedSyntax("Block without body"));
             yield cons(error, appendTo);
         }
-        var binding = new org.enso.compiler.core.ir.module.scope.Definition$Method$Binding(
+        var binding = new Method.Binding(
           methodRef,
           args,
           body,
@@ -247,7 +248,7 @@ final class TreeToIr {
         }
         var text = buildTextConstant(body, body.getElements());
         var def = new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
-        var binding = new org.enso.compiler.core.ir.module.scope.Definition$Method$Binding(
+        var binding = new Method.Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
         );
         yield cons(binding, appendTo);
@@ -276,7 +277,7 @@ final class TreeToIr {
             throw new NullPointerException();
         }
         var aLoc = expandToContain(getIdentifiedLocation(a.getExpr()), body.location());
-        var binding = new org.enso.compiler.core.ir.module.scope.Definition$Method$Binding(
+        var binding = new Method.Binding(
           reference,
           nil(),
           body.setLocation(aLoc),

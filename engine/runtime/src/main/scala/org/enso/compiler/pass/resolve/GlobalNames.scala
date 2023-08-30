@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
@@ -97,13 +98,13 @@ case object GlobalNames extends IRPass {
   /** @inheritdoc */
 
   private def processModuleDefinition(
-    definition: Definition,
+    moduleDefinition: Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply
   ): Definition = {
-    definition match {
+    moduleDefinition match {
       case asc: IR.Type.Ascription => asc
-      case method: Definition.Method =>
+      case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)
         )

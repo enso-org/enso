@@ -901,7 +901,7 @@ object BindingsMap {
         case ModuleReference.Abstract(_)      => None
       }
       moduleIr.flatMap(_.bindings.find {
-        case method: ir.module.scope.Definition.Method.Explicit =>
+        case method: ir.module.scope.definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
             .forall(
               _.getMetadata(MethodDefinitions)

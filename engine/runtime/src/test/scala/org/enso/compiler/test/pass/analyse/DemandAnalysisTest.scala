@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -222,7 +222,7 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
 
       val barFunc = ir.bindings.head
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
       val oprCall = barFunc.body
         .asInstanceOf[IR.Function.Lambda]
         .body

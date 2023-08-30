@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Module, Name, Warning}
 import org.enso.compiler.core.ir.expression.Operator
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -52,10 +52,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       """
         |Unit.method = a -> b -> c -> a + b + c
         |""".stripMargin.preprocessModule
-    val irMethod = ir.bindings.head.asInstanceOf[Definition.Method]
+    val irMethod = ir.bindings.head.asInstanceOf[definition.Method]
 
     val irResult       = ir.desugar
-    val irResultMethod = irResult.bindings.head.asInstanceOf[Definition.Method]
+    val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
 
     "still have the `self` argument prepended to the argument list" in {
       val resultArgs =
@@ -86,10 +86,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       """
         |Unit.method = 1
         |""".stripMargin.preprocessModule
-    val irMethod = ir.bindings.head.asInstanceOf[Definition.Method]
+    val irMethod = ir.bindings.head.asInstanceOf[definition.Method]
 
     val irResult       = ir.desugar
-    val irResultMethod = irResult.bindings.head.asInstanceOf[Definition.Method]
+    val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
 
     "have the expression converted into a function" in {
       irResultMethod.body shouldBe an[IR.Function.Lambda]
@@ -118,10 +118,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       """
         |Unit.method self = 1
         |""".stripMargin.preprocessModule
-    val irMethod = ir.bindings.head.asInstanceOf[Definition.Method]
+    val irMethod = ir.bindings.head.asInstanceOf[definition.Method]
 
     val irResult       = ir.desugar
-    val irResultMethod = irResult.bindings.head.asInstanceOf[Definition.Method]
+    val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
 
     "have the expression converted into a function" in {
       irResultMethod.body shouldBe an[IR.Function.Lambda]
@@ -161,19 +161,19 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.preprocessModule
 
     val irMethod =
-      ir.bindings.head.asInstanceOf[Definition.Method]
+      ir.bindings.head.asInstanceOf[definition.Method]
     val irMethodSelfArg =
       irMethod.body.asInstanceOf[IR.Function.Lambda].arguments.head
     val irFoo =
-      ir.bindings(1).asInstanceOf[Definition.Method]
+      ir.bindings(1).asInstanceOf[definition.Method]
     val irFooFirstArg =
       irFoo.body.asInstanceOf[IR.Function.Lambda].arguments.head
     val irBar =
-      ir.bindings(2).asInstanceOf[Definition.Method]
+      ir.bindings(2).asInstanceOf[definition.Method]
     val irBarFirstArg =
       irBar.body.asInstanceOf[IR.Function.Lambda].arguments.head
     val irBaz =
-      ir.bindings(3).asInstanceOf[Definition.Method]
+      ir.bindings(3).asInstanceOf[definition.Method]
     val irBazSndArg = irBaz.body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -182,11 +182,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
       .head
 
     val irResult       = ir.desugar
-    val irResultMethod = irResult.bindings.head.asInstanceOf[Definition.Method]
-    val irResultFoo    = irResult.bindings(1).asInstanceOf[Definition.Method]
-    val irResultBar    = irResult.bindings(2).asInstanceOf[Definition.Method]
-    val irResultBaz    = irResult.bindings(3).asInstanceOf[Definition.Method]
-    val irResultQux    = irResult.bindings(4).asInstanceOf[Definition.Method]
+    val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
+    val irResultFoo    = irResult.bindings(1).asInstanceOf[definition.Method]
+    val irResultBar    = irResult.bindings(2).asInstanceOf[definition.Method]
+    val irResultBaz    = irResult.bindings(3).asInstanceOf[definition.Method]
+    val irResultQux    = irResult.bindings(4).asInstanceOf[definition.Method]
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
@@ -260,14 +260,14 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     val irMethodAdd =
-      ir.bindings(2).asInstanceOf[Definition.Method]
+      ir.bindings(2).asInstanceOf[definition.Method]
     val irMethodAddSelfArg =
       irMethodAdd.body.asInstanceOf[IR.Function.Lambda].arguments
 
     val irResult          = ir.desugar
-    val irResultMethodAdd = irResult.bindings(2).asInstanceOf[Definition.Method]
+    val irResultMethodAdd = irResult.bindings(2).asInstanceOf[definition.Method]
 
-    val irResultMethodSum = irResult.bindings(3).asInstanceOf[Definition.Method]
+    val irResultMethodSum = irResult.bindings(3).asInstanceOf[definition.Method]
 
     "not add new argument" in {
       val resultLambda = irResultMethodAdd.body
@@ -311,7 +311,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
-        ir.bindings.head.asInstanceOf[Definition.Method]
+        ir.bindings.head.asInstanceOf[definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 2
@@ -325,7 +325,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
-        ir.bindings.head.asInstanceOf[Definition.Method]
+        ir.bindings.head.asInstanceOf[definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1
@@ -342,7 +342,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
-        ir.bindings.head.asInstanceOf[Definition.Method]
+        ir.bindings.head.asInstanceOf[definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1
@@ -360,7 +360,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
-        ir.bindings.head.asInstanceOf[Definition.Method]
+        ir.bindings.head.asInstanceOf[definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 1

@@ -4,7 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
@@ -379,7 +379,7 @@ object AutomaticParallelism extends IRPass {
     @unused moduleContext: ModuleContext
   ): Module = {
     val newBindings = ir.bindings.map {
-      case method: Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         val newBody = withBodyBlock(method.body) { block =>
           val allExprs = block.expressions :+ block.returnValue
           val withParallelismStatus = allExprs.map { expr =>

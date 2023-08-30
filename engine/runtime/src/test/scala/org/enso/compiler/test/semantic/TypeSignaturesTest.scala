@@ -4,7 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -164,7 +164,7 @@ class TypeSignaturesTest
     methodName: String
   ): Expression = {
     val m = module.bindings.find {
-      case m: Definition.Method =>
+      case m: definition.Method =>
         m.methodName.name == methodName
       case _ => false
     }.get

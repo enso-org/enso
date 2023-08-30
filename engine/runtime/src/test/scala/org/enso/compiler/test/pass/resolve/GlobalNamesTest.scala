@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
@@ -92,7 +92,7 @@ class GlobalNamesTest extends CompilerTest {
 
     val bodyExprs = ir
       .bindings(0)
-      .asInstanceOf[Definition.Method.Explicit]
+      .asInstanceOf[definition.Method.Explicit]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body

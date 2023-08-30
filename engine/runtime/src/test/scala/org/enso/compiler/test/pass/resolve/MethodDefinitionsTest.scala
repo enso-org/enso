@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Type
@@ -73,7 +73,7 @@ class MethodDefinitionsTest extends CompilerTest {
 
     "attach resolved atoms to the method definitions" in {
       ir.bindings(2)
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get
@@ -86,12 +86,12 @@ class MethodDefinitionsTest extends CompilerTest {
         )
       )
       ir.bindings(3)
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer shouldBe None
 
       ir.bindings(4)
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get
@@ -102,14 +102,14 @@ class MethodDefinitionsTest extends CompilerTest {
       )
 
       ir.bindings(5)
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get shouldBe a[errors.Resolution]
 
       val conv1 = ir
         .bindings(6)
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
@@ -131,7 +131,7 @@ class MethodDefinitionsTest extends CompilerTest {
 
       val conv2 = ir
         .bindings(7)
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
@@ -146,7 +146,7 @@ class MethodDefinitionsTest extends CompilerTest {
 
       val conv3 = ir
         .bindings(8)
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conv3.methodReference.typePointer.get shouldBe an[errors.Resolution]
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(

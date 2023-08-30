@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.IR.Type
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -105,7 +106,7 @@ case object SuspendedArguments extends IRPass {
     binding: Definition
   ): Definition = {
     binding match {
-      case method: Definition.Method.Conversion =>
+      case method: definition.Method.Conversion =>
         method.body match {
           case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
             method.getMetadata(TypeSignatures) match {
@@ -153,7 +154,7 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case explicit @ Definition.Method.Explicit(_, body, _, _, _) =>
+      case explicit @ definition.Method.Explicit(_, body, _, _, _) =>
         body match {
           case lam @ IR.Function.Lambda(args, lamBody, _, _, _, _) =>
             explicit.getMetadata(TypeSignatures) match {
@@ -179,7 +180,7 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Definition.Method.Binding => throw new CompilerError("")
+      case _: definition.Method.Binding => throw new CompilerError("")
       case _: Definition.Type           => binding
       case err: Error                   => err
       case _: Definition.SugaredType =>

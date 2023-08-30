@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 
 import org.enso.compiler.core.ir.{
   Diagnostic,
@@ -94,29 +95,29 @@ case object TailCall extends IRPass {
     * @return `definition`, annotated with tail call information
     */
   private def analyseModuleBinding(
-    definition: Definition
+    moduleDefinition: Definition
   ): Definition = {
-    definition match {
-      case method: Definition.Method.Conversion =>
+    moduleDefinition match {
+      case method: definition.Method.Conversion =>
         method
           .copy(
             body = analyseExpression(method.body, isInTailPosition = true)
           )
           .updateMetadata(this -->> TailPosition.Tail)
-      case method @ Definition.Method
+      case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)
           )
           .updateMetadata(this -->> TailPosition.Tail)
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during tail call " +
           "analysis."
         )
       case _: Definition.Type =>
-        definition.updateMetadata(this -->> TailPosition.Tail)
+        moduleDefinition.updateMetadata(this -->> TailPosition.Tail)
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +

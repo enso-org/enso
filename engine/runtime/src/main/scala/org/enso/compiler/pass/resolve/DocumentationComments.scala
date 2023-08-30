@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.IR.Case.Branch
@@ -143,7 +144,7 @@ case object DocumentationComments extends IRPass {
     ir: Definition
   ): Definition =
     ir match {
-      case _: Definition.Method.Conversion =>
+      case _: definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion methods should not yet be present in the compiler " +
           "pipeline."
@@ -152,9 +153,9 @@ case object DocumentationComments extends IRPass {
         throw new CompilerError(
           "Union types should not yet be present in the compiler pipeline."
         )
-      case method: Definition.Method.Binding =>
+      case method: definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
-      case method: Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         method.copy(body = resolveExpression(method.body))
       case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))

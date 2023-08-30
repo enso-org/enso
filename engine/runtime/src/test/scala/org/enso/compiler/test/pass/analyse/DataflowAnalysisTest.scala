@@ -9,7 +9,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Pattern
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
@@ -300,7 +300,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     // The method and body
     val method =
-      ir.bindings.head.asInstanceOf[Definition.Method]
+      ir.bindings.head.asInstanceOf[definition.Method]
     val fn = method.body.asInstanceOf[IR.Function.Lambda]
     val fnArgThis =
       fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
@@ -1536,7 +1536,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val depInfo = ir.getMetadata(DataflowAnalysis).get
 
     // The method and its body
-    val conversion = ir.bindings.head.asInstanceOf[Definition.Method.Conversion]
+    val conversion = ir.bindings.head.asInstanceOf[definition.Method.Conversion]
     val sourceType = conversion.sourceTypeName.asInstanceOf[Name]
     val lambda     = conversion.body.asInstanceOf[IR.Function.Lambda]
     val fnArgThis =

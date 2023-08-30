@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -469,7 +470,7 @@ class AliasAnalysisTest extends CompilerTest {
         |        1 + 1
         |    d c (a + b)
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
     val methodWithLambdaGraph =
       methodWithLambda
         .getMetadata(AliasAnalysis)
@@ -786,7 +787,7 @@ class AliasAnalysisTest extends CompilerTest {
         |
         |    IO.println b
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
     val methodWithBlockGraph =
       methodWithBlock
         .getMetadata(AliasAnalysis)
@@ -850,7 +851,7 @@ class AliasAnalysisTest extends CompilerTest {
         |    add x = self.a + x
         |""".stripMargin.preprocessModule.analyse
         .bindings(2)
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
 
     val graph = addMethod
       .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
@@ -920,7 +921,7 @@ class AliasAnalysisTest extends CompilerTest {
       """Bar.from (that : Foo) =
         |    Bar that.get_thing meh
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
 
     val graph = conversionMethod
       .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
@@ -1040,7 +1041,7 @@ class AliasAnalysisTest extends CompilerTest {
         |    num : Integer -> process num Integer
         |    _             -> 0
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
     val lambda    = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
     val caseBlock = lambda.body.asInstanceOf[Expression.Block]
     val scrutBinding =
@@ -1229,7 +1230,7 @@ class AliasAnalysisTest extends CompilerTest {
         |main =
         |    { x := 1, b := 2 }
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
 
     val block = method.body
       .asInstanceOf[IR.Function.Lambda]
@@ -1265,7 +1266,7 @@ class AliasAnalysisTest extends CompilerTest {
           |
           |    IO.println a
           |""".stripMargin.preprocessModule.analyse.bindings.head
-          .asInstanceOf[Definition.Method]
+          .asInstanceOf[definition.Method]
       val block =
         method.body
           .asInstanceOf[IR.Function.Lambda]

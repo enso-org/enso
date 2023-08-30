@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -168,14 +169,14 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def processModuleDefinition(
-    definition: Definition,
+    moduleDefinition: Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
     pkgRepo: Option[PackageRepository]
   ): Definition = {
-    definition match {
+    moduleDefinition match {
       case asc: IR.Type.Ascription => asc
-      case method: Definition.Method =>
+      case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)
         )

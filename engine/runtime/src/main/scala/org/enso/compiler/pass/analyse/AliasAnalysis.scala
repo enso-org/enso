@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
@@ -214,7 +215,7 @@ case object AliasAnalysis extends IRPass {
     val topLevelGraph = new Graph
 
     ir match {
-      case m: Definition.Method.Conversion =>
+      case m: definition.Method.Conversion =>
         m.body match {
           case _: IR.Function =>
             m.copy(
@@ -230,7 +231,7 @@ case object AliasAnalysis extends IRPass {
               "The body of a method should always be a function."
             )
         }
-      case m @ Definition.Method.Explicit(_, body, _, _, _) =>
+      case m @ definition.Method.Explicit(_, body, _, _, _) =>
         body match {
           case _: IR.Function =>
             m.copy(
@@ -246,7 +247,7 @@ case object AliasAnalysis extends IRPass {
               "The body of a method should always be a function."
             )
         }
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not occur during alias analysis."
         )

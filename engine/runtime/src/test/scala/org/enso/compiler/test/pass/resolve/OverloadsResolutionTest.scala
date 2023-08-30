@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -91,8 +91,8 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe a[Definition.Method.Conversion]
-      ir.bindings(1) shouldBe a[Definition.Method.Conversion]
+      ir.bindings.head shouldBe a[definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[definition.Method.Conversion]
     }
 
     "raise an error if there are multiple definitions with the same source type" in {
@@ -103,8 +103,8 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings.head shouldBe a[Definition.Method.Conversion]
-      ir.bindings(1) shouldBe a[Definition.Method.Conversion]
+      ir.bindings.head shouldBe a[definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[definition.Method.Conversion]
       ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
     }
   }

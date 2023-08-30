@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.ModuleAnnotations
 import org.enso.compiler.test.CompilerTest
@@ -95,7 +96,7 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Method.Binding]
+      ir.bindings.head shouldBe a[definition.Method.Binding]
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2

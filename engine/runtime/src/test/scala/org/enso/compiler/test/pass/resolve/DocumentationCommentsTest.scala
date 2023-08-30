@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.expression.Operator
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -100,7 +101,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     "be associated with atoms and methods" in {
       ir.bindings.length shouldEqual 2
       ir.bindings.head shouldBe an[Definition.SugaredType]
-      ir.bindings(1) shouldBe an[Definition.Method]
+      ir.bindings(1) shouldBe an[definition.Method]
 
       getDoc(ir.bindings.head) shouldEqual " This is doc for My_Atom"
       getDoc(ir.bindings(1)) shouldEqual " This is doc for my_method"
@@ -229,7 +230,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    z = x * y
           |""".stripMargin.preprocessModule.resolve
       val body = ir.bindings.head
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .body
         .asInstanceOf[Expression.Block]
 
@@ -251,7 +252,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    f 1
           |""".stripMargin.preprocessModule.resolve
       val body = ir.bindings.head
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .body
         .asInstanceOf[Expression.Block]
 
@@ -347,7 +348,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
       val t1 = ir.bindings.head
       getDoc(t1) shouldEqual " the type Foo"
-      inside(ir.bindings(1)) { case method: Definition.Method.Explicit =>
+      inside(ir.bindings(1)) { case method: definition.Method.Explicit =>
         getDoc(method) shouldEqual " a method"
         inside(method.body) { case lambda: IR.Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
@@ -357,7 +358,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         }
       }
 
-      inside(ir.bindings(2)) { case method: Definition.Method.Explicit =>
+      inside(ir.bindings(2)) { case method: definition.Method.Explicit =>
         inside(method.body) { case lambda: IR.Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
             inside(block.returnValue) { case caseExpr: IR.Case.Expr =>

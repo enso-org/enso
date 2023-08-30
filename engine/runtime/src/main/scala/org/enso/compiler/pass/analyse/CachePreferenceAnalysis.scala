@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -82,16 +83,16 @@ case object CachePreferenceAnalysis extends IRPass {
   ): Definition =
     binding match {
       case _: Definition.Type => binding
-      case method: Definition.Method.Conversion =>
+      case method: definition.Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))
           .updateMetadata(this -->> weights)
-      case method @ Definition.Method
+      case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(body = analyseExpression(body, weights))
           .updateMetadata(this -->> weights)
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during cache " +
           "preference analysis."

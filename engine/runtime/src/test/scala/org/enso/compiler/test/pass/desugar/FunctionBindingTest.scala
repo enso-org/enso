@@ -9,7 +9,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.desugar.FunctionBinding
 import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -91,11 +91,11 @@ class FunctionBindingTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     "desugar to standard method definitions" in {
-      ir.bindings.head shouldBe an[Definition.Method.Explicit]
+      ir.bindings.head shouldBe an[definition.Method.Explicit]
     }
 
     val explicitMethod =
-      ir.bindings.head.asInstanceOf[Definition.Method.Explicit]
+      ir.bindings.head.asInstanceOf[definition.Method.Explicit]
 
     "have the function arguments in the body functions" in {
       val lambda1 = explicitMethod.body.asInstanceOf[IR.Function.Lambda]
@@ -124,7 +124,7 @@ class FunctionBindingTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
 
       val body = ir.bindings.head
-        .asInstanceOf[Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
@@ -143,7 +143,7 @@ class FunctionBindingTest extends CompilerTest {
           |    y -> x + y
           |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[Definition.Method.Explicit]
+      ir.bindings.head shouldBe an[definition.Method.Explicit]
     }
   }
 
@@ -157,9 +157,9 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from (that : Other) ~config=Nothing = My_Type value.a
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[Definition.Method.Conversion]
+      ir.bindings.head shouldBe an[definition.Method.Conversion]
       val conversion = ir.bindings.head
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conversion.sourceTypeName.asInstanceOf[Name].name shouldEqual "Other"
       val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
       arguments.length shouldEqual 1
@@ -189,9 +189,9 @@ class FunctionBindingTest extends CompilerTest {
            |My_Type.$from (that : Value) = that
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[Definition.Method.Conversion]
+      ir.bindings.head shouldBe an[definition.Method.Conversion]
       val conversion = ir.bindings.head
-        .asInstanceOf[Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
 
       val annotations =
         conversion.unsafeGetMetadata(ModuleAnnotations, "Should be present.")

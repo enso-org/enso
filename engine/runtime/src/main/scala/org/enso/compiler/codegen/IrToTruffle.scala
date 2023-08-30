@@ -15,6 +15,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.Name.Special
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.expression.errors
@@ -192,7 +193,7 @@ class IrToTruffle(
       }
     val imports = module.imports
     val methodDefs = module.bindings.collect {
-      case method: Definition.Method.Explicit => method
+      case method: definition.Method.Explicit => method
     }
 
     bindingsMap.resolvedImports.foreach { imp =>
@@ -603,7 +604,7 @@ class IrToTruffle(
     })
 
     val conversionDefs = module.bindings.collect {
-      case conversion: Definition.Method.Conversion =>
+      case conversion: definition.Method.Conversion =>
         conversion
     }
 

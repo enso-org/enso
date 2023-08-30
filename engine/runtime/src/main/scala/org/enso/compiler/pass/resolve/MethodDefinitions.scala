@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
@@ -50,18 +50,18 @@ case object MethodDefinitions extends IRPass {
       "MethodDefinitionResolution is being run before BindingResolution"
     )
     val newDefs = ir.bindings.map {
-      case method: Definition.Method =>
+      case method: definition.Method =>
         val methodRef = method.methodReference
         val resolvedTypeRef =
           methodRef.typePointer.map(resolveType(_, availableSymbolsMap))
         val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
 
         method match {
-          case method: Definition.Method.Explicit =>
+          case method: definition.Method.Explicit =>
             val resolvedMethod =
               method.copy(methodReference = resolvedMethodRef)
             resolvedMethod
-          case method: Definition.Method.Conversion =>
+          case method: definition.Method.Conversion =>
             val sourceTypeExpr = method.sourceTypeName
 
             val resolvedName: Name = sourceTypeExpr match {
@@ -88,7 +88,7 @@ case object MethodDefinitions extends IRPass {
     }
 
     val withStaticAliases = newDefs.flatMap {
-      case method: Definition.Method.Explicit if !method.isStatic =>
+      case method: definition.Method.Explicit if !method.isStatic =>
         method.methodReference.typePointer.flatMap(
           _.getMetadata(this)
         ) match {

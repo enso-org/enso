@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Pattern, Warning}
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
@@ -204,7 +204,7 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     val fnBody = ir.bindings.head
-      .asInstanceOf[Definition.Method]
+      .asInstanceOf[definition.Method]
       .body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -242,7 +242,7 @@ class TailCallTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
 
       val caseExpr = ir.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
@@ -279,7 +279,7 @@ class TailCallTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
 
       val caseExpr = ir.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
@@ -340,7 +340,7 @@ class TailCallTest extends CompilerTest {
         |Foo.bar =
         |   IO.println "AAAAA"
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
     val tailCallBody = tailCall.body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -352,7 +352,7 @@ class TailCallTest extends CompilerTest {
         |    a = b c d
         |    a
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
     val nonTailCallBody = nonTailCall.body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -404,7 +404,7 @@ class TailCallTest extends CompilerTest {
         |    mul = a -> b -> a * b
         |    mul c d
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Definition.Method]
+        .asInstanceOf[definition.Method]
 
     val block = ir.body
       .asInstanceOf[IR.Function.Lambda]

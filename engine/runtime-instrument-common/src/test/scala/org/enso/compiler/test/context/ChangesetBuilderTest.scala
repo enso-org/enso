@@ -11,7 +11,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -354,7 +354,7 @@ class ChangesetBuilderTest extends CompilerTest {
 
       val ir = code.preprocessModule
       val main =
-        ir.bindings(0).asInstanceOf[Definition.Method.Explicit]
+        ir.bindings(0).asInstanceOf[definition.Method.Explicit]
       val mainBody = main.body
         .asInstanceOf[IR.Function.Lambda]
         .body

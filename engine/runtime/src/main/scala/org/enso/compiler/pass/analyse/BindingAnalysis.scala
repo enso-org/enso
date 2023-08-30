@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -70,7 +71,7 @@ case object BindingAnalysis extends IRPass {
       BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
     val moduleMethods = ir.bindings
-      .collect { case method: Definition.Method.Explicit =>
+      .collect { case method: definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
           case Some(Name.Qualified(List(), _, _, _)) =>

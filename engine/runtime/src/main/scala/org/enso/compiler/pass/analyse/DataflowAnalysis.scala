@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{
@@ -130,7 +131,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): Definition = {
     binding match {
-      case m: Definition.Method.Conversion =>
+      case m: definition.Method.Conversion =>
         val bodyDep       = asStatic(m.body)
         val methodDep     = asStatic(m)
         val sourceTypeDep = asStatic(m.sourceTypeName)
@@ -142,7 +143,7 @@ case object DataflowAnalysis extends IRPass {
           body           = analyseExpression(m.body, info),
           sourceTypeName = m.sourceTypeName.updateMetadata(this -->> info)
         ).updateMetadata(this -->> info)
-      case method @ Definition.Method
+      case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         val bodyDep   = asStatic(body)
         val methodDep = asStatic(method)
@@ -178,7 +179,7 @@ case object DataflowAnalysis extends IRPass {
         }
         tp.copy(params = newParams, members = newMembers)
           .updateMetadata(this -->> info)
-      case _: Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
           "analysis."

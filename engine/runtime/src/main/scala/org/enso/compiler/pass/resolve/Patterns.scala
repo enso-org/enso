@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
@@ -65,7 +66,7 @@ object Patterns extends IRPass {
     bindings: BindingsMap
   ): Definition = {
     ir match {
-      case method: Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         val resolution = method.methodReference.typePointer
           .flatMap(
             _.getMetadata(MethodDefinitions)

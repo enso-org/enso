@@ -3,7 +3,7 @@ package org.enso.compiler.pass.lint
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.{Expression, Module, Name}
-import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
@@ -28,11 +28,11 @@ object NoSelfInStatic extends IRPass {
   ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case method: Definition.Method.Explicit if isStaticMethod(method) =>
+        case method: definition.Method.Explicit if isStaticMethod(method) =>
           method.copy(
             body = method.body.transformExpressions(transformSelfToError)
           )
-        case method: Definition.Method.Binding =>
+        case method: definition.Method.Binding =>
           throw new CompilerError(
             s"unexpected Method.Binding $method present in pass NoSelfInStatic"
           )
@@ -57,7 +57,7 @@ object NoSelfInStatic extends IRPass {
     * @return
     */
   private def isStaticMethod(
-    method: Definition.Method
+    method: definition.Method
   ): Boolean = {
     def findSelfArgument(
       arguments: List[IR.DefinitionArgument]

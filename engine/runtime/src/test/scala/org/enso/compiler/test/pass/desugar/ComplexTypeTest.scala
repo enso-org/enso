@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -88,13 +89,13 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their methods desugared to binding methods" in {
-      ir.bindings(3) shouldBe an[Definition.Method.Binding]
-      val isJust = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(3) shouldBe an[definition.Method.Binding]
+      val isJust = ir.bindings(3).asInstanceOf[definition.Method.Binding]
       isJust.methodName.name shouldEqual "is_just"
       isJust.typeName.get.name shouldEqual "Maybe"
 
-      ir.bindings(5) shouldBe an[Definition.Method.Binding]
-      val f = ir.bindings(5).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(5) shouldBe an[definition.Method.Binding]
+      val f = ir.bindings(5).asInstanceOf[definition.Method.Binding]
       f.methodName.name shouldEqual "f"
       f.typeName.get.name shouldEqual "Maybe"
     }
@@ -110,7 +111,7 @@ class ComplexTypeTest extends CompilerTest {
         .asInstanceOf[Name.MethodReference]
       val isJustMethodName = ir
         .bindings(3)
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .methodReference
 
       assert(
@@ -125,7 +126,7 @@ class ComplexTypeTest extends CompilerTest {
         .asInstanceOf[Name.MethodReference]
       val fMethodName = ir
         .bindings(5)
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .methodReference
 
       assert(
@@ -178,8 +179,8 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their valid methods desugared" in {
-      ir.bindings(1) shouldBe a[Definition.Method.Binding]
-      val method = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(1) shouldBe a[definition.Method.Binding]
+      val method = ir.bindings(1).asInstanceOf[definition.Method.Binding]
       method.typeName.get.name shouldEqual "Foo"
       method.methodName.name shouldEqual "g"
     }
