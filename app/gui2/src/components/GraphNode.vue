@@ -2,9 +2,8 @@
 import type { ContentRange, ExprId, Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
-import { computed, onBeforeUpdate, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
 import NodeSpan from './NodeSpan.vue'
-import type { readContentString } from 'node_modules/yjs/dist/src/internals'
 
 const props = defineProps<{
   node: Node
@@ -35,9 +34,16 @@ const transform = computed(() => {
 function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
   if (domNode instanceof HTMLElement && domOffset == 1) {
     const offsetData = domNode.dataset.spanStart
+    const offset = (offsetData != null && parseInt(offsetData)) || 0
     const length = domNode.textContent?.length ?? 0
-    if (offsetData != null) return parseInt(offsetData) + length
+    return offset + length
   } else if (domNode instanceof Text) {
+    const siblingEl = domNode.previousElementSibling
+    if (siblingEl instanceof HTMLElement) {
+      const offsetData = siblingEl.dataset.spanStart
+      if (offsetData != null)
+        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
+    }
     const offsetData = domNode.parentElement?.dataset.spanStart
     if (offsetData != null) return parseInt(offsetData) + domOffset
   }
@@ -75,6 +81,7 @@ function editContent(e: Event) {
       end: getRelatedSpanOffset(r.endContainer, r.endOffset),
     }
   })
+  console.log(domRanges, ranges)
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''

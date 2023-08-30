@@ -18,10 +18,8 @@
     "pinia": "^2.1.6",
     "postcss-nesting": "^12.0.1",
     "vue": "^3.3.4",
-    "vue-router": "^4.2.4",
     "y-protocols": "^1.0.5",
     "y-textarea": "^1.0.0",
-    "y-webrtc": "10.1.6",
     "y-websocket": "^1.5.0",
     "yjs": "^13.6.7"
   },
