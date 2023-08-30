@@ -177,42 +177,25 @@ impl ExtDisjointTimerQueryWebgl2 {
 /// See: [https://registry.khronos.org/webgl/extensions/WEBGL_lose_context]
 #[derive(Debug, Clone)]
 pub struct WebglLoseContext {
-    ext:             Object,
-    lose_context:    js_sys::Function,
-    restore_context: js_sys::Function,
+    ext: web_sys::WebglLoseContext,
 }
 
 impl WebglLoseContext {
     /// Try to obtain the extension.
     pub fn try_init(context: &WebGl2RenderingContext) -> Option<Self> {
         let ext = context.get_extension("WEBGL_lose_context").ok()??;
-        let lose_context = js_sys::Reflect::get(&ext, &"loseContext".into())
-            .ok()?
-            .dyn_into::<js_sys::Function>()
-            .ok()?;
-        let restore_context = js_sys::Reflect::get(&ext, &"restoreContext".into())
-            .ok()?
-            .dyn_into::<js_sys::Function>()
-            .ok()?;
-        Some(Self { ext, lose_context, restore_context })
+        let ext = (*ext).clone().into();
+        Some(Self { ext })
     }
 
     /// Lose the WebGL context. This can be useful for testing, or to eagerly release resources.
     pub fn lose_context(&self) {
-        if let Err(err) = self.lose_context.call0(&self.ext) {
-            warn!(
-                "Failed to lose the WebGL context: {:?}. \
-                This is expected to occur if the context was already lost.",
-                err
-            );
-        }
+        self.ext.lose_context();
     }
 
     /// Restore the WebGL context. This will only succeed if the context was lost by
     /// [`lose_context`].
     pub fn restore_context(&self) {
-        if let Err(err) = self.restore_context.call0(&self.ext) {
-            error!("Failed to restore the WebGL context: {:?}", err);
-        }
+        self.ext.restore_context();
     }
 }

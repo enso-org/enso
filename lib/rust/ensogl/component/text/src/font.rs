@@ -1003,10 +1003,9 @@ impl FontWithGpuData {
 // ================
 
 /// Stores all loaded fonts.
-#[derive(Clone, CloneRef, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Registry {
-    frp:                registry::Frp,
+    network:            frp::Network,
     fonts:              Rc<HashMap<Name, FontWithGpuData>>,
     set_context_handle: ensogl_core::display::world::ContextHandler,
 }
@@ -1055,13 +1054,12 @@ impl Registry {
                 font.set_context(context);
             }
         });
-        let frp = registry::Frp::new();
+        let network = frp::Network::new("font::Registry");
         let on_before_rendering = ensogl_core::animation::on_before_rendering();
-        let network = frp.network();
         frp::extend! { network
             eval_ on_before_rendering([fonts] Self::update(&fonts));
         }
-        Self { frp, fonts, set_context_handle }
+        Self { network, fonts, set_context_handle }
     }
 
     fn update(fonts: impl AsRef<HashMap<Name, FontWithGpuData>>) {
@@ -1075,21 +1073,6 @@ impl scene::Extension for Registry {
     fn init(scene: &scene::Scene) -> Self {
         let fonts = Embedded::default().into_fonts();
         Self::new(scene, fonts)
-    }
-}
-
-
-// === Frp ===
-
-mod registry {
-    use super::*;
-
-    // Although the font registry doesn't (currently) define any FRP endpoints, it needs to own a
-    // network in order to attach a handler to `ensogl_core::animation::on_before_rendering()` so
-    // that it can check for a dirty state.
-    ensogl_core::define_endpoints_2! {
-        Input { }
-        Output { }
     }
 }
 

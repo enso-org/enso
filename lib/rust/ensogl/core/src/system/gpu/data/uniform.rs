@@ -159,7 +159,6 @@ impl UniformScope {
 #[derivative(Clone(bound = ""))]
 pub struct Uniform<Value> {
     value: Rc<RefCell<Value>>,
-    // dirty: bool,
 }
 
 impl<Value> Uniform<Value> {
@@ -180,21 +179,6 @@ impl<Value> Uniform<Value> {
     pub fn modify(&self, f: impl FnOnce(&mut Value)) {
         f(&mut *self.value.borrow_mut());
     }
-
-    //    /// Checks whether the uniform was changed and not yet updated.
-    //    pub fn check_dirty(&self) -> bool {
-    //        self.dirty
-    //    }
-
-    //    /// Sets the dirty flag.
-    //    pub fn set_dirty(&mut self) {
-    //        self.dirty = true;
-    //    }
-    //
-    //    /// Clears the dirty flag.
-    //    pub fn unset_dirty(&mut self) {
-    //        self.dirty = false;
-    //    }
 }
 
 impl<Value: Clone> Uniform<Value> {

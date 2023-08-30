@@ -176,7 +176,7 @@ pub struct GlyphData {
 
 // === Face Header Properties Getters and Setters ===
 
-/// For each property, such as `Weight(Thin, ExtraLight, ...)` defines:
+/// For each property, such as `Weight` defines:
 /// ```text
 /// pub fn weight(&self) -> Weight { ... }
 /// pub fn set_weight(&self, weight: Weight) { ... }

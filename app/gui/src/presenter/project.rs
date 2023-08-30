@@ -45,8 +45,9 @@ const RESTORING_CONTEXT_SPINNER_PROGRESS: f32 = 0.9;
 // === Model ===
 // =============
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+// Those fields will be probably used when Searcher and Breadcrumbs integration will be implemented.
+#[allow(unused)]
+#[derive(Debug)]
 struct Model {
     controller: controller::Project,
     module_model: model::Module,
@@ -60,7 +61,7 @@ struct Model {
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
     execution_failed_notification: notification::Notification,
     /// Handle of a function that shows the loading spinner until a lost context is restored.
-    context_monitor: ensogl::display::world::ContextHandler,
+    _context_monitor: ensogl::display::world::ContextHandler,
 }
 
 impl Model {
@@ -105,7 +106,7 @@ impl Model {
             available_projects,
             shortcut_transaction,
             execution_failed_notification,
-            context_monitor,
+            _context_monitor: context_monitor,
         }
     }
 
