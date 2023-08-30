@@ -2,10 +2,16 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.expression.{Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -102,7 +108,7 @@ case object CachePreferenceAnalysis extends IRPass {
           "Complex type definitions should not be present during cache " +
           "preference analysis."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during cache " +
           "preference analysis."
@@ -161,11 +167,11 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `argument`, with attached preference information
     */
   def analyseDefinitionArgument(
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     weights: WeightInfo
-  ): IR.DefinitionArgument = {
+  ): DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(this -->> weights)

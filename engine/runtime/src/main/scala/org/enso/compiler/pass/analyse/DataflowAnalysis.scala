@@ -4,14 +4,31 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.`type`
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name, Pattern, Type}
+import org.enso.compiler.core.ir.expression.{
+  errors,
+  Application,
+  Case,
+  Comment,
+  Error,
+  Foreign,
+  Operator
+}
+import org.enso.compiler.core.ir.{
+  `type`,
+  CallArgument,
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  Type
+}
 import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
@@ -183,7 +200,7 @@ case object DataflowAnalysis extends IRPass {
           "Complex type definitions should not be present during " +
           "dataflow analysis."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during dataflow analysis."
         )
@@ -219,12 +236,12 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): Expression = {
     expression match {
-      case empty: Empty          => empty.updateMetadata(this -->> info)
-      case function: IR.Function => analyseFunction(function, info)
-      case app: Application      => analyseApplication(app, info)
+      case empty: Empty       => empty.updateMetadata(this -->> info)
+      case function: Function => analyseFunction(function, info)
+      case app: Application   => analyseApplication(app, info)
       case typ: Type          => analyseType(typ, info)
-      case name: Name            => analyseName(name, info)
-      case cse: IR.Case          => analyseCase(cse, info)
+      case name: Name         => analyseName(name, info)
+      case cse: Case          => analyseCase(cse, info)
       case literal: Literal =>
         literal.updateMetadata(this -->> info)
       case foreign: Foreign =>
@@ -258,7 +275,7 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
 
       case error: Error => error
-      case _: IR.Comment =>
+      case _: Comment =>
         throw new CompilerError(
           "Comments should not be present during dataflow analysis."
         )
@@ -275,11 +292,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `function`, with attached dependency information
     */
   def analyseFunction(
-    function: IR.Function,
+    function: Function,
     info: DependencyInfo
-  ): IR.Function = {
+  ): Function = {
     function match {
-      case lam @ IR.Function.Lambda(arguments, body, _, _, _, _) =>
+      case lam @ Function.Lambda(arguments, body, _, _, _, _) =>
         val bodyDep = asStatic(body)
         val lamDep  = asStatic(lam)
         info.dependents.updateAt(bodyDep, Set(lamDep))
@@ -291,7 +308,7 @@ case object DataflowAnalysis extends IRPass {
             body      = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during dataflow analysis."
         )
@@ -581,9 +598,9 @@ case object DataflowAnalysis extends IRPass {
     * @param info the dependency information for the module
     * @return `cse`, with attached dependency information
     */
-  def analyseCase(cse: IR.Case, info: DependencyInfo): IR.Case = {
+  def analyseCase(cse: Case, info: DependencyInfo): Case = {
     cse match {
-      case expr: IR.Case.Expr =>
+      case expr: Case.Expr =>
         val exprDep  = asStatic(expr)
         val scrutDep = asStatic(expr.scrutinee)
         info.dependents.updateAt(scrutDep, Set(exprDep))
@@ -600,7 +617,7 @@ case object DataflowAnalysis extends IRPass {
             branches  = expr.branches.map(analyseCaseBranch(_, info))
           )
           .updateMetadata(this -->> info)
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -615,9 +632,9 @@ case object DataflowAnalysis extends IRPass {
     * @return `branch`, with attached dependency information
     */
   def analyseCaseBranch(
-    branch: IR.Case.Branch,
+    branch: Case.Branch,
     info: DependencyInfo
-  ): IR.Case.Branch = {
+  ): Case.Branch = {
     val pattern    = branch.pattern
     val expression = branch.expression
 
@@ -701,11 +718,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `argument`, with attached dependency information
     */
   def analyseDefinitionArgument(
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     info: DependencyInfo
-  ): IR.DefinitionArgument = {
+  ): DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         val specDep = asStatic(spec)
         defValue.foreach(expr => {
           val exprDep = asStatic(expr)
@@ -731,11 +748,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `argument`, with attached dependency information
     */
   def analyseCallArgument(
-    argument: IR.CallArgument,
+    argument: CallArgument,
     info: DependencyInfo
-  ): IR.CallArgument = {
+  ): CallArgument = {
     argument match {
-      case spec @ IR.CallArgument.Specified(name, value, _, _, _) =>
+      case spec @ CallArgument.Specified(name, value, _, _, _) =>
         val specDep  = asStatic(spec)
         val valueDep = asStatic(value)
         info.dependents.updateAt(valueDep, Set(specDep))

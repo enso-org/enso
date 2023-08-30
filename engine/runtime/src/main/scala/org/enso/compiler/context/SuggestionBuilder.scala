@@ -3,7 +3,15 @@ package org.enso.compiler.context
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Operator}
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name, Type}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  Literal,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.`type`
@@ -113,7 +121,7 @@ final class SuggestionBuilder[A: IndexedSource](
           case m @ definition.Method
                 .Explicit(
                   Name.MethodReference(typePtr, methodName, _, _, _),
-                  IR.Function.Lambda(args, body, _, _, _, _),
+                  Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
@@ -153,7 +161,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 .Conversion(
                   Name.MethodReference(_, _, _, _, _),
                   Name.Literal(sourceTypeName, _, _, _, _),
-                  IR.Function.Lambda(args, body, _, _, _, _),
+                  Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
@@ -171,7 +179,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case Expression.Binding(
                 name,
-                IR.Function.Lambda(args, body, _, _, _, _),
+                Function.Lambda(args, body, _, _, _, _),
                 _,
                 _,
                 _
@@ -236,7 +244,7 @@ final class SuggestionBuilder[A: IndexedSource](
     name: String,
     selfType: QualifiedName,
     isStatic: Boolean,
-    args: Seq[IR.DefinitionArgument],
+    args: Seq[DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata],
     genericAnnotations: Option[GenericAnnotations.Metadata],
@@ -278,7 +286,7 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildConversion(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
-    args: Seq[IR.DefinitionArgument],
+    args: Seq[DefinitionArgument],
     sourceTypeName: String,
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
@@ -301,7 +309,7 @@ final class SuggestionBuilder[A: IndexedSource](
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
     name: Name,
-    args: Seq[IR.DefinitionArgument],
+    args: Seq[DefinitionArgument],
     location: Location,
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
@@ -356,7 +364,7 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     tp: String,
     name: String,
-    params: Seq[IR.DefinitionArgument],
+    params: Seq[DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Type = {
     val qualifiedName = module.createChild(tp).toString
@@ -377,7 +385,7 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     tp: String,
     name: String,
-    arguments: Seq[IR.DefinitionArgument],
+    arguments: Seq[DefinitionArgument],
     genericAnnotations: Seq[Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
@@ -395,10 +403,10 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildGetter(
     module: QualifiedName,
     typeName: String,
-    argument: IR.DefinitionArgument
+    argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = IR.DefinitionArgument.Specified(
+    val thisArg = DefinitionArgument.Specified(
       name         = Name.Self(None),
       ascribedType = None,
       defaultValue = None,
@@ -526,14 +534,14 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of arguments with a method return type
     */
   private def buildMethodArguments(
-    vargs: Seq[IR.DefinitionArgument],
+    vargs: Seq[DefinitionArgument],
     targs: Seq[TypeArg],
     selfType: QualifiedName,
     isStatic: Boolean
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
-      vargs: Seq[IR.DefinitionArgument],
+      vargs: Seq[DefinitionArgument],
       targs: Seq[TypeArg],
       acc: Vector[Suggestion.Argument]
     ): (Vector[Suggestion.Argument], Option[TypeArg]) =
@@ -541,7 +549,7 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case IR.DefinitionArgument.Specified(
+          case DefinitionArgument.Specified(
                 name: Name.Self,
                 _,
                 defaultValue,
@@ -582,12 +590,12 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of arguments with a function return type
     */
   private def buildFunctionArguments(
-    vargs: Seq[IR.DefinitionArgument],
+    vargs: Seq[DefinitionArgument],
     targs: Seq[TypeArg]
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
-      vargs: Seq[IR.DefinitionArgument],
+      vargs: Seq[DefinitionArgument],
       targs: Seq[TypeArg],
       acc: Vector[Suggestion.Argument]
     ): (Seq[Suggestion.Argument], Option[TypeArg]) =
@@ -615,7 +623,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildTypedArgument(
-    varg: IR.DefinitionArgument,
+    varg: DefinitionArgument,
     targ: TypeArg
   ): Suggestion.Argument =
     Suggestion.Argument(
@@ -685,7 +693,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param arg the value argument
     * @return the suggestion argument
     */
-  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
+  private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
     buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)

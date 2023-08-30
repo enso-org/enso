@@ -2,9 +2,8 @@ package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -61,7 +60,7 @@ class UnreachableMatchBranchesTest extends CompilerTest {
         |    _ -> 100
         |    a -> 30
         |""".stripMargin.preprocessExpression.get.optimize
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
     "associate a warning with the case expression" in {
       atLeast(1, ir.diagnostics.toList) shouldBe a[
@@ -74,7 +73,7 @@ class UnreachableMatchBranchesTest extends CompilerTest {
     }
 
     "work recursively" in {
-      val nestedCase = ir.branches.head.expression.asInstanceOf[IR.Case.Expr]
+      val nestedCase = ir.branches.head.expression.asInstanceOf[Case.Expr]
       nestedCase.branches.length shouldEqual 2
     }
   }

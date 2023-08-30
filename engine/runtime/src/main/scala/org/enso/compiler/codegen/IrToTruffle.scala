@@ -5,28 +5,33 @@ import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
   Empty,
   Expression,
+  Function,
   IdentifiedLocation,
   Literal,
   Module,
   Name,
   Pattern,
+  `type`,
   Type => Tpe
 }
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.Name.Special
-import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.{
+  errors,
   Application,
+  Case,
+  Comment,
+  Error,
   Foreign,
   Operator,
   Section
 }
-import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ResolvedConstructor,
@@ -81,10 +86,8 @@ import org.enso.interpreter.node.{
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable.argument.{
-  ArgumentDefinition,
-  CallArgument
-}
+import org.enso.interpreter.runtime.callable
+import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
 import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
@@ -418,7 +421,7 @@ class IrToTruffle(
         )
 
         val function = methodDef.body match {
-          case fn: IR.Function if isBuiltinMethod(fn.body) =>
+          case fn: Function if isBuiltinMethod(fn.body) =>
             // For builtin types that own the builtin method we only check that
             // the method has been registered during the initialization of builtins
             // and not attempt to register it in the scope (can't redefined methods).
@@ -426,7 +429,7 @@ class IrToTruffle(
             // we have to look up the function and register it in the scope.
             // Static wrappers for instance methods have to be registered always.
             val fullMethodName = methodDef.body
-              .asInstanceOf[IR.Function.Lambda]
+              .asInstanceOf[Function.Lambda]
               .body
               .asInstanceOf[Literal.Text]
 
@@ -508,7 +511,7 @@ class IrToTruffle(
                   }
                 }
               )
-          case fn: IR.Function =>
+          case fn: Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(
                 fn.arguments,
@@ -641,7 +644,7 @@ class IrToTruffle(
         )
 
         val function = methodDef.body match {
-          case fn: IR.Function =>
+          case fn: Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(
                 fn.arguments,
@@ -679,9 +682,9 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
+  private def checkRuntimeTypes(arg: DefinitionArgument): List[Type] = {
     def extractAscribedType(t: Expression): List[Type] = t match {
-      case u: `type`.Set.Union  => u.operands.flatMap(extractAscribedType)
+      case u: `type`.Set.Union   => u.operands.flatMap(extractAscribedType)
       case p: Application.Prefix => extractAscribedType(p.function)
       case _: Tpe.Function =>
         List(context.getTopScope().getBuiltins().function())
@@ -969,16 +972,16 @@ class IrToTruffle(
         case app: Application =>
           processApplication(app, subjectToInstrumentation)
         case name: Name                  => processName(name)
-        case function: IR.Function       => processFunction(function, binding)
+        case function: Function          => processFunction(function, binding)
         case binding: Expression.Binding => processBinding(binding)
-        case caseExpr: IR.Case =>
+        case caseExpr: Case =>
           processCase(caseExpr, subjectToInstrumentation)
         case typ: Tpe => processType(typ)
         case _: Empty =>
           throw new CompilerError(
             "Empty IR nodes should not exist during code generation."
           )
-        case _: IR.Comment =>
+        case _: Comment =>
           throw new CompilerError(
             "Comments should not be present during codegen."
           )
@@ -1073,11 +1076,11 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `caseExpr`
       */
     def processCase(
-      caseExpr: IR.Case,
+      caseExpr: Case,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case IR.Case.Expr(scrutinee, branches, isNested, location, _, _) =>
+        case Case.Expr(scrutinee, branches, isNested, location, _, _) =>
           val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
@@ -1110,7 +1113,7 @@ class IrToTruffle(
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
-        case _: IR.Case.Branch =>
+        case _: Case.Branch =>
           throw new CompilerError("A CaseBranch should never occur here.")
       }
 
@@ -1121,7 +1124,7 @@ class IrToTruffle(
       *         the match is invalid
       */
     def processCaseBranch(
-      branch: IR.Case.Branch
+      branch: Case.Branch
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = branch
         .unsafeGetMetadata(
@@ -1363,7 +1366,7 @@ class IrToTruffle(
               ) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    IR.DefinitionArgument.Specified(
+                    DefinitionArgument.Specified(
                       varName,
                       None,
                       None,
@@ -1401,7 +1404,7 @@ class IrToTruffle(
                   .get(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
-                  IR.DefinitionArgument.Specified(
+                  DefinitionArgument.Specified(
                     varName,
                     None,
                     None,
@@ -1461,8 +1464,8 @@ class IrToTruffle(
       * @param name the pattern field to generate from
       * @return `name` as a function definition argument.
       */
-    def genArgFromMatchField(name: Pattern.Name): IR.DefinitionArgument = {
-      IR.DefinitionArgument.Specified(
+    def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
+      DefinitionArgument.Specified(
         name.name,
         None,
         None,
@@ -1505,14 +1508,14 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `function`
       */
     private def processFunction(
-      function: IR.Function,
+      function: Function,
       binding: Boolean
     ): RuntimeExpression = {
       val scopeInfo = function
         .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
         .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-      if (function.body.isInstanceOf[IR.Function]) {
+      if (function.body.isInstanceOf[Function]) {
         throw new CompilerError(
           "Lambda found directly as function body. It looks like Lambda " +
           "Consolidation hasn't run."
@@ -1748,7 +1751,7 @@ class IrToTruffle(
       *         argument definitions.
       */
     class BuildFunctionBody(
-      val arguments: List[IR.DefinitionArgument],
+      val arguments: List[DefinitionArgument],
       val body: Expression,
       val effectContext: Option[String],
       val subjectToInstrumentation: Boolean
@@ -1853,7 +1856,7 @@ class IrToTruffle(
       * @return a truffle node representing the described function
       */
     private def processFunctionBody(
-      arguments: List[IR.DefinitionArgument],
+      arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
       binding: Boolean = false
@@ -1955,7 +1958,7 @@ class IrToTruffle(
       val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
       val arguments = args
-      val callArgs  = new ArrayBuffer[CallArgument]()
+      val callArgs  = new ArrayBuffer[callable.argument.CallArgument]()
 
       for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
         val arg =
@@ -2011,12 +2014,12 @@ class IrToTruffle(
       *         `arg`
       */
     def run(
-      arg: IR.CallArgument,
+      arg: CallArgument,
       position: Int,
       subjectToInstrumentation: Boolean
-    ): CallArgument =
+    ): callable.argument.CallArgument =
       arg match {
-        case IR.CallArgument.Specified(
+        case CallArgument.Specified(
               name,
               value,
               _,
@@ -2074,7 +2077,7 @@ class IrToTruffle(
             CreateThunkNode.build(callTarget)
           }
 
-          new CallArgument(name.map(_.name).orNull, result)
+          new callable.argument.CallArgument(name.map(_.name).orNull, result)
       }
   }
 
@@ -2127,12 +2130,12 @@ class IrToTruffle(
       *         given function
       */
     def run(
-      inputArg: IR.DefinitionArgument,
+      inputArg: DefinitionArgument,
       position: Int,
       types: List[Type]
     ): ArgumentDefinition =
       inputArg match {
-        case arg: IR.DefinitionArgument.Specified =>
+        case arg: DefinitionArgument.Specified =>
           val defaultExpression = arg.defaultValue
             .map(new ExpressionProcessor(scope, scopeName).run(_, false))
             .orNull

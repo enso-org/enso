@@ -2,10 +2,13 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
@@ -93,7 +96,7 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val boundX = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
         .expressions
@@ -114,7 +117,7 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val xUsage = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
 
       xUsage shouldBe an[Application.Force]
@@ -130,17 +133,17 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
 
       app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value shouldBe an[Name]
 
       app
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value shouldBe an[Name]
     }
 
@@ -153,7 +156,7 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val vec = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Sequence]
 
@@ -178,7 +181,7 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val irBody = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
 
@@ -201,14 +204,14 @@ class DemandAnalysisTest extends CompilerTest {
           |    bar blck
           |""".stripMargin.preprocessExpression.get.analyse
 
-      ir.asInstanceOf[IR.Function.Lambda]
+      ir.asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[Application.Prefix]
         .arguments
         .head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value shouldBe an[Name]
     }
 
@@ -224,14 +227,14 @@ class DemandAnalysisTest extends CompilerTest {
       val barFunc = ir.bindings.head
         .asInstanceOf[definition.Method.Explicit]
       val oprCall = barFunc.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
 
       oprCall.function.asInstanceOf[Name].name shouldEqual "<|"
       oprCall.arguments.length shouldEqual 2
 
-      val xArg = oprCall.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+      val xArg = oprCall.arguments(1).asInstanceOf[CallArgument.Specified]
 
       xArg.value shouldBe an[Expression.Block]
       xArg.value

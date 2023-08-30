@@ -2,9 +2,10 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.Comment
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -166,7 +167,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
       typ.body(1) shouldBe an[Name.GenericAnnotation]
-      typ.body(2) shouldBe an[IR.Function.Binding]
+      typ.body(2) shouldBe an[Function.Binding]
     }
 
     "not associate annotations with comments" in {
@@ -183,7 +184,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
       typ.body(0) shouldBe an[Name.GenericAnnotation]
-      typ.body(1) shouldBe an[IR.Comment]
+      typ.body(1) shouldBe an[Comment]
       typ.body(2) shouldBe a[Definition.Data]
     }
   }

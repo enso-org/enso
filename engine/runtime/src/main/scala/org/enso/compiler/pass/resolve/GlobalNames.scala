@@ -2,13 +2,25 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolutionNotFound, ResolvedMethod, ResolvedModule}
+import org.enso.compiler.data.BindingsMap.{
+  Resolution,
+  ResolutionNotFound,
+  ResolvedMethod,
+  ResolvedModule
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
@@ -130,7 +142,7 @@ case object GlobalNames extends IRPass {
   private def processExpression(
     ir: Expression,
     bindings: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
@@ -184,7 +196,7 @@ case object GlobalNames extends IRPass {
                       )
                       val app = Application.Prefix(
                         fun,
-                        List(IR.CallArgument.Specified(None, self, None)),
+                        List(CallArgument.Specified(None, self, None)),
                         hasDefaultsSuspended = false,
                         lit.location
                       )
@@ -247,7 +259,7 @@ case object GlobalNames extends IRPass {
     app: Application.Prefix,
     fun: Name.Literal,
     bindingsMap: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
   ): Expression = {
@@ -279,7 +291,7 @@ case object GlobalNames extends IRPass {
               BindingsMap.ResolvedModule(mod)
             )
           )
-        val selfArg = IR.CallArgument.Specified(None, self, None)
+        val selfArg = CallArgument.Specified(None, self, None)
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>
@@ -290,7 +302,7 @@ case object GlobalNames extends IRPass {
   private def resolveLocalApplication(
     app: Application.Prefix,
     bindings: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
   ): Expression = {
@@ -344,7 +356,7 @@ case object GlobalNames extends IRPass {
     originalApp: Application.Prefix,
     calledCons: BindingsMap.Cons,
     newFun: Expression,
-    newArgs: List[IR.CallArgument]
+    newArgs: List[CallArgument]
   ): Expression = {
     if (
       newArgs.isEmpty && (!originalApp.hasDefaultsSuspended || calledCons.arity == 0)
@@ -385,7 +397,7 @@ case object GlobalNames extends IRPass {
       case _ => None
     }
 
-  private def findThisPosition(args: List[IR.CallArgument]): Option[Int] = {
+  private def findThisPosition(args: List[CallArgument]): Option[Int] = {
     val ix = args.indexWhere(arg =>
       arg.name.exists(
         _.name == Constants.Names.SELF_ARGUMENT

@@ -10,7 +10,12 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ModuleReference, Resolution, ResolvedType}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ModuleReference,
+  Resolution,
+  ResolvedType
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass

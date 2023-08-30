@@ -2,7 +2,7 @@ package org.enso.compiler.core.ir
 package `type`
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Identifier, ToStringHelper, randomId}
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.compiler.core.ir.Type.Info
 
 /** IR nodes for dealing with typesets. */
@@ -16,11 +16,11 @@ sealed trait Set extends Type {
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Set
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Set
 }
 
 object Set {
@@ -35,14 +35,14 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Member(
-                            label: Name,
-                            memberType: Expression,
-                            value: Expression,
-                            override val location: Option[IdentifiedLocation],
-                            override val passData: MetadataStorage = MetadataStorage(),
-                            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                          ) extends Set
-    with IRKind.Primitive {
+    label: Name,
+    memberType: Expression,
+    value: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -57,14 +57,14 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              label: Name = label,
-              memberType: Expression = memberType,
-              value: Expression = value,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Member = {
+      label: Name                          = label,
+      memberType: Expression               = memberType,
+      value: Expression                    = value,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Member = {
       val res =
         Member(label, memberType, value, location, passData, diagnostics)
       res.id = id
@@ -73,11 +73,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Member =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Member =
       copy(
         label = label.duplicate(
           keepLocations,
@@ -99,8 +99,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -113,9 +112,9 @@ object Set {
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Member = {
       copy(
-        label = label.mapExpressions(fn),
+        label      = label.mapExpressions(fn),
         memberType = fn(memberType),
-        value = fn(value)
+        value      = fn(value)
       )
     }
 
@@ -138,7 +137,7 @@ object Set {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
-      val typeString = s" : ${memberType.showCode(indent)}"
+      val typeString  = s" : ${memberType.showCode(indent)}"
       val valueString = s" = ${value.showCode(indent)}"
       s"(${label.showCode(indent)}$typeString$valueString)"
     }
@@ -157,13 +156,13 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Subsumption(
-                                 left: Expression,
-                                 right: Expression,
-                                 override val location: Option[IdentifiedLocation],
-                                 override val passData: MetadataStorage = MetadataStorage(),
-                                 override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                               ) extends Set
-    with IRKind.Primitive {
+    left: Expression,
+    right: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -177,13 +176,13 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              left: Expression = left,
-              right: Expression = right,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Subsumption = {
+      left: Expression                     = left,
+      right: Expression                    = right,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Subsumption = {
       val res = Subsumption(left, right, location, passData, diagnostics)
       res.id = id
       res
@@ -191,11 +190,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Subsumption =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Subsumption =
       copy(
         left = left.duplicate(
           keepLocations,
@@ -210,8 +209,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -219,13 +217,13 @@ object Set {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Subsumption = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Subsumption = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(
-                                 fn: Expression => Expression
-                               ): Subsumption = {
+      fn: Expression => Expression
+    ): Subsumption = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -262,13 +260,13 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Equality(
-                              left: Expression,
-                              right: Expression,
-                              override val location: Option[IdentifiedLocation],
-                              override val passData: MetadataStorage = MetadataStorage(),
-                              override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                            ) extends Set
-    with IRKind.Primitive {
+    left: Expression,
+    right: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -282,13 +280,13 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              left: Expression = left,
-              right: Expression = right,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Equality = {
+      left: Expression                     = left,
+      right: Expression                    = right,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Equality = {
       val res = Equality(left, right, location, passData, diagnostics)
       res.id = id
       res
@@ -296,11 +294,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Equality =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Equality =
       copy(
         left = left.duplicate(
           keepLocations,
@@ -315,8 +313,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -324,8 +321,8 @@ object Set {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Equality = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Equality = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Equality = {
@@ -365,13 +362,13 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Concat(
-                            left: Expression,
-                            right: Expression,
-                            override val location: Option[IdentifiedLocation],
-                            override val passData: MetadataStorage = MetadataStorage(),
-                            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                          ) extends Set
-    with IRKind.Primitive {
+    left: Expression,
+    right: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -385,13 +382,13 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              left: Expression = left,
-              right: Expression = right,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Concat = {
+      left: Expression                     = left,
+      right: Expression                    = right,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Concat = {
       val res = Concat(left, right, location, passData, diagnostics)
       res.id = id
       res
@@ -399,11 +396,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Concat =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Concat =
       copy(
         left = left.duplicate(
           keepLocations,
@@ -418,8 +415,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -466,12 +462,12 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Union(
-                           operands: List[Expression],
-                           override val location: Option[IdentifiedLocation],
-                           override val passData: MetadataStorage = MetadataStorage(),
-                           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                         ) extends Set
-    with IRKind.Primitive {
+    operands: List[Expression],
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -485,12 +481,12 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              operands: List[Expression] = operands,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Union = {
+      operands: List[Expression]           = operands,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Union = {
       val res = Union(operands, location, passData, diagnostics)
       res.id = id
       res
@@ -498,11 +494,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Union =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Union =
       copy(
         operands = operands.map(
           _.duplicate(
@@ -513,8 +509,7 @@ object Set {
           )
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -561,13 +556,13 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Intersection(
-                                  left: Expression,
-                                  right: Expression,
-                                  override val location: Option[IdentifiedLocation],
-                                  override val passData: MetadataStorage = MetadataStorage(),
-                                  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                                ) extends Set
-    with IRKind.Primitive {
+    left: Expression,
+    right: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -581,13 +576,13 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              left: Expression = left,
-              right: Expression = right,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Intersection = {
+      left: Expression                     = left,
+      right: Expression                    = right,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Intersection = {
       val res = Intersection(left, right, location, passData, diagnostics)
       res.id = id
       res
@@ -595,11 +590,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Intersection =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Intersection =
       copy(
         left = left.duplicate(
           keepLocations,
@@ -614,8 +609,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -623,13 +617,13 @@ object Set {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Intersection = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Intersection = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(
-                                 fn: Expression => Expression
-                               ): Intersection = {
+      fn: Expression => Expression
+    ): Intersection = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -666,13 +660,13 @@ object Set {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Subtraction(
-                                 left: Expression,
-                                 right: Expression,
-                                 override val location: Option[IdentifiedLocation],
-                                 override val passData: MetadataStorage = MetadataStorage(),
-                                 override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                               ) extends Set
-    with IRKind.Primitive {
+    left: Expression,
+    right: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Set
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -686,13 +680,13 @@ object Set {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              left: Expression = left,
-              right: Expression = right,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Subtraction = {
+      left: Expression                     = left,
+      right: Expression                    = right,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Subtraction = {
       val res = Subtraction(left, right, location, passData, diagnostics)
       res.id = id
       res
@@ -700,11 +694,11 @@ object Set {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Subtraction =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Subtraction =
       copy(
         left = left.duplicate(
           keepLocations,
@@ -719,8 +713,7 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -728,13 +721,13 @@ object Set {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Subtraction = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Subtraction = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(
-                                 fn: Expression => Expression
-                               ): Subtraction = {
+      fn: Expression => Expression
+    ): Subtraction = {
       copy(left = fn(left), right = fn(right))
     }
 

@@ -2,10 +2,9 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Pattern}
+import org.enso.compiler.core.ir.{Expression, Function, Module, Pattern}
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -95,7 +94,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |x -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       val lintMeta = ir.arguments.head.diagnostics.collect {
         case u: warnings.Unused.FunctionArgument => u
@@ -117,7 +116,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessModule.lint
 
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
-        inside(definition.body) { case f: IR.Function.Lambda =>
+        inside(definition.body) { case f: Function.Lambda =>
           val lintMeta = f.arguments(1).diagnostics.collect {
             case u: warnings.Unused.FunctionArgument => u
           }
@@ -136,7 +135,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |_ -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       val lintMeta = ir.arguments.head.diagnostics.collect {
         case u: warnings.Unused => u
@@ -189,7 +188,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[Expression.Block]
           .returnValue
-          .asInstanceOf[IR.Case.Expr]
+          .asInstanceOf[Case.Expr]
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]

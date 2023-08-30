@@ -2,8 +2,8 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.expression.Application
@@ -193,7 +193,7 @@ class TypeSignaturesTest extends CompilerTest {
           .asInstanceOf[definition.Method]
 
       val block = ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
 

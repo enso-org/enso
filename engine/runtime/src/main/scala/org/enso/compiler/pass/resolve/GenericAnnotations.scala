@@ -1,12 +1,12 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Comment
 import org.enso.compiler.pass.IRPass
 
 /** A pass responsible for the discovery of [[Name.GenericAnnotation]]
@@ -49,7 +49,7 @@ case object GenericAnnotations extends IRPass {
         throw new CompilerError(
           s"Sugared types should not be present at generic annotations pass."
         )
-      case _: IR.Comment =>
+      case _: Comment =>
         throw new CompilerError(
           "Comments should not be present at generic annotations pass."
         )

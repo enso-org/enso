@@ -3,15 +3,16 @@ package org.enso.compiler.pass.optimise
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  DefinitionArgument,
   Empty,
   Expression,
+  Function,
   IdentifiedLocation,
   Module,
   Name
 }
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -113,7 +114,7 @@ case object LambdaConsolidate extends IRPass {
         "A fresh name supply is required for lambda consolidation."
       )
     )
-    ir.transformExpressions { case fn: IR.Function =>
+    ir.transformExpressions { case fn: Function =>
       collapseFunction(fn, inlineContext, freshNameSupply)
     }
   }
@@ -125,15 +126,15 @@ case object LambdaConsolidate extends IRPass {
     *         lambdas collapsed
     */
   def collapseFunction(
-    function: IR.Function,
+    function: Function,
     inlineContext: InlineContext,
     freshNameSupply: FreshNameSupply
-  ): IR.Function = {
+  ): Function = {
     function match {
-      case lam @ IR.Function.Lambda(_, body, _, _, _, _) =>
+      case lam @ Function.Lambda(_, body, _, _, _, _) =>
         val chainedLambdas = lam :: gatherChainedLambdas(body)
         val chainedArgList =
-          chainedLambdas.foldLeft(List[IR.DefinitionArgument]())(
+          chainedLambdas.foldLeft(List[DefinitionArgument]())(
             _ ::: _.arguments
           )
         val lastBody = chainedLambdas.last.body
@@ -141,7 +142,7 @@ case object LambdaConsolidate extends IRPass {
         val shadowedBindingIds = getShadowedBindingIds(chainedArgList)
 
         val argIsShadowed = chainedArgList.map {
-          case spec: IR.DefinitionArgument.Specified =>
+          case spec: DefinitionArgument.Specified =>
             val aliasInfo = spec
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -185,7 +186,7 @@ case object LambdaConsolidate extends IRPass {
           location  = newLocation,
           canBeTCO  = chainedLambdas.last.canBeTCO
         )
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during lambda consolidation."
         )
@@ -203,8 +204,8 @@ case object LambdaConsolidate extends IRPass {
     *         whether or not they are shadowed
     */
   def attachShadowingWarnings(
-    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)]
-  ): List[(IR.DefinitionArgument, Boolean)] = {
+    argsWithShadowed: List[(DefinitionArgument, Boolean)]
+  ): List[(DefinitionArgument, Boolean)] = {
     val args = argsWithShadowed.map(_._1)
     val argsWithIndex =
       argsWithShadowed.zipWithIndex.map(t => (t._1._1, t._1._2, t._2))
@@ -215,7 +216,7 @@ case object LambdaConsolidate extends IRPass {
         arg match {
           case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _, _) =>
             val mShadower = restArgs.collectFirst {
-              case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _, _)
+              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _, _)
                   if sName.name == argName.name =>
                 s
             }
@@ -241,12 +242,12 @@ case object LambdaConsolidate extends IRPass {
     * @param body the function body to optimise
     * @return the directly chained lambdas in `body`
     */
-  def gatherChainedLambdas(body: Expression): List[IR.Function.Lambda] = {
+  def gatherChainedLambdas(body: Expression): List[Function.Lambda] = {
     body match {
-      case Expression.Block(expressions, lam: IR.Function.Lambda, _, _, _, _)
+      case Expression.Block(expressions, lam: Function.Lambda, _, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
-      case l @ IR.Function.Lambda(_, body, _, _, _, _) =>
+      case l @ Function.Lambda(_, body, _, _, _, _) =>
         l :: gatherChainedLambdas(body)
       case _ => List()
     }
@@ -266,7 +267,7 @@ case object LambdaConsolidate extends IRPass {
   def replaceUsages(
     body: Expression,
     defaults: List[Option[Expression]],
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
   ): (Expression, List[Option[Expression]]) = {
     (
@@ -290,7 +291,7 @@ case object LambdaConsolidate extends IRPass {
     */
   def replaceInExpression(
     expr: Expression,
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
   ): Expression = {
     expr.transformExpressions { case name: Name =>
@@ -308,7 +309,7 @@ case object LambdaConsolidate extends IRPass {
     */
   def replaceInName(
     name: Name,
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
   ): Name = {
     if (toReplaceExpressionIds.contains(name.getId)) {
@@ -316,7 +317,7 @@ case object LambdaConsolidate extends IRPass {
         case spec: Name.Literal =>
           spec.copy(
             name = argument match {
-              case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
+              case defSpec: DefinitionArgument.Specified => defSpec.name.name
             }
           )
         case self: Name.Self             => self
@@ -341,10 +342,10 @@ case object LambdaConsolidate extends IRPass {
     * @return the set of aliasing identifiers shadowed by `args`
     */
   def getShadowedBindingIds(
-    args: List[IR.DefinitionArgument]
+    args: List[DefinitionArgument]
   ): Set[AliasAnalysis.Graph.Id] = {
     args
-      .map { case spec: IR.DefinitionArgument.Specified =>
+      .map { case spec: DefinitionArgument.Specified =>
         val aliasInfo =
           spec
             .unsafeGetMetadata(
@@ -369,10 +370,10 @@ case object LambdaConsolidate extends IRPass {
     *         an empty set represents a non-shadowed argument
     */
   def usageIdsForShadowedArgs(
-    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)]
+    argsWithShadowed: List[(DefinitionArgument, Boolean)]
   ): List[Set[IR.Identifier]] = {
     argsWithShadowed.map {
-      case (spec: IR.DefinitionArgument.Specified, isShadowed) =>
+      case (spec: DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
           spec
             .unsafeGetMetadata(
@@ -406,12 +407,12 @@ case object LambdaConsolidate extends IRPass {
     * @return a set of argument names, with shadowed arguments replaced
     */
   def generateNewNames(
-    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)],
+    argsWithShadowed: List[(DefinitionArgument, Boolean)],
     freshNameSupply: FreshNameSupply
-  ): List[IR.DefinitionArgument] = {
+  ): List[DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-            spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _, _),
+            spec @ DefinitionArgument.Specified(name, _, _, _, _, _, _),
             isShadowed
           ) =>
         val newName =
@@ -439,10 +440,10 @@ case object LambdaConsolidate extends IRPass {
     * @return `args` and `body`, with any usages of shadowed symbols replaced
     */
   def computeReplacedExpressions(
-    args: List[IR.DefinitionArgument],
+    args: List[DefinitionArgument],
     body: Expression,
     usageIdsForShadowed: List[Set[IR.Identifier]]
-  ): (List[IR.DefinitionArgument], Expression) = {
+  ): (List[DefinitionArgument], Expression) = {
     var newBody     = body
     var newDefaults = args.map(_.defaultValue)
 
@@ -458,7 +459,7 @@ case object LambdaConsolidate extends IRPass {
     }
 
     val processedArgList = args.zip(newDefaults).map {
-      case (spec: IR.DefinitionArgument.Specified, default) =>
+      case (spec: DefinitionArgument.Specified, default) =>
         spec.copy(defaultValue = default)
     }
 

@@ -1,10 +1,12 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Empty
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.IdentifiedLocation
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Empty,
+  Expression,
+  IdentifiedLocation,
+  Name
+}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.test.CompilerTest
@@ -31,8 +33,8 @@ class OperatorToFunctionTest extends CompilerTest {
   ): (Operator.Binary, Application.Prefix) = {
     val loc = IdentifiedLocation(Location(1, 33))
 
-    val leftArg  = IR.CallArgument.Specified(None, left, left.location)
-    val rightArg = IR.CallArgument.Specified(None, right, right.location)
+    val leftArg  = CallArgument.Specified(None, left, left.location)
+    val rightArg = CallArgument.Specified(None, right, right.location)
 
     val binOp =
       Operator.Binary(leftArg, name, rightArg, Some(loc))
@@ -53,12 +55,12 @@ class OperatorToFunctionTest extends CompilerTest {
       Name.Literal("=:=", isMethod = true, None)
     val left     = Empty(None)
     val right    = Empty(None)
-    val rightArg = IR.CallArgument.Specified(None, Empty(None), None)
+    val rightArg = CallArgument.Specified(None, Empty(None), None)
 
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
-    val oprArg   = IR.CallArgument.Specified(None, operator, None)
-    val oprFnArg = IR.CallArgument.Specified(None, operatorFn, None)
+    val oprArg   = CallArgument.Specified(None, operator, None)
+    val oprFnArg = CallArgument.Specified(None, operatorFn, None)
 
     "be translated to functions" in {
       OperatorToFunction.runExpression(operator, ctx) shouldEqual operatorFn

@@ -96,7 +96,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Case.Pattern.Name(
+         |Case.Pattern.Name(
          |name = $name,
          |location = $location,
          |passData = ${this.showPassData},
@@ -240,7 +240,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Case.Pattern.Constructor(
+         |Case.Pattern.Constructor(
          |constructor = $constructor,
          |fields = $fields,
          |location = $location,
@@ -334,7 +334,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Case.Pattern.Literal(
+         |Case.Pattern.Literal(
          |literal = $literal,
          |location = $location,
          |passData = ${this.showPassData},
@@ -434,7 +434,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Case.Pattern.Type(
+         |Case.Pattern.Type(
          |name = $name,
          |tpe = $tpe,
          |location = $location,
@@ -529,7 +529,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Case.Pattern.Doc(
+         |Case.Pattern.Doc(
          |doc = $doc,
          |location = $location,
          |passData = ${this.showPassData},

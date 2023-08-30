@@ -1,7 +1,7 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Identifier, ToStringHelper, randomId}
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
 // === Typing ===============================================================
 
@@ -16,11 +16,11 @@ trait Type extends Expression {
 
   /** @inheritdoc */
   override def duplicate(
-                          keepLocations: Boolean = true,
-                          keepMetadata: Boolean = true,
-                          keepDiagnostics: Boolean = true,
-                          keepIdentifiers: Boolean = false
-                        ): Type
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true,
+    keepIdentifiers: Boolean = false
+  ): Type
 }
 
 object Type {
@@ -31,22 +31,22 @@ object Type {
   }
 
   sealed case class Function(
-                              args: List[Expression],
-                              result: Expression,
-                              override val location: Option[IdentifiedLocation],
-                              override val passData: MetadataStorage = MetadataStorage(),
-                              override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                            ) extends Type {
+    args: List[Expression],
+    result: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Type {
     override protected var id: Identifier = randomId
 
     def copy(
-              args: List[Expression] = args,
-              result: Expression = result,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Function = {
+      args: List[Expression]               = args,
+      result: Expression                   = result,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Function = {
       val res = Function(args, result, location, passData, diagnostics)
       res.id = id
       res
@@ -54,11 +54,11 @@ object Type {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Function =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Function =
       copy(
         args = args.map(
           _.duplicate(
@@ -75,8 +75,7 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -84,8 +83,8 @@ object Type {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Function = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Function = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Function = {
@@ -121,14 +120,14 @@ object Type {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Ascription(
-                                typed: Expression,
-                                signature: Expression,
-                                override val location: Option[IdentifiedLocation],
-                                override val passData: MetadataStorage = MetadataStorage(),
-                                override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                              ) extends Type
-    with module.scope.Definition
-    with IRKind.Primitive {
+    typed: Expression,
+    signature: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Type
+      with module.scope.Definition
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -142,13 +141,13 @@ object Type {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              typed: Expression = typed,
-              signature: Expression = signature,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Ascription = {
+      typed: Expression                    = typed,
+      signature: Expression                = signature,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Ascription = {
       val res = Ascription(typed, signature, location, passData, diagnostics)
       res.id = id
       res
@@ -156,11 +155,11 @@ object Type {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Ascription =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Ascription =
       copy(
         typed = typed.duplicate(
           keepLocations,
@@ -175,8 +174,7 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -184,8 +182,8 @@ object Type {
 
     /** @inheritdoc */
     override def setLocation(
-                              location: Option[IdentifiedLocation]
-                            ): Ascription = copy(location = location)
+      location: Option[IdentifiedLocation]
+    ): Ascription = copy(location = location)
 
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): Ascription = {
@@ -226,13 +224,13 @@ object Type {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Context(
-                             typed: Expression,
-                             context: Expression,
-                             override val location: Option[IdentifiedLocation],
-                             override val passData: MetadataStorage = MetadataStorage(),
-                             override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                           ) extends Type
-    with IRKind.Primitive {
+    typed: Expression,
+    context: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Type
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates ac opy of `this`.
@@ -246,13 +244,13 @@ object Type {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              typed: Expression = typed,
-              context: Expression = context,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Context = {
+      typed: Expression                    = typed,
+      context: Expression                  = context,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Context = {
       val res = Context(typed, context, location, passData, diagnostics)
       res.id = id
       res
@@ -260,11 +258,11 @@ object Type {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Context =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Context =
       copy(
         typed = typed.duplicate(
           keepLocations,
@@ -279,8 +277,7 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -328,13 +325,13 @@ object Type {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Error(
-                           typed: Expression,
-                           error: Expression,
-                           override val location: Option[IdentifiedLocation],
-                           override val passData: MetadataStorage = MetadataStorage(),
-                           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-                         ) extends Type
-    with IRKind.Primitive {
+    typed: Expression,
+    error: Expression,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Type
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -348,13 +345,13 @@ object Type {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-              typed: Expression = typed,
-              error: Expression = error,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage = passData,
-              diagnostics: DiagnosticStorage = diagnostics,
-              id: Identifier = id
-            ): Error = {
+      typed: Expression                    = typed,
+      error: Expression                    = error,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: Identifier                       = id
+    ): Error = {
       val res = Error(typed, error, location, passData, diagnostics)
       res.id = id
       res
@@ -362,11 +359,11 @@ object Type {
 
     /** @inheritdoc */
     override def duplicate(
-                            keepLocations: Boolean = true,
-                            keepMetadata: Boolean = true,
-                            keepDiagnostics: Boolean = true,
-                            keepIdentifiers: Boolean = false
-                          ): Error =
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Error =
       copy(
         typed = typed.duplicate(
           keepLocations,
@@ -381,8 +378,7 @@ object Type {
           keepLocations
         ),
         location = if (keepLocations) location else None,
-        passData =
-          if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

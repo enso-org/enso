@@ -1,11 +1,26 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name, Type}
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name,
+  Type
+}
+import org.enso.compiler.core.ir.expression.{
+  Application,
+  Case,
+  Comment,
+  Error,
+  Foreign,
+  Operator
+}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.OverloadsResolution
@@ -90,14 +105,14 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Expression = {
     expression match {
-      case empty: Empty    => empty
-      case fn: IR.Function => analyseFunction(fn)
-      case name: Name      => analyseName(name, isInsideCallArgument)
+      case empty: Empty => empty
+      case fn: Function => analyseFunction(fn)
+      case name: Name   => analyseName(name, isInsideCallArgument)
       case app: Application =>
         analyseApplication(app, isInsideCallArgument)
       case typ: Type =>
         analyseType(typ, isInsideCallArgument)
-      case cse: IR.Case =>
+      case cse: Case =>
         analyseCase(cse, isInsideCallArgument)
       case block @ Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
@@ -116,7 +131,7 @@ case object DemandAnalysis extends IRPass {
       case lit: Literal     => lit
       case err: Error       => err
       case foreign: Foreign => foreign
-      case comment: IR.Comment =>
+      case comment: Comment =>
         comment.mapExpressions(x =>
           analyseExpression(
             x,
@@ -132,10 +147,10 @@ case object DemandAnalysis extends IRPass {
     * @return `function`, transformed by the demand analysis process
     */
   def analyseFunction(
-    function: IR.Function
-  ): IR.Function =
+    function: Function
+  ): Function =
     function match {
-      case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+      case lam @ Function.Lambda(args, body, _, _, _, _) =>
         lam.copy(
           arguments = args.map(analyseDefinitionArgument),
           body = analyseExpression(
@@ -143,7 +158,7 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during demand analysis."
         )
@@ -246,9 +261,9 @@ case object DemandAnalysis extends IRPass {
     * @param arg the argument to perform demand analysis on
     * @return `arg`, transformed by the demand analysis process
     */
-  def analyseCallArgument(arg: IR.CallArgument): IR.CallArgument = {
+  def analyseCallArgument(arg: CallArgument): CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, expr, _, _, _) =>
+      case spec @ CallArgument.Specified(_, expr, _, _, _) =>
         spec.copy(
           value = analyseExpression(
             expr,
@@ -264,10 +279,10 @@ case object DemandAnalysis extends IRPass {
     * @return `arg`, transformed by the demand analysis process
     */
   def analyseDefinitionArgument(
-    arg: IR.DefinitionArgument
-  ): IR.DefinitionArgument = {
+    arg: DefinitionArgument
+  ): DefinitionArgument = {
     arg match {
-      case spec @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         spec.copy(
           defaultValue = default.map(x =>
             analyseExpression(
@@ -300,11 +315,11 @@ case object DemandAnalysis extends IRPass {
     * @return `cse`, transformed by the demand analysis process
     */
   def analyseCase(
-    cse: IR.Case,
+    cse: Case,
     isInsideCallArgument: Boolean
-  ): IR.Case =
+  ): Case =
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = analyseExpression(
             scrutinee,
@@ -320,7 +335,7 @@ case object DemandAnalysis extends IRPass {
     * @param branch the case branch to perform demand analysis on
     * @return `branch`, transformed by the demand analysis process
     */
-  def analyseCaseBranch(branch: IR.Case.Branch): IR.Case.Branch = {
+  def analyseCaseBranch(branch: Case.Branch): Case.Branch = {
     branch.copy(
       expression = analyseExpression(
         branch.expression,

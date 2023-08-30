@@ -2,13 +2,16 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
@@ -27,9 +30,9 @@ class GatherDiagnosticsTest extends CompilerTest {
       hasDefaultsSuspended = false,
       None
     )
-    val lam = IR.Function.Lambda(
+    val lam = Function.Lambda(
       List(
-        IR.DefinitionArgument
+        DefinitionArgument
           .Specified(
             Name.Literal("bar", isMethod = false, None),
             None,
@@ -84,7 +87,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           Definition.Type(
             typeName,
             List(
-              IR.DefinitionArgument
+              DefinitionArgument
                 .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
             List(),

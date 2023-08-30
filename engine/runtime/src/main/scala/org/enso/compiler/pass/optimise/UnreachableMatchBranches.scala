@@ -1,15 +1,13 @@
 package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
   Module,
   Pattern
 }
-import org.enso.compiler.core.ir.expression.warnings
-import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -105,7 +103,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `expression` with unreachable case branches removed
     */
   def optimizeExpression(expression: Expression): Expression = {
-    expression.transformExpressions { case cse: IR.Case =>
+    expression.transformExpressions { case cse: Case =>
       optimizeCase(cse)
     }
   }
@@ -119,9 +117,9 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `cse` with unreachable branches removed
     */
   //noinspection DuplicatedCode
-  def optimizeCase(cse: IR.Case): IR.Case = {
+  def optimizeCase(cse: Case): Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
         val unreachableBranches =
@@ -169,7 +167,7 @@ case object UnreachableMatchBranches extends IRPass {
             )
             .addDiagnostic(diagnostic)
         }
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -179,7 +177,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param branch the branch to check
     * @return `true` if `branch` is catch-all, otherwise `false`
     */
-  def isCatchAll(branch: IR.Case.Branch): Boolean = {
+  def isCatchAll(branch: Case.Branch): Boolean = {
     branch.pattern match {
       case _: Pattern.Name          => true
       case _: Pattern.Constructor   => false

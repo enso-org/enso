@@ -2,12 +2,7 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{
-  randomId,
-  CallArgument,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
 // === Applications =========================================================
 

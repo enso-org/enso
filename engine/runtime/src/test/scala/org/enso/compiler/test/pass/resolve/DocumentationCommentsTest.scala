@@ -4,8 +4,9 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.expression.Operator
+import org.enso.compiler.core.ir.expression.{Case, Operator}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.resolve.DocumentationComments
@@ -208,9 +209,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    z = x * y
           |""".stripMargin.preprocessExpression.get.resolve
       val body = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
 
@@ -291,7 +292,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(t1) shouldEqual " the constructor Bar"
       val t2 = tp.body(1)
       getDoc(t2) shouldEqual " the included Unit"
-      val method = tp.body(2).asInstanceOf[IR.Function.Binding]
+      val method = tp.body(2).asInstanceOf[Function.Binding]
       getDoc(method) shouldEqual " a method"
       val block = method.body.asInstanceOf[Expression.Block]
       getDoc(block.expressions.head) shouldEqual " a statement"
@@ -350,7 +351,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(t1) shouldEqual " the type Foo"
       inside(ir.bindings(1)) { case method: definition.Method.Explicit =>
         getDoc(method) shouldEqual " a method"
-        inside(method.body) { case lambda: IR.Function.Lambda =>
+        inside(method.body) { case lambda: Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
             getDoc(block.expressions.head) shouldEqual " a statement"
             getDoc(block.returnValue) shouldEqual " the return"
@@ -359,9 +360,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       }
 
       inside(ir.bindings(2)) { case method: definition.Method.Explicit =>
-        inside(method.body) { case lambda: IR.Function.Lambda =>
+        inside(method.body) { case lambda: Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
-            inside(block.returnValue) { case caseExpr: IR.Case.Expr =>
+            inside(block.returnValue) { case caseExpr: Case.Expr =>
               caseExpr.branches should have length 2
               getDoc(caseExpr.branches.head) shouldEqual " case 1"
               getDoc(caseExpr.branches(1)) shouldEqual " catchall"

@@ -1,15 +1,33 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.expression.{
+  errors,
+  Application,
+  Case,
+  Comment,
+  Error,
+  Foreign,
+  Operator
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.{Diagnostic, Empty, Expression, Literal, Module, Name, Pattern, Type, Warning}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Diagnostic,
+  Empty,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  Type,
+  Warning
+}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
-import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
@@ -113,7 +131,7 @@ case object TailCall extends IRPass {
           "Complex type definitions should not be present during " +
           "tail call analysis."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during tail call analysis."
         )
@@ -155,16 +173,16 @@ case object TailCall extends IRPass {
     expressionWithWarning match {
       case empty: Empty =>
         empty.updateMetadata(this -->> TailPosition.NotTail)
-      case function: IR.Function =>
+      case function: Function =>
         analyseFunction(function, isInTailPosition)
-      case caseExpr: IR.Case => analyseCase(caseExpr, isInTailPosition)
-      case typ: Type      => analyseType(typ, isInTailPosition)
-      case app: Application  => analyseApplication(app, isInTailPosition)
-      case name: Name        => analyseName(name, isInTailPosition)
+      case caseExpr: Case   => analyseCase(caseExpr, isInTailPosition)
+      case typ: Type        => analyseType(typ, isInTailPosition)
+      case app: Application => analyseApplication(app, isInTailPosition)
+      case name: Name       => analyseName(name, isInTailPosition)
       case foreign: Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: Literal => analyseLiteral(literal, isInTailPosition)
-      case _: IR.Comment =>
+      case _: Comment =>
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
@@ -268,9 +286,9 @@ case object TailCall extends IRPass {
     * @param argument the argument to analyse
     * @return `argument`, annotated with tail position metadata
     */
-  def analyseCallArg(argument: IR.CallArgument): IR.CallArgument = {
+  def analyseCallArg(argument: CallArgument): CallArgument = {
     argument match {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
+      case arg @ CallArgument.Specified(_, expr, _, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]
@@ -323,9 +341,9 @@ case object TailCall extends IRPass {
     *                         call position
     * @return `caseExpr`, annotated with tail position metadata
     */
-  def analyseCase(caseExpr: IR.Case, isInTailPosition: Boolean): IR.Case = {
+  def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     caseExpr match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
@@ -333,7 +351,7 @@ case object TailCall extends IRPass {
             branches = branches.map(analyseCaseBranch(_, isInTailPosition))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -357,9 +375,9 @@ case object TailCall extends IRPass {
     * @return `branch`, annotated with tail position metadata
     */
   def analyseCaseBranch(
-    branch: IR.Case.Branch,
+    branch: Case.Branch,
     isInTailPosition: Boolean
-  ): IR.Case.Branch = {
+  ): Case.Branch = {
     branch
       .copy(
         pattern = analysePattern(branch.pattern),
@@ -419,19 +437,19 @@ case object TailCall extends IRPass {
     * @return `function`, annotated with tail position metadata
     */
   def analyseFunction(
-    function: IR.Function,
+    function: Function,
     isInTailPosition: Boolean
-  ): IR.Function = {
+  ): Function = {
     val canBeTCO   = function.canBeTCO
     val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
-      case lambda @ IR.Function.Lambda(args, body, _, _, _, _) =>
+      case lambda @ Function.Lambda(args, body, _, _, _, _) =>
         lambda.copy(
           arguments = args.map(analyseDefArgument),
           body      = analyseExpression(body, isInTailPosition = markAsTail)
         )
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."
         )
@@ -447,9 +465,9 @@ case object TailCall extends IRPass {
     * @param arg the argument definition to analyse
     * @return `arg`, annotated with tail position metadata
     */
-  def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
+  def analyseDefArgument(arg: DefinitionArgument): DefinitionArgument = {
     arg match {
-      case arg @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
+      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>

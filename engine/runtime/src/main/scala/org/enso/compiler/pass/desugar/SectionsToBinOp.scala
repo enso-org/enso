@@ -1,8 +1,14 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Section}
 import org.enso.compiler.pass.IRPass
@@ -98,8 +104,8 @@ case object SectionsToBinOp extends IRPass {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None)
-        val rightDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, rightArgName, None)
+        val rightDefArg = DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -110,8 +116,8 @@ case object SectionsToBinOp extends IRPass {
         if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
           val leftCallArg =
-            IR.CallArgument.Specified(None, leftArgName, None)
-          val leftDefArg = IR.DefinitionArgument.Specified(
+            CallArgument.Specified(None, leftArgName, None)
+          val leftDefArg = DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
@@ -127,13 +133,13 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val rightLam = IR.Function.Lambda(
+          val rightLam = Function.Lambda(
             List(rightDefArg),
             opCall,
             None
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(leftDefArg),
             rightLam,
             loc
@@ -149,7 +155,7 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(rightDefArg),
             opCall,
             loc
@@ -158,8 +164,8 @@ case object SectionsToBinOp extends IRPass {
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None)
-        val leftDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, leftArgName, None)
+        val leftDefArg = DefinitionArgument.Specified(
           leftArgName.duplicate(),
           None,
           None,
@@ -169,8 +175,8 @@ case object SectionsToBinOp extends IRPass {
 
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None)
-        val rightDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, rightArgName, None)
+        val rightDefArg = DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -187,13 +193,13 @@ case object SectionsToBinOp extends IRPass {
           diagnostics
         )
 
-        val rightLambda = IR.Function.Lambda(
+        val rightLambda = Function.Lambda(
           List(rightDefArg),
           opCall,
           None
         )
 
-        IR.Function.Lambda(
+        Function.Lambda(
           List(leftDefArg),
           rightLambda,
           loc
@@ -221,9 +227,9 @@ case object SectionsToBinOp extends IRPass {
       case Section.Right(op, arg, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None)
+          CallArgument.Specified(None, leftArgName, None)
         val leftDefArg =
-          IR.DefinitionArgument.Specified(
+          DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
@@ -235,8 +241,8 @@ case object SectionsToBinOp extends IRPass {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =
-            IR.CallArgument.Specified(None, rightArgName, None)
-          val rightDefArg = IR.DefinitionArgument.Specified(
+            CallArgument.Specified(None, rightArgName, None)
+          val rightDefArg = DefinitionArgument.Specified(
             rightArgName.duplicate(),
             None,
             None,
@@ -253,13 +259,13 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val leftLam = IR.Function.Lambda(
+          val leftLam = Function.Lambda(
             List(leftDefArg),
             opCall,
             None
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(rightDefArg),
             leftLam,
             loc
@@ -274,7 +280,7 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(leftDefArg),
             opCall,
             loc

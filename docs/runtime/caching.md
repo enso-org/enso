@@ -359,7 +359,7 @@ typesetMember <- memberValue
 
 #### Typing Operators
 
-All typing operators in Enso (`IR.Type`) are dependent on their constituent
+All typing operators in Enso (`Type`) are dependent on their constituent
 parts:
 
 ```

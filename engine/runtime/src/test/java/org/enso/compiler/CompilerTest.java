@@ -101,22 +101,22 @@ public abstract class CompilerTest {
     }
     if (lessDocs) {
       for (;;) {
-        final String pref = "IR.Comment.Documentation(";
+        final String pref = "Comment.Documentation(";
         int at = txt.indexOf(pref);
         if (at == -1) {
           break;
         }
         int to = txt.indexOf("location =", at + pref.length());
-        txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+        txt = txt.substring(0, at) + "Comment.Doc(" + txt.substring(to);
       }
       for (;;) {
-        final String pref = "IR.Case.Pattern.Doc(";
+        final String pref = "Case.Pattern.Doc(";
         int at = txt.indexOf(pref);
         if (at == -1) {
           break;
         }
         int to = txt.indexOf("location =", at + pref.length());
-        txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+        txt = txt.substring(0, at) + "Comment.CaseDoc(" + txt.substring(to);
       }
     }
     for (;;) {

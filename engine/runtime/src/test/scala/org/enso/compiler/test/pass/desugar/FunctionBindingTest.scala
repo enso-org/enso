@@ -2,10 +2,13 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
@@ -98,18 +101,18 @@ class FunctionBindingTest extends CompilerTest {
       ir.bindings.head.asInstanceOf[definition.Method.Explicit]
 
     "have the function arguments in the body functions" in {
-      val lambda1 = explicitMethod.body.asInstanceOf[IR.Function.Lambda]
-      val lambda2 = lambda1.body.asInstanceOf[IR.Function.Lambda]
-      val lambda3 = lambda2.body.asInstanceOf[IR.Function.Lambda]
+      val lambda1 = explicitMethod.body.asInstanceOf[Function.Lambda]
+      val lambda2 = lambda1.body.asInstanceOf[Function.Lambda]
+      val lambda3 = lambda2.body.asInstanceOf[Function.Lambda]
       val cArg =
-        lambda3.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+        lambda3.arguments.head.asInstanceOf[DefinitionArgument.Specified]
 
       lambda1.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
       lambda1.arguments.head.name.name shouldEqual "a"
       lambda2.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name shouldBe an[Name.Blank]
       cArg.name.name shouldEqual "c"
       cArg.defaultValue shouldBe defined
@@ -126,14 +129,14 @@ class FunctionBindingTest extends CompilerTest {
       val body = ir.bindings.head
         .asInstanceOf[definition.Method.Explicit]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
 
       body.expressions.head shouldBe an[Expression.Binding]
       val binding = body.expressions.head.asInstanceOf[Expression.Binding]
 
-      binding.expression shouldBe an[IR.Function.Lambda]
+      binding.expression shouldBe an[Function.Lambda]
     }
 
     "desugar module-level methods" in {
@@ -161,7 +164,7 @@ class FunctionBindingTest extends CompilerTest {
       val conversion = ir.bindings.head
         .asInstanceOf[definition.Method.Conversion]
       conversion.sourceTypeName.asInstanceOf[Name].name shouldEqual "Other"
-      val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
+      val arguments = conversion.body.asInstanceOf[Function.Lambda].arguments
       arguments.length shouldEqual 1
       arguments.head.name.name shouldEqual "that"
       arguments.head.ascribedType shouldBe defined
@@ -169,9 +172,9 @@ class FunctionBindingTest extends CompilerTest {
       arguments.head.suspended shouldBe false
 
       val subLambda = conversion.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val subArguments = subLambda.arguments
       subArguments.length shouldEqual 1
       subArguments.head.name.name shouldEqual "config"
@@ -257,24 +260,24 @@ class FunctionBindingTest extends CompilerTest {
       val binding = ir.asInstanceOf[Expression.Binding]
 
       binding.name.name shouldEqual "f"
-      binding.expression shouldBe an[IR.Function.Lambda]
+      binding.expression shouldBe an[Function.Lambda]
     }
 
     "work properly for complex argument definition types" in {
       val lambda1 = ir
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
-      val lambda2 = lambda1.body.asInstanceOf[IR.Function.Lambda]
-      val lambda3 = lambda2.body.asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
+      val lambda2 = lambda1.body.asInstanceOf[Function.Lambda]
+      val lambda3 = lambda2.body.asInstanceOf[Function.Lambda]
       val cArg =
-        lambda3.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+        lambda3.arguments.head.asInstanceOf[DefinitionArgument.Specified]
 
       lambda1.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
       lambda2.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name shouldBe an[Name.Blank]
       cArg.name.name shouldEqual "c"
       cArg.defaultValue shouldBe defined
@@ -290,10 +293,10 @@ class FunctionBindingTest extends CompilerTest {
           .asInstanceOf[Expression.Binding]
 
       val aArg = ir.expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .arguments
         .head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
       aArg.name.name shouldEqual "a"
       aArg.defaultValue.get
         .asInstanceOf[Operator.Binary]
@@ -305,14 +308,14 @@ class FunctionBindingTest extends CompilerTest {
         .name shouldEqual "f"
 
       val body = ir.expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
       body.expressions.head shouldBe an[Expression.Binding]
 
       val gBinding = body.expressions.head.asInstanceOf[Expression.Binding]
       gBinding.name.name shouldEqual "g"
-      gBinding.expression shouldBe an[IR.Function.Lambda]
+      gBinding.expression shouldBe an[Function.Lambda]
     }
   }
 }

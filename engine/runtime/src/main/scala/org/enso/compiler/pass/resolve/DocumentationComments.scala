@@ -2,13 +2,20 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern, Type}
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Pattern,
+  Type
+}
+import org.enso.compiler.core.ir.expression.{Case, Comment, Error}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.IR.Case.Branch
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -78,7 +85,7 @@ case object DocumentationComments extends IRPass {
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
         block.copy(expressions = newExpressions, returnValue = newReturn)
-      case caseExpr: IR.Case.Expr =>
+      case caseExpr: Case.Expr =>
         val newScrutinee = resolveExpression(caseExpr.scrutinee)
         val newBranches  = resolveBranches(caseExpr.branches)
         caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
@@ -91,11 +98,11 @@ case object DocumentationComments extends IRPass {
     * @return `items`, with any doc comments associated with nodes as metadata
     */
   private def resolveList[T <: IR](items: List[T]): List[T] = {
-    var lastDoc: Option[IR.Comment.Documentation] = None
+    var lastDoc: Option[Comment.Documentation] = None
     items.flatMap {
       case annotation: Name.Annotation =>
         Some(annotation.asInstanceOf[T])
-      case doc: IR.Comment.Documentation =>
+      case doc: Comment.Documentation =>
         lastDoc = Some(doc)
         None
       case other =>
@@ -114,13 +121,13 @@ case object DocumentationComments extends IRPass {
     * @param items the list of branches
     * @return `items`, with any doc comments associated with nodes as metadata
     */
-  private def resolveBranches(items: Seq[Branch]): Seq[Branch] = {
+  private def resolveBranches(items: Seq[Case.Branch]): Seq[Case.Branch] = {
     var lastDoc: Option[String] = None
     items.flatMap {
-      case Branch(Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
+      case Case.Branch(Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
         lastDoc = Some(doc)
         None
-      case branch @ Branch(pattern, expression, _, _, _, _) =>
+      case branch @ Case.Branch(pattern, expression, _, _, _, _) =>
         val resolved =
           branch.copy(
             pattern    = pattern.mapExpressions(resolveExpression),
@@ -159,10 +166,10 @@ case object DocumentationComments extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation => doc
-      case tySig: Type.Ascription     => tySig
-      case err: Error                    => err
-      case ann: Name.GenericAnnotation   => ann
+      case doc: Comment.Documentation  => doc
+      case tySig: Type.Ascription      => tySig
+      case err: Error                  => err
+      case ann: Name.GenericAnnotation => ann
       case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
@@ -194,7 +201,7 @@ case object DocumentationComments extends IRPass {
           leftLocation.start < rightLocation.start
         }
     val newBindings = (allModuleEntities.headOption match {
-      case Some(doc: IR.Comment.Documentation) =>
+      case Some(doc: Comment.Documentation) =>
         ir.updateMetadata(this -->> Doc(doc.doc))
         resolveList(ir.bindings.drop(1))
       case _ => resolveList(ir.bindings)
@@ -209,15 +216,15 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: Module             => resolveModule(module)
-      case expr: Expression           => resolveExpression(expr)
-      case df: Definition             => resolveDefinition(df)
-      case data: Definition.Data      => data
-      case imp: Import                => imp
-      case exp: Export.Module         => exp
-      case arg: IR.CallArgument       => arg
-      case arg: IR.DefinitionArgument => arg
-      case pat: Pattern               => pat
+      case module: Module          => resolveModule(module)
+      case expr: Expression        => resolveExpression(expr)
+      case df: Definition          => resolveDefinition(df)
+      case data: Definition.Data   => data
+      case imp: Import             => imp
+      case exp: Export.Module      => exp
+      case arg: CallArgument       => arg
+      case arg: DefinitionArgument => arg
+      case pat: Pattern            => pat
     }
 
   // === Metadata =============================================================

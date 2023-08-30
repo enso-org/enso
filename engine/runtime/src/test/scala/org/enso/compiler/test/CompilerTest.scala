@@ -3,9 +3,7 @@ package org.enso.compiler.test
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -178,7 +176,7 @@ trait CompilerRunner {
       Definition.Data(
         Name.Literal("TestAtom", isMethod = false, None),
         List(
-          IR.DefinitionArgument
+          DefinitionArgument
             .Specified(
               Name
                 .Literal("arg", isMethod = false, None),

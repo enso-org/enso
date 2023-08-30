@@ -2,9 +2,8 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Name, Pattern}
-import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -57,7 +56,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
         |case f of
         |    Foo a b a -> a + a
         |""".stripMargin.preprocessExpression.get.lint
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
     val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
 

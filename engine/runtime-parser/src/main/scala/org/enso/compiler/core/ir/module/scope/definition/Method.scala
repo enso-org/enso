@@ -153,7 +153,7 @@ object Method {
     }
 
     def isStatic: Boolean = body match {
-      case function: IR.Function.Lambda =>
+      case function: Function.Lambda =>
         function.arguments.headOption.map(_.name) match {
           case Some(Name.Self(_, true, _, _)) => true
           case _                              => false
@@ -163,7 +163,7 @@ object Method {
     }
 
     def isStaticWrapperForInstanceMethod: Boolean = body match {
-      case function: IR.Function.Lambda =>
+      case function: Function.Lambda =>
         function.arguments.map(_.name) match {
           case Name.Self(_, true, _, _) :: Name.Self(
                 _,
@@ -191,7 +191,7 @@ object Method {
     */
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
-    arguments: List[IR.DefinitionArgument],
+    arguments: List[DefinitionArgument],
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -212,13 +212,13 @@ object Method {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      methodReference: Name.MethodReference  = methodReference,
-      arguments: List[IR.DefinitionArgument] = arguments,
-      body: Expression                       = body,
-      location: Option[IdentifiedLocation]   = location,
-      passData: MetadataStorage              = passData,
-      diagnostics: DiagnosticStorage         = diagnostics,
-      id: Identifier                         = id
+      methodReference: Name.MethodReference = methodReference,
+      arguments: List[DefinitionArgument]   = arguments,
+      body: Expression                      = body,
+      location: Option[IdentifiedLocation]  = location,
+      passData: MetadataStorage             = passData,
+      diagnostics: DiagnosticStorage        = diagnostics,
+      id: Identifier                        = id
     ): Binding = {
       val res = Binding(
         methodReference,

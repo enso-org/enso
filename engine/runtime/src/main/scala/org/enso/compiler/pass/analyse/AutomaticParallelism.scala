@@ -1,8 +1,14 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
@@ -305,9 +311,9 @@ object AutomaticParallelism extends IRPass {
             val refWrite = Application.Prefix(
               Name.Special(Name.Special.WriteRef, None),
               List(
-                IR.CallArgument
+                CallArgument
                   .Specified(None, refVars(bind.name).duplicate(), None),
-                IR.CallArgument.Specified(None, bind.name.duplicate(), None)
+                CallArgument.Specified(None, bind.name.duplicate(), None)
               ),
               false,
               None
@@ -318,7 +324,7 @@ object AutomaticParallelism extends IRPass {
       val spawn = Application.Prefix(
         Name.Special(Name.Special.RunThread, None),
         List(
-          IR.CallArgument.Specified(
+          CallArgument.Specified(
             None,
             Expression.Block(blockBody.init, blockBody.last, None),
             None
@@ -335,7 +341,7 @@ object AutomaticParallelism extends IRPass {
     val threadJoins = threadSpawns.map { bind =>
       Application.Prefix(
         Name.Special(Name.Special.JoinThread, None),
-        List(IR.CallArgument.Specified(None, bind.name.duplicate(), None)),
+        List(CallArgument.Specified(None, bind.name.duplicate(), None)),
         false,
         None
       )
@@ -347,7 +353,7 @@ object AutomaticParallelism extends IRPass {
           name.duplicate(),
           Application.Prefix(
             Name.Special(Name.Special.ReadRef, None),
-            List(IR.CallArgument.Specified(None, ref.duplicate(), None)),
+            List(CallArgument.Specified(None, ref.duplicate(), None)),
             false,
             None
           ),
@@ -449,7 +455,7 @@ object AutomaticParallelism extends IRPass {
   @tailrec
   private def getMonad(signature: Expression): Option[String] =
     signature match {
-      case lam: IR.Function.Lambda => getMonad(lam.body)
+      case lam: Function.Lambda => getMonad(lam.body)
       case app: Operator.Binary =>
         if (app.operator.name == "in") {
           app.right.value match {
@@ -495,7 +501,7 @@ object AutomaticParallelism extends IRPass {
       case bind: Expression.Binding => getParallelismStatus(bind.expression)
       case _: Name                  => Pure
       case _: Literal               => Pure
-      case _: IR.Function.Lambda    => Pure
+      case _: Function.Lambda       => Pure
       case _                        => Pinned
     }
 
@@ -503,9 +509,9 @@ object AutomaticParallelism extends IRPass {
     expr: Expression
   )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
-      case fun: IR.Function.Binding =>
+      case fun: Function.Binding =>
         fun.copy(body = withBodyBlock(fun.body)(fn))
-      case fun: IR.Function.Lambda =>
+      case fun: Function.Lambda =>
         fun.copy(body = withBodyBlock(fun.body)(fn))
       case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)

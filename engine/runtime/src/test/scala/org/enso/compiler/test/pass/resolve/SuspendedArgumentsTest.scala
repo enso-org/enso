@@ -2,8 +2,8 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
@@ -97,7 +97,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[definition.Method]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
 
       bodyLam.arguments.length shouldEqual 2
       assert(
@@ -125,14 +125,14 @@ class SuspendedArgumentsTest extends CompilerTest {
           .asInstanceOf[definition.Method]
 
       val bodyBlock = ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
 
       val lazyId = bodyBlock.expressions.head
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
       assert(lazyId.arguments.head.suspended, "x was not suspended")
     }
@@ -147,7 +147,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[definition.Method.Explicit]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
 
       bodyLam.arguments.length shouldEqual 3
 
@@ -164,7 +164,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[definition.Method.Conversion]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
       val args    = bodyLam.arguments
 
       args.length shouldEqual 3
@@ -197,7 +197,7 @@ class SuspendedArgumentsTest extends CompilerTest {
           .asInstanceOf[definition.Method]
 
       val lam = ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val bodyBlock = lam.body
         .asInstanceOf[Application.Prefix]
 
@@ -222,7 +222,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       val func = ir.returnValue
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       assert(!func.arguments.head.suspended, "a is suspended")
       assert(func.arguments(1).suspended, "b is not suspended")
     }
@@ -235,8 +235,8 @@ class SuspendedArgumentsTest extends CompilerTest {
           |(x -> y -> y + x) : Suspended -> a -> a
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      val lam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
+      val lam = ir.asInstanceOf[Function.Lambda]
       assert(lam.arguments.head.suspended, "x is not suspended")
       assert(!lam.arguments(1).suspended, "y is suspended")
     }
@@ -253,15 +253,15 @@ class SuspendedArgumentsTest extends CompilerTest {
           |    f 100 50
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      val lam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
+      val lam = ir.asInstanceOf[Function.Lambda]
       val f = lam.body
         .asInstanceOf[Expression.Block]
         .expressions
         .head
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
       assert(!f.arguments.head.suspended, "a was suspended")
       assert(f.arguments(1).suspended, "b was not suspended")

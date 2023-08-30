@@ -1,8 +1,14 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
@@ -60,10 +66,10 @@ object NoSelfInStatic extends IRPass {
     method: definition.Method
   ): Boolean = {
     def findSelfArgument(
-      arguments: List[IR.DefinitionArgument]
-    ): Option[IR.DefinitionArgument] = {
+      arguments: List[DefinitionArgument]
+    ): Option[DefinitionArgument] = {
       arguments.collectFirst {
-        case arg @ IR.DefinitionArgument.Specified(
+        case arg @ DefinitionArgument.Specified(
               Name.Self(_, false, _, _),
               _,
               _,
@@ -79,7 +85,7 @@ object NoSelfInStatic extends IRPass {
     method.typeName match {
       case Some(_) =>
         method.body match {
-          case IR.Function.Lambda(
+          case Function.Lambda(
                 arguments,
                 _,
                 _,

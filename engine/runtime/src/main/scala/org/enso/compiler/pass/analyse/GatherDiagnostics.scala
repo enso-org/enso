@@ -2,7 +2,12 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Diagnostic, Expression, Module}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Diagnostic,
+  Expression,
+  Module
+}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
@@ -59,7 +64,7 @@ case object GatherDiagnostics extends IRPass {
     val diagnostics = ir.preorder.collect {
       case err: Diagnostic =>
         List(err)
-      case arg: IR.DefinitionArgument =>
+      case arg: DefinitionArgument =>
         val typeSignatureDiagnostics =
           arg
             .getMetadata(TypeSignatures)

@@ -2,16 +2,18 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper};
+import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-/** Operator applications in Enso. */
-trait Operator extends Application {
+// === Comments =============================================================
+
+/** Enso comment entities. */
+sealed trait Comment extends Expression with module.scope.Definition {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Operator
+  override def mapExpressions(fn: Expression => Expression): Comment
 
   /** @inheritdoc */
-  override def setLocation(location: Option[IdentifiedLocation]): Operator
+  override def setLocation(location: Option[IdentifiedLocation]): Comment
 
   /** @inheritdoc */
   override def duplicate(
@@ -19,36 +21,30 @@ trait Operator extends Application {
     keepMetadata: Boolean    = true,
     keepDiagnostics: Boolean = true,
     keepIdentifiers: Boolean = false
-  ): Operator
+  ): Comment
 }
 
-object Operator {
+object Comment {
 
-  /** A representation of a generic binary operator application in Enso.
+  /** A documentation comment in the Enso source.
     *
-    * @param left        the left operand to `operator`
-    * @param operator    the operator function being called
-    * @param right       the right operand to `operator`
+    * @param doc         the documentation entity
     * @param location    the source location that the node corresponds to
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
-  sealed case class Binary(
-    left: CallArgument,
-    operator: Name,
-    right: CallArgument,
+  sealed case class Documentation(
+    doc: String,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Operator
-      with IRKind.Sugar {
+  ) extends Comment
+      with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
-      * @param left        the left operand to `operator`
-      * @param operator    the operator function being called
-      * @param right       the right operand to `operator`
+      * @param doc         the documentation of `commented`
       * @param location    the source location that the node corresponds to
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -56,16 +52,13 @@ object Operator {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      left: CallArgument                   = left,
-      operator: Name                       = operator,
-      right: CallArgument                  = right,
+      doc: String                          = doc,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: Identifier                       = id
-    ): Binary = {
-      val res =
-        Binary(left, operator, right, location, passData, diagnostics)
+    ): Documentation = {
+      val res = Documentation(doc, location, passData, diagnostics)
       res.id = id
       res
     }
@@ -76,26 +69,8 @@ object Operator {
       keepMetadata: Boolean    = true,
       keepDiagnostics: Boolean = true,
       keepIdentifiers: Boolean = false
-    ): Binary =
+    ): Documentation =
       copy(
-        left = left.duplicate(
-          keepLocations,
-          keepMetadata,
-          keepDiagnostics,
-          keepIdentifiers
-        ),
-        operator = operator.duplicate(
-          keepLocations,
-          keepMetadata,
-          keepDiagnostics,
-          keepIdentifiers
-        ),
-        right = right.duplicate(
-          keepLocations,
-          keepMetadata,
-          keepDiagnostics,
-          keepIdentifiers
-        ),
         location = if (keepLocations) location else None,
         passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
         diagnostics =
@@ -104,21 +79,20 @@ object Operator {
       )
 
     /** @inheritdoc */
-    override def setLocation(location: Option[IdentifiedLocation]): Binary =
-      copy(location = location)
+    override def setLocation(
+      location: Option[IdentifiedLocation]
+    ): Documentation = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binary = {
-      copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
-    }
+    override def mapExpressions(
+      fn: Expression => Expression
+    ): Documentation = this
 
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |Operator.Binary(
-         |left = $left,
-         |operator = $operator,
-         |right = $right,
+         |Comment.Documentation(
+         |doc = $doc,
          |location = $location,
          |passData = ${this.showPassData},
          |diagnostics = $diagnostics,
@@ -127,13 +101,10 @@ object Operator {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, operator, right)
+    override def children: List[IR] = List()
 
     /** @inheritdoc */
-    override def showCode(indent: Int): String = {
-      val opStr = operator.showCode(indent)
-
-      s"((${left.showCode(indent)}) $opStr (${right.showCode(indent)}))"
-    }
+    override def showCode(indent: Int): String =
+      s"## $doc"
   }
 }

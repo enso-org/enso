@@ -2,15 +2,26 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  `type`,
+  CallArgument,
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar.{
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
+}
 import org.enso.compiler.pass.lint.UnusedBindings
 
 import scala.annotation.unused
@@ -159,7 +170,7 @@ case object TypeFunctions extends IRPass {
     */
   def resolveKnownFunction(
     name: Name,
-    arguments: List[IR.CallArgument],
+    arguments: List[CallArgument],
     location: Option[IdentifiedLocation],
     originalIR: IR
   ): Expression = {
@@ -199,9 +210,9 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to perform resolution in
     * @return `arg`, with any call arguments resolved
     */
-  def resolveCallArgument(arg: IR.CallArgument): IR.CallArgument = {
+  def resolveCallArgument(arg: CallArgument): CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, value, _, _, _) =>
+      case spec @ CallArgument.Specified(_, value, _, _, _) =>
         spec.copy(
           value = resolveExpression(value)
         )
@@ -221,9 +232,9 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to check
     * @return `true` if `arg` is valid, otherwise `false`
     */
-  def isValidCallArg(arg: IR.CallArgument): Boolean = {
+  def isValidCallArg(arg: CallArgument): Boolean = {
     arg match {
-      case IR.CallArgument.Specified(name, _, _, _, _) =>
+      case CallArgument.Specified(name, _, _, _, _) =>
         name.isEmpty
     }
   }

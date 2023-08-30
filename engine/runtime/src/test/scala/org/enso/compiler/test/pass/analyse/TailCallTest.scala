@@ -2,10 +2,16 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Pattern, Warning}
+import org.enso.compiler.core.ir.{
+  Expression,
+  Function,
+  Module,
+  Pattern,
+  Warning
+}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
@@ -158,7 +164,7 @@ class TailCallTest extends CompilerTest {
         |    e = a * c
         |    @Tail_Call (d + e)
         |""".stripMargin.preprocessExpression.get.analyse
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
     val fnBody = ir.body.asInstanceOf[Expression.Block]
 
@@ -206,7 +212,7 @@ class TailCallTest extends CompilerTest {
     val fnBody = ir.bindings.head
       .asInstanceOf[definition.Method]
       .body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .body
 
     "handle application involving local functions" in {
@@ -244,7 +250,7 @@ class TailCallTest extends CompilerTest {
       val caseExpr = ir.bindings.head
         .asInstanceOf[definition.Method]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
         .expressions
@@ -253,7 +259,7 @@ class TailCallTest extends CompilerTest {
         .expression
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
       caseExpr.getMetadata(TailCall) shouldEqual Some(
         TailPosition.NotTail
@@ -281,13 +287,13 @@ class TailCallTest extends CompilerTest {
       val caseExpr = ir.bindings.head
         .asInstanceOf[definition.Method]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
         .returnValue
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
       caseExpr.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
@@ -312,7 +318,7 @@ class TailCallTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
           .asInstanceOf[Expression.Block]
           .returnValue
-          .asInstanceOf[IR.Case.Expr]
+          .asInstanceOf[Case.Expr]
 
       val caseBranch         = ir.branches.head
       val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
@@ -342,7 +348,7 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[definition.Method]
     val tailCallBody = tailCall.body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .body
       .asInstanceOf[Expression.Block]
 
@@ -354,7 +360,7 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[definition.Method]
     val nonTailCallBody = nonTailCall.body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .body
       .asInstanceOf[Expression.Block]
 
@@ -407,7 +413,7 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[definition.Method]
 
     val block = ir.body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .body
       .asInstanceOf[Expression.Block]
 
@@ -416,7 +422,7 @@ class TailCallTest extends CompilerTest {
         .expressions(1)
         .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }

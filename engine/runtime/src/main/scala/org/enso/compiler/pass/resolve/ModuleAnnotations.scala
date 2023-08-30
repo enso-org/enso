@@ -1,11 +1,11 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Comment
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -46,7 +46,7 @@ case object ModuleAnnotations extends IRPass {
         None
       case ann: Name.GenericAnnotation =>
         Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: Comment => Some(comment)
       case typ: Definition.SugaredType =>
         val res = Some(
           resolveComplexType(typ).updateMetadata(
@@ -80,7 +80,7 @@ case object ModuleAnnotations extends IRPass {
         None
       case ann: Name.GenericAnnotation =>
         Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: Comment => Some(comment)
       case entity =>
         val res = Some(
           entity.updateMetadata(this -->> Annotations(lastAnnotations))

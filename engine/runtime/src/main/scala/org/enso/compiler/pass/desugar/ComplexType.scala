@@ -2,16 +2,38 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{DiagnosticStorage, Expression, IdentifiedLocation, MetadataStorage, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  DiagnosticStorage,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  MetadataStorage,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, ModuleAnnotations}
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  ModuleAnnotations
+}
 import org.enso.compiler.core.ir.MetadataStorage._
 
 /** Desugars complex type definitions to simple type definitions in the module
@@ -176,7 +198,7 @@ case object ComplexType extends IRPass {
         res
       case binding @ Expression.Binding(name, _, _, _, _) =>
         matchSignaturesAndGenerate(name, binding)
-      case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
+      case funSugar @ Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
       case err: Error                  => Seq(err)
       case ann: Name.GenericAnnotation => Seq(ann)
@@ -238,7 +260,7 @@ case object ComplexType extends IRPass {
           diagnostics,
           signature
         )
-      case IR.Function.Binding(
+      case Function.Binding(
             name,
             args,
             body,
@@ -277,7 +299,7 @@ case object ComplexType extends IRPass {
   private def genForName(
     typeName: Name,
     name: Name,
-    args: List[IR.DefinitionArgument],
+    args: List[DefinitionArgument],
     body: Expression,
     location: Option[IdentifiedLocation],
     passData: MetadataStorage,

@@ -1,10 +1,16 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, Module, Name, Type}
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Type
+}
+import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
@@ -106,7 +112,7 @@ case object SuspendedArguments extends IRPass {
     binding match {
       case method: definition.Method.Conversion =>
         method.body match {
-          case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+          case lam @ Function.Lambda(args, body, _, _, _, _) =>
             method.getMetadata(TypeSignatures) match {
               case Some(Signature(signature)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
@@ -154,7 +160,7 @@ case object SuspendedArguments extends IRPass {
         }
       case explicit @ definition.Method.Explicit(_, body, _, _, _) =>
         body match {
-          case lam @ IR.Function.Lambda(args, lamBody, _, _, _, _) =>
+          case lam @ Function.Lambda(args, lamBody, _, _, _, _) =>
             explicit.getMetadata(TypeSignatures) match {
               case Some(Signature(signature)) =>
                 val newArgs = computeSuspensions(
@@ -187,7 +193,7 @@ case object SuspendedArguments extends IRPass {
         )
       case _: Type.Ascription =>
         throw new CompilerError("Type ascriptions should not be present.")
-      case _: IR.Comment =>
+      case _: Comment =>
         throw new CompilerError("Comments should not be present.")
       case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
@@ -209,7 +215,7 @@ case object SuspendedArguments extends IRPass {
         val newExpr = bind.getMetadata(TypeSignatures) match {
           case Some(Signature(signature)) =>
             expr match {
-              case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+              case lam @ Function.Lambda(args, body, _, _, _, _) =>
                 lam.copy(
                   arguments = computeSuspensions(args, signature),
                   body      = resolveExpression(body)
@@ -220,7 +226,7 @@ case object SuspendedArguments extends IRPass {
         }
 
         bind.copy(expression = newExpr)
-      case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+      case lam @ Function.Lambda(args, body, _, _, _, _) =>
         lam.getMetadata(TypeSignatures) match {
           case Some(Signature(signature)) =>
             lam.copy(
@@ -244,7 +250,7 @@ case object SuspendedArguments extends IRPass {
   private def toSegments(signature: Expression): List[Expression] = {
     signature match {
       case Type.Function(args, ret, _, _, _) => args :+ ret
-      case _                                    => List(signature)
+      case _                                 => List(signature)
     }
   }
 
@@ -268,12 +274,12 @@ case object SuspendedArguments extends IRPass {
     * @return the argument from `pair`, with its suspension marked appropriately
     */
   private def markSuspended(
-    pair: (IR.DefinitionArgument, Expression)
-  ): IR.DefinitionArgument =
+    pair: (DefinitionArgument, Expression)
+  ): DefinitionArgument =
     pair match {
       case (arg, typ) =>
         arg match {
-          case spec: IR.DefinitionArgument.Specified =>
+          case spec: DefinitionArgument.Specified =>
             if (representsSuspended(typ) || spec.suspended) {
               spec.copy(suspended = true)
             } else spec.copy(suspended = false)
@@ -287,9 +293,9 @@ case object SuspendedArguments extends IRPass {
     * @return `args`, appropriately marked as suspended or not
     */
   private def computeSuspensions(
-    args: List[IR.DefinitionArgument],
+    args: List[DefinitionArgument],
     signature: Expression
-  ): List[IR.DefinitionArgument] = {
+  ): List[DefinitionArgument] = {
     val signatureSegments = toSegments(signature)
 
     val toComputeArgs =

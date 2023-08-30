@@ -2,14 +2,30 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern, Type}
-import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
+import org.enso.compiler.core.ir.expression.{
+  errors,
+  Application,
+  Case,
+  Comment,
+  Error,
+  Operator,
+  Section
+}
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -218,7 +234,7 @@ case object AliasAnalysis extends IRPass {
     ir match {
       case m: definition.Method.Conversion =>
         m.body match {
-          case _: IR.Function =>
+          case _: Function =>
             m.copy(
               body = analyseExpression(
                 m.body,
@@ -234,7 +250,7 @@ case object AliasAnalysis extends IRPass {
         }
       case m @ definition.Method.Explicit(_, body, _, _, _) =>
         body match {
-          case _: IR.Function =>
+          case _: Function =>
             m.copy(
               body = analyseExpression(
                 body,
@@ -286,7 +302,7 @@ case object AliasAnalysis extends IRPass {
           "Complex type definitions should not be present during " +
           "alias analysis."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during alias analysis."
         )
@@ -336,7 +352,7 @@ case object AliasAnalysis extends IRPass {
     lambdaReuseScope: Boolean = false
   ): Expression = {
     expression match {
-      case fn: IR.Function =>
+      case fn: Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
       case name: Name =>
         analyseName(
@@ -346,7 +362,7 @@ case object AliasAnalysis extends IRPass {
           graph,
           parentScope
         )
-      case cse: IR.Case => analyseCase(cse, graph, parentScope)
+      case cse: Case => analyseCase(cse, graph, parentScope)
       case block @ Expression.Block(
             expressions,
             retVal,
@@ -473,12 +489,12 @@ case object AliasAnalysis extends IRPass {
     * @return `args`, potentially
     */
   private def analyseArgumentDefs(
-    args: List[IR.DefinitionArgument],
+    args: List[DefinitionArgument],
     graph: Graph,
     scope: Scope
-  ): List[IR.DefinitionArgument] = {
+  ): List[DefinitionArgument] = {
     args.map {
-      case arg @ IR.DefinitionArgument.Specified(
+      case arg @ DefinitionArgument.Specified(
             selfName @ Name.Self(_, true, _, _),
             _,
             _,
@@ -504,7 +520,7 @@ case object AliasAnalysis extends IRPass {
               arg.ascribedType.map(analyseExpression(_, graph, scope))
           )
 
-      case arg @ IR.DefinitionArgument.Specified(
+      case arg @ DefinitionArgument.Specified(
             name,
             _,
             value,
@@ -594,11 +610,11 @@ case object AliasAnalysis extends IRPass {
     * @return `args`, with aliasing information attached to each argument
     */
   private def analyseCallArguments(
-    args: List[IR.CallArgument],
+    args: List[CallArgument],
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope
-  ): List[IR.CallArgument] = {
-    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
+  ): List[CallArgument] = {
+    args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
         case _: Literal => parentScope
         case _          => parentScope.addChild()
@@ -619,16 +635,16 @@ case object AliasAnalysis extends IRPass {
     * @return `function`, with alias analysis information attached
     */
   def analyseFunction(
-    function: IR.Function,
+    function: Function,
     graph: Graph,
     parentScope: Scope,
     lambdaReuseScope: Boolean = false
-  ): IR.Function = {
+  ): Function = {
     val currentScope =
       if (lambdaReuseScope) parentScope else parentScope.addChild()
 
     function match {
-      case lambda @ IR.Function.Lambda(arguments, body, _, _, _, _) =>
+      case lambda @ Function.Lambda(arguments, body, _, _, _, _) =>
         lambda
           .copy(
             arguments = analyseArgumentDefs(arguments, graph, currentScope),
@@ -639,7 +655,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during alias analysis."
         )
@@ -692,18 +708,18 @@ case object AliasAnalysis extends IRPass {
     * @return `ir`, possibly with alias analysis information attached
     */
   def analyseCase(
-    ir: IR.Case,
+    ir: Case,
     graph: Graph,
     parentScope: Scope
-  ): IR.Case = {
+  ): Case = {
     ir match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, graph, parentScope),
             branches  = branches.map(analyseCaseBranch(_, graph, parentScope))
           )
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Case branch in `analyseCase`.")
     }
   }
@@ -716,10 +732,10 @@ case object AliasAnalysis extends IRPass {
     * @return `branch`, possibly with alias analysis information attached
     */
   def analyseCaseBranch(
-    branch: IR.Case.Branch,
+    branch: Case.Branch,
     graph: Graph,
     parentScope: Scope
-  ): IR.Case.Branch = {
+  ): Case.Branch = {
     val currentScope = parentScope.addChild()
 
     branch

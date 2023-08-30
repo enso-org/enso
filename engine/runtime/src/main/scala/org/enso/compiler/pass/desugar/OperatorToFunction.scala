@@ -4,7 +4,11 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis
+}
 
 /** This pass converts usages of operators to calls to standard functions.
   *

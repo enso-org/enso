@@ -2,14 +2,34 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, OverloadsResolution}
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  OverloadsResolution
+}
 
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
@@ -108,9 +128,9 @@ case object LambdaShorthandToLambda extends IRPass {
   ): Expression = {
     ir.transformExpressions {
       case asc: Type.Ascription => asc
-      case app: Application        => desugarApplication(app, freshNameSupply)
-      case caseExpr: IR.Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
-      case name: Name              => desugarName(name, freshNameSupply)
+      case app: Application     => desugarApplication(app, freshNameSupply)
+      case caseExpr: Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
+      case name: Name           => desugarName(name, freshNameSupply)
     }
   }
 
@@ -126,9 +146,9 @@ case object LambdaShorthandToLambda extends IRPass {
       case blank: Name.Blank =>
         val newName = supply.newName()
 
-        IR.Function.Lambda(
+        Function.Lambda(
           List(
-            IR.DefinitionArgument.Specified(
+            DefinitionArgument.Specified(
               name = Name.Literal(
                 newName.name,
                 isMethod = false,
@@ -167,7 +187,7 @@ case object LambdaShorthandToLambda extends IRPass {
           args
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
-            .map { case s @ IR.CallArgument.Specified(_, value, _, _, _) =>
+            .map { case s @ CallArgument.Specified(_, value, _, _, _) =>
               s.copy(value = desugarExpression(value, freshNameSupply))
             }
 
@@ -205,14 +225,14 @@ case object LambdaShorthandToLambda extends IRPass {
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            IR.Function.Lambda(List(arg), body, None)
+            Function.Lambda(List(arg), body, None)
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          IR.Function.Lambda(
+          Function.Lambda(
             List(
-              IR.DefinitionArgument.Specified(
+              DefinitionArgument.Specified(
                 Name
                   .Literal(
                     updatedName.get,
@@ -231,8 +251,8 @@ case object LambdaShorthandToLambda extends IRPass {
         } else appResult
 
         resultExpr match {
-          case lam: IR.Function.Lambda => lam.copy(location = p.location)
-          case result                  => result
+          case lam: Function.Lambda => lam.copy(location = p.location)
+          case result               => result
         }
       case f @ Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
@@ -254,14 +274,14 @@ case object LambdaShorthandToLambda extends IRPass {
         val newVec       = vector.copy(newItems)
         val locWithoutId = newVec.location.map(_.copy(id = None))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = IR.DefinitionArgument.Specified(
+          val defArg = DefinitionArgument.Specified(
             bindingName,
             ascribedType = None,
             defaultValue = None,
             suspended    = false,
             location     = None
           )
-          IR.Function.Lambda(List(defArg), body, locWithoutId)
+          Function.Lambda(List(defArg), body, locWithoutId)
         }
       case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
@@ -280,8 +300,8 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return a list containing `true` for a given position if the arg in that
     *         position is lambda shorthand, otherwise `false`
     */
-  def determineLambdaShorthand(args: List[IR.CallArgument]): List[Boolean] = {
-    args.map { case IR.CallArgument.Specified(_, value, _, _, _) =>
+  def determineLambdaShorthand(args: List[CallArgument]): List[Boolean] = {
+    args.map { case CallArgument.Specified(_, value, _, _, _) =>
       value match {
         case _: Name.Blank => true
         case _             => false
@@ -298,14 +318,14 @@ case object LambdaShorthandToLambda extends IRPass {
     *         a given position is shorthand, otherwise [[None]].
     */
   def updateShorthandArg(
-    argAndIsShorthand: (IR.CallArgument, Boolean),
+    argAndIsShorthand: (CallArgument, Boolean),
     freshNameSupply: FreshNameSupply
-  ): IR.CallArgument = {
+  ): CallArgument = {
     val arg         = argAndIsShorthand._1
     val isShorthand = argAndIsShorthand._2
 
     arg match {
-      case s @ IR.CallArgument.Specified(_, value, _, _, _) =>
+      case s @ CallArgument.Specified(_, value, _, _, _) =>
         if (isShorthand) {
           val newName = freshNameSupply
             .newName()
@@ -329,12 +349,12 @@ case object LambdaShorthandToLambda extends IRPass {
     *         otherwise [[None]]
     */
   def generateDefinitionArg(
-    arg: IR.CallArgument,
+    arg: CallArgument,
     isShorthand: Boolean
-  ): Option[IR.DefinitionArgument] = {
+  ): Option[DefinitionArgument] = {
     if (isShorthand) {
       arg match {
-        case IR.CallArgument.Specified(_, value, _, passData, diagnostics) =>
+        case CallArgument.Specified(_, value, _, passData, diagnostics) =>
           // Note [Safe Casting to Name.Literal]
           val defArgName =
             Name.Literal(
@@ -344,7 +364,7 @@ case object LambdaShorthandToLambda extends IRPass {
             )
 
           Some(
-            IR.DefinitionArgument.Specified(
+            DefinitionArgument.Specified(
               defArgName,
               None,
               None,
@@ -375,7 +395,7 @@ case object LambdaShorthandToLambda extends IRPass {
     * @return `caseExpr`, with any lambda shorthand desugared
     */
   def desugarCaseExpr(
-    caseExpr: IR.Case.Expr,
+    caseExpr: Case.Expr,
     freshNameSupply: FreshNameSupply
   ): Expression = {
     val newBranches = caseExpr.branches.map(
@@ -393,7 +413,7 @@ case object LambdaShorthandToLambda extends IRPass {
               diagnostics = diagnostics
             )
 
-        val lambdaArg = IR.DefinitionArgument.Specified(
+        val lambdaArg = DefinitionArgument.Specified(
           scrutineeName.copy(id = IR.randomId),
           None,
           None,
@@ -406,7 +426,7 @@ case object LambdaShorthandToLambda extends IRPass {
           branches  = newBranches
         )
 
-        IR.Function.Lambda(
+        Function.Lambda(
           List(lambdaArg),
           newCaseExpr,
           caseExpr.location,

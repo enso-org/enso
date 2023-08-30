@@ -2,8 +2,13 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Module, Name, Warning}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Function,
+  Module,
+  Name,
+  Warning
+}
 import org.enso.compiler.core.ir.expression.Operator
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
@@ -59,23 +64,23 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "still have the `self` argument prepended to the argument list" in {
       val resultArgs =
-        irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
+        irResultMethod.body.asInstanceOf[Function.Lambda].arguments
 
       val firstArg :: restArgs = resultArgs
       val self = firstArg
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
       self shouldBe a[Name.Self]
       self.asInstanceOf[Name.Self].synthetic shouldBe true
 
       restArgs shouldEqual irMethod.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .arguments
     }
 
     "have the body of the function remain untouched" in {
-      val inputBody  = irMethod.body.asInstanceOf[IR.Function.Lambda].body
-      val resultBody = irResultMethod.body.asInstanceOf[IR.Function.Lambda].body
+      val inputBody  = irMethod.body.asInstanceOf[Function.Lambda].body
+      val resultBody = irResultMethod.body.asInstanceOf[Function.Lambda].body
 
       inputBody shouldEqual resultBody
     }
@@ -92,19 +97,19 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
 
     "have the expression converted into a function" in {
-      irResultMethod.body shouldBe an[IR.Function.Lambda]
+      irResultMethod.body shouldBe an[Function.Lambda]
     }
 
     "have the resultant function take the `self` argument" in { // TODO old semantics
       val bodyArgs =
-        irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
+        irResultMethod.body.asInstanceOf[Function.Lambda].arguments
 
       bodyArgs.length shouldEqual 1
     }
 
     "have the body of the function be equivalent to the expression" in {
       irResultMethod.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body shouldEqual irMethod.body
     }
 
@@ -124,16 +129,16 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
 
     "have the expression converted into a function" in {
-      irResultMethod.body shouldBe an[IR.Function.Lambda]
+      irResultMethod.body shouldBe an[Function.Lambda]
     }
 
     "have the resultant function take the `self` argument" in { // TODO old semantics
       val bodyArgs =
-        irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
+        irResultMethod.body.asInstanceOf[Function.Lambda].arguments
 
       bodyArgs.length shouldEqual 1
       val self = bodyArgs.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
       self shouldBe a[Name.Self]
       self.asInstanceOf[Name.Self].synthetic shouldBe false
@@ -141,8 +146,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have the body of the function be equivalent to the expression" in {
       irResultMethod.body
-        .asInstanceOf[IR.Function.Lambda]
-        .body shouldEqual irMethod.body.asInstanceOf[IR.Function.Lambda].body
+        .asInstanceOf[Function.Lambda]
+        .body shouldEqual irMethod.body.asInstanceOf[Function.Lambda].body
     }
 
     "have the body function's location equivalent to the original body" in {
@@ -163,21 +168,21 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irMethod =
       ir.bindings.head.asInstanceOf[definition.Method]
     val irMethodSelfArg =
-      irMethod.body.asInstanceOf[IR.Function.Lambda].arguments.head
+      irMethod.body.asInstanceOf[Function.Lambda].arguments.head
     val irFoo =
       ir.bindings(1).asInstanceOf[definition.Method]
     val irFooFirstArg =
-      irFoo.body.asInstanceOf[IR.Function.Lambda].arguments.head
+      irFoo.body.asInstanceOf[Function.Lambda].arguments.head
     val irBar =
       ir.bindings(2).asInstanceOf[definition.Method]
     val irBarFirstArg =
-      irBar.body.asInstanceOf[IR.Function.Lambda].arguments.head
+      irBar.body.asInstanceOf[Function.Lambda].arguments.head
     val irBaz =
       ir.bindings(3).asInstanceOf[definition.Method]
     val irBazSndArg = irBaz.body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .arguments
       .head
 
@@ -190,7 +195,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .arguments
 
       resultArgs.size shouldEqual 1
@@ -203,7 +208,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "generate a warning about self parameter not being in the first position" in {
       val resultLambda = irResultFoo.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val resultArgs = resultLambda.arguments
 
       resultArgs.size shouldEqual 1
@@ -214,7 +219,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "not generate an auxiliary self parameter for the already present one" in {
       val resultLambda = irResultBar.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val resultArgs = resultLambda.arguments
 
       resultArgs.size shouldEqual 1
@@ -226,14 +231,14 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "not generate an auxiliary self parameter for the already present one but in a wrong position" in {
       val resultLambda = irResultBaz.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val resultArgs = resultLambda.arguments
 
       resultArgs.size shouldEqual 1
       val firstArg = resultArgs.head.name
       firstArg should not be an[Name.Self]
 
-      val bodyLambda = resultLambda.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLambda = resultLambda.body.asInstanceOf[Function.Lambda]
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
       selfArg shouldEqual Name.Self(location = irBazSndArg.location)
@@ -262,7 +267,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irMethodAdd =
       ir.bindings(2).asInstanceOf[definition.Method]
     val irMethodAddSelfArg =
-      irMethodAdd.body.asInstanceOf[IR.Function.Lambda].arguments
+      irMethodAdd.body.asInstanceOf[Function.Lambda].arguments
 
     val irResult          = ir.desugar
     val irResultMethodAdd = irResult.bindings(2).asInstanceOf[definition.Method]
@@ -271,7 +276,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "not add new argument" in {
       val resultLambda = irResultMethodAdd.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val resultArgs = resultLambda.arguments
 
       resultArgs.size shouldEqual 1
@@ -286,7 +291,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "generate a warning when the parameter is not first" in {
       val resultLambda = irResultMethodSum.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val resultArgs = resultLambda.arguments
 
       resultArgs.size shouldEqual 1
@@ -296,7 +301,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]
 
-      val nestedLmabda = resultLambda.body.asInstanceOf[IR.Function.Lambda]
+      val nestedLmabda = resultLambda.body.asInstanceOf[Function.Lambda]
       nestedLmabda.arguments.size shouldEqual 1
       nestedLmabda.arguments(0).name shouldBe an[Name.Self]
     }
@@ -312,8 +317,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val conversion =
         ir.bindings.head.asInstanceOf[definition.Method]
-      conversion.body shouldBe an[IR.Function.Lambda]
-      val body = conversion.body.asInstanceOf[IR.Function.Lambda]
+      conversion.body shouldBe an[Function.Lambda]
+      val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 2
       body.arguments.head.name shouldBe a[Name.Self]
     }
@@ -326,11 +331,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val conversion =
         ir.bindings.head.asInstanceOf[definition.Method]
-      conversion.body shouldBe an[IR.Function.Lambda]
-      val body = conversion.body.asInstanceOf[IR.Function.Lambda]
+      conversion.body shouldBe an[Function.Lambda]
+      val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 1
       body.arguments.head.name shouldBe an[Name.Self]
-      val nestedBody = body.body.asInstanceOf[IR.Function.Lambda]
+      val nestedBody = body.body.asInstanceOf[Function.Lambda]
       nestedBody.arguments.length shouldEqual 1
       nestedBody.arguments.head.name shouldBe an[Name.Literal]
       nestedBody.arguments.head.name.name shouldEqual Constants.Names.THAT_ARGUMENT
@@ -343,8 +348,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val conversion =
         ir.bindings.head.asInstanceOf[definition.Method]
-      conversion.body shouldBe an[IR.Function.Lambda]
-      val body = conversion.body.asInstanceOf[IR.Function.Lambda]
+      conversion.body shouldBe an[Function.Lambda]
+      val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 1
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
@@ -361,8 +366,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val conversion =
         ir.bindings.head.asInstanceOf[definition.Method]
-      conversion.body shouldBe an[IR.Function.Lambda]
-      val body = conversion.body.asInstanceOf[IR.Function.Lambda]
+      conversion.body shouldBe an[Function.Lambda]
+      val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 1
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT

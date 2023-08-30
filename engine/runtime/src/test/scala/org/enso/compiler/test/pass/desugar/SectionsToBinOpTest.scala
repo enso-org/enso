@@ -2,9 +2,13 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Name
+}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.desugar.SectionsToBinOp
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -59,21 +63,21 @@ class SectionsToBinOpTest extends CompilerTest {
           |(1 +)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
-      val irLam = ir.asInstanceOf[IR.Function.Lambda]
+      val irLam = ir.asInstanceOf[Function.Lambda]
       irLam.arguments.length shouldEqual 1
 
       val lamArgName =
-        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irLam.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       val lamBody = irLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg =
         lamBody
           .arguments(1)
-          .asInstanceOf[IR.CallArgument.Specified]
+          .asInstanceOf[CallArgument.Specified]
           .value
           .asInstanceOf[Name.Literal]
 
@@ -89,32 +93,32 @@ class SectionsToBinOpTest extends CompilerTest {
           |(+)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       // TODO[DB] Section.Sides location is not parsed
       //ir.location shouldBe defined
 
-      val leftLam = ir.asInstanceOf[IR.Function.Lambda]
+      val leftLam = ir.asInstanceOf[Function.Lambda]
       leftLam.arguments.length shouldEqual 1
       val leftLamArgName =
         leftLam.arguments.head
-          .asInstanceOf[IR.DefinitionArgument.Specified]
+          .asInstanceOf[DefinitionArgument.Specified]
           .name
 
-      val rightLam = leftLam.body.asInstanceOf[IR.Function.Lambda]
+      val rightLam = leftLam.body.asInstanceOf[Function.Lambda]
       rightLam.arguments.length shouldEqual 1
       val rightLamArgName = rightLam.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
 
       val lamBody = rightLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg = lamBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
       val lamBodySecondArg = lamBody
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -132,20 +136,20 @@ class SectionsToBinOpTest extends CompilerTest {
           |(+ 1)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
-      val irLam = ir.asInstanceOf[IR.Function.Lambda]
+      val irLam = ir.asInstanceOf[Function.Lambda]
       irLam.arguments.length shouldEqual 1
 
       val lamArgName =
-        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irLam.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       val lamBody = irLam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val lamBodyFirstArg =
         lamBody.arguments.head
-          .asInstanceOf[IR.CallArgument.Specified]
+          .asInstanceOf[CallArgument.Specified]
           .value
           .asInstanceOf[Name.Literal]
 
@@ -160,13 +164,13 @@ class SectionsToBinOpTest extends CompilerTest {
         """
           |x -> (x +)
           |""".stripMargin.preprocessExpression.get.desugar
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body shouldBe an[Application.Prefix]
       ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
         .arguments
@@ -181,24 +185,24 @@ class SectionsToBinOpTest extends CompilerTest {
           |(+ _)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
 
       val rightArgName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
-      irFn.body shouldBe an[IR.Function.Lambda]
-      val irFn2 = irFn.body.asInstanceOf[IR.Function.Lambda]
+      irFn.body shouldBe an[Function.Lambda]
+      val irFn2 = irFn.body.asInstanceOf[Function.Lambda]
 
       val leftArgName =
-        irFn2.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn2.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       irFn2.body shouldBe an[Application.Prefix]
       val app = irFn2.body.asInstanceOf[Application.Prefix]
 
       val appLeftName = app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
       val appRightName = app

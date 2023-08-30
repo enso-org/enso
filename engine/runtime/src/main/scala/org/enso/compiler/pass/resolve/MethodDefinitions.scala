@@ -1,9 +1,13 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -96,9 +100,9 @@ case object MethodDefinitions extends IRPass {
               if canGenerateStaticWrappers(tp) =>
             val dup = method.duplicate()
             val static = dup.copy(body =
-              IR.Function.Lambda(
+              Function.Lambda(
                 List(
-                  IR.DefinitionArgument
+                  DefinitionArgument
                     .Specified(
                       Name.Self(None, true),
                       None,

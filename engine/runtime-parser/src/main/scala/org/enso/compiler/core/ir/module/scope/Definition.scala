@@ -2,6 +2,7 @@ package org.enso.compiler.core.ir.module.scope
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  DefinitionArgument,
   DiagnosticStorage,
   Expression,
   IRKind,
@@ -14,7 +15,6 @@ import org.enso.compiler.core.IR.{
   indentLevel,
   mkIndent,
   randomId,
-  DefinitionArgument,
   Identifier,
   ToStringHelper
 }
@@ -55,7 +55,7 @@ object Definition {
     */
   sealed case class Type(
     name: Name,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     members: List[Data],
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -66,7 +66,7 @@ object Definition {
 
     def copy(
       name: Name                           = name,
-      params: List[IR.DefinitionArgument]  = params,
+      params: List[DefinitionArgument]     = params,
       members: List[Data]                  = members,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,

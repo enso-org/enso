@@ -2,11 +2,15 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Literal
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Literal,
+  Name
+}
+import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -61,32 +65,32 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |foo a _ b _
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
       val irFnArgName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
-      irFn.body shouldBe an[IR.Function.Lambda]
-      val irFnNested = irFn.body.asInstanceOf[IR.Function.Lambda]
+      irFn.body shouldBe an[Function.Lambda]
+      val irFnNested = irFn.body.asInstanceOf[Function.Lambda]
       val irFnNestedArgName = irFnNested.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
 
       irFnNested.body shouldBe an[Application.Prefix]
       val body = irFn.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
 
       val arg2Name = body
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
       val arg4Name = body
         .arguments(3)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -102,30 +106,30 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |foo (a = _) b _
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
       val irFnArgName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
-      irFn.body shouldBe an[IR.Function.Lambda]
-      val irFnNested = irFn.body.asInstanceOf[IR.Function.Lambda]
+      irFn.body shouldBe an[Function.Lambda]
+      val irFnNested = irFn.body.asInstanceOf[Function.Lambda]
       val irFnNestedArgName =
         irFnNested.arguments.head
-          .asInstanceOf[IR.DefinitionArgument.Specified]
+          .asInstanceOf[DefinitionArgument.Specified]
           .name
 
       irFnNested.body shouldBe an[Application.Prefix]
       val app = irFnNested.body.asInstanceOf[Application.Prefix]
       val arg1Name =
         app.arguments.head
-          .asInstanceOf[IR.CallArgument.Specified]
+          .asInstanceOf[CallArgument.Specified]
           .value
           .asInstanceOf[Name.Literal]
       val arg3Name =
         app
           .arguments(2)
-          .asInstanceOf[IR.CallArgument.Specified]
+          .asInstanceOf[CallArgument.Specified]
           .value
           .asInstanceOf[Name.Literal]
 
@@ -141,11 +145,11 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |_ a b
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
       val irFnArgName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       irFn.body shouldBe an[Application.Prefix]
       val app = irFn.body.asInstanceOf[Application.Prefix]
@@ -163,16 +167,16 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |if _ then a
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
       val irFnArgName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       irFn.body shouldBe an[Application.Prefix]
       val app = irFn.body.asInstanceOf[Application.Prefix]
       val arg1Name = app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -188,16 +192,16 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |    Nil -> 0
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
-      val irLam = ir.asInstanceOf[IR.Function.Lambda]
+      val irLam = ir.asInstanceOf[Function.Lambda]
       irLam.arguments.length shouldEqual 1
 
       val lamArgName =
-        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irLam.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
-      val lamBody = irLam.body.asInstanceOf[IR.Case.Expr]
+      val lamBody = irLam.body.asInstanceOf[Case.Expr]
 
       lamBody.scrutinee shouldBe an[Name.Literal]
       lamBody.scrutinee
@@ -213,12 +217,12 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |(10 + _)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
 
       val argName =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       val body     = irFn.body.asInstanceOf[Application.Prefix]
       val rightArg = body.arguments(1).value.asInstanceOf[Name.Literal]
@@ -234,12 +238,12 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |(_ +)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val underscoreFn      = ir.asInstanceOf[IR.Function.Lambda]
+      val underscoreFn      = ir.asInstanceOf[Function.Lambda]
       val underscoreArgName = underscoreFn.arguments.head.name
 
-      val rightArgLambda = underscoreFn.body.asInstanceOf[IR.Function.Lambda]
+      val rightArgLambda = underscoreFn.body.asInstanceOf[Function.Lambda]
       rightArgLambda.arguments.length shouldEqual 1
       val rightArgLambdaArgName = rightArgLambda.arguments.head.name
 
@@ -263,12 +267,12 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |(_ + _)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn     = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn     = ir.asInstanceOf[Function.Lambda]
       val arg1Name = irFn.arguments.head.name
 
-      val irFn2    = irFn.body.asInstanceOf[IR.Function.Lambda]
+      val irFn2    = irFn.body.asInstanceOf[Function.Lambda]
       val arg2Name = irFn2.arguments.head.name
 
       val app = irFn2.body.asInstanceOf[Application.Prefix]
@@ -289,13 +293,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |(+ _)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
-      val irFn         = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn         = ir.asInstanceOf[Function.Lambda]
       val rightArgName = irFn.arguments.head.name
 
-      irFn.body shouldBe an[IR.Function.Lambda]
-      val irFn2       = irFn.body.asInstanceOf[IR.Function.Lambda]
+      irFn.body shouldBe an[Function.Lambda]
+      val irFn2       = irFn.body.asInstanceOf[Function.Lambda]
       val leftArgName = irFn2.arguments.head.name
 
       irFn2.body shouldBe an[Application.Prefix]
@@ -318,8 +322,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |[1, _, (3 + 4), _]
           |""".stripMargin.preprocessExpression.get.desugar
 
-      val fun1 = ir.asInstanceOf[IR.Function.Lambda]
-      val fun2 = fun1.body.asInstanceOf[IR.Function.Lambda]
+      val fun1 = ir.asInstanceOf[Function.Lambda]
+      val fun2 = fun1.body.asInstanceOf[Function.Lambda]
       val vec  = fun2.body.asInstanceOf[Application.Sequence]
 
       fun1.arguments(0).name shouldEqual vec.items(1)
@@ -338,29 +342,29 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |a _ (fn _ c)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[Application.Prefix]
+      ir shouldBe an[Function.Lambda]
+      ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
       val irBody = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
 
       irBody
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Function.Lambda]
+        .asInstanceOf[CallArgument.Specified]
+        .value shouldBe an[Function.Lambda]
       val lamArg = irBody
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val lamArgArgName =
-        lamArg.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        lamArg.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       lamArg.body shouldBe an[Application.Prefix]
       val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
       val lamArgBodyArg1Name = lamArgBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -375,29 +379,29 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |a _ (fn (t = _) c)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[Application.Prefix]
+      ir shouldBe an[Function.Lambda]
+      ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
       val irBody = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Application.Prefix]
 
       irBody
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Function.Lambda]
+        .asInstanceOf[CallArgument.Specified]
+        .value shouldBe an[Function.Lambda]
       val lamArg = irBody
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val lamArgArgName =
-        lamArg.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+        lamArg.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       lamArg.body shouldBe an[Application.Prefix]
       val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
       val lamArgBodyArg1Name = lamArgBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -412,25 +416,25 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |a -> (b = f _ 1) -> f a
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       val bArgFn = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val bArg1 =
-        bArgFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+        bArgFn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
 
       bArg1.defaultValue shouldBe defined
-      bArg1.defaultValue.get shouldBe an[IR.Function.Lambda]
-      val default = bArg1.defaultValue.get.asInstanceOf[IR.Function.Lambda]
+      bArg1.defaultValue.get shouldBe an[Function.Lambda]
+      val default = bArg1.defaultValue.get.asInstanceOf[Function.Lambda]
       val defaultArgName = default.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
 
       default.body shouldBe an[Application.Prefix]
       val defBody = default.body.asInstanceOf[Application.Prefix]
       val defBodyArg1Name = defBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -446,27 +450,27 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |    Nil -> f _ b
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
       val nilBranch = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
         .branches
         .head
-        .asInstanceOf[IR.Case.Branch]
+        .asInstanceOf[Case.Branch]
 
-      nilBranch.expression shouldBe an[IR.Function.Lambda]
-      val nilBody = nilBranch.expression.asInstanceOf[IR.Function.Lambda]
+      nilBranch.expression shouldBe an[Function.Lambda]
+      val nilBody = nilBranch.expression.asInstanceOf[Function.Lambda]
 
       val nilBodyArgName =
         nilBody.arguments.head
-          .asInstanceOf[IR.DefinitionArgument.Specified]
+          .asInstanceOf[DefinitionArgument.Specified]
           .name
 
       nilBody.body shouldBe an[Application.Prefix]
       val nilBodyBody = nilBody.body.asInstanceOf[Application.Prefix]
       val nilBodyBodyArg1Name = nilBodyBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
 
@@ -486,7 +490,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       ir shouldBe an[Expression.Binding]
       val expr = ir.asInstanceOf[Expression.Binding].expression
 
-      expr shouldBe an[IR.Function.Lambda]
+      expr shouldBe an[Function.Lambda]
     }
 
     "translate to an `id` in argument defaults" in {
@@ -497,15 +501,15 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |(x = _) -> x
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Function.Lambda]
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
+      val irFn = ir.asInstanceOf[Function.Lambda]
 
-      irFn.arguments.head shouldBe an[IR.DefinitionArgument.Specified]
+      irFn.arguments.head shouldBe an[DefinitionArgument.Specified]
       val arg =
-        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+        irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
 
       arg.defaultValue shouldBe defined
-      arg.defaultValue.get shouldBe an[IR.Function.Lambda]
+      arg.defaultValue.get shouldBe an[Function.Lambda]
     }
   }
 
@@ -519,17 +523,17 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       ir shouldBe an[Application.Prefix]
       val app = ir.asInstanceOf[Application.Prefix]
-      app.function shouldBe an[IR.Function.Lambda]
-      val lam = app.function.asInstanceOf[IR.Function.Lambda]
+      app.function shouldBe an[Function.Lambda]
+      val lam = app.function.asInstanceOf[Function.Lambda]
       lam.arguments.length shouldEqual 1
       val lamArg1Name = lam.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name
       val lamBody = lam.body.asInstanceOf[Application.Prefix]
       lamBody.arguments.length shouldEqual 2
       val appArg1Name = lamBody.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
         .name
@@ -545,28 +549,28 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       ir shouldBe an[Application.Prefix]
       val irFn = ir.asInstanceOf[Application.Prefix].function
-      irFn shouldBe an[IR.Function.Lambda]
-      val firstLam = irFn.asInstanceOf[IR.Function.Lambda]
+      irFn shouldBe an[Function.Lambda]
+      val firstLam = irFn.asInstanceOf[Function.Lambda]
       firstLam.arguments.length shouldEqual 1
       val firstLamArgName = firstLam.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name
-      val secondLam = firstLam.body.asInstanceOf[IR.Function.Lambda]
+      val secondLam = firstLam.body.asInstanceOf[Function.Lambda]
       val secondLamArgName = secondLam.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name
       val app = secondLam.body.asInstanceOf[Application.Prefix]
       app.arguments.length shouldEqual 3
       val appArg1Name = app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name]
         .name
       val appArg2Name = app
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name]
         .name

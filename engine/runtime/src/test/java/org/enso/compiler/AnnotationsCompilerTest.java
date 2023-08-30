@@ -1,7 +1,7 @@
 package org.enso.compiler;
 
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.compiler.core.IR$Function$Binding;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.junit.Test;
@@ -54,7 +54,7 @@ public class AnnotationsCompilerTest extends CompilerTest {
 
     var annotation1 = (Name.Annotation) typeDefinition.body().apply(0);
     var annotation2 = (Name.Annotation) typeDefinition.body().apply(1);
-    var function = (IR$Function$Binding) typeDefinition.body().apply(2);
+    var function = (Function.Binding) typeDefinition.body().apply(2);
 
     assertEquals(annotation1.name(), "a");
     assertEquals(annotation2.name(), "b");

@@ -2,9 +2,8 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Pattern}
-import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.{Expression, Function, Module, Pattern}
+import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -74,11 +73,11 @@ class PatternsTest extends CompilerTest {
         .bindings(1)
         .asInstanceOf[definition.Method.Explicit]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
         .branches
         .map(_.pattern)
       patterns(0)

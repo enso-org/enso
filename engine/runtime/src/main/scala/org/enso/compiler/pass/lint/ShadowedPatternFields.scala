@@ -3,8 +3,7 @@ package org.enso.compiler.pass.lint
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -88,7 +87,7 @@ case object ShadowedPatternFields extends IRPass {
   def lintExpression(
     expression: Expression
   ): Expression = {
-    expression.transformExpressions { case cse: IR.Case =>
+    expression.transformExpressions { case cse: Case =>
       lintCase(cse)
     }
   }
@@ -98,14 +97,14 @@ case object ShadowedPatternFields extends IRPass {
     * @param cse the expression to lint
     * @return `cse`, with warnings for any shadowed pattern variables
     */
-  def lintCase(cse: IR.Case): IR.Case = {
+  def lintCase(cse: Case): Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = lintExpression(scrutinee),
           branches  = branches.map(lintCaseBranch)
         )
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -116,8 +115,8 @@ case object ShadowedPatternFields extends IRPass {
     * @return `branch`, with warnings for any shadowed pattern variables
     */
   def lintCaseBranch(
-    branch: IR.Case.Branch
-  ): IR.Case.Branch = {
+    branch: Case.Branch
+  ): Case.Branch = {
     branch.copy(
       pattern    = lintPattern(branch.pattern),
       expression = lintExpression(branch.expression)

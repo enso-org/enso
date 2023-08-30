@@ -1,20 +1,18 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  DefinitionArgument,
   Expression,
+  Function,
   Literal,
   Module,
   Name,
   Pattern,
   Warning
 }
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.warnings
-import org.enso.compiler.core.IR.Case
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
@@ -81,8 +79,8 @@ case object UnusedBindings extends IRPass {
   ): Expression = if (inlineContext.compilerConfig.warningsEnabled) {
     ir.transformExpressions {
       case binding: Expression.Binding => lintBinding(binding, inlineContext)
-      case function: IR.Function       => lintFunction(function, inlineContext)
-      case cse: IR.Case                => lintCase(cse, inlineContext)
+      case function: Function          => lintFunction(function, inlineContext)
+      case cse: Case                   => lintCase(cse, inlineContext)
     }
   } else ir
 
@@ -131,13 +129,13 @@ case object UnusedBindings extends IRPass {
     * @return `function`, with any lints attached
     */
   def lintFunction(
-    function: IR.Function,
+    function: Function,
     context: InlineContext
-  ): IR.Function = {
+  ): Function = {
     function match {
-      case IR.Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
+      case Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
         function
-      case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+      case lam @ Function.Lambda(args, body, _, _, _, _) =>
         val isBuiltin = isBuiltinMethod(body)
         val lintedArgs =
           if (isBuiltin) args
@@ -159,7 +157,7 @@ case object UnusedBindings extends IRPass {
           arguments = lintedArgs,
           body      = lintedBody
         )
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during unused bindings linting."
         )
@@ -173,9 +171,9 @@ case object UnusedBindings extends IRPass {
     * @return `argument`, with any lints attached
     */
   def lintFunctionArgument(
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     context: InlineContext
-  ): IR.DefinitionArgument = {
+  ): DefinitionArgument = {
     val isIgnored = argument
       .unsafeGetMetadata(
         IgnoredBindings,
@@ -193,7 +191,7 @@ case object UnusedBindings extends IRPass {
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
     argument match {
-      case s @ IR.DefinitionArgument.Specified(
+      case s @ DefinitionArgument.Specified(
             _: Name.Self,
             _,
             _,
@@ -203,7 +201,7 @@ case object UnusedBindings extends IRPass {
             _
           ) =>
         s
-      case s @ IR.DefinitionArgument.Specified(name, _, default, _, _, _, _) =>
+      case s @ DefinitionArgument.Specified(name, _, default, _, _, _, _) =>
         if (!isIgnored && !isUsed) {
           s.copy(
             defaultValue = default.map(runExpression(_, context))
@@ -218,7 +216,7 @@ case object UnusedBindings extends IRPass {
     * @param context the inline context in which linting is taking place
     * @return `cse`, with any lints attached
     */
-  def lintCase(cse: IR.Case, context: InlineContext): IR.Case = {
+  def lintCase(cse: Case, context: InlineContext): Case = {
     cse match {
       case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(

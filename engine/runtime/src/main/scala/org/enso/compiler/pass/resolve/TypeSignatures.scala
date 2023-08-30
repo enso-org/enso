@@ -1,13 +1,18 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -87,8 +92,8 @@ case object TypeSignatures extends IRPass {
       case meth: definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
         newMethod.body.preorder.foreach {
-          case fn: IR.Function => verifyAscribedArguments(fn.arguments)
-          case _               =>
+          case fn: Function => verifyAscribedArguments(fn.arguments)
+          case _            =>
         }
         val res = lastSignature match {
           case Some(asc @ Type.Ascription(typed, sig, _, _, _)) =>
@@ -155,7 +160,7 @@ case object TypeSignatures extends IRPass {
           "Annotations should already be associated by the point of " +
           "type signature resolution."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation comments should not be present during type " +
           "signature resolution."
@@ -176,7 +181,7 @@ case object TypeSignatures extends IRPass {
     * @param fn the function to check arguments for
     */
   private def verifyAscribedArguments(
-    arguments: List[IR.DefinitionArgument]
+    arguments: List[DefinitionArgument]
   ): Unit = {
     arguments.foreach(arg =>
       arg.ascribedType.map(t => arg.updateMetadata(this -->> Signature(t)))
@@ -191,7 +196,7 @@ case object TypeSignatures extends IRPass {
   private def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case block: Expression.Block => resolveBlock(block)
-      case sig: Type.Ascription => resolveAscription(sig)
+      case sig: Type.Ascription    => resolveAscription(sig)
     }
   }
 
@@ -204,10 +209,10 @@ case object TypeSignatures extends IRPass {
   }
 
   private def resolveArgument(
-    argument: IR.DefinitionArgument
-  ): IR.DefinitionArgument =
+    argument: DefinitionArgument
+  ): DefinitionArgument =
     argument match {
-      case specified @ IR.DefinitionArgument.Specified(
+      case specified @ DefinitionArgument.Specified(
             _,
             Some(ascribedType),
             _,

@@ -2,10 +2,7 @@ package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.FreshNameSupply
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Empty
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{CallArgument, Empty, Expression, Name}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
@@ -18,8 +15,8 @@ import org.enso.compiler.pass.optimise.ApplicationSaturation.{
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.callable
 
 import scala.annotation.unused
 
@@ -35,21 +32,21 @@ class ApplicationSaturationTest extends CompilerTest {
     *                   or positionally
     * @return a list containing `n` arguments
     */
-  def genNArgs(n: Int, positional: Boolean = true): List[IR.CallArgument] = {
+  def genNArgs(n: Int, positional: Boolean = true): List[CallArgument] = {
     val name = if (positional) {
       None
     } else {
       Some(Name.Literal("a", isMethod = false, None))
     }
 
-    List.fill(n)(IR.CallArgument.Specified(name, Empty(None), None))
+    List.fill(n)(CallArgument.Specified(name, Empty(None), None))
   }
 
   // === Test Setup ===========================================================
 
   // The functions are unused, so left undefined for ease of testing
   def dummyFn(@unused mod: ModuleScope)(@unused loc: LocalScope)(
-    @unused args: List[CallArgument]
+    @unused args: List[callable.argument.CallArgument]
   ): ExpressionNode = ???
 
   val knownFunctions: ApplicationSaturation.Configuration =
@@ -219,7 +216,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ir.asInstanceOf[Application.Prefix]
           .arguments
           .head
-          .asInstanceOf[IR.CallArgument.Specified]
+          .asInstanceOf[CallArgument.Specified]
           .value
           .getMetadata(ApplicationSaturation)
       }
@@ -230,8 +227,8 @@ class ApplicationSaturationTest extends CompilerTest {
         .Prefix(
           Name.Literal("+", isMethod = true, None),
           List(
-            IR.CallArgument.Specified(None, argExpr, None),
-            IR.CallArgument.Specified(None, empty, None)
+            CallArgument.Specified(None, argExpr, None),
+            CallArgument.Specified(None, empty, None)
           ),
           hasDefaultsSuspended = false,
           None

@@ -2,8 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -70,7 +69,7 @@ case object TypeNames extends IRPass {
   ): Expression = {
     def go(ir: Expression): Expression = {
       val processedIr = ir match {
-        case fn: IR.Function.Lambda =>
+        case fn: Function.Lambda =>
           fn.copy(arguments =
             fn.arguments.map(doResolveType(Nil, bindingsMap, _))
           )

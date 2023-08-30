@@ -1,17 +1,26 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.interpreter.Constants
@@ -85,7 +94,7 @@ case object FunctionBinding extends IRPass {
     */
   def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
-      case IR.Function.Binding(
+      case Function.Binding(
             name,
             args,
             body,
@@ -101,9 +110,9 @@ case object FunctionBinding extends IRPass {
         val lambda = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
-            IR.Function.Lambda(List(arg), body, None)
+            Function.Lambda(List(arg), body, None)
           )
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
         Expression.Binding(name, lambda, location, passData, diagnostics)
@@ -145,7 +154,7 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              IR.Function.Lambda(List(arg), body, None)
+              Function.Lambda(List(arg), body, None)
             )
 
           definition.Method.Explicit(
@@ -235,7 +244,7 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      IR.Function.Lambda(List(arg), body, None)
+                      Function.Lambda(List(arg), body, None)
                     )
                   Right(
                     definition.Method.Conversion(
@@ -305,7 +314,7 @@ case object FunctionBinding extends IRPass {
           "Complex type definitions should not be present during " +
           "function binding desugaring."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not be present during function binding" +
           "desugaring."
@@ -316,7 +325,7 @@ case object FunctionBinding extends IRPass {
           "function binding desugaring."
         )
       case a: Name.GenericAnnotation => a
-      case a: Type.Ascription     => a
+      case a: Type.Ascription        => a
       case e: Error                  => e
     }
   }

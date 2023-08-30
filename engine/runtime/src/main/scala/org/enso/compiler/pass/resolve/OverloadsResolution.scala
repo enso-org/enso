@@ -1,9 +1,8 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name, Type}
-import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.{errors, Comment}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
@@ -129,7 +128,7 @@ case object OverloadsResolution extends IRPass {
         throw new CompilerError(
           "Builtin annotations should not be present during the overloads resolution."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation comments should not be present during the overloads resolution."
         )

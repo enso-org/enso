@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.{
@@ -398,8 +398,8 @@ object UpsertVisualizationJob {
             val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
 
             val externalIdOpt = method.body match {
-              case fun: IR.Function => fun.body.getExternalId
-              case _                => method.getExternalId
+              case fun: Function => fun.body.getExternalId
+              case _             => method.getExternalId
             }
             externalIdOpt.filter { _ =>
               methodReferenceName == methodPointer.name &&

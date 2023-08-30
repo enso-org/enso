@@ -2,8 +2,14 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Name, Pattern}
+import org.enso.compiler.core.ir.expression.Case
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Name,
+  Pattern
+}
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -56,14 +62,14 @@ class IgnoredBindingsTest extends CompilerTest {
       """
         |_ -> (x = _ -> 1) -> x
         |""".stripMargin.preprocessExpression.get.resolve
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
     val blankArg =
-      ir.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+      ir.arguments.head.asInstanceOf[DefinitionArgument.Specified]
     val xArg = ir.body
-      .asInstanceOf[IR.Function.Lambda]
+      .asInstanceOf[Function.Lambda]
       .arguments
       .head
-      .asInstanceOf[IR.DefinitionArgument.Specified]
+      .asInstanceOf[DefinitionArgument.Specified]
 
     "replace ignored arguments with fresh names" in {
       blankArg.name shouldBe an[Name.Literal]
@@ -79,10 +85,10 @@ class IgnoredBindingsTest extends CompilerTest {
 
     "work when deeply nested" in {
       val nestedIgnore = xArg.defaultValue.get
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .arguments
         .head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
 
       nestedIgnore.name shouldBe an[Name.Literal]
       nestedIgnore.getMetadata(IgnoredBindings) shouldEqual Some(State.Ignored)
@@ -140,7 +146,7 @@ class IgnoredBindingsTest extends CompilerTest {
         |""".stripMargin.preprocessExpression.get.resolve
         .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
     val pattern    = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
     val aPat       = pattern.fields.head.asInstanceOf[Pattern.Name]
@@ -149,7 +155,7 @@ class IgnoredBindingsTest extends CompilerTest {
     val nestedCase = ir.branches.head.expression
       .asInstanceOf[Expression.Block]
       .returnValue
-      .asInstanceOf[IR.Case.Expr]
+      .asInstanceOf[Case.Expr]
     val nestedPattern =
       nestedCase.branches.head.pattern.asInstanceOf[Pattern.Constructor]
     val nestedAPat       = nestedPattern.fields.head.asInstanceOf[Pattern.Name]
