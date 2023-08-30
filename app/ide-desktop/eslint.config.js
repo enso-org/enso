@@ -123,7 +123,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(ReturnStatement:has(${JSX})), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
         message: 'Use `PascalCase` for React components',
     },
     {

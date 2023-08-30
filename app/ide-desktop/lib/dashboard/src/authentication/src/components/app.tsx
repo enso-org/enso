@@ -137,6 +137,7 @@ export default function App(props: AppProps) {
     return (
         <>
             <toastify.ToastContainer
+                enableMultiContainer={true}
                 position="top-center"
                 theme="light"
                 closeOnClick={false}
