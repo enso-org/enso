@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -66,9 +67,9 @@ case object MethodDefinitions extends IRPass {
             val resolvedName: Name = sourceTypeExpr match {
               case name: Name => resolveType(name, availableSymbolsMap)
               case _ =>
-                IR.Error.Conversion(
+                errors.Conversion(
                   sourceTypeExpr,
-                  IR.Error.Conversion.UnsupportedSourceType
+                  errors.Conversion.UnsupportedSourceType
                 )
             }
 
@@ -143,14 +144,14 @@ case object MethodDefinitions extends IRPass {
         }
         availableSymbolsMap.resolveQualifiedName(items) match {
           case Left(err) =>
-            IR.Error.Resolution(
+            errors.Resolution(
               typePointer,
-              IR.Error.Resolution.ResolverError(err)
+              errors.Resolution.ResolverError(err)
             )
           case Right(_: BindingsMap.ResolvedConstructor) =>
-            IR.Error.Resolution(
+            errors.Resolution(
               typePointer,
-              IR.Error.Resolution.UnexpectedConstructor(
+              errors.Resolution.UnexpectedConstructor(
                 "a method definition target"
               )
             )
@@ -161,29 +162,29 @@ case object MethodDefinitions extends IRPass {
           case Right(value: BindingsMap.ResolvedType) =>
             typePointer.updateMetadata(this -->> BindingsMap.Resolution(value))
           case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-            IR.Error.Resolution(
+            errors.Resolution(
               typePointer,
-              IR.Error.Resolution.UnexpectedPolyglot(
+              errors.Resolution.UnexpectedPolyglot(
                 "a method definition target"
               )
             )
           case Right(_: BindingsMap.ResolvedPolyglotField) =>
-            IR.Error.Resolution(
+            errors.Resolution(
               typePointer,
-              IR.Error.Resolution.UnexpectedPolyglot(
+              errors.Resolution.UnexpectedPolyglot(
                 "a method definition target"
               )
             )
           case Right(_: BindingsMap.ResolvedMethod) =>
-            IR.Error.Resolution(
+            errors.Resolution(
               typePointer,
-              IR.Error.Resolution.UnexpectedMethod(
+              errors.Resolution.UnexpectedMethod(
                 "a method definition target"
               )
             )
 
         }
-      case tp: IR.Error.Resolution => tp
+      case tp: errors.Resolution => tp
       case _ =>
         throw new CompilerError(
           "Unexpected kind of name for method reference"

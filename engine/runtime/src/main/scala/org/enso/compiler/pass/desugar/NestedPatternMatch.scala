@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Module,
   Pattern
 }
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -258,7 +259,7 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case _: IR.Error.Pattern =>
+        case _: errors.Pattern =>
           throw new CompilerError(
             "Error patterns cannot be nested. This should be unreachable."
           )
@@ -331,15 +332,15 @@ case object NestedPatternMatch extends IRPass {
           case _: Pattern.Name        => false
           case _: Pattern.Type        => true
           case _: Pattern.Literal     => true
-          case _: IR.Error.Pattern    => false
+          case _: errors.Pattern      => false
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should be desugared at an earlier stage."
             )
         }
-      case _: Pattern.Literal  => false
-      case _: Pattern.Type     => false
-      case _: IR.Error.Pattern => false
+      case _: Pattern.Literal => false
+      case _: Pattern.Type    => false
+      case _: errors.Pattern  => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -358,7 +359,7 @@ case object NestedPatternMatch extends IRPass {
       case _: Pattern.Type        => true
       case _: Pattern.Constructor => true
       case _: Pattern.Literal     => true
-      case _: IR.Error.Pattern    => false
+      case _: errors.Pattern      => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -376,7 +377,7 @@ case object NestedPatternMatch extends IRPass {
       case _: Pattern.Constructor => false
       case _: Pattern.Literal     => false
       case _: Pattern.Type        => false
-      case _: IR.Error.Pattern    => true
+      case _: errors.Pattern      => true
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

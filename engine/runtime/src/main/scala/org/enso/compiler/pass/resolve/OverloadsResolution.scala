@@ -2,8 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -66,7 +66,7 @@ case object OverloadsResolution extends IRPass {
     val newBindings = ir.bindings.map {
       case tp: Definition.Type =>
         if (seenTypes.contains(tp.name.name)) {
-          IR.Error.Redefined.Type(tp.name, tp.location)
+          errors.Redefined.Type(tp.name, tp.location)
         } else {
           seenTypes += tp.name.name
           tp
@@ -77,12 +77,12 @@ case object OverloadsResolution extends IRPass {
           seenMethods(method.typeName.map(_.name))
             .contains((method.methodName.name, method.isStatic))
         ) {
-          IR.Error.Redefined
+          errors.Redefined
             .Method(method.typeName, method.methodName, method.location)
         } else {
           types.find(_.name.name.equals(method.methodName.name)) match {
             case Some(clashedAtom) if method.typeName.isEmpty =>
-              IR.Error.Redefined.MethodClashWithAtom(
+              errors.Redefined.MethodClashWithAtom(
                 clashedAtom.name,
                 method.methodName,
                 method.location
@@ -101,7 +101,7 @@ case object OverloadsResolution extends IRPass {
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
             if (elems.contains(fromName.name)) {
-              IR.Error.Redefined.Conversion(m.typeName, fromName, m.location)
+              errors.Redefined.Conversion(m.typeName, fromName, m.location)
             } else {
               conversionsForType.update(
                 m.typeName.map(_.name),
@@ -114,7 +114,7 @@ case object OverloadsResolution extends IRPass {
             m
         }
 
-      case diagnostic: IR.Diagnostic   => diagnostic
+      case diagnostic: Diagnostic      => diagnostic
       case ann: Name.GenericAnnotation => ann
       case _: IR.Type.Ascription =>
         throw new CompilerError(

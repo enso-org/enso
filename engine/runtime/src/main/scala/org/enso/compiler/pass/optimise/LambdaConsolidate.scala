@@ -9,6 +9,8 @@ import org.enso.compiler.core.ir.{
   Module,
   Name
 }
+import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -221,7 +223,7 @@ case object LambdaConsolidate extends IRPass {
             val shadower: IR = mShadower.getOrElse(Empty(spec.location))
 
             spec.diagnostics.add(
-              IR.Warning.Shadowed
+              warnings.Shadowed
                 .FunctionParam(argName.name, shadower, spec.location)
             )
 
@@ -323,8 +325,8 @@ case object LambdaConsolidate extends IRPass {
         case blank: Name.Blank           => blank
         case ref: Name.MethodReference   => ref
         case qual: Name.Qualified        => qual
-        case err: IR.Error.Resolution    => err
-        case err: IR.Error.Conversion    => err
+        case err: errors.Resolution      => err
+        case err: errors.Conversion      => err
         case annotation: Name.Annotation => annotation
       }
     } else {

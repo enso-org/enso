@@ -3,9 +3,9 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Module, Name, Warning}
 import org.enso.compiler.core.ir.expression.Operator
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -237,13 +237,13 @@ class GenerateMethodBodiesTest extends CompilerTest {
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
       selfArg shouldEqual Name.Self(location = irBazSndArg.location)
-      resultLambda.diagnostics.collect { case w: IR.Warning =>
+      resultLambda.diagnostics.collect { case w: Warning =>
         w
-      }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
+      }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
 
     "return an error when redefining `self` parameter" in {
-      irResultQux.body shouldBe an[IR.Error.Redefined.SelfArg]
+      irResultQux.body shouldBe an[errors.Redefined.SelfArg]
     }
   }
 
@@ -279,7 +279,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       selfArg shouldEqual Name.Self(location =
         irMethodAddSelfArg.head.name.location
       )
-      resultLambda.diagnostics.collect { case w: IR.Warning =>
+      resultLambda.diagnostics.collect { case w: Warning =>
         w
       } shouldBe empty
     }
@@ -292,9 +292,9 @@ class GenerateMethodBodiesTest extends CompilerTest {
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs(0).name
       selfArg should not be an[Name.Self]
-      resultLambda.diagnostics.collect { case w: IR.Warning =>
+      resultLambda.diagnostics.collect { case w: Warning =>
         w
-      }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
+      }.head shouldBe an[Warning.WrongSelfParameterPos]
 
       val nestedLmabda = resultLambda.body.asInstanceOf[IR.Function.Lambda]
       nestedLmabda.arguments.size shouldEqual 1
@@ -349,9 +349,9 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: IR.Warning =>
+      conversion.body.diagnostics.collect { case w: Warning =>
         w
-      }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
+      }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
 
     "have report a warning when defining default `self` at a wrong position" in {
@@ -367,9 +367,9 @@ class GenerateMethodBodiesTest extends CompilerTest {
       body.arguments.head.name shouldBe an[Name.Literal]
       body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
 
-      conversion.body.diagnostics.collect { case w: IR.Warning =>
+      conversion.body.diagnostics.collect { case w: Warning =>
         w
-      }.head shouldBe an[IR.Warning.WrongSelfParameterPos]
+      }.head shouldBe an[Warning.WrongSelfParameterPos]
     }
 
   }

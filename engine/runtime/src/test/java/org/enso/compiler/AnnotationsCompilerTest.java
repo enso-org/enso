@@ -1,7 +1,6 @@
 package org.enso.compiler;
 
-import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
+import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.IR$Function$Binding;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -92,8 +91,8 @@ public class AnnotationsCompilerTest extends CompilerTest {
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
     var methodOrError = typeDefinition.body().apply(0);
 
-    if (methodOrError instanceof IR$Error$Syntax error) {
-        assertEquals(error.reason(), IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+    if (methodOrError instanceof Syntax error) {
+        assertEquals(error.reason(), Syntax.UnexpectedDeclarationInType$.MODULE$);
     } else {
         fail("Expecting error instead of bar function: " + methodOrError);
     }

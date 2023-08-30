@@ -9,13 +9,15 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
-  IdentifiedLocation,
-  Module => IRModule,
+  Diagnostic,
   Expression,
-  Name
+  IdentifiedLocation,
+  Name,
+  Warning,
+  Module => IRModule
 }
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.EnsoParser
@@ -891,9 +893,9 @@ class Compiler(
       }
       if (reportDiagnostics(diagnostics)) {
         val count =
-          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+          diagnostics.map(_._2.collect { case e: Error => e }.length).sum
         val warnCount =
-          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+          diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
         context.getErr.println(
           s"Aborting due to ${count} errors and ${warnCount} warnings."
         )
@@ -907,7 +909,7 @@ class Compiler(
     * @param module the module for which to gather diagnostics
     * @return the diagnostics from the module
     */
-  def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
+  def gatherDiagnostics(module: Module): List[Diagnostic] = {
     GatherDiagnostics
       .runModule(
         context.getIr(module),
@@ -922,8 +924,8 @@ class Compiler(
 
   private def hasErrors(module: Module): Boolean =
     gatherDiagnostics(module).exists {
-      case _: IR.Error => true
-      case _           => false
+      case _: Error => true
+      case _        => false
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
@@ -979,7 +981,7 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[IR.Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])]
   ): Boolean = {
     // It may be tempting to replace `.foldLeft(..)` with
     // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
@@ -1002,13 +1004,13 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[IR.Diagnostic],
+    diagnostics: List[Diagnostic],
     source: Source
   ): Boolean = {
     diagnostics.foreach(diag =>
       output.println(new DiagnosticFormatter(diag, source).format())
     )
-    diagnostics.exists(_.isInstanceOf[IR.Error])
+    diagnostics.exists(_.isInstanceOf[Error])
   }
 
   /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
@@ -1019,7 +1021,7 @@ class Compiler(
     * @param source     the original source code
     */
   private class DiagnosticFormatter(
-    private val diagnostic: IR.Diagnostic,
+    private val diagnostic: Diagnostic,
     private val source: Source
   ) {
     private val maxLineNum                     = 99999
@@ -1028,9 +1030,9 @@ class Compiler(
     private val linePrefixSize                 = blankLinePrefix.length
     private val outSupportsAnsiColors: Boolean = outSupportsColors
     private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
-      case _: IR.Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
-      case _: IR.Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
-      case _             => throw new IllegalStateException("Unexpected diagnostic type")
+      case _: Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
+      case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
+      case _          => throw new IllegalStateException("Unexpected diagnostic type")
     }
     private val sourceSection: Option[SourceSection] =
       diagnostic.location match {

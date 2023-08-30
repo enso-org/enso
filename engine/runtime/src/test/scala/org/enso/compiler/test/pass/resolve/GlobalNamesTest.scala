@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -101,7 +102,7 @@ class GlobalNamesTest extends CompilerTest {
 
     "not resolve uppercase method names to applications with no arguments" in {
       val expr = bodyExprs(1)
-      expr shouldBe an[IR.Error.Resolution]
+      expr shouldBe an[errors.Resolution]
     }
 
     "resolve method names to applications" in {
@@ -119,7 +120,7 @@ class GlobalNamesTest extends CompilerTest {
       val expr = bodyExprs(3)
       expr shouldBe an[Application.Prefix]
       val app = expr.asInstanceOf[Application.Prefix]
-      app.function shouldBe an[IR.Error.Resolution]
+      app.function shouldBe an[errors.Resolution]
     }
 
     "resolve method names in applications by adding the self argument" in {
@@ -146,7 +147,7 @@ class GlobalNamesTest extends CompilerTest {
 
     "indicate resolution failures" in {
       val app = bodyExprs(8).asInstanceOf[Application.Prefix]
-      app.function shouldBe an[IR.Error.Resolution]
+      app.function shouldBe an[errors.Resolution]
     }
   }
 
@@ -163,9 +164,9 @@ class GlobalNamesTest extends CompilerTest {
           |    x + z
           |""".stripMargin.preprocessModule.analyse
       val unresolved = ir.preorder.collect {
-        case IR.Error.Resolution(
+        case errors.Resolution(
               name,
-              _: IR.Error.Resolution.ResolverError,
+              _: errors.Resolution.ResolverError,
               _,
               _
             ) =>
@@ -185,9 +186,9 @@ class GlobalNamesTest extends CompilerTest {
           |    here.my_func 1
           |""".stripMargin.preprocessModule.analyse
       val unresolved = ir.preorder.collect {
-        case IR.Error.Resolution(
+        case errors.Resolution(
               name,
-              _: IR.Error.Resolution.ResolverError,
+              _: errors.Resolution.ResolverError,
               _,
               _
             ) =>

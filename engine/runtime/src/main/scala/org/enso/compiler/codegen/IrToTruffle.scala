@@ -16,7 +16,8 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name.Special
-import org.enso.compiler.core.IR.Error
+import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.{
   Application,
   Foreign,
@@ -135,11 +136,11 @@ class IrToTruffle(
   /** Executes the codegen pass on the input [[IR]].
     *
     * Please note that the IR passed to this function should not contain _any_
-    * errors (members of [[IR.Error]]). These must be dealt with and reported
+    * errors (members of [[Error]]). These must be dealt with and reported
     * before codegen runs, as they will cause a compiler error.
     *
     * In future, this restriction will be relaxed to admit errors that are
-    * members of [[IR.Diagnostic.Kind.Interactive]], such that we can display
+    * members of [[org.enso.compiler.core.ir.Diagnostic.Kind.Interactive]], such that we can display
     * these to users during interactive execution.
     *
     * @param ir the IR to generate code for
@@ -978,7 +979,7 @@ class IrToTruffle(
           throw new CompilerError(
             "Comments should not be present during codegen."
           )
-        case err: IR.Error => processError(err)
+        case err: Error => processError(err)
         case Foreign.Definition(_, _, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -1160,7 +1161,7 @@ class IrToTruffle(
           )
 
           constructor match {
-            case err: IR.Error.Resolution =>
+            case err: errors.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))
             case _ =>
               constructor.getMetadata(Patterns) match {
@@ -1432,9 +1433,9 @@ class IrToTruffle(
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case IR.Error.Pattern(
+        case errors.Pattern(
               _,
-              IR.Error.Pattern.WrongArity(name, expected, actual),
+              errors.Pattern.WrongArity(name, expected, actual),
               _,
               _
             ) =>
@@ -1604,8 +1605,8 @@ class IrToTruffle(
           throw new CompilerError(
             "Qualified names should not be present at codegen time."
           )
-        case err: IR.Error.Resolution => processError(err)
-        case err: IR.Error.Conversion => processError(err)
+        case err: errors.Resolution => processError(err)
+        case err: errors.Conversion => processError(err)
       }
 
       setLocation(nameExpr, name.location)
@@ -1679,55 +1680,55 @@ class IrToTruffle(
       * @param error the IR representing a compile error.
       * @return a runtime node representing the error.
       */
-    def processError(error: IR.Error): RuntimeExpression = {
+    def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
-        case err: Error.Syntax =>
+        case err: errors.Syntax =>
           context.getBuiltins
             .error()
             .makeSyntaxError(Text.create(err.message))
-        case err: Error.Redefined.Binding =>
+        case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.Method =>
+        case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.MethodClashWithAtom =>
+        case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.Conversion =>
+        case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.Type =>
+        case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.SelfArg =>
+        case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Unexpected.TypeSignature =>
+        case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Resolution =>
+        case err: errors.Resolution =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Conversion =>
+        case err: errors.Conversion =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case _: Error.Pattern =>
+        case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
           )
-        case _: Error.ImportExport =>
+        case _: errors.ImportExport =>
           throw new CompilerError(
             "Impossible here, should be handled in import/export processing"
           )

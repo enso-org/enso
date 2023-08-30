@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Pattern
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.CompilerConfig
@@ -313,7 +314,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnFn = printlnExpr.function.asInstanceOf[Name.Literal]
     val printlnArgIO =
       printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Error.Resolution]
+    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[errors.Resolution]
     val printlnArgB =
       printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[Name.Literal]
@@ -332,7 +333,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     // The `frobnicate` return expression
     val frobExpr = fnBody.returnValue.asInstanceOf[Application.Prefix]
-    val frobFn   = frobExpr.function.asInstanceOf[IR.Error.Resolution]
+    val frobFn   = frobExpr.function.asInstanceOf[errors.Resolution]
     val frobArgA =
       frobExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val frobArgAExpr = frobArgA.value.asInstanceOf[Name.Literal]
@@ -1001,7 +1002,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val app   = ir.asInstanceOf[Application.Prefix]
-      val appFn = app.function.asInstanceOf[IR.Error.Resolution]
+      val appFn = app.function.asInstanceOf[errors.Resolution]
       val appArg10 =
         app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       val appArg10Expr = appArg10.value.asInstanceOf[Literal.Number]
@@ -1204,7 +1205,7 @@ class DataflowAnalysisTest extends CompilerTest {
         bindingExpr
           .arguments(1)
           .asInstanceOf[IR.CallArgument.Specified]
-      val undefinedExpr = undefinedArg.value.asInstanceOf[IR.Error.Resolution]
+      val undefinedExpr = undefinedArg.value.asInstanceOf[errors.Resolution]
       val undefinedName = undefinedExpr.originalName
 
       // The IDs
@@ -1298,7 +1299,7 @@ class DataflowAnalysisTest extends CompilerTest {
           |{ x := a ; y := b }
           |""".stripMargin.preprocessExpression.get.analyse
 
-      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+      if (!ir.isInstanceOf[errors.Syntax]) {
         val depInfo = ir.getMetadata(DataflowAnalysis).get
 
         val literal           = ir.asInstanceOf[Application.Typeset]

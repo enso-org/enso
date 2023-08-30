@@ -7,6 +7,8 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -80,7 +82,7 @@ case object TypeSignatures extends IRPass {
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
       case sig: IR.Type.Ascription =>
-        val res = lastSignature.map(IR.Error.Unexpected.TypeSignature(_))
+        val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
         lastSignature = Some(sig)
         res
       case meth: Definition.Method =>
@@ -117,13 +119,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    IR.Error.Unexpected.TypeSignature(asc),
+                    errors.Unexpected.TypeSignature(asc),
                     newMethodWithAnnotations
                   )
                 }
               case _ =>
                 List(
-                  IR.Error.Unexpected.TypeSignature(asc),
+                  errors.Unexpected.TypeSignature(asc),
                   newMethodWithAnnotations
                 )
             }
@@ -142,7 +144,7 @@ case object TypeSignatures extends IRPass {
             )
             .mapExpressions(resolveExpression)
         )
-      case err: IR.Error               => Some(err)
+      case err: Error                  => Some(err)
       case ann: Name.GenericAnnotation => Some(ann)
       case _: Definition.SugaredType =>
         throw new CompilerError(
@@ -160,7 +162,7 @@ case object TypeSignatures extends IRPass {
           "signature resolution."
         )
     } ::: lastSignature
-      .map(asc => IR.Error.Unexpected.TypeSignature(asc))
+      .map(asc => errors.Unexpected.TypeSignature(asc))
       .toList
 
     mod.copy(
@@ -248,7 +250,7 @@ case object TypeSignatures extends IRPass {
     val newExpressions = allBlockExpressions.flatMap {
       case sig: IR.Type.Ascription =>
         val res = lastSignature match {
-          case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
+          case Some(oldSig) => Some(errors.Unexpected.TypeSignature(oldSig))
           case None         => None
         }
 
@@ -274,13 +276,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    IR.Error.Unexpected.TypeSignature(asc),
+                    errors.Unexpected.TypeSignature(asc),
                     newBindingWithDoc
                   )
                 }
               case _ =>
                 List(
-                  IR.Error.Unexpected.TypeSignature(asc),
+                  errors.Unexpected.TypeSignature(asc),
                   newBindingWithDoc
                 )
             }
@@ -290,7 +292,7 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case a => Some(resolveExpression(a))
-    } ::: lastSignature.map(IR.Error.Unexpected.TypeSignature(_)).toList
+    } ::: lastSignature.map(errors.Unexpected.TypeSignature(_)).toList
 
     block.copy(
       expressions = newExpressions.init,

@@ -7,7 +7,8 @@ import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
-import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
@@ -112,7 +113,7 @@ case object FullyQualifiedNames extends IRPass {
                   case m: Export.Module
                       if m.name.name == resolution.qualifiedName.toString =>
                     m.addDiagnostic(
-                      IR.Warning.Shadowed.TypeInModuleNameConflicts(
+                      warnings.Shadowed.TypeInModuleNameConflicts(
                         exportedModule.getName.toString,
                         tpeName,
                         allStarting.head.getName.toString,
@@ -342,9 +343,10 @@ case object FullyQualifiedNames extends IRPass {
                 // IR for it. Triggering a full compilation at this stage may have
                 // undesired consequences and is therefore prohibited on purpose.
                 Left(
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     consName,
-                    MissingLibraryImportInFQNError(thisResolution.namespace)
+                    errors.Resolution
+                      .MissingLibraryImportInFQNError(thisResolution.namespace)
                   )
                 )
               } else {
@@ -358,9 +360,10 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           Some(
             Left(
-              IR.Error.Resolution(
+              errors.Resolution(
                 consName,
-                MissingLibraryImportInFQNError(thisResolution.namespace)
+                errors.Resolution
+                  .MissingLibraryImportInFQNError(thisResolution.namespace)
               )
             )
           )

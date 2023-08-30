@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -192,7 +193,7 @@ case object ComplexType extends IRPass {
         matchSignaturesAndGenerate(name, binding)
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
-      case err: IR.Error               => Seq(err)
+      case err: Error                  => Seq(err)
       case ann: Name.GenericAnnotation => Seq(ann)
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")

@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
@@ -1239,7 +1240,7 @@ class AliasAnalysisTest extends CompilerTest {
       block.unsafeGetMetadata(AliasAnalysis, "").unsafeAs[Info.Scope.Child]
 
     "create a new scope for the literal" in {
-      if (!block.returnValue.isInstanceOf[IR.Error.Syntax]) {
+      if (!block.returnValue.isInstanceOf[errors.Syntax]) {
         val literal =
           block.returnValue.asInstanceOf[Application.Typeset]
         val literalScope =
@@ -1271,8 +1272,8 @@ class AliasAnalysisTest extends CompilerTest {
           .body
           .asInstanceOf[Expression.Block]
 
-      block.expressions(2) shouldBe an[IR.Error.Redefined.Binding]
-      atLeast(1, block.expressions) shouldBe an[IR.Error.Redefined.Binding]
+      block.expressions(2) shouldBe an[errors.Redefined.Binding]
+      atLeast(1, block.expressions) shouldBe an[errors.Redefined.Binding]
     }
   }
 }

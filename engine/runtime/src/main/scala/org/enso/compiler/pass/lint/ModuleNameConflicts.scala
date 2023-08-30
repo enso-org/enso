@@ -1,8 +1,8 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.pass.IRPass
@@ -92,7 +92,7 @@ case object ModuleNameConflicts extends IRPass {
         val atomName = cons.name.name
         val `export` = exports(atomName)
         binding.addDiagnostic(
-          IR.Warning.Shadowed
+          warnings.Shadowed
             .SyntheticModule(atomName, `export`.name, `export`, cons.location)
         )
       case _ =>

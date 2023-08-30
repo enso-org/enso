@@ -8,6 +8,8 @@ import org.enso.compiler.core.ir.{
   Module,
   Pattern
 }
+import org.enso.compiler.core.ir.expression.warnings
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -25,7 +27,7 @@ import scala.annotation.unused
 /** This pass discovers and optimised away unreachable case branches.
   *
   * It removes these unreachable expressions from the IR, and attaches a
-  * [[IR.Warning]] diagnostic to the case expression itself.
+  * [[org.enso.compiler.core.ir.Warning]] diagnostic to the case expression itself.
   *
   * Currently, a branch is considered 'unreachable' by this pass if:
   *
@@ -157,7 +159,7 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = IR.Warning.Unreachable.Branches(unreachableLocation)
+          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
 
           expr
             .copy(
@@ -184,7 +186,7 @@ case object UnreachableMatchBranches extends IRPass {
       case _: Pattern.Literal       => false
       case _: Pattern.Type          => false
       case _: Pattern.Documentation => false
-      case _: IR.Error.Pattern      => true
+      case _: errors.Pattern        => true
     }
   }
 }

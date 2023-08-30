@@ -4,6 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
@@ -158,11 +160,11 @@ case object FunctionBinding extends IRPass {
           )
         } else {
           if (args.isEmpty)
-            IR.Error.Conversion(meth, IR.Error.Conversion.MissingArgs)
+            errors.Conversion(meth, errors.Conversion.MissingArgs)
           else if (args.head.ascribedType.isEmpty) {
-            IR.Error.Conversion(
+            errors.Conversion(
               args.head,
-              IR.Error.Conversion.MissingSourceType(args.head.name.name)
+              errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
             val firstArg :: restArgs = args
@@ -219,15 +221,15 @@ case object FunctionBinding extends IRPass {
             def transformRemainingArgs(
               requiredArgs: List[DefinitionArgument],
               remainingArgs: List[DefinitionArgument]
-            ): Either[IR.Error, Definition.Method] = {
+            ): Either[Error, Definition.Method] = {
               remaining
                 .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
                 .find(_.defaultValue.isEmpty) match {
                 case Some(nonDefaultedArg) =>
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       nonDefaultedArg,
-                      IR.Error.Conversion.NonDefaultedArgument(
+                      errors.Conversion.NonDefaultedArgument(
                         nonDefaultedArg.name.name
                       )
                     )
@@ -257,9 +259,9 @@ case object FunctionBinding extends IRPass {
                 ) {
                   if (newSndArgument.name.name != Constants.Names.THAT_ARGUMENT)
                     Left(
-                      IR.Error.Conversion(
+                      errors.Conversion(
                         newSndArgument,
-                        IR.Error.Conversion.InvalidSourceArgumentName(
+                        errors.Conversion.InvalidSourceArgumentName(
                           newSndArgument.name.name
                         )
                       )
@@ -269,9 +271,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
                 ) {
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       newFirstArgument,
-                      IR.Error.Conversion.InvalidSourceArgumentName(
+                      errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -282,9 +284,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
                 ) {
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       newFirstArgument,
-                      IR.Error.Conversion.InvalidSourceArgumentName(
+                      errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -318,7 +320,7 @@ case object FunctionBinding extends IRPass {
         )
       case a: Name.GenericAnnotation => a
       case a: IR.Type.Ascription     => a
-      case e: IR.Error               => e
+      case e: Error                  => e
     }
   }
 }

@@ -1,11 +1,11 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
@@ -77,9 +77,9 @@ case object ExpressionAnnotations extends IRPass {
         if (isKnownAnnotation(ann.name)) {
           arguments match {
             case List() =>
-              IR.Error.Resolution(
+              errors.Resolution(
                 ann,
-                IR.Error.Resolution.UnexpectedAnnotation
+                errors.Resolution.UnexpectedAnnotation
               )
             case List(arg) =>
               doExpression(arg.value)
@@ -98,17 +98,17 @@ case object ExpressionAnnotations extends IRPass {
           }
         } else {
           val err =
-            IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
+            errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
           app.copy(function = err)
         }
       case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
-          IR.Error.Resolution(
+          errors.Resolution(
             ann,
-            IR.Error.Resolution.UnexpectedAnnotation
+            errors.Resolution.UnexpectedAnnotation
           )
         } else {
-          IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
+          errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
         }
     }
 

@@ -7,6 +7,8 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.FunctionBinding
 import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
@@ -208,9 +210,9 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from = a + b
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Error.Conversion]
-      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
-      err.reason shouldBe an[IR.Error.Conversion.MissingArgs.type]
+      ir.bindings.head shouldBe an[errors.Conversion]
+      val err = ir.bindings.head.asInstanceOf[errors.Conversion]
+      err.reason shouldBe an[errors.Conversion.MissingArgs.type]
     }
 
     "return an error if the conversion does not have a source type" in {
@@ -218,9 +220,9 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from that = that + that
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Error.Conversion]
-      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
-      err.reason shouldBe an[IR.Error.Conversion.MissingSourceType]
+      ir.bindings.head shouldBe an[errors.Conversion]
+      val err = ir.bindings.head.asInstanceOf[errors.Conversion]
+      err.reason shouldBe an[errors.Conversion.MissingSourceType]
     }
 
     "return an error if the additional arguments don't have defaults" in {
@@ -228,9 +230,9 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from (that : Other) config = that + that
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head shouldBe an[IR.Error.Conversion]
-      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
-      err.reason shouldBe an[IR.Error.Conversion.NonDefaultedArgument]
+      ir.bindings.head shouldBe an[errors.Conversion]
+      val err = ir.bindings.head.asInstanceOf[errors.Conversion]
+      err.reason shouldBe an[errors.Conversion.NonDefaultedArgument]
     }
 
     "not return an error if the additional arguments don't have defaults and is not a self parameter" in {
@@ -238,7 +240,7 @@ class FunctionBindingTest extends CompilerTest {
         s"""My_Type.$from (that : Other) config=1 self = that + that
            |""".stripMargin.preprocessModule.desugar
 
-      ir.bindings.head should not be an[IR.Error]
+      ir.bindings.head should not be an[Error]
     }
   }
 

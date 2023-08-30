@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -85,10 +86,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
     "create an error when discovering an unknown annotation" in {
       val unknown =
         items.expressions(1).asInstanceOf[Application.Prefix].function
-      unknown shouldBe an[IR.Error.Resolution]
+      unknown shouldBe an[errors.Resolution]
       unknown
-        .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnknownAnnotation
+        .asInstanceOf[errors.Resolution]
+        .reason shouldEqual errors.Resolution.UnknownAnnotation
     }
 
     "associate the annotation with the annotated definition" in {
@@ -132,10 +133,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .asInstanceOf[Application.Prefix]
         .arguments(0)
         .value
-      misplaced shouldBe an[IR.Error.Resolution]
+      misplaced shouldBe an[errors.Resolution]
       misplaced
-        .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
+        .asInstanceOf[errors.Resolution]
+        .reason shouldEqual errors.Resolution.UnexpectedAnnotation
     }
   }
 
@@ -157,11 +158,11 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
     "create an error when discovering an unexpected annotation" in {
       items.expressions.size shouldBe 0
-      items.returnValue shouldBe an[IR.Error.Resolution]
-      val err = items.returnValue.asInstanceOf[IR.Error.Resolution]
+      items.returnValue shouldBe an[errors.Resolution]
+      val err = items.returnValue.asInstanceOf[errors.Resolution]
       err
-        .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
+        .asInstanceOf[errors.Resolution]
+        .reason shouldEqual errors.Resolution.UnexpectedAnnotation
     }
   }
 }

@@ -3,6 +3,8 @@ package org.enso.compiler.pass.lint
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -139,7 +141,7 @@ case object ShadowedPatternFields extends IRPass {
       pattern match {
         case named @ Pattern.Name(name, location, _, _) =>
           if (seenNames.contains(name.name)) {
-            val warning = IR.Warning.Shadowed
+            val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
 
             lastSeen(name.name) = named
@@ -165,7 +167,7 @@ case object ShadowedPatternFields extends IRPass {
           literal
         case typed @ Pattern.Type(name, _, location, _, _) =>
           if (seenNames.contains(name.name)) {
-            val warning = IR.Warning.Shadowed
+            val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
 
             lastSeen(name.name) = typed
@@ -185,7 +187,7 @@ case object ShadowedPatternFields extends IRPass {
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case err: IR.Error.Pattern => err
+        case err: errors.Pattern => err
       }
     }
 

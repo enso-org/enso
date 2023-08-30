@@ -2,7 +2,16 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
+import org.enso.compiler.core.ir.{
+  Expression,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  Warning
+}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.IR.Case
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
@@ -107,7 +116,7 @@ case object UnusedBindings extends IRPass {
     if (!isIgnored && !isUsed) {
       binding
         .copy(expression = runExpression(binding.expression, context))
-        .addDiagnostic(IR.Warning.Unused.Binding(binding.name))
+        .addDiagnostic(warnings.Unused.Binding(binding.name))
     } else {
       binding.copy(
         expression = runExpression(binding.expression, context)
@@ -141,7 +150,7 @@ case object UnusedBindings extends IRPass {
                 body1
               case _ =>
                 body1.addDiagnostic(
-                  IR.Warning.WrongBuiltinMethod(body.location)
+                  Warning.WrongBuiltinMethod(body.location)
                 )
             }
           else body1
@@ -198,7 +207,7 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           s.copy(
             defaultValue = default.map(runExpression(_, context))
-          ).addDiagnostic(IR.Warning.Unused.FunctionArgument(name))
+          ).addDiagnostic(warnings.Unused.FunctionArgument(name))
         } else s
     }
   }
@@ -261,7 +270,7 @@ case object UnusedBindings extends IRPass {
         val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
         if (!isIgnored && !isUsed) {
-          n.addDiagnostic(IR.Warning.Unused.PatternBinding(name))
+          n.addDiagnostic(warnings.Unused.PatternBinding(name))
         } else pattern
       case cons @ Pattern.Constructor(_, fields, _, _, _) =>
         if (!cons.isDesugared) {
@@ -291,11 +300,11 @@ case object UnusedBindings extends IRPass {
         val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
         if (!isIgnored && !isUsed) {
-          typed.addDiagnostic(IR.Warning.Unused.PatternBinding(name))
+          typed.addDiagnostic(warnings.Unused.PatternBinding(name))
         } else pattern
       case literal: Pattern.Literal =>
         literal
-      case err: IR.Error.Pattern => err
+      case err: errors.Pattern => err
 
       case _: Pattern.Documentation =>
         throw new CompilerError(

@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Pattern}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -84,10 +85,10 @@ class PatternsTest extends CompilerTest {
         .asInstanceOf[Pattern.Constructor]
         .constructor
         .getMetadata(Patterns) shouldBe defined
-      patterns(1) shouldBe a[IR.Error.Pattern]
+      patterns(1) shouldBe a[errors.Pattern]
       patterns(2)
         .asInstanceOf[Pattern.Constructor]
-        .constructor shouldBe a[IR.Error.Resolution]
+        .constructor shouldBe a[errors.Resolution]
       patterns(3)
         .asInstanceOf[Pattern.Type]
         .tpe

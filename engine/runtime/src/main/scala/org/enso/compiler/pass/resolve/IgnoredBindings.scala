@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.IR.Case
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -360,7 +361,7 @@ case object IgnoredBindings extends IRPass {
             name = setNotIgnored(name)
           )
         }
-      case err: IR.Error.Pattern => err
+      case err: errors.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

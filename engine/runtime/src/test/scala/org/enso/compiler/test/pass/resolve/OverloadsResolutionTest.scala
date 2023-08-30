@@ -2,8 +2,8 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -64,14 +64,14 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Method]
+      exactly(2, ir.bindings) shouldBe an[errors.Redefined.Method]
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.Method]
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Method]
-      val redef1 = ir.bindings(1).asInstanceOf[IR.Error.Redefined.Method]
-      val redef2 = ir.bindings(2).asInstanceOf[IR.Error.Redefined.Method]
+      ir.bindings(1) shouldBe an[errors.Redefined.Method]
+      ir.bindings(2) shouldBe an[errors.Redefined.Method]
+      val redef1 = ir.bindings(1).asInstanceOf[errors.Redefined.Method]
+      val redef2 = ir.bindings(2).asInstanceOf[errors.Redefined.Method]
 
       redef1.atomName.get.name shouldEqual atomName
       redef2.atomName.get.name shouldEqual atomName
@@ -105,7 +105,7 @@ class OverloadsResolutionTest extends CompilerTest {
       ir.bindings.length shouldEqual 3
       ir.bindings.head shouldBe a[Definition.Method.Conversion]
       ir.bindings(1) shouldBe a[Definition.Method.Conversion]
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Conversion]
+      ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
     }
   }
 
@@ -122,18 +122,18 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Type]
+      exactly(2, ir.bindings) shouldBe an[errors.Redefined.Type]
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.Type]
+      ir.bindings(1) shouldBe an[errors.Redefined.Type]
       ir.bindings(1)
-        .asInstanceOf[IR.Error.Redefined.Type]
+        .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Type]
+      ir.bindings(2) shouldBe an[errors.Redefined.Type]
       ir.bindings(2)
-        .asInstanceOf[IR.Error.Redefined.Type]
+        .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName
     }

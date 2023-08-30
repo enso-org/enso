@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.pass.IRPass
@@ -113,7 +114,7 @@ case object DemandAnalysis extends IRPass {
           )
         )
       case lit: Literal     => lit
-      case err: IR.Error    => err
+      case err: Error       => err
       case foreign: Foreign => foreign
       case comment: IR.Comment =>
         comment.mapExpressions(x =>

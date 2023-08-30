@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Export
@@ -60,9 +60,9 @@ case object Imports extends IRPass {
             } else { i.copy(name = newName) }
           }
           .getOrElse(
-            IR.Error.ImportExport(
+            errors.ImportExport(
               i,
-              IR.Error.ImportExport.ProjectKeywordUsedButNotInProject("import")
+              errors.ImportExport.ProjectKeywordUsedButNotInProject("import")
             )
           )
       case other => other
@@ -84,9 +84,9 @@ case object Imports extends IRPass {
             } else { ex.copy(name = newName) }
           }
           .getOrElse(
-            IR.Error.ImportExport(
+            errors.ImportExport(
               ex,
-              IR.Error.ImportExport.ProjectKeywordUsedButNotInProject("export")
+              errors.ImportExport.ProjectKeywordUsedButNotInProject("export")
             )
           )
       case other => other

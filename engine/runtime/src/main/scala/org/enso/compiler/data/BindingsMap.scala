@@ -2,8 +2,8 @@ package org.enso.compiler.data
 
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -960,7 +960,7 @@ object BindingsMap {
 
   /** A representation of an error during name resolution.
     */
-  sealed trait ResolutionError extends IR.Error.Resolution.ExplainResolution
+  sealed trait ResolutionError extends errors.Resolution.ExplainResolution
 
   /** A representation of a resolution error due to symbol ambiguity.
     *

@@ -2,9 +2,8 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.{Diagnostic, Expression, Module}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.ResolutionNotFound
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
@@ -93,7 +92,7 @@ class TypeNamesTest extends CompilerTest {
       val meta = ir.bindings.last.getMetadata(TypeSignatures)
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
-        .collect({ case err: IR.Diagnostic =>
+        .collect({ case err: Diagnostic =>
           err
         })
 
@@ -114,14 +113,14 @@ class TypeNamesTest extends CompilerTest {
       val meta = ir.bindings.last.getMetadata(TypeSignatures)
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
-        .collect({ case err: IR.Diagnostic =>
+        .collect({ case err: Diagnostic =>
           err
         })
 
       diagnostics.length shouldEqual 1
-      val resolutionFailure = diagnostics.head.asInstanceOf[IR.Error.Resolution]
+      val resolutionFailure = diagnostics.head.asInstanceOf[errors.Resolution]
       resolutionFailure.name shouldBe "C"
-      resolutionFailure.reason shouldBe IR.Error.Resolution.ResolverError(
+      resolutionFailure.reason shouldBe errors.Resolution.ResolverError(
         ResolutionNotFound
       )
     }
@@ -137,15 +136,15 @@ class TypeNamesTest extends CompilerTest {
       val meta = ir.bindings.last.getMetadata(TypeSignatures)
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
-        .collect({ case err: IR.Diagnostic =>
+        .collect({ case err: Diagnostic =>
           err
         })
 
       diagnostics.length shouldEqual 3
       diagnostics.foreach {
-        case d: IR.Error.Resolution =>
+        case d: errors.Resolution =>
           d.name shouldBe "Integer"
-          d.reason shouldBe IR.Error.Resolution.ResolverError(
+          d.reason shouldBe errors.Resolution.ResolverError(
             ResolutionNotFound
           )
         case _ =>
@@ -166,7 +165,7 @@ class TypeNamesTest extends CompilerTest {
       val meta = ir.bindings.last.getMetadata(TypeSignatures)
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
-        .collect({ case err: IR.Diagnostic =>
+        .collect({ case err: Diagnostic =>
           err
         })
 

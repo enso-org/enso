@@ -1,16 +1,16 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
 /** Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
   * the symbols imported from the module can be resolved, i.e., exists.
-  * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
+  * In case of unresolved symbols, replaces the IR import with [[errors.ImportExport]].
   * Reports only the first unresolved symbol.
   */
 case object ImportSymbolAnalysis extends IRPass {
@@ -47,7 +47,7 @@ case object ImportSymbolAnalysis extends IRPass {
     inlineContext: InlineContext
   ): Expression = ir
 
-  /** @return May return multiple [[IR.Error.ImportExport]] in case of multiple unresolved symbols.
+  /** @return May return multiple [[errors.ImportExport]] in case of multiple unresolved symbols.
     */
   private def analyseSymbolsFromImport(
     imp: Import,
@@ -92,20 +92,20 @@ case object ImportSymbolAnalysis extends IRPass {
     imp: Import,
     importTarget: BindingsMap.ImportTarget,
     unresolvedSymbol: Name.Literal
-  ): IR.Error.ImportExport = {
+  ): errors.ImportExport = {
     importTarget match {
       case BindingsMap.ResolvedModule(module) =>
-        IR.Error.ImportExport(
+        errors.ImportExport(
           imp,
-          IR.Error.ImportExport.SymbolDoesNotExist(
+          errors.ImportExport.SymbolDoesNotExist(
             unresolvedSymbol.name,
             module.getName.toString
           )
         )
       case BindingsMap.ResolvedType(_, tp) =>
-        IR.Error.ImportExport(
+        errors.ImportExport(
           imp,
-          IR.Error.ImportExport.NoSuchConstructor(
+          errors.ImportExport.NoSuchConstructor(
             tp.name,
             unresolvedSymbol.name
           )

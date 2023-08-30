@@ -1,7 +1,7 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Diagnostic, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, ToStringHelper}
 
 // === Basic Shapes =========================================================
 

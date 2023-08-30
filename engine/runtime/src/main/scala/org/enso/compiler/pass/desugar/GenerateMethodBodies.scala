@@ -2,8 +2,9 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.{Expression, Module, Name, Warning}
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
@@ -131,7 +132,7 @@ case object GenerateMethodBodies extends IRPass {
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        IR.Error.Redefined.SelfArg(location = redefined.location)
+        errors.Redefined.SelfArg(location = redefined.location)
       case (_, parameterPosition) :: Nil =>
         fun match {
           case lam @ IR.Function.Lambda(_ :: _, _, _, _, _, _)
@@ -139,7 +140,7 @@ case object GenerateMethodBodies extends IRPass {
             lam
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             fun.addDiagnostic(
-              IR.Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
+              Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
           case _: IR.Function.Binding =>
@@ -191,7 +192,7 @@ case object GenerateMethodBodies extends IRPass {
       if (arg.name.name == THIS_ARGUMENT) {
         if (i + argsIdx != 0) {
           lam.addDiagnostic(
-            IR.Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
+            Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
           )
         }
         (genSyntheticSelf() :: acc, true)

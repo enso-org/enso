@@ -5,6 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.core.ir.expression.Application
@@ -15,7 +16,7 @@ import org.enso.compiler.test.CompilerTest
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
+    val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
     val plusOp = Name.Literal("+", isMethod = true, None)
     val plusApp = Application.Prefix(
       plusOp,
@@ -50,8 +51,8 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = IR.Error.Syntax(null, IR.Error.Syntax.UnexpectedExpression)
-      val error3 = IR.Error.Syntax(null, IR.Error.Syntax.AmbiguousExpression)
+      val error2 = errors.Syntax(null, errors.Syntax.UnexpectedExpression)
+      val error3 = errors.Syntax(null, errors.Syntax.AmbiguousExpression)
 
       val typeName =
         Name.Literal("Foo", isMethod = false, None)
@@ -97,11 +98,11 @@ class GatherDiagnosticsTest extends CompilerTest {
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())
-      val errors = result
+      val gatheredErrros = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
 
-      errors.toSet shouldEqual Set(error1, error2, error3)
+      gatheredErrros.toSet shouldEqual Set(error1, error2, error3)
     }
 
     "avoid duplication" in {

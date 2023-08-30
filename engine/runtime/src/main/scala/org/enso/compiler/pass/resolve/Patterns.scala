@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -112,9 +113,9 @@ object Patterns extends IRPass {
             val resolvedName = resolution
               .map {
                 case Left(err) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     consPat.constructor,
-                    IR.Error.Resolution.ResolverError(err)
+                    errors.Resolution.ResolverError(err)
                   )
                 case Right(value: BindingsMap.ResolvedConstructor) =>
                   consName.updateMetadata(
@@ -138,9 +139,9 @@ object Patterns extends IRPass {
                   )
 
                 case Right(_: BindingsMap.ResolvedMethod) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     consName,
-                    IR.Error.Resolution.UnexpectedMethod(
+                    errors.Resolution.UnexpectedMethod(
                       "a pattern match"
                     )
                   )
@@ -164,9 +165,9 @@ object Patterns extends IRPass {
             expectedArity match {
               case Some(arity) =>
                 if (consPat.fields.length != arity) {
-                  IR.Error.Pattern(
+                  errors.Pattern(
                     consPat,
-                    IR.Error.Pattern.WrongArity(
+                    errors.Pattern.WrongArity(
                       consPat.constructor.name,
                       arity,
                       consPat.fields.length
@@ -193,18 +194,18 @@ object Patterns extends IRPass {
             val resolvedTpeName = resolution
               .map {
                 case Left(err) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpePattern.tpe,
-                    IR.Error.Resolution.ResolverError(err)
+                    errors.Resolution.ResolverError(err)
                   )
                 case Right(value: BindingsMap.ResolvedType) =>
                   tpeName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
                 case Right(_: BindingsMap.ResolvedConstructor) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution
+                    errors.Resolution
                       .UnexpectedConstructor(s"type pattern case")
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
@@ -215,19 +216,19 @@ object Patterns extends IRPass {
                   tpeName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
-                /*IR.Error.Resolution(
+                /*errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedPolyglot(s"type pattern case")
+                    errors.Resolution.UnexpectedPolyglot(s"type pattern case")
                   )*/
                 case Right(_: BindingsMap.ResolvedMethod) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                    errors.Resolution.UnexpectedMethod(s"type pattern case")
                   )
                 case Right(_: BindingsMap.ResolvedModule) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedModule(s"type pattern case")
+                    errors.Resolution.UnexpectedModule(s"type pattern case")
                   )
               }
               .getOrElse(tpeName)

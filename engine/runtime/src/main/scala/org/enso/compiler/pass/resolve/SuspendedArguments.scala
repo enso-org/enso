@@ -4,6 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Empty, Expression, Module}
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.IR.Type
 import org.enso.compiler.core.CompilerError
@@ -110,9 +112,9 @@ case object SuspendedArguments extends IRPass {
               case Some(Signature(signature)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
-                  IR.Error.Conversion(
+                  errors.Conversion(
                     method,
-                    IR.Error.Conversion.SuspendedSourceArgument(
+                    errors.Conversion.SuspendedSourceArgument(
                       newArgs.head.name.name
                     )
                   )
@@ -127,16 +129,16 @@ case object SuspendedArguments extends IRPass {
               case None =>
                 args match {
                   case _ :: Nil =>
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       method,
-                      IR.Error.Conversion.SuspendedSourceArgument(
+                      errors.Conversion.SuspendedSourceArgument(
                         "unknown"
                       )
                     )
                   case _ :: sourceArg :: _ if sourceArg.suspended =>
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       method,
-                      IR.Error.Conversion.SuspendedSourceArgument(
+                      errors.Conversion.SuspendedSourceArgument(
                         sourceArg.name.name
                       )
                     )
@@ -179,7 +181,7 @@ case object SuspendedArguments extends IRPass {
         }
       case _: Definition.Method.Binding => throw new CompilerError("")
       case _: Definition.Type           => binding
-      case err: IR.Error                => err
+      case err: Error                   => err
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present."

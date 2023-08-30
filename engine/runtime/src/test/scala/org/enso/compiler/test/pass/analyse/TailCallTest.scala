@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Pattern}
+import org.enso.compiler.core.ir.{Expression, Module, Pattern, Warning}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
@@ -182,12 +182,12 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[Expression.Binding]
         .expression
         .diagnostics
-        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .filter(_.isInstanceOf[Warning.WrongTco])
         .toList
         .length shouldEqual 1
 
       fnBody.returnValue.diagnostics
-        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .filter(_.isInstanceOf[Warning.WrongTco])
         .toList
         .length shouldEqual 0
     }
@@ -221,7 +221,7 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[Application.Prefix]
         .function
         .diagnostics
-        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .filter(_.isInstanceOf[Warning.WrongTco])
         .toList
         .length shouldEqual 0
     }

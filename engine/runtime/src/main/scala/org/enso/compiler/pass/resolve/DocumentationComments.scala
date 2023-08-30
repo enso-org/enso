@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -159,7 +160,7 @@ case object DocumentationComments extends IRPass {
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
       case doc: IR.Comment.Documentation => doc
       case tySig: IR.Type.Ascription     => tySig
-      case err: IR.Error                 => err
+      case err: Error                    => err
       case ann: Name.GenericAnnotation   => ann
       case _: Name.BuiltinAnnotation =>
         throw new CompilerError(

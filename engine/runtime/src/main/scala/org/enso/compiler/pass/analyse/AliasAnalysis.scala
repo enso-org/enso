@@ -4,6 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
@@ -306,7 +308,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
-      case err: IR.Error => err
+      case err: Error => err
     }
   }
 
@@ -399,7 +401,7 @@ case object AliasAnalysis extends IRPass {
             )
             .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
-          IR.Error.Redefined.Binding(binding)
+          errors.Redefined.Binding(binding)
         }
       case app: Application =>
         analyseApplication(app, graph, parentScope)
@@ -794,7 +796,7 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
-      case err: IR.Error.Pattern => err
+      case err: errors.Pattern => err
     }
   }
 

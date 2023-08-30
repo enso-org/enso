@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.SuspendedArguments
@@ -178,9 +179,9 @@ class SuspendedArgumentsTest extends CompilerTest {
         """File.from (~that : Text) = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
 
-      ir shouldBe an[IR.Error.Conversion]
-      ir.asInstanceOf[IR.Error.Conversion]
-        .reason shouldBe an[IR.Error.Conversion.SuspendedSourceArgument]
+      ir shouldBe an[errors.Conversion]
+      ir.asInstanceOf[errors.Conversion]
+        .reason shouldBe an[errors.Conversion.SuspendedSourceArgument]
     }
 
     "work for local functions applications" in {

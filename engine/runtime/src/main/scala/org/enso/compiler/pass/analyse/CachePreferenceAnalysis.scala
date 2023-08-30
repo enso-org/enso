@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -116,7 +117,7 @@ case object CachePreferenceAnalysis extends IRPass {
           "cache preference analysis."
         )
       case ann: Name.GenericAnnotation => ann
-      case err: IR.Error               => err
+      case err: Error                  => err
     }
 
   /** Performs preference analysis on an arbitrary expression.
@@ -140,7 +141,7 @@ case object CachePreferenceAnalysis extends IRPass {
             expression = analyseExpression(binding.expression, weights)
           )
           .updateMetadata(this -->> weights)
-      case error: IR.Error =>
+      case error: Error =>
         error
       case expr =>
         expr.getExternalId.collect {

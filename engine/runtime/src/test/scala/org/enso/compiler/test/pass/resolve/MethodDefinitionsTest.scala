@@ -2,9 +2,9 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Type
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -105,7 +105,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .asInstanceOf[Definition.Method.Explicit]
         .methodReference
         .typePointer
-        .get shouldBe a[IR.Error.Resolution]
+        .get shouldBe a[errors.Resolution]
 
       val conv1 = ir
         .bindings(6)
@@ -142,12 +142,12 @@ class MethodDefinitionsTest extends CompilerTest {
           )
         )
       )
-      conv2.sourceTypeName shouldBe an[IR.Error.Resolution]
+      conv2.sourceTypeName shouldBe an[errors.Resolution]
 
       val conv3 = ir
         .bindings(8)
         .asInstanceOf[Definition.Method.Conversion]
-      conv3.methodReference.typePointer.get shouldBe an[IR.Error.Resolution]
+      conv3.methodReference.typePointer.get shouldBe an[errors.Resolution]
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(

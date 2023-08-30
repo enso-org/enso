@@ -1,9 +1,9 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.{Expression, Module, Warning}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -88,7 +88,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     module: ModuleContext,
     bindingMap: BindingsMap,
     encounteredSymbols: EncounteredSymbols
-  ): Either[List[IR.Error.ImportExport], Import] = {
+  ): Either[List[errors.ImportExport], Import] = {
     imp match {
       // Import multiple symbols
       case moduleImport @ Import.Module(
@@ -104,7 +104,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
           ) =>
         getImportTarget(moduleImport, bindingMap) match {
           case Some(importTarget) =>
-            val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
+            val encounteredErrors: ListBuffer[errors.ImportExport] =
               ListBuffer()
             val imp =
               onlyNames.foldLeft(moduleImport: Import) { case (imp, symbol) =>
@@ -163,7 +163,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
                 val hiddenNames = hiddenNamesLiterals.map(_.name)
                 exportedSymbolNames.filterNot(hiddenNames.contains)
             }
-            val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
+            val encounteredErrors: ListBuffer[errors.ImportExport] =
               ListBuffer()
             val imp =
               symbolsToIterate.foldLeft(moduleImport: Import) {
@@ -281,7 +281,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
 
   /** Tries to add the encountered symbol to the encountered symbols map. If it is already contained
     * in the map, checks whether the underlying entity path is the same as the original entity path.
-    * Based on that, either attaches a warning for a duplicated import, or returns an [[IR.Error.ImportExport]].
+    * Based on that, either attaches a warning for a duplicated import, or returns an [[errors.ImportExport]].
     *
     * @param module Current module
     * @param encounteredSymbols Encountered symbols in the current module
@@ -296,7 +296,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     currentImport: Import,
     symbolName: String,
     symbolPath: String
-  ): Either[IR.Error.ImportExport, Import] = {
+  ): Either[errors.ImportExport, Import] = {
     if (encounteredSymbols.containsSymbol(symbolName)) {
       val encounteredFullName =
         encounteredSymbols.getPathForSymbol(symbolName)
@@ -336,10 +336,10 @@ case object AmbiguousImportsAnalysis extends IRPass {
     duplicatingImport: Import,
     ambiguousSymbol: String,
     ambiguousSymbolPath: String
-  ): IR.Error.ImportExport = {
-    IR.Error.ImportExport(
+  ): errors.ImportExport = {
+    errors.ImportExport(
       duplicatingImport,
-      IR.Error.ImportExport.AmbiguousImport(
+      errors.ImportExport.AmbiguousImport(
         originalImport,
         originalSymbolPath,
         ambiguousSymbol,
@@ -354,8 +354,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
     originalImport: Import,
     duplicatingImport: Import,
     duplicatedSymbol: String
-  ): IR.Warning = {
-    IR.Warning.DuplicatedImport(
+  ): Warning = {
+    Warning.DuplicatedImport(
       duplicatingImport.location,
       originalImport,
       duplicatedSymbol,

@@ -23,7 +23,8 @@ public class EnsoParserTest {
 
   @AfterClass
   public static void closeEnsoParser() throws Exception {
-    ensoCompiler.close();
+    if (ensoCompiler != null)
+      ensoCompiler.close();
   }
 
   @Test
@@ -1362,13 +1363,13 @@ public class EnsoParserTest {
       }
     }
     for (;;) {
-      final String pref = "IR.Error.Syntax(";
+      final String pref = "errors.Syntax(";
       int at = txt.indexOf(pref);
       if (at == -1) {
         break;
       }
       int to = txt.indexOf("reason =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
+      txt = txt.substring(0, at) + "errors.Syntax (" + txt.substring(to);
     }
     return txt;
   }

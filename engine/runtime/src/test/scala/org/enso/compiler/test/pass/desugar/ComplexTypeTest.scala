@@ -5,6 +5,7 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -171,9 +172,9 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their errors translated untouched" in {
-      ir.bindings.last shouldBe an[IR.Error.Syntax]
-      val err = ir.bindings.last.asInstanceOf[IR.Error.Syntax]
-      err.reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
+      ir.bindings.last shouldBe an[errors.Syntax]
+      val err = ir.bindings.last.asInstanceOf[errors.Syntax]
+      err.reason shouldBe an[errors.Syntax.UnexpectedDeclarationInType.type]
     }
 
     "have their valid methods desugared" in {

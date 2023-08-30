@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -285,13 +286,13 @@ class LambdaConsolidateTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.optimise
           .asInstanceOf[IR.Function.Lambda]
 
-      val warnings = ir.arguments.head.diagnostics.toList.collect {
-        case w: IR.Warning.Shadowed.FunctionParam => w
+      val ws = ir.arguments.head.diagnostics.toList.collect {
+        case w: warnings.Shadowed.FunctionParam => w
       }
 
-      warnings should not be empty
-      warnings.head.shadowedName shouldEqual "x"
-      warnings.head.shadower shouldBe ir.arguments(1)
+      ws should not be empty
+      ws.head.shadowedName shouldEqual "x"
+      ws.head.shadower shouldBe ir.arguments(1)
     }
 
     "consolidate chained lambdas if the chaining occurs via a single-lined block" in {

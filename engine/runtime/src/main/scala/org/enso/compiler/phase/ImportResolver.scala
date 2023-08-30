@@ -1,10 +1,10 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
@@ -258,9 +258,9 @@ class ImportResolver(compiler: Compiler) {
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>
                 (
-                  IR.Error.ImportExport(
+                  errors.ImportExport(
                     imp,
-                    IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                    errors.ImportExport.ModuleDoesNotExist(impName)
                   ),
                   None
                 )
@@ -268,9 +268,9 @@ class ImportResolver(compiler: Compiler) {
         }
       case Left(loadingError) =>
         (
-          IR.Error.ImportExport(
+          errors.ImportExport(
             imp,
-            IR.Error.ImportExport.PackageCouldNotBeLoaded(
+            errors.ImportExport.PackageCouldNotBeLoaded(
               impName,
               loadingError.toString
             )

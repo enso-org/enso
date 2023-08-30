@@ -3,17 +3,22 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
+
 import org.enso.compiler.core.ir.{
+  Diagnostic,
   Empty,
   Expression,
   Literal,
   Module,
   Name,
-  Pattern
+  Pattern,
+  Warning
 }
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
@@ -137,7 +142,7 @@ case object TailCall extends IRPass {
             analyseExpression(ann.expression, isInTailPosition = true)
           )
           .updateMetadata(this -->> TailPosition.Tail)
-      case err: IR.Error => err
+      case err: Error => err
     }
   }
 
@@ -154,7 +159,7 @@ case object TailCall extends IRPass {
   ): Expression = {
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
-        expression.addDiagnostic(IR.Warning.WrongTco(expression.location))
+        expression.addDiagnostic(Warning.WrongTco(expression.location))
       else expression
     expressionWithWarning match {
       case empty: Empty =>
@@ -194,7 +199,7 @@ case object TailCall extends IRPass {
             expression = analyseExpression(expression, isInTailPosition = false)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case err: IR.Diagnostic =>
+      case err: Diagnostic =>
         err.updateMetadata(
           this -->> TailPosition.fromBool(isInTailPosition)
         )
@@ -406,7 +411,7 @@ case object TailCall extends IRPass {
             name = analyseName(name, isInTailPosition = false),
             tpe  = analyseName(tpe, isInTailPosition = false)
           )
-      case err: IR.Error.Pattern =>
+      case err: errors.Pattern =>
         err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>
         throw new CompilerError(

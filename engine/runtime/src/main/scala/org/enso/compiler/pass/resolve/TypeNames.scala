@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
@@ -125,13 +126,13 @@ case object TypeNames extends IRPass {
       .map(res => name.updateMetadata(this -->> Resolution(res)))
       .fold(
         error =>
-          IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
+          errors.Resolution(name, errors.Resolution.ResolverError(error)),
         n =>
           n.getMetadata(this).get.target match {
             case _: ResolvedModule =>
-              IR.Error.Resolution(
+              errors.Resolution(
                 n,
-                IR.Error.Resolution.UnexpectedModule("type signature")
+                errors.Resolution.UnexpectedModule("type signature")
               )
             case _ => n
           }

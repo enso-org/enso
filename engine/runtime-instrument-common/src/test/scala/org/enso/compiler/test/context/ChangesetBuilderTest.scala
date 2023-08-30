@@ -10,6 +10,7 @@ import org.enso.compiler.context.{
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
@@ -165,7 +166,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val undefinedExpr = ir.expression.asInstanceOf[IR.Error.Resolution]
+      val undefinedExpr = ir.expression.asInstanceOf[errors.Resolution]
       val undefinedName = undefinedExpr.originalName
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -184,7 +185,7 @@ class ChangesetBuilderTest extends CompilerTest {
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val undefinedArg =
         rhs.arguments(1).asInstanceOf[IR.CallArgument.Specified]
-      val undefinedError = undefinedArg.value.asInstanceOf[IR.Error.Resolution]
+      val undefinedError = undefinedArg.value.asInstanceOf[errors.Resolution]
       val undefinedName  = undefinedError.originalName
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -364,7 +365,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Error.Resolution]
+        .asInstanceOf[errors.Resolution]
         .originalName
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(

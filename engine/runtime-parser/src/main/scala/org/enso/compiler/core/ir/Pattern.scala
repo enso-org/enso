@@ -2,8 +2,8 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.{Name => IRName, Literal => IRLiteral}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
-import org.enso.compiler.core.IR.Error
 
 // === Patterns =============================================================
 
@@ -207,7 +207,7 @@ object Pattern {
             "Branch documentation should not be present " +
             "inside a constructor pattern."
           )
-        case _: Error.Pattern => true
+        case _: errors.Pattern => true
       }
     }
 

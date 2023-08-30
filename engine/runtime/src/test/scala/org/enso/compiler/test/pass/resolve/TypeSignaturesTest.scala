@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{
@@ -120,11 +121,11 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 5
-      ir.bindings.head shouldBe an[IR.Error.Unexpected.TypeSignature]
-      ir.bindings(1) shouldBe an[IR.Error.Unexpected.TypeSignature]
+      ir.bindings.head shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings(1) shouldBe an[errors.Unexpected.TypeSignature]
       ir.bindings(2) shouldBe an[Definition.Method]
       ir.bindings(3) shouldBe an[Definition.Method]
-      ir.bindings(4) shouldBe an[IR.Error.Unexpected.TypeSignature]
+      ir.bindings(4) shouldBe an[errors.Unexpected.TypeSignature]
     }
 
     "reattach documentation to method definitions" in {
@@ -171,7 +172,7 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings(1) shouldBe an[Definition.Method]
       ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined
-      ir.bindings(2) shouldBe an[IR.Error.Unexpected.TypeSignature]
+      ir.bindings(2) shouldBe an[errors.Unexpected.TypeSignature]
     }
 
     "recurse into bodies" in {
@@ -235,7 +236,7 @@ class TypeSignaturesTest extends CompilerTest {
     }
 
     "raise an error if a signature is divorced from its definition" in {
-      block.returnValue shouldBe an[IR.Error.Unexpected.TypeSignature]
+      block.returnValue shouldBe an[errors.Unexpected.TypeSignature]
     }
 
     "work recursively" in {

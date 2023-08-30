@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
@@ -193,7 +194,7 @@ case object TypeFunctions extends IRPass {
           IR.Type.Set.Subtraction(leftArg, rightArg, location)
       }
     } else {
-      IR.Error.InvalidIR(originalIR)
+      Error.InvalidIR(originalIR)
     }
   }
 

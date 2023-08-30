@@ -3,6 +3,8 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{
   Empty,
   Expression,
@@ -204,7 +206,7 @@ case object DataflowAnalysis extends IRPass {
         ann
           .copy(expression = analyseExpression(ann.expression, info))
           .updateMetadata(this -->> info)
-      case err: IR.Error => err
+      case err: Error => err
     }
   }
 
@@ -260,7 +262,7 @@ case object DataflowAnalysis extends IRPass {
           )
           .updateMetadata(this -->> info)
 
-      case error: IR.Error => error
+      case error: Error => error
       case _: IR.Comment =>
         throw new CompilerError(
           "Comments should not be present during dataflow analysis."
@@ -690,7 +692,7 @@ case object DataflowAnalysis extends IRPass {
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
-      case err: IR.Error.Pattern => err.updateMetadata(this -->> info)
+      case err: errors.Pattern => err.updateMetadata(this -->> info)
     }
   }
 

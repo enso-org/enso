@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.resolve.TypeFunctions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -65,7 +66,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |(a :)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+      if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Function.Lambda]
         ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
       }
@@ -77,7 +78,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |(:)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+      if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Function.Lambda]
         ir.asInstanceOf[IR.Function.Lambda]
           .body
@@ -92,7 +93,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |(: a)
           |""".stripMargin.preprocessExpression.get.resolve
 
-      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+      if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Function.Lambda]
         ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
       }
@@ -104,7 +105,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |_ : A
           |""".stripMargin.preprocessExpression.get.resolve
 
-      if (!ir.isInstanceOf[IR.Error.Syntax]) {
+      if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Type.Ascription]
       }
     }

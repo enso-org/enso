@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
@@ -144,9 +145,9 @@ case object GlobalNames extends IRPass {
         selfTypeResolution
           .map(res => selfTp.updateMetadata(this -->> res))
           .getOrElse(
-            IR.Error.Resolution(
+            errors.Resolution(
               selfTp,
-              IR.Error.Resolution.ResolverError(ResolutionNotFound)
+              errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
       case lit: Name.Literal =>
@@ -165,9 +166,9 @@ case object GlobalNames extends IRPass {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    IR.Error.Resolution(
+                    errors.Resolution(
                       lit,
-                      IR.Error.Resolution.ResolverError(error)
+                      errors.Resolution.ResolverError(error)
                     )
                   case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
                     if (isInsideApplication) {

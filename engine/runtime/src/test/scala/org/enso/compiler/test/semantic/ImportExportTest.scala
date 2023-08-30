@@ -1,7 +1,7 @@
 package org.enso.compiler.test.semantic
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.{Module, Warning}
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -119,9 +119,9 @@ class ImportExportTest
         mainCode.createModule(packageQualifiedName.createChild("Main")).getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head match {
-        case importErr: IR.Error.ImportExport =>
+        case importErr: errors.ImportExport =>
           fail(
-            s"Import should be resolved, but instead produced IR.Error.ImportExport with ${importErr.reason.message}"
+            s"Import should be resolved, but instead produced errors.ImportExport with ${importErr.reason.message}"
           )
         case _ => ()
       }
@@ -175,7 +175,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
     }
 
     "result in error when importing a method from type" in {
@@ -192,11 +192,11 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
         .asInstanceOf[
-          IR.Error.ImportExport.NoSuchConstructor
-        ] shouldEqual IR.Error.ImportExport
+          errors.ImportExport.NoSuchConstructor
+        ] shouldEqual errors.ImportExport
         .NoSuchConstructor("Other_Type", "method")
     }
 
@@ -214,9 +214,9 @@ class ImportExportTest
           .getIr
       mainIr.imports
         .take(2)
-        .map(_.asInstanceOf[IR.Error.ImportExport].reason) shouldEqual List(
-        IR.Error.ImportExport.NoSuchConstructor("Other_Type", "method"),
-        IR.Error.ImportExport.NoSuchConstructor("Other_Type", "other_method")
+        .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
+        errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
+        errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
       )
     }
 
@@ -240,8 +240,8 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
 
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      bIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
+      bIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
       val bBindingMap    = bIr.unwrapBindingMap
       mainBindingMap.resolvedImports.size shouldEqual 2
@@ -285,9 +285,9 @@ class ImportExportTest
           .getIr
       mainIr.imports
         .take(2)
-        .map(_.asInstanceOf[IR.Error.ImportExport].reason) shouldEqual List(
-        IR.Error.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
-        IR.Error.ImportExport
+        .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
+        errors.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
+        errors.ImportExport
           .NoSuchConstructor("Other_Module_Type", "non_existing_method")
       )
     }
@@ -305,9 +305,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.ModuleDoesNotExist]
+        .asInstanceOf[errors.ImportExport.ModuleDoesNotExist]
         .name should include("static_method")
     }
 
@@ -323,9 +323,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.ModuleDoesNotExist]
+        .asInstanceOf[errors.ImportExport.ModuleDoesNotExist]
         .name should include("Non_Existing_Symbol")
     }
 
@@ -349,7 +349,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
       val resolvedImportTargets =
         mainBindingMap.resolvedImports.map(_.target)
@@ -377,7 +377,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
       val mainBindingMap = mainIr.unwrapBindingMap
       val resolvedImportTargets =
         mainBindingMap.resolvedImports.map(_.target)
@@ -409,11 +409,11 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
 
       mainModule.getIr.imports.head
-        .isInstanceOf[IR.Error.ImportExport] shouldBe true
+        .isInstanceOf[errors.ImportExport] shouldBe true
       mainModule.getIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.SymbolDoesNotExist]
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
         .symbolName shouldEqual "A_Type"
     }
   }
@@ -437,7 +437,7 @@ class ImportExportTest
       in.name.name.toString() should include("Test.Logical_Export.Main")
       in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
 
-      val errors = mainIr.preorder.filter(x => x.isInstanceOf[IR.Error])
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
     }
 
@@ -451,7 +451,7 @@ class ImportExportTest
         .getIr
 
       mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
         .message should include(
         "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
@@ -477,7 +477,7 @@ class ImportExportTest
       val warn = mainIr
         .imports(1)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
       warn.head.symbolName shouldEqual "A_Type"
@@ -501,7 +501,7 @@ class ImportExportTest
       val warn = mainIr
         .imports(1)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
       warn.head.symbolName shouldEqual "A_Type"
@@ -525,7 +525,7 @@ class ImportExportTest
       val warn = mainIr
         .imports(1)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
       warn.head.originalImport shouldEqual origImport
       warn.head.symbolName shouldEqual "A_Type"
@@ -550,7 +550,7 @@ class ImportExportTest
       val warn = mainIr
         .imports(1)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 2
       warn.foreach(_.originalImport shouldEqual origImport)
       warn.exists(_.symbolName == "A_Type") shouldEqual true
@@ -575,7 +575,7 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 2
       mainIr.imports.foreach(
-        _.isInstanceOf[IR.Error.ImportExport] shouldEqual false
+        _.isInstanceOf[errors.ImportExport] shouldEqual false
       )
     }
 
@@ -599,9 +599,9 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val ambiguousImport = mainIr
         .imports(1)
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+        .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       ambiguousImport.originalImport shouldEqual origImport
     }
@@ -621,7 +621,7 @@ class ImportExportTest
       val warns = mainIr
         .imports(0)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warns.size shouldEqual 1
       warns.head.symbolName shouldEqual "A_Type"
     }
@@ -642,9 +642,9 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val ambiguousImport = mainIr
         .imports(1)
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+        .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       ambiguousImport.originalImport shouldEqual origImport
     }
@@ -666,7 +666,7 @@ class ImportExportTest
       val warns = mainIr
         .imports(1)
         .diagnostics
-        .collect({ case w: IR.Warning.DuplicatedImport => w })
+        .collect({ case w: Warning.DuplicatedImport => w })
       warns.size shouldEqual 1
       warns.head.symbolName shouldEqual "A_Type"
       warns.head.originalImport shouldEqual origImport
@@ -684,9 +684,9 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val ambiguousImport = mainIr
         .imports(1)
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+        .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       ambiguousImport.originalImport shouldEqual origImport
     }
@@ -708,7 +708,7 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val allWarns =
         mainIr.imports.flatMap(_.diagnostics.collect({
-          case w: IR.Warning.DuplicatedImport => w
+          case w: Warning.DuplicatedImport => w
         }))
       allWarns.size shouldEqual 2
       allWarns.foreach(_.symbolName shouldEqual "A_Type")
@@ -732,7 +732,7 @@ class ImportExportTest
       val origImport = mainIr.imports(0)
       val allWarns =
         mainIr.imports.flatMap(_.diagnostics.collect({
-          case w: IR.Warning.DuplicatedImport => w
+          case w: Warning.DuplicatedImport => w
         }))
       allWarns.size shouldEqual 2
       allWarns.foreach(_.symbolName shouldEqual "A_Type")
@@ -778,9 +778,9 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
       mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
+        .asInstanceOf[errors.ImportExport]
         .reason
         .message should include("A_Type")
     }
@@ -822,7 +822,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
     }
 
     "resolve re-exported symbol" in {
@@ -862,7 +862,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
     }
 
     "resolve re-exported symbol along with all other symbols" in {
@@ -902,7 +902,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
     }
   }
 }

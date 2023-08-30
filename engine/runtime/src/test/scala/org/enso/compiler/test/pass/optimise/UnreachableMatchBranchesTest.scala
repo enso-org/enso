@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.IR.Warning
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -64,7 +64,9 @@ class UnreachableMatchBranchesTest extends CompilerTest {
         .asInstanceOf[IR.Case.Expr]
 
     "associate a warning with the case expression" in {
-      atLeast(1, ir.diagnostics.toList) shouldBe a[Warning.Unreachable.Branches]
+      atLeast(1, ir.diagnostics.toList) shouldBe a[
+        warnings.Unreachable.Branches
+      ]
     }
 
     "remove unreachable branches" in {
