@@ -92,7 +92,14 @@ export default function UserBar(props: UserBarProps) {
                     )
                 }}
             >
-                <img src={DefaultUserIcon} height={28} width={28} />
+                <img
+                    src={DefaultUserIcon}
+                    height={28}
+                    width={28}
+                    onDragStart={event => {
+                        event.preventDefault()
+                    }}
+                />
             </button>
         </div>
     )

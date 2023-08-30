@@ -923,6 +923,7 @@
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
+- [Use `numpy` & co. from Enso!][7678]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1057,6 +1058,7 @@
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
 [7613]: https://github.com/enso-org/enso/pull/7613
+[7678]: https://github.com/enso-org/enso/pull/7678
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
