@@ -598,8 +598,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    projectState: { type: backendModule.ProjectState.placeholder, volume_id: '' },
+                    projectState: {
+                        type: backendModule.ProjectState.placeholder,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        volume_id: '',
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        ...(organization != null ? { opened_by: organization.email } : {}),
+                    },
                     type: backendModule.AssetType.project,
                 }
                 if (
@@ -629,9 +634,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
                 const parentId = event.parentId ?? backend.rootDirectoryId(organization)
-                const placeholderFiles: backendModule.FileAsset[] = reversedFiles
-                    .filter(backendModule.fileIsNotProject)
-                    .map(file => ({
+                const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
+                    (file): backendModule.FileAsset => ({
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
@@ -639,19 +643,25 @@ export default function AssetsTable(props: AssetsTableProps) {
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
-                    }))
-                const placeholderProjects: backendModule.ProjectAsset[] = reversedFiles
-                    .filter(backendModule.fileIsProject)
-                    .map(file => ({
+                    })
+                )
+                const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
+                    (file): backendModule.ProjectAsset => ({
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
                         title: file.name,
                         parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        projectState: { type: backendModule.ProjectState.new, volume_id: '' },
-                    }))
+                        projectState: {
+                            type: backendModule.ProjectState.new,
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            volume_id: '',
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            ...(organization != null ? { opened_by: organization.email } : {}),
+                        },
+                    })
+                )
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&

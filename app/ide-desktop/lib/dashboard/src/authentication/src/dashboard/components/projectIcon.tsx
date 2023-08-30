@@ -2,6 +2,7 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
+import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
@@ -81,22 +82,32 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-            if (typeof stateOrUpdater === 'function') {
-                setItem(oldItem => ({
+            setItem(oldItem => {
+                let newState: backendModule.ProjectState
+                if (typeof stateOrUpdater === 'function') {
+                    newState = stateOrUpdater(oldItem.projectState.type)
+                } else {
+                    newState = stateOrUpdater
+                }
+                let newProjectState: backendModule.ProjectStateType = {
+                    ...oldItem.projectState,
+                    type: newState,
+                }
+                if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+                    const { opened_by, ...newProjectState2 } = newProjectState
+                    newProjectState = newProjectState2
+                } else if (organization != null) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    newProjectState = { ...newProjectState, opened_by: organization.email }
+                }
+                return {
                     ...oldItem,
-                    projectState: {
-                        ...oldItem.projectState,
-                        type: stateOrUpdater(oldItem.projectState.type),
-                    },
-                }))
-            } else {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    projectState: { ...oldItem.projectState, type: stateOrUpdater },
-                }))
-            }
+                    projectState: newProjectState,
+                }
+            })
         },
-        [/* should never change */ setItem]
+        [organization, /* should never change */ setItem]
     )
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -107,9 +118,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
+    const [closeProjectAbortController, setCloseProjectAbortController] =
+        React.useState<AbortController | null>(null)
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
+        closeProjectAbortController?.abort()
+        setCloseProjectAbortController(null)
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
@@ -157,6 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         state,
         backend,
         item,
+        closeProjectAbortController,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
         /* should never change */ setItem,
@@ -273,10 +291,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setOnSpinnerStateChange(null)
         openProjectAbortController?.abort()
         setOpenProjectAbortController(null)
-        if (
-            state !== backendModule.ProjectState.closing &&
-            state !== backendModule.ProjectState.closed
-        ) {
+        const abortController = new AbortController()
+        setCloseProjectAbortController(abortController)
+        if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
@@ -292,7 +309,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     // Ignored. The project is already closed.
                 }
             } finally {
-                setState(backendModule.ProjectState.closed)
+                if (!abortController.signal.aborted) {
+                    setState(backendModule.ProjectState.closed)
+                }
             }
         }
     }
@@ -339,7 +358,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
         case backendModule.ProjectState.opened:
             return (
-                <>
+                <div>
                     <button
                         disabled={isOtherUserUsingProject}
                         {...(isOtherUserUsingProject
@@ -355,9 +374,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <SvgMask src={StopIcon} />
+                        <SvgMask style={ICON_STYLE} src={StopIcon} />
                     </button>
-                </>
+                    {!isOtherUserUsingProject && (
+                        <button
+                            className="w-6 h-6"
+                            onClick={clickEvent => {
+                                clickEvent.stopPropagation()
+                                unsetModal()
+                                openIde(true)
+                            }}
+                        >
+                            <SvgMask style={ICON_STYLE} src={ArrowUpIcon} />
+                        </button>
+                    )}
+                </div>
             )
     }
 }
