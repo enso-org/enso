@@ -67,16 +67,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
     const ownsThisAsset = self?.permission === backendModule.PermissionAction.own
     const managesThisAsset =
-        ownsThisAsset || self?.permission === backendModule.PermissionAction.admin
+        backend.type === backendModule.BackendType.local ||
+        ownsThisAsset ||
+        self?.permission === backendModule.PermissionAction.admin
     const isRunningProject =
         asset.type === backendModule.AssetType.project &&
         backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
     const canExecute =
-        self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission]
+        backend.type === backendModule.BackendType.local ||
+        (self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
     const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
         backendModule.assetIsProject(asset) &&
-        organization != null &&
-        asset.projectState.opened_by !== organization.email
+        asset.projectState.opened_by != null &&
+        asset.projectState.opened_by !== organization?.email
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
@@ -192,7 +196,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                {canExecute && !isOtherUserUsingProject && (
+                {canExecute && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         disabled={
@@ -217,7 +221,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                {ownsThisAsset && !isOtherUserUsingProject && (
+                {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.moveToTrash}
@@ -236,7 +240,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     />
                 )}
                 <ContextMenuSeparator hidden={hidden} />
-                {managesThisAsset && (
+                {managesThisAsset && self != null && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.share}
@@ -258,15 +262,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                <MenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.label}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
-                <ContextMenuSeparator hidden={hidden} />
+                {backend.type !== backendModule.BackendType.local && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.label}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
+                {((managesThisAsset && self != null) ||
+                    backend.type !== backendModule.BackendType.local) && (
+                    <ContextMenuSeparator hidden={hidden} />
+                )}
                 <MenuEntry
                     hidden={hidden}
                     disabled

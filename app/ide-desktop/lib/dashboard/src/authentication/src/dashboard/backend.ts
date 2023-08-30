@@ -156,7 +156,7 @@ export interface ProjectStateType {
     ec2_id?: string
     ec2_public_ip_address?: string
     current_session_id?: string
-    opened_by?: string
+    opened_by?: EmailAddress
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
