@@ -310,7 +310,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                                above fails, the whole transaction will be rolled back.
                             connection.drop_table tmp_table.name
                             if dry_run.not then resulting_table else
-                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_database_table` was performed - the target table has been returned unchanged."
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged."
                                 Warning.attach warning resulting_table
 
 ## PRIVATE
