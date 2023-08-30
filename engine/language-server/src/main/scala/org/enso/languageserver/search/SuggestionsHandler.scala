@@ -16,7 +16,7 @@ import org.enso.languageserver.data.{
   Config,
   ReceivesSuggestionsDatabaseUpdates
 }
-import org.enso.languageserver.event.{ClientEvent, InitializedEvent}
+import org.enso.languageserver.event.{InitializedEvent, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileDeletedEvent,
@@ -116,8 +116,7 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
-    context.system.eventStream
-      .subscribe(self, classOf[ClientEvent.ClientDisconnected])
+    context.system.eventStream.subscribe(self, classOf[JsonSessionTerminated])
   }
 
   override def receive: Receive =
@@ -449,7 +448,8 @@ final class SuggestionsHandler(
         )
       )
 
-    case ClientEvent.ClientDisconnected(_) =>
+    case JsonSessionTerminated(_) =>
+      logger.info("Processing JsonSessionTerminated 123")
       val action = for {
         _ <- suggestionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex

@@ -18,7 +18,6 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.event.{
-  ClientEvent,
   InitializedEvent,
   JsonSessionInitialized,
   JsonSessionTerminated
@@ -144,9 +143,6 @@ class JsonConnectionController(
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
       unstashAll()
-      context.system.eventStream.publish(
-        ClientEvent.ClientConnected(connectionId)
-      )
       context.become(connected(webActor))
     case _ => stash()
   }
@@ -185,9 +181,6 @@ class JsonConnectionController(
       sender() ! ResponseError(Some(id), SessionNotInitialisedError)
 
     case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(
-        ClientEvent.ClientDisconnected(connectionId)
-      )
       context.stop(self)
   }
 
@@ -312,6 +305,7 @@ class JsonConnectionController(
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
     case MessageHandler.Disconnected =>
+      logger.info("Json session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
