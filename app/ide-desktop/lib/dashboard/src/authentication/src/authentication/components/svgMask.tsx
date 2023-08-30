@@ -37,6 +37,9 @@ export default function SvgMask(props: SvgMaskProps) {
             }}
             className={`inline-block w-max h-max ${className ?? ''}`}
             onClick={onClick}
+            onDragStart={event => {
+                event.preventDefault()
+            }}
         >
             {/* This is required for this component to have the right size. */}
             <img alt={alt} src={src} className="opacity-0" />
