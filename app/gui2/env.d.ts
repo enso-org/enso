@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-module 'y-textarea' {
+module 'y-websocket' {
   // hack for bad module resolution
-  export * from 'node_modules/y-textarea/dist/y-textArea'
+  export * from 'node_modules/y-websocket/dist/src/y-websocket'
 }

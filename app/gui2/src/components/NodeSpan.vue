@@ -69,6 +69,7 @@ watch(exprRect, (rect) => {
 
 <style scoped>
 .Span {
+  display: inline-block;
   white-space: pre;
 
   &.Root {

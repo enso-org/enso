@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Edge, ExprId, NodeId } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
-import { Vec2 } from '@/util/vec2'
 import { computed } from 'vue'
 
 const props = defineProps<{
