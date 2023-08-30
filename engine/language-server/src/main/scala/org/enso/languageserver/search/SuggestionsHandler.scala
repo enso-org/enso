@@ -410,6 +410,14 @@ final class SuggestionsHandler(
         )
       )
       action.pipeTo(handler)(sender())
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
+        )
+      )
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)
@@ -449,7 +457,7 @@ final class SuggestionsHandler(
       )
 
     case JsonSessionTerminated(_) =>
-      logger.info("Processing JsonSessionTerminated 123")
+      logger.info("Processing JsonSessionTerminated")
       val action = for {
         _ <- suggestionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
@@ -461,7 +469,16 @@ final class SuggestionsHandler(
           runtimeConnector
         )
       )
+
       action.pipeTo(handler)
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
+        )
+      )
   }
 
   /** Transition the initialization process.
@@ -770,6 +787,12 @@ object SuggestionsHandler {
     /** @return the new state with the background processing started. */
     def backgroundProcessingStarted(): State = {
       _shouldStartBackgroundProcessing = false
+      this
+    }
+
+    /** @return the new state with the background processing stopped. */
+    def backgroundProcessingStopped(): State = {
+      _shouldStartBackgroundProcessing = true
       this
     }
   }
