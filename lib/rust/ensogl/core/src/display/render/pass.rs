@@ -12,20 +12,20 @@ use crate::system::gpu::context::ContextLost;
 // === Definition ===
 // ==================
 
-/// Render pass definition. When used, the [`Composer`] will clone it and then will call the
-/// [`init`] method before it's first usage. It will happen everytime the [`Composer`] will be
-/// re-initialized (e.g. after changing scene size). Then, the function [`run`] will be called for
-/// every registered pass.
-#[allow(missing_docs)]
-pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
-    fn initialize(&mut self, _instance: &Instance) {}
-    fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
-    fn is_screen_size_independent(&self) -> bool {
-        false
-    }
+/// Render pass definition. Supports creation of render pass instances.
+pub trait Definition: Debug + 'static {
+    /// Return a new instance of the pass, with the specified parameters.
+    fn instantiate(&self, instance: InstanceInfo) -> Result<Box<dyn Instance>, ContextLost>;
 }
 
-clone_boxed!(Definition);
+/// Render pass instance.
+pub trait Instance: Debug + 'static {
+    /// Run the pass.
+    fn run(&mut self, update_status: UpdateStatus);
+
+    /// Update the pass for the new screen size.
+    fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32);
+}
 
 
 
@@ -34,15 +34,15 @@ clone_boxed!(Definition);
 // ================
 
 /// Instance of a render pass. Every render pass will be initialized by the [`Composer`] before its
-/// first run (see the [`Definition::run`] method. During such initialization a new [`Instance`]
+/// first run (see the [`Definition::run`] method. During such initialization a new [`InstanceInfo`]
 /// will be created. Please note that a new instance will be generated everytime a pass will be
 /// instantiated (e.g. after changing the scene size).
 ///
 /// The main purpose of this structure is to provide passes with common information and utilities.
 /// For example, it streamlines the creation of new framebuffers and textures.
 #[allow(missing_docs)]
-#[derive(Debug)]
-pub struct Instance {
+#[derive(Debug, Clone)]
+pub struct InstanceInfo {
     pub variables:   Rc<RefCell<UniformScope>>,
     pub context:     Context,
     pub width:       i32,
@@ -50,7 +50,7 @@ pub struct Instance {
     pub pixel_ratio: f32,
 }
 
-impl Instance {
+impl InstanceInfo {
     /// Constructor
     pub fn new(
         context: &Context,

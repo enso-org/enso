@@ -676,7 +676,7 @@ impl Renderer {
 
             let (width, height, pixel_ratio) = self.view_size();
             let pipeline = self.pipeline.get();
-            render::Composer::new(&pipeline, context, &self.variables, width, height, pixel_ratio)
+            render::Composer::new(pipeline, context, &self.variables, width, height, pixel_ratio)
         });
         *self.composer.borrow_mut() = composer;
     }
@@ -690,7 +690,7 @@ impl Renderer {
     /// Reload the composer pipeline.
     fn update_composer_pipeline(&self) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
-            composer.set_pipeline(&self.pipeline.get());
+            composer.set_pipeline(self.pipeline.get());
         }
     }
 

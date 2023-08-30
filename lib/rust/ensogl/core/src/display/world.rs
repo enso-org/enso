@@ -15,9 +15,8 @@ use crate::debug;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::garbage;
-use crate::display::render;
-use crate::display::render::cache_shapes::CacheShapesPass;
-use crate::display::render::passes::SymbolsRenderPass;
+use crate::display::render::cache_shapes::CacheShapesPassDef;
+use crate::display::render::passes::SymbolsRenderPassDef;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::scene::UpdateStatus;
@@ -556,21 +555,29 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
+        self.default_scene.renderer.set_pipeline(Pipeline::new(Rc::new([
+            Box::new(SymbolsRenderPassDef::new(&self.default_scene.layers)),
+            Box::new(ScreenRenderPass::new()),
+            self.init_pixel_read_pass(),
+            Box::new(CacheShapesPassDef::new()),
+        ])));
+    }
+
+    fn init_pixel_read_pass(&self) -> Box<dyn pass::Definition> {
         let pointer_target_encoded = self.default_scene.mouse.pointer_target_encoded.clone_ref();
         let garbage_collector = &self.garbage_collector;
-        let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(f!([garbage_collector](v) {
+        let on_read = f!([garbage_collector](v: Vec<u8>) {
             pointer_target_encoded.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
             garbage_collector.pixel_updated();
-        }));
-        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
+        });
+        let on_sync = f!(garbage_collector.pixel_synced());
+        let pixel_read_pass = PixelReadPassDef::<u8>::new(
+            self.default_scene.mouse.position.clone(),
+            on_read,
+            on_sync,
+        );
         *self.pixel_read_pass_threshold.borrow_mut() = pixel_read_pass.get_threshold().downgrade();
-        let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(&self.default_scene.layers))
-            .add(ScreenRenderPass::new())
-            .add(pixel_read_pass)
-            .add(CacheShapesPass::new());
-        self.default_scene.renderer.set_pipeline(pipeline);
+        Box::new(pixel_read_pass)
     }
 
     fn update_stats(&self, _time: Duration, gpu_perf_results: Option<Vec<Results>>) {
