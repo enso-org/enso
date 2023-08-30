@@ -41,4 +41,8 @@ spec =
             returned_file = Data.post url_post test_file . at "data"
             returned_file.should_equal test_file.read_text
 
+        Test.specify "Correctly posts a file via a form" <|
+            test_file = enso_project.data / "sample.txt"
+            Data.post_file_as_form url_post test_file "fn" . at "data" . should_contain "fn=Cupcake+ipsum+dolor+sit+amet"
+
 main = Test_Suite.run_main spec

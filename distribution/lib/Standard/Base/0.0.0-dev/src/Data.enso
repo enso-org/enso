@@ -177,12 +177,7 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
 post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post uri body mime_type=Nothing headers=[] try_auto_parse=True =
-    parsed_headers =
-        headers . map h-> case h of
-            _ : Vector -> Header.new (h.at 0) (h.at 1)
-            _ : Pair -> Header.new (h.at 0) (h.at 1)
-            _ : Header -> h
-            _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+    parsed_headers = parse_headers headers
 
     request = case body of
         _ : Request_Body ->
@@ -203,6 +198,18 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
             json = body.to_json
             Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Json json)
 
+    perform_request_and_auto_parse request try_auto_parse
+
+post_file_as_form : (URI | Text) -> File -> Text -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post_file_as_form uri file field_name headers=[] try_auto_parse=True =
+    parsed_headers = parse_headers headers
+    parts = [Form.file_field field_name file]
+    request = Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Form (Form.new parts))
+    perform_request_and_auto_parse request try_auto_parse
+
+## PRIVATE
+perform_request_and_auto_parse : Request -> Boolean -> Any
+perform_request_and_auto_parse request try_auto_parse =
     IO.println 'AAA'
     IO.println request
     response = HTTP.new.request request
@@ -231,3 +238,12 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
     Data.fetch self method headers try_auto_parse
+
+## PRIVATE
+parse_headers : Vector (Header | Pair Text Text) -> Vector Header
+parse_headers headers =
+    headers . map h-> case h of
+        _ : Vector -> Header.new (h.at 0) (h.at 1)
+        _ : Pair -> Header.new (h.at 0) (h.at 1)
+        _ : Header -> h
+        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
