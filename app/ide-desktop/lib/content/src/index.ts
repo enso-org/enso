@@ -11,6 +11,7 @@ import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
+import * as panic from './panic'
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -40,7 +41,7 @@ const FETCH_TIMEOUT = 300
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE && !detect.isRunningInElectron()) {
+if (IS_DEV_MODE && !detect.isOnElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.
@@ -217,6 +218,11 @@ class Main implements AppRunner {
                 logger.log(logMessage)
             }
         }
+        newApp.printPanicMessage = (message: string) =>
+            new Promise<void>(resolve => {
+                panic.displayPanicMessageToast(message, resolve)
+            })
+
         this.app = newApp
 
         if (!this.app.initialized) {

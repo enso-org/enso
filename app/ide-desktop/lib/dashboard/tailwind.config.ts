@@ -7,6 +7,7 @@ import * as url from 'node:url'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+const CONTENT_PATH = path.resolve(THIS_PATH, '../content')
 
 // =====================
 // === Configuration ===
@@ -14,7 +15,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [THIS_PATH + '/src/**/*.tsx']
+export const content = [THIS_PATH + '/src/**/*.tsx', CONTENT_PATH + '/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {
@@ -33,6 +34,8 @@ export const theme = {
             help: '#3f68ce',
             invite: '#0e81d4',
             cloud: '#0666be',
+            share: '#64b526',
+            inversed: '#ffffff',
             delete: 'rgba(243, 24, 10, 0.87)',
             dim: 'rgba(0, 0, 0, 0.25)',
             frame: 'rgba(255, 255, 255, 0.40)',
@@ -59,13 +62,16 @@ export const theme = {
             sm: '0.8125rem',
         },
         lineHeight: {
+            '144.5': '144.5%',
             '170': '170%',
         },
         spacing: {
             '0.75': '0.1875rem',
+            '1.25': '0.3125rem',
             '1.75': '0.4375rem',
             '2.25': '0.5625rem',
             '3.25': '0.8125rem',
+            '4.5': '1.125rem',
             '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '6.5': '1.625rem',
@@ -89,12 +95,14 @@ export const theme = {
             '10lh': '10lh',
         },
         minWidth: {
-            '20': '5rem',
-            '36': '9rem',
+            '33.25': '8.3125rem',
             '40': '10rem',
-            '60': '15rem',
+            '61.25': '15.3125rem',
             '80': '20rem',
             '96': '24rem',
+        },
+        maxHeight: {
+            'half-screen': '50vh',
         },
         opacity: {
             '1/3': '.33333333',

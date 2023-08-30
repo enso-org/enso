@@ -30,7 +30,7 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-    visible: boolean
+    hidden: boolean
     supportsLocalBackend: boolean
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     appRunner: AppRunner
@@ -38,25 +38,25 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-    const { visible, supportsLocalBackend, projectStartupInfo, appRunner } = props
+    const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
     React.useEffect(() => {
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement != null) {
-            if (visible) {
-                ideElement.style.top = ''
-                ideElement.style.display = 'absolute'
-            } else {
+            if (hidden) {
                 ideElement.style.top = '-100vh'
                 ideElement.style.display = 'fixed'
+            } else {
+                ideElement.style.top = ''
+                ideElement.style.display = 'absolute'
             }
         }
-    }, [visible])
+    }, [hidden])
 
     React.useEffect(() => {
-        if (projectStartupInfo != null && !visible) {
+        if (projectStartupInfo != null && hidden) {
             // A workaround to hide the spinner, when the previous project is being loaded in
             // the background. This `MutationObserver` is disconnected when the loader is
             // removed from the DOM.
@@ -78,7 +78,7 @@ export default function Editor(props: EditorProps) {
             })
             observer.observe(document.body, { childList: true })
         }
-    }, [projectStartupInfo, visible])
+    }, [projectStartupInfo, hidden])
 
     let hasEffectRun = false
 
@@ -129,29 +129,33 @@ export default function Editor(props: EditorProps) {
                             // which will break the entrypoint for opening a fresh IDE instance.
                             history.replaceState(null, '', new URL('.', originalUrl))
                         }
-                        await appRunner.runApp(
-                            {
-                                loader: {
-                                    assetsUrl: `${assetsRoot}dynamic-assets`,
-                                    wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                        try {
+                            await appRunner.runApp(
+                                {
+                                    loader: {
+                                        assetsUrl: `${assetsRoot}dynamic-assets`,
+                                        wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                        jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
+                                    },
+                                    engine: {
+                                        ...engineConfig,
+                                        ...(project.engineVersion != null
+                                            ? { preferredVersion: project.engineVersion.value }
+                                            : {}),
+                                    },
+                                    startup: {
+                                        project: project.packageName,
+                                    },
+                                    window: {
+                                        topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                                    },
                                 },
-                                engine: {
-                                    ...engineConfig,
-                                    ...(project.engineVersion != null
-                                        ? { preferredVersion: project.engineVersion.value }
-                                        : {}),
-                                },
-                                startup: {
-                                    project: project.packageName,
-                                },
-                                window: {
-                                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
-                                },
-                            },
-                            accessToken,
-                            { projectId: project.projectId }
-                        )
+                                accessToken,
+                                { projectId: project.projectId }
+                            )
+                        } catch (error) {
+                            toastAndLog('Could not open editor', error)
+                        }
                         if (backendType === backendModule.BackendType.remote) {
                             // Restore original URL so that initialization works correctly on refresh.
                             history.replaceState(null, '', originalUrl)

@@ -26,20 +26,25 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 // ==============================
 
 /** Props for a {@link ManagePermissionsModal}. */
-export interface ManagePermissionsModalProps {
-    item: backendModule.AnyAsset
-    setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
+export interface ManagePermissionsModalProps<
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+> {
+    item: Asset
+    setItem: React.Dispatch<React.SetStateAction<Asset>>
     self: backendModule.UserPermission
     /** Remove the current user's permissions from this asset. This MUST be a prop because it should
      * change the assets list. */
     doRemoveSelf: () => void
+    /** If this is `null`, this modal will be centered. */
     eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
-export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
+export default function ManagePermissionsModal<
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+>(props: ManagePermissionsModalProps<Asset>) {
     const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()

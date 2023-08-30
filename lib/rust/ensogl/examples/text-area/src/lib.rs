@@ -30,12 +30,10 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::Scene;
-use ensogl_core::frp::io::timer::DocumentOps;
-use ensogl_core::frp::io::timer::HtmlElementOps;
 use ensogl_core::system::web;
-use ensogl_core::system::web::Closure;
+use ensogl_core::system::web::traits::DocumentOps;
+use ensogl_core::system::web::traits::HtmlElementOps;
 use ensogl_core::system::web::JsCast;
-use ensogl_core::system::web::JsValue;
 use ensogl_text::buffer;
 use ensogl_text::formatting;
 use ensogl_text::Text;
@@ -228,7 +226,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
     let area = area.clone_ref();
     let div = div.clone();
     let mut fonts_cycle = ["enso", "mplus1p"].iter().cycle();
-    let closure: Closure<dyn FnMut(JsValue)> = Closure::new(move |val: JsValue| {
+    let closure = move |val: web::Event| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {
             let key = event.code();
@@ -318,7 +316,8 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                 }
             }
         }
-    });
-    let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
+    };
+    let options = web::ListenerOptions::new().capture();
+    let handle = web::add_event_listener_with_options(&web::window, "keydown", options, closure);
     mem::forget(handle);
 }

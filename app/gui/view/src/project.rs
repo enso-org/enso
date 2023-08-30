@@ -43,7 +43,7 @@ use ide_view_project_view_top_bar::ProjectViewTopBar;
 /// A time which must pass since last change of expression of node which is the searcher input
 /// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
 /// Browser when user is quickly typing in the expression input.
-const INPUT_CHANGE_DELAY_MS: i32 = 200;
+const INPUT_CHANGE_DELAY_MS: u32 = 200;
 
 
 /// Mitigate limitations of constant strings concatenation.

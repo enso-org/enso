@@ -9,7 +9,7 @@ use crate::executor::setup_global_executor;
 use crate::executor::web::EventLoopExecutor;
 use crate::Ide;
 
-use enso_web::Closure;
+use enso_web::CleanupHandle;
 use enso_web::HtmlDivElement;
 use ensogl::application::test_utils::ApplicationExt;
 use std::pin::Pin;
@@ -205,8 +205,8 @@ impl Fixture {
 #[derive(Default, Debug)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct WaitAFrame {
-    frame_passed: Rc<Cell<bool>>,
-    closure:      Option<Closure<dyn FnMut(f64)>>,
+    frame_passed:   Rc<Cell<bool>>,
+    frame_listener: Option<CleanupHandle>,
 }
 
 impl Future for WaitAFrame {
@@ -230,12 +230,11 @@ impl Future for WaitAFrame {
         } else {
             let waker = cx.waker().clone();
             let frame_passed = self.frame_passed.clone_ref();
-            let closure = Closure::once(move |_| {
+            let listener = enso_web::request_animation_frame(move |_| {
                 frame_passed.set(true);
                 waker.wake()
             });
-            enso_web::window.request_animation_frame_with_closure_or_panic(&closure);
-            self.closure = Some(closure);
+            self.frame_listener = Some(listener);
             std::task::Poll::Pending
         }
     }
