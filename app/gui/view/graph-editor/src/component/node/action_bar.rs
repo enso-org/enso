@@ -38,7 +38,7 @@ const HOVER_EXTENSION: Vector2 = Vector2(15.0, 11.0);
 /// The size of additional hover area that is drawn below the node background. Necessary to prevent
 /// easily losing the hover state when moving the mouse towards the action bar.
 const HOVER_BRIDGE_SIZE: Vector2 = Vector2(10.0, 26.0);
-const HOVER_HIDE_DELAY_MS: i32 = 20;
+const HOVER_HIDE_DELAY_MS: u32 = 20;
 const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Don't write to files and databases";
 const ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Allow writing to files and databases";

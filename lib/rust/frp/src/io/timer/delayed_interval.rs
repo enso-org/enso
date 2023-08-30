@@ -75,14 +75,14 @@ impl DelayedInterval {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DelayedIntervalConfig {
     /// Initial delay between timer activation and first `on_trigger` event being emitted.
-    pub delay_ms:    i32,
+    pub delay_ms:    u32,
     /// Time between subsequent `on_trigger` events.
-    pub interval_ms: i32,
+    pub interval_ms: u32,
 }
 
 impl DelayedIntervalConfig {
     /// Constructor.
-    pub fn new(delay_ms: i32, interval_ms: i32) -> Self {
+    pub fn new(delay_ms: u32, interval_ms: u32) -> Self {
         Self { delay_ms, interval_ms }
     }
 }

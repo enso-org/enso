@@ -100,6 +100,18 @@ impl WasmPackCommand {
     pub fn output_name(&mut self, output_name: impl AsRef<Path>) -> &mut Self {
         self.arg("--out-name").arg(output_name.as_ref())
     }
+
+    /// Enable wasm-bindgen weak references feature.
+    /// https://rustwasm.github.io/wasm-bindgen/reference/weak-references.html
+    pub fn weak_refs(&mut self) -> &mut Self {
+        self.arg("--weak-refs")
+    }
+
+    /// Enable wasm-bindgen reference types feature.
+    /// https://rustwasm.github.io/wasm-bindgen/reference/reference-types.html
+    pub fn reference_types(&mut self) -> &mut Self {
+        self.arg("--reference-types")
+    }
 }
 
 // new_command_type! {WasmPack, WasmPackBuildCommand}
