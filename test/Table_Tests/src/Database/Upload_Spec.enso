@@ -944,7 +944,7 @@ spec make_new_connection prefix persistent_connector=True =
             table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"]]
 
         Test.specify "should fail if key_columns are missing in source or target tables" <|
-            table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]] primary_key=[]
+            table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] primary_key=[]
             keys = source_table_builder [["Z", [7, 8]]]
 
             run_with_and_without_output <|
@@ -996,7 +996,7 @@ spec make_new_connection prefix persistent_connector=True =
     Test.group prefix+"Deleting rows from a Database table" <|
         Test.specify "[ADVANCED] it should be possible to truncate the whole table" <|
             name = Name_Generator.random_name "table-to-truncate"
-            t = (Table.new ["X", [1, 2, 3]]]).select_into_database_table connection name temporary=True primary_key=[]
+            t = (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection name temporary=True primary_key=[]
             t.at "X" . to_vector . should_equal [1, 2, 3]
             connection.truncate_table name
             t.at "X" . to_vector . should_equal []
@@ -1019,7 +1019,7 @@ spec make_new_connection prefix persistent_connector=True =
             r1.to_display_text.should_contain "in-memory tables are immutable"
 
         Test.specify "can use itself as source of rows to delete (even if that's an anti-pattern)" <|
-            t1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            t1 = database_table_builder "target-table" [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             affected_rows = t1.delete_rows t1
             affected_rows . should_equal 3
             t1.rows.should_equal []
