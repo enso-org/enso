@@ -27,7 +27,6 @@
 
 use crate::prelude::*;
 
-use std::cell::Cell;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -37,11 +36,9 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod binding;
 pub mod clipboard;
-pub mod closure;
 pub mod event;
 pub mod platform;
 pub mod resize_observer;
-pub mod stream;
 
 pub use std::time::Duration;
 pub use std::time::Instant;
@@ -453,34 +450,10 @@ ops! { ReflectOps for Reflect
 
 ops! { WindowOps for Window
     trait {
-        fn request_animation_frame_with_closure(
-            &self,
-            f: &Closure<dyn FnMut(f64)>,
-        ) -> Result<i32, JsValue>;
-        fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
-        fn cancel_animation_frame_or_warn(&self, id: i32);
         fn performance_or_panic(&self) -> Performance;
     }
 
     impl {
-        fn request_animation_frame_with_closure(
-            &self,
-            f: &Closure<dyn FnMut(f64)>,
-        ) -> Result<i32, JsValue> {
-            self.request_animation_frame(f.as_js_function())
-        }
-
-        fn request_animation_frame_with_closure_or_panic
-        (&self, f: &Closure<dyn FnMut(f64)>) -> i32 {
-            self.request_animation_frame_with_closure(f).unwrap()
-        }
-
-        fn cancel_animation_frame_or_warn(&self, id: i32) {
-            self.cancel_animation_frame(id).unwrap_or_else(|err| {
-                logging::error!("Error when canceling animation frame: {err:?}");
-            });
-        }
-
         fn performance_or_panic(&self) -> Performance {
             self.performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
         }
@@ -705,14 +678,19 @@ ops! { HtmlCanvasElementOps for HtmlCanvasElement
 // =============
 
 /// Ignores context menu when clicking with the right mouse button.
-pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
-    let closure: Closure<dyn FnMut(MouseEvent)> = Closure::new(move |event: MouseEvent| {
-        const RIGHT_MOUSE_BUTTON: i16 = 2;
-        if event.button() == RIGHT_MOUSE_BUTTON {
-            event.prevent_default();
-        }
-    });
-    add_event_listener_with_bool(target, "contextmenu", closure, true)
+pub fn ignore_context_menu(target: &EventTarget) -> CleanupHandle {
+    add_event_listener_with_options(
+        target,
+        "contextmenu",
+        crate::ListenerOptions::new().capture(),
+        move |event: Event| {
+            let event: MouseEvent = event.dyn_into().unwrap();
+            const RIGHT_MOUSE_BUTTON: i16 = 2;
+            if event.button() == RIGHT_MOUSE_BUTTON {
+                event.prevent_default();
+            }
+        },
+    )
 }
 
 
@@ -721,9 +699,9 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 // === Event Listeners ===
 // =======================
 
-// === EventListenerHandleOptions ===
+// === ListenerOptions ===
 
-/// Structure representing event listener options used by [`EventListenerHandle`].
+/// Structure representing event listener options used by [`CleanupHandle`].
 ///
 /// The handle cannot just use [`AddEventListenerOptions`], as it needs to construct also
 /// [`EventListenerOptions`] for removing the listener on drop, and values cannot be read from the
@@ -731,7 +709,7 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 ///
 /// Description of fields is cited from the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener#parameters)
 #[derive(Copy, Clone, Debug, Default)]
-pub struct EventListenerHandleOptions {
+pub struct ListenerOptions {
     /// From
     /// > A boolean value that, if true, indicates that the function specified by listener will
     /// > never call preventDefault()
@@ -748,13 +726,13 @@ pub struct EventListenerHandleOptions {
     pub once:    bool,
 }
 
-impl EventListenerHandleOptions {
+impl ListenerOptions {
     /// Create default options.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Set listener explicitly as passive. See [`passive` field docs](EventListenerHandleOptions)
+    /// Set listener explicitly as passive. See [`passive` field docs](ListenerOptions)
     /// for more information.
     pub fn passive(mut self) -> Self {
         self.passive = Some(true);
@@ -762,29 +740,29 @@ impl EventListenerHandleOptions {
     }
 
     /// Set listener explicitly as not passive. See [`passive` field
-    /// docs](EventListenerHandleOptions) for more information.
+    /// docs](ListenerOptions) for more information.
     pub fn not_passive(mut self) -> Self {
         self.passive = Some(false);
         self
     }
 
     /// Set listener to get events in the capture phase. See
-    /// [`capture` field docs](EventListenerHandleOptions) for more information.
+    /// [`capture` field docs](ListenerOptions) for more information.
     pub fn capture(mut self) -> Self {
         self.capture = true;
         self
     }
 
     /// The listener will be invoked only once. See
-    /// [`capture` field docs](EventListenerHandleOptions) for more information.
+    /// [`capture` field docs](ListenerOptions) for more information.
     pub fn once(mut self) -> Self {
         self.once = true;
         self
     }
 }
 
-impl From<EventListenerHandleOptions> for AddEventListenerOptions {
-    fn from(from: EventListenerHandleOptions) -> Self {
+impl From<ListenerOptions> for AddEventListenerOptions {
+    fn from(from: ListenerOptions) -> Self {
         let mut options = Self::new();
         if let Some(passive) = from.passive {
             options.passive(passive);
@@ -795,115 +773,99 @@ impl From<EventListenerHandleOptions> for AddEventListenerOptions {
     }
 }
 
-impl From<EventListenerHandleOptions> for EventListenerOptions {
-    fn from(from: EventListenerHandleOptions) -> Self {
-        let mut options = EventListenerOptions::new();
-        options.capture(from.capture);
-        options
-    }
-}
-
-
-// === EventListenerHandle ===
+// === CleanupHandle ===
 
 /// The type of closures used for 'add_event_listener_*' functions.
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
 
-/// Handler for event listeners. Unregisters the listener when the last clone is dropped.
-#[derive(Clone, CloneRef)]
-pub struct EventListenerHandle {
-    rc: Rc<EventListenerHandleData>,
+/// Register a timeout listener. The callback will be called when the timeout expires. The timeout
+/// will be cleared when the returned cleanup handle is dropped.
+pub fn set_timeout(callback: impl FnOnce() + 'static, timeout: u32) -> CleanupHandle {
+    CleanupHandle::new(Closure::<dyn FnOnce()>::once(callback), |f| register_timeout(f, timeout))
 }
 
-impl Debug for EventListenerHandle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EventListenerHandle")
-    }
+/// Register an interval listener. The callback will be called repeatedly whenever the interval time
+/// passes. The interval will be cleared when the returned cleanup handle is dropped.
+pub fn set_interval(callback: impl FnMut() + 'static, interval: u32) -> CleanupHandle {
+    CleanupHandle::new(Closure::<dyn FnMut()>::new(callback), |f| register_interval(f, interval))
 }
 
-impl EventListenerHandle {
-    /// Constructor.
-    pub fn new<T: ?Sized + 'static>(
-        target: EventTarget,
-        name: Rc<String>,
-        closure: Closure<T>,
-        options: EventListenerHandleOptions,
-    ) -> Self {
-        let closure = Box::new(closure);
-        let data = EventListenerHandleData { target, name, closure, options };
-        let rc = Rc::new(data);
-        Self { rc }
-    }
+/// Register a listener for animation frame. The callback will be called on the next animation
+/// frame. Note that a lot of time might pass until that happens, as animation frames can be stopped
+/// when the browser tab is in background. The listener will be automatically canceled when the
+/// returned cleanup handle is dropped.
+pub fn request_animation_frame(callback: impl FnOnce(f64) + 'static) -> CleanupHandle {
+    CleanupHandle::new(Closure::<dyn FnOnce()>::once(callback), register_animation_frame)
 }
 
-/// Internal structure for [`EventListenerHandle`].
+/// Queue a listener for the next microtask. If the cleanup handle is dropped before next microtask,
+/// the callback will never be called.
+pub fn queue_microtask(callback: impl FnOnce() + 'static) -> CleanupHandle {
+    CleanupHandle::new(Closure::<dyn FnOnce()>::once(callback), register_queue_microtask)
+}
+
+/// Add a browser event listener to given target object. The listener will be removed when the
+/// returned cleanup handle is dropped.
+pub fn add_event_listener(
+    target: &EventTarget,
+    event: &str,
+    callback: impl FnMut(Event) + 'static,
+) -> CleanupHandle {
+    add_event_listener_with_options(target, event, default(), callback)
+}
+
+/// Add a browser event listener to given target object. The listener will be removed when the
+/// returned cleanup handle is dropped.
+pub fn add_event_listener_with_options(
+    target: &EventTarget,
+    event: &str,
+    options: ListenerOptions,
+    callback: impl FnMut(Event) + 'static,
+) -> CleanupHandle {
+    CleanupHandle::new(Closure::<dyn FnMut(Event)>::new(callback), |f| {
+        register_event_listener(target, event, f, &options.into())
+    })
+}
+
+/// A handle to JS event listener, timer or other async operation with a rust callback. The listener
+/// will be removed when the handle is dropped.
 ///
-/// # Implementation Notes
-/// The [`_closure`] field contains a wasm_bindgen's [`Closure<T>`]. Dropping it causes the
-/// associated function to be pruned from memory.
-struct EventListenerHandleData {
-    target:  EventTarget,
-    name:    Rc<String>,
-    closure: Box<dyn traits::ClosureOps>,
-    options: EventListenerHandleOptions,
+/// When wasm module is destroyed, all cleanup handles are automatically cleaned up on the JS side,
+/// without invoking any rust code. This is especially important after rust panic, since no rust
+/// code should be executed once a panic caused the thread to abort execution.
+#[derive(Clone, CloneRef)]
+pub struct CleanupHandle {
+    #[allow(dyn_drop)]
+    inner: Rc<CleanupHandleInner<dyn Drop>>,
 }
 
-impl Drop for EventListenerHandleData {
-    fn drop(&mut self) {
-        let function = self.closure.as_js_function();
-        self.target
-            .remove_event_listener_with_callback_and_event_listener_options(
-                &self.name,
-                function,
-                &self.options.into(),
-            )
-            .ok();
+impl Debug for CleanupHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CleanupHandle").finish()
     }
 }
 
-/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
-/// directly.
-pub fn add_event_listener_with_options<T: ?Sized + 'static>(
-    target: &EventTarget,
-    name: &str,
-    closure: Closure<T>,
-    options: EventListenerHandleOptions,
-) -> EventListenerHandle {
-    // Please note that using [`ok`] is safe here, as according to MDN this function never
-    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
-    target
-        .add_event_listener_with_callback_and_add_event_listener_options(
-            name,
-            closure.as_js_function(),
-            &options.into(),
-        )
-        .ok();
-    let target = target.clone();
-    let name = Rc::new(name.to_string());
-    EventListenerHandle::new(target, name, closure, options)
+impl CleanupHandle {
+    pub(crate) fn new<T: ?Sized + 'static>(
+        closure: Closure<T>,
+        raw_constructor: impl FnOnce(&Function) -> RawCleanupHandle,
+    ) -> Self {
+        let raw = raw_constructor(closure.as_js_function());
+        Self { inner: Rc::new(CleanupHandleInner { raw, closure }) }
+    }
 }
 
-/// Wrapper for [`add_event_listener`] setting the default options.
-pub fn add_event_listener<T: ?Sized + 'static>(
-    target: &EventTarget,
-    name: &str,
-    closure: Closure<T>,
-) -> EventListenerHandle {
-    add_event_listener_with_options(target, name, closure, default())
+struct CleanupHandleInner<T: ?Sized> {
+    raw:     RawCleanupHandle,
+    #[allow(dead_code)]
+    closure: T,
 }
 
-/// Wrapper for [`add_event_listener`] setting the `capture` option keeping other options default.
-pub fn add_event_listener_with_bool<T: ?Sized + 'static>(
-    target: &EventTarget,
-    name: &str,
-    closure: Closure<T>,
-    capture: bool,
-) -> EventListenerHandle {
-    let options = EventListenerHandleOptions { capture, ..default() };
-    add_event_listener_with_options(target, name, closure, options)
+impl<T: ?Sized> Drop for CleanupHandleInner<T> {
+    fn drop(&mut self) {
+        self.raw.cleanup();
+    }
 }
-
-
 
 // =========================
 // === Stack Trace Limit ===
@@ -1004,18 +966,16 @@ pub fn simulate_sleep(duration: f64) {
 
 /// Enables forwarding panic messages to `console.error`.
 #[cfg(target_arch = "wasm32")]
-pub fn forward_panic_hook_to_console() {
+pub fn register_panic_hook() {
     std::panic::set_hook(Box::new(report_panic))
 }
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {
     // Formats the info to display properly in the browser console. See crate docs for details.
-    let msg = console_error_panic_hook::format_panic(info);
-    if let Some(api) = enso_debug_api::console() {
-        api.error(&msg);
-    }
-    web_sys::console::error_1(&msg.into());
+    let message = console_error_panic_hook::format_panic(info);
+    cleanup_all_handlers();
+    ENSOGL_APP.handle_panic(&message);
 }
 
 
@@ -1037,63 +997,3 @@ pub async fn sleep(duration: Duration) {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_std::task::sleep;
-
-
-
-// ====================
-// === FrameCounter ===
-// ====================
-
-type Counter = Rc<Cell<i32>>;
-
-#[derive(Debug)]
-/// A counter that counts the number of frames that have passed since its initialization.
-///
-/// Uses `request_animation_frame` under the hood to count frames.
-pub struct FrameCounter {
-    frames:                Counter,
-    js_on_frame_handle_id: Rc<Cell<i32>>,
-    _closure_handle:       Rc<RefCell<Option<Closure<(dyn FnMut(f64))>>>>,
-}
-
-impl FrameCounter {
-    /// Creates a new frame counter.
-    pub fn start_counting() -> Self {
-        let frames: Counter = default();
-        let frames_handle = Rc::downgrade(&frames);
-        let closure_handle = Rc::new(RefCell::new(None));
-        let closure_handle_internal = Rc::downgrade(&closure_handle);
-        let js_on_frame_handle_id = Rc::new(Cell::new(0));
-        let js_on_frame_handle_id_internal = Rc::downgrade(&js_on_frame_handle_id);
-        *closure_handle.as_ref().borrow_mut() = Some(Closure::new(move |_| {
-            frames_handle.upgrade().map(|fh| fh.as_ref().update(|value| value.saturating_add(1)));
-            if let Some(maybe_handle) = closure_handle_internal.upgrade() {
-                if let Some(handle) = maybe_handle.borrow_mut().as_ref() {
-                    let new_handle_id =
-                        window.request_animation_frame_with_closure_or_panic(handle);
-                    if let Some(handle_id) = js_on_frame_handle_id_internal.upgrade() {
-                        handle_id.as_ref().set(new_handle_id)
-                    }
-                }
-            }
-        }));
-
-        js_on_frame_handle_id.as_ref().set(window.request_animation_frame_with_closure_or_panic(
-            closure_handle.borrow().as_ref().unwrap(),
-        ));
-
-        debug_assert!(closure_handle.borrow().is_some());
-        Self { frames, js_on_frame_handle_id, _closure_handle: closure_handle }
-    }
-
-    /// Returns the number of frames that have passed since the counter was created.
-    pub fn frames_since_start(&self) -> i32 {
-        self.frames.as_ref().get()
-    }
-}
-
-impl Drop for FrameCounter {
-    fn drop(&mut self) {
-        window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id.get());
-    }
-}
