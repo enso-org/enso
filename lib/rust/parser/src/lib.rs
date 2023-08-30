@@ -77,12 +77,8 @@
 
 #![recursion_limit = "256"]
 // === Features ===
-#![allow(incomplete_features)]
 #![feature(let_chains)]
-#![feature(allocator_api)]
-#![feature(exact_size_is_empty)]
 #![feature(test)]
-#![feature(specialization)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 #![feature(option_get_or_insert_default)]
@@ -107,6 +103,7 @@
 use crate::prelude::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -117,7 +114,7 @@ pub mod metadata;
 pub mod serialization;
 pub mod source;
 pub mod syntax;
-
+pub mod format;
 
 
 /// Popular utilities, imported by most modules of this crate.
@@ -128,10 +125,6 @@ pub mod prelude {
     pub use enso_reflect::Reflect;
     pub use enso_types::traits::*;
     pub use enso_types::unit2::Bytes;
-
-    /// Wraps return value for functions whose implementations don't handle all cases yet. When the
-    /// parser is complete, this type will be eliminated.
-    pub type WipResult<T> = Result<T, String>;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]

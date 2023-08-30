@@ -12,7 +12,7 @@ use crate::syntax::token;
 // =============
 
 /// A line of code.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct Line<'s> {
     /// Token ending the previous line, if any.
     pub newline:    token::Newline<'s>,
@@ -195,7 +195,7 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
 // ======================
 
 /// The content of a line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorBlockExpression<'s> {
     /// The operator at the beginning of the line.
     pub operator:   OperatorOrError<'s>,
@@ -231,7 +231,7 @@ impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
 // === Operator block lines ====
 
 /// A line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorLine<'s> {
     /// Token ending the previous line, if any.
     pub newline:    token::Newline<'s>,

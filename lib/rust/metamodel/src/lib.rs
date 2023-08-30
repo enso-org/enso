@@ -7,6 +7,7 @@
 //! The core modules define the metamodels, and operations on them:
 //! - [`rust`]: A metamodel representing data models in the Rust typesystem.
 //! - [`java`]: A metamodel representing data models in the Java typesystem.
+//! - [`typescript`]: A metamodel representing data models in the TypeScript typesystem.
 //! - [`meta`]: An abstract metamodel, used to perform language-independent analysis of data models,
 //!   and as an intermediate when translating data models between language-specific metamodels.
 //!
@@ -45,6 +46,7 @@
 
 // === Features ===
 #![feature(option_get_or_insert_default)]
+#![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

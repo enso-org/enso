@@ -20,6 +20,12 @@ pub fn parse_to_json(code: &str) -> String {
     serde_json::to_string(&ast).expect("Failed to serialize AST to JSON")
 }
 
+#[wasm_bindgen]
+pub fn parse_to_binary(code: &str) -> Vec<u8> {
+    let ast = PARSER.with(|parser| parser.run(code));
+    enso_parser::format::serialize(&ast, &code).expect("Failed to serialize AST to binary format")
+}
+
 #[wasm_bindgen(start)]
 fn main() {
     console_error_panic_hook::set_once();
