@@ -889,33 +889,140 @@ spec make_new_connection prefix persistent_connector=True =
     Test.group prefix+"Appending an in-memory table to a Database table" <|
         test_table_append in_memory_table_builder (database_table_builder "target-table")
 
+        Test.specify "will issue a friendly error if using in-memory table as target" <|
+            t1 = Table.new [["X", [1, 2, 3]]]
+            t2 = Table.new [["X", [1, 2, 3]]]
+            r1 = t1.update_rows t2
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text.should_contain "in-memory tables are immutable"
+
     Test.group prefix+"Appending a Database table to a Database table" <|
         test_table_append (database_table_builder "source-table") (database_table_builder "target-table")
 
     test_table_delete source_table_builder target_table_builder =
         Test.specify "should remove rows matching by key_columns" <|
-            TODO
+            table = target_table_builder [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["score", [100, 100, 44, 100, 120]]] primary_key=["student_id"]
+            key_values_to_delete = source_table_builder [["student_id", [44, 100]]]
+            # key columns should automatically be discovered by the primary key
+            affected_rows = table.delete_rows key_values_to_delete
+            affected_rows . should_equal 2
+            table.rows.map .to_vector . should_equal [[1, "Alice", 100], [2, "Bob", 100], [120, "Eve", 120]]
+
+        Test.specify "will require key_columns if no default can be used as no primary key is set" <|
+            table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
+            key_values_to_delete = source_table_builder [["X", [1, 2]]]
+
+            run_with_and_without_output <|
+                r1 = table.delete_rows key_values_to_delete
+                r1.should_fail_with Illegal_Argument
+                r1.to_display_text.should_contain "default value"
+
+            r2 = table.delete_rows key_values_to_delete key_columns=["X"]
+            Problems.assume_no_problems r2
+            r2.should_equal 2
+            table.at "X" . to_vector . should_equal [3]
 
         Test.specify "does not fail if no rows matching the key_values_to_delete are found" <|
-            TODO
+            table = target_table_builder [["X", [1, 2, 3]]] primary_key=[]
+            key_values_to_delete = source_table_builder [["X", [4, 5]]]
+            r1 = table.delete_rows key_values_to_delete key_columns=["X"]
+            r1.should_equal 0
+            Problems.assume_no_problems r1
+            table.at "X" . to_vector . should_equal [1, 2, 3]
+
+            key_values_2 = source_table_builder [["X", [4, 3, 5]]]
+            r2 = table.delete_rows key_values_2 key_columns=["X"]
+            r2.should_equal 1
+            Problems.assume_no_problems r2
+            table.at "X" . to_vector . should_equal [1, 2]
+
+        Test.specify "should allow to use multiple columns as key" <|
+            table = target_table_builder [["X", [1, 2, 2, 3]], ["Y", ['a', 'b', 'c', 'd']]] primary_key=[]
+            keys = source_table_builder [["X", [2]], ["Y", ['b']]]
+            affected_rows = table.delete_rows keys key_columns=["X", "Y"]
+            affected_rows . should_equal 1
+            table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"]]
 
         Test.specify "should fail if key_columns are missing in source or target tables" <|
-            TODO
+            table = target_table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]] primary_key=[]
+            keys = source_table_builder [["Z", [7, 8]]]
 
-        Test.specify "should fail if multiple rows match a single key_values_to_delete row" <|
-            TODO
+            run_with_and_without_output <|
+                r1 = table.delete_rows keys key_columns=["Y"]
+                r1.should_fail_with Missing_Input_Columns
+                r1.catch.criteria . should_equal ["Y"]
+                r1.catch.where . should_contain "source"
 
-        Test.specify "should allow multiple rows matching a single key if `allow_duplicate_matches` is set to True" <|
-            TODO
+                r2 = table.delete_rows keys key_columns=["Z"]
+                r2.should_fail_with Missing_Input_Columns
+                r2.catch.criteria . should_equal ["Z"]
+                r2.catch.where . should_contain "target"
+
+                r3 = table.delete_rows keys key_columns=["neither"]
+                r3.should_fail_with Missing_Input_Columns
+                r3.catch.criteria . should_equal ["neither"]
+
+        Test.specify "should fail if multiple rows match a single key_values_to_delete row, unless allow_duplicate_matches is set to True" <|
+            table = target_table_builder [["X", [1, 2, 2, 3, 2]], ["Y", ['a', 'b', 'c', 'd', 'e']]] primary_key=[]
+            keys = source_table_builder [["X", [2]], ["Y", ['b']]]
+
+            run_with_and_without_output <|
+                r1 = table.delete_rows keys key_columns=["X"]
+                r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
+                r1.catch.example_key . should_equal [2]
+                r1.catch.example_count . should_equal 3
+                # no changes
+                table.at "X" . to_vector . should_equal [1, 2, 2, 3, 2]
+
+            r2 = table.delete_rows keys key_columns=["X"] allow_duplicate_matches=True
+            r2.should_equal 3
+            table.rows.map .to_vector . should_equal [[1, "a"], [3, "d"]]
 
         Test.specify "should fail if the target table does not exist" <|
-            TODO
+            table = target_table_builder [["X", [1, 2, 3]]]
+            keys = source_table_builder [["X", [1, 2]]]
+            connection.drop_table table.name
+
+            run_with_and_without_output <|
+                table.delete_rows keys key_columns=["X"] . should_fail_with Table_Not_Found
+                table.delete_rows keys . should_fail_with Table_Not_Found
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
         test_table_delete in_memory_table_builder (database_table_builder "target-table")
 
     Test.group prefix+"Deleting rows from a Database table (source=Database)" <|
         test_table_delete (database_table_builder "source-table") (database_table_builder "target-table")
+
+    Test.group prefix+"Deleting rows from a Database table" <|
+        Test.specify "[ADVANCED] it should be possible to truncate the whole table" <|
+            name = Name_Generator.random_name "table-to-truncate"
+            t = (Table.new ["X", [1, 2, 3]]]).select_into_database_table connection name temporary=True primary_key=[]
+            t.at "X" . to_vector . should_equal [1, 2, 3]
+            connection.truncate_table name
+            t.at "X" . to_vector . should_equal []
+            # The table still exists
+            t2 = connection.query (SQL_Query.Table_Name name)
+            t2.at "X" . to_vector . should_equal []
+
+        Test.specify "should allow to delete rows based on another query" <|
+            table = database_table_builder "target-table" [["student_id", [1, 2, 44, 100, 120]], ["first_name", ["Alice", "Bob", "Charlie", "David", "Eve"]], ["graduation_year", [2023, 2024, 2021, 2020, 2019]]] primary_key=["student_id"]
+            graduates = table.filter "graduation_year" (Filter_Condition.Less 2023)
+            affected_rows = table.delete_rows graduates # uses the primary key by default
+            affected_rows . should_equal 3
+            table.rows.map .to_vector . should_equal [[1, "Alice", 2023], [2, "Bob", 2024]]
+
+        Test.specify "will issue a friendly error if using in-memory table as target" <|
+            t1 = Table.new [["X", [1, 2, 3]]]
+            t2 = Table.new [["X", [1, 2, 3]]]
+            r1 = t1.delete_rows t2
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text.should_contain "in-memory tables are immutable"
+
+        Test.specify "can use itself as source of rows to delete (even if that's an anti-pattern)" <|
+            t1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            affected_rows = t1.delete_rows t1
+            affected_rows . should_equal 3
+            t1.rows.should_equal []
 
     execution_context_group_name = prefix+"Output Execution Context for Database operations"
     Test.group execution_context_group_name <|

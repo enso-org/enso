@@ -141,7 +141,9 @@ Table.update_rows self (source_table : Table | Database_Table) (update_action : 
      columns of the rows to delete. The table must have all columns specified as
      `key_columns`. Any other columns are ignored.
    - key_columns: the names of the columns that are used to correlate rows from
-     `key_values_to_delete` with rows in the target table.
+     `key_values_to_delete` with rows in the target table. Defaults to the
+     primary key of the target table. If no primary key is set, this argument is
+     required.
    - allow_duplicate_matches: specifies if the key values are expected to match
      more than one row each. Defaults to `False`, meaning that if a key value
      matches more than one row, an error will be reported and no rows will be
