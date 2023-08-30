@@ -959,8 +959,9 @@ impl FontWithGpuData {
         Self { font, atlas, opacity_exponent, opacity_increase, context }
     }
 
-    fn set_context(&self, context: Option<&Context>) {
+    fn set_context_and_update(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
+        self.update_atlas();
     }
 
     /// Upload the current atlas to the GPU if it is dirty (contains more glyphs than the currently-
@@ -1043,7 +1044,7 @@ impl Registry {
             .map(|(name, font)| {
                 let hinting = Hinting::for_font(&name, scene_shape);
                 let font = FontWithGpuData::new(font, hinting);
-                font.set_context(context);
+                font.set_context_and_update(context);
                 (name, font)
             })
             .collect();
@@ -1051,7 +1052,7 @@ impl Registry {
         let fonts_ = Rc::clone(&fonts);
         let set_context_handle = scene.on_set_context(move |context| {
             for font in fonts_.values() {
-                font.set_context(context);
+                font.set_context_and_update(context);
             }
         });
         let network = frp::Network::new("font::Registry");

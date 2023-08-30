@@ -113,7 +113,6 @@ impl SymbolsRenderPass {
     fn disable_scissor_test(&self, instance: &pass::Instance) {
         instance.context.disable(*Context::SCISSOR_TEST);
     }
-
     fn render_layer(
         &mut self,
         instance: &pass::Instance,
@@ -122,9 +121,22 @@ impl SymbolsRenderPass {
         parent_masked: bool,
         override_blend: Option<layer::BlendMode>,
     ) {
+        self.try_render_layer(instance, layer, scissor_stack, parent_masked, override_blend);
+    }
+
+    // Render a layer if we are currently able to render. This should not fail unless the context
+    // has been lost.
+    fn try_render_layer(
+        &mut self,
+        instance: &pass::Instance,
+        layer: &layer::Layer,
+        scissor_stack: &mut Vec<layer::ScissorBox>,
+        parent_masked: bool,
+        override_blend: Option<layer::BlendMode>,
+    ) -> Option<()> {
         let has_symbols = layer.has_symbols();
         if !has_symbols && !layer.has_main_pass_sublayers() {
-            return;
+            return Some(());
         }
 
         let parent_scissor_box = scissor_stack.first().copied();
@@ -158,19 +170,15 @@ impl SymbolsRenderPass {
             let zero = [0.0, 0.0, 0.0, 0.0];
 
             if !inverted {
-                if let Some(framebuffers) = self.framebuffers.as_ref() {
-                    framebuffers.mask.bind();
-                }
+                self.framebuffers.as_ref()?.mask.bind();
                 instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
                 instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
                 self.render_layer(instance, layer, scissor_stack, was_ever_masked, override_blend);
             }
 
-            if let Some(framebuffers) = self.framebuffers.as_ref() {
-                framebuffers.layer.bind();
-                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
-                instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
-            }
+            self.framebuffers.as_ref()?.layer.bind();
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &zero);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &zero);
         }
 
         if has_symbols {
@@ -197,11 +205,9 @@ impl SymbolsRenderPass {
                 self.overlay_composer.render();
             }
         } else if is_masked {
-            if let Some(framebuffers) = self.framebuffers.as_ref() {
-                framebuffers.composed.bind();
-                layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
-                self.mask_composer.render();
-            }
+            self.framebuffers.as_ref()?.composed.bind();
+            layer::BlendMode::PREMULTIPLIED_ALPHA_OVER.apply_to_context(&instance.context);
+            self.mask_composer.render();
         }
 
         if scissor_box_changed {
@@ -210,6 +216,7 @@ impl SymbolsRenderPass {
                 self.disable_scissor_test(instance)
             }
         }
+        Some(())
     }
 }
 
