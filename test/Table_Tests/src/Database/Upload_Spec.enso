@@ -962,6 +962,12 @@ spec make_new_connection prefix persistent_connector=True =
                 r3.should_fail_with Missing_Input_Columns
                 r3.catch.criteria . should_equal ["neither"]
 
+        Test.specify "should fail if empty key_columns were provided" <|
+            table = target_table_builder [["X", [1, 2, 3]]] primary_key=["X"]
+            keys = source_table_builder [["X", [1, 2]]]
+            r1 = table.delete_rows keys key_columns=[]
+            r1.should_fail_with Illegal_Argument
+
         Test.specify "should fail if multiple rows match a single key_values_to_delete row, unless allow_duplicate_matches is set to True" <|
             table = target_table_builder [["X", [1, 2, 2, 3, 2]], ["Y", ['a', 'b', 'c', 'd', 'e']]] primary_key=[]
             keys = source_table_builder [["X", [2]], ["Y", ['b']]]
