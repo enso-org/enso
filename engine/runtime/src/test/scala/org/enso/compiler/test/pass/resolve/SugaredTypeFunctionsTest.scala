@@ -3,8 +3,9 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.{Expression, Type}
 import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.resolve.TypeFunctions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -57,7 +58,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a : B
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[Type.Ascription]
     }
 
     "work for left sections" in {
@@ -68,7 +69,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
 
       if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Function.Lambda]
-        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[Type.Ascription]
       }
     }
 
@@ -83,7 +84,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
         ir.asInstanceOf[IR.Function.Lambda]
           .body
           .asInstanceOf[IR.Function.Lambda]
-          .body shouldBe an[IR.Type.Ascription]
+          .body shouldBe an[Type.Ascription]
       }
     }
 
@@ -95,7 +96,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
 
       if (!ir.isInstanceOf[errors.Syntax]) {
         ir shouldBe an[IR.Function.Lambda]
-        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+        ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[Type.Ascription]
       }
     }
 
@@ -106,7 +107,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.resolve
 
       if (!ir.isInstanceOf[errors.Syntax]) {
-        ir shouldBe an[IR.Type.Ascription]
+        ir shouldBe an[Type.Ascription]
       }
     }
 
@@ -116,7 +117,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a : _
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[Type.Ascription]
     }
   }
 
@@ -129,7 +130,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a : A
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[Type.Ascription]
     }
 
     "resolve context ascription" ignore {
@@ -139,7 +140,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |a in IO
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Context]
+      ir shouldBe an[Type.Context]
     }
 
     "resolve error ascription" in {
@@ -148,7 +149,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |IO ! Error
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Error]
+      ir shouldBe an[Type.Error]
     }
 
     "resolve subsumption" in {
@@ -157,7 +158,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T <: P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Subsumption]
+      ir shouldBe an[`type`.Set.Subsumption]
     }
 
     "resolve equality" ignore {
@@ -167,7 +168,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T ~ P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Equality]
+      ir shouldBe an[`type`.Set.Equality]
     }
 
     "resolve concatenation" in {
@@ -176,7 +177,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T ; P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Concat]
+      ir shouldBe an[`type`.Set.Concat]
     }
 
     "resolve union" in {
@@ -185,7 +186,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T | P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Union]
+      ir shouldBe an[`type`.Set.Union]
     }
 
     "resolve intersection" in {
@@ -194,7 +195,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T & P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Intersection]
+      ir shouldBe an[`type`.Set.Intersection]
     }
 
     "resolve subtraction" ignore {
@@ -204,7 +205,7 @@ class SugaredTypeFunctionsTest extends CompilerTest {
           |T \ P
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Type.Set.Subtraction]
+      ir shouldBe an[`type`.Set.Subtraction]
     }
   }
 }

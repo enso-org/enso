@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
@@ -107,7 +107,7 @@ case object CachePreferenceAnalysis extends IRPass {
           "Documentation should not exist as an entity during cache " +
           "preference analysis."
         )
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type signatures should not exist at the top level during " +
           "cache preference analysis."

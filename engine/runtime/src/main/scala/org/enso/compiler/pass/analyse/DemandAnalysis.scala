@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name, Type}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
@@ -95,7 +95,7 @@ case object DemandAnalysis extends IRPass {
       case name: Name      => analyseName(name, isInsideCallArgument)
       case app: Application =>
         analyseApplication(app, isInsideCallArgument)
-      case typ: IR.Type =>
+      case typ: Type =>
         analyseType(typ, isInsideCallArgument)
       case cse: IR.Case =>
         analyseCase(cse, isInsideCallArgument)
@@ -287,9 +287,9 @@ case object DemandAnalysis extends IRPass {
     * @return `typ`, transformed by the demand analysis process
     */
   def analyseType(
-    typ: IR.Type,
+    typ: Type,
     isInsideCallArgument: Boolean
-  ): IR.Type =
+  ): Type =
     typ.mapExpressions(x => analyseExpression(x, isInsideCallArgument))
 
   /** Performs demand analysis on a case expression.

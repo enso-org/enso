@@ -3,9 +3,10 @@ package org.enso.compiler.context
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Operator}
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name}
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Literal, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -485,9 +486,9 @@ final class SuggestionBuilder[A: IndexedSource](
     typeExpr: Expression
   ): Vector[TypeArg] = {
     def go(expr: Expression): TypeArg = expr match {
-      case fn: IR.Type.Function =>
+      case fn: Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
-      case union: IR.Type.Set.Union =>
+      case union: `type`.Set.Union =>
         TypeArg.Sum(None, union.operands.map(go))
       case app: Application.Prefix =>
         TypeArg.Application(

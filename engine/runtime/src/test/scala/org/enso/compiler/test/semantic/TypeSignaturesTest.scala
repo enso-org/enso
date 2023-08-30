@@ -1,10 +1,9 @@
 package org.enso.compiler.test.semantic
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -74,7 +73,7 @@ trait TypeMatchers {
               )
             }
         }
-      case (Fn(args, res), t: IR.Type.Function) =>
+      case (Fn(args, res), t: Type.Function) =>
         if (args.length != t.args.length) {
           Some((sig, expr, "arity does not match"))
         } else {
@@ -84,13 +83,13 @@ trait TypeMatchers {
             .headOption
             .orElse(findInequalityWitness(res, t.result))
         }
-      case (Union(items), t: IR.Type.Set.Union) =>
+      case (Union(items), t: `type`.Set.Union) =>
         if (items.length != t.operands.length) {
           Some((sig, expr, "number of items does not match"))
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), IR.Type.Context(irTyped, irContext, _, _, _)) =>
+      case (In(typed, context), Type.Context(irTyped, irContext, _, _, _)) =>
         findInequalityWitness(typed, irTyped).orElse(
           findInequalityWitness(context, irContext)
         )

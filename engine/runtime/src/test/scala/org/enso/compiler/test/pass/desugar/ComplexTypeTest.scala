@@ -2,9 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Module, Name, Type}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -101,12 +99,12 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have type signatures copied to above each method" in {
-      ir.bindings(2) shouldBe an[IR.Type.Ascription]
-      ir.bindings(4) shouldBe an[IR.Type.Ascription]
+      ir.bindings(2) shouldBe an[Type.Ascription]
+      ir.bindings(4) shouldBe an[Type.Ascription]
 
       val isJustSigName = ir
         .bindings(2)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
         .asInstanceOf[Name.MethodReference]
       val isJustMethodName = ir
@@ -121,7 +119,7 @@ class ComplexTypeTest extends CompilerTest {
 
       val fSigName = ir
         .bindings(4)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
         .asInstanceOf[Name.MethodReference]
       val fMethodName = ir
@@ -136,16 +134,16 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "leave un-associated signatures intact" in {
-      ir.bindings(1) shouldBe an[IR.Type.Ascription]
+      ir.bindings(1) shouldBe an[Type.Ascription]
       ir.bindings(1)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
         .asInstanceOf[Name.Literal]
         .name shouldEqual "invalid_sig"
 
-      ir.bindings(6) shouldBe an[IR.Type.Ascription]
+      ir.bindings(6) shouldBe an[Type.Ascription]
       ir.bindings(6)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
         .asInstanceOf[Name.Literal]
         .name shouldEqual "bad_trailing_sig"

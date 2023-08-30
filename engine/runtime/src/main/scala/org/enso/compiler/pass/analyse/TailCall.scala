@@ -6,17 +6,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-
-import org.enso.compiler.core.ir.{
-  Diagnostic,
-  Empty,
-  Expression,
-  Literal,
-  Module,
-  Name,
-  Pattern,
-  Warning
-}
+import org.enso.compiler.core.ir.{Diagnostic, Empty, Expression, Literal, Module, Name, Pattern, Type, Warning}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Foreign, Operator}
 import org.enso.compiler.core.ir.expression.errors
@@ -127,7 +117,7 @@ case object TailCall extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during tail call analysis."
         )
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
@@ -168,7 +158,7 @@ case object TailCall extends IRPass {
       case function: IR.Function =>
         analyseFunction(function, isInTailPosition)
       case caseExpr: IR.Case => analyseCase(caseExpr, isInTailPosition)
-      case typ: IR.Type      => analyseType(typ, isInTailPosition)
+      case typ: Type      => analyseType(typ, isInTailPosition)
       case app: Application  => analyseApplication(app, isInTailPosition)
       case name: Name        => analyseName(name, isInTailPosition)
       case foreign: Foreign =>
@@ -320,7 +310,7 @@ case object TailCall extends IRPass {
     *                         call position
     * @return `value`, annotated with tail position metadata
     */
-  def analyseType(value: IR.Type, isInTailPosition: Boolean): IR.Type = {
+  def analyseType(value: Type, isInTailPosition: Boolean): Type = {
     value
       .mapExpressions(analyseExpression(_, isInTailPosition = false))
       .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))

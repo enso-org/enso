@@ -2,26 +2,14 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
-  LambdaConsolidate
-}
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  IgnoredBindings,
-  OverloadsResolution
-}
+import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
+import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, OverloadsResolution}
 
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
@@ -68,7 +56,7 @@ case object LambdaShorthandToLambda extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val new_bindings = ir.bindings.map {
-      case asc: IR.Type.Ascription => asc
+      case asc: Type.Ascription => asc
       case a =>
         a.mapExpressions(
           runExpression(
@@ -119,7 +107,7 @@ case object LambdaShorthandToLambda extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     ir.transformExpressions {
-      case asc: IR.Type.Ascription => asc
+      case asc: Type.Ascription => asc
       case app: Application        => desugarApplication(app, freshNameSupply)
       case caseExpr: IR.Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
       case name: Name              => desugarName(name, freshNameSupply)

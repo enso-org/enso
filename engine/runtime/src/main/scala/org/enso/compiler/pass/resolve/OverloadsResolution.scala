@@ -2,7 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name}
+import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -117,7 +117,7 @@ case object OverloadsResolution extends IRPass {
 
       case diagnostic: Diagnostic      => diagnostic
       case ann: Name.GenericAnnotation => ann
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type ascriptions should not be present during the overloads resolution."
         )

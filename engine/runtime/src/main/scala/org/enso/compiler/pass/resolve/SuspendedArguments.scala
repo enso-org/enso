@@ -2,13 +2,11 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Empty, Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Empty, Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.IR.Type
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -245,7 +243,7 @@ case object SuspendedArguments extends IRPass {
     */
   private def toSegments(signature: Expression): List[Expression] = {
     signature match {
-      case IR.Type.Function(args, ret, _, _, _) => args :+ ret
+      case Type.Function(args, ret, _, _, _) => args :+ ret
       case _                                    => List(signature)
     }
   }

@@ -7,16 +7,11 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.interpreter.Constants
@@ -321,7 +316,7 @@ case object FunctionBinding extends IRPass {
           "function binding desugaring."
         )
       case a: Name.GenericAnnotation => a
-      case a: IR.Type.Ascription     => a
+      case a: Type.Ascription     => a
       case e: Error                  => e
     }
   }

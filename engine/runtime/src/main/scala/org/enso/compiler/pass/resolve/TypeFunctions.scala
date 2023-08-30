@@ -2,19 +2,15 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, IdentifiedLocation, Module, Name, Type}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
-}
+import org.enso.compiler.pass.desugar.{LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 import org.enso.compiler.pass.lint.UnusedBindings
 
 import scala.annotation.unused
@@ -82,15 +78,15 @@ case object TypeFunctions extends IRPass {
 
   /** The names of the known typing functions. */
   val knownTypingFunctions: Set[String] = Set(
-    IR.Type.Ascription.name,
-    IR.Type.Context.name,
-    IR.Type.Error.name,
-    IR.Type.Set.Concat.name,
-    IR.Type.Set.Subsumption.name,
-    IR.Type.Set.Equality.name,
-    IR.Type.Set.Union.name,
-    IR.Type.Set.Intersection.name,
-    IR.Type.Set.Subtraction.name
+    Type.Ascription.name,
+    Type.Context.name,
+    Type.Error.name,
+    `type`.Set.Concat.name,
+    `type`.Set.Subsumption.name,
+    `type`.Set.Equality.name,
+    `type`.Set.Union.name,
+    `type`.Set.Intersection.name,
+    `type`.Set.Subtraction.name
   )
 
   /** Performs resolution of typing functions in an arbitrary expression.
@@ -100,7 +96,7 @@ case object TypeFunctions extends IRPass {
     */
   def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
-      case asc: IR.Type.Ascription => asc
+      case asc: Type.Ascription => asc
       case app: Application =>
         val result = resolveApplication(app)
         app
@@ -119,9 +115,9 @@ case object TypeFunctions extends IRPass {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
-          case name: Name if name.name == IR.Type.Set.Union.name =>
+          case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
-            IR.Type.Set.Union(members, app.location)
+            `type`.Set.Union(members, app.location)
           case name: Name if knownTypingFunctions.contains(name.name) =>
             resolveKnownFunction(name, pre.arguments, pre.location, pre)
           case _ =>
@@ -150,7 +146,7 @@ case object TypeFunctions extends IRPass {
   def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
       case Application.Prefix(n: Name, args, _, _, _, _)
-          if n.name == IR.Type.Set.Union.name =>
+          if n.name == `type`.Set.Union.name =>
         args.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
     }
@@ -176,22 +172,22 @@ case object TypeFunctions extends IRPass {
       val rightArg = resolveExpression(arguments.last.value)
 
       name.name match {
-        case IR.Type.Ascription.name =>
-          IR.Type.Ascription(leftArg, rightArg, location)
-        case IR.Type.Context.name =>
-          IR.Type.Context(leftArg, rightArg, location)
-        case IR.Type.Error.name =>
-          IR.Type.Error(leftArg, rightArg, location)
-        case IR.Type.Set.Concat.name =>
-          IR.Type.Set.Concat(leftArg, rightArg, location)
-        case IR.Type.Set.Subsumption.name =>
-          IR.Type.Set.Subsumption(leftArg, rightArg, location)
-        case IR.Type.Set.Equality.name =>
-          IR.Type.Set.Equality(leftArg, rightArg, location)
-        case IR.Type.Set.Intersection.name =>
-          IR.Type.Set.Intersection(leftArg, rightArg, location)
-        case IR.Type.Set.Subtraction.name =>
-          IR.Type.Set.Subtraction(leftArg, rightArg, location)
+        case Type.Ascription.name =>
+          Type.Ascription(leftArg, rightArg, location)
+        case Type.Context.name =>
+          Type.Context(leftArg, rightArg, location)
+        case Type.Error.name =>
+          Type.Error(leftArg, rightArg, location)
+        case `type`.Set.Concat.name =>
+          `type`.Set.Concat(leftArg, rightArg, location)
+        case `type`.Set.Subsumption.name =>
+          `type`.Set.Subsumption(leftArg, rightArg, location)
+        case `type`.Set.Equality.name =>
+          `type`.Set.Equality(leftArg, rightArg, location)
+        case `type`.Set.Intersection.name =>
+          `type`.Set.Intersection(leftArg, rightArg, location)
+        case `type`.Set.Subtraction.name =>
+          `type`.Set.Subtraction(leftArg, rightArg, location)
       }
     } else {
       Error.InvalidIR(originalIR)

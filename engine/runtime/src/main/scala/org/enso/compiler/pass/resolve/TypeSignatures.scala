@@ -4,9 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.expression.errors
@@ -79,10 +77,10 @@ case object TypeSignatures extends IRPass {
     * @return `mod`, with type signatures resolved
     */
   private def resolveModule(mod: Module): Module = {
-    var lastSignature: Option[IR.Type.Ascription] = None
+    var lastSignature: Option[Type.Ascription] = None
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
-      case sig: IR.Type.Ascription =>
+      case sig: Type.Ascription =>
         val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
         lastSignature = Some(sig)
         res
@@ -93,7 +91,7 @@ case object TypeSignatures extends IRPass {
           case _               =>
         }
         val res = lastSignature match {
-          case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, _, _, _)) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -193,7 +191,7 @@ case object TypeSignatures extends IRPass {
   private def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case block: Expression.Block => resolveBlock(block)
-      case sig: IR.Type.Ascription => resolveAscription(sig)
+      case sig: Type.Ascription => resolveAscription(sig)
     }
   }
 
@@ -232,7 +230,7 @@ case object TypeSignatures extends IRPass {
     * @param sig the signature to convert
     * @return the typed expression in `sig`, with `signature` attached
     */
-  private def resolveAscription(sig: IR.Type.Ascription): Expression = {
+  private def resolveAscription(sig: Type.Ascription): Expression = {
     val newTyped = sig.typed.mapExpressions(resolveExpression)
     val newSig   = sig.signature.mapExpressions(resolveExpression)
     newTyped.updateMetadata(this -->> Signature(newSig))
@@ -244,12 +242,12 @@ case object TypeSignatures extends IRPass {
     * @return `block`, with any type signatures resolved
     */
   private def resolveBlock(block: Expression.Block): Expression.Block = {
-    var lastSignature: Option[IR.Type.Ascription] = None
+    var lastSignature: Option[Type.Ascription] = None
     val allBlockExpressions =
       block.expressions :+ block.returnValue
 
     val newExpressions = allBlockExpressions.flatMap {
-      case sig: IR.Type.Ascription =>
+      case sig: Type.Ascription =>
         val res = lastSignature match {
           case Some(oldSig) => Some(errors.Unexpected.TypeSignature(oldSig))
           case None         => None
@@ -260,7 +258,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, _, _, _)) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)

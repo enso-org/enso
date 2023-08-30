@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
@@ -114,7 +115,7 @@ case object TypeNames extends IRPass {
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
-      case s: IR.Type.Set =>
+      case s: `type`.Set =>
         s.mapExpressions(resolveSignature(typeParams, bindingsMap, _))
     }
 

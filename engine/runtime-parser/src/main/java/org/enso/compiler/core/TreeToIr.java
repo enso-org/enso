@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Pattern;
+import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Foreign;
 import org.enso.compiler.core.ir.expression.Operator;
@@ -87,7 +88,7 @@ final class TreeToIr {
                 methodReference = translateExpression(sig.getVariable());
               }
               var signature = translateType(sig.getType(), false);
-              var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
               yield ascription;
             }
             default -> translateExpression(exprTree);
@@ -290,7 +291,7 @@ final class TreeToIr {
       case Tree.TypeSignature sig -> {
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateType(sig.getType(), false);
-        var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+        var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
         yield cons(ascription, appendTo);
       }
 
@@ -506,9 +507,9 @@ final class TreeToIr {
       }
    }
 
-  private IR$Type$Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
+  private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
     var fn = translateType(type, false);
-    return new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
+    return new Type.Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
   }
 
 
@@ -1066,13 +1067,13 @@ final class TreeToIr {
               yield new Syntax(getIdentifiedLocation(app).get(), Syntax.UnexpectedExpression$.MODULE$, meta(), diag());
             }
             var args = switch (body) {
-              case IR$Type$Function fn -> {
+              case Type.Function fn -> {
                 body = fn.result();
                 yield cons(literal, fn.args());
               }
               default -> cons(literal, nil());
             };
-            yield new IR$Type$Function(args, body, Option.empty(), meta(), diag());
+            yield new Type.Function(args, body, Option.empty(), meta(), diag());
           }
           default -> {
             var lhs = translateTypeCallArgument(app.getLhs());

@@ -7,9 +7,10 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
+import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern, Type}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator, Section}
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
@@ -289,7 +290,7 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during alias analysis."
         )
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type signatures should not exist at the top level during " +
           "alias analysis."
@@ -406,7 +407,7 @@ case object AliasAnalysis extends IRPass {
         }
       case app: Application =>
         analyseApplication(app, graph, parentScope)
-      case tpe: IR.Type => analyseType(tpe, graph, parentScope)
+      case tpe: Type => analyseType(tpe, graph, parentScope)
       case x =>
         x.mapExpressions((expression: Expression) =>
           analyseExpression(
@@ -425,9 +426,9 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the parent scope in which `value` occurs
     * @return `value`, annotated with aliasing information
     */
-  def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
+  def analyseType(value: Type, graph: Graph, parentScope: Scope): Type = {
     value match {
-      case member @ IR.Type.Set.Member(label, memberType, value, _, _, _) =>
+      case member @ `type`.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
           case _: Literal => parentScope
           case _          => parentScope.addChild()

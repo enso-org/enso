@@ -2,19 +2,13 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  Resolution,
-  ResolutionNotFound,
-  ResolvedMethod,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolutionNotFound, ResolvedMethod, ResolvedModule}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
@@ -103,7 +97,7 @@ case object GlobalNames extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Definition = {
     moduleDefinition match {
-      case asc: IR.Type.Ascription => asc
+      case asc: Type.Ascription => asc
       case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)

@@ -11,7 +11,8 @@ import org.enso.compiler.core.ir.{
   Literal,
   Module,
   Name,
-  Pattern
+  Pattern,
+  Type => Tpe
 }
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -25,6 +26,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
   ResolvedConstructor,
@@ -353,8 +355,8 @@ class IrToTruffle(
 
       @tailrec
       def getContext(tp: Expression): Option[String] = tp match {
-        case fn: IR.Type.Function => getContext(fn.result)
-        case ctx: IR.Type.Context =>
+        case fn: Tpe.Function => getContext(fn.result)
+        case ctx: Tpe.Context =>
           ctx.context match {
             case lit: Name.Literal => Some(lit.name)
             case _                 => None
@@ -679,9 +681,9 @@ class IrToTruffle(
 
   private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
     def extractAscribedType(t: Expression): List[Type] = t match {
-      case u: IR.Type.Set.Union  => u.operands.flatMap(extractAscribedType)
+      case u: `type`.Set.Union  => u.operands.flatMap(extractAscribedType)
       case p: Application.Prefix => extractAscribedType(p.function)
-      case _: IR.Type.Function =>
+      case _: Tpe.Function =>
         List(context.getTopScope().getBuiltins().function())
       case t => {
         t.getMetadata(TypeNames) match {
@@ -971,7 +973,7 @@ class IrToTruffle(
         case binding: Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case =>
           processCase(caseExpr, subjectToInstrumentation)
-        case typ: IR.Type => processType(typ)
+        case typ: Tpe => processType(typ)
         case _: Empty =>
           throw new CompilerError(
             "Empty IR nodes should not exist during code generation."
@@ -1050,7 +1052,7 @@ class IrToTruffle(
       * @param value the type operation to generate code for
       * @return the truffle nodes corresponding to `value`
       */
-    def processType(value: IR.Type): RuntimeExpression = {
+    def processType(value: Tpe): RuntimeExpression = {
       setLocation(
         ErrorNode.build(
           context.getBuiltins

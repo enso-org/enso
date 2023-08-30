@@ -6,14 +6,8 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{
-  Empty,
-  Expression,
-  Literal,
-  Module,
-  Name,
-  Pattern
-}
+import org.enso.compiler.core.ir.`type`
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name, Pattern, Type}
 import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -193,7 +187,7 @@ case object DataflowAnalysis extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during dataflow analysis."
         )
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type signatures should not exist at the top level during " +
           "dataflow analysis."
@@ -228,7 +222,7 @@ case object DataflowAnalysis extends IRPass {
       case empty: Empty          => empty.updateMetadata(this -->> info)
       case function: IR.Function => analyseFunction(function, info)
       case app: Application      => analyseApplication(app, info)
-      case typ: IR.Type          => analyseType(typ, info)
+      case typ: Type          => analyseType(typ, info)
       case name: Name            => analyseName(name, info)
       case cse: IR.Case          => analyseCase(cse, info)
       case literal: Literal =>
@@ -379,9 +373,9 @@ case object DataflowAnalysis extends IRPass {
     * @param info the dependency information for the module
     * @return `typ`, with attached dependency information
     */
-  def analyseType(typ: IR.Type, info: DependencyInfo): IR.Type = {
+  def analyseType(typ: Type, info: DependencyInfo): Type = {
     typ match {
-      case asc @ IR.Type.Ascription(typed, signature, _, _, _) =>
+      case asc @ Type.Ascription(typed, signature, _, _, _) =>
         val ascrDep  = asStatic(asc)
         val typedDep = asStatic(typed)
         val sigDep   = asStatic(signature)
@@ -396,7 +390,7 @@ case object DataflowAnalysis extends IRPass {
           )
           .updateMetadata(this -->> info)
 
-      case fun @ IR.Type.Function(args, result, _, _, _) =>
+      case fun @ Type.Function(args, result, _, _, _) =>
         val funDep  = asStatic(fun)
         val argDeps = args.map(asStatic)
         val resDep  = asStatic(result)
@@ -410,7 +404,7 @@ case object DataflowAnalysis extends IRPass {
             result = analyseExpression(result, info)
           )
           .updateMetadata(this -->> info)
-      case ctx @ IR.Type.Context(typed, context, _, _, _) =>
+      case ctx @ Type.Context(typed, context, _, _, _) =>
         val ctxDep     = asStatic(ctx)
         val typedDep   = asStatic(typed)
         val contextDep = asStatic(context)
@@ -424,7 +418,7 @@ case object DataflowAnalysis extends IRPass {
             context = analyseExpression(context, info)
           )
           .updateMetadata(this -->> info)
-      case err @ IR.Type.Error(typed, error, _, _, _) =>
+      case err @ Type.Error(typed, error, _, _, _) =>
         val errDep   = asStatic(err)
         val typedDep = asStatic(typed)
         val errorDep = asStatic(error)
@@ -438,7 +432,7 @@ case object DataflowAnalysis extends IRPass {
             error = analyseExpression(error, info)
           )
           .updateMetadata(this -->> info)
-      case member @ IR.Type.Set.Member(_, memberType, value, _, _, _) =>
+      case member @ `type`.Set.Member(_, memberType, value, _, _, _) =>
         val memberDep     = asStatic(member)
         val memberTypeDep = asStatic(memberType)
         val valueDep      = asStatic(value)
@@ -452,7 +446,7 @@ case object DataflowAnalysis extends IRPass {
             value      = analyseExpression(value, info)
           )
           .updateMetadata(this -->> info)
-      case concat @ IR.Type.Set.Concat(left, right, _, _, _) =>
+      case concat @ `type`.Set.Concat(left, right, _, _, _) =>
         val concatDep = asStatic(concat)
         val leftDep   = asStatic(left)
         val rightDep  = asStatic(right)
@@ -466,7 +460,7 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case eq @ IR.Type.Set.Equality(left, right, _, _, _) =>
+      case eq @ `type`.Set.Equality(left, right, _, _, _) =>
         val eqDep    = asStatic(eq)
         val leftDep  = asStatic(left)
         val rightDep = asStatic(right)
@@ -478,7 +472,7 @@ case object DataflowAnalysis extends IRPass {
           left  = analyseExpression(left, info),
           right = analyseExpression(right, info)
         ).updateMetadata(this -->> info)
-      case intersect @ IR.Type.Set.Intersection(left, right, _, _, _) =>
+      case intersect @ `type`.Set.Intersection(left, right, _, _, _) =>
         val intersectDep = asStatic(intersect)
         val leftDep      = asStatic(left)
         val rightDep     = asStatic(right)
@@ -492,7 +486,7 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case union @ IR.Type.Set.Union(operands, _, _, _) =>
+      case union @ `type`.Set.Union(operands, _, _, _) =>
         val unionDep = asStatic(union)
         val opDeps   = operands.map(asStatic)
         opDeps.foreach(info.dependents.updateAt(_, Set(unionDep)))
@@ -500,7 +494,7 @@ case object DataflowAnalysis extends IRPass {
         union
           .copy(operands = operands.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
-      case subsumption @ IR.Type.Set.Subsumption(left, right, _, _, _) =>
+      case subsumption @ `type`.Set.Subsumption(left, right, _, _, _) =>
         val subDep   = asStatic(subsumption)
         val leftDep  = asStatic(left)
         val rightDep = asStatic(right)
@@ -514,7 +508,7 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case subtraction @ IR.Type.Set.Subtraction(left, right, _, _, _) =>
+      case subtraction @ `type`.Set.Subtraction(left, right, _, _, _) =>
         val subDep   = asStatic(subtraction)
         val leftDep  = asStatic(left)
         val rightDep = asStatic(right)

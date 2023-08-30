@@ -2,32 +2,16 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.IdentifiedLocation
+import org.enso.compiler.core.ir.{DiagnosticStorage, Expression, IdentifiedLocation, MetadataStorage, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
-import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
-  LambdaConsolidate
-}
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  IgnoredBindings,
-  ModuleAnnotations
-}
+import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
+import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, ModuleAnnotations}
 import org.enso.compiler.core.ir.MetadataStorage._
 
 /** Desugars complex type definitions to simple type definitions in the module
@@ -145,7 +129,7 @@ case object ComplexType extends IRPass {
       case _                           => false
     }
 
-    var lastSignature: Option[IR.Type.Ascription] = None
+    var lastSignature: Option[Type.Ascription] = None
 
     /** Pairs up signatures with method definitions, and then generates the
       * appropriate method definitions for the atoms in scope.
@@ -158,9 +142,9 @@ case object ComplexType extends IRPass {
       name: Name,
       defn: IR
     ): List[Definition] = {
-      var unusedSig: Option[IR.Type.Ascription] = None
+      var unusedSig: Option[Type.Ascription] = None
       val sig = lastSignature match {
-        case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
+        case Some(Type.Ascription(typed, _, _, _, _)) =>
           typed match {
             case Name.Literal(nameStr, _, _, _, _) =>
               if (name.name == nameStr) {
@@ -186,7 +170,7 @@ case object ComplexType extends IRPass {
     }
 
     val entityResults: List[Definition] = remainingEntities.flatMap {
-      case sig: IR.Type.Ascription =>
+      case sig: Type.Ascription =>
         val res = lastSignature
         lastSignature = Some(sig)
         res
@@ -234,7 +218,7 @@ case object ComplexType extends IRPass {
   private def genMethodDef(
     ir: IR,
     typeName: Name,
-    signature: Option[IR.Type.Ascription]
+    signature: Option[Type.Ascription]
   ): List[Definition] = {
     ir match {
       case Expression.Binding(name, expr, location, passData, diagnostics) =>
@@ -298,7 +282,7 @@ case object ComplexType extends IRPass {
     location: Option[IdentifiedLocation],
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage,
-    signature: Option[IR.Type.Ascription]
+    signature: Option[Type.Ascription]
   ): List[Definition] = {
     val methodRef = Name.MethodReference(
       Some(Name.Qualified(List(typeName), typeName.location)),
