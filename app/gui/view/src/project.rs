@@ -799,7 +799,7 @@ impl application::View for View {
             (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd shift r", "restore_project_snapshot"),
-            // (Press, "", "cmd z", "undo"),
+            (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
