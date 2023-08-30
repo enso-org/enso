@@ -26,7 +26,7 @@ function updateExprRect(id: ExprId, rect: Rect) {
 
 const circlePos = ref(Vec2.Zero())
 
-function onClick() {
+function onViewportClick() {
   const pos = navigator.sceneMousePos
   if (pos != null) {
     circlePos.value = pos
@@ -39,7 +39,7 @@ useWindowEvent('keypress', (e) => {
   switch (e.key) {
     case 'n':
       const n = graphStore.createNode(pos)
-      graphStore.setNodeContent(n, 'hello world! 123 + bla "yee"')
+      graphStore.setNodeContent(n, 'hello "world"! 123 + x')
       break
   }
 })
@@ -50,7 +50,7 @@ function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
 </script>
 
 <template>
-  <div ref="viewportNode" class="viewport" v-on="navigator.events" @click="onClick">
+  <div ref="viewportNode" class="viewport" v-on="navigator.events" @click="onViewportClick">
     <svg :viewBox="navigator.viewBox">
       <circle :cx="circlePos.x" :cy="circlePos.y" r="6" fill="red" />
       <GraphEdge
