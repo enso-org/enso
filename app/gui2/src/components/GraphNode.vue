@@ -81,7 +81,6 @@ function editContent(e: Event) {
       end: getRelatedSpanOffset(r.endContainer, r.endOffset),
     }
   })
-  console.log(domRanges, ranges)
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''
@@ -104,6 +103,8 @@ function editContent(e: Event) {
       break
     }
     case 'deleteByCut':
+    case 'deleteWordBackward':
+    case 'deleteWordForward':
     case 'deleteContentBackward':
     case 'deleteContentForward':
     case 'deleteByDrag': {

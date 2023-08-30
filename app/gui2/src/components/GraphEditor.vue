@@ -33,9 +33,15 @@ function onViewportClick() {
   }
 }
 
+function keyboardBusy() {
+  return document.activeElement != document.body
+}
+
 useWindowEvent('keypress', (e) => {
+  if (keyboardBusy()) return
   const pos = navigator.sceneMousePos
   if (pos == null) return
+
   switch (e.key) {
     case 'n':
       const n = graphStore.createNode(pos)
@@ -83,7 +89,6 @@ function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
   position: relative;
   contain: layout;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px purple;
 }
 
 svg {
