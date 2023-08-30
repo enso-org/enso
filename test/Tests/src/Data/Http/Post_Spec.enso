@@ -25,11 +25,44 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
-        Test.specify "Can perform a POST" <|
+        Test.specify "Can perform a Text POST" <|
             response = Data.post url_post "hello world"
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Can perform a Json POST" <|
+            response = Data.post url_post '{ "a" : 1 }' mime_type="application/json"
+            response.at "data" . should_equal '{ "a" : 1 }'
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Can perform an object .to_json POST" <|
+            response = Data.post url_post (TestType.Aaa "abcd")
+            response.at "data" . should_equal '{"type":"TestType","constructor":"Aaa","s":"abcd"}'
+            response.at "headers" . at "Content-Length" . should_equal "50"
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Can perform an object Request_Body.Text POST" <|
+            response = Data.post url_post (Request_Body.Text "abcd")
+            response.at "data" . should_equal 'abcd'
+            response.at "headers" . at "Content-Length" . should_equal "4"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Can perform an object Request_Body.Json POST" <|
+            response = Data.post url_post (Request_Body.Json '{ "a" : 1 }')
+            response.at "data" . should_equal '{ "a" : 1 }'
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Can perform a File POST" <|
+            test_file = enso_project.data / "sample.txt"
+            returned_file = Data.post url_post test_file . at "data"
+            returned_file.should_equal test_file.read_text
+
+        Test.specify "Can perform a File POST via form" <|
+            test_file = enso_project.data / "sample.txt"
+            Data.post_file_as_form url_post test_file "fn" . at "data" . should_contain "fn=Cupcake+ipsum+dolor+sit+amet"
 
         Test.specify "Uses the correct mime type" <|
             body = '{ "a" : 1 }'
@@ -40,15 +73,6 @@ spec =
             Data.post url_post (TestType.Bbb 123) . at "headers" . at "Content-Type" . should_equal "application/json"
             Data.post url_post (Request_Body.Text "abcd") . at "headers" . at "Content-Type" . should_equal "text/plain"
             Data.post url_post (Request_Body.Json '{ "a" : 1 }') . at "headers" . at "Content-Type" . should_equal "application/json"
-
-        Test.specify "Correctly posts a file" <|
-            test_file = enso_project.data / "sample.txt"
-            returned_file = Data.post url_post test_file . at "data"
-            returned_file.should_equal test_file.read_text
-
-        Test.specify "Correctly posts a file via a form" <|
-            test_file = enso_project.data / "sample.txt"
-            Data.post_file_as_form url_post test_file "fn" . at "data" . should_contain "fn=Cupcake+ipsum+dolor+sit+amet"
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (BadToJson.Aaa "abcd") . should_fail_with Illegal_Argument
