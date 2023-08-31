@@ -275,7 +275,6 @@ class LibrariesTest extends BaseServerTest {
       val libraryRoot = getTestDirectory
         .resolve("test_home")
         .resolve("libraries")
-        .resolve("user")
         .resolve("Get_Package_Test_Lib")
       val packageFile = libraryRoot.resolve(Package.configFileName)
       val packageConfig =
@@ -383,7 +382,6 @@ class LibrariesTest extends BaseServerTest {
       val libraryRoot = getTestDirectory
         .resolve("test_home")
         .resolve("libraries")
-        .resolve("user")
         .resolve("Publishable_Lib")
       val mainSource = libraryRoot.resolve("src").resolve("Main.enso")
       FileSystem.writeTextFile(

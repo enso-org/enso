@@ -10,6 +10,7 @@ import org.enso.pkg.PackageManager
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.sys.process.processInternal.IOException
 import scala.util.{Failure, Success}
 
 /** A default implementation of [[LocalLibraryProvider]]. */
@@ -64,7 +65,16 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
   private def findCandidates(
     libraryName: LibraryName,
     librariesPath: Path
-  ): List[Path] = {
+  ): List[Path] = try {
+    if (!Files.isDirectory(librariesPath)) {
+      val exists = Files.exists(librariesPath)
+      val suffix = if (exists) "is not a directory" else "does not exist"
+      logger.warn(
+        s"Local library search path [${MaskedPath(librariesPath).applyMasking()}] $suffix."
+      )
+      return Nil
+    }
+
     val subdirectories = Files.list(librariesPath).filter(Files.isDirectory(_))
     subdirectories
       .filter { potentialPath =>
@@ -89,6 +99,13 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
       .toList
       .asScala
       .toList
+  } catch {
+    case ex: IOException | RuntimeException =>
+      val maskedPath = MaskedPath(librariesPath).applyMasking()
+      logger.warn(
+        s"Exception occurred when scanning library path [$maskedPath]: $ex"
+      )
+      Nil
   }
 }
 
