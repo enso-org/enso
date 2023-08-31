@@ -1,0 +1,21 @@
+<svg
+width="16"
+height="16"
+viewBox="0 0 16 16"
+xmlns="http://www.w3.org/2000/svg"
+>
+<g id="text_input" fill="none">
+<rect opacity="0.2" y="3" width="16" height="10" rx="2" fill="currentColor" />
+<path d="M10 0H12V16H10V0Z" fill="currentColor" />
+<path d="M8 0H14V2H8V0Z" fill="currentColor" />
+<path d="M8 14H14V16H8V14Z" fill="currentColor" />
+<path d="M3.5 9H6.5" stroke="currentColor" stroke-width="1.2" />
+<path
+    d="M7.5 10.5L5 5.5L2.5 10.5"
+    stroke="currentColor"
+    stroke-width="1.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+/>
+</g>
+</svg>
