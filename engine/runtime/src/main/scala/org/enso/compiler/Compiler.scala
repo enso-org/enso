@@ -20,6 +20,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.imports;
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
@@ -535,7 +536,7 @@ class Compiler(
             throw new CompilerError(s"Invalid module name: [${imp.name}].")
         }
 
-      case _: Import.Polyglot =>
+      case _: imports.Polyglot =>
         // Note [Polyglot Imports In Dependency Gathering]
         Nil
       case other =>

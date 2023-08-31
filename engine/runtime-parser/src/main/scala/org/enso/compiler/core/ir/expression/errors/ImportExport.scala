@@ -4,8 +4,12 @@ package errors
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
-import org.enso.compiler.core.ir.Warning.fileLocationFromSection
+import org.enso.compiler.core.IR.{
+  fileLocationFromSection,
+  randomId,
+  Identifier,
+  ToStringHelper
+}
 
 import scala.annotation.unused
 
@@ -79,7 +83,7 @@ sealed case class ImportExport(
   /** @inheritdoc */
   override def toString: String =
     s"""
-       |errors.ImportExport(
+       |Error.ImportExport(
        |ir = $ir,
        |reason = $reason,
        |location = $location,

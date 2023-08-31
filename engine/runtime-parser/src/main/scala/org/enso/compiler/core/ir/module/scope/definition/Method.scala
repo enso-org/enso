@@ -128,7 +128,7 @@ object Method {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.definition.Method.Explicit(
+         |Module.Scope.Definition.Method.Explicit(
          |methodReference = $methodReference,
          |body = $body,
          |location = $location,
@@ -288,7 +288,7 @@ object Method {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.definition.Method.Binding(
+         |Module.Scope.Definition.Method.Binding(
          |methodReference = $methodReference,
          |arguments = $arguments,
          |body = $body,
@@ -427,7 +427,7 @@ object Method {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.definition.Method.Conversion(
+         |Module.Scope.Definition.Method.Conversion(
          |methodReference = $methodReference,
          |sourceTypeName = $sourceTypeName,
          |body = $body,

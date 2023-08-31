@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, ToStringHelper}
 
-// === Basic Shapes =========================================================
-
 /** A node representing an empty IR construct that can be used in any place.
   *
   * @param location    the source location that the node corresponds to
@@ -65,7 +63,7 @@ sealed case class Empty(
   /** @inheritdoc */
   override def toString: String =
     s"""
-       |IR.Empty(
+       |Empty(
        |location = $location,
        |passData = ${this.showPassData},
        |diagnostics = $diagnostics,

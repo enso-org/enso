@@ -8,7 +8,6 @@ import org.enso.compiler.core.IR.{
   ToStringHelper
 }
 
-// === Expression ===========================================================
 trait Expression extends IR {
 
   /** Performs a recursive traversal of the IR, potentially transforming it.
@@ -141,7 +140,7 @@ object Expression {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Expression.Block(
+         |Expression.Block(
          |expressions = $expressions,
          |returnValue = $returnValue,
          |location = $location,
@@ -250,7 +249,7 @@ object Expression {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Expression.Binding(
+         |Expression.Binding(
          |name = $name,
          |expression = $expression,
          |location = $location

@@ -4,8 +4,6 @@ package expression
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Comments =============================================================
-
 /** Enso comment entities. */
 sealed trait Comment extends Expression with module.scope.Definition {
 

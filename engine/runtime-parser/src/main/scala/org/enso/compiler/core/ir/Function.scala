@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Function =============================================================
-
 /** Functions in Enso. */
 sealed trait Function extends Expression {
 

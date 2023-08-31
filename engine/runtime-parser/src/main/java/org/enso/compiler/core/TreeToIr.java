@@ -28,6 +28,7 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
@@ -1486,10 +1487,12 @@ final class TreeToIr {
         List<Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody(), true);
         StringBuilder pkg = new StringBuilder();
         String cls = extractPackageAndName(qualifiedName, pkg);
-        return new Import.Polyglot(
-          new org.enso.compiler.core.ir.module.scope.Import$Polyglot$Java(pkg.toString(), cls),
-          rename.map(name -> name.name()), getIdentifiedLocation(imp),
-          meta(), diag()
+        return new Polyglot(
+                new Polyglot.Java(pkg.toString(), cls),
+                rename.map(name -> name.name()),
+                getIdentifiedLocation(imp),
+                meta(),
+                diag()
         );
       }
       var isAll = imp.getAll() != null;

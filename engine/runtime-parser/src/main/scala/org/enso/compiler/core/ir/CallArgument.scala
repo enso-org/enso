@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Call-Site Arguments ==================================================
-
 /** Call-site arguments in Enso. */
 sealed trait CallArgument extends IR {
 

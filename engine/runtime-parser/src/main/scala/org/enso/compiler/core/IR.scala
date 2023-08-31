@@ -1,5 +1,7 @@
 package org.enso.compiler.core
 
+import com.oracle.truffle.api.source.Source
+
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{
   Diagnostic,
@@ -320,5 +322,19 @@ object IR {
         )
         .asInstanceOf[List[T]]
     }
+  }
+
+  def fileLocationFromSection(
+    loc: IdentifiedLocation,
+    source: Source
+  ): String = {
+    val section =
+      source.createSection(loc.location.start, loc.location.length)
+    val locStr =
+      "" + section.getStartLine + ":" +
+      section.getStartColumn + "-" +
+      section.getEndLine + ":" +
+      section.getEndColumn
+    source.getName + "[" + locStr + "]"
   }
 }

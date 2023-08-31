@@ -5,8 +5,6 @@ import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.{ir, IR}
 
-// === Errors ===============================================================
-
 /** A trait for all errors in Enso's IR. */
 trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 

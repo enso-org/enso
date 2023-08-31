@@ -4,8 +4,6 @@ package expression
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Applications =========================================================
-
 /** All function applications in Enso. */
 trait Application extends Expression {
 

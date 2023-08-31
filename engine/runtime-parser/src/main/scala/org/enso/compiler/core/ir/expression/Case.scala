@@ -10,8 +10,6 @@ import org.enso.compiler.core.IR.{
   ToStringHelper
 }
 
-// === Case Expression ======================================================
-
 /** The Enso case expression. */
 sealed trait Case extends Expression {
 

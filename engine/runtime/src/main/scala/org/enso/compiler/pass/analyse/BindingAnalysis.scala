@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Cons
@@ -67,7 +67,7 @@ case object BindingAnalysis extends IRPass {
         isBuiltinType
       )
     }
-    val importedPolyglot = ir.imports.collect { case poly: Import.Polyglot =>
+    val importedPolyglot = ir.imports.collect { case poly: imports.Polyglot =>
       BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
     val moduleMethods = ir.bindings

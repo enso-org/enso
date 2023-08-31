@@ -202,7 +202,7 @@ object Redefined {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |errors.Redefined.Method(
+         |Error.Redefined.Method(
          |targetType = $targetType,
          |sourceType = $sourceType,
          |location = $location,
@@ -322,7 +322,7 @@ object Redefined {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |errors.Redefined.Method(
+         |Error.Redefined.Method(
          |atomName = $atomName,
          |methodName = $methodName,
          |location = $location,
@@ -447,7 +447,7 @@ object Redefined {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |errors.Redefined.MethodClashWithAtom(
+         |Error.Redefined.MethodClashWithAtom(
          |atomName = $atomName,
          |methodName = $methodName,
          |location = $location,
@@ -546,7 +546,7 @@ object Redefined {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |errors.Redefined.Atom(
+         |Error.Redefined.Atom(
          |atomName = $typeName,
          |location = $location,
          |passData = ${this.showPassData},
@@ -637,7 +637,7 @@ object Redefined {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |errors.Redefined.Binding(
+         |Error.Redefined.Binding(
          |invalidBinding = $invalidBinding,
          |location = $location,
          |passData = ${this.showPassData},

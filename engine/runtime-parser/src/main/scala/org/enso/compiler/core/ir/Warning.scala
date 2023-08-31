@@ -1,8 +1,8 @@
 package org.enso.compiler.core.ir
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.IR.fileLocationFromSection
 import org.enso.compiler.core.{ir, IR}
-// === Warnings =============================================================
 
 /** A trait for all warnings in Enso's IR. */
 trait Warning extends Diagnostic
@@ -110,17 +110,4 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array(ir.name)
   }
 
-  def fileLocationFromSection(
-    loc: IdentifiedLocation,
-    source: Source
-  ): String = {
-    val section =
-      source.createSection(loc.location.start, loc.location.length)
-    val locStr =
-      "" + section.getStartLine + ":" +
-      section.getStartColumn + "-" +
-      section.getEndLine + ":" +
-      section.getEndColumn
-    source.getName + "[" + locStr + "]"
-  }
 }

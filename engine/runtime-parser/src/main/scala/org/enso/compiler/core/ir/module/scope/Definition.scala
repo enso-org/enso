@@ -124,7 +124,7 @@ object Definition {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.Definition.Type(
+         |Module.Scope.Definition.Type(
          |name = $name,
          |params = $params,
          |members = $members,
@@ -243,7 +243,7 @@ object Definition {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.Definition.Data(
+         |Module.Scope.Definition.Data(
          |name = $name,
          |arguments = $arguments,
          |annotations = $annotations,
@@ -369,7 +369,7 @@ object Definition {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.Definition.SugaredType(
+         |Module.Scope.Definition.SugaredType(
          |name = $name,
          |arguments = $arguments,
          |body = $body,

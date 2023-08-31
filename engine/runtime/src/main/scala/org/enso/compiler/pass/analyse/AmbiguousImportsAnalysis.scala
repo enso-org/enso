@@ -1,9 +1,10 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.{Expression, Module, Warning}
 import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -246,10 +247,10 @@ case object AmbiguousImportsAnalysis extends IRPass {
         }
 
       // Polyglot import
-      case polyImport @ Import.Polyglot(entity, rename, _, _, _) =>
+      case polyImport @ imports.Polyglot(entity, rename, _, _, _) =>
         val symbolName = rename.getOrElse(entity.getVisibleName)
         val symbolPath = entity match {
-          case Import.Polyglot.Java(packageName, className) =>
+          case imports.Polyglot.Java(packageName, className) =>
             packageName + "." + className
         }
         tryAddEncounteredSymbol(

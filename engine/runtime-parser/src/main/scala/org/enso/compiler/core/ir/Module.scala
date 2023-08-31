@@ -106,7 +106,7 @@ sealed case class Module(
   /** @inheritdoc */
   override def toString: String =
     s"""
-       |IR.Module(
+       |Module(
        |imports = $imports,
        |exports = $exports,
        |bindings = $bindings,

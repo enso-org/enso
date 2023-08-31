@@ -4,8 +4,6 @@ import org.enso.compiler.core.{ConstantsNames, IR}
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.syntax.text.Location
 
-// === Names ================================================================
-
 /** Enso names. */
 trait Name extends Expression with IRKind.Primitive {
   val name: String

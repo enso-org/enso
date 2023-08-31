@@ -75,7 +75,7 @@ sealed case class Syntax(
   /** @inheritdoc */
   override def toString: String =
     s"""
-       |errors.Syntax(
+       |Error.Syntax(
        |at = $at,
        |reason = $reason,
        |location = $location,

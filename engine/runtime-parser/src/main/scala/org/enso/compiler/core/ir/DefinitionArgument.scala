@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Definition-Site Arguments ============================================
-
 /** Definition-site arguments in Enso. */
 sealed trait DefinitionArgument extends IR {
 

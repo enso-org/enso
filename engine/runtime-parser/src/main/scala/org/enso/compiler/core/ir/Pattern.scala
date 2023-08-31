@@ -5,8 +5,6 @@ import org.enso.compiler.core.ir.{Name => IRName, Literal => IRLiteral}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Patterns =============================================================
-
 /** The different types of patterns that can occur in a match. */
 trait Pattern extends IR {
 
@@ -529,7 +527,7 @@ object Pattern {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |Case.Pattern.Doc(
+         |Case.Pattern.Documentation(
          |doc = $doc,
          |location = $location,
          |passData = ${this.showPassData},

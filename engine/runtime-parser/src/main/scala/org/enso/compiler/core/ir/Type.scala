@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Typing ===============================================================
-
 /** Constructs that operate on types. */
 trait Type extends Expression {
 

@@ -3,8 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
-// === Literals =============================================================
-
 /** Enso literals. */
 sealed trait Literal extends Expression with IRKind.Primitive {
 
@@ -212,7 +210,7 @@ object Literal {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Literal.String(
+         |Literal.String(
          |text = $text,
          |location = $location,
          |passData = ${this.showPassData},

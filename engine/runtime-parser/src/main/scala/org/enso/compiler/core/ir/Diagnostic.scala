@@ -1,7 +1,5 @@
 package org.enso.compiler.core.ir
 
-// === Diagnostics ==========================================================
-
 /** A representation of various kinds of diagnostic in the IR. */
 trait Diagnostic extends Serializable {
 

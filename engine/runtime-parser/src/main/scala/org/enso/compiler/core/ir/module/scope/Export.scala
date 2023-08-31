@@ -129,7 +129,7 @@ object Export {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |IR.Module.Scope.Export.Module(
+         |Module.Scope.Export.Module(
          |name = $name,
          |rename = $rename,
          |isAll = $isAll,

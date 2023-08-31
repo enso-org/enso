@@ -18,9 +18,10 @@ import org.enso.compiler.core.ir.{
   `type`,
   Type => Tpe
 }
-import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.Name.Special
 import org.enso.compiler.core.ir.expression.{
   errors,
@@ -196,7 +197,7 @@ class IrToTruffle(
       .foreach { exp =>
         moduleScope.addExport(exp.unsafeAsModule().getScope)
       }
-    val imports = module.imports
+    val importDefs = module.imports
     val methodDefs = module.bindings.collect {
       case method: definition.Method.Explicit => method
     }
@@ -214,8 +215,8 @@ class IrToTruffle(
     }
 
     // Register the imports in scope
-    imports.foreach {
-      case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
+    importDefs.foreach {
+      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
         val hostSymbol = context.lookupJavaClass(i.getJavaName)
         if (hostSymbol != null) {
           this.moduleScope.registerPolyglotSymbol(

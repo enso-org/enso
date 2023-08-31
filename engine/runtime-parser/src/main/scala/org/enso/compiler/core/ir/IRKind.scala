@@ -1,9 +1,5 @@
 package org.enso.compiler.core.ir
 
-// ==========================================================================
-// === Primitive / Sugar ====================================================
-// ==========================================================================
-
 /** A trait representing the classification of IR nodes into either primitive
   * (constructs which will remain after desugaring) or sugar (constructs that
   * should be removed by the desugaring passes).
