@@ -503,7 +503,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
            We also call distinct to ensure that we will not have primary-key
            duplicate issues when uploading the temporary table.
         just_keys_input = key_values_to_delete.select_columns key_columns . distinct
-        just_keys_input.if_not_error <| (target_table.select_columns key_columns).if_not_error <| Panic.recover SQL_Error <|
+        just_keys_input.if_not_error <| Panic.recover SQL_Error <|
             connection.jdbc_connection.run_within_transaction <|
                 dry_run = Context.Output.is_enabled.not
                 Context.Output.with_enabled <|
