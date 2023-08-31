@@ -499,35 +499,69 @@ check_transaction_ddl_support connection =
 common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
     check_delete_rows_arguments target_table key_values_to_delete key_columns <|
         connection = target_table.connection
-        ## We select only the key columns and discard anything else.
-           We also call distinct to ensure that we will not have primary-key
-           duplicate issues when uploading the temporary table.
-        just_keys_input = key_values_to_delete.select_columns key_columns . distinct
-        just_keys_input.if_not_error <| Panic.recover SQL_Error <|
-            connection.jdbc_connection.run_within_transaction <|
-                dry_run = Context.Output.is_enabled.not
-                Context.Output.with_enabled <|
-                    row_limit = if dry_run then dry_run_row_limit else Nothing
-                    source_row_count = just_keys_input.row_count
-                    row_limit_exceeded = row_limit.is_nothing.not && source_row_count > row_limit
+        Panic.recover SQL_Error <| connection.jdbc_connection.run_within_transaction <|
+            dry_run = Context.Output.is_enabled.not
+            Context.Output.with_enabled <|
+                source = prepare_source_table_for_delete_matching key_values_to_delete connection key_columns dry_run
+                source_db_table = source.db_table
+                source_db_table.if_not_error <|
+                    check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
+                        affected_row_count = case dry_run of
+                            True ->
+                                # On dry run, we just compute the row count by joining.
+                                target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                            False ->
+                                # On a real run, we get the row count from the DELETE statement return value.
+                                if source.tmp_table_name.is_nothing then
+                                    Panic.throw (Illegal_State.Error "Impossible. This is a bug in the Database library.")
+                                delete_statement = connection.dialect.generate_sql <|
+                                    Query.Delete_Matching_Rows target_table.name source.tmp_table_name key_columns
+                                connection.execute_update delete_statement
+
+                        ## We don't need to drop the table if update panics, because
+                           all of this happens within a transaction, so in case the
+                           above fails, the whole transaction will be rolled back.
+                        source.drop_temporary_table connection
+                        if dry_run.not then affected_row_count else
+                            suffix = case source.was_row_limit_exceeded of
+                                True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+source_db_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                                False -> ""
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
+                            Warning.attach warning affected_row_count
+
+## PRIVATE
+prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table | In_Memory_Table) connection key_columns dry_run =
+    ## We select only the key columns and discard anything else.
+       We also call distinct to ensure that we will not have primary-key
+       duplicate issues when uploading the temporary table.
+    prepared_table = key_values_to_delete.select_columns key_columns . distinct
+    case dry_run of
+        True ->
+            case prepared_table of
+                _ : Database_Table ->
+                    Delete_Rows_Source.Value prepared_table Nothing False
+                _ : In_Memory_Table ->
+                    row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-                    tmp_table = internal_upload_table just_keys_input connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
-                    tmp_table.if_not_error <|
-                        check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches <|
-                            delete_statement = connection.dialect.generate_sql <|
-                                Query.Delete_Matching_Rows target_table.name tmp_table.name key_columns
-                            affected_row_count = case dry_run of
-                                True  -> target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner . row_count
-                                False -> connection.execute_update delete_statement
-                            ## We don't need to drop the table if update panics, because
-                               all of this happens within a transaction, so in case the
-                               above fails, the whole transaction will be rolled back.
-                            connection.drop_table tmp_table.name
-                            if dry_run.not then affected_row_count else
-                                suffix = if row_limit_exceeded.not then "" else
-                                    " (Only the first "+row_limit.to_text+" distinct rows out of "+source_row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
-                                warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
-                                Warning.attach warning affected_row_count
+                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+                    Delete_Rows_Source.Value uploaded_table tmp_table_name row_limit_exceeded
+
+        False ->
+            tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
+            copied_table = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
+            Delete_Rows_Source.Value copied_table tmp_table_name False
+
+## PRIVATE
+type Delete_Rows_Source
+    ## PRIVATE
+    Value (db_table : Database_Table) (tmp_table_name : Nothing | Text) (was_row_limit_exceeded : Boolean)
+
+    ## PRIVATE
+       Drops a temporarily created table, if there was one.
+    drop_temporary_table self connection =
+        if self.tmp_table_name.is_nothing.not then
+            connection.drop_table self.tmp_table_name
+
 
 ## PRIVATE
 check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =

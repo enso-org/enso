@@ -999,10 +999,12 @@ spec make_new_connection prefix persistent_connector=True =
 
             Context.Output.with_disabled <|
                 r1 = target.delete_rows source
-                # Only values 1 and 500 were checked; 1500 exceeded the dry run limit.
-                r1.should_equal 2
+                # Values 1 and 500 are always checked; 1500 may exceed the dry run limit.
+                [2, 3].should_contain r1
                 w1 = Problems.expect_warning Dry_Run_Operation r1
-                w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
+                # If not all rows were checked, a warning is expected:
+                if r1 == 2 then
+                    w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
 
             # Target remains unchanged
             target.at "X" . to_vector . should_equal [0, 1, 500, 1500, 3500]
