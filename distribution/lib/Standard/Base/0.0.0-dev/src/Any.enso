@@ -21,6 +21,26 @@ from project.Function import const
 @Builtin_Type
 type Any
     ## GROUP Conversions
+       Generic conversion of an arbitrary Enso value to requested type
+
+       Arguments:
+       - typ: the requested type.
+
+       > Example
+         Following code defines conversion of a `Complex` type to a `Number`
+         by computing absolute distance from `0`. The code yields `5.0`:
+
+             type Complex
+                 Value re:Number im:Number
+
+             Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
+
+             Complex.Value 3 4 . to Number
+
+    to : Any -> Any ! No_Such_Conversion
+    to self typ = typ.from self...
+
+    ## GROUP Conversions
        Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
