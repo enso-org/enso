@@ -932,8 +932,8 @@
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
 - [Use `numpy` & co. from Enso!][7678]
-- [Changed layout of local libraries directory, making it easier to 
-  reference projects next to each other][7634]
+- [Changed layout of local libraries directory, making it easier to reference
+  projects next to each other][7634]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
