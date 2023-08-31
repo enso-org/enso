@@ -50,7 +50,6 @@ from project.Internal.Rows_View import Rows_View
 
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
-polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
