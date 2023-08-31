@@ -2,8 +2,6 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
@@ -22,13 +20,12 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
-import DriveView from './driveView'
+import Drive from './drive'
 import Editor from './editor'
-import Templates from './templates'
+import Home from './home'
 import TheModal from './theModal'
 import TopBar from './topBar'
 
@@ -48,7 +45,6 @@ export interface DashboardProps {
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
-    const navigate = hooks.useNavigate()
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -96,6 +92,12 @@ export default function Dashboard(props: DashboardProps) {
             document.body.style.cursor = 'auto'
         }
     }, [page, /* should never change */ unsetModal])
+
+    React.useEffect(() => {
+        if (query !== '') {
+            setPage(pageSwitcher.Page.drive)
+        }
+    }, [query])
 
     React.useEffect(() => {
         let currentBackend = backend
@@ -322,11 +324,10 @@ export default function Dashboard(props: DashboardProps) {
         )
     }, [])
 
-    const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
         <>
             <div
-                className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
+                className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${
                     page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
                 }`}
                 onContextMenu={event => {
@@ -363,65 +364,27 @@ export default function Dashboard(props: DashboardProps) {
                         setProjectStartupInfo(null)
                     }}
                 />
-                {isListingRemoteDirectoryWhileOffline ? (
-                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
-                        <div className="flex flex-col gap-4">
-                            <div className="text-base text-center">You are not signed in.</div>
-                            <button
-                                className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
-                                onClick={() => {
-                                    navigate(app.LOGIN_PATH)
-                                }}
-                            >
-                                Login
-                            </button>
-                        </div>
-                    </div>
-                ) : isListingLocalDirectoryAndWillFail ? (
-                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
-                        <div className="text-base text-center">
-                            Could not connect to the Project Manager. Please try restarting{' '}
-                            {common.PRODUCT_NAME}, or manually launching the Project Manager.
-                        </div>
-                    </div>
-                ) : isListingRemoteDirectoryAndWillFail ? (
-                    <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
-                        <div className="text-base text-center">
-                            We will review your user details and enable the cloud experience for you
-                            shortly.
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        <Templates
-                            hidden={page !== pageSwitcher.Page.drive}
-                            onTemplateClick={doCreateProject}
-                        />
-                        <DriveView
-                            hidden={page !== pageSwitcher.Page.drive}
-                            page={page}
-                            initialProjectName={initialProjectName}
-                            query={query}
-                            projectStartupInfo={projectStartupInfo}
-                            queuedAssetEvents={queuedAssetEvents}
-                            assetListEvents={assetListEvents}
-                            dispatchAssetListEvent={dispatchAssetListEvent}
-                            assetEvents={assetEvents}
-                            dispatchAssetEvent={dispatchAssetEvent}
-                            doCreateProject={doCreateProject}
-                            doOpenEditor={openEditor}
-                            doCloseEditor={closeEditor}
-                            loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                            isListingRemoteDirectoryWhileOffline={
-                                isListingRemoteDirectoryWhileOffline
-                            }
-                            isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                            isListingRemoteDirectoryAndWillFail={
-                                isListingRemoteDirectoryAndWillFail
-                            }
-                        />
-                    </>
-                )}
+                <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
+                <Drive
+                    hidden={page !== pageSwitcher.Page.drive}
+                    page={page}
+                    initialProjectName={initialProjectName}
+                    query={query}
+                    projectStartupInfo={projectStartupInfo}
+                    queuedAssetEvents={queuedAssetEvents}
+                    assetListEvents={assetListEvents}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    assetEvents={assetEvents}
+                    dispatchAssetEvent={dispatchAssetEvent}
+                    doCreateProject={doCreateProject}
+                    doOpenEditor={openEditor}
+                    doCloseEditor={closeEditor}
+                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
+                />
+                <TheModal />
                 <Editor
                     hidden={page !== pageSwitcher.Page.editor}
                     supportsLocalBackend={supportsLocalBackend}
