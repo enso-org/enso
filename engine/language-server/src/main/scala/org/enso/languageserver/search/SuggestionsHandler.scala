@@ -457,7 +457,6 @@ final class SuggestionsHandler(
       )
 
     case JsonSessionTerminated(_) =>
-      logger.info("Processing JsonSessionTerminated")
       val action = for {
         _ <- suggestionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
