@@ -411,7 +411,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             }`}
                         />
                     </button>
-                    {!isOtherUserUsingProject && (
+                    {!isOtherUserUsingProject && !shouldRunInBackground && (
                         <button
                             className="w-6 h-6"
                             onClick={clickEvent => {
