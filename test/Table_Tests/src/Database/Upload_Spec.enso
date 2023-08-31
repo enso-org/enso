@@ -1195,7 +1195,7 @@ spec make_new_connection prefix persistent_connector=True =
             Test.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged" <|
                 v = [1, 2, 3, 4, 4, 4, 1]
                 dest_data = Table.new [["X", v]]
-                dest = dest_data.select_into_database_table connection (Name_Generator.random_name "target-table-delete-dry-run") temporary=True primary_key=[]
+                dest = dest_data.select_into_database_table connection (Name_Generator.random_name "table-delete-rows-dry") temporary=True primary_key=[]
                 Context.Output.with_disabled <|
                     src = source_table_builder [["X", [2, 3]]]
                     r1 = dest.delete_rows src key_columns=["X"]
