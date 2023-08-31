@@ -12,11 +12,18 @@ const props = defineProps<Breadcrumb>()
 </template>
 
 <style scoped>
+span {
+  display: inline-block;
+  height: 20px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
 .TopBarBreadcrumb {
   border-radius: var(--radius-full);
 }
 
-.TopBarBreadcrumb > .blur-container {
+.TopBarBreadcrumb>.blur-container {
   border-radius: var(--radius-full);
   background-color: var(--color-frame-bg);
   backdrop-filter: var(--backdrop-blur);

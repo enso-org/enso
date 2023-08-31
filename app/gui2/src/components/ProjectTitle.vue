@@ -2,7 +2,12 @@
 import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
 import type { ExecutionMode } from '@/components/ExecutionModeSelector.vue'
 
-const props = defineProps<{ title: string; mode: ExecutionMode }>()
+export interface ProjectTitleModel {
+  mode: ExecutionMode
+}
+
+const props = defineProps<{ title: string; modelValue: ProjectTitleModel }>()
+const emits = defineEmits<{ 'update:modelValue': [model: ProjectTitleModel] }>()
 </script>
 
 <template>
@@ -10,7 +15,7 @@ const props = defineProps<{ title: string; mode: ExecutionMode }>()
     <div class="blur-full"></div>
     <div class="ProjectTitle">
       <span v-text="title" class="title"></span>
-      <ExecutionModeSelector :mode="mode" />
+      <ExecutionModeSelector v-model="modelValue.mode" />
     </div>
   </div>
 </template>
@@ -27,6 +32,7 @@ const props = defineProps<{ title: string; mode: ExecutionMode }>()
 }
 
 .ProjectTitle>.title {
+  display: inline-block;
   height: 20px;
   padding-top: 1px;
   padding-bottom: 1px;

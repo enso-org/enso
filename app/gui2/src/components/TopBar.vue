@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
 import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
-import ProjectTitle from './ProjectTitle.vue'
+import ProjectTitle, { type ProjectTitleModel } from './ProjectTitle.vue'
+import { ref, type Ref } from 'vue'
 
 const props = defineProps<{ breadcrumbs: Breadcrumb[] }>()
+
+const title: Ref<ProjectTitleModel> = ref({ mode: "design" })
 </script>
 
 <template>
   <div class="TopBar">
-    <ProjectTitle title="Test Project" mode="design" />
+    <ProjectTitle title="Test Project" v-model="title" />
     <NavBar :breadcrumbs="breadcrumbs" />
   </div>
 </template>

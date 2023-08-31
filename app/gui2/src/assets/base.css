@@ -34,8 +34,13 @@
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
 
-  --color-frame-bg: rgba(255, 255, 255, 0.3);
+  --color-dim: rgba(0, 0, 0, 0.25);
 
+  --color-frame-bg: rgba(255, 255, 255, 0.3);
+}
+
+/* non-color variables */
+:root {
   --disabled-opacity: 40%;
 
   /* A `border-radius` higher than all possible element sizes.
@@ -91,6 +96,7 @@ body {
     'Helvetica Neue',
     sans-serif;
   font-size: 11.5px;
+  font-weight: 500;
   line-height: 174.5%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
