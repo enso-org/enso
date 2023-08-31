@@ -173,8 +173,10 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
             response.decode if_unsupported=response . catch handler=(_->response)
 
 
-post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
-post uri body mime_type=Nothing headers=[] try_auto_parse=True =
+## Data.post url body method=HTTP_Method.POST headers=[] try_auto_parse_response=True
+
+old_post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
+old_post uri body mime_type=Nothing headers=[] try_auto_parse=True =
     parsed_headers = parse_headers headers
 
     request = case body of
@@ -198,8 +200,8 @@ post uri body mime_type=Nothing headers=[] try_auto_parse=True =
 
     perform_request_and_auto_parse request try_auto_parse
 
-post_file_as_form : (URI | Text) -> File -> Text -> Vector (Header | Pair Text Text) -> Boolean -> Any
-post_file_as_form uri file field_name headers=[] try_auto_parse=True =
+old_post_file_as_form : (URI | Text) -> File -> Text -> Vector (Header | Pair Text Text) -> Boolean -> Any
+old_post_file_as_form uri file field_name headers=[] try_auto_parse=True =
     parsed_headers = parse_headers headers
     parts = [Form.file_field field_name file]
     request = Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Form (Form.new parts))
