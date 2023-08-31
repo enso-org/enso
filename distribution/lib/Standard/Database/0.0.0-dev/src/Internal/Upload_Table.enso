@@ -523,13 +523,17 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
                            above fails, the whole transaction will be rolled back.
                         source.drop_temporary_table connection
                         if dry_run.not then affected_row_count else
-                            suffix = case source.was_row_limit_exceeded of
-                                True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+source_db_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
-                                False -> ""
+                            suffix = source.dry_run_message_suffix
                             warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
                             Warning.attach warning affected_row_count
 
 ## PRIVATE
+   Prepares the source table for the delete operation.
+
+   It selects only the key columns and ensures keys are distinct to avoid primary key clashes.
+   In dry-run mode, if the table is an SQL query, it is kept as is to avoid copying data.
+   In real mode, the table is copied into a temporary table to simplify the DELETE FROM query.
+   If the source table is in-memory, it is uploaded in either mode, but in dry-run mode only a sample of the rows is processed.
 prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table | In_Memory_Table) connection key_columns dry_run =
     ## We select only the key columns and discard anything else.
        We also call distinct to ensure that we will not have primary-key
@@ -539,22 +543,26 @@ prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table 
         True ->
             case prepared_table of
                 _ : Database_Table ->
-                    Delete_Rows_Source.Value prepared_table Nothing False
+                    Delete_Rows_Source.Value prepared_table Nothing
                 _ : In_Memory_Table ->
-                    row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                     uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
-                    Delete_Rows_Source.Value uploaded_table tmp_table_name row_limit_exceeded
+
+                    row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
+                    dry_run_message_suffix = case row_limit_exceeded of
+                        False -> ""
+                        True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+prepared_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                    Delete_Rows_Source.Value uploaded_table tmp_table_name dry_run_message_suffix=dry_run_message_suffix
 
         False ->
             tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
             copied_table = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
-            Delete_Rows_Source.Value copied_table tmp_table_name False
+            Delete_Rows_Source.Value copied_table tmp_table_name
 
 ## PRIVATE
 type Delete_Rows_Source
     ## PRIVATE
-    Value (db_table : Database_Table) (tmp_table_name : Nothing | Text) (was_row_limit_exceeded : Boolean)
+    Value (db_table : Database_Table) (tmp_table_name : Nothing | Text) (dry_run_message_suffix : Text = "")
 
     ## PRIVATE
        Drops a temporarily created table, if there was one.
