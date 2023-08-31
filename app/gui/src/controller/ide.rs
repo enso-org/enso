@@ -58,7 +58,7 @@ impl StatusNotificationPublisher {
     pub fn publish_event(&self, label: impl Into<String>) {
         let label = label.into();
         let notification = StatusNotification::Event { label };
-        executor::global::spawn(self.publisher.publish(notification));
+        self.publisher.notify(notification);
     }
 
     /// Publish a notification about new process (see [`StatusNotification::ProcessStarted`]).
@@ -69,7 +69,7 @@ impl StatusNotificationPublisher {
         let label = label.into();
         let handle = Uuid::new_v4();
         let notification = StatusNotification::BackgroundTaskStarted { label, handle };
-        executor::global::spawn(self.publisher.publish(notification));
+        self.publisher.notify(notification);
         handle
     }
 
@@ -78,7 +78,7 @@ impl StatusNotificationPublisher {
     #[profile(Debug)]
     pub fn published_background_task_finished(&self, handle: BackgroundTaskHandle) {
         let notification = StatusNotification::BackgroundTaskFinished { handle };
-        executor::global::spawn(self.publisher.publish(notification));
+        self.publisher.notify(notification);
     }
 
     /// The asynchronous stream of published notifications.

@@ -18,7 +18,7 @@
     "typecheck": "npx tsc --noEmit",
     "build": "npx --yes tsup src/runner/index.ts --format=cjs --dts --sourcemap",
     "build-asset-extractor": "npx --yes tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
-    "build-runtime-libs": "npx --yes esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
+    "build-runtime-libs": "npx --yes esbuild --bundle --format=esm src/runtime-libs/runtime-libs.ts",
     "lint": "npx --yes eslint src"
   },
   "bugs": {
@@ -30,7 +30,6 @@
     "esbuild": "^0.16.12",
     "eslint": "^8.30.0",
     "eslint-plugin-jsdoc": "^39.6.4",
-    "ts-node": "^10.9.1",
     "tsup": "^6.5.0",
     "typescript": "^4.9.4"
   },
