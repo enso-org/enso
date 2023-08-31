@@ -7,10 +7,10 @@ import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 
+import java.io.IOException
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.sys.process.processInternal.IOException
 import scala.util.{Failure, Success}
 
 /** A default implementation of [[LocalLibraryProvider]]. */
@@ -100,12 +100,47 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
       .asScala
       .toList
   } catch {
-    case ex: IOException | RuntimeException =>
+    case ex @ (_: IOException | _: RuntimeException) =>
       val maskedPath = MaskedPath(librariesPath).applyMasking()
       logger.warn(
         s"Exception occurred when scanning library path [$maskedPath]: $ex"
       )
       Nil
+  }
+
+  /** Finds all currently available local libraries. */
+  override def findAvailableLocalLibraries(): List[LibraryName] = {
+    val libraries: List[LibraryName] = searchPaths.flatMap { path =>
+      try {
+        if (!Files.isDirectory(path)) {
+          val exists = Files.exists(path)
+          val suffix = if (exists) "is not a directory" else "does not exist"
+          logger.warn(
+            s"Local library search path [${MaskedPath(path).applyMasking()}] $suffix."
+          )
+          Nil
+        } else {
+          val subdirectories =
+            Files.list(path).filter(Files.isDirectory(_)).toList.asScala
+          subdirectories
+            .map { potentialPath =>
+              val pkg = PackageManager.Default.loadPackage(
+                potentialPath.toFile
+              )
+              pkg.map(_.libraryName)
+            }
+            .collect { case Success(name) => name }
+        }
+      } catch {
+        case ex @ (_: IOException | _: RuntimeException) =>
+          val maskedPath = MaskedPath(path).applyMasking()
+          logger.warn(
+            s"Exception occurred when scanning library path [$maskedPath]: $ex"
+          )
+          Nil
+      }
+    }
+    libraries.distinct
   }
 }
 

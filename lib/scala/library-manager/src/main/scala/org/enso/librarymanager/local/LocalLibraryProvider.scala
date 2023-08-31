@@ -12,4 +12,7 @@ trait LocalLibraryProvider {
     * @return the location of the requested library, if it is available.
     */
   def findLibrary(libraryName: LibraryName): Option[LibraryRoot]
+
+  /** Finds all currently available local libraries. */
+  def findAvailableLocalLibraries(): List[LibraryName]
 }
