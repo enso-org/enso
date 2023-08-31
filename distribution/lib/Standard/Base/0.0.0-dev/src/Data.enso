@@ -218,6 +218,7 @@ perform_request_and_auto_parse request try_auto_parse =
     r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
         if try_auto_parse.not then response else
             response.decode if_unsupported=response . catch handler=(_->response)
+    IO.println 'AAA12'
     IO.println r
     IO.println <| Meta.get_simple_type_name r
     r

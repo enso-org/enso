@@ -428,8 +428,6 @@ type HTTP
             # set uri
             builder.uri (Panic.rethrow req.uri.internal_uri)
             # prepare headers and body
-            IO.println 'DDD'
-            IO.println req
             req_with_body = case req.body of
                 Request_Body.Empty ->
                     Pair.new req body_publishers.noBody
@@ -440,7 +438,6 @@ type HTTP
                     builder.header Header.application_json.name Header.application_json.value
                     Pair.new req (body_publishers.ofString json)
                 Request_Body.Form form ->
-                    IO.println form
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
                         form.parts.map part-> case part.value of

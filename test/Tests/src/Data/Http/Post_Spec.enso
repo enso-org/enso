@@ -60,6 +60,11 @@ spec =
             returned_file = Data.post url_post test_file . at "data"
             returned_file.should_equal test_file.read_text
 
+        Test.specify "Can perform a binary File POST" <|
+            test_file = enso_project.data / "sample.png"
+            response = Data.post_file_as_form url_post test_file "imageFile" headers=[Header.multipart_form_data]
+            response.at "files" . at "imageFile" . should_start_with "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAA"
+
         Test.specify "Can perform a File POST via form" <|
             test_file = enso_project.data / "sample.txt"
             Data.post_file_as_form url_post test_file "fn" . at "data" . should_contain "fn=Cupcake+ipsum+dolor+sit+amet"
