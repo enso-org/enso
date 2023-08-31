@@ -383,11 +383,15 @@ type Value_Type
         Value_Type.Integer size -> "Integer (" + size.to_text + ")"
         Value_Type.Float size -> "Float (" + size.to_text + ")"
         Value_Type.Decimal precision scale -> "Decimal (precision=" + precision.to_text + ", scale=" + scale.to_text + ")"
-        Value_Type.Char size variable_length -> "Char (max_size=" + size.to_text + ", variable_length=" + variable_length.to_text + ")"
+        Value_Type.Char size variable_length -> case variable_length of
+            True  -> "Char (variable length, max_size=" + size.to_text + ")"
+            False -> "Char (fixed length, size=" + size.to_text + ")"
         Value_Type.Date -> "Date"
         Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
         Value_Type.Time -> "Time"
-        Value_Type.Binary size variable_length -> "Binary (max_size=" + size.to_text + " bytes, variable_length=" + variable_length.to_text + ")"
+        Value_Type.Binary size variable_length -> case variable_length of
+            True  -> "Binary (variable length, max_size=" + size.to_text + " bytes)"
+            False -> "Binary (fixed length, size=" + size.to_text + " bytes)"
         Value_Type.Unsupported_Data_Type type_name _ -> case type_name of
             Nothing  -> "Unsupported_Data_Type"
             _ : Text -> "Unsupported_Data_Type (" + type_name + ")"

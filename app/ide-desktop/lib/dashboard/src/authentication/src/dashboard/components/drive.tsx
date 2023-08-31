@@ -1,6 +1,8 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import * as common from 'enso-common'
+
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
@@ -8,17 +10,18 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 
+import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'
 
-// =================
-// === DriveView ===
-// =================
+// =============
+// === Drive ===
+// =============
 
-/** Props for a {@link DriveView}. */
-export interface DriveViewProps {
+/** Props for a {@link Drive}. */
+export interface DriveProps {
     page: pageSwitcher.Page
     hidden: boolean
     initialProjectName: string | null
@@ -45,7 +48,7 @@ export interface DriveViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export default function DriveView(props: DriveViewProps) {
+export default function Drive(props: DriveProps) {
     const {
         page,
         hidden,
@@ -65,6 +68,7 @@ export default function DriveView(props: DriveViewProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
+    const navigate = hooks.useNavigate()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
@@ -120,9 +124,36 @@ export default function DriveView(props: DriveViewProps) {
         }
     }, [page])
 
-    return (
+    return isListingRemoteDirectoryWhileOffline ? (
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+            <div className="flex flex-col gap-4">
+                <div className="text-base text-center">You are not signed in.</div>
+                <button
+                    className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                    onClick={() => {
+                        navigate(app.LOGIN_PATH)
+                    }}
+                >
+                    Login
+                </button>
+            </div>
+        </div>
+    ) : isListingLocalDirectoryAndWillFail ? (
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+            <div className="text-base text-center">
+                Could not connect to the Project Manager. Please try restarting
+                {common.PRODUCT_NAME}, or manually launching the Project Manager.
+            </div>
+        </div>
+    ) : isListingRemoteDirectoryAndWillFail ? (
+        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+            <div className="text-base text-center">
+                We will review your user details and enable the cloud experience for you shortly.
+            </div>
+        </div>
+    ) : (
         <div
-            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
+            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
                 hidden ? 'hidden' : ''
             }`}
         >

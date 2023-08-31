@@ -1,7 +1,10 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.{errors, Case}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
@@ -30,9 +33,9 @@ object Patterns extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val bindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
@@ -50,19 +53,19 @@ object Patterns extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val bindings = inlineContext.bindingsAnalysis()
     doExpression(ir, bindings, None)
   }
 
   private def doDefinition(
-    ir: IR.Module.Scope.Definition,
+    ir: Definition,
     bindings: BindingsMap
-  ): IR.Module.Scope.Definition = {
+  ): Definition = {
     ir match {
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         val resolution = method.methodReference.typePointer
           .flatMap(
             _.getMetadata(MethodDefinitions)
@@ -75,19 +78,19 @@ object Patterns extends IRPass {
   }
 
   private def doExpression(
-    expr: IR.Expression,
+    expr: Expression,
     bindings: BindingsMap,
     selfTypeResolution: Option[BindingsMap.ResolvedName]
-  ): IR.Expression = {
-    expr.transformExpressions { case caseExpr: IR.Case.Expr =>
+  ): Expression = {
+    expr.transformExpressions { case caseExpr: Case.Expr =>
       val newBranches = caseExpr.branches.map { branch =>
         val resolvedPattern = branch.pattern match {
-          case consPat: IR.Pattern.Constructor =>
+          case consPat: Pattern.Constructor =>
             val consName = consPat.constructor
             val resolution = consName match {
-              case qual: IR.Name.Qualified =>
+              case qual: Name.Qualified =>
                 qual.parts match {
-                  case (_: IR.Name.SelfType) :: (others :+ item) =>
+                  case (_: Name.SelfType) :: (others :+ item) =>
                     selfTypeResolution.map(
                       bindings.resolveQualifiedNameIn(
                         _,
@@ -101,18 +104,18 @@ object Patterns extends IRPass {
                       bindings.resolveQualifiedName(parts)
                     )
                 }
-              case lit: IR.Name.Literal =>
+              case lit: Name.Literal =>
                 Some(bindings.resolveName(lit.name))
-              case _: IR.Name.SelfType =>
+              case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
             }
             val resolvedName = resolution
               .map {
                 case Left(err) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     consPat.constructor,
-                    IR.Error.Resolution.ResolverError(err)
+                    errors.Resolution.ResolverError(err)
                   )
                 case Right(value: BindingsMap.ResolvedConstructor) =>
                   consName.updateMetadata(
@@ -136,9 +139,9 @@ object Patterns extends IRPass {
                   )
 
                 case Right(_: BindingsMap.ResolvedMethod) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     consName,
-                    IR.Error.Resolution.UnexpectedMethod(
+                    errors.Resolution.UnexpectedMethod(
                       "a pattern match"
                     )
                   )
@@ -162,9 +165,9 @@ object Patterns extends IRPass {
             expectedArity match {
               case Some(arity) =>
                 if (consPat.fields.length != arity) {
-                  IR.Error.Pattern(
+                  errors.Pattern(
                     consPat,
-                    IR.Error.Pattern.WrongArity(
+                    errors.Pattern.WrongArity(
                       consPat.constructor.name,
                       arity,
                       consPat.fields.length
@@ -175,34 +178,34 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
-          case tpePattern @ IR.Pattern.Type(_, tpeName, _, _, _) =>
+          case tpePattern @ Pattern.Type(_, tpeName, _, _, _) =>
             val resolution = tpeName match {
-              case qual: IR.Name.Qualified =>
+              case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
                 Some(
                   bindings.resolveQualifiedName(parts)
                 )
-              case lit: IR.Name.Literal =>
+              case lit: Name.Literal =>
                 Some(bindings.resolveName(lit.name))
-              case _: IR.Name.SelfType =>
+              case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
             }
             val resolvedTpeName = resolution
               .map {
                 case Left(err) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpePattern.tpe,
-                    IR.Error.Resolution.ResolverError(err)
+                    errors.Resolution.ResolverError(err)
                   )
                 case Right(value: BindingsMap.ResolvedType) =>
                   tpeName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
                 case Right(_: BindingsMap.ResolvedConstructor) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution
+                    errors.Resolution
                       .UnexpectedConstructor(s"type pattern case")
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
@@ -213,19 +216,19 @@ object Patterns extends IRPass {
                   tpeName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
-                /*IR.Error.Resolution(
+                /*errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedPolyglot(s"type pattern case")
+                    errors.Resolution.UnexpectedPolyglot(s"type pattern case")
                   )*/
                 case Right(_: BindingsMap.ResolvedMethod) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                    errors.Resolution.UnexpectedMethod(s"type pattern case")
                   )
                 case Right(_: BindingsMap.ResolvedModule) =>
-                  IR.Error.Resolution(
+                  errors.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedModule(s"type pattern case")
+                    errors.Resolution.UnexpectedModule(s"type pattern case")
                   )
               }
               .getOrElse(tpeName)

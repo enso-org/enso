@@ -9,6 +9,8 @@ use crate::system::gpu::Context;
 use crate::system::web;
 
 #[cfg(target_arch = "wasm32")]
+use web::Closure;
+#[cfg(target_arch = "wasm32")]
 use web_sys::HtmlImageElement;
 
 
@@ -85,7 +87,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
     fn reload(&self) {
         let url = &self.storage().url;
         let image = HtmlImageElement::new().unwrap();
-        let no_callback = <Option<web::CleanupHandle>>::None;
+        let no_callback = <Option<web::EventListenerHandle>>::None;
         let callback_ref = Rc::new(RefCell::new(no_callback));
         let image_ref = Rc::new(RefCell::new(image));
         let callback_ref2 = callback_ref.clone();
@@ -94,8 +96,8 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
         let gl_texture = self.gl_texture().clone();
         let target = self.target();
         let parameters = *self.parameters();
-        let callback = move |_| {
-            let _keep_alive = &callback_ref2;
+        let callback: web::JsEventHandler = Closure::once(move |_| {
+            let _keep_alive = callback_ref2;
             let image = image_ref_opt.borrow();
             let level = 0;
             let internal_format = Self::gl_internal_format();
@@ -114,12 +116,11 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
                 .unwrap();
 
             parameters.apply_parameters(&context, target);
-        };
+        }) as web::JsEventHandler;
         let image = image_ref.borrow();
         request_cors_if_not_same_origin(&image, url);
         image.set_src(url);
-        let options = web::ListenerOptions::new().capture();
-        let handler = web::add_event_listener_with_options(&image, "load", options, callback);
+        let handler = web::add_event_listener_with_bool(&image, "load", callback, true);
         *callback_ref.borrow_mut() = Some(handler);
     }
 

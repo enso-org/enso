@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;

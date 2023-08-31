@@ -149,7 +149,7 @@ public class Column {
    * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
    * it.
    */
-  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+  public static WithAggregatedProblems<Column> fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
     Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
@@ -158,8 +158,9 @@ public class Column {
       builder.appendNoGrow(item);
       context.safepoint();
     }
-    var storage = builder.seal();
-    return new Column(name, storage);
+
+    var result = new Column(name, builder.seal());
+    return new WithAggregatedProblems<>(result, builder.getProblems());
   }
 
   /**
