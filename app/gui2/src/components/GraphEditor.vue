@@ -2,12 +2,15 @@
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
+import TopBar from '@/components/TopBar.vue'
+
 import { useGraphStore, type ContentRange, type ExprId, type NodeId } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { ref } from 'vue'
+import type { Breadcrumb } from './NavBreadcrumb.vue'
 
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
@@ -37,6 +40,11 @@ function keyboardBusy() {
   return document.activeElement != document.body
 }
 
+const breadcrumbs: Breadcrumb[] = [
+  { text: 'main', onClick: () => {} },
+  { text: 'ad_analytics', onClick: () => {} },
+]
+
 useWindowEvent('keypress', (e) => {
   if (keyboardBusy()) return
   const pos = navigator.sceneMousePos
@@ -57,6 +65,7 @@ function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
 
 <template>
   <div ref="viewportNode" class="viewport" v-on="navigator.events" @click="onViewportClick">
+    <TopBar :breadcrumbs="breadcrumbs" />
     <svg :viewBox="navigator.viewBox">
       <circle :cx="circlePos.x" :cy="circlePos.y" r="6" fill="red" />
       <GraphEdge
