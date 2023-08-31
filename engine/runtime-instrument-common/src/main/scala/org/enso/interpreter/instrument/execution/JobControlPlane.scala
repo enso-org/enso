@@ -32,7 +32,7 @@ trait JobControlPlane {
 
   /** Stops background jobs processing.
     *
-    * @return `true` if the background jobs were stopped and `false` if they are
+    * @return `true` if the call stopped background job, `false` if they are
     * already stopped.
     */
   def stopBackgroundJobs(): Boolean
