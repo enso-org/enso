@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
@@ -89,8 +90,7 @@ public class DoubleBuilder extends NumericBuilder {
       double converted = convertIntegerToDouble(value);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else {
-      throw new IllegalStateException("Unexpected value type when appending to a DoubleBuilder: " + o.getClass().getCanonicalName() + "." +
-          " This is a bug in the Table library.");
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 
@@ -147,7 +147,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 

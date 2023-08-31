@@ -17,8 +17,8 @@ spec =
             Value_Type.Float.to_display_text . should_equal "Float (64 bits)"
             Value_Type.Decimal.to_display_text . should_equal "Decimal (precision=Nothing, scale=Nothing)"
 
-            Value_Type.Char.to_display_text . should_equal "Char (max_size=Nothing, variable_length=True)"
-            (Value_Type.Binary 8 False).to_display_text . should_equal "Binary (max_size=8 bytes, variable_length=False)"
+            Value_Type.Char.to_display_text . should_equal "Char (variable length, max_size=Nothing)"
+            (Value_Type.Binary 8 False).to_display_text . should_equal "Binary (fixed length, size=8 bytes)"
 
             Value_Type.Date.to_display_text . should_equal "Date"
             Value_Type.Time.to_display_text . should_equal "Time"

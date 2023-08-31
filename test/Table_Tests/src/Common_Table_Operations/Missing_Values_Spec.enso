@@ -218,12 +218,28 @@ spec setup =
             table.at "Z" . fill_nothing True . should_fail_with No_Common_Type
 
         if setup.is_database.not then
-            Test.specify "may allow mixed types if explicitly retyped" pending="ToDo: cast #6112" <|
+            Test.specify "may allow mixed types if explicitly retyped" <|
+                table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
+                mix = table.at "X" . cast Value_Type.Mixed
+                mix.value_type . should_equal Value_Type.Mixed
+                mix_filled = mix.fill_nothing False
+                mix_filled.to_vector . should_equal [1, False, 2, False]
+                mix_filled.value_type . should_equal Value_Type.Mixed
+
+                c2 = table.at "Y" . fill_nothing mix
+                c2.to_vector . should_equal [True, False, 2, Nothing]
+                c2.value_type . should_equal Value_Type.Mixed
+
+                c3 = table.at "Z" . fill_nothing mix
+                c3.to_vector . should_equal [0.5, Nothing, 2, 0.25]
+                c3.value_type . should_equal Value_Type.Mixed
+
+            Test.specify "will keep the Mixed type if was explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
-                ints = table.at "X" . cast Value_Type.Mixed
-                ints_filled = ints.fill_nothing False
-                ints_filled.to_vector . should_equal [1, False, 2, False]
-                ints_filled.value_type . should_equal Value_Type.Mixed
+                mix = table.at "X" . cast Value_Type.Mixed
+                mix_filled = mix.fill_nothing 0
+                mix_filled.to_vector . should_equal [1, 0, 2, 0]
+                mix_filled.value_type . should_equal Value_Type.Mixed
 
         Test.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]

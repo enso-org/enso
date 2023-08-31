@@ -397,7 +397,8 @@ final class SerializationManager(
           compiler.context.logSerializationManager(
             debugLogLevel,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            Array[Object](module.getName, loadedCache.compilationStage())
+            module.getName,
+            loadedCache.compilationStage()
           )
 
           if (!relinkedIrChecks.contains(false)) {
