@@ -4,7 +4,7 @@ import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
 import ProjectTitle, { type ProjectTitleModel } from './ProjectTitle.vue'
 import { ref, type Ref } from 'vue'
 
-const props = defineProps<{ breadcrumbs: Breadcrumb[] }>()
+defineProps<{ breadcrumbs: Breadcrumb[] }>()
 
 const title: Ref<ProjectTitleModel> = ref({ mode: "design" })
 </script>

@@ -6,7 +6,7 @@ import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
 
-const props = defineProps<{ breadcrumbs: Breadcrumb[] }>()
+defineProps<{ breadcrumbs: Breadcrumb[] }>()
 </script>
 
 <template>

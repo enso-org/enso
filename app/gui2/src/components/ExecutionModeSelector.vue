@@ -8,8 +8,8 @@ export type ExecutionMode = typeof EXECUTION_MODES[number]
 
 export type ExecutionModeSelectorModel = ExecutionMode
 
-const props = defineProps<{ modelValue: ExecutionMode }>()
-const emits = defineEmits<{ 'update:modelValue': [mode: ExecutionMode] }>()
+defineProps<{ modelValue: ExecutionMode }>()
+const emit = defineEmits<{ 'update:modelValue': [mode: ExecutionMode] }>()
 
 const isDropdownOpen = ref(false)
 
@@ -41,7 +41,7 @@ onUnmounted(() => {
     <div v-if="isDropdownOpen" class="ExecutionModeDropdown">
       <template v-for="otherMode in EXECUTION_MODES">
         <span v-if="modelValue !== otherMode" v-text="otherMode" class="button"
-          @click="$event.stopPropagation(); $emit('update:modelValue', otherMode)"></span>
+          @click="$event.stopPropagation(); emit('update:modelValue', otherMode)"></span>
       </template>
     </div>
   </div>

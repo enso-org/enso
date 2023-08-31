@@ -6,8 +6,8 @@ export interface ProjectTitleModel {
   mode: ExecutionMode
 }
 
-const props = defineProps<{ title: string; modelValue: ProjectTitleModel }>()
-const emits = defineEmits<{ 'update:modelValue': [model: ProjectTitleModel] }>()
+defineProps<{ title: string; modelValue: ProjectTitleModel }>()
+defineEmits<{ 'update:modelValue': [model: ProjectTitleModel] }>()
 </script>
 
 <template>
