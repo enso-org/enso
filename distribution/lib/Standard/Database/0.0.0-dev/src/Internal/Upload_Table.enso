@@ -413,20 +413,11 @@ type Append_Helper
     ## PRIVATE
        Check if there are rows in source that match multiple rows in the target.
     check_multiple_target_rows_match self ~continuation =
-        matched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
-        agg = [Aggregate_Column.Count]+(self.key_columns.map (Aggregate_Column.Group_By _))
         ## This aggregation will only find duplicated in target, not in the source,
            because the source is already guaranteed to be unique - that was checked
            when uploading the temporary table with the key as its primary key.
-        duplicated_key_in_target = matched_rows.aggregate agg . filter 0 (Filter_Condition.Greater than=1)
-        example =  duplicated_key_in_target.read max_rows=1
-        case example.row_count == 0 of
-            False ->
-                row = example.first_row . to_vector
-                offending_key = row.drop 1
-                count = row.first
-                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
-            True -> continuation
+        check_multiple_rows_match self.target_table self.source_table self.key_columns <|
+            continuation
 
 ## PRIVATE
    This helper ensures that all arguments are valid.
@@ -585,14 +576,20 @@ check_delete_rows_arguments target_table key_values_to_delete key_columns ~conti
 ## PRIVATE
 check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches ~continuation =
     if allow_duplicate_matches then continuation else
-        joined = target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner
-        counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
-        duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
-        example =  duplicates.read max_rows=1
-        case example.row_count == 0 of
-            True -> continuation
-            False ->
-                row = example.first_row . to_vector
-                offending_key = row.drop 1
-                count = row.first
-                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+        check_multiple_rows_match target_table tmp_table key_columns <|
+            continuation
+
+## PRIVATE
+   Checks if any rows identified by `key_columns` have more than one match between two tables.
+check_multiple_rows_match left_table right_table key_columns ~continuation =
+    joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
+    counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
+    duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
+    example = duplicates.read max_rows=1
+    case example.row_count == 0 of
+        True -> continuation
+        False ->
+            row = example.first_row . to_vector
+            offending_key = row.drop 1
+            count = row.first
+            Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
