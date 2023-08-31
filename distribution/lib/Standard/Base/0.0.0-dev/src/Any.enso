@@ -38,7 +38,7 @@ type Any
              Complex.Value 3 4 . to Number
 
     to : Any -> Any ! No_Such_Conversion
-    to self typ = typ.from self...
+    to self typ = typ.from self ...
 
     ## GROUP Conversions
        Generic conversion of an arbitrary Enso value to a corresponding textual
