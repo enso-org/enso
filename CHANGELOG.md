@@ -219,6 +219,10 @@
   <kbd>enter</kbd>][7527]
 - [Connections to lamdas are displayed correctly][7550]. It is possible to drag
   a connection to any expression inside the lambda body.
+- [Copying and pasting a single node][7618]. Using the common
+  <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
+  now possible to copy a single selected node and paste its code to the graph or
+  another program.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -245,6 +249,7 @@
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
+[7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
 
@@ -923,6 +928,7 @@
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
+- [Use `numpy` & co. from Enso!][7678]
 - [Changed layout of local libraries directory, making it easier to 
   reference projects next to each other][7634]
 
@@ -1059,6 +1065,7 @@
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
 [7613]: https://github.com/enso-org/enso/pull/7613
+[7678]: https://github.com/enso-org/enso/pull/7678
 [7634]: https://github.com/enso-org/enso/pull/7634
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

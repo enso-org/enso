@@ -533,7 +533,9 @@ ensogl::define_endpoints_2! {
         /// opposed to e.g. when loading a graph from a file).
         start_node_creation_from_port(),
 
-
+        // === Copy-Paste ===
+        copy_selected_node(),
+        paste_node(),
 
 
         /// Remove all selected nodes from the graph.
@@ -714,6 +716,13 @@ ensogl::define_endpoints_2! {
 
         node_being_edited (Option<NodeId>),
         node_editing (bool),
+
+
+        // === Copy-Paste ===
+
+        node_copied(NodeId),
+        // Paste node at position.
+        request_paste_node(Vector2),
 
         file_dropped     (ensogl_drop_manager::File,Vector2<f32>),
 
@@ -2985,6 +2994,17 @@ fn init_remaining_graph_editor_frp(
         eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(*id, *freeze));
         eval inputs.set_node_context_switch(((id, context_switch))
             model.set_node_context_switch(*id, context_switch)
+        );
+    }
+
+
+    // === Copy-Paste ===
+
+    frp::extend! { network
+        out.node_copied <+ inputs.copy_selected_node.map(f_!(model.nodes.last_selected())).unwrap();
+        cursor_pos_at_paste <- cursor.scene_position.sample(&inputs.paste_node).map(|v| v.xy());
+        out.request_paste_node <+ cursor_pos_at_paste.map(
+            f!([model](pos) new_node_position::at_mouse_aligned_to_close_nodes(&model, *pos))
         );
     }
 

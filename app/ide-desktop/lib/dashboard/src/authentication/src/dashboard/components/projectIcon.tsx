@@ -24,6 +24,10 @@ import SvgMask from '../../authentication/components/svgMask'
 // === Constants ===
 // =================
 
+/** The size of the icon, in pixels. */
+const ICON_SIZE_PX = 24
+/** The styles of the icons. */
+const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX } satisfies React.CSSProperties
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -64,22 +68,12 @@ export interface ProjectIconProps {
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
-    appRunner: AppRunner | null
     openIde: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-    const {
-        keyProp: key,
-        item,
-        setItem,
-        assetEvents,
-        appRunner,
-        doOpenManually,
-        onClose,
-        openIde,
-    } = props
+    const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
     const { unsetModal } = modalProvider.useSetModal()
@@ -88,22 +82,32 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-            if (typeof stateOrUpdater === 'function') {
-                setItem(oldItem => ({
+            setItem(oldItem => {
+                let newState: backendModule.ProjectState
+                if (typeof stateOrUpdater === 'function') {
+                    newState = stateOrUpdater(oldItem.projectState.type)
+                } else {
+                    newState = stateOrUpdater
+                }
+                let newProjectState: backendModule.ProjectStateType = {
+                    ...oldItem.projectState,
+                    type: newState,
+                }
+                if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+                    const { opened_by, ...newProjectState2 } = newProjectState
+                    newProjectState = newProjectState2
+                } else if (organization != null) {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    newProjectState = { ...newProjectState, opened_by: organization.email }
+                }
+                return {
                     ...oldItem,
-                    projectState: {
-                        ...oldItem.projectState,
-                        type: stateOrUpdater(oldItem.projectState.type),
-                    },
-                }))
-            } else {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    projectState: { ...oldItem.projectState, type: stateOrUpdater },
-                }))
-            }
+                    projectState: newProjectState,
+                }
+            })
         },
-        [/* should never change */ setItem]
+        [organization, /* should never change */ setItem]
     )
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -114,14 +118,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const isOtherUserUsingProject = item.projectState.opened_by !== organization?.email
+    const [closeProjectAbortController, setCloseProjectAbortController] =
+        React.useState<AbortController | null>(null)
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        item.projectState.opened_by !== organization?.email
 
     const openProject = React.useCallback(async () => {
+        closeProjectAbortController?.abort()
+        setCloseProjectAbortController(null)
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote: {
-                    if (!backendModule.IS_PROJECT_STATE_OPENING_OR_OPENED[state]) {
+                    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
                         setToastId(toast.toast.loading(LOADING_MESSAGE))
                         await backend.openProject(item.id, null, item.title)
                     }
@@ -164,6 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         state,
         backend,
         item,
+        closeProjectAbortController,
         /* should never change */ toastAndLog,
         /* should never change */ setState,
         /* should never change */ setItem,
@@ -230,6 +241,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.closeProject: {
+                if (event.id === item.id) {
+                    setShouldOpenWhenReady(false)
+                    void closeProject(false)
+                }
+                break
+            }
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 setShouldOpenWhenReady(false)
                 onSpinnerStateChange?.(null)
@@ -257,7 +275,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             openIde(shouldSwitchPage)
             setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenWhenReady, shouldSwitchPage, state, openIde])
+        // `openIde` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
     const closeProject = async (triggerOnClose = true) => {
         if (triggerOnClose) {
@@ -269,13 +289,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setState(backendModule.ProjectState.closing)
         onSpinnerStateChange?.(null)
         setOnSpinnerStateChange(null)
-        appRunner?.stopApp()
         openProjectAbortController?.abort()
         setOpenProjectAbortController(null)
-        if (
-            state !== backendModule.ProjectState.closing &&
-            state !== backendModule.ProjectState.closed
-        ) {
+        const abortController = new AbortController()
+        setCloseProjectAbortController(abortController)
+        if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
@@ -291,7 +309,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     // Ignored. The project is already closed.
                 }
             } finally {
-                setState(backendModule.ProjectState.closed)
+                if (!abortController.signal.aborted) {
+                    setState(backendModule.ProjectState.closed)
+                }
             }
         }
     }
@@ -304,14 +324,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6 disabled:opacity-50"
+                    className="w-6 h-6 disabled:opacity-50"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask src={PlayIcon} />
+                    <SvgMask style={ICON_STYLE} src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -323,7 +343,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     {...(isOtherUserUsingProject
                         ? { title: 'Someone else is using this project.' }
                         : {})}
-                    className="w-6 disabled:opacity-50"
+                    className="w-6 h-6 disabled:opacity-50"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -331,20 +351,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     }}
                 >
                     <div className="relative h-0">
-                        <Spinner size={24} state={spinnerState} />
+                        <Spinner size={ICON_SIZE_PX} state={spinnerState} />
                     </div>
-                    <SvgMask src={StopIcon} />
+                    <SvgMask style={ICON_STYLE} src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
             return (
-                <>
+                <div>
                     <button
                         disabled={isOtherUserUsingProject}
                         {...(isOtherUserUsingProject
                             ? { title: 'Someone else has this project open.' }
                             : {})}
-                        className="w-6 disabled:opacity-50"
+                        className="w-6 h-6 disabled:opacity-50"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -354,21 +374,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <SvgMask src={StopIcon} />
+                        <SvgMask style={ICON_STYLE} src={StopIcon} />
                     </button>
                     {!isOtherUserUsingProject && (
                         <button
-                            className="w-6"
+                            className="w-6 h-6"
                             onClick={clickEvent => {
                                 clickEvent.stopPropagation()
                                 unsetModal()
                                 openIde(true)
                             }}
                         >
-                            <SvgMask src={ArrowUpIcon} />
+                            <SvgMask style={ICON_STYLE} src={ArrowUpIcon} />
                         </button>
                     )}
-                </>
+                </div>
             )
     }
 }

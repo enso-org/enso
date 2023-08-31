@@ -106,8 +106,7 @@ export function bundlerOptions(args: Arguments) {
             '.css': 'copy',
             '.map': 'copy',
             '.wasm': 'copy',
-            // The `file` loader copies the file, and replaces the import with the path to the file.
-            '.svg': 'file',
+            '.svg': 'dataurl',
             '.png': 'file',
             '.ttf': 'copy',
         },

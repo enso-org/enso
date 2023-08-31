@@ -8,7 +8,7 @@ import org.enso.polyglot.debugger.{
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
-import java.io.{InputStream, OutputStream}
+import java.io.{File, InputStream, OutputStream}
 
 /** Utility class for creating Graal polyglot contexts.
   */
@@ -49,7 +49,7 @@ class ContextFactory {
     executionEnvironment.foreach { name =>
       options.put("enso.ExecutionEnvironment", name)
     }
-    val context = Context
+    val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
@@ -88,7 +88,16 @@ class ContextFactory {
       .logHandler(
         JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
       )
-      .build
-    new PolyglotContext(context)
+    val graalpy = new File(
+      new File(
+        new File(new File(new File(projectRoot), "polyglot"), "python"),
+        "bin"
+      ),
+      "graalpy"
+    );
+    if (graalpy.exists()) {
+      builder.option("python.Executable", graalpy.getAbsolutePath());
+    }
+    new PolyglotContext(builder.build)
   }
 }

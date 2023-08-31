@@ -1,7 +1,8 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/folder.svg'
+import FolderIcon from 'enso-assets/folder.svg'
+import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -42,6 +43,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const toastAndLog = hooks.useToastAndLog()
     const { backend } = backendProvider.useBackend()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [isHovered, setIsHovered] = React.useState(false)
+    const [shouldAnimate, setShouldAnimate] = React.useState(false)
     const asset = item.item
     if (asset.type !== backendModule.AssetType.directory) {
         // eslint-disable-next-line no-restricted-syntax
@@ -49,13 +52,25 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
+    React.useEffect(() => {
+        if (isHovered) {
+            // Delay adding animation CSS attributes, to prevent animations for
+            // the initial hover.
+            requestAnimationFrame(() => {
+                setShouldAnimate(true)
+            })
+        } else {
+            setShouldAnimate(false)
+        }
+    }, [isHovered])
+
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
             try {
                 await backend.updateDirectory(asset.id, { title: newName }, asset.title)
                 return
             } catch (error) {
-                toastAndLog('Error renaming folder', error)
+                toastAndLog('Could not rename folder', error)
                 throw error
             }
         }
@@ -67,6 +82,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
@@ -78,7 +94,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.newFolder: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Folders cannot be created on the local backend')
+                        toastAndLog('Cannot create folders on the local drive')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -96,7 +112,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 key: item.key,
                             })
-                            toastAndLog('Error creating new folder', error)
+                            toastAndLog('Could not create new folder', error)
                         }
                     }
                 }
@@ -107,9 +123,15 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
@@ -132,7 +154,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={DirectoryIcon} className="m-1" />
+            {isHovered ? (
+                <SvgMask
+                    src={TriangleDownIcon}
+                    className={`cursor-pointer h-4 w-4 m-1 ${
+                        shouldAnimate ? 'transition-transform duration-300' : ''
+                    } ${item.children != null ? '' : '-rotate-90'}`}
+                    onClick={event => {
+                        event.stopPropagation()
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                    }}
+                />
+            ) : (
+                <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
+            )}
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
@@ -156,7 +191,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="cursor-pointer bg-transparent grow px-2"
+                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
             >
                 {asset.title}
             </EditableSpan>
