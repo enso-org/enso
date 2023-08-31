@@ -53,6 +53,8 @@ broken and require further investigation.
 | <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>r</kbd>                                      | Re-execute the program                                                                                                                                                                                                                               |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>k</kbd>                                    | Switch the execution environment to Design.                                                                                                                                                                                                          |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>l</kbd>                                    | Switch the execution environment to Live.                                                                                                                                                                                                            |
+| <kbd>cmd</kbd>+<kbd>c</kbd>                                                     | Copy the selected nodes to the clipboard.                                                                                                                                                                                                            |
+| <kbd>cmd</kbd>+<kbd>v</kbd>                                                     | Paste a node from the clipboard at the mouse cursor position.                                                                                                                                                                                        |
 
 #### Navigation
 

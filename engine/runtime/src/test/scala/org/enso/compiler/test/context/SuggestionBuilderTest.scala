@@ -1,7 +1,7 @@
 package org.enso.compiler.test.context
 
 import org.enso.compiler.context.SuggestionBuilder
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
@@ -22,7 +22,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
 
   implicit private class PreprocessModule(code: String) {
 
-    def preprocessModule(name: QualifiedName): IR.Module = {
+    def preprocessModule(name: QualifiedName): Module = {
       val module = new runtime.Module(
         name,
         null,
@@ -32,7 +32,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       module.getIr
     }
 
-    def preprocessModule: IR.Module =
+    def preprocessModule: Module =
       preprocessModule(Module)
 
   }
@@ -3227,7 +3227,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
 
   private def build(
     source: String,
-    ir: IR.Module,
+    ir: Module,
     module: QualifiedName = Module
   ): Tree.Root[Suggestion] =
     SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)

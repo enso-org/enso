@@ -7,6 +7,7 @@ import project.Vector.Sort
 import project.Statistics.Count_Min_Max
 import project.Table.Aggregate
 import project.Table.Arithmetic
+import project.Table.Column_From_Vector
 import project.Table.Cross_Tab
 import project.Table.Sorting
 import project.Text.Build
@@ -41,6 +42,7 @@ all_benchmarks =
     # Table
     builder.append Aggregate.collect_benches
     builder.append Arithmetic.collect_benches
+    builder.append Column_From_Vector.collect_benches
     builder.append Cross_Tab.collect_benches
     builder.append Sorting.collect_benches
 

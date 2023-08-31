@@ -144,7 +144,7 @@ mod tests {
 wasm-size-limit: "4.37MB"
 required-versions:
   node: =16.15.0
-  wasm-pack: ^0.12.1
+  wasm-pack: ^0.10.2
   flatc: =1.12.0
 "#;
         let config = serde_yaml::from_str::<ConfigRaw>(config)?;
@@ -166,7 +166,7 @@ wasm-size-limit: 15.25 MiB
 required-versions:
   cargo-watch: ^8.1.1
   node: =16.15.0
-  wasm-pack: ^0.12.1
+  wasm-pack: ^0.10.2
 #  TODO [mwu]: Script can install `flatc` later on (if `conda` is present), so this is not required. However it should
 #              be required, if `conda` is missing.
 #  flatc: =1.12.0
