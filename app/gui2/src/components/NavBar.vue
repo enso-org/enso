@@ -6,19 +6,17 @@ import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
 
-const props = defineProps<{
-  breadcrumbs: Breadcrumb[]
-}>()
+const props = defineProps<{ breadcrumbs: Breadcrumb[] }>()
 </script>
 
 <template>
-  <div class="NavBar">
-    <div class="blur-container"></div>
-    <div class="contents">
-      <img :src="GraphEditorIcon" class="icon" />
+  <div>
+    <div class="blur-full"></div>
+    <div class="NavBar">
+      <img :src="GraphEditorIcon" draggable="false" class="icon" />
       <div class="breadcrumbs-controls">
-        <img :src="ArrowLeftIcon" class="icon" />
-        <img :src="ArrowRightIcon" class="icon" />
+        <img :src="ArrowLeftIcon" draggable="false" class="icon button" />
+        <img :src="ArrowRightIcon" draggable="false" class="icon button" />
       </div>
       <NavBreadcrumbs :breadcrumbs="breadcrumbs" />
     </div>
@@ -27,24 +25,6 @@ const props = defineProps<{
 
 <style scoped>
 .NavBar {
-  position: relative;
-  border-radius: var(--radius-full);
-}
-
-.NavBar>* {
-  position: relative;
-}
-
-.NavBar>.blur-container {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-full);
-  background-color: var(--color-frame-bg);
-  backdrop-filter: var(--backdrop-blur);
-}
-
-.NavBar>.contents {
   display: flex;
   border-radius: var(--radius-full);
   place-items: center;
@@ -55,7 +35,7 @@ const props = defineProps<{
   padding-bottom: 4px;
 }
 
-.NavBar>.contents>.breadcrumbs-controls {
+.NavBar>.breadcrumbs-controls {
   display: flex;
 }
 </style>

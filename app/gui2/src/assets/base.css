@@ -15,6 +15,7 @@
   --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
   --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
 
+  /* The color in the Figma design is #767676 (rgba(118, 118, 118, 1)). */
   --vt-c-text-light-1: var(--vt-c-indigo);
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
@@ -89,7 +90,8 @@ body {
     'Droid Sans',
     'Helvetica Neue',
     sans-serif;
-  font-size: 15px;
+  font-size: 11.5px;
+  line-height: 174.5%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -98,6 +100,36 @@ body {
 .icon {
   width: 16px;
   height: 16px;
+}
+
+.button {
+  cursor: pointer;
+}
+
+.button.disabled {
+  cursor: default;
+}
+
+*:has(> .blur-full) {
+  position: relative;
+  border-radius: var(--radius-full);
+}
+
+*:has(> .blur-full) > * {
+  position: relative;
+}
+
+*:has(> .blur-full) > .blur-full {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--color-frame-bg);
+  backdrop-filter: var(--backdrop-blur);
+}
+
+.TopBar {
+  user-select: none;
 }
 
 .NavBar img {
