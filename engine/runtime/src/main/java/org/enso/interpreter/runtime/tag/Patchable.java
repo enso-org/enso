@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.tag;
 
 import com.oracle.truffle.api.nodes.Node;
 import java.util.function.Predicate;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 
 /** Implemented by nodes that can be patched by small edits. */
 public interface Patchable {
@@ -14,7 +14,7 @@ public interface Patchable {
    * @return callback interface to communicate with
    * @param <N> node that also implements {@link Predicate} for patching
    */
-  public <N extends Node & Predicate<IR.Expression>> N asPatchableNode();
+  public <N extends Node & Predicate<Expression>> N asPatchableNode();
 
   /** Tag to apply to nodes that support patching and implement {@link Patchable}. */
   public final class Tag extends com.oracle.truffle.api.instrumentation.Tag {}

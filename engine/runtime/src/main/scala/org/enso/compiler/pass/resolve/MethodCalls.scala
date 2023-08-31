@@ -1,8 +1,10 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
@@ -30,9 +32,9 @@ object MethodCalls extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(doExpression)
   }
 
@@ -46,19 +48,19 @@ object MethodCalls extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     doExpression(ir)
   }
 
   private def doExpression(
-    expr: IR.Expression
-  ): IR.Expression = {
-    expr.transformExpressions { case app: IR.Application.Prefix =>
+    expr: Expression
+  ): Expression = {
+    expr.transformExpressions { case app: Application.Prefix =>
       def fallback = app.mapExpressions(doExpression(_))
       app.function match {
-        case name: IR.Name if name.isMethod =>
+        case name: Name if name.isMethod =>
           app.arguments match {
             case first :: _ =>
               val targetBindings =

@@ -2,9 +2,19 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Application, IdentifiedLocation}
+import org.enso.compiler.core.ir.{
+  `type`,
+  CallArgument,
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
@@ -52,9 +62,9 @@ case object TypeFunctions extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
     ir.copy(bindings = new_bindings)
   }
@@ -68,9 +78,9 @@ case object TypeFunctions extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     ir.transformExpressions { case a =>
       resolveExpression(a)
     }
@@ -79,15 +89,15 @@ case object TypeFunctions extends IRPass {
 
   /** The names of the known typing functions. */
   val knownTypingFunctions: Set[String] = Set(
-    IR.Type.Ascription.name,
-    IR.Type.Context.name,
-    IR.Type.Error.name,
-    IR.Type.Set.Concat.name,
-    IR.Type.Set.Subsumption.name,
-    IR.Type.Set.Equality.name,
-    IR.Type.Set.Union.name,
-    IR.Type.Set.Intersection.name,
-    IR.Type.Set.Subtraction.name
+    Type.Ascription.name,
+    Type.Context.name,
+    Type.Error.name,
+    `type`.Set.Concat.name,
+    `type`.Set.Subsumption.name,
+    `type`.Set.Equality.name,
+    `type`.Set.Union.name,
+    `type`.Set.Intersection.name,
+    `type`.Set.Subtraction.name
   )
 
   /** Performs resolution of typing functions in an arbitrary expression.
@@ -95,10 +105,10 @@ case object TypeFunctions extends IRPass {
     * @param expr the expression to perform resolution in
     * @return `expr`, with any typing functions resolved
     */
-  def resolveExpression(expr: IR.Expression): IR.Expression = {
+  def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
-      case asc: IR.Type.Ascription => asc
-      case app: IR.Application =>
+      case asc: Type.Ascription => asc
+      case app: Application =>
         val result = resolveApplication(app)
         app
           .getMetadata(DocumentationComments)
@@ -112,14 +122,14 @@ case object TypeFunctions extends IRPass {
     * @param app the application to perform resolution in
     * @return `app`, with any typing functions resolved
     */
-  def resolveApplication(app: IR.Application): IR.Expression = {
+  def resolveApplication(app: Application): Expression = {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
-          case name: IR.Name if name.name == IR.Type.Set.Union.name =>
+          case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
-            IR.Type.Set.Union(members, app.location)
-          case name: IR.Name if knownTypingFunctions.contains(name.name) =>
+            `type`.Set.Union(members, app.location)
+          case name: Name if knownTypingFunctions.contains(name.name) =>
             resolveKnownFunction(name, pre.arguments, pre.location, pre)
           case _ =>
             pre.copy(
@@ -129,25 +139,25 @@ case object TypeFunctions extends IRPass {
         }
       case force @ Application.Force(target, _, _, _) =>
         force.copy(target = resolveExpression(target))
-      case seq @ Application.Literal.Sequence(items, _, _, _) =>
+      case seq @ Application.Sequence(items, _, _, _) =>
         seq.copy(
           items = items.map(resolveExpression)
         )
-      case tSet @ Application.Literal.Typeset(expr, _, _, _) =>
+      case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(
           expression = expr.map(resolveExpression)
         )
-      case _: Application.Operator =>
+      case _: Operator =>
         throw new CompilerError(
           "Operators should not be present during typing functions lifting."
         )
     }
   }
 
-  def flattenUnion(expr: IR.Expression): List[IR.Expression] = {
+  def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
-      case Application.Prefix(n: IR.Name, args, _, _, _, _)
-          if n.name == IR.Type.Set.Union.name =>
+      case Application.Prefix(n: Name, args, _, _, _, _)
+          if n.name == `type`.Set.Union.name =>
         args.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
     }
@@ -159,11 +169,11 @@ case object TypeFunctions extends IRPass {
     * @return the IR node representing `prefix`
     */
   def resolveKnownFunction(
-    name: IR.Name,
-    arguments: List[IR.CallArgument],
+    name: Name,
+    arguments: List[CallArgument],
     location: Option[IdentifiedLocation],
     originalIR: IR
-  ): IR.Expression = {
+  ): Expression = {
     val expectedNumArgs = 2
     val lengthIsValid   = arguments.length == expectedNumArgs
     val argsAreValid    = arguments.forall(isValidCallArg)
@@ -173,25 +183,25 @@ case object TypeFunctions extends IRPass {
       val rightArg = resolveExpression(arguments.last.value)
 
       name.name match {
-        case IR.Type.Ascription.name =>
-          IR.Type.Ascription(leftArg, rightArg, location)
-        case IR.Type.Context.name =>
-          IR.Type.Context(leftArg, rightArg, location)
-        case IR.Type.Error.name =>
-          IR.Type.Error(leftArg, rightArg, location)
-        case IR.Type.Set.Concat.name =>
-          IR.Type.Set.Concat(leftArg, rightArg, location)
-        case IR.Type.Set.Subsumption.name =>
-          IR.Type.Set.Subsumption(leftArg, rightArg, location)
-        case IR.Type.Set.Equality.name =>
-          IR.Type.Set.Equality(leftArg, rightArg, location)
-        case IR.Type.Set.Intersection.name =>
-          IR.Type.Set.Intersection(leftArg, rightArg, location)
-        case IR.Type.Set.Subtraction.name =>
-          IR.Type.Set.Subtraction(leftArg, rightArg, location)
+        case Type.Ascription.name =>
+          Type.Ascription(leftArg, rightArg, location)
+        case Type.Context.name =>
+          Type.Context(leftArg, rightArg, location)
+        case Type.Error.name =>
+          Type.Error(leftArg, rightArg, location)
+        case `type`.Set.Concat.name =>
+          `type`.Set.Concat(leftArg, rightArg, location)
+        case `type`.Set.Subsumption.name =>
+          `type`.Set.Subsumption(leftArg, rightArg, location)
+        case `type`.Set.Equality.name =>
+          `type`.Set.Equality(leftArg, rightArg, location)
+        case `type`.Set.Intersection.name =>
+          `type`.Set.Intersection(leftArg, rightArg, location)
+        case `type`.Set.Subtraction.name =>
+          `type`.Set.Subtraction(leftArg, rightArg, location)
       }
     } else {
-      IR.Error.InvalidIR(originalIR)
+      Error.InvalidIR(originalIR)
     }
   }
 
@@ -200,9 +210,9 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to perform resolution in
     * @return `arg`, with any call arguments resolved
     */
-  def resolveCallArgument(arg: IR.CallArgument): IR.CallArgument = {
+  def resolveCallArgument(arg: CallArgument): CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, value, _, _, _) =>
+      case spec @ CallArgument.Specified(_, value, _, _, _) =>
         spec.copy(
           value = resolveExpression(value)
         )
@@ -222,9 +232,9 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to check
     * @return `true` if `arg` is valid, otherwise `false`
     */
-  def isValidCallArg(arg: IR.CallArgument): Boolean = {
+  def isValidCallArg(arg: CallArgument): Boolean = {
     arg match {
-      case IR.CallArgument.Specified(name, _, _, _, _) =>
+      case CallArgument.Specified(name, _, _, _, _) =>
         name.isEmpty
     }
   }
