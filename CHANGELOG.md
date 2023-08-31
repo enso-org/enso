@@ -562,6 +562,8 @@
   and length-limited `Char` type) for the in-memory `Table` backend.][7557]
 - [Added ability to specify expected value type in `Column.from_vector`,
   `Column.map` and `Column.zip`.][7637]
+- [Added `delete_rows` method to Database Table, changed the
+  `update_database_table` API into `update_rows`.][7709]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -797,6 +799,7 @@
 [7425]: https://github.com/enso-org/enso/pull/7425
 [7557]: https://github.com/enso-org/enso/pull/7557
 [7637]: https://github.com/enso-org/enso/pull/7637
+[7709]: https://github.com/enso-org/enso/pull/7709
 
 #### Enso Compiler
 
