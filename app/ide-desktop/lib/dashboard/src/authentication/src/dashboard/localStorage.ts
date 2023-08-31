@@ -96,6 +96,12 @@ export class LocalStorage {
                     }
                 }
             }
+            if (
+                this.values[LocalStorageKey.projectStartupInfo] == null &&
+                this.values[LocalStorageKey.page] === pageSwitcher.Page.editor
+            ) {
+                this.values[LocalStorageKey.page] = pageSwitcher.Page.drive
+            }
         }
     }
 
