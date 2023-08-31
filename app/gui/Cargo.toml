@@ -42,6 +42,7 @@ engine-protocol = { path = "controller/engine-protocol" }
 json-rpc = { path = "../../lib/rust/json-rpc" }
 span-tree = { path = "language/span-tree" }
 bimap = { version = "0.4.0" }
+console_error_panic_hook = { workspace = true }
 const_format = { workspace = true }
 convert_case = { workspace = true }
 failure = { workspace = true }

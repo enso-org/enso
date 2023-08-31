@@ -7,7 +7,6 @@ import * as url from 'node:url'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-const CONTENT_PATH = path.resolve(THIS_PATH, '../content')
 
 // =====================
 // === Configuration ===
@@ -15,7 +14,7 @@ const CONTENT_PATH = path.resolve(THIS_PATH, '../content')
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [THIS_PATH + '/src/**/*.tsx', CONTENT_PATH + '/src/**/*.tsx']
+export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {
@@ -100,9 +99,6 @@ export const theme = {
             '61.25': '15.3125rem',
             '80': '20rem',
             '96': '24rem',
-        },
-        maxHeight: {
-            'half-screen': '50vh',
         },
         opacity: {
             '1/3': '.33333333',

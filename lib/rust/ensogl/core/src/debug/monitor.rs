@@ -181,8 +181,10 @@ impl Config {
 #[derive(Clone, Debug, Deref)]
 pub struct Dom {
     #[deref]
-    rc:        Rc<DomData>,
-    listeners: [web::CleanupHandle; 3],
+    rc:             Rc<DomData>,
+    on_pause_press: Rc<web::Closure<dyn Fn()>>,
+    on_play_press:  Rc<web::Closure<dyn Fn()>>,
+    on_main_press:  Rc<web::Closure<dyn Fn()>>,
 }
 
 /// Internal representation of `Dom`.
@@ -201,13 +203,20 @@ impl Dom {
     pub fn new(frp: &api::Public, config: &Config, screen_shape: Shape) -> Self {
         let data = DomData::new(config, screen_shape);
         let button = &data.control_button;
-        let listeners = [
-            web::add_event_listener(&button.pause, "mousedown", f_!(frp.pause_data_processing())),
-            web::add_event_listener(&button.play, "mousedown", f_!(frp.resume_data_processing())),
-            web::add_event_listener(&data.plot_area, "mousedown", f_!(frp.on_main_press())),
-        ];
+        let on_pause_press = web::Closure::<dyn Fn()>::new(f!(frp.pause_data_processing()));
+        let on_play_press = web::Closure::<dyn Fn()>::new(f!(frp.resume_data_processing()));
+        let on_main_press = web::Closure::<dyn Fn()>::new(f!(frp.on_main_press()));
+        let on_pause_press_fn = on_pause_press.as_ref().unchecked_ref();
+        let on_play_press_fn = on_play_press.as_ref().unchecked_ref();
+        let on_main_press_fn = on_main_press.as_ref().unchecked_ref();
+        button.pause.add_event_listener_with_callback("mousedown", on_pause_press_fn).unwrap();
+        button.play.add_event_listener_with_callback("mousedown", on_play_press_fn).unwrap();
+        data.plot_area.add_event_listener_with_callback("mousedown", on_main_press_fn).unwrap();
         let rc = Rc::new(data);
-        Self { rc, listeners }
+        let on_pause_press = Rc::new(on_pause_press);
+        let on_play_press = Rc::new(on_play_press);
+        let on_main_press = Rc::new(on_main_press);
+        Self { rc, on_pause_press, on_play_press, on_main_press }
     }
 }
 
