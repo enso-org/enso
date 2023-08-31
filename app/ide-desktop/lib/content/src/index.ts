@@ -11,7 +11,6 @@ import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
-import * as panic from './panic'
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -218,11 +217,6 @@ class Main implements AppRunner {
                 logger.log(logMessage)
             }
         }
-        newApp.printPanicMessage = (message: string) =>
-            new Promise<void>(resolve => {
-                panic.displayPanicMessageToast(message, resolve)
-            })
-
         this.app = newApp
 
         if (!this.app.initialized) {

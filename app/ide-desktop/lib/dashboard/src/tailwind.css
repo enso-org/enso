@@ -162,7 +162,3 @@ body {
     pointer-events: none;
   }
 }
-
-.Toastify__toast-body > div:last-child {
-  overflow: hidden;
-}

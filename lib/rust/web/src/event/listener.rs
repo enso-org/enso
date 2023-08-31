@@ -3,7 +3,10 @@
 
 use crate::prelude::*;
 
-use crate::event::Type;
+use crate::closure::storage::ClosureFn;
+use crate::closure::storage::OptionalFmMutClosure;
+
+use derivative::Derivative;
 
 
 
@@ -23,41 +26,35 @@ use crate::event::Type;
 ///
 /// `Slot` owns callback and wraps it into JS closure. `Slot` also keeps reference to the target,
 /// so it must not be leaked.
-pub struct Slot<EventType: Type> {
-    target:   Option<EventType::Target>,
-    callback: Option<Rc<RefCell<dyn FnMut(EventType::Interface) + 'static>>>,
-    handler:  Option<crate::CleanupHandle>,
+#[derive(Derivative)]
+#[derivative(Debug(bound = "EventType::Interface: Debug"))]
+pub struct Slot<EventType: crate::event::Type> {
+    #[derivative(Debug = "ignore")]
+    target:     Option<EventType::Target>,
+    js_closure: OptionalFmMutClosure<EventType::Interface>,
 }
 
-impl<T: Type> Debug for Slot<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Slot").finish()
-    }
-}
-
-impl<EventType: Type> Slot<EventType> {
+impl<EventType: crate::event::Type> Slot<EventType> {
     /// Create a new `Slot`. As the initial target is provided, the listener will register once it
     /// gets a callback (see [[set_callback]]).
     pub fn new(target: &EventType::Target) -> Self {
-        Self { target: Some(target.clone()), callback: None, handler: None }
+        Self { target: Some(target.clone()), js_closure: default() }
     }
 
     /// Register the event listener if both target and callback are set.
     fn add_if_active(&mut self) {
-        if let (Some(target), Some(callback)) = (self.target.as_ref(), self.callback.as_ref()) {
-            let callback = callback.clone();
-            let handler =
-                crate::add_event_listener(target.as_ref(), EventType::NAME, move |event| {
-                    let mut callback = callback.borrow_mut();
-                    callback(event.dyn_into().unwrap());
-                });
-            self.handler = Some(handler);
+        if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
+            debug!("Attaching the callback.");
+            EventType::add_listener(target, function)
         }
     }
 
     /// Unregister the event listener if both target and callback are set.
     fn remove_if_active(&mut self) {
-        self.handler.take();
+        if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
+            debug!("Detaching the callback.");
+            EventType::remove_listener(target, function)
+        }
     }
 
     /// Set a new target.
@@ -89,9 +86,9 @@ impl<EventType: Type> Slot<EventType> {
     ///
     /// Caveat: using this method will move the event listener to the end of the registered
     /// callbacks. This will affect the order of callback calls.
-    pub fn set_callback(&mut self, f: impl FnMut(EventType::Interface) + 'static) {
+    pub fn set_callback(&mut self, f: impl ClosureFn<EventType::Interface>) {
         self.remove_if_active();
-        self.callback = Some(Rc::new(RefCell::new(f)));
+        self.js_closure.wrap(f);
         self.add_if_active()
     }
 
@@ -100,7 +97,7 @@ impl<EventType: Type> Slot<EventType> {
     /// The stored closure will be dropped and event listener unregistered.
     pub fn clear_callback(&mut self) {
         self.remove_if_active();
-        self.callback.take();
+        self.js_closure.clear();
     }
 
     /// Detach and attach the listener to the target.
@@ -113,7 +110,7 @@ impl<EventType: Type> Slot<EventType> {
 }
 
 /// Unregister listener on drop.
-impl<EventType: Type> Drop for Slot<EventType> {
+impl<EventType: crate::event::Type> Drop for Slot<EventType> {
     fn drop(&mut self) {
         self.remove_if_active();
     }
