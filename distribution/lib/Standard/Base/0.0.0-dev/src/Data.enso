@@ -201,13 +201,6 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
         uri = case url of
             _ : Text -> url.to_uri
             _ : URI -> url
-        IO.println 'UUU'
-        IO.println url
-        IO.println <| Meta.get_simple_type_name url
-        IO.println uri
-        IO.println <| Meta.get_simple_type_name uri
-        IO.println uri.internal_uri
-        IO.println <| Meta.get_simple_type_name uri.internal_uri
         builder.uri uri.internal_uri
 
         body_publisher = case post_request_body of
