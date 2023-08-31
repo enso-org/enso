@@ -20,7 +20,7 @@ const TRUSTED_HOSTS = [
 ]
 
 /** The list of hosts that the app can open external links to. */
-const TRUSTED_EXTERNAL_HOSTS = ['discord.gg', 'github.com']
+const TRUSTED_EXTERNAL_HOSTS = ['discord.gg']
 
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []
