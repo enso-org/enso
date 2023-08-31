@@ -497,25 +497,47 @@ check_transaction_ddl_support connection =
 
 ## PRIVATE
 common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
-    check_target_table_for_update target_table <|
+    check_delete_rows_arguments target_table key_values_to_delete key_columns <|
         connection = target_table.connection
-        just_keys_input = key_values_to_delete.select_columns key_columns
+        ## We select only the key columns and discard anything else.
+           We also call distinct to ensure that we will not have primary-key
+           duplicate issues when uploading the temporary table.
+        just_keys_input = key_values_to_delete.select_columns key_columns . distinct
         just_keys_input.if_not_error <| (target_table.select_columns key_columns).if_not_error <| Panic.recover SQL_Error <|
             connection.jdbc_connection.run_within_transaction <|
-                tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                 dry_run = Context.Output.is_enabled.not
                 Context.Output.with_enabled <|
-                    row_limit = Nothing # TODO shall we have a row limit? then we cannot check expected row count...
+                    row_limit = if dry_run then dry_run_row_limit else Nothing
+                    source_row_count = just_keys_input.row_count
+                    row_limit_exceeded = row_limit.is_nothing.not && source_row_count > row_limit
+                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                     tmp_table = internal_upload_table just_keys_input connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                     tmp_table.if_not_error <|
                         if allow_duplicate_matches.not then
                             # TODO check for duplicates
                             Nothing
-                        affected_row_count = ???
-                        ## We don't need to drop the table if append panics, because
+                        delete_statement = connection.dialect.generate_sql <|
+                            Query.Delete_Matching_Rows target_table.name tmp_table.name key_columns
+                        affected_row_count = case dry_run of
+                            True  -> target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                            False -> connection.execute_update delete_statement
+                        ## We don't need to drop the table if update panics, because
                            all of this happens within a transaction, so in case the
                            above fails, the whole transaction will be rolled back.
                         connection.drop_table tmp_table.name
                         if dry_run.not then affected_row_count else
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."
+                            suffix = if row_limit_exceeded.not then "" else
+                                " (Only the first "+row_limit.to_text+" distinct rows out of "+source_row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
                             Warning.attach warning affected_row_count
+
+## PRIVATE
+check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =
+    check_target_table_for_update target_table <|
+        if key_columns.is_empty then Error.throw (Illegal_Argument.Error "One or more key columns must be provided to correlate the rows to be deleted.") else
+            key_set = Set.from_vector key_columns
+            missing_target_key_columns = key_set . difference (Set.from_vector target_table.column_names)
+            if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
+                missing_source_key_columns = key_set . difference (Set.from_vector key_values_to_delete.column_names)
+                if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the key values to delete table") else
+                    continuation

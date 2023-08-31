@@ -951,7 +951,7 @@ spec make_new_connection prefix persistent_connector=True =
                 r1 = table.delete_rows keys key_columns=["Y"]
                 r1.should_fail_with Missing_Input_Columns
                 r1.catch.criteria . should_equal ["Y"]
-                r1.catch.where . should_contain "source"
+                r1.catch.where . should_contain "key values to delete"
 
                 r2 = table.delete_rows keys key_columns=["Z"]
                 r2.should_fail_with Missing_Input_Columns
@@ -992,6 +992,26 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 table.delete_rows keys key_columns=["X"] . should_fail_with Table_Not_Found
                 table.delete_rows keys . should_fail_with Table_Not_Found
+
+        Test.specify "will warn if not all input rows were checked as part of a dry run" <|
+            target = target_table_builder [["X", [0, 1, 500, 1500, 3500]]] primary_key=["X"]
+            source = source_table_builder [["X", (1.up_to 2000).to_vector]] primary_key=["X"]
+
+            Context.Output.with_disabled <|
+                r1 = target.delete_rows source
+                # Only values 1 and 500 were checked; 1500 exceeded the dry run limit.
+                r1.should_equal 2
+                w1 = Problems.expect_warning Dry_Run_Operation r1
+                w1.to_display_text . should_contain "Only the first 1000 distinct rows out of 1999 were used for the dry run"
+
+            # Target remains unchanged
+            target.at "X" . to_vector . should_equal [0, 1, 500, 1500, 3500]
+
+            r2 = target.delete_rows source
+            Problems.assume_no_problems r2
+            # All 3 rows were deleted
+            r2.should_equal 3
+            target.at "X" . to_vector . should_equal [0, 3500]
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
         test_table_delete in_memory_table_builder (database_table_builder "target-table")
