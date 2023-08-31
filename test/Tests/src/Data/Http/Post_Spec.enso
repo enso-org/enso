@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Post_Request_Body.Post_Request_Body
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -21,7 +22,17 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The POST tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
-    Test.group "json" pending=pending_has_url <|
+    Test.group "asdfasdf" pending=pending_has_url <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_post = base_url_with_slash + "post"
+
+        Test.specify "Can perform a Post_Request_Body.Text POST" <|
+            response = Data.post url_post (Post_Request_Body.Text "hello world")
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+    Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 

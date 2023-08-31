@@ -1,0 +1,11 @@
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+
+## The HTTP POST request body.
+type Post_Request_Body
+
+    ## Request body with text.
+
+       Arguments:
+       - text: The plain text in the request body.
+    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_Type:Text="application/json")

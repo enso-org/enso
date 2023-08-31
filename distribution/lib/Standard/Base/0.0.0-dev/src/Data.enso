@@ -8,19 +8,27 @@ import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.IO
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Post_Request_Body.Post_Request_Body
 import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Response.Response
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
+from project.Network.Extensions import all
 from project.System.File_Format import Auto_Detect, File_Format
-import project.IO
+
+polyglot java import java.lang.Exception as JException
+polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpResponse
 
 ## ALIAS load, open
    GROUP Input
@@ -173,7 +181,66 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
             response.decode if_unsupported=response . catch handler=(_->response)
 
 
-## Data.post url body method=HTTP_Method.POST headers=[] try_auto_parse_response=True
+post : (URI | Text) -> Text | Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
+    if method != HTTP_Method.Post then
+        Error.throw (Illegal_Argument.Error "Unsupported method " + method.to_display_text + ", only POST is currently supported")
+
+    # Convert some plain objects to proper Post_Request_Body values.
+    post_request_body = case body of
+        _ : Text -> Post_Request_Body.Text body
+        _ -> body
+
+    handle_request_error =
+        Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
+    Panic.recover Any <| handle_request_error <|
+        body_publishers = HttpRequest.BodyPublishers
+        builder = HttpRequest.newBuilder
+
+        # set uri
+        uri = case url of
+            _ : Text -> url.to_uri
+            _ : URI -> url
+        IO.println 'UUU'
+        IO.println url
+        IO.println <| Meta.get_simple_type_name url
+        IO.println uri
+        IO.println <| Meta.get_simple_type_name uri
+        IO.println uri.internal_uri
+        IO.println <| Meta.get_simple_type_name uri.internal_uri
+        builder.uri uri.internal_uri
+
+        body_publisher = case post_request_body of
+            Post_Request_Body.Text text encoding content_type ->
+                builder.header Header.text_plain.name Header.text_plain.value
+                body_publishers.ofString text
+            _ ->
+                Error.throw (Illegal_Argument.Error "Unsupported POST body: " + post_request_body.to_display_text + "; this is a bug in the Data library")
+
+        # set method and body
+        builder.method method.to_http_method_name body_publisher
+        # set headers
+        parse_headers headers . map h-> builder.header h.name h.value
+
+        http_request = builder.build
+        body_handler = HttpResponse.BodyHandlers . ofByteArray
+        http = HTTP.new
+
+        IO.println 'AAA http_request'
+        IO.println http_request
+
+        response = Response.Value (http.internal_http_client.send http_request body_handler)
+
+        IO.println 'AAA response'
+        IO.println response
+
+        r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+            if try_auto_parse_response.not then response else
+                response.decode if_unsupported=response . catch handler=(_->response)
+        IO.println 'AAA parsed(?) response'
+        IO.println r
+        IO.println <| Meta.get_simple_type_name r
+        r
 
 old_post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 old_post uri body mime_type=Nothing headers=[] try_auto_parse=True =
