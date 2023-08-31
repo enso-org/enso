@@ -81,6 +81,11 @@ use enso_callback as callback;
 use enso_generics::Cons;
 use enso_generics::Nil;
 use enso_generics::PushLastField;
+use enso_web::traits::WindowOps;
+use enso_web::Closure;
+use enso_web::JsEventHandler;
+use enso_web::JsValue;
+use enso_web::Promise;
 
 
 
@@ -151,13 +156,31 @@ struct Scheduler {
 
 impl Scheduler {
     fn new() -> Self {
-        let data = Rc::new_cyclic(|weak| SchedulerData {
-            weak_self:      weak.clone(),
-            is_scheduled:   default(),
-            callbacks:      default(),
-            late_callbacks: default(),
-            schedule_depth: default(),
-            scheduled_task: default(),
+        let data = Rc::new_cyclic(|weak: &Weak<SchedulerData>| {
+            let resolved_promise = Promise::resolve(&JsValue::NULL);
+            let callbacks = default();
+            let late_callbacks = default();
+            let schedule_depth = default();
+            let is_scheduled = default();
+            let run_all_closure = Closure::new(f!([weak] (_: JsValue) {
+                if let Some(data) = weak.upgrade() {
+                    data.run_all();
+                }
+            }));
+            let schedule_closure = Closure::new(f!([weak] (_: f64) {
+                if let Some(data) = weak.upgrade() {
+                    data.schedule_task();
+                }
+            }));
+            SchedulerData {
+                is_scheduled,
+                callbacks,
+                late_callbacks,
+                schedule_depth,
+                resolved_promise,
+                run_all_closure,
+                schedule_closure,
+            }
         });
         Self { data }
     }
@@ -191,36 +214,28 @@ fn profile(f: impl FnOnce() + 'static) -> impl FnOnce() + 'static {
 }
 
 struct SchedulerData {
-    weak_self:      Weak<Self>,
-    scheduled_task: Cell<Option<enso_web::CleanupHandle>>,
-    schedule_depth: Cell<usize>,
-    is_scheduled:   Cell<bool>,
-    callbacks:      callback::registry::NoArgsOnce,
-    late_callbacks: callback::registry::NoArgsOnce,
+    is_scheduled:     Cell<bool>,
+    callbacks:        callback::registry::NoArgsOnce,
+    late_callbacks:   callback::registry::NoArgsOnce,
+    schedule_depth:   Cell<usize>,
+    resolved_promise: Promise,
+    run_all_closure:  JsEventHandler,
+    schedule_closure: JsEventHandler<f64>,
 }
 
 impl SchedulerData {
     #[profile(Task)]
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
-            let weak = self.weak_self.clone();
-            let task = enso_web::queue_microtask(move || {
-                if let Some(data) = weak.upgrade() {
-                    data.run_all();
-                }
-            });
-            self.scheduled_task.replace(Some(task));
+            // Result left unused on purpose. We only care about `closure` being run in the next
+            // microtask, which is a guaranteed side effect of providing it to [`Promise::then`]
+            // method on already resolved promise.
+            let _ = self.resolved_promise.then(&self.run_all_closure);
         }
     }
     fn schedule_task_past_limit(&self) {
         if !self.is_scheduled.replace(true) {
-            let weak = self.weak_self.clone();
-            let task = enso_web::request_animation_frame(move |_| {
-                if let Some(data) = weak.upgrade() {
-                    data.schedule_task();
-                }
-            });
-            self.scheduled_task.replace(Some(task));
+            enso_web::window.request_animation_frame_with_closure_or_panic(&self.schedule_closure);
         }
     }
 

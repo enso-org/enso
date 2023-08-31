@@ -1,6 +1,7 @@
 //! This module contains implementation of loops mainly used for per-frame callbacks firing.
 
 use crate::prelude::*;
+use crate::system::web::traits::*;
 use enso_callback::traits::*;
 
 use crate::system::web;
@@ -8,7 +9,7 @@ use crate::types::unit2::Duration;
 
 use enso_callback as callback;
 use frp::microtasks::TickPhases;
-use web::CleanupHandle;
+use web::Closure;
 
 
 
@@ -75,7 +76,16 @@ where OnFrame: RawOnFrameCallback
 {
     /// Create and start a new animation loop.
     fn new(on_frame: OnFrame) -> Self {
-        Self { data: Rc::new_cyclic(|weak| RefCell::new(JsLoopData::new(weak.clone(), on_frame))) }
+        let data = Rc::new(RefCell::new(JsLoopData::new(on_frame)));
+        let weak_data = Rc::downgrade(&data);
+        let js_on_frame =
+            move |time: f64| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
+        data.borrow_mut().js_on_frame = Some(Closure::new(js_on_frame));
+        let js_on_frame_handle_id = web::window.request_animation_frame_with_closure_or_panic(
+            data.borrow_mut().js_on_frame.as_ref().unwrap(),
+        );
+        data.borrow_mut().js_on_frame_handle_id = js_on_frame_handle_id;
+        Self { data }
     }
 }
 
@@ -84,32 +94,34 @@ where OnFrame: RawOnFrameCallback
 #[derivative(Debug(bound = ""))]
 struct JsLoopData<OnFrame> {
     #[derivative(Debug = "ignore")]
-    on_frame:        OnFrame,
-    weak_self:       Weak<RefCell<Self>>,
-    on_frame_handle: CleanupHandle,
+    on_frame:              OnFrame,
+    js_on_frame:           Option<Closure<dyn FnMut(f64)>>,
+    js_on_frame_handle_id: i32,
 }
 
-impl<OnFrame: RawOnFrameCallback> JsLoopData<OnFrame> {
+impl<OnFrame> JsLoopData<OnFrame> {
     /// Constructor.
-    fn new(weak_self: Weak<RefCell<Self>>, on_frame: OnFrame) -> Self {
-        let on_frame_handle = Self::register_next_frame(weak_self.clone());
-        Self { on_frame, weak_self, on_frame_handle }
+    fn new(on_frame: OnFrame) -> Self {
+        let js_on_frame = default();
+        let js_on_frame_handle_id = default();
+        Self { on_frame, js_on_frame, js_on_frame_handle_id }
     }
 
-    fn run(&mut self, current_time_ms: f64) {
-        // FIXME: We are converting `f64` to `f32` here which is a mistake. We should use `f64` for
-        // a better time precision.
-        let time_in_ms_f32 = (current_time_ms as f32).ms();
-        (self.on_frame)(time_in_ms_f32);
-        self.on_frame_handle = Self::register_next_frame(self.weak_self.clone());
-    }
-
-    fn register_next_frame(weak_self: Weak<RefCell<Self>>) -> CleanupHandle {
-        web::request_animation_frame(move |time| {
-            if let Some(strong) = weak_self.upgrade() {
-                strong.borrow_mut().run(time);
-            }
+    // FIXME: We are converting `f64` to `f32` here which is a mistake. We should revert to `f64`
+    //        for a better time precision.
+    fn run(&mut self, current_time_ms: f64)
+    where OnFrame: FnMut(Duration) {
+        let on_frame = &mut self.on_frame;
+        self.js_on_frame_handle_id = self.js_on_frame.as_ref().map_or(default(), |js_on_frame| {
+            on_frame((current_time_ms as f32).ms());
+            web::window.request_animation_frame_with_closure_or_panic(js_on_frame)
         })
+    }
+}
+
+impl<OnFrame> Drop for JsLoopData<OnFrame> {
+    fn drop(&mut self) {
+        web::window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id);
     }
 }
 
@@ -498,38 +510,5 @@ pub mod test_utils {
             (registry.animation_loop.data.borrow_mut().on_frame)((time as f32).ms());
             frp::microtasks::flush_microtasks();
         });
-    }
-}
-
-
-
-// ====================
-// === FrameCounter ===
-// ====================
-
-/// A counter that counts the number of frames that have passed since its initialization.
-///
-/// Uses `request_animation_frame` under the hood to count frames.
-#[derive(Debug)]
-pub struct FrameCounter {
-    frames:  Rc<Cell<u64>>,
-    js_loop: Loop,
-}
-
-impl FrameCounter {
-    /// Creates a new frame counter.
-    pub fn start_counting() -> Self {
-        let frames: Rc<Cell<u64>> = default();
-        Self {
-            frames:  frames.clone(),
-            js_loop: Loop::new_before_animations(move |_| {
-                frames.update(|f| f + 1);
-            }),
-        }
-    }
-
-    /// Returns the number of frames that have passed since the counter was created.
-    pub fn frames_since_start(&self) -> u64 {
-        self.frames.as_ref().get()
     }
 }
