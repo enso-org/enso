@@ -185,6 +185,9 @@ function AppRouter(props: AppProps) {
                 : true
             if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
                 event.preventDefault()
+                // This is required to prevent the event from propagating to the event handler
+                // that focuses the search input.
+                event.stopImmediatePropagation()
             }
         }
         document.body.addEventListener('keydown', onKeyDown)
