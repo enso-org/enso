@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.interpreter.runtime.Module
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -56,8 +55,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val module = moduleContext.module
-    if (module.isSynthetic) {
+    if (moduleContext.isSynthetic()) {
       ir
     } else {
       val bindingMap = ir.unsafeGetMetadata(
@@ -69,7 +67,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
         imports = ir.imports.flatMap(imp => {
           analyseAmbiguousSymbols(
             imp,
-            module,
+            moduleContext,
             bindingMap,
             encounteredSymbols
           ).fold(identity, imp => List(imp))
@@ -87,7 +85,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     */
   private def analyseAmbiguousSymbols(
     imp: IR.Module.Scope.Import,
-    module: Module,
+    module: ModuleContext,
     bindingMap: BindingsMap,
     encounteredSymbols: EncounteredSymbols
   ): Either[List[IR.Error.ImportExport], IR.Module.Scope.Import] = {
@@ -294,7 +292,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     * @return
     */
   private def tryAddEncounteredSymbol(
-    module: Module,
+    module: ModuleContext,
     encounteredSymbols: EncounteredSymbols,
     currentImport: IR.Module.Scope.Import,
     symbolName: String,
@@ -333,7 +331,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
   }
 
   private def createErrorForAmbiguousImport(
-    module: Module,
+    module: ModuleContext,
     originalImport: IR.Module.Scope.Import,
     originalSymbolPath: String,
     duplicatingImport: IR.Module.Scope.Import,
@@ -347,13 +345,13 @@ case object AmbiguousImportsAnalysis extends IRPass {
         originalSymbolPath,
         ambiguousSymbol,
         ambiguousSymbolPath,
-        module.getSource
+        module.getSource()
       )
     )
   }
 
   private def createWarningForDuplicatedImport(
-    module: Module,
+    module: ModuleContext,
     originalImport: IR.Module.Scope.Import,
     duplicatingImport: IR.Module.Scope.Import,
     duplicatedSymbol: String
@@ -362,7 +360,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
       duplicatingImport.location,
       originalImport,
       duplicatedSymbol,
-      module.getSource
+      module.getSource()
     )
   }
 

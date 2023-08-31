@@ -35,14 +35,14 @@ class TextEditValidatorSpec extends AnyFlatSpec with Matchers {
     validate(buffer, diff1) mustBe Left(
       InvalidPosition(
         Position(10, 2),
-        "text edit end line (10) outside of buffer's line count (2)"
+        "text edit end line (10) outside of buffer's line count (2, last line 'abcdefg`)"
       )
     )
     val diff2 = TextEdit(Range(Position(0, 10), Position(1, 2)), "a")
     validate(buffer, diff2) mustBe Left(
       InvalidPosition(
         Position(0, 10),
-        " character (10) is outside of line's length (8)"
+        " character (10) is outside of line's length (8, last line 'abcdefg`)"
       )
     )
   }

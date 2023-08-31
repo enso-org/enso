@@ -30,10 +30,14 @@ export interface DriveViewProps {
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: string
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
     doCreateProject: (templateId: string | null) => void
-    doOpenEditor: (project: backendModule.ProjectAsset, switchPage: boolean) => void
-    doCloseEditor: () => void
-    appRunner: AppRunner | null
+    doOpenEditor: (
+        project: backendModule.ProjectAsset,
+        setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+        switchPage: boolean
+    ) => void
+    doCloseEditor: (project: backendModule.ProjectAsset) => void
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -48,6 +52,7 @@ export default function DriveView(props: DriveViewProps) {
         initialProjectName,
         queuedAssetEvents,
         query,
+        projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
         assetEvents,
@@ -55,7 +60,6 @@ export default function DriveView(props: DriveViewProps) {
         doCreateProject,
         doOpenEditor,
         doCloseEditor,
-        appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -143,8 +147,8 @@ export default function DriveView(props: DriveViewProps) {
                 )}
                 <AssetsTable
                     query={query}
-                    appRunner={appRunner}
                     initialProjectName={initialProjectName}
+                    projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
