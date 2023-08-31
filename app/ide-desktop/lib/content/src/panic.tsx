@@ -51,7 +51,7 @@ function InternalPanicMessage(props: InternalPanicMessageProps) {
 /** Generate an URL to GitHub issue report template, prefilling as much information as possible. */
 function bugReportUrl(message: string) {
     const version = BUILD_INFO.version.endsWith('-dev') ? BUILD_INFO.commit : BUILD_INFO.version
-    const browserVersion = detect.isRunningInElectron() ? 'standalone' : navigator.userAgent
+    const browserVersion = detect.isOnElectron() ? 'standalone' : navigator.userAgent
     const logs = bugReportLogs(message)
 
     const reportUrl = new URL('https://GitHub.com/enso-org/enso/issues/new')
