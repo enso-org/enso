@@ -414,17 +414,17 @@ type Append_Helper
        Check if there are rows in source that match multiple rows in the target.
     check_multiple_target_rows_match self ~continuation =
         matched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
-        agg = (self.key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
+        agg = [Aggregate_Column.Count]+(self.key_columns.map (Aggregate_Column.Group_By _))
         ## This aggregation will only find duplicated in target, not in the source,
            because the source is already guaranteed to be unique - that was checked
            when uploading the temporary table with the key as its primary key.
-        duplicated_key_in_target = matched_rows.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
+        duplicated_key_in_target = matched_rows.aggregate agg . filter 0 (Filter_Condition.Greater than=1)
         example =  duplicated_key_in_target.read max_rows=1
         case example.row_count == 0 of
             False ->
-                row = duplicated_key_in_target.first_row . to_vector
-                offending_key = row.drop (Index_Sub_Range.Last 1)
-                count = row.last
+                row = example.first_row . to_vector
+                offending_key = row.drop 1
+                count = row.first
                 Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
             True -> continuation
 
@@ -513,23 +513,21 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                     tmp_table = internal_upload_table just_keys_input connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                     tmp_table.if_not_error <|
-                        if allow_duplicate_matches.not then
-                            # TODO check for duplicates
-                            Nothing
-                        delete_statement = connection.dialect.generate_sql <|
-                            Query.Delete_Matching_Rows target_table.name tmp_table.name key_columns
-                        affected_row_count = case dry_run of
-                            True  -> target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner . row_count
-                            False -> connection.execute_update delete_statement
-                        ## We don't need to drop the table if update panics, because
-                           all of this happens within a transaction, so in case the
-                           above fails, the whole transaction will be rolled back.
-                        connection.drop_table tmp_table.name
-                        if dry_run.not then affected_row_count else
-                            suffix = if row_limit_exceeded.not then "" else
-                                " (Only the first "+row_limit.to_text+" distinct rows out of "+source_row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
-                            Warning.attach warning affected_row_count
+                        check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches <|
+                            delete_statement = connection.dialect.generate_sql <|
+                                Query.Delete_Matching_Rows target_table.name tmp_table.name key_columns
+                            affected_row_count = case dry_run of
+                                True  -> target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                                False -> connection.execute_update delete_statement
+                            ## We don't need to drop the table if update panics, because
+                               all of this happens within a transaction, so in case the
+                               above fails, the whole transaction will be rolled back.
+                            connection.drop_table tmp_table.name
+                            if dry_run.not then affected_row_count else
+                                suffix = if row_limit_exceeded.not then "" else
+                                    " (Only the first "+row_limit.to_text+" distinct rows out of "+source_row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
+                                Warning.attach warning affected_row_count
 
 ## PRIVATE
 check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =
@@ -541,3 +539,18 @@ check_delete_rows_arguments target_table key_values_to_delete key_columns ~conti
                 missing_source_key_columns = key_set . difference (Set.from_vector key_values_to_delete.column_names)
                 if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the key values to delete table") else
                     continuation
+
+## PRIVATE
+check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches ~continuation =
+    if allow_duplicate_matches then continuation else
+        joined = target_table.join tmp_table on=key_columns join_kind=Join_Kind.Inner
+        counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
+        duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
+        example =  duplicates.read max_rows=1
+        case example.row_count == 0 of
+            True -> continuation
+            False ->
+                row = example.first_row . to_vector
+                offending_key = row.drop 1
+                count = row.first
+                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)

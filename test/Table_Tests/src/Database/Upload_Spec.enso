@@ -1205,7 +1205,7 @@ spec make_new_connection prefix persistent_connector=True =
                     dest.at "X" . to_vector . should_equal v
 
                     src2 = source_table_builder [["X", [4]]]
-                    r2 = dest.delete_rows src2 key_columns=["X"]
+                    r2 = dest.delete_rows src2 key_columns=["X"] allow_duplicate_matches=True
                     # 3 rows would be deleted
                     r2.should_equal 3
                     Problems.expect_warning Dry_Run_Operation r2
