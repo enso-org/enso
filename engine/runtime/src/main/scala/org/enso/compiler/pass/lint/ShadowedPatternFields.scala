@@ -2,7 +2,8 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -53,9 +54,9 @@ case object ShadowedPatternFields extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(lintExpression)
   }
 
@@ -68,9 +69,9 @@ case object ShadowedPatternFields extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions { case x =>
       lintExpression(x)
     }
@@ -84,9 +85,9 @@ case object ShadowedPatternFields extends IRPass {
     * @return `expression`, with warnings for any shadowed pattern variables
     */
   def lintExpression(
-    expression: IR.Expression
-  ): IR.Expression = {
-    expression.transformExpressions { case cse: IR.Case =>
+    expression: Expression
+  ): Expression = {
+    expression.transformExpressions { case cse: Case =>
       lintCase(cse)
     }
   }
@@ -96,14 +97,14 @@ case object ShadowedPatternFields extends IRPass {
     * @param cse the expression to lint
     * @return `cse`, with warnings for any shadowed pattern variables
     */
-  def lintCase(cse: IR.Case): IR.Case = {
+  def lintCase(cse: Case): Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = lintExpression(scrutinee),
           branches  = branches.map(lintCaseBranch)
         )
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -114,8 +115,8 @@ case object ShadowedPatternFields extends IRPass {
     * @return `branch`, with warnings for any shadowed pattern variables
     */
   def lintCaseBranch(
-    branch: IR.Case.Branch
-  ): IR.Case.Branch = {
+    branch: Case.Branch
+  ): Case.Branch = {
     branch.copy(
       pattern    = lintPattern(branch.pattern),
       expression = lintExpression(branch.expression)
@@ -139,16 +140,16 @@ case object ShadowedPatternFields extends IRPass {
       pattern match {
         case named @ Pattern.Name(name, location, _, _) =>
           if (seenNames.contains(name.name)) {
-            val warning = IR.Warning.Shadowed
+            val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
 
             lastSeen(name.name) = named
             named
               .copy(
-                name = IR.Name.Blank(location = name.location)
+                name = Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else if (!name.isInstanceOf[IR.Name.Blank]) {
+          } else if (!name.isInstanceOf[Name.Blank]) {
             lastSeen(name.name) = named
             seenNames += name.name
             named
@@ -165,16 +166,16 @@ case object ShadowedPatternFields extends IRPass {
           literal
         case typed @ Pattern.Type(name, _, location, _, _) =>
           if (seenNames.contains(name.name)) {
-            val warning = IR.Warning.Shadowed
+            val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
 
             lastSeen(name.name) = typed
             typed
               .copy(
-                name = IR.Name.Blank(location = name.location)
+                name = Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else if (!name.isInstanceOf[IR.Name.Blank]) {
+          } else if (!name.isInstanceOf[Name.Blank]) {
             lastSeen(name.name) = typed
             seenNames += name.name
             typed
@@ -185,7 +186,7 @@ case object ShadowedPatternFields extends IRPass {
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case err: IR.Error.Pattern => err
+        case err: errors.Pattern => err
       }
     }
 

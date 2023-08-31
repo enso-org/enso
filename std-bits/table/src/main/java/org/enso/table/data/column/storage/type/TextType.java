@@ -15,6 +15,10 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
   }
 
   public boolean fits(String string) {
+    if (string == null) {
+      return true;
+    }
+
     if (maxLength == -1) {
       return true;
     }

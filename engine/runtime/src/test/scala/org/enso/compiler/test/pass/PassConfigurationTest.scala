@@ -1,7 +1,8 @@
 package org.enso.compiler.test.pass
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.{IRPass, PassConfiguration}
 import org.enso.compiler.test.CompilerTest
@@ -19,14 +20,14 @@ class PassConfigurationTest extends CompilerTest {
     override val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
-      ir: IR.Module,
+      ir: Module,
       moduleContext: ModuleContext
-    ): IR.Module = ir
+    ): Module = ir
 
     override def runExpression(
-      ir: IR.Expression,
+      ir: Expression,
       inlineContext: InlineContext
-    ): IR.Expression = ir
+    ): Expression = ir
 
     sealed case class Configuration1() extends IRPass.Configuration {
       override var shouldWriteToContext: Boolean = false
@@ -41,14 +42,14 @@ class PassConfigurationTest extends CompilerTest {
     override val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
-      ir: IR.Module,
+      ir: Module,
       moduleContext: ModuleContext
-    ): IR.Module = ir
+    ): Module = ir
 
     override def runExpression(
-      ir: IR.Expression,
+      ir: Expression,
       inlineContext: InlineContext
-    ): IR.Expression = ir
+    ): Expression = ir
 
     sealed case class Configuration2() extends IRPass.Configuration {
       override var shouldWriteToContext: Boolean = true

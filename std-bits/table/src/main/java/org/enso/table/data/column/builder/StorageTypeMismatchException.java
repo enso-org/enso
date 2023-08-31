@@ -2,11 +2,11 @@ package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class StorageTypeMismatch extends RuntimeException {
+public class StorageTypeMismatchException extends RuntimeException {
   private final StorageType expectedType;
   private final StorageType gotType;
 
-  public StorageTypeMismatch(StorageType expectedType, StorageType gotType) {
+  public StorageTypeMismatchException(StorageType expectedType, StorageType gotType) {
     this.expectedType = expectedType;
     this.gotType = gotType;
   }

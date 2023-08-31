@@ -1,9 +1,18 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Warning
+}
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -14,7 +23,7 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.polyglot.ForeignLanguage
 
-import scala.annotation.{tailrec}
+import scala.annotation.tailrec
 
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
@@ -59,13 +68,13 @@ case object GenerateMethodBodies extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case m: IR.Module.Scope.Definition.Method => processMethodDef(m)
-        case x                                    => x
+        case m: definition.Method => processMethodDef(m)
+        case x                    => x
       }
     )
   }
@@ -77,20 +86,20 @@ case object GenerateMethodBodies extends IRPass {
     *         correct format
     */
   def processMethodDef(
-    ir: IR.Module.Scope.Definition.Method
-  ): IR.Module.Scope.Definition.Method = {
+    ir: definition.Method
+  ): definition.Method = {
     ir match {
-      case ir: IR.Module.Scope.Definition.Method.Explicit =>
+      case ir: definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun, ir.methodName)
-            case expression       => processBodyExpression(expression, ir.methodName)
+            case fun: Function => processBodyFunction(fun, ir.methodName)
+            case expression    => processBodyExpression(expression, ir.methodName)
           }
         )
-      case ir: Method.Conversion =>
+      case ir: definition.Method.Conversion =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function =>
+            case fun: Function =>
               processBodyFunction(fun, ir.methodName)
             case _ =>
               throw new CompilerError(
@@ -99,7 +108,7 @@ case object GenerateMethodBodies extends IRPass {
               )
           }
         )
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +
           "generation."
@@ -118,29 +127,29 @@ case object GenerateMethodBodies extends IRPass {
     * @return the body function with the `self` argument
     */
   def processBodyFunction(
-    fun: IR.Function,
-    funName: IR.Name
-  ): IR.Expression = {
+    fun: Function,
+    funName: Name
+  ): Expression = {
     val chainedFunctionArgs = collectChainedFunctionArgs(fun, 0)
     val selfArgs = chainedFunctionArgs.collect {
-      case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
+      case (arg, idx) if arg.name.isInstanceOf[Name.Self] =>
         (arg, idx)
     }
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        IR.Error.Redefined.SelfArg(location = redefined.location)
+        errors.Redefined.SelfArg(location = redefined.location)
       case (_, parameterPosition) :: Nil =>
         fun match {
-          case lam @ IR.Function.Lambda(_ :: _, _, _, _, _, _)
+          case lam @ Function.Lambda(_ :: _, _, _, _, _, _)
               if parameterPosition == 0 =>
             lam
-          case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
+          case lam @ Function.Lambda(_, _, _, _, _, _) =>
             fun.addDiagnostic(
-              IR.Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
+              Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
-          case _: IR.Function.Binding =>
+          case _: Function.Binding =>
             throw new CompilerError(
               "Function definition sugar should not be present during method " +
               "body generation."
@@ -148,7 +157,7 @@ case object GenerateMethodBodies extends IRPass {
         }
       case Nil =>
         fun match {
-          case lam @ IR.Function.Lambda(_, body, _, _, _, _)
+          case lam @ Function.Lambda(_, body, _, _, _, _)
               if findForeignDefinition(
                 body,
                 lang = Some(ForeignLanguage.JS)
@@ -162,13 +171,13 @@ case object GenerateMethodBodies extends IRPass {
               funName,
               replace = thisArgs.nonEmpty
             )
-          case lam: IR.Function.Lambda =>
+          case lam: Function.Lambda =>
             lam.copy(
               arguments =
                 if (funName.name == MAIN_FUNCTION_NAME) lam.arguments
                 else genSyntheticSelf() :: lam.arguments
             )
-          case _: IR.Function.Binding =>
+          case _: Function.Binding =>
             throw new CompilerError(
               "Function definition sugar should not be present during method " +
               "body generation."
@@ -178,18 +187,18 @@ case object GenerateMethodBodies extends IRPass {
   }
 
   private def insertOrReplaceSelfInJSFunction(
-    lam: IR.Function.Lambda,
-    funName: IR.Name,
+    lam: Function.Lambda,
+    funName: Name,
     replace: Boolean,
     argsIdx: Int = 0
-  ): IR.Function.Lambda = {
+  ): Function.Lambda = {
     val (args, hasSelf) = lam.arguments.zipWithIndex.foldLeft(
-      (Nil: List[IR.DefinitionArgument], false)
+      (Nil: List[DefinitionArgument], false)
     ) { case ((acc, found), (arg, i)) =>
       if (arg.name.name == THIS_ARGUMENT) {
         if (i + argsIdx != 0) {
           lam.addDiagnostic(
-            IR.Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
+            Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
           )
         }
         (genSyntheticSelf() :: acc, true)
@@ -200,14 +209,14 @@ case object GenerateMethodBodies extends IRPass {
         lam.copy(
           arguments = args.reverse
         )
-      case _: IR.Foreign.Definition =>
+      case _: Foreign.Definition =>
         val args =
           if (argsIdx == 0) genSyntheticSelf() :: lam.arguments
           else lam.arguments
         lam.copy(
           arguments = args
         )
-      case body: IR.Function.Lambda =>
+      case body: Function.Lambda =>
         if (replace) {
           lam.copy(
             body = insertOrReplaceSelfInJSFunction(
@@ -231,10 +240,10 @@ case object GenerateMethodBodies extends IRPass {
     * @return `expr` converted to a function taking the `self` argument
     */
   def processBodyExpression(
-    expr: IR.Expression,
-    funName: IR.Name
-  ): IR.Expression = {
-    IR.Function.Lambda(
+    expr: Expression,
+    funName: Name
+  ): Expression = {
+    Function.Lambda(
       arguments =
         if (funName.name == MAIN_FUNCTION_NAME) Nil
         else genSyntheticSelf() :: Nil,
@@ -247,9 +256,9 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @return the `self` argument
     */
-  def genSyntheticSelf(): IR.DefinitionArgument.Specified = {
-    IR.DefinitionArgument.Specified(
-      IR.Name.Self(None, synthetic = true),
+  def genSyntheticSelf(): DefinitionArgument.Specified = {
+    DefinitionArgument.Specified(
+      Name.Self(None, synthetic = true),
       None,
       defaultValue = None,
       suspended    = false,
@@ -269,9 +278,9 @@ case object GenerateMethodBodies extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   /** Collects the argument list of a chain of function definitions.
     *
@@ -280,16 +289,16 @@ case object GenerateMethodBodies extends IRPass {
     * @return the list of arguments for `function`
     */
   private def collectChainedFunctionArgs(
-    function: IR.Function,
+    function: Function,
     idx: Int
-  ): List[(IR.DefinitionArgument, Int)] = {
+  ): List[(DefinitionArgument, Int)] = {
     val argsWithIdx = function.arguments.foldLeft(
-      (idx, Nil: List[(IR.DefinitionArgument, Int)])
+      (idx, Nil: List[(DefinitionArgument, Int)])
     ) { case ((i, acc), arg) => (i + 1, (arg, i) :: acc) }
 
     val bodyArgs = function.body match {
-      case f: IR.Function => collectChainedFunctionArgs(f, argsWithIdx._1)
-      case _              => List()
+      case f: Function => collectChainedFunctionArgs(f, argsWithIdx._1)
+      case _           => List()
     }
 
     argsWithIdx._2 ::: bodyArgs
@@ -297,17 +306,17 @@ case object GenerateMethodBodies extends IRPass {
 
   @tailrec
   private def findForeignDefinition(
-    body: IR.Expression,
+    body: Expression,
     lang: Option[ForeignLanguage]
-  ): Option[IR.Foreign.Definition] = {
+  ): Option[Foreign.Definition] = {
     body match {
-      case foreignDef: IR.Foreign.Definition =>
+      case foreignDef: Foreign.Definition =>
         lang match {
           case None    => Some(foreignDef)
           case Some(l) => Option.when(l == foreignDef.lang)(foreignDef)
         }
-      case fun: IR.Function.Lambda => findForeignDefinition(fun.body, lang)
-      case _                       => None
+      case fun: Function.Lambda => findForeignDefinition(fun.body, lang)
+      case _                    => None
     }
   }
 

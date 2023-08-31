@@ -16,7 +16,7 @@ import org.enso.languageserver.data.{
   Config,
   ReceivesSuggestionsDatabaseUpdates
 }
-import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.event.{InitializedEvent, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileDeletedEvent,
@@ -115,6 +115,8 @@ final class SuggestionsHandler(
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
+
+    context.system.eventStream.subscribe(self, classOf[JsonSessionTerminated])
   }
 
   override def receive: Receive =
@@ -313,6 +315,17 @@ final class SuggestionsHandler(
       suggestionsRepo.currentVersion
         .map(GetSuggestionsDatabaseResult(_, Seq()))
         .pipeTo(sender())
+      if (state.shouldStartBackgroundProcessing) {
+        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        context.become(
+          initialized(
+            projectName,
+            graph,
+            clients,
+            state.backgroundProcessingStarted()
+          )
+        )
+      }
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
@@ -397,6 +410,14 @@ final class SuggestionsHandler(
         )
       )
       action.pipeTo(handler)(sender())
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
+        )
+      )
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)
@@ -432,6 +453,29 @@ final class SuggestionsHandler(
           graph,
           clients,
           state.suggestionLoadingComplete()
+        )
+      )
+
+    case JsonSessionTerminated(_) =>
+      val action = for {
+        _ <- suggestionsRepo.clean
+      } yield SearchProtocol.InvalidateModulesIndex
+
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          timeout,
+          runtimeConnector
+        )
+      )
+
+      action.pipeTo(handler)
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
         )
       )
   }
@@ -742,6 +786,12 @@ object SuggestionsHandler {
     /** @return the new state with the background processing started. */
     def backgroundProcessingStarted(): State = {
       _shouldStartBackgroundProcessing = false
+      this
+    }
+
+    /** @return the new state with the background processing stopped. */
+    def backgroundProcessingStopped(): State = {
+      _shouldStartBackgroundProcessing = true
       this
     }
   }

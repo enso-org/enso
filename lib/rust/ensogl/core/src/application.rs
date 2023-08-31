@@ -107,6 +107,8 @@ impl Application {
 
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
         }
+        // We hide the system cursor to replace it with the EnsoGL-provided one.
+        self.frp.hide_system_cursor();
         self
     }
 
