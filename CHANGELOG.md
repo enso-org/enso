@@ -560,6 +560,7 @@
 - [Expose `Text.normalize`.][7425]
 - [Implemented new value types (various sizes of `Integer` type, fixed-length
   and length-limited `Char` type) for the in-memory `Table` backend.][7557]
+- [Introducing generic `Any.to` conversion method][7704]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -794,6 +795,7 @@
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
 [7557]: https://github.com/enso-org/enso/pull/7557
+[7704]: https://github.com/enso-org/enso/pull/7704
 
 #### Enso Compiler
 
