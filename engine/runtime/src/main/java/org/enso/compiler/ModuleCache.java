@@ -9,10 +9,8 @@ import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
-//import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
-//import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
 

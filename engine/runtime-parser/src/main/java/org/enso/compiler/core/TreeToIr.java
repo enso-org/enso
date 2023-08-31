@@ -149,7 +149,7 @@ final class TreeToIr {
     * @param module the [[AST]] representation of the module to translate
     * @return the [[IR]] representation of `module`
     */
-  org.enso.compiler.core.ir.Module translateModule(Tree module) {
+  Module translateModule(Tree module) {
     return switch (module) {
       case Tree.BodyBlock b -> {
         List<Definition> bindings = nil();
@@ -176,9 +176,9 @@ final class TreeToIr {
             default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
-        yield new org.enso.compiler.core.ir.Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
+        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
       }
-      default -> new org.enso.compiler.core.ir.Module(
+      default -> new Module(
         nil(), nil(),
         cons(translateSyntaxError(module, new Syntax.UnsupportedSyntax("translateModule")), nil()),
         getIdentifiedLocation(module), meta(), diag()

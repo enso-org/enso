@@ -1,10 +1,11 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
-import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
+import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.CompilationStage
@@ -91,7 +92,7 @@ final class SerializationManager(
     *         `true` if `module` has been successfully serialized, `false` otherwise
     */
   def serializeModule(
-    module: org.enso.interpreter.runtime.Module,
+    module: Module,
     useGlobalCacheLocations: Boolean,
     useThreadPool: Boolean = true
   ): Future[Boolean] = {
@@ -370,7 +371,7 @@ final class SerializationManager(
     *         cache could not be deserialized.
     */
   def deserialize(
-    module: org.enso.interpreter.runtime.Module
+    module: Module
   ): Option[Boolean] = {
     if (isWaitingForSerialization(module)) {
       abort(module)
@@ -455,7 +456,7 @@ final class SerializationManager(
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
   private def isWaitingForSerialization(
-    module: org.enso.interpreter.runtime.Module
+    module: Module
   ): Boolean = {
     isWaitingForSerialization(module.getName)
   }
@@ -489,7 +490,7 @@ final class SerializationManager(
     * @return `true` if serialization for `module` was aborted, `false`
     *         otherwise
     */
-  private def abort(module: org.enso.interpreter.runtime.Module): Boolean = {
+  private def abort(module: Module): Boolean = {
     abort(module.getName)
   }
 
@@ -575,7 +576,7 @@ final class SerializationManager(
     */
   private def doSerializeModule(
     cache: ModuleCache,
-    ir: Module,
+    ir: IRModule,
     stage: CompilationStage,
     name: QualifiedName,
     source: Source,

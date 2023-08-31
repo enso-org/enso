@@ -232,10 +232,7 @@ class IrToTruffle(
       case _: Error         =>
     }
 
-    val typeDefs = module.bindings.collect { case tp: Definition.Type =>
-      tp
-    }
-
+    val typeDefs = module.bindings.collect { case tp: Definition.Type => tp }
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
       val atomDefs    = tpDef.members
