@@ -60,11 +60,22 @@ class LibrariesTest extends BaseServerTest {
             "id": 0
           }
           """)
+
+      // Current project is always included as it is a project within its own parent directory.
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
-              "localLibraries": []
+              "localLibraries": [
+                {
+                  "namespace": "local",
+                  "name": "Test_Project",
+                  "version": {
+                    "type": "LocalLibraryVersion"
+                  },
+                  "isCached": true
+                }
+              ]
             }
           }
           """)
@@ -115,6 +126,14 @@ class LibrariesTest extends BaseServerTest {
                 {
                   "namespace": "user",
                   "name": "My_Local_Lib",
+                  "version": {
+                    "type": "LocalLibraryVersion"
+                  },
+                  "isCached": true
+                },
+                {
+                  "namespace": "local",
+                  "name": "Test_Project",
                   "version": {
                     "type": "LocalLibraryVersion"
                   },
