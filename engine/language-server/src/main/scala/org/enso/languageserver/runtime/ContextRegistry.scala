@@ -5,7 +5,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
 import org.enso.languageserver.event.{
   ExecutionContextCreated,
-  ExecutionContextDestroyed
+  ExecutionContextDestroyed,
+  JsonSessionTerminated
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
@@ -84,6 +85,8 @@ final class ContextRegistry(
       .subscribe(self, classOf[Api.ExecutionUpdate])
     context.system.eventStream
       .subscribe(self, classOf[Api.VisualizationEvaluationFailed])
+
+    context.system.eventStream.subscribe(self, classOf[JsonSessionTerminated])
   }
 
   override def receive: Receive =
@@ -345,6 +348,24 @@ final class ContextRegistry(
           )
         } else {
           sender() ! AccessDenied
+        }
+
+      case JsonSessionTerminated(client) =>
+        store.contexts.getOrElse(client.clientId, Set()).foreach { contextId =>
+          val handler = context.actorOf(
+            DestroyContextHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
+            )
+          )
+          store.getListener(contextId).foreach(context.stop)
+          handler.forward(Api.DestroyContextRequest(contextId))
+          context.become(
+            withStore(store.removeContext(client.clientId, contextId))
+          )
+          context.system.eventStream
+            .publish(ExecutionContextDestroyed(contextId, client.clientId))
         }
     }
 
