@@ -1,14 +1,10 @@
 <script setup lang="ts">
-export interface Breadcrumb {
-  text: string
-  onClick: (payload: MouseEvent) => void
-}
-
-const props = defineProps<Breadcrumb>()
+const props = defineProps<{ text: string }>()
+const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <div class="TopBarBreadcrumb"><span v-text="text" :on-click="onClick"></span></div>
+  <div class="NavBreadcrumb"><span v-text="text" @click="emit('click')"></span></div>
 </template>
 
 <style scoped>
@@ -19,11 +15,13 @@ span {
   padding-bottom: 1px;
 }
 
-.TopBarBreadcrumb {
+.NavBreadcrumb {
+  user-select: none;
+  cursor: pointer;
   border-radius: var(--radius-full);
 }
 
-.TopBarBreadcrumb>.blur-container {
+.NavBreadcrumb>.blur-container {
   border-radius: var(--radius-full);
   background-color: var(--color-frame-bg);
   backdrop-filter: var(--backdrop-blur);

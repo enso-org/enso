@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import WorkflowPlayIcon from '@/assets/icons/workflow_play.svg'
 
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useDocumentEvent } from '../util/events';
 
 const EXECUTION_MODES = ['design', 'live'] as const
 export type ExecutionMode = typeof EXECUTION_MODES[number]
 
 export type ExecutionModeSelectorModel = ExecutionMode
 
-defineProps<{ modelValue: ExecutionMode }>()
+const props = defineProps<{ modelValue: ExecutionMode }>()
 const emit = defineEmits<{ 'update:modelValue': [mode: ExecutionMode] }>()
 
 const isDropdownOpen = ref(false)
@@ -17,21 +18,14 @@ function onDocumentClick() {
   isDropdownOpen.value = false
 }
 
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', onDocumentClick)
-})
+useDocumentEvent('click', onDocumentClick)
 </script>
 
 <template>
   <div class="ExecutionModeSelectorContainer">
     <div class="ExecutionModeSelector">
       <div>
-        <span v-text="modelValue" @click="$event.stopPropagation(); isDropdownOpen = !isDropdownOpen"
-          class="button"></span>
+        <span v-text="modelValue" @click="isDropdownOpen = !isDropdownOpen" class="button"></span>
       </div>
       <div class="divider">
         <div></div>
@@ -41,7 +35,7 @@ onUnmounted(() => {
     <div v-if="isDropdownOpen" class="ExecutionModeDropdown">
       <template v-for="otherMode in EXECUTION_MODES">
         <span v-if="modelValue !== otherMode" v-text="otherMode" class="button"
-          @click="$event.stopPropagation(); emit('update:modelValue', otherMode)"></span>
+          @click="emit('update:modelValue', otherMode)"></span>
       </template>
     </div>
   </div>
@@ -57,6 +51,7 @@ span {
 
 .ExecutionModeSelectorContainer {
   position: relative;
+  color: white;
 }
 
 .ExecutionModeSelector {

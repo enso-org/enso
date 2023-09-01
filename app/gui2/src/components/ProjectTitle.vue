@@ -11,17 +11,15 @@ defineEmits<{ 'update:modelValue': [model: ProjectTitleModel] }>()
 </script>
 
 <template>
-  <div>
-    <div class="blur-full"></div>
-    <div class="ProjectTitle">
-      <span v-text="title" class="title"></span>
-      <ExecutionModeSelector v-model="modelValue.mode" />
-    </div>
+  <div class="ProjectTitle blur-full">
+    <span v-text="title" class="title"></span>
+    <ExecutionModeSelector v-model="modelValue.mode" />
   </div>
 </template>
 
 <style scoped>
 .ProjectTitle {
+  user-select: none;
   display: flex;
   align-items: center;
   gap: 8px;

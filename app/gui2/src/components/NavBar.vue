@@ -4,27 +4,25 @@ import ArrowRightIcon from '@/assets/icons/arrow_right.svg'
 import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
 
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
-import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
 
-defineProps<{ breadcrumbs: Breadcrumb[] }>()
+const props = defineProps<{ breadcrumbs: string[] }>()
+const emit = defineEmits<{ breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
-  <div>
-    <div class="blur-full"></div>
-    <div class="NavBar">
-      <img :src="GraphEditorIcon" draggable="false" class="icon" />
-      <div class="breadcrumbs-controls">
-        <img :src="ArrowLeftIcon" draggable="false" class="icon button" />
-        <img :src="ArrowRightIcon" draggable="false" class="icon button" />
-      </div>
-      <NavBreadcrumbs :breadcrumbs="breadcrumbs" />
+  <div class="NavBar blur-full">
+    <img :src="GraphEditorIcon" draggable="false" class="icon" />
+    <div class="breadcrumbs-controls">
+      <img :src="ArrowLeftIcon" draggable="false" class="icon button" />
+      <img :src="ArrowRightIcon" draggable="false" class="icon button" />
     </div>
+    <NavBreadcrumbs :breadcrumbs="breadcrumbs" @click="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 
 <style scoped>
 .NavBar {
+  user-select: none;
   display: flex;
   border-radius: var(--radius-full);
   place-items: center;

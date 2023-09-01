@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
-import type { Breadcrumb } from '@/components/NavBreadcrumb.vue'
 import ProjectTitle, { type ProjectTitleModel } from './ProjectTitle.vue'
 import { ref, type Ref } from 'vue'
 
-defineProps<{ breadcrumbs: Breadcrumb[] }>()
+const props = defineProps<{ breadcrumbs: string[] }>()
+const emit = defineEmits<{ 'breadcrumbClick': [index: number] }>()
 
 const title: Ref<ProjectTitleModel> = ref({ mode: "design" })
 </script>
@@ -12,7 +12,7 @@ const title: Ref<ProjectTitleModel> = ref({ mode: "design" })
 <template>
   <div class="TopBar">
     <ProjectTitle title="Test Project" v-model="title" />
-    <NavBar :breadcrumbs="breadcrumbs" />
+    <NavBar :breadcrumbs="breadcrumbs" @breadcrumb-click="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 

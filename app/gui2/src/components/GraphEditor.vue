@@ -10,7 +10,6 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { ref } from 'vue'
-import type { Breadcrumb } from './NavBreadcrumb.vue'
 
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
@@ -39,11 +38,6 @@ function onViewportClick() {
 function keyboardBusy() {
   return document.activeElement != document.body
 }
-
-const breadcrumbs: Breadcrumb[] = [
-  { text: 'main', onClick: () => { } },
-  { text: 'ad_analytics', onClick: () => { } },
-]
 
 useWindowEvent('keypress', (e) => {
   if (keyboardBusy()) return
@@ -75,7 +69,7 @@ function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
         @updateNodeRect="updateNodeRect(id, $event)" @updateExprRect="updateExprRect"
         @updateNodeContent="(range, c) => updateNodeContent(id, range, c)" />
     </div>
-    <TopBar :breadcrumbs="breadcrumbs" />
+    <TopBar :breadcrumbs="['main', 'ad_analytics']" />
     <ComponentBrowser :navigator="navigator" />
   </div>
 </template>
