@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Loss_Of_Integer_Precision, Unsupported_Operation, Invalid_Value_Type
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Loss_Of_Integer_Precision, Unsupported_Operation, Invalid_Value_Type, No_Common_Type
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -248,7 +248,7 @@ spec =
 
             r1 = c + x
             r1.should_fail_with Unsupported_Operation
-            r1.catch.to_display_text . should_contain "big integer values are not supported"
+            r1.catch.to_display_text . should_contain "Big integer values are not supported"
             r1.catch.to_display_text . should_not_contain "Mixed"
 
             (c - x) . should_fail_with Unsupported_Operation
@@ -256,6 +256,11 @@ spec =
             (c / x) . should_fail_with Unsupported_Operation
             (c % x) . should_fail_with Unsupported_Operation
             (c ^ x) . should_fail_with Unsupported_Operation
-            c.fill_nothing x . should_fail_with Unsupported_Operation
+            (c == x) . to_vector . should_equal [False, False, Nothing, False]
+            (c < x) . should_fail_with Unsupported_Operation
+            (c >= x) . should_fail_with Unsupported_Operation
+
             c.min x . should_fail_with Unsupported_Operation
             c.max x . should_fail_with Unsupported_Operation
+
+            c.fill_nothing x . should_fail_with No_Common_Type

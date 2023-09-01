@@ -1,6 +1,9 @@
 package org.enso.base.polyglot;
 
+import org.graalvm.polyglot.Value;
+
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * The numeric converter deals with conversions of Java numeric types to the two main types
@@ -107,5 +110,9 @@ public class NumericConverter {
       }
       case null, default -> null;
     };
+  }
+
+  public static boolean isBigInteger(Value v) {
+    return v.fitsInBigInteger() && !v.fitsInLong();
   }
 }

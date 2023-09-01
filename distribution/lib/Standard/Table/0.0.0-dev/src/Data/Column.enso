@@ -25,7 +25,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Auto, Value_Type
-from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
+from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error, Unsupported_Operation
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
@@ -300,7 +300,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
-    >= self other = Value_Type.expect_comparable self other <|
+    >= self other = expect_comparable_in_memory self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
@@ -330,7 +330,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
-    <= self other = Value_Type.expect_comparable self other <|
+    <= self other = expect_comparable_in_memory self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
@@ -360,7 +360,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
-    > self other = Value_Type.expect_comparable self other <|
+    > self other = expect_comparable_in_memory self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
@@ -390,7 +390,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < self other = Value_Type.expect_comparable self other <|
+    < self other = expect_comparable_in_memory self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
@@ -409,8 +409,8 @@ type Column
        column fit between the lower and upper bounds (both ends inclusive).
     between : (Column | Any) -> (Column | Any) -> Column
     between self lower upper =
-        Value_Type.expect_comparable self lower <|
-            Value_Type.expect_comparable self upper <|
+        expect_comparable_in_memory self lower <|
+            expect_comparable_in_memory self upper <|
                 new_name = naming_helper.concat <|
                     [naming_helper.to_expression_text self, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
                 result = (self >= lower) && (self <= upper)
@@ -452,7 +452,11 @@ type Column
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
     + self other =
-        Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
+        checked = case Value_Type_Helpers.resolve_addition_kind self other of
+            Value_Type_Helpers.Addition_Kind.Numeric_Add ->
+                disallow_decimal_type other <| Nothing
+            Value_Type_Helpers.Addition_Kind.Text_Concat -> Nothing
+        checked.if_not_error <|
             run_vectorized_binary_op self Java_Storage.Maps.ADD other
 
     ## ALIAS minus, subtract
@@ -494,7 +498,8 @@ type Column
     - self other =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
-                run_vectorized_binary_op self Java_Storage.Maps.SUB other
+                disallow_decimal_type other <|
+                    run_vectorized_binary_op self Java_Storage.Maps.SUB other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
                 case self.inferred_precise_value_type of
                     Value_Type.Date ->
@@ -545,7 +550,7 @@ type Column
              example_mul = Examples.integer_column * 10
     * : Column | Any -> Column
     * self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
+        check_in_memory_binary_numeric_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.MUL other
 
     ## ALIAS divide
@@ -589,7 +594,7 @@ type Column
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
     / self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
+        check_in_memory_binary_numeric_op self other <|
             new_name = naming_helper.binary_operation_name "/" self other
             run_vectorized_binary_op self Java_Storage.Maps.DIV other new_name
 
@@ -625,7 +630,7 @@ type Column
              example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
+        check_in_memory_binary_numeric_op self other <|
             new_name = naming_helper.binary_operation_name "%" self other
             run_vectorized_binary_op self Java_Storage.Maps.MOD other new_name
 
@@ -665,7 +670,7 @@ type Column
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
     ^ self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
+        check_in_memory_binary_numeric_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.POWER other
 
     ## ALIAS and
@@ -976,7 +981,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b < a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
+        check_multi_argument_comparable_in_memory self values <|
             run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
@@ -997,7 +1002,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
+        check_multi_argument_comparable_in_memory self values <|
             run_vectorized_many_op self "max" fallback values
 
     ## GROUP Standard.Base.Logical
@@ -2501,3 +2506,41 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
+
+## PRIVATE
+   This is a workaround that ensures that Big Integer values do not get through to our operations.
+   It shall be removed once Big Integer support is added to Table: #7712.
+   It is needed, because our normal type checks like `expect_numeric` _do allow_
+   the Decimal type. That is because it is a valid type for the Database backend,
+   and we want to keep the logic common.
+disallow_decimal_type argument ~continuation =
+    value_type = Value_Type_Helpers.find_argument_type argument
+    case value_type.is_decimal of
+        False -> continuation
+        True  -> Error.throw (Unsupported_Operation.Error "Big integer values are not supported by the in-memory table backend.")
+
+## PRIVATE
+   A wrapper around `Value_Type_Helpers.check_binary_numeric_op` that also ensures that the values are not Big Integers.
+   Can be removed together with `disallow_decimal_type` once #7712 is implemented.
+check_in_memory_binary_numeric_op arg1 arg2 ~continuation =
+    Value_Type_Helpers.check_binary_numeric_op arg1 arg2 <|
+        disallow_decimal_type arg1 <|
+            disallow_decimal_type arg2 <|
+                continuation
+
+## PRIVATE
+   A wrapper around `Value_Type.expect_comparable` that also ensures that the values are not Big Integers.
+   Can be removed together with `disallow_decimal_type` once #7712 is implemented.
+expect_comparable_in_memory arg1 arg2 ~continuation =
+    Value_Type.expect_comparable arg1 arg2 <|
+        disallow_decimal_type arg1 <|
+            disallow_decimal_type arg2 <|
+                continuation
+
+## PRIVATE
+   A wrapper around `Value_Type_Helpers.check_multi_argument_comparable_op` that also ensures that the values are not Big Integers.
+   Can be removed together with `disallow_decimal_type` once #7712 is implemented.
+check_multi_argument_comparable_in_memory column args ~continuation =
+    Value_Type_Helpers.check_multi_argument_comparable_op column args <|
+        (Vector.unify_vector_or_element args).all (disallow_decimal_type _ True) . if_not_error <|
+            continuation
