@@ -59,26 +59,13 @@ function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
   <div ref="viewportNode" class="viewport" v-on="navigator.events" @click="onViewportClick">
     <svg :viewBox="navigator.viewBox">
       <circle :cx="circlePos.x" :cy="circlePos.y" r="6" fill="red" />
-      <GraphEdge
-        v-for="edge in graphStore.edges"
-        :edge="edge"
-        :nodeRects="nodeRects"
-        :exprRects="exprRects"
-      />
+      <GraphEdge v-for="edge in graphStore.edges" :edge="edge" :nodeRects="nodeRects" :exprRects="exprRects" />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
-      <div
-        class="circle"
-        :style="{ transform: `translate(${circlePos.x - 5}px, ${circlePos.y - 5}px)` }"
-      ></div>
-      <GraphNode
-        v-for="[id, node] in graphStore.nodes"
-        :key="<any>id"
-        :node="node"
-        @updateNodeRect="updateNodeRect(id, $event)"
-        @updateExprRect="updateExprRect"
-        @updateNodeContent="(range, c) => updateNodeContent(id, range, c)"
-      />
+      <div class="circle" :style="{ transform: `translate(${circlePos.x - 5}px, ${circlePos.y - 5}px)` }"></div>
+      <GraphNode v-for="[id, node] in graphStore.nodes" :key="<any>id" :node="node"
+        @updateNodeRect="updateNodeRect(id, $event)" @updateExprRect="updateExprRect"
+        @updateNodeContent="(range, c) => updateNodeContent(id, range, c)" />
     </div>
     <ComponentBrowser :navigator="navigator" />
   </div>

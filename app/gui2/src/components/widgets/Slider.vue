@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = defineProps<{ modelValue: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
-
-// TODO[sb]: Input
 
 /** The flag in `event.buttons` representing the left mouse button. */
 const BUTTON_LEFT_FLAG = 1
@@ -15,12 +15,21 @@ function onMouseMove(event: MouseEvent) {
   const newValue = Math.round(fraction * props.max)
   emit('update:modelValue', newValue)
 }
+
+const inputValue = computed({
+  get() {
+    return props.modelValue
+  },
+  set(value) {
+    emit('update:modelValue', value)
+  }
+})
 </script>
 
 <template>
   <div class="Slider" @mousemove="onMouseMove">
     <div class="fraction" :style="{ width: `${modelValue * 100 / max}%` }"></div>
-    <span class="value" v-text="modelValue"></span>
+    <input type="number" :size="1" class="value" v-model.number="inputValue">
   </div>
 </template>
 
@@ -44,11 +53,24 @@ function onMouseMove(event: MouseEvent) {
 }
 
 .Slider>.value {
+  position: relative;
   display: inline-block;
+  background: none;
+  border: none;
+  text-align: center;
+  min-width: 0;
   font-weight: 800;
   line-height: 171.5%;
   height: 24px;
   padding-top: 1px;
   padding-bottom: 1px;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 </style>
