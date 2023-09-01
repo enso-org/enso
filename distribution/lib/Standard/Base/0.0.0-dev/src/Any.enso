@@ -21,7 +21,9 @@ from project.Function import const
 @Builtin_Type
 type Any
     ## GROUP Conversions
-       Generic conversion of an arbitrary Enso value to requested type
+       Generic conversion of an arbitrary Enso value to requested type.
+       Delegates to appropriate `.from` conversion method, if it exists.
+       If such method doesn't exist, `No_Such_Conversion` panic is raised.
 
        Arguments:
        - typ: the requested type.
@@ -40,7 +42,7 @@ type Any
        > Example
          `.from` conversion methods may have additional arguments
          with default values. Thus the conversion from `Complex` to
-         `Number` may take additional argument
+         `Number` may take additional argument:
 
              type Complex
                  Value re:Number im:Number
