@@ -48,10 +48,12 @@ The configuration has two main sections:
 - [applications' appenders](#appenders) (also known as configuration of log
   events output target)
 
-During component's setup, its `application.conf` config file is parsed. The config's keys and values are validated and, if correct,
-the parsed representation is available as an instance of `org.enso.logger.config.LoggingServiceConfig` class. The class encapsulates
-the `logging-service` section of `application.conf` file and is
-used to programmatically initialize loggers.
+During component's setup, its `application.conf` config file is parsed. The
+config's keys and values are validated and, if correct, the parsed
+representation is available as an instance of
+`org.enso.logger.config.LoggingServiceConfig` class. The class encapsulates the
+`logging-service` section of `application.conf` file and is used to
+programmatically initialize loggers.
 
 As per [configuration schema](https://github.com/lightbend/config) any key can
 have a default value that can be overridden by an environmental variable. For
@@ -201,7 +203,8 @@ The two fields can be overridden via environment variables:
   }
 ```
 
-Sentry's Appender has a single required field, `dsn`. The `dsn` value can be provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`.
+Sentry's Appender has a single required field, `dsn`. The `dsn` value can be
+provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`.
 
 ## JVM Architecture
 
@@ -239,14 +242,15 @@ public class Foo {
 The `org.slf4j.Logger` instances have to know where to send log events. This
 setting is typically performed once, when the service starts, and applies
 globally during its execution. Currently, it is not possible to dynamically
-change where log events are being stored. The main (abstract) class used for setting up
-logging is `org.enso.logger.LoggerSetup`. An instance of that class can be retrieved with the thread-safe
-`org.enso.logger.LoggerSetup.get` factory method. `org.enso.logger.LoggerSetup`
-provides a number of `setupXYZAppender` methods that will direct loggers to send
-log events to an `XYZ` appender. Setting a specific hard-coded appender
-programmatically should however be avoided by the users. Instead, one should
-invoke one of the overloaded `setup` variants that initialize loggers based on
-the provided `logging-service` configuration.
+change where log events are being stored. The main (abstract) class used for
+setting up logging is `org.enso.logger.LoggerSetup`. An instance of that class
+can be retrieved with the thread-safe `org.enso.logger.LoggerSetup.get` factory
+method. `org.enso.logger.LoggerSetup` provides a number of `setupXYZAppender`
+methods that will direct loggers to send log events to an `XYZ` appender.
+Setting a specific hard-coded appender programmatically should however be
+avoided by the users. Instead, one should invoke one of the overloaded `setup`
+variants that initialize loggers based on the provided `logging-service`
+configuration.
 
 ```java
 package foo;
