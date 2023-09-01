@@ -5,7 +5,7 @@ import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that appends to the console */
-public class ConsoleAppender extends Appender {
+public final class ConsoleAppender extends Appender {
 
   private final String pattern;
 
@@ -20,7 +20,7 @@ public class ConsoleAppender extends Appender {
   }
 
   @Override
-  public Boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+  public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
     return appenderSetup.setupConsoleAppender(logLevel);
   }
 

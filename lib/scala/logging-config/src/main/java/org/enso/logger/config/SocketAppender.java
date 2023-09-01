@@ -5,7 +5,7 @@ import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that forwards logs to the network socket as-is. */
-public class SocketAppender extends Appender {
+public final class SocketAppender extends Appender {
   private String name;
   private String host;
 
@@ -53,12 +53,12 @@ public class SocketAppender extends Appender {
   }
 
   @Override
-  public Boolean setup(Level logLevel, LoggerSetup loggerSetup) {
+  public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 
   @Override
-  public Boolean setupForURI(Level logLevel, String host, int port, LoggerSetup loggerSetup) {
+  public boolean setupForURI(Level logLevel, String host, int port, LoggerSetup loggerSetup) {
     return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 

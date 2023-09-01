@@ -268,8 +268,8 @@ lazy val enso = (project in file("."))
     `logging-utils`,
     `logging-jutil`,
     `logging-config`,
-    `logging-logback`,
     `logging-service`,
+    `logging-service-logback`,
     `logging-utils-akka`,
     filewatcher,
     `logging-truffle-connector`,
@@ -361,7 +361,7 @@ val akkaSLF4J        = akkaPkg("slf4j")
 val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp         = akkaHTTPPkg("http")
 val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val akkaTest         = logbackPkg.map(_ % Test)
+val logbackTest      = logbackPkg.map(_ % Test)
 val akka =
   Seq(
     akkaActor,
@@ -685,8 +685,8 @@ lazy val `logging-utils` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest"    %% "scalatest" % scalatestVersion % Test
-    ) ++ logbackPkg.map(_ % Test)
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+    ) ++ logbackTest
   )
 
 lazy val `logging-service` = project
@@ -728,8 +728,8 @@ lazy val `logging-config` = project
     )
   )
 
-lazy val `logging-logback` = project
-  .in(file("lib/scala/logging-logback"))
+lazy val `logging-service-logback` = project
+  .in(file("lib/scala/logging-service-logback"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -762,10 +762,10 @@ lazy val filewatcher = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "io.methvin"        % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"        % "commons-io"        % commonsIoVersion,
-      "org.scalatest"    %% "scalatest"         % scalatestVersion % Test
-    ) ++ logbackPkg.map(_ % Test)
+      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
+      "commons-io"     % "commons-io"        % commonsIoVersion,
+      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+    ) ++ logbackTest
   )
   .dependsOn(testkit % Test)
 
@@ -927,7 +927,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`logging-service`)
   .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
-  .dependsOn(`logging-logback` % Runtime)
+  .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -958,7 +958,7 @@ lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= akka ++ akkaTest,
+    libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "io.circe"                   %% "circe-literal" % circeVersion,
@@ -1002,7 +1002,7 @@ lazy val searcher = project
       "com.typesafe.slick" %% "slick"       % slickVersion,
       "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
       "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
-    ) ++ logbackPkg.map(_ % Test)
+    ) ++ logbackTest
   )
   .configs(Benchmark)
   .settings(
@@ -1195,7 +1195,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`profiling-utils`)
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-logback` % Test)
+  .dependsOn(`logging-service-logback` % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -1747,7 +1747,7 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-jutil`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-service`)
-  .dependsOn(`logging-logback` % Runtime)
+  .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
 
 lazy val launcher = project
@@ -1815,8 +1815,8 @@ lazy val launcher = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(`logging-service`)
-  .dependsOn(`logging-logback` % Test)
-  .dependsOn(`logging-logback` % Runtime)
+  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 

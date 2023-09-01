@@ -11,17 +11,15 @@ public abstract class LoggerSetup {
 
   private static final ServiceLoader<LoggerSetup> loader =
       ServiceLoader.load(LoggerSetup.class, LoggerSetup.class.getClassLoader());
-  private static LoggerSetup _instance = null;
-  private static Object lock = new Object();
+  private static LoggerSetup _instance;
+
+  static {
+    ServiceLoader<LoggerSetup> loader =
+        ServiceLoader.load(LoggerSetup.class, LoggerSetup.class.getClassLoader());
+    _instance = loader.findFirst().get();
+  }
 
   public static LoggerSetup get() {
-    if (_instance == null) {
-      synchronized (lock) {
-        if (_instance == null) {
-          _instance = loader.findFirst().get();
-        }
-      }
-    }
     return _instance;
   }
 

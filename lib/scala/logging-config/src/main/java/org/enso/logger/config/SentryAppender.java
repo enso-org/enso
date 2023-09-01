@@ -5,7 +5,7 @@ import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that sends logs to sentry.io service. */
-public class SentryAppender extends Appender {
+public final class SentryAppender extends Appender {
 
   public String getDsn() {
     return dsn;
@@ -23,7 +23,7 @@ public class SentryAppender extends Appender {
   }
 
   @Override
-  public Boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+  public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
     return appenderSetup.setupSentryAppender(logLevel);
   }
 

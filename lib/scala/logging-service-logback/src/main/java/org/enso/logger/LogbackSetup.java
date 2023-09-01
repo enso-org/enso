@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 @org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
-public class LogbackSetup extends LoggerSetup {
+public final class LogbackSetup extends LoggerSetup {
     private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
         this.config = config;
         this.context = context;

@@ -9,7 +9,7 @@ import org.slf4j.event.Level;
  * Base class for all appenders supported by Enso's logging configuration. Appenders determine what
  * to do with the recorded log events
  */
-public abstract class Appender {
+public sealed abstract class Appender permits FileAppender, SocketAppender, SentryAppender, ConsoleAppender {
 
   /**
    * Returns the name of the appender
@@ -50,7 +50,7 @@ public abstract class Appender {
    * @param loggerSetup logger's setup to be used to be invoked with this appender
    * @return true if logger has been setup correctly using this configuration, false otherwise
    */
-  public Boolean setup(Level logLevel, LoggerSetup loggerSetup) {
+  public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return false;
   }
 
@@ -61,12 +61,12 @@ public abstract class Appender {
    * @param loggerSetup logger's setup to be used to be invoked with this appender
    * @return true if logger has been setup correctly using this configuration, false otherwise
    */
-  public Boolean setupForPath(
+  public boolean setupForPath(
       Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
     return setup(logLevel, loggerSetup);
   }
 
-  public Boolean setupForURI(Level logLevel, String hostname, int port, LoggerSetup loggerSetup) {
+  public boolean setupForURI(Level logLevel, String hostname, int port, LoggerSetup loggerSetup) {
     return setup(logLevel, loggerSetup);
   }
 

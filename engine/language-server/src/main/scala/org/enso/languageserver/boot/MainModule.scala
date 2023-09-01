@@ -308,7 +308,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(new JulHandler())
+    .logHandler(JulHandler.get())
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

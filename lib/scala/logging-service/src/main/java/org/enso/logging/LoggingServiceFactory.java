@@ -5,18 +5,19 @@ import java.util.ServiceLoader;
 
 public abstract class LoggingServiceFactory<T> {
 
-  private static final ServiceLoader<LoggingServiceFactory> loader =
-      ServiceLoader.load(LoggingServiceFactory.class, LoggingServiceFactory.class.getClassLoader());
+  private static LoggingServiceFactory _loggingServiceFactory;
+
+  static {
+    ServiceLoader<LoggingServiceFactory> loader =
+        ServiceLoader.load(
+            LoggingServiceFactory.class, LoggingServiceFactory.class.getClassLoader());
+    _loggingServiceFactory = loader.findFirst().get();
+  }
 
   public abstract LoggingService<T> localServerFor(int port);
 
   @SuppressWarnings("unchecked")
   public static LoggingServiceFactory<URI> get() {
-    if (_loggingServiceFactory == null) {
-      _loggingServiceFactory = loader.findFirst().get();
-    }
     return _loggingServiceFactory;
   }
-
-  private static LoggingServiceFactory<URI> _loggingServiceFactory = null;
 }

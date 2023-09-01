@@ -10,12 +10,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** java.util.logging.Handler that propagates all events to the equivalent SLF4J implementation. */
-public class JulHandler extends Handler {
+public final class JulHandler extends Handler {
+
+  private static final Handler _handler;
+
+  static {
+    _handler = new JulHandler();
+  }
 
   private Formatter formattter;
 
-  public JulHandler() {
+  private JulHandler() {
     this.formattter = new SimpleFormatter();
+  }
+
+  public static final Handler get() {
+    return _handler;
   }
 
   @Override

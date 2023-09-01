@@ -7,7 +7,7 @@ import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
 /** Config for log configuration that appends to the file. */
-public class FileAppender extends Appender {
+public final class FileAppender extends Appender {
   private final boolean append;
   private final boolean immediateFlush;
   private final String pattern;
@@ -65,13 +65,13 @@ public class FileAppender extends Appender {
   }
 
   @Override
-  public Boolean setup(Level logLevel, LoggerSetup appenderSetup) {
+  public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
     return appenderSetup.setupFileAppender(
         logLevel, logLocation.logRoot(), logLocation.logPrefix());
   }
 
   @Override
-  public Boolean setupForPath(
+  public boolean setupForPath(
       Level logLevel, Path componentLogPath, String componentLogPrefix, LoggerSetup loggerSetup) {
     return loggerSetup.setupFileAppender(logLevel, componentLogPath, componentLogPrefix);
   }

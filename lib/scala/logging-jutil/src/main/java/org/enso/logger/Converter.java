@@ -6,8 +6,6 @@ import org.slf4j.event.Level;
 
 public class Converter {
 
-  public static Level defaultLogLevel = TRACE;
-
   /** Determines what is the smallest Java level that is still debug and not trace. */
   private static int defaultLevelDebugCutOff =
       Math.min(java.util.logging.Level.FINE.intValue(), java.util.logging.Level.CONFIG.intValue());

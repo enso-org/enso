@@ -14,20 +14,27 @@ public class AkkaConverter {
    * @return an equivalnet of `level` in Akka's LogLevel
    */
   public static akka.event.Logging.LogLevel toAkka(Level level) {
+    int lvl;
     switch (level) {
       case ERROR:
-        return new akka.event.Logging.LogLevel(1); // Error
+        lvl = akka.event.Logging$.MODULE$.ErrorLevel();
+        break;
       case WARN:
-        return new akka.event.Logging.LogLevel(2); // Warning
+        lvl = akka.event.Logging$.MODULE$.WarningLevel();
+        break;
       case INFO:
-        return new akka.event.Logging.LogLevel(3); // Info
+        lvl = akka.event.Logging$.MODULE$.InfoLevel();
+        break;
       case DEBUG:
-        return new akka.event.Logging.LogLevel(4); // Debug
+        lvl = akka.event.Logging$.MODULE$.DebugLevel();
+        break;
       case TRACE:
-        return new akka.event.Logging.LogLevel(4); // Debug
+        lvl = akka.event.Logging$.MODULE$.DebugLevel();
+        break;
       default:
-        return new akka.event.Logging.LogLevel(1);
+        lvl = akka.event.Logging$.MODULE$.ErrorLevel();
     }
+    return new akka.event.Logging.LogLevel(lvl);
   }
 
   /**
