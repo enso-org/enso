@@ -2517,7 +2517,7 @@ disallow_decimal_type argument ~continuation =
     value_type = Value_Type_Helpers.find_argument_type argument
     case value_type.is_decimal of
         False -> continuation
-        True  -> Error.throw (Unsupported_Operation.Error "Big integer values are not supported by the in-memory table backend.")
+        True  -> Error.throw (Unsupported_Operation.Error "Big integer arithmetic is not supported by the in-memory table backend.")
 
 ## PRIVATE
    A wrapper around `Value_Type_Helpers.check_binary_numeric_op` that also ensures that the values are not Big Integers.

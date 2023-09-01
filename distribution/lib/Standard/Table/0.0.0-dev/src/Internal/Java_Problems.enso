@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Storage
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Arithmetic_Overflow, Conversion_Failure, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Loss_Of_Integer_Precision, Unquoted_Characters_In_Output, Unquoted_Delimiter
+from project.Errors import all
 
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
@@ -15,6 +15,7 @@ polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
+polyglot java import org.enso.table.data.table.problems.UnsupportedFeature
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
@@ -56,6 +57,8 @@ translate_problem p = case p of
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : UnquotedDelimiter ->
         Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
+    _ : UnsupportedFeature ->
+        Unsupported_Operation.Error p.getMessage
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
     _ : AdditionalInvalidRows ->

@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Unsupported_Operation, Invalid_Value_Type, No_Common_Type
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Unsupported_Operation, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -179,9 +179,9 @@ spec =
 
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100]
             w1 = Problems.expect_only_warning Unsupported_Operation c1
-            w1.to_display_text.should_contain "big integer values are not supported, so the column is created as Mixed"
+            w1.to_display_text.should_contain "Big integer arithmetic is currently not supported"
             w1.to_display_text.should_contain "You can cast to Value_Type.Integer which will replace the big integer values with Nothing"
-            c1.value_type . should_equal Value_Type.Mixed
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
 
             c2 = c1.remove_warnings.cast (Value_Type.Integer Bits.Bits_64)
             c2.to_vector . should_equal [Java_Long.MAX_VALUE, Nothing, 100]
@@ -194,7 +194,7 @@ spec =
             t1 = Table.new [["X", [Java_Long.MAX_VALUE, 2^70, 100]]]
             w2 = Problems.expect_only_warning Unsupported_Operation t1
             w2.to_display_text.should_contain "bit integer"
-            t1.at "X" . value_type . should_equal Value_Type.Mixed
+            t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
 
         Test.specify "should fail if a big integer is provided for an Integer 64-bit column" <|
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100] value_type=Value_Type.Integer
@@ -216,16 +216,16 @@ spec =
 
             # A number around ~2^100 that _can_ be exactly represented as float.
             x = (2^100 + 0.0).truncate
-            c2 = Column.from_vector "X" [Java_Long.MAX_VALUE, x, 1.5]
+            c2 = Column.from_vector "X" [x, 1.5]
             # So there is no warning, as no real precision loss here.
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Float
             # This will be an inexact equality, based on float rounding.
-            c2.to_vector . should_equal [Java_Long.MAX_VALUE, x, 1.5]
+            c2.to_vector . should_equal [x, 1.5]
 
             c3 = Column.from_vector "X" [2^70, 1]
             Problems.expect_only_warning Unsupported_Operation c3
-            c3.value_type . should_equal Value_Type.Mixed
+            c3.value_type . should_be_a (Value_Type.Decimal ...)
             c4 = c3.remove_warnings.cast Value_Type.Float
             c4.to_vector . should_equal [2^70, 1]
             Problems.expect_only_warning Loss_Of_Integer_Precision c4
@@ -236,9 +236,8 @@ spec =
             f1 x = if x == 2 then 2^70 else x
             c1 = c.map f1
             c1.to_vector . should_equal [1, 2^70, 3]
-            w1 = Problems.expect_only_warning Unsupported_Operation c1
-            w1.to_display_text.should_contain "Mixed"
-            c1.value_type . should_equal Value_Type.Mixed
+            Problems.expect_only_warning Unsupported_Operation c1
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
 
             f2 x = case x of
                 2 -> 2^100
@@ -256,8 +255,7 @@ spec =
 
             r1 = c + x
             r1.should_fail_with Unsupported_Operation
-            r1.catch.to_display_text . should_contain "Big integer values are not supported"
-            r1.catch.to_display_text . should_not_contain "Mixed"
+            r1.catch.to_display_text . should_contain "Big integer arithmetic is not supported"
 
             (c - x) . should_fail_with Unsupported_Operation
             (c * x) . should_fail_with Unsupported_Operation

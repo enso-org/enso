@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage.type;
 
-import java.math.BigInteger;
-
 public record IntegerType(Bits bits) implements StorageType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);

@@ -26,6 +26,7 @@ public abstract class Builder {
       };
       case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType);
       case TextType textType -> new StringBuilder(size, textType);
+      case BigIntegerType x -> new BigIntegerBuilder(size);
       case null -> new InferredBuilder(size);
     };
     assert builder.getType().equals(type);

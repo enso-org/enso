@@ -14,6 +14,8 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.Objects;
 
@@ -177,6 +179,15 @@ public class DoubleBuilder extends NumericBuilder {
     appendRawNoGrow(Double.doubleToRawLongBits(converted));
   }
 
+  public void appendBigInteger(BigInteger integer) {
+    if (currentSize >= this.data.length) {
+      grow();
+    }
+
+    double converted = convertBigIntegerToDouble(integer);
+    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  }
+
   @Override
   public Storage<Double> seal() {
     return new DoubleStorage(data, currentSize, isMissing);
@@ -193,6 +204,20 @@ public class DoubleBuilder extends NumericBuilder {
     if (isLosingPrecision) {
       if (precisionLoss == null) {
         precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
+      } else {
+        precisionLoss.incrementAffectedRows();
+      }
+    }
+    return floatingPointValue;
+  }
+
+  private double convertBigIntegerToDouble(BigInteger bigInteger) {
+    double floatingPointValue = bigInteger.doubleValue();
+    BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
+    boolean isLosingPrecision = !bigInteger.equals(reconstructed);
+    if (isLosingPrecision) {
+      if (precisionLoss == null) {
+        precisionLoss = new LossOfIntegerPrecision(bigInteger, floatingPointValue);
       } else {
         precisionLoss.incrementAffectedRows();
       }
