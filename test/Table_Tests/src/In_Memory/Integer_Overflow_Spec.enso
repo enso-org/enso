@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Unsupported_Operation
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Loss_Of_Integer_Precision, Unsupported_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -173,11 +173,11 @@ spec =
 
     Test.group "[In-Memory] Handling of Big Integer values" <|
         Test.specify "should warn when creating a numeric-only column with big integer values" <|
-            c0 = Column.from_vector [Java_Long.MAX_VALUE, 0, 1]
+            c0 = Column.from_vector "X" [Java_Long.MAX_VALUE, 0, 1]
             Problems.assume_no_problems c0
             c0.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
-            c1 = Column.from_vector [Java_Long.MAX_VALUE, 2^70, 100]
+            c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100]
             w1 = Problems.expect_only_warning Unsupported_Operation c1
             w1.to_display_text.should_contain "big integer values are not supported, so the column is created as Mixed"
             w1.to_display_text.should_contain "You can cast to Value_Type.Integer which will replace the big integer values with Nothing"
@@ -193,10 +193,11 @@ spec =
 
             t1 = Table.new [["X", [Java_Long.MAX_VALUE, 2^70, 100]]]
             w2 = Problems.expect_only_warning Unsupported_Operation t1
+            w2.to_display_text.should_contain "bit integer"
             t1.at "X" . value_type . should_equal Value_Type.Mixed
 
         Test.specify "will not warn if the created mixed column contains other values as well" <|
-            c1 = Column.from_vector [Java_Long.MAX_VALUE, 2^70, "abc"]
+            c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, "abc"]
             Problems.assume_no_problems c1
             c1.value_type . should_equal Value_Type.Mixed
 
@@ -204,20 +205,20 @@ spec =
             # 2^70 is not exactly representable as a Float.
             (2^70 + 0.0).truncate . should_not_equal (2^70)
 
-            c1 = Column.from_vector [1, 2^70, 1.5]
+            c1 = Column.from_vector "X" [1, 2^70, 1.5]
             Problems.expect_only_warning Loss_Of_Integer_Precision c1
             c1.value_type . should_equal Value_Type.Float
 
             # A number around ~2^100 that _can_ be exactly represented as float.
             x = (2^100 + 0.0).truncate
-            c2 = Column.from_vector [Java_Long.MAX_VALUE, x, 1.5]
+            c2 = Column.from_vector "X" [Java_Long.MAX_VALUE, x, 1.5]
             # So there is no warning, as no real precision loss here.
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Float
             c2.to_vector . should_equal [Java_Long.MAX_VALUE, x, 1.5]
 
         Test.specify "should warn if a mapping operation yields a numeric column with big integers" <|
-            c = Column.from_vector [1, 2, 3]
+            c = Column.from_vector "X" [1, 2, 3]
 
             f1 x = if x == 2 then 2^70 else x
             c1 = c.map f1
@@ -237,7 +238,7 @@ spec =
             c2.value_type . should_equal Value_Type.Mixed
 
         Test.specify "will return a helpful error when a big integer is provided as an argument to an operation" <|
-            c = Column.from_vector [1, 2, Nothing, 3]
+            c = Column.from_vector "X" [1, 2, Nothing, 3]
             x = 2^70
 
             r1 = c + x

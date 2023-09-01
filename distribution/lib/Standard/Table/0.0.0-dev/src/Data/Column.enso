@@ -60,7 +60,7 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    from_vector name items value_type=Auto =
+    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
