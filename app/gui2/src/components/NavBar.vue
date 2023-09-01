@@ -10,11 +10,13 @@ const emit = defineEmits<{ breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
-  <div class="NavBar blur-full">
+  <div class="NavBar">
     <img :src="GraphEditorIcon" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
-      <img :src="ArrowLeftIcon" draggable="false" class="icon button" />
-      <img :src="ArrowRightIcon" draggable="false" class="icon button" />
+      <img :src="ArrowLeftIcon" draggable="false" class="icon button"
+        @click="console.log('breadcrumbs previous button clicked')" />
+      <img :src="ArrowRightIcon" draggable="false" class="icon button"
+        @click="console.log('breadcrumbs next button clicked')" />
     </div>
     <NavBreadcrumbs :breadcrumbs="breadcrumbs" @click="emit('breadcrumbClick', $event)" />
   </div>
@@ -25,6 +27,7 @@ const emit = defineEmits<{ breadcrumbClick: [index: number] }>()
   user-select: none;
   display: flex;
   border-radius: var(--radius-full);
+  background: var(--color-frame-bg);
   place-items: center;
   gap: 12px;
   padding-left: 8px;

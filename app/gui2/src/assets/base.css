@@ -97,8 +97,3 @@ body {
 .button.disabled {
   cursor: default;
 }
-
-.blur-full {
-  backdrop-filter: blur(64px);
-  background: var(--color-frame-bg);
-}
