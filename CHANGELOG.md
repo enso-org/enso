@@ -560,6 +560,7 @@
 - [Expose `Text.normalize`.][7425]
 - [Implemented new value types (various sizes of `Integer` type, fixed-length
   and length-limited `Char` type) for the in-memory `Table` backend.][7557]
+- [Introducing generic `Any.to` conversion method][7704]
 - [Added `take` and `drop` to database tables.][7615]
 - [Added ability to specify expected value type in `Column.from_vector`,
   `Column.map` and `Column.zip`.][7637]
@@ -797,6 +798,7 @@
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
 [7557]: https://github.com/enso-org/enso/pull/7557
+[7704]: https://github.com/enso-org/enso/pull/7704
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
 
