@@ -1,11 +1,17 @@
 from Standard.Base import all
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.More_Records_Available
+import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Internal.Auth
 
+polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
+polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
+polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
@@ -54,6 +60,39 @@ list_objects bucket prefix="" max_count=1000 credentials:(AWS_Credential | Nothi
                 @Tail_Call iterator new_request new_count result
 
     iterator request 0 []
+
+## Gets the metadata of a bucket or object
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
+head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
+head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+    client = make_client credentials
+    response = case key == "" of
+        True ->
+            request = HeadBucketRequest.builder.bucket bucket . build
+            Panic.catch NoSuchBucketException handler=(_->Error.throw (S3_Bucket_Not_Found.Error bucket)) <|
+                client.headBucket request
+        False ->
+            request = HeadObjectRequest.builder.bucket bucket . key key . build
+            Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key)) <|
+                client.headObject request
+
+    pairs = response.sdkFields.map f-> [f.memberName, f.get Nothing]
+    Map.from_vector pairs
+
+## PRIVATE
+   Splits a S3 URI into bucket and key.
+parse_uri : Text -> Pair Text Text | Nothing
+parse_uri uri =
+    if uri.starts_with "s3://" . not then Nothing else
+        no_prefix = uri.drop 5
+        index_of = no_prefix.index_of "/"
+        if index_of.is_nothing then Pair.new no_prefix "" else
+            Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
 
 ## PRIVATE
 handle_s3_errors : Function -> Any ! S3_Error

@@ -9,6 +9,15 @@ type S3_Error
     to_display_text : Text
     to_display_text self = "S3 Error: " + self.message + " (" + self.code + ")"
 
+## An error when a S3 bucket was not found.
+type S3_Bucket_Not_Found
+    ## PRIVATE
+    Error bucket:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Bucket '" + self.bucket + "' not found."
+
 ## A warning that more records are available
 type More_Records_Available
     ## PRIVATE

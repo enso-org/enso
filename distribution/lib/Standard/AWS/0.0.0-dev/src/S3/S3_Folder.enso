@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+import project.AWS_Credential.AWS_Credential
+import project.S3.S3
+
+type S3_Folder
+    ## PRIVATE
+    Value uri:Text auth:AWS_Credential
+
+    ## Checks if the folder or file exists
+    exists : Boolean
+    exists self =
+        parts = S3.parse_uri self.uri
+        if parts.is_nothing then False else
+            if parts.second == "" then S3.head parts.first . is_error . not else
+                Error.throw "Not implemented"
