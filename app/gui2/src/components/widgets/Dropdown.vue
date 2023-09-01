@@ -46,23 +46,37 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 </script>
 
 <template>
-  <div class="Dropdown" :style="{ background: color }">
-    <template v-for="[value, index] in sortedValuesAndIndices">
-      <div v-if="value === selectedValue">
-        <div class="selected-item"><span v-text="value"></span></div>
-      </div>
-      <div v-else class="selectable-item button" @click="emit('click', index)"><span v-text="value"></span></div>
-    </template>
-    <img class="sort button" :src="ICON_LOOKUP[sortDirection]"
-      @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]">
+  <div :tabindex="-1" class="DropdownContainer" @wheel.stop>
+    <div class="Dropdown" :style="{ background: color }">
+      <template v-for="[value, index] in sortedValuesAndIndices">
+        <div v-if="value === selectedValue">
+          <div class="selected-item"><span v-text="value"></span></div>
+        </div>
+        <div v-else class="selectable-item button" @click="emit('click', index)"><span v-text="value"></span></div>
+      </template>
+      <img class="sort button" :src="ICON_LOOKUP[sortDirection]"
+        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]">
+    </div>
   </div>
 </template>
 
 <style scoped>
-.Dropdown {
+.DropdownContainer {
   user-select: none;
+  overflow: auto;
+  clip-path: inset(0 round 8px);
+  width: min-content;
+  height: 136px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.DropdownContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.Dropdown {
   position: relative;
-  border-radius: 8px;
   color: var(--color-text-light);
   padding-left: 8px;
   padding-right: 8px;
