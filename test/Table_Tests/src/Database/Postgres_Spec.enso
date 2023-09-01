@@ -361,7 +361,7 @@ run_tests connection db_name =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True supports_decimal_type=True supported_replace_params=supported_replace_params
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False fixed_length_text_columns=True supports_decimal_type=True supported_replace_params=supported_replace_params
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True

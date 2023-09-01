@@ -112,10 +112,6 @@ body {
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 
-    .border-dashed-custom {
-      background-image: url("enso-assets/dashed_border.svg");
-    }
-
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
@@ -146,19 +142,17 @@ body {
       background-color: rgba(255, 255, 255, 0.4);
     }
 
-    .h-templates-custom {
-      height: 21.5rem;
-
-      @media screen and (min-width: 110.6875rem) {
-        height: 11rem;
-      }
-    }
-
     .search-bar.search-bar {
       @media screen and (max-width: 59rem) {
         position: unset;
         transform: unset;
         left: unset;
+      }
+    }
+
+    .whatsnew-span-2.whatsnew-span-2 {
+      @media screen and (max-width: 40.5625rem) {
+        grid-column: span 1 / span 1;
       }
     }
   }

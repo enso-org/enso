@@ -2,8 +2,9 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.ir.{Expression, Function, Module, Pattern}
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -33,7 +34,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     *
     * @param ir the IR to lint
     */
-  implicit class LintExpression(ir: IR.Expression) {
+  implicit class LintExpression(ir: Expression) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -41,7 +42,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit inlineContext: InlineContext): IR.Expression = {
+    def lint(implicit inlineContext: InlineContext): Expression = {
       UnusedBindings.runExpression(ir, inlineContext)
     }
   }
@@ -62,7 +63,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     *
     * @param ir the IR to lint
     */
-  implicit class LintModule(ir: IR.Module) {
+  implicit class LintModule(ir: Module) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -70,7 +71,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit moduleContext: ModuleContext): IR.Module = {
+    def lint(implicit moduleContext: ModuleContext): Module = {
       UnusedBindings.runModule(ir, moduleContext)
     }
   }
@@ -93,14 +94,14 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |x -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       val lintMeta = ir.arguments.head.diagnostics.collect {
-        case u: IR.Warning.Unused.FunctionArgument => u
+        case u: warnings.Unused.FunctionArgument => u
       }
 
       lintMeta should not be empty
-      lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
+      lintMeta.head shouldBe an[warnings.Unused.FunctionArgument]
       lintMeta.head.name.name shouldEqual "x"
     }
 
@@ -114,17 +115,16 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |    f 0
           |""".stripMargin.preprocessModule.lint
 
-      inside(ir.bindings.head) {
-        case definition: IR.Module.Scope.Definition.Method.Explicit =>
-          inside(definition.body) { case f: IR.Function.Lambda =>
-            val lintMeta = f.arguments(1).diagnostics.collect {
-              case u: IR.Warning.Unused.FunctionArgument => u
-            }
-
-            lintMeta should not be empty
-            lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
-            lintMeta.head.name.name shouldEqual "x"
+      inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
+        inside(definition.body) { case f: Function.Lambda =>
+          val lintMeta = f.arguments(1).diagnostics.collect {
+            case u: warnings.Unused.FunctionArgument => u
           }
+
+          lintMeta should not be empty
+          lintMeta.head shouldBe an[warnings.Unused.FunctionArgument]
+          lintMeta.head.name.name shouldEqual "x"
+        }
       }
     }
 
@@ -135,10 +135,10 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |_ -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       val lintMeta = ir.arguments.head.diagnostics.collect {
-        case u: IR.Warning.Unused => u
+        case u: warnings.Unused => u
       }
 
       lintMeta shouldBe empty
@@ -151,14 +151,14 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |a = 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Binding]
+          .asInstanceOf[Expression.Binding]
 
-      val lintMeta = ir.diagnostics.collect { case u: IR.Warning.Unused =>
+      val lintMeta = ir.diagnostics.collect { case u: warnings.Unused =>
         u
       }
 
       lintMeta should not be empty
-      lintMeta.head shouldBe an[IR.Warning.Unused.Binding]
+      lintMeta.head shouldBe an[warnings.Unused.Binding]
       lintMeta.head.name.name shouldEqual "a"
     }
 
@@ -169,9 +169,9 @@ class UnusedBindingsTest extends CompilerTest with Inside {
         """
           |_ = 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Binding]
+          .asInstanceOf[Expression.Binding]
 
-      val lintMeta = ir.diagnostics.collect { case u: IR.Warning.Unused =>
+      val lintMeta = ir.diagnostics.collect { case u: warnings.Unused =>
         u
       }
 
@@ -186,23 +186,23 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |case x of
           |    Cons a _ -> 10
           |""".stripMargin.preprocessExpression.get.lint
-          .asInstanceOf[IR.Expression.Block]
+          .asInstanceOf[Expression.Block]
           .returnValue
-          .asInstanceOf[IR.Case.Expr]
+          .asInstanceOf[Case.Expr]
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
       val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
 
-      val lintMeta1 = field1.diagnostics.collect { case u: IR.Warning.Unused =>
+      val lintMeta1 = field1.diagnostics.collect { case u: warnings.Unused =>
         u
       }
-      val lintMeta2 = field2.diagnostics.collect { case u: IR.Warning.Unused =>
+      val lintMeta2 = field2.diagnostics.collect { case u: warnings.Unused =>
         u
       }
 
       lintMeta1 should not be empty
-      lintMeta1.head shouldBe an[IR.Warning.Unused.PatternBinding]
+      lintMeta1.head shouldBe an[warnings.Unused.PatternBinding]
       lintMeta1.head.name.name shouldEqual "a"
 
       lintMeta2 shouldBe empty

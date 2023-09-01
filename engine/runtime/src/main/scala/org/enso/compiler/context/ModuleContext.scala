@@ -1,6 +1,6 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
@@ -40,7 +40,7 @@ case class ModuleContext(
     source: Source,
     s: LocalScope,
     config: CompilerConfig,
-    ir: IR.Expression
+    ir: Expression
   ): ExpressionNode = {
     return context.truffleRunInline(source, s, module, config, ir)
   }

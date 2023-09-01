@@ -2,7 +2,9 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Function, Module, Pattern}
+import org.enso.compiler.core.ir.expression.{errors, Case}
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -36,7 +38,7 @@ class PatternsTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *
@@ -69,25 +71,25 @@ class PatternsTest extends CompilerTest {
     "attach resolved atoms to the method definitions" in {
       val patterns = ir
         .bindings(1)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
         .branches
         .map(_.pattern)
       patterns(0)
-        .asInstanceOf[IR.Pattern.Constructor]
+        .asInstanceOf[Pattern.Constructor]
         .constructor
         .getMetadata(Patterns) shouldBe defined
-      patterns(1) shouldBe a[IR.Error.Pattern]
+      patterns(1) shouldBe a[errors.Pattern]
       patterns(2)
-        .asInstanceOf[IR.Pattern.Constructor]
-        .constructor shouldBe a[IR.Error.Resolution]
+        .asInstanceOf[Pattern.Constructor]
+        .constructor shouldBe a[errors.Resolution]
       patterns(3)
-        .asInstanceOf[IR.Pattern.Type]
+        .asInstanceOf[Pattern.Type]
         .tpe
         .getMetadata(Patterns) shouldBe defined
     }

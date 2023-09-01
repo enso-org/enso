@@ -16,6 +16,7 @@ import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -119,12 +120,12 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, IR.Module ir) {
+  public void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir) {
     new IrToTruffle(context, source, scope, config).run(ir);
   }
 
   @Override
-  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, Module module, CompilerConfig config, IR.Expression ir) {
+  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, Module module, CompilerConfig config, Expression ir) {
     return new IrToTruffle(context, source, module.getScope(), config)
             .runInline(ir, localScope, "<inline_source>");
   }
@@ -161,7 +162,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public IR.Module getIr(Module module) {
+  public org.enso.compiler.core.ir.Module getIr(Module module) {
     return module.getIr();
   }
 
@@ -255,7 +256,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
 
     private final Module module;
-    private IR.Module ir;
+    private org.enso.compiler.core.ir.Module ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
     private Boolean hasCrossModuleLinks;
@@ -267,7 +268,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public void ir(IR.Module ir) {
+    public void ir(org.enso.compiler.core.ir.Module ir) {
       this.ir = ir;
     }
 

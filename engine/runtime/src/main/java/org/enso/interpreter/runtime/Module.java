@@ -25,6 +25,7 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
@@ -56,7 +57,7 @@ public final class Module implements EnsoObject {
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
-  private IR.Module ir;
+  private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
   private final ModuleCache cache;
@@ -68,7 +69,8 @@ public final class Module implements EnsoObject {
    * directory then contains submodules of this module that should be directly accessible from this
    * module - achieved by both filling in this list, and inserting synthetic imports and exports
    * into this module - See {@link
-   * org.enso.compiler.Compiler#injectSyntheticModuleExports(IR.Module, List)}.
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(org.enso.compiler.core.ir.Module,
+   * List)}.
    */
   private List<QualifiedName> directModulesRefs;
 
@@ -240,10 +242,10 @@ public final class Module implements EnsoObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<IR.Expression, IR.Expression> fn =
-            new Function1<IR.Expression, IR.Expression>() {
+        final Function1<Expression, Expression> fn =
+            new Function1<Expression, Expression>() {
               @Override
-              public IR.Expression apply(IR.Expression v1) {
+              public Expression apply(Expression v1) {
                 if (v1 == change) {
                   return update.newIr();
                 }
@@ -371,7 +373,7 @@ public final class Module implements EnsoObject {
   }
 
   /** @return IR defined by this module. */
-  public IR.Module getIr() {
+  public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
 
@@ -422,7 +424,7 @@ public final class Module implements EnsoObject {
    *
    * @param ir the new IR for the module.
    */
-  void unsafeSetIr(IR.Module ir) {
+  void unsafeSetIr(org.enso.compiler.core.ir.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
   }
