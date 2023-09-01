@@ -68,11 +68,7 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
     librariesPath: Path
   ): List[Path] = try {
     if (!Files.isDirectory(librariesPath)) {
-      val exists = Files.exists(librariesPath)
-      val suffix = if (exists) "is not a directory" else "does not exist"
-      logger.warn(
-        s"Local library search path [${MaskedPath(librariesPath).applyMasking()}] $suffix."
-      )
+      warnAboutMissingSearchPath(librariesPath)
       return Nil
     }
 
@@ -114,11 +110,7 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
     val libraries: List[LibraryName] = searchPaths.flatMap { path =>
       try {
         if (!Files.isDirectory(path)) {
-          val exists = Files.exists(path)
-          val suffix = if (exists) "is not a directory" else "does not exist"
-          logger.warn(
-            s"Local library search path [${MaskedPath(path).applyMasking()}] $suffix."
-          )
+          warnAboutMissingSearchPath(path)
           Nil
         } else {
           val subdirectories =
@@ -143,6 +135,24 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
     }
     libraries.distinct
   }
+
+  private def warnAboutMissingSearchPath(path: Path): Unit = {
+    val exists = Files.exists(path)
+    val suffix = if (exists) "is not a directory" else "does not exist"
+    val warning =
+      s"Local library search path [${MaskedPath(path).applyMasking()}] $suffix."
+    if (alreadyWarned.get(path).contains(suffix)) {
+      // If we already warned about this path, further warnings get degraded to trace level.
+      // Only one warning at warning level is emitted.
+      logger.trace(warning)
+    } else {
+      logger.warn(warning)
+      alreadyWarned.put(path, suffix)
+    }
+  }
+
+  private val alreadyWarned =
+    scala.collection.concurrent.TrieMap.empty[Path, String]
 }
 
 object DefaultLocalLibraryProvider {
