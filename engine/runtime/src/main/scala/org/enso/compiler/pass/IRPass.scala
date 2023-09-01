@@ -3,6 +3,8 @@ package org.enso.compiler.pass
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.ProcessingPass
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.CompilerError
 import shapeless.=:!=
 
@@ -45,7 +47,7 @@ trait IRPass extends ProcessingPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  def runModule(ir: IR.Module, moduleContext: ModuleContext): IR.Module
+  def runModule(ir: Module, moduleContext: ModuleContext): Module
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.
@@ -57,9 +59,9 @@ trait IRPass extends ProcessingPass {
     *         IR.
     */
   def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression
+  ): Expression
 
   /** Updates the metadata in a copy of the IR when updating that metadata
     * requires global state.

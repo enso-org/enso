@@ -92,17 +92,35 @@ spec setup =
         Test.specify "iif on Columns" <|
             with_mixed_columns_if_supported [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]] t1->
                 c1 = t1.at "X" . iif (t1.at "Y") (t1.at "Z")
-                c1.value_type . is_floating_point . should_be_true
                 c1.to_vector . should_equal [1, 2.0, Nothing, 4.0]
+                is_mixed = (t1.at "Y" . value_type == Value_Type.Mixed) || (t1.at "Z" . value_type == Value_Type.Mixed)
+                case is_mixed of
+                    True  -> c1.value_type . should_equal Value_Type.Mixed
+                    False -> c1.value_type.is_floating_point . should_be_true
 
             with_mixed_columns_if_supported [["X", [True, False]], ["Y", [1, 2]], ["Z", [1.5, 3.0]]] t2->
                 c2 = t2.at "X" . iif (t2.at "Y") (t2.at "Z")
                 c2.to_vector . should_equal [1, 3]
-                c2.value_type . is_floating_point . should_be_true
+                is_mixed = (t2.at "Y" . value_type == Value_Type.Mixed) || (t2.at "Z" . value_type == Value_Type.Mixed)
+                case is_mixed of
+                    True  -> c2.value_type . should_equal Value_Type.Mixed
+                    False -> c2.value_type.is_floating_point . should_be_true
 
             with_mixed_columns_if_supported [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]] t3->
-                t3.at "X" . iif (t3.at "Y") (t3.at "Z") . should_fail_with No_Common_Type
-                t3.at "X" . iif (t3.at "Y") "<NA>" . should_fail_with No_Common_Type
+                is_y_mixed = t3.at "Y" . value_type == Value_Type.Mixed
+                is_any_mixed = is_y_mixed || (t3.at "Z" . value_type == Value_Type.Mixed)
+                c1 = t3.at "X" . iif (t3.at "Y") (t3.at "Z")
+                case is_any_mixed of
+                    True ->
+                        c1.value_type . should_equal Value_Type.Mixed
+                        c1.to_vector . should_equal [10, True]
+                    False -> c1.should_fail_with No_Common_Type
+                c2 = t3.at "X" . iif (t3.at "Y") "<NA>"
+                case is_y_mixed of
+                    True ->
+                        c2.value_type . should_equal Value_Type.Mixed
+                        c2.to_vector . should_equal [10, "<NA>"]
+                    False -> c2.should_fail_with No_Common_Type
 
         Test.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]

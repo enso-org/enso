@@ -1,14 +1,16 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
 /** Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
   * the symbols imported from the module can be resolved, i.e., exists.
-  * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
+  * In case of unresolved symbols, replaces the IR import with [[errors.ImportExport]].
   * Reports only the first unresolved symbol.
   */
 case object ImportSymbolAnalysis extends IRPass {
@@ -26,9 +28,9 @@ case object ImportSymbolAnalysis extends IRPass {
   /** @inheritdoc
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val bindingMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "BindingMap should already be present"
@@ -41,18 +43,18 @@ case object ImportSymbolAnalysis extends IRPass {
   /** @inheritdoc
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
-  /** @return May return multiple [[IR.Error.ImportExport]] in case of multiple unresolved symbols.
+  /** @return May return multiple [[errors.ImportExport]] in case of multiple unresolved symbols.
     */
   private def analyseSymbolsFromImport(
-    imp: IR.Module.Scope.Import,
+    imp: Import,
     bindingMap: BindingsMap
-  ): List[IR.Module.Scope.Import] = {
+  ): List[Import] = {
     imp match {
-      case imp @ IR.Module.Scope.Import.Module(
+      case imp @ Import.Module(
             _,
             _,
             _,
@@ -87,23 +89,23 @@ case object ImportSymbolAnalysis extends IRPass {
   }
 
   private def createErrorForUnresolvedSymbol(
-    imp: IR.Module.Scope.Import,
+    imp: Import,
     importTarget: BindingsMap.ImportTarget,
-    unresolvedSymbol: IR.Name.Literal
-  ): IR.Error.ImportExport = {
+    unresolvedSymbol: Name.Literal
+  ): errors.ImportExport = {
     importTarget match {
       case BindingsMap.ResolvedModule(module) =>
-        IR.Error.ImportExport(
+        errors.ImportExport(
           imp,
-          IR.Error.ImportExport.SymbolDoesNotExist(
+          errors.ImportExport.SymbolDoesNotExist(
             unresolvedSymbol.name,
             module.getName.toString
           )
         )
       case BindingsMap.ResolvedType(_, tp) =>
-        IR.Error.ImportExport(
+        errors.ImportExport(
           imp,
-          IR.Error.ImportExport.NoSuchConstructor(
+          errors.ImportExport.NoSuchConstructor(
             tp.name,
             unresolvedSymbol.name
           )
@@ -113,7 +115,7 @@ case object ImportSymbolAnalysis extends IRPass {
 
   private def isSymbolResolved(
     importTarget: BindingsMap.ImportTarget,
-    symbol: IR.Name.Literal
+    symbol: Name.Literal
   ): Boolean = {
     importTarget.findExportedSymbolsFor(symbol.name).nonEmpty
   }
