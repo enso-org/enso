@@ -12,8 +12,8 @@ The Enso project features a centralised logging service to allow for the
 aggregation of logs from multiple components. This service can be started with
 one of the main components, allowing other components to connect to it. The
 service aggregates all logs in one place for easier analysis of the interaction
-between components. Components can also write to console, files directly without
-involving an additional logging server.
+between components. Components can also log to console or files directly without
+involving the centralized logging service.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -56,7 +56,7 @@ representation is available as an instance of
 programmatically initialize loggers.
 
 As per [configuration schema](https://github.com/lightbend/config) any key can
-have a default value that can be overridden by an environmental variable. For
+have a default value that can be overridden by an environment variable. For
 example
 
 ```
@@ -191,7 +191,7 @@ Configuration
 
 The two fields can be overridden via environment variables:
 
-- `hostanme` has an equivalent `$ENSO_LOGSERVER_HOSTNAME` variable
+- `hostname` has an equivalent `$ENSO_LOGSERVER_HOSTNAME` variable
 - `port` has an equivalent `$ENSO_LOGSERVER_PORT` variable
 
 #### Sentry Appender
