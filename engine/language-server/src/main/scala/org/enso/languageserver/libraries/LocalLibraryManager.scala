@@ -2,13 +2,11 @@ package org.enso.languageserver.libraries
 
 import akka.actor.Props
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.{DistributionManager, FileSystem}
+import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
-import org.enso.librarymanager.local.{
-  DefaultLocalLibraryProvider,
-  LocalLibraryProvider
-}
+import org.enso.librarymanager.LibraryLocations
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.validation.NameValidation
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
@@ -16,17 +14,16 @@ import org.enso.yaml.YamlHelper
 
 import java.io.File
 import java.nio.file.{Files, Path}
-
 import scala.util.{Success, Try}
 
 /** An Actor that manages local libraries. */
 class LocalLibraryManager(
   currentProjectRoot: File,
-  distributionManager: DistributionManager
+  libraryLocations: LibraryLocations
 ) extends BlockingSynchronizedRequestHandler
     with LazyLogging {
   val localLibraryProvider = new DefaultLocalLibraryProvider(
-    distributionManager.paths.localLibrariesSearchPaths.toList
+    libraryLocations.localLibrarySearchPaths
   )
 
   override def requestStage: Receive = { case request: Request =>
@@ -77,7 +74,7 @@ class LocalLibraryManager(
 
     // TODO [RW] make the exceptions more relevant
     val possibleRoots = LazyList
-      .from(distributionManager.paths.localLibrariesSearchPaths)
+      .from(libraryLocations.localLibrarySearchPaths)
       .filter { path =>
         Try { if (Files.notExists(path)) Files.createDirectories(path) }
         Files.isWritable(path)
@@ -88,9 +85,10 @@ class LocalLibraryManager(
       )
     }
 
-    val libraryPath =
-      LocalLibraryProvider.resolveLibraryPath(librariesRoot, libraryName)
+    val libraryPath = librariesRoot.resolve(libraryName.name)
     if (Files.exists(libraryPath)) {
+      // TODO [RW] we could try finding alternative names (as directory name does not matter for local libraries), to find a free name
+      // This can be done as part of #1877
       throw new RuntimeException("Local library already exists")
     }
 
@@ -121,17 +119,7 @@ class LocalLibraryManager(
   } yield ListLocalLibrariesResponse(libraryEntries)
 
   private def findLocalLibraries(): Try[Seq[LibraryName]] = Try {
-    for {
-      searchPathRoot <- distributionManager.paths.localLibrariesSearchPaths
-      namespaceDir <- FileSystem
-        .listDirectory(searchPathRoot)
-        .filter(Files.isDirectory(_))
-      nameDir <- FileSystem
-        .listDirectory(namespaceDir)
-        .filter(Files.isDirectory(_))
-      namespace = namespaceDir.getFileName.toString
-      name      = nameDir.getFileName.toString
-    } yield LibraryName(namespace, name)
+    localLibraryProvider.findAvailableLocalLibraries()
   }
 
   /** Finds the path on the filesystem to a local library. */
@@ -252,8 +240,8 @@ class LocalLibraryManager(
 object LocalLibraryManager {
   def props(
     currentProjectRoot: File,
-    distributionManager: DistributionManager
+    libraryLocations: LibraryLocations
   ): Props = Props(
-    new LocalLibraryManager(currentProjectRoot, distributionManager)
+    new LocalLibraryManager(currentProjectRoot, libraryLocations)
   )
 }

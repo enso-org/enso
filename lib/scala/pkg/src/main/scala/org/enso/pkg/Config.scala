@@ -90,9 +90,7 @@ object Contact {
   * @param name the package display name
   * @param normalizedName the name that will be used as a prefix to module names
   *                       of the project
-  * @param namespace package namespace. This field is a temporary workaround
-  *                  and will be removed with further improvements to the
-  *                  libraries system. The default value is `local`.
+  * @param namespace package namespace.
   * @param version package version
   * @param license package license
   * @param authors name and contact information of the package author(s)
