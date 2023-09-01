@@ -1,10 +1,17 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.DefinitionArgument
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -61,9 +68,9 @@ case object FunctionBinding extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
+  ): Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
     *
@@ -74,9 +81,9 @@ case object FunctionBinding extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = desugarExpression(ir)
+  ): Expression = desugarExpression(ir)
 
   // === Pass Internals =======================================================
 
@@ -85,9 +92,9 @@ case object FunctionBinding extends IRPass {
     * @param ir the expression to desugar
     * @return `ir`, with any function definition sugar removed
     */
-  def desugarExpression(ir: IR.Expression): IR.Expression = {
+  def desugarExpression(ir: Expression): Expression = {
     ir.transformExpressions {
-      case IR.Function.Binding(
+      case Function.Binding(
             name,
             args,
             body,
@@ -103,12 +110,12 @@ case object FunctionBinding extends IRPass {
         val lambda = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
-            IR.Function.Lambda(List(arg), body, None)
+            Function.Lambda(List(arg), body, None)
           )
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        IR.Expression.Binding(name, lambda, location, passData, diagnostics)
+        Expression.Binding(name, lambda, location, passData, diagnostics)
     }
   }
 
@@ -118,21 +125,22 @@ case object FunctionBinding extends IRPass {
     * @return `definition`, with any function definition sugar removed
     */
   def desugarModuleSymbol(
-    definition: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition = {
-    definition match {
-      case _: Definition.Type => definition.mapExpressions(desugarExpression)
-      case _: Method.Explicit =>
+    moduleDefinition: Definition
+  ): Definition = {
+    moduleDefinition match {
+      case _: Definition.Type =>
+        moduleDefinition.mapExpressions(desugarExpression)
+      case _: definition.Method.Explicit =>
         throw new CompilerError(
           "Explicit method definitions should not exist during function " +
           "binding desugaring."
         )
-      case _: Method.Conversion =>
+      case _: definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion method nodes should not exist during function binding " +
           "desugaring."
         )
-      case meth @ Method.Binding(
+      case meth @ definition.Method.Binding(
             methRef,
             args,
             body,
@@ -146,10 +154,10 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              IR.Function.Lambda(List(arg), body, None)
+              Function.Lambda(List(arg), body, None)
             )
 
-          Method.Explicit(
+          definition.Method.Explicit(
             methRef,
             newBody,
             loc,
@@ -158,23 +166,23 @@ case object FunctionBinding extends IRPass {
           )
         } else {
           if (args.isEmpty)
-            IR.Error.Conversion(meth, IR.Error.Conversion.MissingArgs)
+            errors.Conversion(meth, errors.Conversion.MissingArgs)
           else if (args.head.ascribedType.isEmpty) {
-            IR.Error.Conversion(
+            errors.Conversion(
               args.head,
-              IR.Error.Conversion.MissingSourceType(args.head.name.name)
+              errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name
             val newFirstArgument =
-              if (firstArgumentName.isInstanceOf[IR.Name.Blank]) {
+              if (firstArgumentName.isInstanceOf[Name.Blank]) {
                 val newName =
                   if (restArgs.nonEmpty)
-                    IR.Name.Self(firstArgumentName.location, synthetic = true)
+                    Name.Self(firstArgumentName.location, synthetic = true)
                   else
-                    IR.Name
+                    Name
                       .Literal(
                         Constants.Names.THAT_ARGUMENT,
                         firstArgumentName.isMethod,
@@ -191,8 +199,8 @@ case object FunctionBinding extends IRPass {
             val (sndArgument, remaining) = restArgs match {
               case snd :: rest =>
                 val sndArgName = snd.name
-                if (sndArgName.isInstanceOf[IR.Name.Blank]) {
-                  val newName = IR.Name
+                if (sndArgName.isInstanceOf[Name.Blank]) {
+                  val newName = Name
                     .Literal(
                       Constants.Names.THAT_ARGUMENT,
                       sndArgName.isMethod,
@@ -219,15 +227,15 @@ case object FunctionBinding extends IRPass {
             def transformRemainingArgs(
               requiredArgs: List[DefinitionArgument],
               remainingArgs: List[DefinitionArgument]
-            ): Either[IR.Error, IR.Module.Scope.Definition.Method] = {
+            ): Either[Error, definition.Method] = {
               remaining
                 .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
                 .find(_.defaultValue.isEmpty) match {
                 case Some(nonDefaultedArg) =>
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       nonDefaultedArg,
-                      IR.Error.Conversion.NonDefaultedArgument(
+                      errors.Conversion.NonDefaultedArgument(
                         nonDefaultedArg.name.name
                       )
                     )
@@ -236,10 +244,10 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      IR.Function.Lambda(List(arg), body, None)
+                      Function.Lambda(List(arg), body, None)
                     )
                   Right(
-                    Method.Conversion(
+                    definition.Method.Conversion(
                       methRef,
                       firstArgumentType,
                       newBody,
@@ -257,9 +265,9 @@ case object FunctionBinding extends IRPass {
                 ) {
                   if (newSndArgument.name.name != Constants.Names.THAT_ARGUMENT)
                     Left(
-                      IR.Error.Conversion(
+                      errors.Conversion(
                         newSndArgument,
-                        IR.Error.Conversion.InvalidSourceArgumentName(
+                        errors.Conversion.InvalidSourceArgumentName(
                           newSndArgument.name.name
                         )
                       )
@@ -269,9 +277,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
                 ) {
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       newFirstArgument,
-                      IR.Error.Conversion.InvalidSourceArgumentName(
+                      errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -282,9 +290,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
                 ) {
                   Left(
-                    IR.Error.Conversion(
+                    errors.Conversion(
                       newFirstArgument,
-                      IR.Error.Conversion.InvalidSourceArgumentName(
+                      errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -301,24 +309,24 @@ case object FunctionBinding extends IRPass {
               .fold(identity, identity)
           }
         }
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "function binding desugaring."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not be present during function binding" +
           "desugaring."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "function binding desugaring."
         )
-      case a: IR.Name.GenericAnnotation => a
-      case a: IR.Type.Ascription        => a
-      case e: IR.Error                  => e
+      case a: Name.GenericAnnotation => a
+      case a: Type.Ascription        => a
+      case e: Error                  => e
     }
   }
 }

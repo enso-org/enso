@@ -38,7 +38,7 @@ pub mod test;
 
 
 
-pub const BINARYEN_VERSION_TO_INSTALL: u32 = 114;
+pub const BINARYEN_VERSION_TO_INSTALL: u32 = 108;
 
 pub const DEFAULT_INTEGRATION_TESTS_WASM_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -263,7 +263,6 @@ impl IsTarget for Wasm {
                         .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
                         .build()
                         .arg(wasm_pack::Profile::from(*profile))
-                        .reference_types()
                         .target(wasm_pack::Target::Web)
                         .output_directory(args.out_dir)
                         .output_name(args.out_name)
@@ -582,8 +581,6 @@ impl Wasm {
             wasm_opt_command
                 .args(wasm_opt_options)
                 .arg(&temp_dist.pkg_wasm)
-                .arg("--enable-reference-types")
-                .arg("--no-validation")
                 .apply(&wasm_opt::Output(&temp_dist.pkg_opt_wasm))
                 .run_ok()
                 .await?;

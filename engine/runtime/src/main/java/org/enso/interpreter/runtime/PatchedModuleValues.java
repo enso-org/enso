@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 
@@ -22,7 +23,7 @@ import org.enso.interpreter.runtime.tag.Patchable;
 final class PatchedModuleValues {
   private final Module module;
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
-  private Map<Node, Predicate<IR.Expression>> values;
+  private Map<Node, Predicate<Expression>> values;
 
   PatchedModuleValues(Module module) {
     this.module = module;
@@ -45,7 +46,7 @@ final class PatchedModuleValues {
    * @param delta positive or negative change at the offset location
    */
   private synchronized void performUpdates(
-    Map<Node, Predicate<IR.Expression>> collect, int offset, int delta
+    Map<Node, Predicate<Expression>> collect, int offset, int delta
   ) {
     if (values == null) {
       var scope = module.getScope();
@@ -82,7 +83,7 @@ final class PatchedModuleValues {
     var scope = module.getScope();
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
-    var collect = new HashMap<Node, Predicate<IR.Expression>>();
+    var collect = new HashMap<Node, Predicate<Expression>>();
     if (values != null) {
       for (var n : values.keySet()) {
         updateNode(update, n, collect);
@@ -113,7 +114,7 @@ final class PatchedModuleValues {
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Predicate<IR.Expression>> nodeValues) {
+  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Predicate<Expression>> nodeValues) {
     for (Map<?, Function> map : values) {
       for (Function f : map.values()) {
         updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
@@ -121,7 +122,7 @@ final class PatchedModuleValues {
     }
   }
 
-  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<IR.Expression>> nodeValues) {
+  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<Expression>> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
     while (!queue.isEmpty()) {

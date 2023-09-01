@@ -18,10 +18,14 @@ type Custom_Type_With_To_Text
     to_text self = "[CUSTOM = " + self.field.to_text + "]"
 
 type Custom_Type_With_Error
+    Value field
+
     to_text : Text
     to_text self = Error.throw (Illegal_State.Error "foo_error")
 
 type Custom_Type_With_Panic
+    Value field
+
     to_text : Text
     to_text self = Panic.throw (Illegal_State.Error "foo_panic")
 
@@ -217,10 +221,19 @@ spec =
             # We fallback to `to_text`, so obviously the nested numbers will not know about our formatting settings.
             formatter.format (Custom_Type_With_To_Text.Value 1000) . should_equal "[CUSTOM = 1000]"
 
-        Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="ToDo: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
+        Test.specify "should correctly pass through errors from custom type's `.to_text` method" <|
             formatter = Data_Formatter.Value
-            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State
-            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State
+            r1 = formatter.format (Custom_Type_With_Error.Value 100)
+            r1.should_be_a Text
+            r1.should_contain "Error in method `to_text`"
+            r1.should_contain "Illegal_State"
+            r1.should_contain "foo_error"
+
+            r2 = formatter.format (Custom_Type_With_Panic.Value 200)
+            r2.should_be_a Text
+            r2.should_contain "Panic in method `to_text`"
+            r2.should_contain "Illegal_State"
+            r2.should_contain "foo_panic"
 
     Test.group "DataFormatter builders" <|
         # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.

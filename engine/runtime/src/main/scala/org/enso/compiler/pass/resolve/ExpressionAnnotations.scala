@@ -1,8 +1,11 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
@@ -35,9 +38,9 @@ case object ExpressionAnnotations extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(doExpression)
   }
 
@@ -51,20 +54,20 @@ case object ExpressionAnnotations extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     doExpression(ir)
   }
 
   /** @inheritdoc */
 
   private def doExpression(
-    ir: IR.Expression
-  ): IR.Expression =
+    ir: Expression
+  ): Expression =
     ir.transformExpressions {
-      case app @ IR.Application.Prefix(
-            ann: IR.Name.BuiltinAnnotation,
+      case app @ Application.Prefix(
+            ann: Name.BuiltinAnnotation,
             arguments,
             _,
             _,
@@ -74,9 +77,9 @@ case object ExpressionAnnotations extends IRPass {
         if (isKnownAnnotation(ann.name)) {
           arguments match {
             case List() =>
-              IR.Error.Resolution(
+              errors.Resolution(
                 ann,
-                IR.Error.Resolution.UnexpectedAnnotation
+                errors.Resolution.UnexpectedAnnotation
               )
             case List(arg) =>
               doExpression(arg.value)
@@ -84,7 +87,7 @@ case object ExpressionAnnotations extends IRPass {
             case realFun :: args =>
               val recurFun = doExpression(realFun.value)
               val (finalFun, preArgs) = recurFun match {
-                case IR.Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
+                case Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
                   (nextFun, moreArgs)
                 case _ => (recurFun, List())
               }
@@ -95,17 +98,17 @@ case object ExpressionAnnotations extends IRPass {
           }
         } else {
           val err =
-            IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
+            errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
           app.copy(function = err)
         }
-      case ann: IR.Name.BuiltinAnnotation =>
+      case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
-          IR.Error.Resolution(
+          errors.Resolution(
             ann,
-            IR.Error.Resolution.UnexpectedAnnotation
+            errors.Resolution.UnexpectedAnnotation
           )
         } else {
-          IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
+          errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
         }
     }
 

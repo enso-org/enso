@@ -1,0 +1,84 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges, sort_and_merge_ranges
+
+from Standard.Table import Set_Mode
+
+import project.Data.Column.Column
+import project.Data.Table.Table
+from project.Errors import Unsupported_Database_Operation
+
+## PRIVATE
+type Take_Drop
+    ## PRIVATE
+    Take
+
+    ## PRIVATE
+    Drop
+
+## PRIVATE
+   Apply `take` or `drop` to a table, returning the specified by the selector.
+take_drop_helper : Take_Drop -> Table -> (Index_Sub_Range | Range | Integer) -> Table
+take_drop_helper take_drop table selector =
+    check_supported selector <|
+        length = table.row_count
+        ranges = cleanup_ranges (collect_ranges take_drop length selector)
+
+        if ranges.is_empty then table.remove_all_rows else
+            # Filter on row column. Add the row column at the start, remove it at the end.
+            row_column_name = table.make_temp_column_name
+            table_with_row_number = table.add_row_number name=row_column_name from=0
+
+            subqueries = ranges.map range->
+                generate_subquery table_with_row_number row_column_name range
+            combined = subqueries.reduce (a-> b-> a.union b)
+            combined.remove_columns row_column_name
+
+## PRIVATE
+   Turn the selector into a vector of ranges
+collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
+collect_ranges take_drop length selector =
+    at _ = Panic.throw (Illegal_State.Error "Impossible: at called in Database take/drop. This is a bug in the Database library.")
+    single_slice s e = [Range.new s e]
+    slice_ranges selectors =
+        slice_range selector = case selector of
+            i : Integer -> Range.new i i+1
+            r : Range -> r
+        selectors.map slice_range
+    helper = case take_drop of
+        Take_Drop.Take -> Index_Sub_Range_Module.take_helper
+        Take_Drop.Drop -> Index_Sub_Range_Module.drop_helper
+    helper length at single_slice slice_ranges selector
+
+## PRIVATE
+   Throw Unsupported_Database_Operation for selectors that are not supported by database backends.
+check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
+check_supported selector ~cont =
+    err =
+        msg = selector.to_display_text + " is not supported for database backends"
+        Error.throw (Unsupported_Database_Operation.Error msg)
+
+    case selector of
+        Index_Sub_Range.While _ -> err
+        Index_Sub_Range.Sample _ _ -> err
+        _ -> cont
+
+## PRIVATE
+   Remove empty ranges.
+cleanup_ranges : Vector Range -> Vector Range
+cleanup_ranges ranges:(Vector Range) =
+    ranges.filter (range-> range.end > range.start)
+
+## PRIVATE
+   Filter a table with a single range. Returns only those rows whose row column fall within the range.
+generate_subquery : Table -> Text -> Range -> Table
+generate_subquery table row_column_name range =
+    case range.step of
+        1 ->
+            filter_condition = Filter_Condition.Between range.start range.end-1
+            table.filter row_column_name filter_condition
+        _ ->
+            table.filter_on_predicate_column ((((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end))

@@ -87,12 +87,12 @@ find_common_type types strict =
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
 find_argument_type : Any -> Value_Type | Nothing
-find_argument_type value = if Nothing == value then Nothing else
+find_argument_type value infer_precise_type=True = if Nothing == value then Nothing else
     case is_column value of
         False -> Enso_Types.most_specific_value_type value use_smallest=True
         True ->
             col_type = value.value_type
-            if col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
+            if infer_precise_type && col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
 
 ## PRIVATE
 type Addition_Kind
@@ -183,7 +183,8 @@ raise_unexpected_type expected_type argument =
 ## PRIVATE
 find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
 find_common_type_for_arguments arguments =
-    types = arguments.map find_argument_type . filter Filter_Condition.Not_Nothing
+    # Here we do not want to infer the more precise type for a Mixed column, because we want it to stay Mixed.
+    types = arguments.map (find_argument_type infer_precise_type=False) . filter Filter_Condition.Not_Nothing
     case types.is_empty of
         True -> Nothing
         False -> case find_common_type types strict=True of

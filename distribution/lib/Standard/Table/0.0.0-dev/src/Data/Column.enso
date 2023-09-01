@@ -33,6 +33,7 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
@@ -42,6 +43,14 @@ type Column
        Arguments:
        - name: The name of the column to create.
        - items: The elements to contain in the column.
+       - value_type: The type of the values in the column. If `Auto`, the type
+         will be inferred from the items in the column.
+
+       ! Error Conditions
+
+         - If some values in `items` do not match the `value_type`, an
+           `Invalid_Value_Type` error is raised.
+         - With the default `value_type` of `Auto`, no errors should occur.
 
        > Example
          Create a new column called "My Column" from a vector of numbers.
@@ -50,15 +59,38 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Column
-    from_vector name items =
-        ## TODO [RW] in #6111 use a more specific storage type, and if it is a
-           type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
-        expected_storage_type = Nothing
-        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    from_vector name items value_type=Auto =
+        ## If the type does not accept date-time-like values, we can skip the
+           additional logic for polyglot conversions that would normally be used,
+           which is quite costly - so if we can guarantee it is unnecessary,
+           it is good to skip it.
+        needs_polyglot_conversion = case value_type of
+            Value_Type.Char _ _  -> False
+            Value_Type.Float _   -> False
+            Value_Type.Integer _ -> False
+            Value_Type.Boolean   -> False
+            Value_Type.Byte      -> False
+            _                    -> True
+        expected_storage_type = case value_type of
+            Auto -> Nothing
+            _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
+        raise_invalid_value_type_error problematic_value =
+            expected_type = value_type
+            actual_type = Enso_Types.most_specific_value_type problematic_value use_smallest=True
+            Error.throw (Invalid_Value_Type.Value expected_type actual_type problematic_value)
+        handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
+            java_exception = caught_panic.payload
+            raise_invalid_value_type_error java_exception.getValue
+        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
             java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
-                Java_Column.fromItems name items expected_storage_type
-            Column.Value java_column
+                case needs_polyglot_conversion of
+                    True -> Java_Column.fromItems name items expected_storage_type
+                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
+            result = Column.Value java_column . throw_on_warning Conversion_Failure
+            result.catch Conversion_Failure error->
+                if error.example_values.is_empty then result else
+                    raise_invalid_value_type_error error.example_values.first
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -1751,6 +1783,18 @@ type Column
        - function: The function to apply to each element of `self` column.
        - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
          `Nothing` values will be passed to the `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Multiply each element of the column by itself.
@@ -1758,11 +1802,11 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Boolean -> Column
-    map self function skip_nothing=True =
+    map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    map self function skip_nothing=True expected_value_type=Auto =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map new_fn
-        Column.from_vector self.name new_st
+        Column.from_vector self.name new_st value_type=expected_value_type
 
     ## ALIAS transform columns
 
@@ -1778,6 +1822,18 @@ type Column
          the value in either column is missing and automatically append
          `Nothing` to the result table. If set to `False`, every pair of values
          is passed to `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Zip two columns together as pairs.
@@ -1786,8 +1842,8 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
-    zip self that function skip_nothing=True =
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    zip self that function skip_nothing=True expected_value_type=Auto =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -1797,7 +1853,7 @@ type Column
             False -> function
         new_name = naming_helper.binary_operation_name "x" self that
         vec = self.to_vector.zip that.to_vector new_fn
-        Column.from_vector new_name vec
+        Column.from_vector new_name vec value_type=expected_value_type
 
     ## GROUP Standard.Base.Metadata
        Returns a new column, containing the same elements as `self`, but with

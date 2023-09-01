@@ -1,10 +1,19 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.resolve.{
@@ -65,7 +74,7 @@ object AutomaticParallelism extends IRPass {
     * @param blockAssignment the thread in which this line should run
     */
   private case class Line(
-    ir: IR.Expression,
+    ir: Expression,
     parallelismStatus: ParallelismStatus,
     id: Int,
     assignment: Option[AliasAnalysis.Graph.Id],
@@ -81,7 +90,7 @@ object AutomaticParallelism extends IRPass {
     */
   private case class ParallelizationSegment(
     parallelizable: List[Line],
-    pinned: List[IR.Expression]
+    pinned: List[Expression]
   )
 
   /** Computes the transitive closure of the dependency info.
@@ -177,7 +186,7 @@ object AutomaticParallelism extends IRPass {
     */
   @tailrec
   private def splitParallelBlocks(
-    exprs: List[(IR.Expression, ParallelismStatus)],
+    exprs: List[(Expression, ParallelismStatus)],
     acc: List[ParallelizationSegment] = List()
   ): List[ParallelizationSegment] = exprs match {
     case Nil => acc.reverse
@@ -199,7 +208,7 @@ object AutomaticParallelism extends IRPass {
   ): ParallelizationSegment =
     segment.copy(parallelizable = segment.parallelizable.map { line =>
       line.ir match {
-        case bind: IR.Expression.Binding =>
+        case bind: Expression.Binding =>
           val aaInfo = bind
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -219,7 +228,7 @@ object AutomaticParallelism extends IRPass {
     }: _*)
     val linesWithDeps = segment.parallelizable.map { line =>
       val deps = line.ir.preorder
-        .collect { case n: IR.Name.Literal =>
+        .collect { case n: Name.Literal =>
           n
         }
         .flatMap(_.getMetadata(AliasAnalysis))
@@ -261,7 +270,7 @@ object AutomaticParallelism extends IRPass {
   private def codeGen(
     segment: ParallelizationSegment,
     freshNameSupply: FreshNameSupply
-  ): List[IR.Expression] = {
+  ): List[Expression] = {
     val spawnedThreads = segment.parallelizable.groupBy(
       _.blockAssignment.getOrElse(
         throw new CompilerError("unassigned block in auto parallelism")
@@ -275,17 +284,17 @@ object AutomaticParallelism extends IRPass {
 
     val refVars = threadBlocks.values.flatten
       .map(_.ir)
-      .collect { case bind: IR.Expression.Binding =>
+      .collect { case bind: Expression.Binding =>
         bind.name -> freshNameSupply.newName()
       }
       .toMap
 
     val refAllocations = refVars.values.map(
-      IR.Expression
+      Expression
         .Binding(
           _,
-          IR.Application.Prefix(
-            IR.Name.Special(IR.Name.Special.NewRef, None),
+          Application.Prefix(
+            Name.Special(Name.Special.NewRef, None),
             List(),
             false,
             None
@@ -298,13 +307,13 @@ object AutomaticParallelism extends IRPass {
     val threadSpawns = threadBlocks.values.map { exprs =>
       val blockBody =
         exprs.map(_.ir).flatMap {
-          case bind: IR.Expression.Binding =>
-            val refWrite = IR.Application.Prefix(
-              IR.Name.Special(IR.Name.Special.WriteRef, None),
+          case bind: Expression.Binding =>
+            val refWrite = Application.Prefix(
+              Name.Special(Name.Special.WriteRef, None),
               List(
-                IR.CallArgument
+                CallArgument
                   .Specified(None, refVars(bind.name).duplicate(), None),
-                IR.CallArgument.Specified(None, bind.name.duplicate(), None)
+                CallArgument.Specified(None, bind.name.duplicate(), None)
               ),
               false,
               None
@@ -312,39 +321,39 @@ object AutomaticParallelism extends IRPass {
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = IR.Application.Prefix(
-        IR.Name.Special(IR.Name.Special.RunThread, None),
+      val spawn = Application.Prefix(
+        Name.Special(Name.Special.RunThread, None),
         List(
-          IR.CallArgument.Specified(
+          CallArgument.Specified(
             None,
-            IR.Expression.Block(blockBody.init, blockBody.last, None),
+            Expression.Block(blockBody.init, blockBody.last, None),
             None
           )
         ),
         false,
         None
       )
-      IR.Expression
+      Expression
         .Binding(freshNameSupply.newName(), spawn, None)
         .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      IR.Application.Prefix(
-        IR.Name.Special(IR.Name.Special.JoinThread, None),
-        List(IR.CallArgument.Specified(None, bind.name.duplicate(), None)),
+      Application.Prefix(
+        Name.Special(Name.Special.JoinThread, None),
+        List(CallArgument.Specified(None, bind.name.duplicate(), None)),
         false,
         None
       )
     }
 
     val varReads = refVars.map { case (name, ref) =>
-      IR.Expression
+      Expression
         .Binding(
           name.duplicate(),
-          IR.Application.Prefix(
-            IR.Name.Special(IR.Name.Special.ReadRef, None),
-            List(IR.CallArgument.Specified(None, ref.duplicate(), None)),
+          Application.Prefix(
+            Name.Special(Name.Special.ReadRef, None),
+            List(CallArgument.Specified(None, ref.duplicate(), None)),
             false,
             None
           ),
@@ -372,11 +381,11 @@ object AutomaticParallelism extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val newBindings = ir.bindings.map {
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         val newBody = withBodyBlock(method.body) { block =>
           val allExprs = block.expressions :+ block.returnValue
           val withParallelismStatus = allExprs.map { expr =>
@@ -444,14 +453,14 @@ object AutomaticParallelism extends IRPass {
   }
 
   @tailrec
-  private def getMonad(signature: IR.Expression): Option[String] =
+  private def getMonad(signature: Expression): Option[String] =
     signature match {
-      case lam: IR.Function.Lambda => getMonad(lam.body)
-      case app: IR.Application.Operator.Binary =>
+      case lam: Function.Lambda => getMonad(lam.body)
+      case app: Operator.Binary =>
         if (app.operator.name == "in") {
           app.right.value match {
-            case lit: IR.Name.Literal => Some(lit.name)
-            case _                    => None
+            case lit: Name.Literal => Some(lit.name)
+            case _                 => None
           }
         } else if (app.operator.name == "->") { getMonad(app.right.value) }
         else None
@@ -463,9 +472,9 @@ object AutomaticParallelism extends IRPass {
     * @param expr the expression to compute status for.
     * @return the status of `expr`.
     */
-  private def getParallelismStatus(expr: IR.Expression): ParallelismStatus =
+  private def getParallelismStatus(expr: Expression): ParallelismStatus =
     expr match {
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         // The base status of an application is computed based on the type of
         // the called function. It is then sequenced with statuses of the
         // arguments.
@@ -489,22 +498,22 @@ object AutomaticParallelism extends IRPass {
               )
           case _ => Pinned
         }
-      case bind: IR.Expression.Binding => getParallelismStatus(bind.expression)
-      case _: IR.Name                  => Pure
-      case _: IR.Literal               => Pure
-      case _: IR.Function.Lambda       => Pure
-      case _                           => Pinned
+      case bind: Expression.Binding => getParallelismStatus(bind.expression)
+      case _: Name                  => Pure
+      case _: Literal               => Pure
+      case _: Function.Lambda       => Pure
+      case _                        => Pinned
     }
 
   private def withBodyBlock(
-    expr: IR.Expression
-  )(fn: IR.Expression.Block => IR.Expression.Block): IR.Expression =
+    expr: Expression
+  )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
-      case fun: IR.Function.Binding =>
+      case fun: Function.Binding =>
         fun.copy(body = withBodyBlock(fun.body)(fn))
-      case fun: IR.Function.Lambda =>
+      case fun: Function.Lambda =>
         fun.copy(body = withBodyBlock(fun.body)(fn))
-      case block: IR.Expression.Block if block.expressions.nonEmpty =>
+      case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)
       case _ => expr
     }
@@ -518,8 +527,8 @@ object AutomaticParallelism extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
 }
