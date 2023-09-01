@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Conversion
 
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
@@ -120,7 +121,30 @@ spec =
             Hello.formulate [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
 
-Hello.from (that:Foo) = Hello.Say <| (that.foo.to_case Case.Upper) + " "
-Hello.from (that:Bar) = Hello.Say <| (that.bar.to_case Case.Lower) + "!"
+        Test.specify "Convert Foo.to Hello" <|
+            hello = Foo.Value "Perform" . to Hello
+            hello . msg . should_equal "PERFORM "
+
+        Test.specify "Convert Bar.to Hello" <|
+            hello = Bar.Value "Conversion" . to Hello
+            hello . msg . should_equal "conversion!"
+
+        Test.specify "Convert Bar.to Hello with other suffix" <|
+            hello = Bar.Value "Conversion" . to Hello suffix="?"
+            hello . msg . should_equal "conversion?"
+
+        Test.specify "Idempotent convert Hello.to Hello" <|
+            Hello.Say "Hi there!" . to Hello . msg . should_equal "Hi there!"
+
+        Test.specify "Unknown convertion Text.to Hello" <|
+            h = Panic.recover No_Such_Conversion <| "Hi there!" . to Hello
+            h . should_fail_with No_Such_Conversion
+
+        Test.specify "Use Any.to in Conversion_Use module" <|
+            Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
+            Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
+Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 
 main = Test_Suite.run_main spec
