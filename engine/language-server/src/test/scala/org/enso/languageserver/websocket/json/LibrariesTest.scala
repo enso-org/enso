@@ -53,7 +53,9 @@ class LibrariesTest extends BaseServerTest {
 
   "LocalLibraryManager" should {
     "create a library project and include it on the list of local projects" in {
-      val client = getInitialisedWsClient()
+      val client          = getInitialisedWsClient()
+      val testLibraryName = LibraryName("user", "My_Local_Lib")
+
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/listLocal",
@@ -61,24 +63,35 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      // Current project is always included as it is a project within its own parent directory.
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "localLibraries": [
-                {
-                  "namespace": "local",
-                  "name": "Test_Project",
-                  "version": {
-                    "type": "LocalLibraryVersion"
-                  },
-                  "isCached": true
-                }
-              ]
-            }
+      def getLibraryNameFromJsonDescription(lib: Json): LibraryName = {
+        inside(lib.asObject) { case Some(obj) =>
+          inside(
+            (
+              obj("namespace").flatMap(_.asString),
+              obj("name").flatMap(_.asString)
+            )
+          ) { case (Some(namespace), Some(name)) =>
+            LibraryName(namespace, name)
           }
-          """)
+        }
+      }
+
+      def findLibraryNamesInResponse(
+        response: Json
+      ): Option[Vector[LibraryName]] =
+        for {
+          obj       <- response.asObject
+          result    <- obj("result").flatMap(_.asObject)
+          libraries <- result("localLibraries").flatMap(_.asArray)
+          libraryNames = libraries.map(getLibraryNameFromJsonDescription)
+        } yield libraryNames
+
+      // The resolver may find the current project and other test projects on the path.
+      val msg1 = client.expectSomeJson()
+      inside(findLibraryNamesInResponse(msg1)) { case Some(libs) =>
+        // Ensure that before running this test, the library did not exist.
+        libs should not contain testLibraryName
+      }
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -118,31 +131,10 @@ class LibrariesTest extends BaseServerTest {
             "id": 2
           }
           """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 2,
-            "result": {
-              "localLibraries": [
-                {
-                  "namespace": "user",
-                  "name": "My_Local_Lib",
-                  "version": {
-                    "type": "LocalLibraryVersion"
-                  },
-                  "isCached": true
-                },
-                {
-                  "namespace": "local",
-                  "name": "Test_Project",
-                  "version": {
-                    "type": "LocalLibraryVersion"
-                  },
-                  "isCached": true
-                }
-              ]
-            }
-          }
-          """)
+      val msg2 = client.expectSomeJson()
+      inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
+        libs should contain(testLibraryName)
+      }
     }
 
     "fail with LibraryAlreadyExists when creating a library that already " +
