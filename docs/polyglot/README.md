@@ -24,3 +24,5 @@ It also provides language-specific documentation for the various supported
 polyglot languages. These are as follows:
 
 - [**Java:**](./java.md) Information specific to the Java polyglot bindings.
+- [**Python:**](./python.md) Information specific to the Python polyglot
+  bindings.

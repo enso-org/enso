@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
@@ -24,7 +25,11 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
 
   @Override
   public void appendNoGrow(Object o) {
-    data[currentSize++] = (LocalTime) o;
+    try {
+      data[currentSize++] = (LocalTime) o;
+    } catch (ClassCastException e) {
+      throw new ValueTypeMismatchException(getType(), o);
+    }
   }
 
   @Override

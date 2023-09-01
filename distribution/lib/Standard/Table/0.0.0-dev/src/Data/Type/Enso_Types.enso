@@ -1,7 +1,10 @@
 from Standard.Base import all
 
+import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
+
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
 
 ## PRIVATE
    Finds the most specific `Value_Type` that can be used to hold the given
@@ -13,16 +16,22 @@ import project.Data.Type.Value_Type.Value_Type
    fixed-length.
 most_specific_value_type : Any -> Boolean -> Value_Type
 most_specific_value_type value use_smallest=False =
-    ## TODO implement the `use_smallest` logic
-    _ = use_smallest
     case value of
-        _ : Integer     -> Value_Type.Integer Bits.Bits_64
         _ : Decimal     -> Value_Type.Float Bits.Bits_64
-        _ : Text        -> Value_Type.Char size=Nothing variable_length=True
         _ : Boolean     -> Value_Type.Boolean
         _ : Date        -> Value_Type.Date
         _ : Time_Of_Day -> Value_Type.Time
         _ : Date_Time   -> Value_Type.Date_Time
+        i : Integer     -> case use_smallest of
+            False -> Value_Type.Integer Bits.Bits_64
+            True ->
+                storage_type = IntegerType.smallestFitting i
+                value_type = Storage.to_value_type storage_type
+                # We do a small rewrite here - for integers we always return the Integer type, even if the value is small enough to fit in a Byte.
+                if value_type == Value_Type.Byte then Value_Type.Integer Bits.Bits_16 else value_type
+        text : Text     -> case use_smallest of
+            False -> Value_Type.Char size=Nothing variable_length=True
+            True  -> Value_Type.Char size=text.length variable_length=False
         ## TODO [RW] once we add Enso Native Object Type Value Type, we probably
            want to prefer it over Mixed
         _               -> Value_Type.Mixed

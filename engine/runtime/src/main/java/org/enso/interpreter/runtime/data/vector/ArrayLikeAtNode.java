@@ -19,6 +19,11 @@ public abstract class ArrayLikeAtNode extends Node {
     return ArrayLikeAtNodeGen.create();
   }
 
+  @NeverDefault
+  public static ArrayLikeAtNode getUncached() {
+    return ArrayLikeAtNodeGen.getUncached();
+  }
+
   //
   // implementation
   //
