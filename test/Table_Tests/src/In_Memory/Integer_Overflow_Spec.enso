@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Loss_Of_Integer_Precision, Unsupported_Operation, Invalid_Value_Type, No_Common_Type
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Unsupported_Operation, Invalid_Value_Type, No_Common_Type
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -206,7 +206,7 @@ spec =
             Problems.assume_no_problems c1
             c1.value_type . should_equal Value_Type.Mixed
 
-        Test.specify "should warn about Loss_Of_Integer_Precision when a big integer gets converted into a Float column" <|
+        Test.specify "should allow to create a Float column from a big integer, but warn about Loss_Of_Integer_Precision" <|
             # 2^70 is not exactly representable as a Float.
             (2^70 + 0.0).truncate . should_not_equal (2^70)
 
@@ -220,7 +220,15 @@ spec =
             # So there is no warning, as no real precision loss here.
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Float
+            # This will be an inexact equality, based on float rounding.
             c2.to_vector . should_equal [Java_Long.MAX_VALUE, x, 1.5]
+
+            c3 = Column.from_vector "X" [2^70, 1]
+            Problems.expect_only_warning Unsupported_Operation c3
+            c3.value_type . should_equal Value_Type.Mixed
+            c4 = c3.remove_warnings.cast Value_Type.Float
+            c4.to_vector . should_equal [2^70, 1]
+            Problems.expect_only_warning Loss_Of_Integer_Precision c4
 
         Test.specify "should warn if a mapping operation yields a numeric column with big integers" <|
             c = Column.from_vector "X" [1, 2, 3]
