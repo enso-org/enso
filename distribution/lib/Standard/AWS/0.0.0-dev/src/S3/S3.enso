@@ -1,20 +1,59 @@
 from Standard.Base import all
 
 import project.AWS_Credential.AWS_Credential
+import project.Errors.More_Records_Available
 import project.Errors.S3_Error
 import project.Internal.Auth
 
+polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
 ## GROUP Standard.Base.Input
    Gets the list of the S3 bucket names.
+
+   Arguments:
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
 list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
     client = make_client credentials
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
+
+## GROUP Standard.Base.Input
+   Gets the list of the items inside a bucket.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - prefix: the prefix of keys to match.
+   - max_count: the maximum number of items to return. The default is 1000.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
+@credentials AWS_Credential.default_widget
+list_objects : Text -> Text -> Integer -> AWS_Credential | Nothing -> Vector Text ! S3_Error
+list_objects bucket prefix="" max_count=1000 credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+    client = make_client credentials
+
+    per_request = Math.min max_count 1000
+    request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . prefix prefix . build
+
+    iterator request count current =
+        response = client.listObjectsV2 request
+        objects = response.contents.map o->o.key
+
+        result = if current != [] then current + objects else
+            (response.commonPrefixes.map p->p.prefix) + objects
+
+        if response.isTruncated.not then result else
+            new_count = count + result.length
+            if new_count >= max_count then (Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") result) else
+                new_items = Math.min (Math.max 0 max_count-new_count) 1000
+                new_request = request.toBuilder.continuationToken response.nextContinuationToken . maxKeys new_items . build
+                @Tail_Call iterator new_request new_count result
+
+    iterator request 0 []
 
 ## PRIVATE
 handle_s3_errors : Function -> Any ! S3_Error

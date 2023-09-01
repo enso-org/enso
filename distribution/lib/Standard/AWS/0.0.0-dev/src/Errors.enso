@@ -8,3 +8,12 @@ type S3_Error
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "S3 Error: " + self.message + " (" + self.code + ")"
+
+## A warning that more records are available
+type More_Records_Available
+    ## PRIVATE
+    Warning message:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.message
