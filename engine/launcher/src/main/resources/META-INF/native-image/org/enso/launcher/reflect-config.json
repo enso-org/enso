@@ -740,6 +740,10 @@
     "methods":[{"name":"<init>","parameterTypes":[] }]
   },
   {
+    "name":"ch.qos.logback.classic.pattern.NopThrowableInformationConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
     "name":"ch.qos.logback.classic.pattern.MessageConverter",
     "methods":[{"name":"<init>","parameterTypes":[] }]
   },

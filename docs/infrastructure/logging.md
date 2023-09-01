@@ -157,6 +157,8 @@ message via `pattern` field e.g.
 
 #### File Appender
 
+Enabled with `ENSO_APPENDER_DEFAULT=file` environment variable.
+
 File appender directs all log events to a log file:
 
 ```
@@ -175,9 +177,12 @@ File appender directs all log events to a log file:
 
 Rolling policy is a fully optional property of File Appender that would trigger
 automatic log rotation. All properties are optional with some reasonable
-defaults if not specified.
+defaults if missing (defined in `org.enso.logger.config.FileAppender` config
+class).
 
 #### Socket Appender
+
+Enabled with `ENSO_APPENDER_DEFAULT=socket` environment variable.
 
 Configuration
 
@@ -196,6 +201,8 @@ The two fields can be overridden via environment variables:
 
 #### Sentry Appender
 
+Enabled with `ENSO_APPENDER_DEFAULT=sentry` environment variable.
+
 ```
   {
     name = "sentry"
@@ -208,9 +215,12 @@ provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`.
 
 ## JVM Architecture
 
-Previously, Enso came with its own implementation of Logger. That has been
-replaced with a mostly off-the-shelf logging implementation, avoiding
-maintenance costs for features that were already present in them.
+Enso's logging makes use of two logging APIs - `java.util.logging` and
+`org.slf4j`. The former is being used Truffle runtime, which itself relies on
+`jul`, while the latter is used everywhere else. The implementation of the
+logging is using off the shelf `Logback` implementation with some custom setup
+methods. The two APIss cooperate by essentially forwarding log messages from the
+former to the latter.
 
 ### SLF4J Interface
 

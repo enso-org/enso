@@ -62,8 +62,8 @@ public abstract class LoggingSetupHelper {
    * @param logLevel maximal level of log events to be forwarded
    * @param logMasking true if masking of sensitive data should be applied to all log messages
    */
-  public void setupServerAndForwardLogs(Level logLevel, boolean logMasking)
-      throws MissingConfigurationField {
+  public void setup(Level logLevel, boolean logMasking) throws MissingConfigurationField {
+    initLogger();
     var loggerSetup = LoggerSetup.get();
     var config = loggerSetup.getConfig();
     if (config.loggingServerNeedsBoot()) {
@@ -112,6 +112,7 @@ public abstract class LoggingSetupHelper {
    */
   public void setup(Option<Level> logLevel, Option<URI> connectToExternalLogger, boolean logMasking)
       throws MissingConfigurationField {
+    initLogger();
     setup(logLevel, connectToExternalLogger, logMasking, LoggerSetup.get());
   }
 
@@ -128,7 +129,8 @@ public abstract class LoggingSetupHelper {
           loggerSetup.setupSocketAppender(actualLogLevel, uri.getHost(), uri.getPort());
       if (!initialized) {
         // Fallback
-        initialized = loggerSetup.setup(actualLogLevel);
+        initialized =
+            loggerSetup.setup(actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig());
         if (!initialized) {
           // Fallback to console
           initialized = loggerSetup.setupConsoleAppender(actualLogLevel);
@@ -141,7 +143,7 @@ public abstract class LoggingSetupHelper {
         loggingServiceEndpointPromise.failure(new LoggerInitializationFailed());
       }
     } else {
-      if (loggerSetup.setup(actualLogLevel)) {
+      if (loggerSetup.setup(actualLogLevel, logPath(), logFileSuffix(), loggerSetup.getConfig())) {
         Masking.setup(logMasking);
         loggingServiceEndpointPromise.success(Option.empty());
       } else {

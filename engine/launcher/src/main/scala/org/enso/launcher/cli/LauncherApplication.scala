@@ -654,8 +654,6 @@ object LauncherApplication {
           Launcher.ensurePortable()
         }
 
-        LauncherLogging.initLogger()
-
         val globalCLIOptions = cli.GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,

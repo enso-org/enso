@@ -8,9 +8,6 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 /** Defines the entry point for the launcher.
   */
 object Main {
-  private def initLogger(): Unit = {
-    LauncherLogging.initLogger()
-  }
 
   private def runAppHandlingParseErrors(args: Array[String]): Int =
     LauncherApplication.application.run(args) match {
@@ -27,7 +24,8 @@ object Main {
   /** Entry point of the application.
     */
   def main(args: Array[String]): Unit = {
-    initLogger()
+    // Disable logging prior to parsing arguments (may generate additional and unnecessary logs)
+    LauncherLogging.initLogger()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
@@ -35,7 +33,8 @@ object Main {
         }
       } catch {
         case e: Exception =>
-          logger.error(s"A fatal error has occurred: $e", e)
+          LauncherLogging.setupFallback()
+          logger.error("A fatal error has occurred: {}", e.getMessage, e)
           1
       }
 

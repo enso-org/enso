@@ -266,7 +266,6 @@ lazy val enso = (project in file("."))
     `task-progress-notifications`,
     `profiling-utils`,
     `logging-utils`,
-    `logging-jutil`,
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
@@ -685,7 +684,8 @@ lazy val `logging-utils` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.slf4j" % "slf4j-api" % slf4jVersion
     ) ++ logbackTest
   )
 
@@ -704,17 +704,6 @@ lazy val `logging-service` = project
   )
   .dependsOn(`logging-utils`)
   .dependsOn(`logging-config`)
-
-lazy val `logging-jutil` = project
-  .in(file("lib/scala/logging-jutil"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % slf4jVersion
-    )
-  )
 
 lazy val `logging-config` = project
   .in(file("lib/scala/logging-config"))
@@ -1186,7 +1175,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
-  .dependsOn(`logging-jutil`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
   .dependsOn(`text-buffer`)
@@ -1744,7 +1732,6 @@ lazy val `engine-runner` = project
   .dependsOn(cli)
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
-  .dependsOn(`logging-jutil`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
