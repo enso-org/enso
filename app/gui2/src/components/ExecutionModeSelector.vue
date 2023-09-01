@@ -33,13 +33,11 @@ useDocumentEvent('click', onDocumentClick)
 <template>
   <div class="ExecutionModeSelectorContainer">
     <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
-      <div>
-        <span v-text="modelValue" @click="isDropdownOpen = !isDropdownOpen" class="button"></span>
+      <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
+        <span v-text="modelValue"></span>
       </div>
-      <div class="divider">
-        <div></div>
-      </div>
-      <img :src="WorkflowPlayIcon" class="button" draggable="false" />
+      <div class="divider"></div>
+      <img :src="WorkflowPlayIcon" class="play button" draggable="false" />
     </div>
     <div v-if="isDropdownOpen" ref="executionModeDropdownNode" class="ExecutionModeDropdown">
       <template v-for="otherMode in EXECUTION_MODES" :key="otherMode">
@@ -67,19 +65,21 @@ span {
   display: flex;
   border-radius: var(--radius-full);
   background: #64b526;
+}
+
+.ExecutionModeSelector>.execution-mode {
   padding-left: 8px;
-  padding-right: 8px;
+  padding-right: 7.5px;
 }
 
 .ExecutionModeSelector>.divider {
-  display: flex;
-  width: 16px;
-  justify-content: space-around;
-}
-
-.ExecutionModeSelector>.divider>div {
   width: 1px;
   background-color: rgba(0, 0, 0, 0.12);
+}
+
+.ExecutionModeSelector>.play {
+  padding-left: 7.5px;
+  padding-right: 8px;
 }
 
 .ExecutionModeDropdown {
