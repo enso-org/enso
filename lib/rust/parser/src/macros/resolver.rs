@@ -30,7 +30,6 @@ use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
 
-use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use std::collections::VecDeque;
 
@@ -122,16 +121,17 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    blocks:   Vec<Block>,
+    blocks:     Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines:    Vec<syntax::item::Line<'s>>,
+    lines:      Vec<syntax::item::Line<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros:   Vec<PartiallyMatchedMacro<'s>>,
+    macros:     Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments: Vec<MatchedSegment<'s>>,
+    segments:   Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:    Vec<syntax::Item<'s>>,
-    context:  Context,
+    items:      Vec<syntax::Item<'s>>,
+    context:    Context,
+    precedence: syntax::operator::Precedence<'s>,
 }
 
 
@@ -147,7 +147,16 @@ impl<'s> Resolver<'s> {
         let segments = default();
         let items = default();
         let context = Context::Statement;
-        Self { blocks: scopes, lines: open_blocks, macros: macro_stack, segments, items, context }
+        let precedence = syntax::operator::Precedence::new();
+        Self {
+            blocks: scopes,
+            lines: open_blocks,
+            macros: macro_stack,
+            segments,
+            items,
+            context,
+            precedence,
+        }
     }
 
     /// Run the resolver. Returns the resolved AST.
@@ -158,9 +167,8 @@ impl<'s> Resolver<'s> {
     ) -> syntax::Tree<'s> {
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
         self.finish_current_line();
-        let mut precedence = syntax::operator::Precedence::new();
         let lines = self.lines.drain(..).map(|syntax::item::Line { newline, items }| {
-            syntax::tree::block::Line { newline, expression: precedence.resolve(items) }
+            syntax::tree::block::Line { newline, expression: self.precedence.resolve(items) }
         });
         let tree = syntax::tree::block::body_from_lines(lines);
         debug_assert!(self.blocks.is_empty());
@@ -331,7 +339,7 @@ impl<'s> Resolver<'s> {
     fn resolve(&mut self, m: PartiallyMatchedMacro<'s>) {
         let PartiallyMatchedMacro { matched_macro_def, segments_start, .. } = m;
         if let Some(macro_def) = matched_macro_def {
-            self.resolve_match(&*macro_def, segments_start)
+            self.resolve_match(&macro_def, segments_start)
         } else {
             self.resolve_failed_match(segments_start)
         };
@@ -364,7 +372,8 @@ impl<'s> Resolver<'s> {
                     match_result;
                 pattern::MatchedSegment::new(header, match_result.unwrap().matched)
             };
-            (macro_def.body)(pattern_matched_segments.mapped(unwrap_match))
+            let parser = &mut self.precedence;
+            (macro_def.body)(pattern_matched_segments.mapped(unwrap_match), parser)
         } else {
             // The input matched a macro invocation pattern, except extra tokens were found in
             // some segment. Since the start and end of a pattern were found, we know (probably)
@@ -382,13 +391,11 @@ impl<'s> Resolver<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) =
-                    syntax::operator::resolve_operator_precedence_if_non_empty(excess)
-                {
+                if let Some(excess) = self.precedence.resolve(excess) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = syntax::operator::resolve_operator_precedence_if_non_empty(tokens);
+                let body = self.precedence.resolve(tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)
@@ -409,6 +416,7 @@ impl<'s> Resolver<'s> {
         }
         let segment0 = self.segments.pop().unwrap();
         let header0 = syntax::tree::to_ast(segment0.header).with_error("Invalid macro invocation.");
+        items.extend(self.items.drain(segment0.items_start..).rev());
         self.items.push(header0.into());
         self.items.extend(items.into_iter().rev());
     }
@@ -459,27 +467,11 @@ struct PartiallyMatchedMacro<'s> {
     segments_start:         usize,
 }
 
-impl<'a> PartiallyMatchedMacro<'a> {
-    /// A new macro resolver with a special "root" segment definition. The "root" segment does not
-    /// exist in the source code, it is simply the whole expression being parsed. It is treated
-    /// as a macro in order to unify the algorithms.
-    pub fn new_root() -> Self {
-        let segments_start = default();
-        let possible_next_segments = default();
-        let matched_macro_def = Some(Rc::new(macros::Definition {
-            segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
-                header:  "__ROOT__",
-                pattern: pattern::everything(),
-            }),
-            body:     Rc::new(|v| {
-                // Taking the first segment, hardcoded above.
-                let body = v.pop().0.result;
-                syntax::operator::resolve_operator_precedence_if_non_empty(body.tokens()).unwrap()
-            }),
-        }));
-        Self { segments_start, possible_next_segments, matched_macro_def }
-    }
-}
+
+
+// ======================
+// === MatchedSegment ===
+// ======================
 
 #[derive(Debug)]
 struct MatchedSegment<'s> {
