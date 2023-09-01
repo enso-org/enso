@@ -33,8 +33,12 @@
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
 
+  --color-text-light: rgba(255, 255, 255, 0.7);
+
   --color-widget: rgba(255, 255, 255, 0.12);
   --color-widget-selected: rgba(255, 255, 255, 0.58);
+
+  --color-port-connected: rgba(255, 255, 255, 0.15);
 }
 
 /* non-color variables for this project */
@@ -78,4 +82,8 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.button {
+  cursor: pointer;
 }
