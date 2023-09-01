@@ -45,12 +45,13 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
         findLibraryHelper(libraryName, tail)
       } else {
         if (candidates.size > 1) {
+          val firstCandidate = candidates.minBy(_.getFileName.toString)
           logger.warn(
             s"Found multiple libraries with the same name and namespace in a single directory: " +
             s"${candidates.map(_.getFileName.toString).mkString(", ")}. " +
-            s"Choosing the first one."
+            s"Choosing the first one (${firstCandidate.getFileName})."
           )
-          Some(candidates.minBy(_.getFileName.toString))
+          Some(firstCandidate)
         } else {
           val found = candidates.head
           logger.trace(
