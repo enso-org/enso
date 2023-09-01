@@ -940,7 +940,7 @@ spec make_new_connection prefix persistent_connector=True =
             table = target_table_builder [["X", [1, 2, 2, 3, 4, 4]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f']]] primary_key=[]
             keys = source_table_builder [["X", [2, 4]], ["Y", ['b', 'f']]]
             affected_rows = table.delete_rows keys key_columns=["X", "Y"]
-            affected_rows . should_equal 1
+            affected_rows . should_equal 2
             table.rows.map .to_vector . should_equal [[1, "a"], [2, "c"], [3, "d"], [4, "e"]]
 
         Test.specify "should fail if key_columns are missing in source or target tables" <|
