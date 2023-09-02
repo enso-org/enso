@@ -87,6 +87,10 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
     }
   }
 
+  public void appendRawNoGrow(BigInteger value) {
+    data[currentSize++] = value;
+  }
+
   @Override
   public AggregatedProblems getProblems() {
     AggregatedProblems parent = super.getProblems();
