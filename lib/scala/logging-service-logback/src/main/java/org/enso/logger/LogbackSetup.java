@@ -12,8 +12,6 @@ import ch.qos.logback.core.helpers.NOPAppender;
 
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
-import ch.qos.logback.core.status.Status;
-import ch.qos.logback.core.status.StatusListener;
 import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
 import io.sentry.SentryLevel;

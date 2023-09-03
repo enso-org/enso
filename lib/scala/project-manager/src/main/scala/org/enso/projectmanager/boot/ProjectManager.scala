@@ -234,11 +234,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
-      logger.info(
-        "Starting {}",
-        makeVersionDescription.asString(useJson = false)
-      )
       for {
+        _        <- displayVersion(false)
         opts     <- parseOpts(options)
         logLevel <- setupLogging(verbosity, logMasking)
         procConf = MainProcessConfig(
@@ -270,6 +267,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     ZIO
       .attempt {
         Logging.setup(level, logMasking)
+        Logging.waitForSetup()
         ()
       }
       .catchAll { exception =>
