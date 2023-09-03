@@ -12,9 +12,13 @@ import ch.qos.logback.core.helpers.NOPAppender;
 
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
+import ch.qos.logback.core.status.Status;
+import ch.qos.logback.core.status.StatusListener;
 import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
+import io.sentry.SentryLevel;
 import io.sentry.SentryOptions;
+import io.sentry.SystemOutLogger;
 import io.sentry.logback.SentryAppender;
 
 import java.io.File;
@@ -28,6 +32,7 @@ import org.slf4j.event.Level;
 
 @org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
+
     private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
         this.config = config;
         this.context = context;
@@ -202,7 +207,9 @@ public final class LogbackSetup extends LoggerSetup {
     }
 
     @Override
-    public boolean setupSentryAppender(Level logLevel) {
+    public boolean setupSentryAppender(Level logLevel, Path logRoot) {
+        // TODO: handle proxy
+        // TODO: shutdown timeout configuration
         try {
             LoggerAndContext env = contextInit(logLevel, config);
 
@@ -212,6 +219,20 @@ public final class LogbackSetup extends LoggerSetup {
             }
             SentryAppender appender = new SentryAppender();
             SentryOptions opts = new SentryOptions();
+            if (appenderConfig.isDebugEnabled()) {
+                opts.setDebug(true);
+                opts.setLogger(new SystemOutLogger());
+                opts.setDiagnosticLevel(SentryLevel.ERROR);
+            }
+            if (logRoot == null) {
+                opts.setCacheDirPath("sentry");
+            } else {
+                opts.setCacheDirPath(logRoot.resolve(".sentry").toAbsolutePath().toString());
+            }
+            if (appenderConfig.getFlushTimeoutMs() != null) {
+                opts.setFlushTimeoutMillis(appenderConfig.getFlushTimeoutMs());
+            }
+            appender.setMinimumEventLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel));
             opts.setDsn(appenderConfig.getDsn());
             appender.setOptions(opts);
 

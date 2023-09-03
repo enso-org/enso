@@ -22,10 +22,11 @@ class LoggingServer extends LoggingService<URI> {
   public URI start(Level level, Path path, String prefix, Appender appender) {
     var lc = new LoggerContext();
     var setup = LogbackSetup.forContext(lc, appender);
-    setup.setup(level, path, prefix, setup.getConfig());
+
     logServer = new SimpleSocketServer(lc, port);
     logServer.start();
     try {
+      setup.setup(level, path, prefix, setup.getConfig());
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);

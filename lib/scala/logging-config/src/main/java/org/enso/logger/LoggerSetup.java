@@ -8,9 +8,6 @@ import org.slf4j.event.Level;
 
 /** Base class to be implemented by the underlying logging implementation. */
 public abstract class LoggerSetup {
-
-  private static final ServiceLoader<LoggerSetup> loader =
-      ServiceLoader.load(LoggerSetup.class, LoggerSetup.class.getClassLoader());
   private static LoggerSetup _instance;
 
   static {
@@ -59,9 +56,10 @@ public abstract class LoggerSetup {
    * sentry's dependency appropriate to the logging implementation.
    *
    * @param logLevel the maximal level of logs that will be displayed
+   * @param logRoot the root directory where logs are located
    * @return true if logger was setup correctly, false otherwise
    */
-  public abstract boolean setupSentryAppender(Level logLevel);
+  public abstract boolean setupSentryAppender(Level logLevel, Path logRoot);
 
   /**
    * Sets up loggers so that all events are being discarded.

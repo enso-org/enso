@@ -685,7 +685,7 @@ lazy val `logging-utils` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      "org.slf4j" % "slf4j-api" % slf4jVersion
+      "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest
   )
 
@@ -725,7 +725,7 @@ lazy val `logging-service-logback` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-      "io.sentry"        % "sentry-logback"          % "6.28.0"           % Provided,
+      "io.sentry"        % "sentry-logback"          % "6.28.0",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
   )
@@ -890,6 +890,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           "zio.internal.ZScheduler$$anon$4",
           "zio.Runtime$",
           "zio.FiberRef$"
+        ),
+        additionalOptions = Seq(
+          "--trace-class-initialization=com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder,com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder"
         )
       )
       .dependsOn(VerifyReflectionSetup.run)

@@ -207,11 +207,16 @@ Enabled with `ENSO_APPENDER_DEFAULT=sentry` environment variable.
   {
     name = "sentry"
     dsn = <string, required>
+    flush-timeout = <int, optional>
+    debug = <boolean, optional>
   }
 ```
 
 Sentry's Appender has a single required field, `dsn`. The `dsn` value can be
-provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`.
+provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`. `flush-timeout`
+determines how often logger should send its collected events to sentry.io
+service. If `debug` value is `true`, logging will print to stdout additional
+trace information of the logging process itself.
 
 ## JVM Architecture
 
@@ -221,6 +226,15 @@ Enso's logging makes use of two logging APIs - `java.util.logging` and
 logging is using off the shelf `Logback` implementation with some custom setup
 methods. The two APIss cooperate by essentially forwarding log messages from the
 former to the latter.
+
+While typically any SLF4J customization would be performed via custom
+`LoggerFacotry` and `Logger` implementation that is returned via a
+`StaticLoggerBinder` instance, this is not possible for our use-case:
+
+- file logging requires Enso-specific directory which is only known during
+  runtime
+- centralized logging
+- modifying log levels without recompilation
 
 ### SLF4J Interface
 
