@@ -159,7 +159,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case definition.Method
                 .Conversion(
-                  Name.MethodReference(_, _, _, _, _),
+                  Name.MethodReference(_, _, _, _, _), // don't ignore type pointer
                   Name.Literal(sourceTypeName, _, _, _, _),
                   Function.Lambda(args, body, _, _, _, _),
                   _,
@@ -746,7 +746,7 @@ final class SuggestionBuilder[A: IndexedSource](
 object SuggestionBuilder {
 
   /** TODO[DB] enable conversions when they get the runtime support. */
-  private val ConversionsEnabled: Boolean = false
+  private val ConversionsEnabled: Boolean = true
 
   /** Creates the suggestion builder for a module.
     *
