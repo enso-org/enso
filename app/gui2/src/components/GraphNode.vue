@@ -3,7 +3,7 @@ import type { ContentRange, ExprId, Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import NodeSpan from './NodeSpan.vue'
+import NodeSpan from '@/components/NodeSpan.vue'
 
 const props = defineProps<{
   node: Node
@@ -234,19 +234,24 @@ onUpdated(() => {
     }
   }
 })
+
+const VISUALIZATION_TYPES = [] as const
+type VisualizationType = typeof VISUALIZATION_TYPES[number]
+
+const visualizationVisible = ref(false)
+const visualizationType = ref<VisualizationType>('a')
 </script>
 
 <template>
   <div class="Node" ref="rootNode" :style="{ transform }">
-    <div class="binding">{{ node.binding }}</div>
-    <div
-      class="editable"
-      contenteditable
-      ref="editableRoot"
-      @beforeinput="editContent"
-      spellcheck="false"
-    >
-      <NodeSpan :content="node.content" :span="node.rootSpan" @updateExprRect="updateExprRect" />
+    <div class="binding" @click="visualizationVisible = !visualizationVisible">{{ node.binding }}</div>
+    <div class="container">
+      <div class="editable" contenteditable ref="editableRoot" @beforeinput="editContent" spellcheck="false">
+        <NodeSpan :content="node.content" :span="node.rootSpan" @updateExprRect="updateExprRect" />
+      </div>
+      <div v-if="visualizationVisible" class="visualization">
+        <div></div>
+      </div>
     </div>
   </div>
 </template>
@@ -264,11 +269,11 @@ onUpdated(() => {
   align-items: center;
   white-space: nowrap;
   background: #222;
-  padding: 5px 10px;
   border-radius: 20px;
 }
 
 .binding {
+  user-select: none;
   color: #ccc;
   margin-right: 10px;
   position: absolute;
@@ -279,5 +284,20 @@ onUpdated(() => {
 
 .editable {
   outline: none;
+  margin: 4px 8px;
+}
+
+.container {
+  position: relative;
+}
+
+.visualization {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  background: #222;
+  border-radius: 16px;
 }
 </style>
