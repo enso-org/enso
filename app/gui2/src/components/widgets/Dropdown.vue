@@ -48,7 +48,7 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 <template>
   <div :tabindex="-1" class="DropdownContainer" @wheel.stop>
     <div class="Dropdown" :style="{ background: color }">
-      <template v-for="[value, index] in sortedValuesAndIndices">
+      <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
         <div v-if="value === selectedValue">
           <div class="selected-item"><span v-text="value"></span></div>
         </div>
