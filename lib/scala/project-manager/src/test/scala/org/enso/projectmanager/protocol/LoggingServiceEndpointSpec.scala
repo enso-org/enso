@@ -1,11 +1,11 @@
 package org.enso.projectmanager.protocol
 
-import akka.http.scaladsl.model.Uri
 import io.circe.literal.JsonStringContext
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
+import java.net.URI
 
 class LoggingServiceEndpointSpec extends BaseServerSpec with FlakySpec {
 
@@ -34,7 +34,7 @@ class LoggingServiceEndpointSpec extends BaseServerSpec with FlakySpec {
     "return the endpoint if it has been set-up" in {
       implicit val client = new WsTestClient(address)
       loggingService.withOverriddenEndpoint(
-        Future.successful(Some(Uri("ws://test-uri/")))
+        Future.successful(Some(URI.create("ws://test-uri/")))
       ) {
         client.send(json"""
             { "jsonrpc": "2.0",

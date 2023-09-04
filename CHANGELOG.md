@@ -932,6 +932,7 @@
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
 - [Support renaming variable or function][7515]
+- [Replace custom logging service with off the shelf library][7559]
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
@@ -1069,6 +1070,7 @@
 [7420]: https://github.com/enso-org/enso/pull/7420
 [7397]: https://github.com/enso-org/enso/pull/7397
 [7515]: https://github.com/enso-org/enso/pull/7515
+[7559]: https://github.com/enso-org/enso/pull/7559
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
 [7613]: https://github.com/enso-org/enso/pull/7613

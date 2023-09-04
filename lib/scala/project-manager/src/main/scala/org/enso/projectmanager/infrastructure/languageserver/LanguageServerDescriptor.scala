@@ -1,14 +1,13 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
 
+import java.net.URI
 import java.nio.file.Path
 import java.util.UUID
-
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
@@ -32,7 +31,7 @@ import scala.concurrent.duration.FiniteDuration
   *                                       logging service has been fully set-up;
   *                                       if the child component should connect
   *                                       to the logging service, it should
-  *                                       contain the Uri to connect to
+  *                                       contain the URI to connect to
   * @param skipGraalVMUpdater indicates if the check and installation of GraalVM
   *                              should be skipped
   */
@@ -48,6 +47,6 @@ case class LanguageServerDescriptor(
   profilingEventsLogPath: Option[Path],
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
-  deferredLoggingServiceEndpoint: Future[Option[Uri]],
+  deferredLoggingServiceEndpoint: Future[Option[URI]],
   skipGraalVMUpdater: Boolean
 )
