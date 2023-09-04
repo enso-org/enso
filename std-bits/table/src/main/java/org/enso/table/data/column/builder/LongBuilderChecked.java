@@ -4,6 +4,7 @@ import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.AggregatedProblems;
 
 /** A LongBuilder that ensures values it is given fit the target type. */
@@ -25,8 +26,12 @@ public class LongBuilderChecked extends LongBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else {
-      long x = NumericConverter.coerceToLong(o);
-      appendLongNoGrow(x);
+      try {
+        long x = NumericConverter.coerceToLong(o);
+        appendLongNoGrow(x);
+      } catch (UnsupportedOperationException e) {
+        throw new ValueTypeMismatchException(type, o);
+      }
     }
   }
 

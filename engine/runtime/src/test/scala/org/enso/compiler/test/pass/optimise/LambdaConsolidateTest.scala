@@ -2,13 +2,23 @@ package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
+import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+
 class LambdaConsolidateTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -25,17 +35,17 @@ class LambdaConsolidateTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(List(precursorPasses), passConfiguration)
 
-  /** Adds an extension method to run lambda consolidation on an [[IR.Module]].
+  /** Adds an extension method to run lambda consolidation on an [[Module]].
     *
     * @param ir the module to run lambda consolidation on
     */
-  implicit class OptimiseModule(ir: IR.Module) {
+  implicit class OptimiseModule(ir: Module) {
 
     /** Runs lambda consolidation on a module.
       *
       * @return [[ir]], with chained lambdas consolidated
       */
-    def optimise: IR.Module = {
+    def optimise: Module = {
       LambdaConsolidate.runModule(
         ir,
         buildModuleContext(passConfiguration = Some(passConfiguration))
@@ -44,11 +54,11 @@ class LambdaConsolidateTest extends CompilerTest {
   }
 
   /** Adds an extension method to run lambda consolidation on an
-    * [[IR.Expression]].
+    * [[Expression]].
     *
     * @param ir the expression to run lambda consolidation on
     */
-  implicit class OptimiseExpression(ir: IR.Expression) {
+  implicit class OptimiseExpression(ir: Expression) {
 
     /** Runs lambda consolidation on an expression.
       *
@@ -56,7 +66,7 @@ class LambdaConsolidateTest extends CompilerTest {
       *                      expression
       * @return [[ir]], with chained lambdas consolidated
       */
-    def optimise(implicit inlineContext: InlineContext): IR.Expression = {
+    def optimise(implicit inlineContext: InlineContext): Expression = {
       LambdaConsolidate.runExpression(ir, inlineContext)
     }
   }
@@ -84,10 +94,10 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |x -> y -> z -> x + y + z
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 3
-      ir.body shouldBe an[IR.Application]
+      ir.body shouldBe an[Application]
     }
 
     "rename shadowed parameters" in {
@@ -97,19 +107,19 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |x -> z -> y -> x -> y -> x + y
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name should not equal "x"
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name]
+        .asInstanceOf[Name]
         .name shouldEqual "x"
     }
 
@@ -120,7 +130,7 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |x -> y -> (z = x) -> x + y + z
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 3
       ir.arguments(2).defaultValue shouldBe defined
@@ -133,28 +143,28 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |x -> (y = x) -> (x = x + 1) -> x + y
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       // Usages of `x` and `y` should be untouched
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "x"
       ir.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "y"
 
       // The first argument `x` should be renamed
       val newXName = ir.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name
 
@@ -162,21 +172,21 @@ class LambdaConsolidateTest extends CompilerTest {
 
       // Usages of the first argument `x` should be replaced by the new name
       ir.arguments(1)
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .defaultValue
         .get
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual newXName
       ir.arguments(2)
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .defaultValue
         .get
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
-        .asInstanceOf[IR.CallArgument.Specified]
+        .asInstanceOf[CallArgument.Specified]
         .value
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual newXName
     }
 
@@ -187,14 +197,14 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |~x -> ~y -> x + y
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 2
       ir.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
       ir.arguments(1)
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
     }
 
@@ -203,12 +213,12 @@ class LambdaConsolidateTest extends CompilerTest {
       val ir = """
                  |x -> (y = x->y->z) -> y x
                  |""".stripMargin.preprocessExpression.get.optimise
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       ir.arguments.length shouldEqual 2
       val defaultExpr = ir.arguments(1).defaultValue.get
-      defaultExpr shouldBe a[IR.Function.Lambda]
+      defaultExpr shouldBe a[Function.Lambda]
       defaultExpr
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .arguments
         .length shouldEqual 2
     }
@@ -216,30 +226,30 @@ class LambdaConsolidateTest extends CompilerTest {
     "collapse lambdas with multiple parameters" in {
       implicit val inlineContext: InlineContext = mkContext
 
-      val ir: IR.Function.Lambda = IR.Function
+      val ir: Function.Lambda = Function
         .Lambda(
           List(
-            IR.DefinitionArgument
+            DefinitionArgument
               .Specified(
-                IR.Name
+                Name
                   .Literal("a", isMethod = false, None),
                 None,
                 None,
                 suspended = false,
                 None
               ),
-            IR.DefinitionArgument.Specified(
-              IR.Name.Literal("b", isMethod = false, None),
+            DefinitionArgument.Specified(
+              Name.Literal("b", isMethod = false, None),
               None,
               None,
               suspended = false,
               None
             )
           ),
-          IR.Function.Lambda(
+          Function.Lambda(
             List(
-              IR.DefinitionArgument.Specified(
-                IR.Name
+              DefinitionArgument.Specified(
+                Name
                   .Literal("c", isMethod = false, None),
                 None,
                 None,
@@ -247,26 +257,26 @@ class LambdaConsolidateTest extends CompilerTest {
                 None
               )
             ),
-            IR.Name.Literal("c", isMethod = false, None),
+            Name.Literal("c", isMethod = false, None),
             None
           ),
           None
         )
         .runPasses(passManager, inlineContext)
         .optimise
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 3
       ir.arguments.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "a"
       ir.arguments(1)
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "b"
       ir.arguments(2)
-        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "c"
     }
@@ -278,15 +288,15 @@ class LambdaConsolidateTest extends CompilerTest {
         """
           |x -> x -> x
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
-      val warnings = ir.arguments.head.diagnostics.toList.collect {
-        case w: IR.Warning.Shadowed.FunctionParam => w
+      val ws = ir.arguments.head.diagnostics.toList.collect {
+        case w: warnings.Shadowed.FunctionParam => w
       }
 
-      warnings should not be empty
-      warnings.head.shadowedName shouldEqual "x"
-      warnings.head.shadower shouldBe ir.arguments(1)
+      ws should not be empty
+      ws.head.shadowedName shouldEqual "x"
+      ws.head.shadower shouldBe ir.arguments(1)
     }
 
     "consolidate chained lambdas if the chaining occurs via a single-lined block" in {
@@ -297,7 +307,7 @@ class LambdaConsolidateTest extends CompilerTest {
           |x ->
           |    y -> x + y
           |""".stripMargin.preprocessExpression.get.optimise
-          .asInstanceOf[IR.Function.Lambda]
+          .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 2
     }

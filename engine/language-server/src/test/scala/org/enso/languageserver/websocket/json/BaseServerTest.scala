@@ -297,15 +297,19 @@ class BaseServerTest
       )
     )
 
+    val libraryLocations =
+      LibraryLocations.resolve(
+        distributionManager,
+        Some(languageHome),
+        Some(config.projectContentRoot.file.toPath)
+      )
+
     val localLibraryManager = system.actorOf(
       LocalLibraryManager.props(
         config.projectContentRoot.file,
-        distributionManager
+        libraryLocations
       )
     )
-
-    val libraryLocations =
-      LibraryLocations.resolve(distributionManager, Some(languageHome))
 
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,

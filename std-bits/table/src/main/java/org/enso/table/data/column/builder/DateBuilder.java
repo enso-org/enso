@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public class DateBuilder extends TypedBuilderImpl<LocalDate> {
@@ -24,7 +25,11 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
 
   @Override
   public void appendNoGrow(Object o) {
-    data[currentSize++] = (LocalDate) o;
+    try {
+      data[currentSize++] = (LocalDate) o;
+    } catch (ClassCastException e) {
+      throw new ValueTypeMismatchException(getType(), o);
+    }
   }
 
   public void appendDate(LocalDate date) {

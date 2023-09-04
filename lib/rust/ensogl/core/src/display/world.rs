@@ -29,7 +29,9 @@ use crate::system::gpu::shader;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
+use web::prelude::Closure;
 use web::JsCast;
+use web::JsValue;
 
 
 // ==============
@@ -427,7 +429,7 @@ pub struct WorldData {
     stats: Stats,
     stats_monitor: debug::monitor::Monitor,
     pub on: Callbacks,
-    debug_hotkeys_handle: Rc<RefCell<Option<web::CleanupHandle>>>,
+    debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
     update_themes_handle: callback::Handle,
     garbage_collector: garbage::Collector,
     emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
@@ -494,7 +496,7 @@ impl WorldData {
         let display_mode = self.display_mode.clone_ref();
         let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
-        let closure = move |val: web::Event| {
+        let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
             if event.alt_key() && event.ctrl_key() {
@@ -529,10 +531,8 @@ impl WorldData {
                     display_mode_uniform.set(code_value as i32);
                 }
             }
-        };
-        let options = web::ListenerOptions::new().capture();
-        let handle =
-            web::add_event_listener_with_options(&web::window, "keydown", options, closure);
+        });
+        let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
         *self.debug_hotkeys_handle.borrow_mut() = Some(handle);
     }
 

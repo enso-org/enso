@@ -14,7 +14,7 @@ pub const PACKAGE: GithubRelease<&str> = GithubRelease {
 };
 
 const PATCH_LINE: &str =
-    "; module.exports = { ccall, getValue, _msdfgen_getKerning, _msdfgen_setVariationAxis,\
+    "; export { ccall, getValue, _msdfgen_getKerning, _msdfgen_setVariationAxis,\
     _msdfgen_generateAutoframedMSDF, _msdfgen_generateAutoframedMSDFByIndex, \
     _msdfgen_result_getMSDFData, _msdfgen_result_getAdvance, _msdfgen_result_getTranslation,\
     _msdfgen_result_getScale, _msdfgen_freeResult, _msdfgen_freeFont,\

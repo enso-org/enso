@@ -21,6 +21,8 @@ import org.enso.librarymanager.published.{
   PublishedLibraryProvider
 }
 
+import java.nio.file.Path
+
 /** A helper class for loading libraries.
   *
   * @param localLibraryProvider     provider of local (unpublished) libraries
@@ -108,6 +110,7 @@ object DefaultLibraryProvider {
     lockUserInterface: LockUserInterface,
     progressReporter: ProgressReporter,
     languageHome: Option[LanguageHome],
+    projectRoot: Option[Path],
     edition: Editions.ResolvedEdition,
     preferLocalLibraries: Boolean
   ): ResolvingLibraryProvider = {
@@ -116,7 +119,8 @@ object DefaultLibraryProvider {
       resourceManager,
       lockUserInterface,
       progressReporter,
-      languageHome
+      languageHome,
+      projectRoot
     )
 
     new DefaultLibraryProvider(
@@ -133,12 +137,14 @@ object DefaultLibraryProvider {
     resourceManager: ResourceManager,
     lockUserInterface: LockUserInterface,
     progressReporter: ProgressReporter,
-    languageHome: Option[LanguageHome]
+    languageHome: Option[LanguageHome],
+    projectRoot: Option[Path]
   ): (
     LocalLibraryProvider,
     PublishedLibraryProvider with PublishedLibraryCache
   ) = {
-    val locations = LibraryLocations.resolve(distributionManager, languageHome)
+    val locations =
+      LibraryLocations.resolve(distributionManager, languageHome, projectRoot)
     val primaryCache = new DownloadingLibraryCache(
       locations.primaryCacheRoot,
       TemporaryDirectoryManager(distributionManager, resourceManager),

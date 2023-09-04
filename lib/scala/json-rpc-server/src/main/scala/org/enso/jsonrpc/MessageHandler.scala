@@ -6,8 +6,8 @@ import org.enso.jsonrpc.Errors.InvalidParams
 
 /** An actor responsible for passing parsed massages between the web and
   * a controller actor.
-  * @param protocol a factory for retrieving protocol object describing supported messages and their
-  *                 serialization modes.
+  * @param protocolFactory a factory for retrieving protocol object describing
+  * supported messages and their serialization modes.
   * @param controller the controller actor, handling parsed messages.
   */
 class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
@@ -32,7 +32,7 @@ class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
     *                          response deserialization.
     * @return the connected actor behavior.
     */
-  def established(
+  private def established(
     webConnection: ActorRef,
     awaitingResponses: Map[Id, Method]
   ): Receive = {

@@ -60,7 +60,7 @@ macro_rules! auto_impl_mock_default {
     };
 }
 
-auto_impl_mock_default!(bool, i16, i32, u16, u32, f64, String);
+auto_impl_mock_default!(bool, i16, i32, u32, f64, String);
 
 
 
@@ -75,13 +75,11 @@ pub trait MockData {}
 #[macro_export]
 macro_rules! mock_struct {
     ( $([$opt:ident])?
-        $(#[$meta:meta])*
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
     ) => {
         #[allow(missing_copy_implementations)]
         #[allow(non_snake_case)]
         #[allow(missing_docs)]
-        $(#[$meta])*
         pub struct $name $(<$($param $(:?$param_tp)?),*>)? {
             $($( $param : PhantomData<$param> ),*)?
         }
@@ -271,13 +269,12 @@ macro_rules! mock_fn_gen_print {
 #[macro_export(local_inner_macros)]
 macro_rules! mock_data {
     ( $([$opt:ident])?
-        $(#[$meta:meta])*
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
         $(
             fn $fn_name:ident $(<$($fn_tp:ident),*>)? ($($args:tt)*) $(-> $out:ty)?;
         )*
     ) => {
-        mock_struct!{$([$opt])? $(#[$meta])* $name $(<$($param $(:?$param_tp)?),*>)? $(=> $deref)?}
+        mock_struct!{$([$opt])? $name $(<$($param $(:?$param_tp)?),*>)? $(=> $deref)?}
         impl $(<$($param $(:?$param_tp)?),*>)? $name $(<$($param),*>)? {
             $(
                 mock_pub_fn!{$fn_name $(<$($fn_tp),*>)? ($($args)*) $(-> $out)?}
@@ -514,48 +511,18 @@ mock_data! { Object => JsValue
 
 
 // === EventTarget ===
-mock_data! { EventTarget => Object }
-
-// === RawCleanupHandle ===
-
-mock_data! { RawCleanupHandle
-    fn cleanup(&self);
-}
-/// Register an event listener callback with JS-side cleanup.
-pub fn register_event_listener(
-    target: &EventTarget,
-    event: &str,
-    callback: &Function,
-    options: &AddEventListenerOptions,
-) -> RawCleanupHandle {
-    let _ = (target, event, callback, options);
-    RawCleanupHandle::const_new()
-}
-/// Register a timeout callback with JS-side cleanup.
-pub fn register_timeout(callback: &Function, timeout: u32) -> RawCleanupHandle {
-    let _ = (callback, timeout);
-    RawCleanupHandle::const_new()
-}
-/// Register an interval callback with JS-side cleanup.
-pub fn register_interval(callback: &Function, interval: u32) -> RawCleanupHandle {
-    let _ = (callback, interval);
-    RawCleanupHandle::const_new()
-}
-/// Register an animation frame callback with JS-side cleanup.
-pub fn register_animation_frame(callback: &Function) -> RawCleanupHandle {
-    let _ = callback;
-    RawCleanupHandle::const_new()
-}
-/// Register a microtask callback with JS-side cleanup.
-pub fn register_queue_microtask(callback: &Function) -> RawCleanupHandle {
-    let _ = callback;
-    RawCleanupHandle::const_new()
-}
-
-/// Register a resize observer callback with JS-side cleanup.
-pub fn register_resize_observer(target: &JsValue, callback: &Function) -> RawCleanupHandle {
-    let _ = (target, callback);
-    RawCleanupHandle::const_new()
+mock_data! { EventTarget => Object
+    fn remove_event_listener_with_callback
+        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
+    fn remove_event_listener_with_callback_and_event_listener_options
+        (&self, tp: &str, f: &Function, opt: &EventListenerOptions) -> Result<(), JsValue>;
+    fn add_event_listener_with_callback
+        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
+    fn add_event_listener_with_callback_and_bool
+        (&self, tp: &str, f: &Function, opt: bool) -> Result<(), JsValue>;
+    fn add_event_listener_with_callback_and_add_event_listener_options
+        (&self, tp: &str, f: &Function, opt: &AddEventListenerOptions)
+        -> Result<(), JsValue>;
 }
 
 
@@ -576,8 +543,16 @@ mock_data! { Window => EventTarget
     fn document(&self) -> Option<Document>;
     fn open_with_url_and_target(&self, url: &str, target: &str)
         -> Result<Option<Window>, JsValue>;
+    fn request_animation_frame(&self, callback: &Function) -> Result<i32, JsValue>;
+    fn cancel_animation_frame(&self, handle: i32) -> Result<(), JsValue>;
     fn performance(&self) -> Option<Performance>;
     fn device_pixel_ratio(&self) -> f64;
+    fn set_timeout_with_callback_and_timeout_and_arguments_0
+        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
+    fn set_interval_with_callback_and_timeout_and_arguments_0
+        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
+    fn clear_timeout_with_handle(&self, handle: i32);
+    fn clear_interval_with_handle(&self, handle: i32);
 }
 
 
@@ -643,12 +618,6 @@ mock_data! { MouseEvent => Event
     fn screen_y(&self) -> i32;
     fn movement_x(&self) -> i32;
     fn movement_y(&self) -> i32;
-}
-
-
-// === DragEvent ===
-mock_data! { DragEvent => MouseEvent
-    fn data_transfer(&self) -> Option<DataTransfer>;
 }
 
 
@@ -839,57 +808,6 @@ mock_data! { Performance => EventTarget
     fn time_origin(&self) -> f64;
 }
 
-// === File ===
-mock_data! { DataTransfer => Object
-    fn files(&self) -> Option<FileList>;
-}
-
-mock_data! { FileList => Object
-    fn length(&self) -> u32;
-    fn get(&self, index: u32) -> Option<File>;
-}
-
-mock_data! { File => Blob
-    fn name(&self) -> String;
-    fn size(&self) -> f64;
-    fn type_(&self) -> String;
-}
-mock_data! { Blob => Object
-    fn stream(&self) -> ReadableStream;
-}
-mock_data! { ReadableStream => Object
-    fn get_reader(&self) -> Object;
-}
-mock_data! { ReadableStreamDefaultReader => Object }
-
-// === WebSocket ===
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug)]
-pub enum BinaryType {
-    Blob,
-    Arraybuffer,
-}
-
-mock_data! { #[derive(PartialEq)] WebSocket => EventTarget
-    fn new(url: &str) -> Result<WebSocket, JsValue>;
-    fn url(&self) -> String;
-    fn set_binary_type(&self, value: BinaryType);
-    fn close_with_code_and_reason(&self, code: u16, reason: &str) -> Result<(), JsValue>;
-    fn ready_state(&self) -> u16;
-    fn send_with_str(&self, data: &str) -> Result<(), JsValue>;
-    fn send_with_u8_array(&self, data: &[u8]) -> Result<(), JsValue>;
-}
-
-#[allow(missing_docs)]
-impl WebSocket {
-    pub const CONNECTING: u16 = 0;
-    pub const OPEN: u16 = 1;
-    pub const CLOSING: u16 = 2;
-    pub const CLOSED: u16 = 3;
-}
-
-mock_data! { CloseEvent => Event }
-mock_data! { MessageEvent  => Event }
 
 
 // ===============
