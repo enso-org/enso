@@ -205,7 +205,7 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig,
     isGeneratingDocs: Boolean                    = false
-  ) = buildModuleContextModule(
+  ): ModuleContext = buildModuleContextModule(
     moduleName,
     freshNameSupply,
     passConfiguration,
