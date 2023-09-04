@@ -38,7 +38,7 @@ public abstract class DoubleNumericOp extends BinaryMapOperation<Double, DoubleS
     long[] out = new long[storage.size()];
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
-        out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), x, i, problemBuilder));
+        out[i] = Double.doubleToRawLongBits(doDouble(storage.getItemAsDouble(i), x, i, problemBuilder));
       }
 
       context.safepoint();
@@ -54,7 +54,7 @@ public abstract class DoubleNumericOp extends BinaryMapOperation<Double, DoubleS
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder));
+          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItemAsDouble(i), v.getItem(i), i, problemBuilder));
         } else {
           newMissing.set(i);
         }
@@ -67,7 +67,7 @@ public abstract class DoubleNumericOp extends BinaryMapOperation<Double, DoubleS
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i), i, problemBuilder));
+          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItemAsDouble(i), v.getItemAsDouble(i), i, problemBuilder));
         } else {
           newMissing.set(i);
         }

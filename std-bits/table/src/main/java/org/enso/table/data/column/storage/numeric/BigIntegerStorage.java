@@ -3,6 +3,12 @@ package org.enso.table.data.column.storage.numeric;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -20,7 +26,18 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
-    return ObjectStorage.buildObjectOps();
+    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops = ObjectStorage.buildObjectOps();
+    return ops
+        .add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>());
+  }
+
+  public static BigIntegerStorage makeEmpty(int size) {
+    return new BigIntegerStorage(new BigInteger[size], size);
   }
 
   @Override

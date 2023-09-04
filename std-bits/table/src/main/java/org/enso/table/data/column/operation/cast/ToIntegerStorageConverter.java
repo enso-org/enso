@@ -10,8 +10,6 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
@@ -118,7 +116,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         if (targetType.fits(value)) {
           long converted = (long) value;
           builder.appendLong(converted);

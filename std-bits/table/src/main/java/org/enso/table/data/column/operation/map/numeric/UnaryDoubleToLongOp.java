@@ -25,7 +25,7 @@ public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, Doub
     long[] newVals = new long[storage.size()];
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
-        newVals[i] = doOperation(storage.getItem(i));
+        newVals[i] = doOperation(storage.getItemAsDouble(i));
       } else {
         newMissing.set(i);
       }

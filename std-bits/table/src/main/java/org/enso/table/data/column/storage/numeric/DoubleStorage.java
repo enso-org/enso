@@ -13,6 +13,13 @@ import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
+import org.enso.table.data.column.operation.map.numeric.NumericBinaryOpImplementation;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -24,7 +31,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double> {
+public final class DoubleStorage extends NumericStorage<Double> implements NumericBinaryOpImplementation.DoubleArrayAdapter {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -93,6 +100,16 @@ public final class DoubleStorage extends NumericStorage<Double> {
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
+  }
+
+  @Override
+  public double getItemAsDouble(int i) {
+    return Double.longBitsToDouble(data[i]);
+  }
+
+  @Override
+  public boolean isNa(int i) {
+    return isMissing.get(i);
   }
 
   @Override
@@ -221,60 +238,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
     MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(
-            new DoubleNumericOp(Maps.ADD) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a + b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.SUB) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a - b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.MUL) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a * b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.DIV) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (b == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return a / b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.MOD) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (b == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return a % b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.POWER) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return Math.pow(a, b);
-              }
-            })
+    ops
+        .add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>())
         .add(
             new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
               @Override
@@ -373,7 +343,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 BitSet nans = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isNaN(storage.getItem(i))) {
+                  if (!storage.isNa(i) && Double.isNaN(storage.getItemAsDouble(i))) {
                     nans.set(i);
                   }
 
@@ -390,7 +360,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 BitSet infintes = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isInfinite(storage.getItem(i))) {
+                  if (!storage.isNa(i) && Double.isInfinite(storage.getItemAsDouble(i))) {
                     infintes.set(i);
                   }
 

@@ -36,7 +36,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double x = doubleStorage.getItem(i);
+        double x = doubleStorage.getItemAsDouble(i);
         BigInteger bigInteger = BigDecimal.valueOf(x).toBigInteger();
         builder.appendRawNoGrow(bigInteger);
       }

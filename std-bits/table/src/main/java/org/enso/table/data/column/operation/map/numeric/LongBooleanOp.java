@@ -79,7 +79,7 @@ public abstract class LongBooleanOp extends BinaryMapOperation<Long, AbstractLon
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          if (doDouble(storage.getItem(i), v.getItem(i))) {
+          if (doDouble(storage.getItem(i), v.getItemAsDouble(i))) {
             newVals.set(i);
           }
         } else {

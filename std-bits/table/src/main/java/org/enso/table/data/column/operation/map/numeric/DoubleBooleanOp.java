@@ -6,7 +6,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -34,7 +33,7 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
       BitSet newVals = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {
-          if (doDouble(storage.getItem(i), x)) {
+          if (doDouble(storage.getItemAsDouble(i), x)) {
             newVals.set(i);
           }
         }
@@ -46,7 +45,7 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
       BitSet newVals = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i)) {
-          if (doObject(storage.getItem(i), arg)) {
+          if (doObject(storage.getItemAsDouble(i), arg)) {
             newVals.set(i);
           }
         }
@@ -65,7 +64,7 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          if (doDouble(storage.getItem(i), v.getItem(i))) {
+          if (doDouble(storage.getItemAsDouble(i), v.getItemAsDouble(i))) {
             newVals.set(i);
           }
         } else {
@@ -80,7 +79,7 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          double left = storage.getItem(i);
+          double left = storage.getItemAsDouble(i);
           long right = v.getItem(i);
           // We convert from long to double here. This may lose precision, but we do not report
           // LossOfIntegerPrecision, because it is expected that numeric operations involving floating point columns
@@ -103,11 +102,11 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
         if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
           Double x = NumericConverter.tryConvertingToDouble(arg.getItemBoxed(i));
           if (x == null) {
-            if (doObject(storage.getItem(i), arg.getItemBoxed(i))) {
+            if (doObject(storage.getItemAsDouble(i), arg.getItemBoxed(i))) {
               newVals.set(i);
             }
           } else {
-            if (doDouble(storage.getItem(i), x)) {
+            if (doDouble(storage.getItemAsDouble(i), x)) {
               newVals.set(i);
             }
           }

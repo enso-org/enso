@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -140,7 +139,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         builder.append(adapt(Double.toString(value), problemBuilder));
       }
 
