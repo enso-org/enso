@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::changelog::Changelog;
 use crate::context::BuildContext;
+use crate::env::ENSO_ADMIN_TOKEN;
 use crate::paths::generated;
 use crate::paths::TargetTriple;
 use crate::paths::EDITION_FILE_ARTIFACT_NAME;
@@ -323,6 +324,7 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     let response = reqwest::Client::new()
         .post("https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/versions")
         .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
+        .header("x-enso-admin-token", ENSO_ADMIN_TOKEN.get()?)
         .header("Content-Type", "application/json")
         .json(&body)
         .send()

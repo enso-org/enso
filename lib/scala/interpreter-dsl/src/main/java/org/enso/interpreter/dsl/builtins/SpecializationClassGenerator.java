@@ -1,6 +1,7 @@
 package org.enso.interpreter.dsl.builtins;
 
 import java.util.List;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 
 /**
@@ -10,19 +11,22 @@ import javax.lang.model.element.ExecutableElement;
  */
 public class SpecializationClassGenerator extends MethodNodeClassGenerator {
   List<ExecutableElement> elements;
+  private final ProcessingEnvironment processingEnvironment;
 
   public SpecializationClassGenerator(
+      ProcessingEnvironment processingEnvironment,
       List<ExecutableElement> methodElements,
       ClassName builtinNode,
       ClassName ownerClazz,
       ClassName stdlibOwner) {
     super(builtinNode, ownerClazz, stdlibOwner);
     this.elements = methodElements;
+    this.processingEnvironment = processingEnvironment;
   }
 
   @Override
   protected MethodGenerator methodsGen() {
-    return new SpecializedMethodsGenerator(elements);
+    return new SpecializedMethodsGenerator(processingEnvironment, elements);
   }
 
   @Override

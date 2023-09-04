@@ -6,6 +6,11 @@ import Standard.Table.Errors.Invalid_JSON_Format
 import project.Helpers
 import project.Helpers.Object_Type
 
+## Converts a GeoJSON object to a Table.
+
+   Arguments:
+   - geo_json: The GeoJSON object to convert.
+   - fields: The set of fields to extract from the GeoJSON object.
 geo_json_to_table : (Vector | JS_Object) -> Vector Text -> Table
 geo_json_to_table geo_json fields=Nothing = case geo_json of
     _ : Vector ->

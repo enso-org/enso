@@ -154,7 +154,7 @@ impl Builder {
     /// The method self type will be taken from the context.
     pub fn add_method(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         is_static: bool,
@@ -175,7 +175,7 @@ impl Builder {
     /// Context should be inside a type, otherwise this function will panic.
     pub fn add_constructor(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
@@ -191,7 +191,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_function(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
@@ -209,7 +209,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_local(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
         modifier: impl FnOnce(Entry) -> Entry,
@@ -351,6 +351,8 @@ macro_rules! mock_suggestion_database_entries {
 /// Each statement may be preceded by one or more attributes looking like in Rust. The attribute
 /// content is just a call to the [`Entry`] modifier - a method of [`Entry`] taking and returning
 /// modified `self`.
+///
+/// See also [`doc_section!`] macro for defining documentation sections for entries.
 #[macro_export]
 macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
@@ -423,6 +425,18 @@ macro_rules! doc_section_mark {
 /// doc_section!(> "Marked as example");
 /// doc_section!(> "Optional header", "Marked as example");
 /// ```
+///
+/// ### [`DocSection::List`]
+/// ```
+/// # use enso_suggestion_database::doc_section;
+/// doc_section!(- "Item 1"; - "Item 2"; -"Item 3");
+/// ```
+///
+/// ### [`DocSection::Arguments`]
+/// ```
+/// # use enso_suggestion_database::doc_section;
+/// doc_section!(- "arg_name", "Description"; - "arg_name2", "Description2");
+/// ```
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:ident, $body:expr) => {
@@ -430,6 +444,16 @@ macro_rules! doc_section {
             tag:  $crate::mock::enso_doc_parser::Tag::$tag,
             body: $body.into(),
         }
+    };
+    ($(- $body:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::List { items: vec![
+            $($body.into()),*
+        ]}
+    };
+    ($(- $name:expr, $desc:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::Arguments { args: vec![
+            $($crate::mock::enso_doc_parser::Argument { name: $name.into(), description: $desc.into() }),*
+        ]}
     };
     ($mark:tt $body:expr) => {
         $crate::mock::enso_doc_parser::DocSection::Marked {

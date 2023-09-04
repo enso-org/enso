@@ -48,7 +48,7 @@ object ResourcesInitialization {
       new DirectoriesInitialization(directoriesConfig),
       AsyncResourcesInitialization(
         new JsonRpcInitializationComponent(protocolFactory),
-        new ZioRuntimeInitialization(runtime),
+        new ZioRuntimeInitialization(runtime, eventStream),
         new RepoInitialization(
           directoriesConfig,
           eventStream,

@@ -29,6 +29,7 @@ object RuntimeVersionManagerErrorRecoverySyntax {
             MissingComponentFailure(message)
           case upgradeRequired: UpgradeRequiredError =>
             ProjectManagerUpgradeRequiredFailure(
+              upgradeRequired.currentVersion,
               upgradeRequired.expectedVersion
             )
           case UninstallationError(message) =>

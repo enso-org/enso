@@ -1,12 +1,26 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.{Source, SourceSection}
-import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  Diagnostic,
+  Expression,
+  IdentifiedLocation,
+  Name,
+  Warning,
+  Module => IRModule
+}
+import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir.module.scope.Export
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.imports;
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.CompilationAbortedException
@@ -19,13 +33,11 @@ import org.enso.compiler.phase.{
 }
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.runtime.{EnsoContext, Module}
+import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-//import org.enso.syntax.text.Parser
-//import org.enso.syntax.text.Parser.IDMap
+import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -47,8 +59,7 @@ import scala.jdk.OptionConverters._
   * @param context the language context
   */
 class Compiler(
-  val context: EnsoContext,
-  val builtins: Builtins,
+  val context: CompilerContext,
   val packageRepository: PackageRepository,
   config: CompilerConfig
 ) extends CompilerStub {
@@ -56,17 +67,11 @@ class Compiler(
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
-  private val stubsGenerator: RuntimeStubsGenerator =
-    new RuntimeStubsGenerator(builtins)
-  private val irCachingEnabled = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
-    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
-  )
-  private val isInteractiveMode =
-    context.getEnvironment.getOptions.get(RuntimeOptions.INTERACTIVE_MODE_KEY)
+  private val irCachingEnabled                 = !context.isIrCachingDisabled
+  private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
+  private val isInteractiveMode                = context.isInteractiveMode()
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger = context.getLogger(getClass)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
@@ -82,7 +87,7 @@ class Compiler(
       TimeUnit.SECONDS,
       new LinkedBlockingDeque[Runnable](),
       (runnable: Runnable) => {
-        context.getEnvironment.createThread(runnable)
+        context.createThread(runnable)
       }
     )
   } else null
@@ -93,7 +98,6 @@ class Compiler(
   def duplicateWithConfig(newConfig: CompilerConfig): Compiler = {
     new Compiler(
       context,
-      builtins,
       packageRepository,
       newConfig
     )
@@ -101,50 +105,22 @@ class Compiler(
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
-    initializeBuiltinsIr()
+    context.initializeBuiltinsIr(
+      irCachingEnabled,
+      serializationManager,
+      freshNameSupply,
+      passes
+    )
     packageRepository.initialize().left.foreach(reportPackageError)
-  }
-
-  /** Lazy-initializes the IR for the builtins module. */
-  private def initializeBuiltinsIr(): Unit = {
-    if (!builtins.isIrInitialized) {
-      logger.log(
-        Compiler.defaultLogLevel,
-        "Initialising IR for [{0}].",
-        builtins.getModule.getName
-      )
-
-      builtins.initializeBuiltinsSource()
-
-      if (irCachingEnabled) {
-        serializationManager.deserialize(builtins.getModule) match {
-          case Some(true) =>
-            // Ensure that builtins doesn't try and have codegen run on it.
-            builtins.getModule.unsafeSetCompilationStage(
-              Module.CompilationStage.AFTER_CODEGEN
-            )
-          case _ =>
-            builtins.initializeBuiltinsIr(freshNameSupply, passes)
-            builtins.getModule.setHasCrossModuleLinks(true)
-
-        }
-      } else {
-        builtins.initializeBuiltinsIr(freshNameSupply, passes)
-        builtins.getModule.setHasCrossModuleLinks(true)
-      }
-
-      if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
-        serializationManager.serializeModule(
-          builtins.getModule,
-          useGlobalCacheLocations = true // Builtins can't have a local cache.
-        )
-      }
-    }
   }
 
   /** @return the serialization manager instance. */
   def getSerializationManager: SerializationManager =
     serializationManager
+
+  /** @return the package repository instance. */
+  def getPackageRepository(): PackageRepository =
+    context.getPackageRepository
 
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
@@ -173,37 +149,37 @@ class Compiler(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
-    val packageRepository = context.getPackageRepository
-
-    packageRepository.getMainProjectPackage match {
+    getPackageRepository().getMainProjectPackage match {
       case None =>
-        logger.log(
+        context.log(
           Level.SEVERE,
           "No package found in the compiler environment. Aborting."
         )
         CompletableFuture.completedFuture(false)
       case Some(pkg) =>
         val packageModule = packageRepository.getModuleMap.get(
-          s"${pkg.namespace}.${pkg.name}.Main"
+          s"${pkg.namespace}.${pkg.normalizedName}.Main"
         )
         packageModule match {
           case None =>
-            logger.log(
+            context.log(
               Level.SEVERE,
               "Could not find entry point for compilation in package [{0}.{1}]",
-              Array(pkg.namespace, pkg.name)
+              Array(pkg.namespace, pkg.normalizedName)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
-              s"Compiling the package [${pkg.namespace}.${pkg.name}] " +
+              s"Compiling the package [${pkg.namespace}.${pkg.normalizedName}] " +
               s"starting at the root [${m.getName}]."
             )
 
             val packageModules = packageRepository.freezeModuleMap.collect {
               case (name, mod)
-                  if name.startsWith(s"${pkg.namespace}.${pkg.name}") =>
+                  if name.startsWith(
+                    s"${pkg.namespace}.${pkg.normalizedName}"
+                  ) =>
                 mod
             }.toList
 
@@ -273,25 +249,25 @@ class Compiler(
     var requiredModules = modules.flatMap { module =>
       val importedModules = runImportsAndExportsResolution(module, generateCode)
       val isLoadedFromSource =
-        (m: Module) => !m.wasLoadedFromCache() && !m.isSynthetic
+        (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
       if (
         shouldCompileDependencies &&
-        module.wasLoadedFromCache() &&
+        context.wasLoadedFromCache(module) &&
         importedModules.exists(isLoadedFromSource)
       ) {
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
-          .map(_.getName)
-        logger.log(
+          .map(context.getModuleName(_))
+        context.log(
           Compiler.defaultLogLevel,
           "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
           Array(
             importedModulesLoadedFromSource.length,
-            module.getName.toString,
+            context.getModuleName(module).toString,
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
           )
         )
-        module.getCache.invalidate(context)
+        context.updateModule(module, _.invalidateCache)
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
@@ -302,22 +278,25 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
-        if (!module.hasCrossModuleLinks) {
+        if (!context.hasCrossModuleLinks(module)) {
           val flags =
-            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+            context
+              .getIr(module)
+              .preorder
+              .map(_.passData.restoreFromSerialization(this))
 
           if (!flags.contains(false)) {
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
               "Restored links (late phase) for module [{0}].",
-              module.getName
+              context.getModuleName(module)
             )
           } else {
             hasInvalidModuleRelink = true
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
               "Failed to restore links (late phase) for module [{0}].",
-              module.getName
+              context.getModuleName(module)
             )
             uncachedParseModule(module, isGenDocs = false)
           }
@@ -326,7 +305,7 @@ class Compiler(
     }
 
     if (hasInvalidModuleRelink) {
-      logger.log(
+      context.log(
         Compiler.defaultLogLevel,
         s"Some modules failed to relink. Re-running import and " +
         s"export resolution."
@@ -338,9 +317,11 @@ class Compiler(
 
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_GLOBAL_TYPES
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_GLOBAL_TYPES
+          )
       ) {
 
         val moduleContext = ModuleContext(
@@ -348,18 +329,25 @@ class Compiler(
           freshNameSupply = Some(freshNameSupply),
           compilerConfig  = config
         )
-        val compilerOutput = runGlobalTypingPasses(module.getIr, moduleContext)
-        module.unsafeSetIr(compilerOutput)
-        module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_GLOBAL_TYPES
+        val compilerOutput =
+          runGlobalTypingPasses(context.getIr(module), moduleContext)
+
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_GLOBAL_TYPES)
+          }
         )
       }
     }
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_STATIC_PASSES
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_STATIC_PASSES
+          )
       ) {
 
         val moduleContext = ModuleContext(
@@ -368,10 +356,14 @@ class Compiler(
           compilerConfig  = config,
           pkgRepo         = Some(packageRepository)
         )
-        val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
-        module.unsafeSetIr(compilerOutput)
-        module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_STATIC_PASSES
+        val compilerOutput =
+          runMethodBodyPasses(context.getIr(module), moduleContext)
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+          }
         )
       }
     }
@@ -380,40 +372,52 @@ class Compiler(
 
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_RUNTIME_STUBS
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_RUNTIME_STUBS
+          )
       ) {
-        stubsGenerator.run(module)
-        module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_RUNTIME_STUBS
+        context.runStubsGenerator(module)
+        context.updateModule(
+          module,
+          { u =>
+            u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
+          }
         )
       }
     }
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_CODEGEN
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_CODEGEN
+          )
       ) {
 
         if (generateCode) {
-          logger.log(
+          context.log(
             Compiler.defaultLogLevel,
             "Generating code for module [{0}].",
-            module.getName
+            context.getModuleName(module)
           )
 
-          truffleCodegen(module.getIr, module.getSource, module.getScope)
+          context.truffleRunCodegen(module, config)
         }
-        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+        context.updateModule(
+          module,
+          { u =>
+            u.compilationStage(CompilationStage.AFTER_CODEGEN)
+          }
+        )
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
-            irCachingEnabled && !module.wasLoadedFromCache()
+            irCachingEnabled && !context.wasLoadedFromCache(module)
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
             if (isInteractiveMode) {
-              context.getNotificationHandler.serializeModule(module.getName)
+              context.notifySerializeModule(context.getModuleName(module))
             } else {
               serializationManager.serializeModule(
                 module,
@@ -422,10 +426,10 @@ class Compiler(
             }
           }
         } else {
-          logger.log(
+          context.log(
             Compiler.defaultLogLevel,
             "Skipping serialization for [{0}].",
-            module.getName
+            context.getModuleName(module)
           )
         }
       }
@@ -435,9 +439,11 @@ class Compiler(
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {
-    if (!module.isInteractive) {
-      val pkg = context.getPackageOf(module.getSourceFile).toScala
-      pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
+    if (!context.isInteractive(module)) {
+      val pkg = PackageRepositoryUtils
+        .getPackageOf(getPackageRepository(), module.getSourceFile)
+        .toScala
+      pkg.contains(getPackageRepository().getMainProjectPackage.get)
     } else false
   }
 
@@ -481,7 +487,7 @@ class Compiler(
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
     ensureParsed(module)
-    if (module.isSynthetic) {
+    if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
       // because we do not generate (and deserialize) IR for them
@@ -493,7 +499,7 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = module.getIr
+          val ir = context.getIr(module)
           val currentLocal = ir.unsafeGetMetadata(
             BindingAnalysis,
             "Synthetic parsed module missing bindings"
@@ -522,20 +528,21 @@ class Compiler(
     */
   def gatherImportStatements(module: Module): Array[String] = {
     ensureParsed(module)
-    val importedModules = module.getIr.imports.flatMap {
-      case imp: IR.Module.Scope.Import.Module =>
+    val importedModules = context.getIr(module).imports.flatMap {
+      case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
           case List(namespace, name) => List(LibraryName(namespace, name))
           case _ =>
             throw new CompilerError(s"Invalid module name: [${imp.name}].")
         }
 
-      case _: IR.Module.Scope.Import.Polyglot =>
+      case _: imports.Polyglot =>
         // Note [Polyglot Imports In Dependency Gathering]
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing ${module.getName}: [$other]."
+          s"Unexpected import type after processing ${context
+            .getModuleName(module)}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray
@@ -545,15 +552,14 @@ class Compiler(
     module: Module,
     isGenDocs: Boolean = false
   ): Unit = {
-    logger.log(
+    context.log(
       Compiler.defaultLogLevel,
       "Parsing module [{0}].",
-      module.getName
+      context.getModuleName(module)
     )
-    module.ensureScopeExists(context)
-    module.getScope.reset()
+    context.updateModule(module, _.resetScope)
 
-    if (irCachingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !context.isInteractive(module)) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>
@@ -569,7 +575,7 @@ class Compiler(
     * @return module's bindings, if available in libraries' bindings cache
     */
   def importExportBindings(module: Module): Option[BindingsMap] = {
-    if (irCachingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !context.isInteractive(module)) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
       libraryName
         .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
@@ -578,13 +584,12 @@ class Compiler(
   }
 
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
-    logger.log(
+    context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
-      module.getName
+      context.getModuleName(module)
     )
-    module.ensureScopeExists(context)
-    module.getScope.reset()
+    context.updateModule(module, _.resetScope)
 
     val moduleContext = ModuleContext(
       module           = module,
@@ -593,21 +598,26 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = module.getSource
-    val tree = ensoCompiler.parse(src.getCharacters)
+    val src  = context.getCharacters(module)
+    val tree = ensoCompiler.parse(src)
     val expr = ensoCompiler.generateIR(tree)
 
     val exprWithModuleExports =
-      if (module.isSynthetic)
+      if (context.isSynthetic(module))
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
-    module.unsafeSetIr(discoveredModule)
-    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
-    module.setLoadedFromCache(false)
-    module.setHasCrossModuleLinks(true)
+    context.updateModule(
+      module,
+      { u =>
+        u.ir(discoveredModule)
+        u.compilationStage(CompilationStage.AFTER_PARSING)
+        u.loadedFromCache(false)
+        u.hasCrossModuleLinks(true)
+      }
+    )
   }
 
   /* Note [Polyglot Imports In Dependency Gathering]
@@ -638,9 +648,11 @@ class Compiler(
     */
   def ensureParsed(module: Module): Unit = {
     if (
-      !module.getCompilationStage.isAtLeast(
-        Module.CompilationStage.AFTER_PARSING
-      )
+      !context
+        .getCompilationStage(module)
+        .isAtLeast(
+          CompilationStage.AFTER_PARSING
+        )
     ) {
       parseModule(module)
     }
@@ -671,7 +683,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(truffleCodegenInline(compilerOutput, source, newContext))
+      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
     }
   }
 
@@ -686,7 +698,7 @@ class Compiler(
     */
   def processImport(
     qualifiedName: String,
-    loc: Option[IR.IdentifiedLocation],
+    loc: Option[IdentifiedLocation],
     source: Source
   ): ModuleScope = {
     val module = context.getTopScope
@@ -701,7 +713,7 @@ class Compiler(
       }
     if (
       !module.getCompilationStage.isAtLeast(
-        Module.CompilationStage.AFTER_RUNTIME_STUBS
+        CompilationStage.AFTER_RUNTIME_STUBS
       )
     ) {
       throw new CompilerError(
@@ -759,22 +771,22 @@ class Compiler(
     * @return enhanced
     */
   private def injectSyntheticModuleExports(
-    ir: IR.Module,
+    ir: IRModule,
     modules: java.util.List[QualifiedName]
-  ): IR.Module = {
+  ): IRModule = {
     import scala.jdk.CollectionConverters._
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(IR.Name.Literal(q.item, isMethod = false, location = None))
+        List(Name.Literal(q.item, isMethod = false, location = None))
       ) { case (part, acc) =>
-        IR.Name.Literal(part, isMethod = false, location = None) :: acc
+        Name.Literal(part, isMethod = false, location = None) :: acc
       }
-      IR.Name.Qualified(name, location = None)
+      Name.Qualified(name, location = None)
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>
-        IR.Module.Scope.Import.Module(
+        Import.Module(
           m,
           rename      = None,
           isAll       = false,
@@ -785,7 +797,7 @@ class Compiler(
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
-        IR.Module.Scope.Export.Module(
+        Export.Module(
           m,
           rename      = None,
           isAll       = false,
@@ -799,9 +811,9 @@ class Compiler(
   }
 
   private def recognizeBindings(
-    module: IR.Module,
+    module: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(
       module,
       moduleContext,
@@ -815,16 +827,16 @@ class Compiler(
     * @return the output result of the
     */
   private def runMethodBodyPasses(
-    ir: IR.Module,
+    ir: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
   private def runGlobalTypingPasses(
-    ir: IR.Module,
+    ir: IRModule,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IRModule = {
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 
@@ -836,9 +848,9 @@ class Compiler(
     * @return the output result of the
     */
   def runCompilerPhasesInline(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     passManager.runPassesInline(ir, inlineContext)
   }
 
@@ -850,7 +862,7 @@ class Compiler(
     * @param inlineContext the inline compilation context.
     */
   def runErrorHandlingInline(
-    ir: IR.Expression,
+    ir: Expression,
     source: Source,
     inlineContext: InlineContext
   ): Unit =
@@ -882,9 +894,9 @@ class Compiler(
       }
       if (reportDiagnostics(diagnostics)) {
         val count =
-          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+          diagnostics.map(_._2.collect { case e: Error => e }.length).sum
         val warnCount =
-          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+          diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
         context.getErr.println(
           s"Aborting due to ${count} errors and ${warnCount} warnings."
         )
@@ -898,10 +910,10 @@ class Compiler(
     * @param module the module for which to gather diagnostics
     * @return the diagnostics from the module
     */
-  def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
+  def gatherDiagnostics(module: Module): List[Diagnostic] = {
     GatherDiagnostics
       .runModule(
-        module.getIr,
+        context.getIr(module),
         ModuleContext(module, compilerConfig = config)
       )
       .unsafeGetMetadata(
@@ -913,8 +925,8 @@ class Compiler(
 
   private def hasErrors(module: Module): Boolean =
     gatherDiagnostics(module).exists {
-      case _: IR.Error => true
-      case _           => false
+      case _: Error => true
+      case _        => false
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
@@ -970,7 +982,7 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[IR.Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])]
   ): Boolean = {
     // It may be tempting to replace `.foldLeft(..)` with
     // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
@@ -993,13 +1005,13 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[IR.Diagnostic],
+    diagnostics: List[Diagnostic],
     source: Source
   ): Boolean = {
     diagnostics.foreach(diag =>
       output.println(new DiagnosticFormatter(diag, source).format())
     )
-    diagnostics.exists(_.isInstanceOf[IR.Error])
+    diagnostics.exists(_.isInstanceOf[Error])
   }
 
   /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
@@ -1010,7 +1022,7 @@ class Compiler(
     * @param source     the original source code
     */
   private class DiagnosticFormatter(
-    private val diagnostic: IR.Diagnostic,
+    private val diagnostic: Diagnostic,
     private val source: Source
   ) {
     private val maxLineNum                     = 99999
@@ -1019,9 +1031,9 @@ class Compiler(
     private val linePrefixSize                 = blankLinePrefix.length
     private val outSupportsAnsiColors: Boolean = outSupportsColors
     private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
-      case _: IR.Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
-      case _: IR.Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
-      case _             => throw new IllegalStateException("Unexpected diagnostic type")
+      case _: Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
+      case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
+      case _          => throw new IllegalStateException("Unexpected diagnostic type")
     }
     private val sourceSection: Option[SourceSection] =
       diagnostic.location match {
@@ -1181,7 +1193,7 @@ class Compiler(
   }
 
   private def fileLocationFromSection(
-    loc: Option[IR.IdentifiedLocation],
+    loc: Option[IdentifiedLocation],
     source: Source
   ): String = {
     val srcLocation = loc
@@ -1206,36 +1218,11 @@ class Compiler(
     * @param scope the module scope in which the code is to be generated
     */
   def truffleCodegen(
-    ir: IR.Module,
+    ir: IRModule,
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IrToTruffle(context, source, scope, config).run(ir)
-  }
-
-  /** Generates code for the truffle interpreter in an inline context.
-    *
-    * @param ir the prorgam to translate
-    * @param source the source code of the program represented by `ir`
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return the runtime representation of the program represented by `ir`
-    */
-  def truffleCodegenInline(
-    ir: IR.Expression,
-    source: Source,
-    inlineContext: InlineContext
-  ): RuntimeExpression = {
-    new IrToTruffle(
-      context,
-      source,
-      inlineContext.module.getScope,
-      config
-    ).runInline(
-      ir,
-      inlineContext.localScope.getOrElse(LocalScope.root),
-      "<inline_source>"
-    )
+    context.truffleRunCodegen(source, scope, config, ir)
   }
 
   /** Performs shutdown actions for the compiler.
@@ -1284,7 +1271,7 @@ class Compiler(
     * @return the result of updating metadata in `copyOfIr` globally using
     *         information from `sourceIr`
     */
-  def updateMetadata(sourceIr: IR.Module, copyOfIr: IR.Module): IR.Module = {
+  def updateMetadata(sourceIr: IRModule, copyOfIr: IRModule): IRModule = {
     passManager.runMetadataUpdate(sourceIr, copyOfIr)
   }
 }

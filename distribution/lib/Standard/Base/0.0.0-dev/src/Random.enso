@@ -31,22 +31,26 @@ type Random_Number_Generator
     ## A random number generator.
     Value java_random
 
-    ## Gets the next random Boolean.
+    ## GROUP Random
+       Gets the next random Boolean.
     boolean : Decimal
     boolean self =
         self.java_random.nextBoolean
 
-    ## Gets the next random Decimal between 0 and 1.
+    ## GROUP Random
+       Gets the next random Decimal between 0 and 1.
     decimal : Decimal
     decimal self =
         self.java_random.nextDouble
 
-    ## Gets the next random Decimal from a normal distribution with mean 0 and std-dev 1.
+    ## GROUP Random
+       Gets the next random Decimal from a normal distribution with mean 0 and std-dev 1.
     gaussian : Decimal
     gaussian self =
         self.java_random.nextGaussian
 
-    ## Gets the next random integer between min (inclusive) and max (exclusive).
+    ## GROUP Random
+       Gets the next random integer between min (inclusive) and max (exclusive).
 
        Arguments:
         - min: the minimum value (inclusive) of the random integer.

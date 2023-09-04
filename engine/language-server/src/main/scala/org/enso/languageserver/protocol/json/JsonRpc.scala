@@ -17,13 +17,14 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
-import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
+import org.enso.languageserver.refactoring.RefactoringApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
@@ -84,6 +85,7 @@ object JsonRpc {
     .registerRequest(Completion)
     .registerRequest(AICompletion)
     .registerRequest(RenameProject)
+    .registerRequest(RenameSymbol)
     .registerRequest(ProjectInfo)
     .registerRequest(EditionsListAvailable)
     .registerRequest(EditionsResolve)
@@ -99,6 +101,7 @@ object JsonRpc {
     .registerRequest(LibraryGetPackage)
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
+    .registerRequest(RuntimeGetComponentGroups)
     .registerNotification(TaskStarted)
     .registerNotification(TaskProgressUpdate)
     .registerNotification(TaskFinished)
@@ -119,5 +122,6 @@ object JsonRpc {
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
     .registerNotification(VisualizationEvaluationFailed)
+    .registerNotification(ProjectRenamed)
     .finalized()
 }

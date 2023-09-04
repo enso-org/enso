@@ -2,7 +2,7 @@
  * flow. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
@@ -11,11 +11,12 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -31,7 +32,7 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // =====================
 
 /** A form for users to reset their password. */
-function ResetPassword() {
+export default function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
 
@@ -44,7 +45,7 @@ function ResetPassword() {
 
     const onSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
-            toast.error('Passwords do not match')
+            toastify.toast.error('Passwords do not match')
             return Promise.resolve()
         } else {
             return resetPassword(email, code, newPassword)
@@ -52,7 +53,7 @@ function ResetPassword() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
+        <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 className={
                     'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full ' +
@@ -78,9 +79,10 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="email"
                                     type="email"
                                     name="email"
@@ -99,9 +101,10 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="code"
                                     type="text"
                                     name="code"
@@ -120,15 +123,17 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_TITLE}
+                                    error={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />
@@ -143,13 +148,17 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password_confirm"
                                     type="password"
                                     name="new_password_confirm"
                                     placeholder="Confirm New Password"
+                                    pattern={string.regexEscape(newPassword)}
+                                    error={validation.CONFIRM_PASSWORD_ERROR}
                                     value={newPasswordConfirm}
                                     setValue={setNewPasswordConfirm}
                                 />
@@ -166,7 +175,7 @@ function ResetPassword() {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -181,7 +190,7 @@ function ResetPassword() {
                         }
                     >
                         <span>
-                            <svg.SvgMask src={GoBackIcon} />
+                            <SvgMask src={GoBackIcon} />
                         </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
@@ -198,5 +207,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ResetPassword

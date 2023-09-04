@@ -20,6 +20,7 @@ pub mod sprite;
 pub mod types {
     use super::*;
     pub use mask_composer::MaskComposer;
+    pub use mask_composer::OverlayComposer;
     pub use screen::Screen;
     pub use sprite::RawSprite;
     pub use sprite::SpriteSystem;

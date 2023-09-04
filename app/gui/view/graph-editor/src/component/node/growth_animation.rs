@@ -41,7 +41,7 @@ pub fn initialize_edited_node_animator(
     let network = &frp.network();
     let out = &frp.output;
     let searcher_cam = scene.layers.node_searcher.camera();
-    let edited_node_cam = scene.layers.edited_node.camera();
+    let edited_node_cam = model.layers.edited_nodes.camera();
     let main_cam = scene.layers.main.camera();
 
     let growth_animation = Animation::new(network);

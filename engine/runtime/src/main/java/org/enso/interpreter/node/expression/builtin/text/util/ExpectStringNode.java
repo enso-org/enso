@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.text.util;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -19,6 +20,7 @@ public abstract class ExpectStringNode extends Node {
 
   public abstract String execute(Object str);
 
+  @NeverDefault
   public static ExpectStringNode build() {
     return ExpectStringNodeGen.create();
   }

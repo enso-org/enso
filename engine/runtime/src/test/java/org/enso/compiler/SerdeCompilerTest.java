@@ -16,13 +16,14 @@ import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Test;
 
 public class SerdeCompilerTest {
@@ -37,7 +38,7 @@ public class SerdeCompilerTest {
 
   private void parseSerializedModule(String projectName, String forbiddenMessage)
       throws InterruptedException, ExecutionException, IOException, TimeoutException {
-    IR.Module old;
+    Module old;
     var pkgPath = new File(getClass().getClassLoader().getResource(projectName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, true)) {
@@ -72,7 +73,7 @@ public class SerdeCompilerTest {
       ctx.leave();
     }
 
-    IR.Module now;
+    Module now;
     mockHandler.failOnMessage(forbiddenMessage);
 
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, false)) {
@@ -109,7 +110,7 @@ public class SerdeCompilerTest {
     Context ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
-            .allowIO(true)
+            .allowIO(IOAccess.ALL)
             .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
             .option(RuntimeOptions.DISABLE_IR_CACHES, "" + disableIrCaching)
             .option(

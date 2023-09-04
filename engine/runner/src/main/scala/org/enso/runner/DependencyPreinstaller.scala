@@ -79,7 +79,8 @@ object DependencyPreinstaller {
             ProgressBar.waitWithProgress(task)
           }
         },
-        Some(languageHome)
+        languageHome = Some(languageHome),
+        projectRoot  = Some(projectRoot.toPath)
       )
 
     val dependencyResolver = new DependencyResolver(

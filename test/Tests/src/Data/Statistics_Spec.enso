@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Vector import Empty_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -30,6 +31,17 @@ type No_Ord_Comparator
         0
 
 Comparable.from (_:No_Ord) = No_Ord_Comparator
+
+type Bad_Comparator_Type
+    Value x
+
+type Bad_Comparator
+    compare x y =
+        _ = [x, y]
+        Error.throw (Illegal_State.Error "TEST")
+    hash x = x
+
+Comparable.from (_:Bad_Comparator_Type) = Bad_Comparator
 
 # Tests
 
@@ -141,6 +153,16 @@ spec =
             values = missing_set.running Statistic.Sum
             vector_compare values expected_sums
 
+        Test.specify "should allow running computation on vectors with missing" <|
+            missing_set = [Nothing, 1, 3, Nothing, Number.nan, 2]
+            missing_set.running . should_equal [0, 1, 2, 2, 2, 3]
+            missing_set.running Statistic.Minimum . should_equal [Nothing, 1, 1, 1, 1, 1]
+            missing_set.running Statistic.Maximum . should_equal [Nothing, 1, 3, 3, 3, 3]
+            missing_set.running Statistic.Sum . should_equal [0, 1, 4, 4, 4, 6]
+            missing_set.running Statistic.Mean . first . is_nan . should_be_true
+            missing_set.running Statistic.Mean . drop 1 . should_equal [1, 2, 2, 2, 2]
+
+
     Test.group "Statistics - empty Vector " <|
         Test.specify "should be able to count and sum on empty Vector" <|
             [].compute . should_equal 0
@@ -155,6 +177,48 @@ spec =
             [].compute Statistic.Variance . is_nan . should_equal True
             [].compute Statistic.Skew . is_nan . should_equal True
             [].compute Statistic.Kurtosis . is_nan . should_equal True
+
+    Test.group "Statistics - NaN Vector " <|
+        Test.specify "should be able to count and sum on NaN Vector" <|
+            [Number.nan, Number.nan].compute . should_equal 0
+            [Number.nan, Number.nan].running . should_equal [0, 0]
+            [Number.nan, Number.nan].compute Statistic.Sum . should_equal 0
+            [Number.nan, Number.nan].running Statistic.Sum . should_equal [0, 0]
+
+        Test.specify "should fail with Empty_Error for Minimum and Maximum on NaN Vector" <|
+            [Number.nan, Number.nan].compute Statistic.Minimum . should_fail_with Empty_Error
+            [Number.nan, Number.nan].running Statistic.Minimum . should_equal [Nothing, Nothing]
+            [Number.nan, Number.nan].compute Statistic.Maximum . should_fail_with Empty_Error
+            [Number.nan, Number.nan].running Statistic.Maximum . should_equal [Nothing, Nothing]
+
+        Test.specify "should be NaN for other statistics sum on NaN Vector" <|
+            [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Mean . is_nan . should_equal True
+            [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Variance . is_nan . should_equal True
+            [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Skew . is_nan . should_equal True
+            [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Kurtosis . is_nan . should_equal True
+
+    Test.group "Statistics - Nothing Vector " <|
+        Test.specify "should be able to count and sum on Nothing Vector" <|
+            [Nothing, Nothing].compute . should_equal 0
+            [Nothing, Nothing].running . should_equal [0, 0]
+            [Nothing, Nothing].compute Statistic.Sum . should_equal 0
+            [Nothing, Nothing].running Statistic.Sum . should_equal [0, 0]
+
+        Test.specify "should fail with Empty_Error for Minimum and Maximum on Nothing Vector" <|
+            [Nothing, Nothing].compute Statistic.Minimum . should_fail_with Empty_Error
+            [Nothing, Nothing].running Statistic.Minimum . should_equal [Nothing, Nothing]
+            [Nothing, Nothing].compute Statistic.Maximum . should_fail_with Empty_Error
+            [Nothing, Nothing].running Statistic.Maximum . should_equal [Nothing, Nothing]
+
+        Test.specify "should be NaN for other statistics sum on Nothing Vector" <|
+            [Nothing, Nothing, Nothing, Nothing].compute Statistic.Mean . is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].running Statistic.Mean . all _.is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].compute Statistic.Variance . is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].running Statistic.Variance . all _.is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].compute Statistic.Skew . is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].running Statistic.Skew . all _.is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].compute Statistic.Kurtosis . is_nan . should_equal True
+            [Nothing, Nothing, Nothing, Nothing].running Statistic.Kurtosis . all _.is_nan . should_equal True
 
     Test.group "Statistics - invalid input" <|
         text_set = ["A", "B", Nothing, "D"]
@@ -176,8 +240,20 @@ spec =
 
         Test.specify "should fail with Incomparable_Values on custom incomparable type" <|
             no_ord_set.compute . should_equal 3
+            no_ord_set.running . should_equal [1,2,2,3]
             no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values
+            no_ord_set.running Statistic.Minimum . should_fail_with Incomparable_Values
             no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values
+            no_ord_set.running Statistic.Maximum . should_fail_with Incomparable_Values
+
+        Test.specify "should fail with the underlying error on broken comparator" <|
+            bad_comparator_set = [Bad_Comparator_Type.Value 10, Bad_Comparator_Type.Value 2, Nothing, Bad_Comparator_Type.Value 9]
+            bad_comparator_set.compute . should_equal 3
+            bad_comparator_set.running . should_equal [1,2,2,3]
+            bad_comparator_set.compute Statistic.Minimum . should_fail_with Illegal_State
+            bad_comparator_set.running Statistic.Minimum . should_fail_with Illegal_State
+            bad_comparator_set.compute Statistic.Maximum . should_fail_with Illegal_State
+            bad_comparator_set.running Statistic.Maximum . should_fail_with Illegal_State
 
         Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
             [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values

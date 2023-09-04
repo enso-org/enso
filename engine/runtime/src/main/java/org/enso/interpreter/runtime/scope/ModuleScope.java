@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,15 +9,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
-public final class ModuleScope implements TruffleObject {
+public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols;
@@ -32,9 +31,8 @@ public final class ModuleScope implements TruffleObject {
    * Creates a new object of this class.
    *
    * @param module the module related to the newly created scope.
-   * @param context the current langauge context
    */
-  public ModuleScope(Module module, EnsoContext context) {
+  public ModuleScope(Module module) {
     this.polyglotSymbols = new HashMap<>();
     this.types = new HashMap<>();
     this.methods = new HashMap<>();
@@ -42,12 +40,7 @@ public final class ModuleScope implements TruffleObject {
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
-    this.associatedType =
-        Type.createSingleton(
-            module.getName().item(),
-            this,
-            context == null ? null : context.getBuiltins().any(),
-            false);
+    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false);
   }
 
   public ModuleScope(

@@ -1,6 +1,8 @@
 {# Input data to this template: JinjaData as defined by `bench_download.py` #}
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <title>Engine benchmark results</title>
     <!--Load the AJAX API-->
     <script
       type="text/javascript"
@@ -22,34 +24,90 @@
       // Load the Visualization API and the corechart package.
       google.charts.load('current', {'packages':['corechart']});
 
+      // Global variable declarations
+      const dateColIdx = 0;
+      const branchNames = ['{{ branches|join('\',\n  \'') }}'];
+      const tooltipColIdx = branchNames.length + 1;
+
+      /**
+       * A helper function, not used in the production code.
+       * @param dataTable Google chart DataTable
+       * @returns {string} representation of the data table.
+       */
+      function dataTableToString(dataTable) {
+        let dataTableString = "";
+        for (let rowIdx = 0; rowIdx < dataTable.getNumberOfRows(); rowIdx++) {
+          for (let colIdx = 0; colIdx < dataTable.getNumberOfColumns(); colIdx++) {
+            let value = dataTable.getValue(rowIdx, colIdx);
+            if (typeof(value) === 'string') {
+              value = value.replace("\n", " ");
+            }
+            dataTableString += value + " | ";
+          }
+          dataTableString += "\n";
+        }
+        return dataTableString;
+      }
+
       {% for bench_data in bench_datas %}
       let chart_{{ bench_data.id }} = null;
       let data_table_{{ bench_data.id }} = null;
 
-      // Array of commit IDs for a particular benchmark
-      let commit_ids_{{ bench_data.id }} = ['{{ bench_data.commit_ids|join('\',\n \'') }}'];
-      let commit_authors_{{ bench_data.id }} = ['{{ bench_data.commit_authors|join('\',\n \'') }}'];
-      let commit_urls_{{ bench_data.id }} = ['{{ bench_data.commit_urls|join('\',\n \'') }}'];
-      let commit_msgs_{{ bench_data.id }} = ['{{ bench_data.commit_msgs|join('\',\n \'') }}'];
-      let bench_run_urls_{{ bench_data.id }} = ['{{ bench_data.bench_run_urls|join('\',\n \'') }}'];
-      {# Transform to strings because of nan #}
-      let score_diffs_{{ bench_data.id }} = ['{{ bench_data.score_diffs|join('\',\n \'') }}'];
+      const bench_data_{{ bench_data.id }} = {
+        {% for branch_name, datapoints in bench_data.branches_datapoints.items() %}
+        '{{ branch_name }}': [
+          {% for datapoint in datapoints %}
+          {
+            "date": new Date(
+                {{ datapoint.timestamp.year }},
+                {{ datapoint.timestamp.month - 1 }},
+                {{ datapoint.timestamp.day }},
+                {{ datapoint.timestamp.hour }},
+                {{ datapoint.timestamp.minute }}
+            ),
+            "score": {{ datapoint.score }},
+            "score-diff": "{{ datapoint.score_diff }}",
+            "score-diff-perc": "{{ datapoint.score_diff_perc }}",
+            "tooltip": "{{ datapoint.tooltip }}",
+            "bench-run-url": "{{ datapoint.bench_run_url }}",
+            "commit-id": "{{ datapoint.commit_id }}",
+            "commit-msg": "{{ datapoint.commit_msg }}",
+            "commit-author": "{{ datapoint.commit_author }}",
+            "commit-url": "{{ datapoint.commit_url }}",
+            "commit-date": new Date(
+                {{ datapoint.timestamp.year }},
+                {{ datapoint.timestamp.month - 1 }},
+                {{ datapoint.timestamp.day }},
+                {{ datapoint.timestamp.hour }},
+                {{ datapoint.timestamp.minute }}
+            ),
+          },
+          {% endfor %}
+        ],
+        {% endfor %}
+      };
 
       function draw_{{ bench_data.id }}() {
         chart_{{ bench_data.id }} = new google.visualization.LineChart(document.getElementById('{{ bench_data.id }}'));
         data_table_{{ bench_data.id }} = new google.visualization.DataTable();
         data_table_{{ bench_data.id }}.addColumn('datetime', 'commit_timestamp');
-        data_table_{{ bench_data.id }}.addColumn('number', 'score');
+        for (let branchName of branchNames) {
+          data_table_{{ bench_data.id }}.addColumn({type: "number", role:"data", label:branchName});
+        }
         data_table_{{ bench_data.id }}.addColumn({type:'string', role:'tooltip'});
-        {% for row in bench_data.rows %}
-        data_table_{{ bench_data.id }}.addRow([
-          new Date({{ row.timestamp.year }}, {{ row.timestamp.month - 1 }}, {{ row.timestamp.day }}, {{ row.timestamp.hour }}, {{ row.timestamp.minute }}),
-          {{ row.score }},
-          '{{ row.tooltip }}'
-        ]);
-        {% endfor %}
+        for (let branchName of branchNames) {
+          bench_data_{{ bench_data.id }}[branchName].forEach(function (benchRowData) {
+            let branchColIdx = data_table_{{ bench_data.id }}.getColumnIndex(branchName)
+            let row = new Array(2 + branchNames.length);
+            row.fill(null);
+            row[dateColIdx] = benchRowData["date"]
+            row[tooltipColIdx] = benchRowData["tooltip"]
+            row[branchColIdx] = benchRowData["score"]
+            data_table_{{ bench_data.id }}.addRow(row)
+          })
+        }
         let options = {
-          'title': {{ bench_data.id }},
+          'title': '{{ bench_data.id }}',
           // So that points are visible, with pointSize=0, there is only a line
           'pointSize': 5,
           'explorer': {
@@ -68,18 +126,37 @@
         // More points can be selected, but we care only about the first one
         if (selection.length > 0 && selection[0].row != null && selection[0].column != null) {
           let rowIdx = selection[0].row;
-          let commitId = commit_ids_{{ bench_data.id }}[rowIdx];
-          let commitAuthor = commit_authors_{{ bench_data.id }}[rowIdx];
-          let commitMsg = commit_msgs_{{ bench_data.id }}[rowIdx];
-          let benchRunURL = bench_run_urls_{{ bench_data.id }}[rowIdx];
-          let commitURL = commit_urls_{{ bench_data.id }}[rowIdx];
-          let score = data_table_{{ bench_data.id }}.getValue(rowIdx, 1);
-          let scoreDiff = score_diffs_{{ bench_data.id }}[rowIdx];
-          let commitDate = data_table_{{ bench_data.id }}.getValue(rowIdx, 0);
+          let selectedDate = data_table_{{ bench_data.id }}.getValue(rowIdx, dateColIdx);
+          let tooltip = data_table_{{ bench_data.id }}.getValue(rowIdx, tooltipColIdx);
+          let branchRegexp = new RegExp("branch = (.+)\n")
+          let match = tooltip.match(branchRegexp)
+          console.assert(match !== undefined)
+          let selectedBranch = match[1]
+          let selectedBranchData = bench_data_{{ bench_data.id }}[selectedBranch].find(function (benchRowData) {
+            return benchRowData["date"] === selectedDate
+          })
+          let commitId = selectedBranchData["commit-id"];
+          let commitAuthor = selectedBranchData["commit-author"];
+          let commitMsg = selectedBranchData["commit-msg"];
+          let benchRunURL = selectedBranchData["bench-run-url"];
+          let commitURL = selectedBranchData["commit-url"];
+          let score = selectedBranchData["score"];
+          let scoreDiff = selectedBranchData["score-diff"];
+          let scoreDiffPerc = selectedBranchData["score-diff-perc"];
+          let commitDate = selectedBranchData["commit-date"];
+          console.assert(commitId !== undefined)
+          console.assert(commitAuthor !== undefined)
+          console.assert(commitMsg !== undefined)
+          console.assert(benchRunURL !== undefined)
+          console.assert(commitURL !== undefined)
+          console.assert(score !== undefined)
+          console.assert(scoreDiff !== undefined)
+          console.assert(commitDate !== undefined)
 
           // Fill in the selection details
           document.getElementById('{{ bench_data.id }}-sel-info-score').innerHTML = score;
           document.getElementById('{{ bench_data.id }}-sel-info-score-diff').innerHTML = scoreDiff;
+          document.getElementById('{{ bench_data.id }}-sel-info-score-diff-perc').innerHTML = scoreDiffPerc;
           document.getElementById('{{ bench_data.id }}-sel-info-date').innerHTML = commitDate;
           document.getElementById('{{ bench_data.id }}-sel-info-author').innerHTML = commitAuthor;
           document.getElementById('{{ bench_data.id }}-sel-info-com-id').innerHTML = commitId;
@@ -141,15 +218,19 @@
     <h3>{{ bench_data.id }}</h3>
     <div id="{{ bench_data.id }}"></div>
     <!-- selection-info div will be shown once user selects a point in the chart -->
-    <div class="container small" style="margin-left: 50; margin-right: 50">
+    <div class="border">
       <p class="text-center">Selection info:</p>
-      <dl class="row" style="border-style: solid">
+      <dl class="row">
         <dt class="col-sm-3">Score</dt>
         <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score">
           No selection
         </dd>
         <dt class="col-sm-3">Score difference</dt>
         <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff">
+          No selection
+        </dd>
+        <dt class="col-sm-3">Score difference percentage</dt>
+        <dd class="col-sm-9" id="{{ bench_data.id }}-sel-info-score-diff-perc">
           No selection
         </dd>
         <dt class="col-sm-3">Commit date</dt>

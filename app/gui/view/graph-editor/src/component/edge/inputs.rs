@@ -16,6 +16,8 @@ pub(super) struct Inputs {
     /// The width and height of the node that originates the edge. The edge may begin anywhere
     /// around the bottom half of the node.
     pub source_size:     Cell<Vector2>,
+    /// The width and height of the port that the edge is attached to.
+    pub target_size:     Cell<Vector2>,
     /// The coordinates of the node input the edge connects to. The edge enters the node from
     /// above.
     pub target_position: Cell<ParentCoords>,
@@ -42,6 +44,10 @@ impl Inputs {
 
     pub(super) fn set_source_size(&self, size: Vector2) {
         self.source_size.set(size);
+    }
+
+    pub(super) fn set_target_size(&self, size: Vector2) {
+        self.target_size.set(size);
     }
 
     pub(super) fn set_disabled(&self, disabled: bool) {

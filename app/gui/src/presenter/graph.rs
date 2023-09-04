@@ -12,6 +12,7 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
@@ -19,6 +20,7 @@ use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
+use view::notification::logged as notification;
 
 
 // ==============
@@ -97,22 +99,27 @@ impl Model {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
     ) -> Self {
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
             controller.clone_ref(),
-            view.clone_ref(),
+            graph_editor_view.clone_ref(),
             state.clone_ref(),
         );
         let widget = controller::Widget::new(controller.clone_ref());
-        let execution_stack =
-            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
+        let execution_stack = CallStack::new(
+            controller.clone_ref(),
+            graph_editor_view.clone_ref(),
+            project_view.clone_ref(),
+            state.clone_ref(),
+        );
         Self {
             project,
             controller,
-            view,
+            view: graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -286,6 +293,16 @@ impl Model {
         Some((node_id, config))
     }
 
+    fn node_copied(&self, id: ViewNodeId) {
+        self.log_action(
+            || {
+                let ast_id = self.state.ast_node_id_of_view(id)?;
+                Some(self.controller.graph().copy_node(ast_id))
+            },
+            "copy node",
+        )
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
@@ -406,6 +423,15 @@ impl Model {
         self.state.update_from_controller().set_node_error_from_payload(expression, payload)
     }
 
+    fn refresh_node_pending(&self, expression: ast::Id) -> Option<(ViewNodeId, bool)> {
+        let registry = self.controller.computed_value_info_registry();
+        let is_pending = registry
+            .get(&expression)
+            .map(|info| matches!(info.payload, ExpressionUpdatePayload::Pending { .. }))
+            .unwrap_or_default();
+        self.state.update_from_controller().set_node_pending(expression, is_pending)
+    }
+
     /// Extract the expression's current type from controllers.
     fn expression_type(&self, id: ast::Id) -> Option<view::graph_editor::Type> {
         let registry = self.controller.computed_value_info_registry();
@@ -426,6 +452,14 @@ impl Model {
         if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
             error!("Error when creating node from dropped file: {err}");
         }
+    }
+
+    fn paste_node(&self, cursor_pos: Vector2) {
+        fn on_error(msg: String) {
+            error!("Error when pasting node. {}", msg);
+            notification::error(msg, &None);
+        }
+        self.controller.graph().paste_node(cursor_pos, on_error);
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
@@ -668,8 +702,9 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let view = project_view.graph().clone_ref();
-        let model = Rc::new(Model::new(project, controller, view));
+        let graph_editor_view = project_view.graph().clone_ref();
+        let project_view_clone = project_view.clone_ref();
+        let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
         Self { network, model }.init(project_view)
     }
 
@@ -740,11 +775,13 @@ impl Graph {
             update_expression <= update_expressions;
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
+            view.set_node_pending_status <+ update_expression.filter_map(f!((id) model.refresh_node_pending(*id)));
 
             self.init_widgets(reset_node_types, update_expression.clone_ref());
 
             // === Changes from the View ===
 
+            eval view.node_copied((node_id) model.node_copied(*node_id));
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
@@ -759,8 +796,9 @@ impl Graph {
             eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
-            // === Dropping Files ===
+            // === Dropping Files and Pasting Node ===
 
+            eval view.request_paste_node((pos) model.paste_node(*pos));
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }

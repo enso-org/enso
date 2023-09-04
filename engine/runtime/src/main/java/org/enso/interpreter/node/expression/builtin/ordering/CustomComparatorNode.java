@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -48,17 +49,18 @@ public abstract class CustomComparatorNode extends Node {
     return res instanceof Type result && result != ctx.getBuiltins().defaultComparator().getType() ? result : null;
   }
 
+  @NeverDefault
   UnresolvedConversion createConversion() {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
     return UnresolvedConversion.build(comparableType.getDefinitionScope());
   }
 
+  @NeverDefault
   static InvokeConversionNode buildConvertionNode() {
     CallArgumentInfo[] argSchema = new CallArgumentInfo[2];
     argSchema[0] = new CallArgumentInfo();
     argSchema[1] = new CallArgumentInfo();
-
     return InvokeConversionNode.build(argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE, 1);
   }
 }

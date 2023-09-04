@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -11,7 +10,12 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
@@ -22,13 +26,14 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-public final class Type implements TruffleObject {
+public final class Type implements EnsoObject {
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
   private final boolean builtin;
@@ -70,7 +75,8 @@ public final class Type implements TruffleObject {
             node.getCallTarget(),
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -118,6 +124,13 @@ public final class Type implements TruffleObject {
   }
 
   public Type getSupertype() {
+    if (supertype == null) {
+      if (builtin) {
+        return null;
+      }
+      var ctx = EnsoContext.get(null);
+      return ctx.getBuiltins().any();
+    }
     return supertype;
   }
 
@@ -167,6 +180,8 @@ public final class Type implements TruffleObject {
                       new ArgumentDefinition(
                           0,
                           Constants.Names.SELF_ARGUMENT,
+                          null,
+                          null,
                           ArgumentDefinition.ExecutionMode.EXECUTE)));
           definitionScope.registerMethod(this, name, f);
         });
@@ -204,13 +219,13 @@ public final class Type implements TruffleObject {
     if (isNothing(lib) || !hasMetaParents()) {
       throw UnsupportedMessageException.create();
     }
-    assert supertype != null;
-    return new Array(supertype);
+    assert getSupertype() != null;
+    return ArrayLikeHelpers.wrapEnsoObjects(getSupertype());
   }
 
   @ExportMessage
   boolean hasMetaParents() {
-    return supertype != null && supertype != this;
+    return getSupertype() != null && getSupertype() != this;
   }
 
   @ExportMessage
@@ -271,8 +286,8 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  Array getMembers(boolean includeInternal) {
-    return new Array(constructors.keySet().toArray(Object[]::new));
+  EnsoObject getMembers(boolean includeInternal) {
+    return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
   }
 
   @ExportMessage

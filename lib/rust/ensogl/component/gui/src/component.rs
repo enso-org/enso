@@ -83,7 +83,7 @@ pub struct ComponentView<Model: 'static, Frp: 'static> {
 
 impl<M, F> ComponentView<M, F>
 where
-    M: Model + display::Object + 'static,
+    M: Model + 'static + display::Object,
     F: Frp<M> + 'static,
 {
     /// Constructor.
@@ -93,8 +93,7 @@ where
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         F::init(frp.network(), frp.private(), app, &model, &style);
         F::init_inputs(frp.public());
-        let display_object = model.display_object().clone_ref();
-        let widget = Widget::new(app, frp, model, display_object);
+        let widget = Widget::new(app, frp, model);
         Self { widget }
     }
 
@@ -112,9 +111,15 @@ where
     }
 }
 
-impl<M: 'static, F: 'static> display::Object for ComponentView<M, F> {
+impl<M: 'static, F: 'static> display::Object for ComponentView<M, F>
+where M: display::Object
+{
     fn display_object(&self) -> &display::object::Instance {
         self.widget.display_object()
+    }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.widget.focus_receiver()
     }
 }
 
@@ -144,7 +149,7 @@ where
         ComponentView::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         F::default_shortcuts()
     }
 }

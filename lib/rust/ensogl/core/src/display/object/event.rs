@@ -218,13 +218,16 @@ impl<T: 'static> Event<T> {
     ///
     /// See: https://developer.mozilla.org/en-US/docs/Web/API/Event/stopPropagation.
     pub fn stop_propagation(&self) {
-        match self.state.get() {
-            State::Running(phase) => self.state.set(State::RunningCancelled(phase)),
+        Self::cancel(&self.state);
+    }
+
+    fn cancel(state: &Cell<State>) {
+        match state.get() {
+            State::Running(phase) => state.set(State::RunningCancelled(phase)),
             State::RunningNonCancellable(_) => warn!("Trying to cancel a non-cancellable event."),
             _ => {}
         }
     }
-
 
     /// Emit event again with the same payload after it was cancelled. The event will start its
     /// capturing phase handling again, starting at but not including this instance. If the passed
@@ -264,6 +267,50 @@ impl<T: 'static> Event<T> {
     /// store the event in a variable and read this property later, the value will be [`None`].
     pub fn current_target(&self) -> Option<Instance> {
         self.data.current_target.borrow().as_ref().and_then(|t| t.upgrade())
+    }
+}
+
+
+// === StopPropagation ===
+
+/// Handle that can be used to cancel an event of any type. This supports type-erased cancellation
+/// more efficiently than creating a boxed closure owning the [`Event`], and implements traits a
+/// closure would not.
+#[derive(Debug, Default, Clone)]
+pub struct StopPropagation {
+    state: Option<Rc<Cell<State>>>,
+}
+
+impl FnOnce<()> for StopPropagation {
+    type Output = ();
+    #[inline(always)]
+    extern "rust-call" fn call_once(mut self, _args: ()) -> Self::Output {
+        self.call_mut(())
+    }
+}
+
+impl FnMut<()> for StopPropagation {
+    #[inline(always)]
+    extern "rust-call" fn call_mut(&mut self, _args: ()) -> Self::Output {
+        self.call(())
+    }
+}
+
+impl Fn<()> for StopPropagation {
+    #[inline]
+    extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
+        if let Some(state) = self.state.as_ref() {
+            Event::<()>::cancel(state);
+        }
+    }
+}
+
+impl<T> EventData<T> {
+    /// Return a callable object that can be used to cancel an event of any type. This supports
+    /// type-erased cancellation more efficiently than creating a boxed closure owning the
+    /// [`Event`], and implements traits a closure would not.
+    pub fn propagation_stopper(&self) -> StopPropagation {
+        StopPropagation { state: self.state.clone().into() }
     }
 }
 

@@ -14,10 +14,13 @@ const TRUSTED_HOSTS = [
     'github.com',
     'production-enso-domain.auth.eu-west-1.amazoncognito.com',
     'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+    // This (`localhost`) is required to access Project Manager HTTP endpoints.
+    // This should be changed appropriately if the Project Manager's port number becomes dynamic.
+    '127.0.0.1:30535',
 ]
 
 /** The list of hosts that the app can open external links to. */
-const TRUSTED_EXTERNAL_HOSTS = ['discord.gg']
+const TRUSTED_EXTERNAL_HOSTS = ['enso.org', 'www.youtube.com', 'discord.gg', 'github.com']
 
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []

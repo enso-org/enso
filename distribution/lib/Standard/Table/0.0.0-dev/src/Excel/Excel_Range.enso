@@ -20,11 +20,13 @@ type Excel_Range
        Specifies a range within an Excel Workbook.
     Value java_range:Java_Range
 
-    ## Gets the name of the sheet.
+    ## GROUP Standard.Base.Metadata
+       Gets the name of the sheet.
     sheet_name : Text
     sheet_name self = self.java_range.getSheetName
 
-    ## Gets the index (1-based) of the top row of the range.
+    ## GROUP Standard.Base.Metadata
+       Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
     top_row self = if self.java_range.isWholeColumn then Nothing else
@@ -36,19 +38,22 @@ type Excel_Range
     bottom_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getBottomRow
 
-    ## Gets the index (1-based) of the left column of the range.
+    ## GROUP Standard.Base.Metadata
+       Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
     left_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getLeftColumn
 
-    ## Gets the index (1-based) of the right column of the range.
+    ## GROUP Standard.Base.Metadata
+       Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
     right_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
 
-    ## Is the Excel_Range referring to a single cell
+    ## GROUP Standard.Base.Metadata
+       Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
     is_single_cell self = self.java_range.isSingleCell
 

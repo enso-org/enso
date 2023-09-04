@@ -3,6 +3,7 @@
  * allowing to choose a debug rendering test from. */
 
 import * as semver from 'semver'
+import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -10,6 +11,7 @@ import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
+import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -21,14 +23,14 @@ const logger = app.log.logger
 /** The name of the `localStorage` key storing the initial URL of the app. */
 const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
-const ESBUILD_PATH = '/esbuild'
+const ESBUILD_PATH = './esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
 /** Path to the serice worker that caches assets for offline usage.
  * In development, it also resolves all extensionless paths to `/index.html`.
  * This is required for client-side routing to work when doing `./run gui watch`.
  */
-const SERVICE_WORKER_PATH = '/serviceWorker.js'
+const SERVICE_WORKER_PATH = './serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
@@ -38,14 +40,18 @@ const FETCH_TIMEOUT = 300
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE && !detect.isRunningInElectron()) {
+if (IS_DEV_MODE && !detect.isOnElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.
         location.href = location.href.toString()
     })
 }
-void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+void (async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    await registration?.unregister()
+    await navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+})()
 
 // =============
 // === Fetch ===
@@ -141,6 +147,7 @@ interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
+    projectManagerUrl: string | null
     isInAuthenticationFlow: boolean
     shouldUseAuthentication: boolean
     shouldUseNewDashboard: boolean
@@ -151,6 +158,7 @@ interface AuthenticationConfig {
 /** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
+    toast = toastify.toast
 
     /** Stop an app instance, if one is running. */
     stopApp() {
@@ -159,7 +167,11 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig?: StringConfig | null) {
+    async runApp(
+        inputConfig: StringConfig | null,
+        accessToken: string | null,
+        loggingMetadata?: object
+    ) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -174,25 +186,46 @@ class Main implements AppRunner {
             inputConfig
         )
 
-        this.app = new app.App({
+        const configOptions = contentConfig.OPTIONS.clone()
+
+        const newApp = new app.App({
             config,
-            configOptions: contentConfig.OPTIONS,
+            configOptions,
             packageInfo: {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,
             },
         })
 
+        // We override the remote logger stub with the "real" one. Eventually the runner should not be aware of the
+        // remote logger at all, and it should be integrated with our logging infrastructure.
+        const remoteLogger = accessToken != null ? new remoteLog.RemoteLogger(accessToken) : null
+        newApp.remoteLog = async (message: string, metadata: unknown) => {
+            const metadataObject =
+                typeof metadata === 'object' && metadata != null ? metadata : { metadata }
+            const actualMetadata =
+                loggingMetadata == null ? metadata : { ...loggingMetadata, ...metadataObject }
+            if (newApp.config.options.dataCollection.value && remoteLogger != null) {
+                await remoteLogger.remoteLog(message, actualMetadata)
+            } else {
+                const logMessage = [
+                    'Not sending log to remote server. Data collection is disabled.',
+                    `Message: "${message}"`,
+                    `Metadata: ${JSON.stringify(actualMetadata)}`,
+                ].join(' ')
+
+                logger.log(logMessage)
+            }
+        }
+        this.app = newApp
+
         if (!this.app.initialized) {
             console.error('Failed to initialize the application.')
         } else {
-            if (contentConfig.OPTIONS.options.dataCollection.value) {
-                // TODO: Add remote-logging here.
-            }
-            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            if (!(await checkMinSupportedVersion(configOptions))) {
                 displayDeprecatedVersionDialog()
             } else {
-                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+                const email = configOptions.groups.authentication.options.email.value
                 // The default value is `""`, so a truthiness check is most appropriate here.
                 if (email) {
                     logger.log(`User identified as '${email}'.`)
@@ -216,21 +249,26 @@ class Main implements AppRunner {
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
         }
-        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        const configOptions = contentConfig.OPTIONS.clone()
+        const parseOk = configOptions.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', authenticationUrl)
         } else {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            const shouldUseAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const shouldUseAuthentication = configOptions.options.authentication.value
             const shouldUseNewDashboard =
-                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+                configOptions.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
-                contentConfig.OPTIONS.groups.startup.options.entry.value ===
-                contentConfig.OPTIONS.groups.startup.options.entry.default
-            const initialProjectName =
-                contentConfig.OPTIONS.groups.startup.options.project.value || null
+                configOptions.groups.startup.options.entry.value ===
+                configOptions.groups.startup.options.entry.default
+            const initialProjectName = configOptions.groups.startup.options.project.value || null
+            // This does not need to be removed from the URL, but only because local projects
+            // also use the Project Manager URL, and remote (cloud) projects remove the URL
+            // completely.
+            const projectManagerUrl =
+                configOptions.groups.engine.options.projectManagerUrl.value || null
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
@@ -240,13 +278,14 @@ class Main implements AppRunner {
             if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
                 this.runAuthentication({
                     isInAuthenticationFlow,
+                    projectManagerUrl,
                     shouldUseAuthentication,
                     shouldUseNewDashboard,
                     initialProjectName,
                     inputConfig: inputConfig ?? null,
                 })
             } else {
-                void this.runApp(inputConfig)
+                void this.runApp(inputConfig ?? null, null)
             }
         }
     }
@@ -267,10 +306,11 @@ class Main implements AppRunner {
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
+            projectManagerUrl: config.projectManagerUrl,
             isAuthenticationDisabled: !config.shouldUseAuthentication,
             shouldShowDashboard: config.shouldUseNewDashboard,
             initialProjectName: config.initialProjectName,
-            onAuthenticated: () => {
+            onAuthenticated: (accessToken: string | null) => {
                 if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {
@@ -287,7 +327,7 @@ class Main implements AppRunner {
                         ideElement.style.display = ''
                     }
                     if (this.app == null) {
-                        void this.runApp(config.inputConfig)
+                        void this.runApp(config.inputConfig, accessToken)
                     }
                 }
             },

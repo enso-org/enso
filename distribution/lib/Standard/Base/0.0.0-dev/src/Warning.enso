@@ -12,7 +12,6 @@ import project.Polyglot.Polyglot
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
-
 from project.Data.Boolean import Boolean, False, True
 
 ## A representation of a dataflow warning attached to a value.
@@ -43,7 +42,8 @@ type Warning
     remove_warnings value warning_type=Any =
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
-    ## Throws the first matching warning (either all or of a specified type) as a data flow error.
+    ## GROUP Errors
+       Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.
@@ -226,7 +226,8 @@ type Warning
             new_warnings.fold result.first acc-> warning->
                 Warning.attach warning acc
 
-    ## Returns the warning value – usually its explanation or other contents.
+    ## GROUP Metadata
+       Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 

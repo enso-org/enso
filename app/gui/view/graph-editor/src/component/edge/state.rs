@@ -4,6 +4,7 @@ use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::TargetAttachment;
+
 use ensogl::data::color;
 
 
@@ -34,6 +35,8 @@ pub(super) struct Layout {
     pub arrow:             Option<Vector2>,
     /// The target-attachment end.
     pub target_attachment: Option<TargetAttachment>,
+    /// The size of the source node.
+    pub source_size:       Vector2,
 }
 
 /// An edge's color scheme.

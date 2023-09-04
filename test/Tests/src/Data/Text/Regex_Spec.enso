@@ -3,7 +3,6 @@ import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.No_Such_Group
-import Standard.Base.Data.Text.Regex.Regex
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Regex.Internal.Replacer.Replacer
 import Standard.Base.Errors.Common.Type_Error
@@ -33,6 +32,11 @@ spec =
 
         Test.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
+
+        Test.specify "passing a non-string should fail with a type error" <|
+            Test.expect_panic_with (Regex.compile 12) Type_Error
+            p = Regex.compile "[a-z]"
+            Test.expect_panic_with (Regex.compile p) Type_Error
 
     Test.group "Escape" <|
         Test.specify "should escape an expression for use as a literal" <|

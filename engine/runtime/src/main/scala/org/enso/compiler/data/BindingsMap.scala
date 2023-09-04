@@ -2,7 +2,8 @@ package org.enso.compiler.data
 
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -21,7 +22,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  6584L // verify ascribed types
+  7681L // verify ascribed types
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
@@ -56,7 +57,7 @@ case class BindingsMap(
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    val packageRepository = compiler.context.getPackageRepository
+    val packageRepository = compiler.getPackageRepository()
     this.toConcrete(packageRepository.getModuleMap)
   }
 
@@ -212,6 +213,9 @@ case class BindingsMap(
         }
       }
       currentScope.resolveExportedSymbol(finalItem)
+    case s @ ResolvedPolyglotSymbol(_, _) =>
+      val found = s.findExportedSymbolFor(finalItem)
+      Right(found)
     case _ => Left(ResolutionNotFound)
   }
 
@@ -666,8 +670,8 @@ object BindingsMap {
     * @param target the module or type this import resolves to
     */
   case class ResolvedImport(
-    importDef: IR.Module.Scope.Import.Module,
-    exports: List[IR.Module.Scope.Export.Module],
+    importDef: ir.module.scope.Import.Module,
+    exports: List[ir.module.scope.Export.Module],
     target: ImportTarget
   ) {
 
@@ -891,13 +895,13 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def getIr: Option[IR.Module.Scope.Definition] = {
+    def getIr: Option[ir.module.scope.Definition] = {
       val moduleIr = module match {
         case ModuleReference.Concrete(module) => Some(module.getIr)
         case ModuleReference.Abstract(_)      => None
       }
       moduleIr.flatMap(_.bindings.find {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
+        case method: ir.module.scope.definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
             .forall(
               _.getMetadata(MethodDefinitions)
@@ -907,7 +911,7 @@ object BindingsMap {
       })
     }
 
-    def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
+    def unsafeGetIr(missingMessage: String): ir.module.scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
 
     override def qualifiedName: QualifiedName =
@@ -937,11 +941,26 @@ object BindingsMap {
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(symbol.name)
+
+    def findExportedSymbolFor(
+      name: String
+    ): org.enso.compiler.data.BindingsMap.ResolvedName =
+      ResolvedPolyglotField(this, name)
+  }
+
+  case class ResolvedPolyglotField(symbol: ResolvedPolyglotSymbol, name: String)
+      extends ResolvedName {
+    def module: BindingsMap.ModuleReference = symbol.module
+    def qualifiedName: QualifiedName        = symbol.qualifiedName.createChild(name)
+    def toAbstract: ResolvedName =
+      ResolvedPolyglotField(symbol.toAbstract, name)
+    def toConcrete(moduleMap: ModuleMap): Option[ResolvedName] =
+      symbol.toConcrete(moduleMap).map(ResolvedPolyglotField(_, name))
   }
 
   /** A representation of an error during name resolution.
     */
-  sealed trait ResolutionError extends IR.Error.Resolution.ExplainResolution
+  sealed trait ResolutionError extends errors.Resolution.ExplainResolution
 
   /** A representation of a resolution error due to symbol ambiguity.
     *
@@ -949,7 +968,7 @@ object BindingsMap {
     */
   case class ResolutionAmbiguous(candidates: List[ResolvedName])
       extends ResolutionError {
-    override def explain(originalName: IR.Name): String = {
+    override def explain(originalName: ir.Name): String = {
       val firstLine =
         s"The name ${originalName.name} is ambiguous. Possible candidates are:"
       val lines = candidates.map {
@@ -962,6 +981,8 @@ object BindingsMap {
           s"    The module ${module.getName};"
         case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
           s"    The imported polyglot symbol ${symbol.name};"
+        case BindingsMap.ResolvedPolyglotField(_, name) =>
+          s"    The imported polyglot field ${name};"
         case BindingsMap.ResolvedMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
         case BindingsMap.ResolvedType(module, typ) =>
@@ -974,7 +995,7 @@ object BindingsMap {
   /** A resolution error due to the symbol not being found.
     */
   case object ResolutionNotFound extends ResolutionError {
-    override def explain(originalName: IR.Name): String =
+    override def explain(originalName: ir.Name): String =
       s"The name `${originalName.name}` could not be found"
   }
 
@@ -992,7 +1013,7 @@ object BindingsMap {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Resolution] = {
-      val moduleMap = compiler.context.getPackageRepository.getModuleMap
+      val moduleMap = compiler.getPackageRepository().getModuleMap
       this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
     }
 

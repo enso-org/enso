@@ -9,6 +9,7 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
+import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -225,6 +226,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         fileManager,
         vcsManager,
         runtimeConnector,
+        contentRootManagerWrapper,
         TimingsConfig.default().withAutoSave(6.seconds)
       ),
       "buffer-registry"
@@ -235,6 +237,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       ReceivesTreeUpdatesHandler.props(
         languageServerConfig,
         contentRootManagerWrapper,
+        new WatcherAdapterFactory,
         fileSystem,
         zioExec
       ),
@@ -353,13 +356,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "project-settings-manager"
   )
 
+  val libraryLocations =
+    LibraryLocations.resolve(
+      distributionManager,
+      Some(languageHome),
+      Some(contentRoot.file.toPath)
+    )
+
   val localLibraryManager = system.actorOf(
-    LocalLibraryManager.props(contentRoot.file, distributionManager),
+    LocalLibraryManager.props(contentRoot.file, libraryLocations),
     "local-library-manager"
   )
-
-  val libraryLocations =
-    LibraryLocations.resolve(distributionManager, Some(languageHome))
 
   val libraryConfig = LibraryConfig(
     localLibraryManager      = localLibraryManager,

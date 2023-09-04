@@ -1,12 +1,34 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
+@import "react-toastify/dist/ReactToastify.css";
 
 body {
+  overflow: hidden;
+  height: 100vh;
   margin: 0;
+  background: url("enso-assets/background.png") 0 0,
+    linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
+  background-blend-mode: lighten;
+}
+
+.Toastify--animate {
+  animation-duration: 0.2s;
+}
+
+.enso-dashboard {
+  position: absolute;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}
+
+.enso-dashboard > * {
+  pointer-events: auto;
 }
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -16,7 +38,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus {
+.enso-dashboard *:focus,
+.enso-chat *:focus {
   outline: none !important;
 }
 
@@ -40,53 +63,39 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  border: 1px solid rgba(220, 220, 220, 0.5);
-  background-color: rgba(190, 190, 190, 0.5);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 ::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
 }
 
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
 
   @layer components {
-    .clip-path-top-left {
-      clip-path: polygon(
-        0 0,
-        calc(50% - 2px) 0,
-        calc(50% - 2px) calc(50% - 2px),
-        0 calc(50% - 2px)
-      );
+    .clip-path-top {
+      clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }
 
-    .clip-path-top-right {
+    .clip-path-bottom {
       clip-path: polygon(
-        calc(50% + 2px) 0,
-        100% 0,
-        100% calc(50% - 2px),
-        calc(50% + 2px) calc(50% - 2px)
-      );
-    }
-
-    .clip-path-bottom-left {
-      clip-path: polygon(
-        0 calc(50% + 2px),
-        calc(50% - 2px) calc(50% + 2px),
-        calc(50% - 2px) 100%,
+        0 calc(50% + 1px),
+        100% calc(50% + 1px),
+        100% 100%,
         0 100%
       );
     }
 
-    .clip-path-bottom-right {
+    .clip-path-bottom-shadow {
       clip-path: polygon(
-        calc(50% + 2px) calc(50% + 2px),
-        100% calc(50% + 2px),
-        100% 100%,
-        calc(50% + 2px) 100%
+        0 0,
+        100% 0,
+        100% calc(100% + 100vh),
+        0 calc(100% + 100vh)
       );
     }
 
@@ -103,24 +112,53 @@ body {
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 
-    .border-dashed-custom {
-      background-image: url("enso-assets/dashed_border.svg");
-    }
-
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
     }
+
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
     }
 
-    .h-templates-custom {
-      height: 21.5rem;
+    :where(
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td:not(.rounded-rows-skip-level),
+        .rounded-rows
+          > tbody
+          > tr:nth-child(odd)
+          > td.rounded-rows-skip-level
+          > *
+      ) {
+      background-color: rgba(0, 0, 0, 0.03);
+    }
 
-      @media screen and (min-width: 1771px) {
-        height: 11rem;
+    :where(
+        .rounded-rows > tbody > tr.selected > td:not(.rounded-rows-skip-level),
+        .rounded-rows > tbody > tr.selected > td.rounded-rows-skip-level > *
+      ) {
+      background-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .search-bar.search-bar {
+      @media screen and (max-width: 59rem) {
+        position: unset;
+        transform: unset;
+        left: unset;
       }
     }
+
+    .whatsnew-span-2.whatsnew-span-2 {
+      @media screen and (max-width: 40.5625rem) {
+        grid-column: span 1 / span 1;
+      }
+    }
+  }
+
+  .pointer-events-none-recursive,
+  .pointer-events-none-recursive * {
+    pointer-events: none;
   }
 }

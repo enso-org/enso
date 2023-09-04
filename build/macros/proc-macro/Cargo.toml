@@ -10,7 +10,7 @@ proc-macro = true
 [dependencies]
 enso-build-base = { path = "../../base" }
 enso-build-macros-lib = { path = "../lib" }
-syn = { workspace = true }
+syn_1 = { workspace = true }
 
 [dev-dependencies]
 itertools = { workspace = true }

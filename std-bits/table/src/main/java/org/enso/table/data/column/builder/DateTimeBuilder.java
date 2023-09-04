@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
@@ -24,7 +25,11 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public void appendNoGrow(Object o) {
-    data[currentSize++] = (ZonedDateTime) o;
+    try {
+      data[currentSize++] = (ZonedDateTime) o;
+    } catch (ClassCastException e) {
+      throw new ValueTypeMismatchException(getType(), o);
+    }
   }
 
   @Override

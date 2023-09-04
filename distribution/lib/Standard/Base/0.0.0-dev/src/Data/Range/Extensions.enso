@@ -4,7 +4,8 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 from project.Data.Boolean import Boolean, False, True
 
-## ALIAS Range
+## ALIAS range
+   GROUP Input
 
    Creates an increasing range of integers from `self` to `n`.
 
@@ -29,7 +30,8 @@ Integer.up_to self n include_end=False = case n of
         Range.Between self effective_end 1
     _ -> Error.throw (Illegal_Argument.Error "Expected range end to be an Integer.")
 
-## ALIAS Range
+## ALIAS range
+   GROUP Input
 
    Creates a decreasing right-exclusive range of integers from `self` to `n`.
 

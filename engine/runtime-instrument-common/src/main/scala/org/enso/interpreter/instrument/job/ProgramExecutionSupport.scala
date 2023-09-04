@@ -332,7 +332,9 @@ object ProgramExecutionSupport {
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
-        methodPointer.isDefined && !syncState.isMethodPointerSync(expressionId)
+        methodPointer.isDefined && !syncState.isMethodPointerSync(
+          expressionId
+        )
       ) ||
       Types.isPanic(value.getType)
     ) {
@@ -363,7 +365,9 @@ object ProgramExecutionSupport {
         case _ =>
           val warnings =
             Option.when(
-              WarningsLibrary.getUncached.hasWarnings(value.getValue)
+              value.getValue != null && WarningsLibrary.getUncached.hasWarnings(
+                value.getValue
+              )
             ) {
               val warnings =
                 WarningsLibrary.getUncached.getWarnings(value.getValue, null)
@@ -565,7 +569,9 @@ object ProgramExecutionSupport {
     */
   private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
     for {
-      call          <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
+      call <-
+        if (Types.isPanic(value.getType)) Option(value.getCallInfo)
+        else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
       Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)

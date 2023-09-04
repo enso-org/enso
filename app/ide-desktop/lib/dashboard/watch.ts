@@ -1,4 +1,5 @@
 /** @file File watch and compile service. */
+import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -19,7 +20,7 @@ const HTTP_STATUS_OK = 200
 // `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
-const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
+const ARGS: bundler.Arguments = { outputPath: '/', devMode: process.env.DEV_MODE !== 'false' }
 const OPTS = bundler.bundlerOptions(ARGS)
 OPTS.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
@@ -32,12 +33,13 @@ OPTS.write = false
 OPTS.loader['.html'] = 'copy'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 ;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
+const REQUIRE = module.default.createRequire(import.meta.url)
 OPTS.plugins.push({
     name: 'react-dom-profiling',
     setup: build => {
         build.onResolve({ filter: /^react-dom$/ }, args => {
             if (args.kind === 'import-statement') {
-                return { path: 'react-dom/profiling' }
+                return { path: REQUIRE.resolve('react-dom/profiling') }
             } else {
                 return
             }

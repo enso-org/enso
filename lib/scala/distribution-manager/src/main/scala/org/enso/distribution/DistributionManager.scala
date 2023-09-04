@@ -229,7 +229,9 @@ class DistributionManager(val env: Environment) {
     env
       .getEnvPaths(ENSO_LIBRARY_PATH)
       .getOrElse {
-        Seq(ensoHome / DistributionManager.Home.LIBRARIES_DIRECTORY)
+        Seq(
+          ensoHome / DistributionManager.Home.LIBRARIES_DIRECTORY
+        )
       }
 
   /** Name of the file that should be placed in the distribution root to mark it

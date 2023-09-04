@@ -3,15 +3,14 @@ package org.enso.table.data.column.storage;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -21,17 +20,20 @@ import java.util.BitSet;
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
 
+  private final TextType type;
   /**
    * @param data the underlying data
    * @param size the number of items stored
+   * @param type the type of the column
    */
-  public StringStorage(String[] data, int size) {
-    super(data, size, ops);
+  public StringStorage(String[] data, int size, TextType type) {
+    super(data, size, buildOps());
+    this.type = type;
   }
 
   @Override
   protected SpecializedStorage<String> newInstance(String[] data, int size) {
-    return new StringStorage(data, size);
+    return new StringStorage(data, size, type);
   }
 
   @Override
@@ -40,29 +42,15 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public StorageType getType() {
-    // TODO [RW] constant length strings support
-    return TextType.VARIABLE_LENGTH;
-  }
-
-  private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
-
-  @Override
-  protected Storage<?> runVectorizedMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+  public TextType getType() {
+    return type;
   }
 
   @Override
   public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
-      return fillMissingHelper(arg, new StringBuilder(size()));
+      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
+      return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
       return super.fillMissing(arg);
     }
@@ -70,15 +58,15 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new StringBuilder(capacity);
+    return new StringBuilder(capacity, type);
   }
 
-  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOperationStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
-        new MapOperation<>(Maps.EQ) {
+        new BinaryMapOperation<>(Maps.EQ) {
           @Override
-          public BoolStorage runMap(
+          public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
               MapOperationProblemBuilder problemBuilder) {
@@ -121,7 +109,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected BoolStorage run(SpecializedStorage<String> storage) {
+          protected BoolStorage runUnaryMap(SpecializedStorage<String> storage, MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {
@@ -163,6 +151,11 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected String doString(String a, String b) {
             return a + b;
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.concatTypes(a, b);
           }
         });
     return t;

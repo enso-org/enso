@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::config::ProjectToOpen;
 use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
@@ -25,6 +24,8 @@ pub use initializer::Initializer;
 // === Constants ===
 // =================
 
+/// Constant notification ID, so we can reuse the same notification.
+pub const BACKEND_DISCONNECTED_NOTIFICATION_ID: &str = "backend-disconnected-toast";
 /// Text that shows up in the statusbar when any of the backend connections is lost.
 pub const BACKEND_DISCONNECTED_MESSAGE: &str =
     "Connection to the backend has been lost. Please try restarting IDE.";
@@ -73,17 +74,17 @@ impl Ide {
         let network = &self.network;
         let scene = &self.ensogl_app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
-        let keyboard = &scene.keyboard.frp;
+        let keyboard = &scene.global_keyboard.frp;
 
         enso_frp::extend! { network
-            on_log_sent          <- source::<()>();
-            mouse_moved          <- mouse.position.constant(()).profile();
-            any_mouse_press      <- any(mouse.up,mouse.down).constant(()).profile();
-            any_mouse_event      <- any(any_mouse_press,mouse_moved,mouse.wheel).profile();
-            any_keyboard_event   <- any(keyboard.down,keyboard.up).constant(()).profile();
-            any_input_event      <- any(any_mouse_event,any_keyboard_event).profile();
+            on_log_sent <- source::<()>();
+            mouse_moved <- mouse.position.constant(()).profile();
+            any_mouse_press <- any(mouse.up, mouse.down).constant(()).profile();
+            any_mouse_event <- any(any_mouse_press, mouse_moved, mouse.wheel).profile();
+            any_keyboard_event <- keyboard.any_event.profile();
+            any_input_event <- any(any_mouse_event, any_keyboard_event).profile();
             // True if any input event was captured since the last "alive" log sending.
-            input_event_received <- bool(&on_log_sent,&any_input_event).profile().sampler();
+            input_event_received <- bool(&on_log_sent, &any_input_event).profile().sampler();
         }
         async move {
             loop {
@@ -93,11 +94,6 @@ impl Ide {
                 sleep(Duration::from_secs(ALIVE_LOG_INTERVAL_SEC)).await;
             }
         }
-    }
-
-    /// Open a project by name or ID. If no project with the given name exists, it will be created.
-    pub fn open_or_create_project(&self, project: ProjectToOpen) {
-        self.presenter.open_or_create_project(project)
     }
 }
 
@@ -109,6 +105,7 @@ impl Ide {
 pub struct FailedIde {
     pub view: ide_view::root::View,
 }
+
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> model::module::Path {

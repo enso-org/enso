@@ -8,7 +8,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -23,8 +23,8 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
   private final Object polyglotSymbol;
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile subtypeProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile profile = CountingConditionProfile.create();
+  private final CountingConditionProfile subtypeProfile = CountingConditionProfile.create();
 
   PolyglotSymbolTypeBranchNode(
       Object polyglotSymbol, RootCallTarget functionNode, boolean terminalBranch) {

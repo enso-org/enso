@@ -7,13 +7,10 @@ use ensogl::system::web::traits::*;
 use crate::code_editor;
 use crate::component_browser;
 use crate::component_browser::component_list_panel;
-use crate::debug_mode_popup;
-use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
-use crate::popup;
 use crate::project_list::ProjectList;
 
 use enso_config::ARGS;
@@ -29,14 +26,13 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use project_view_top_bar::ProjectViewTopBar;
+use ide_view_project_view_top_bar::ProjectViewTopBar;
+
 
 
 // ==============
 // === Export ===
 // ==============
-
-pub mod project_view_top_bar;
 
 
 
@@ -49,6 +45,18 @@ pub mod project_view_top_bar;
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
+
+/// Mitigate limitations of constant strings concatenation.
+macro_rules! define_debug_mode_shortcut {
+    ($shortcut:literal) => {
+        /// A keyboard shortcut used to enable/disable Debug Mode.
+        pub const DEBUG_MODE_SHORTCUT: &str = $shortcut;
+        const DEBUG_MODE_ENABLED: &str =
+            concat!("Debug Mode enabled. To disable, press `", $shortcut, "`.");
+    };
+}
+
+define_debug_mode_shortcut!("ctrl shift d");
 
 
 // ===========
@@ -105,6 +113,10 @@ ensogl::define_endpoints! {
         hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
+        /// Show the graph editor.
+        show_graph_editor(),
+        /// Hide the graph editor.
+        hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Toggles the visibility of private components in the component browser.
@@ -155,7 +167,7 @@ ensogl::define_endpoints! {
         // TODO[MM]: this should not contain the group entry id as that is component browser
         // specific. It should be refactored to be an implementation detail of the component
         // browser.
-        editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
+        editing_committed              (NodeId, Option<component_list_panel::grid::EntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -174,17 +186,16 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
-    display_object:       display::object::Instance,
-    project_view_top_bar: ProjectViewTopBar,
-    graph_editor:         Rc<GraphEditor>,
-    searcher:             component_browser::View,
-    code_editor:          code_editor::View,
-    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:         Rc<ProjectList>,
-    debug_mode_popup:     debug_mode_popup::View,
-    popup:                popup::View,
+    display_object:   display::object::Instance,
+    top_bar:          ProjectViewTopBar,
+    graph_editor:     Rc<GraphEditor>,
+    searcher:         component_browser::View,
+    code_editor:      code_editor::View,
+    fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:     Rc<ProjectList>,
+    debug_mode_popup: Rc<crate::notification::View>,
 }
 
 impl Model {
@@ -194,30 +205,26 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let debug_mode_popup = debug_mode_popup::View::new(app);
-        let popup = popup::View::new(app);
+        let debug_mode_popup = Rc::new(crate::notification::View::new(app));
         let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&debug_mode_popup);
-        display_object.add_child(&popup);
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
         let graph_editor = Rc::new(graph_editor);
         Self {
             display_object,
-            project_view_top_bar,
+            top_bar: project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
             fullscreen_vis,
             project_list,
             debug_mode_popup,
-            popup,
         }
     }
 
@@ -253,7 +260,7 @@ impl Model {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
-            self.display_object.remove_child(&self.project_view_top_bar);
+            self.display_object.remove_child(&self.top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         });
@@ -263,7 +270,7 @@ impl Model {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
             self.display_object.add_child(&*self.graph_editor);
-            self.display_object.add_child(&self.project_view_top_bar);
+            self.display_object.add_child(&self.top_bar);
         }
     }
 
@@ -273,20 +280,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let project_view_top_bar_origin = Vector2(
-            0.0,
-            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
-                - project_view_top_bar_size.y / 2.0,
-        );
-        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
-    }
-
-    fn on_close_clicked(&self) {
-        js::close(enso_config::window_app_scope_name);
-    }
-
-    fn on_fullscreen_clicked(&self) {
-        js::fullscreen();
+        let y = -project_view_top_bar_size.y;
+        let x = ARGS.groups.window.options.top_bar_offset.value;
+        let project_view_top_bar_origin = Vector2(x as f32, y);
+        self.top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn show_project_list(&self) {
@@ -296,42 +293,13 @@ impl Model {
     fn hide_project_list(&self) {
         self.display_object.remove_child(&*self.project_list);
     }
-}
 
-
-
-mod js {
-    // use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(inline_js = "
-    export function close(windowAppScopeConfigName) {
-        try { window[windowAppScopeConfigName].close(); }
-        catch(e) {
-            console.error(`Exception thrown from window.${windowAppScopeConfigName}.close:`,e)
-        }
-    }")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn close(window_app_scope_name: &str);
+    fn show_graph_editor(&self) {
+        self.display_object.add_child(&*self.graph_editor);
     }
 
-
-    #[wasm_bindgen(inline_js = "
-    export function fullscreen() {
-        try {
-            if(document.fullscreenElement === null)
-                document.documentElement.requestFullscreen()
-            else
-                document.exitFullscreen()
-        } catch (e) {
-            console.error('Exception thrown when toggling fullscreen display mode:',e)
-        }
-    }
-    ")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn fullscreen();
+    fn hide_graph_editor(&self) {
+        self.display_object.remove_child(&*self.graph_editor);
     }
 }
 
@@ -343,8 +311,9 @@ mod js {
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:   Model,
     pub frp: Frp,
 }
@@ -386,21 +355,25 @@ impl View {
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
             .init_shortcut_observer(app)
+            .init_execution_environment_selector_frp()
+    }
+
+    fn init_execution_environment_selector_frp(self) -> Self {
+        crate::graph_editor::execution_environment::init_frp(
+            &self.model.graph_editor.frp,
+            &self.model.top_bar.project_name_with_environment_selector.selector,
+        );
+
+        self
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
-        let project_view_top_bar = &model.project_view_top_bar;
+        let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
-            let window_control_buttons = &project_view_top_bar.window_control_buttons;
-            eval_ window_control_buttons.close (model.on_close_clicked());
-            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
-            frp.source.go_to_dashboard_button_pressed <+
-                go_to_dashboard_button.is_pressed.on_true();
 
             let project_view_top_bar_display_object = project_view_top_bar.display_object();
             _eval <- all_with3(
@@ -428,14 +401,15 @@ impl View {
         let documentation = &searcher.model().documentation;
 
         frp::extend! { network
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
             // We block graph navigator if it interferes with other panels (searcher, documentation,
             // etc.)
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
-            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -614,7 +588,7 @@ impl View {
             // user was typing and a change to the selection was to be expected.
             frp.source.editing_committed <+ on_update_with_refresh.map3(
                 &committed_in_searcher,&grid.active,
-                |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
+                |_, (node_id, _), &entry| (*node_id, entry));
 
             // If we have no outstanding key presses, we can accept the selection as is.
             frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);
@@ -657,7 +631,7 @@ impl View {
         let project_list = &model.project_list;
         frp::extend! { network
             eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen <- project_list.frp.selected_project.constant(());
+            project_chosen <- project_list.grid.entry_selected.constant(());
             mouse_down <- scene.mouse.frp_deprecated.down.constant(());
             clicked_on_bg <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
             should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
@@ -715,11 +689,17 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let popup = &self.model.debug_mode_popup;
-        frp::extend! { network
-            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
 
-            popup.enabled <+ frp.enable_debug_mode;
-            popup.disabled <+ frp.disable_debug_mode;
+        let mut options = crate::notification::api::UpdateOptions::default();
+        options.set_always_present();
+        options.set_raw_text_content(DEBUG_MODE_ENABLED);
+        options.position = Some(crate::notification::api::Position::BottomRight);
+        popup.set_options(options);
+
+        frp::extend! { network
+            debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            frp.source.debug_mode <+ debug_mode;
+            popup.is_enabled <+ debug_mode;
         }
         self
     }
@@ -729,9 +709,13 @@ impl View {
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
         frp::extend! { network
-            // Searcher type to use for node creation
-            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion);
-            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser);
+            // Searcher type to use for node creation.
+            // Debounces are needed, because there are shortcut conflits with Component Browser's
+            // internals, causing CB being closed immediately after opening.
+            // TODO[ao] This is a hotfix, and the proper fix is tracked by
+            //          https://github.com/enso-org/enso/issues/7528
+            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion).debounce();
+            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser).debounce();
             searcher_type <- any(&ai_searcher, &component_browser_searcher);
 
             frp.source.searcher_type <+ searcher_type;
@@ -753,6 +737,11 @@ impl View {
         self
     }
 
+    /// Top Bar View.
+    pub fn top_bar(&self) -> &ProjectViewTopBar {
+        &self.model.top_bar
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -772,22 +761,6 @@ impl View {
     pub fn project_list(&self) -> &ProjectList {
         &self.model.project_list
     }
-
-    /// Debug Mode Popup
-    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
-        &self.model.debug_mode_popup
-    }
-
-    /// Pop-up
-    pub fn popup(&self) -> &popup::View {
-        &self.model.popup
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl FrpNetworkProvider for View {
@@ -805,7 +778,7 @@ impl application::View for View {
         View::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (Press, "!is_searcher_opened", "cmd o", "show_project_list"),
@@ -826,8 +799,10 @@ impl application::View for View {
             // is ready.
             (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
-            (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "!is_searcher_opened", "enter", "start_node_creation_with_component_browser"),
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
+            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

@@ -161,7 +161,7 @@ the language-specific documentation for details.
 ## Embedded Syntax
 
 The term "Embedded Syntax" is our terminology for the ability to use foreign
-language syntaxes from directly inside `.enso` files. This system builds upon
+language syntaxes directly from inside `.enso` files. This system builds upon
 the more generic mechanisms used by the [polyglot FFI](#the-polyglot-ffi) to
 provide a truly seamless user experience.
 
@@ -169,14 +169,14 @@ provide a truly seamless user experience.
 
 A polyglot block is introduced as follows:
 
-- The `polyglot` keyword starts a block.
-- This must be followed by a language identifier (e.g. `java`).
+- The `foreign` keyword starts a block.
+- This must be followed by a language identifier (e.g. `python`).
 - After the language identifier, the remaining syntax behaves like it is an Enso
   function definition until the `=`.
-- After the `=`, the user may write their foreign code.
+- After the `=`, the user may write their foreign code as a string.
 
 ```ruby
-polyglot python concat a b =
+foreign python concat a b = """
   def concat(a, b):
     str(a) + str(b)
 ```

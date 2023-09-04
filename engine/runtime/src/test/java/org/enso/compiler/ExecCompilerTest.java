@@ -2,9 +2,11 @@ package org.enso.compiler;
 
 import java.io.OutputStream;
 import java.nio.file.Paths;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -20,11 +22,12 @@ public class ExecCompilerTest {
   public static void initEnsoContext() {
     ctx = Context.newBuilder()
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
+        .option(RuntimeOptions.STRICT_ERRORS, "false")
         .logHandler(OutputStream.nullOutputStream())
         .allowAllAccess(true)
         .build();
@@ -98,6 +101,24 @@ public class ExecCompilerTest {
     assertTrue("We get an error value back", error.isException());
     assertTrue("The error value also represents null", error.isNull());
     assertEquals("(Error: Uninitialized value)", error.toString());
+  }
+  @Test
+  public void dotUnderscore() throws Exception {
+    var module = ctx.eval("enso", """
+    run op =
+      op._
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var error = run.execute("false_hope");
+      fail("Should never return, but: " + error);
+    } catch (PolyglotException e) {
+      assertTrue("It is exception", e.getGuestObject().isException());
+      assertEquals("Panic", e.getGuestObject().getMetaObject().getMetaSimpleName());
+      if (!e.getMessage().contains("Invalid use of _")) {
+        fail("Expecting Invalid use of _, but was: " + e.getMessage());
+      }
+    }
   }
 
   @Test

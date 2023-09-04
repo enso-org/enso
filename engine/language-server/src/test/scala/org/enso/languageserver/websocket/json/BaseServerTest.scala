@@ -9,6 +9,7 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
+import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
@@ -20,7 +21,8 @@ import org.enso.languageserver.boot.{
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
-  SequentialResourcesInitialization
+  SequentialResourcesInitialization,
+  ZioRuntimeInitialization
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -72,6 +74,8 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
+
+  def isFileWatcherEnabled: Boolean = false
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
@@ -133,12 +137,14 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec         = ZioExec(new TestRuntime)
+  val zioRuntime      = new TestRuntime
+  val zioExec         = ZioExec(zioRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
+    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
     new RepoInitialization(
       config.directories,
       system.eventStream,
@@ -192,16 +198,21 @@ class BaseServerTest
           fileManager,
           vcsManager,
           runtimeConnectorProbe.ref,
+          contentRootManagerWrapper,
           timingsConfig
         )(
           Sha3_224VersionCalculator
         ),
         s"buffer-registry-${UUID.randomUUID()}"
       )
+    val watcherFactory =
+      if (isFileWatcherEnabled) new WatcherAdapterFactory
+      else new NoopWatcherFactory
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(
         config,
         contentRootManagerWrapper,
+        watcherFactory,
         new FileSystem,
         zioExec
       ),
@@ -286,15 +297,19 @@ class BaseServerTest
       )
     )
 
+    val libraryLocations =
+      LibraryLocations.resolve(
+        distributionManager,
+        Some(languageHome),
+        Some(config.projectContentRoot.file.toPath)
+      )
+
     val localLibraryManager = system.actorOf(
       LocalLibraryManager.props(
         config.projectContentRoot.file,
-        distributionManager
+        libraryLocations
       )
     )
-
-    val libraryLocations =
-      LibraryLocations.resolve(distributionManager, Some(languageHome))
 
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,

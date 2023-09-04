@@ -33,6 +33,7 @@ type Type
         Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of method names that can be invoked
        on instances of this type.
@@ -59,6 +60,7 @@ type Type
         Vector.from_polyglot_array (get_type_methods self.value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the fully qualified name of the type.
     qualified_name : Text
@@ -67,6 +69,7 @@ type Type
         get_qualified_type_name c
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the short name of the type.
     name : Text
@@ -85,6 +88,7 @@ type Atom
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field values of the given atom.
     fields : Vector
@@ -109,6 +113,7 @@ type Constructor
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -117,6 +122,7 @@ type Constructor
         Vector.from_polyglot_array (get_constructor_fields c)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of a constructor.
     name : Text
@@ -137,6 +143,7 @@ type Constructor
         new_atom ctor fields
 
     ## ADVANCED
+       GROUP Metadata
        Returns the type that this constructor is a part of.
     declaring_type : Type
     declaring_type self =
@@ -176,12 +183,14 @@ type Unresolved_Symbol
         create_unresolved_symbol new_name self.scope
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of an unresolved symbol.
     name : Text
     name self = get_unresolved_symbol_name self.value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the definition scope of an unresolved symbol.
     scope : Any
@@ -208,6 +217,7 @@ type Polyglot
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the language with which a polyglot value is associated.
     get_language : Language

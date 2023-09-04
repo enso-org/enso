@@ -7,14 +7,14 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.math.BigInteger;
 
 @NodeInfo(shortName = "NumericLiteralMatch", description = "Allows matching on numeric literals")
 public abstract class NumericLiteralBranchNode extends BranchNode {
   private final Object literal;
 
-  private final ConditionProfile numProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile numProfile = CountingConditionProfile.create();
 
   NumericLiteralBranchNode(Object literal, RootCallTarget branch, boolean terminalBranch) {
     super(branch, terminalBranch);

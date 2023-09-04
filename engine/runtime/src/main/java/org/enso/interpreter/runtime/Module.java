@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -26,20 +25,23 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -47,45 +49,7 @@ import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
-public final class Module implements TruffleObject {
-
-  /** Defines a stage of compilation of the module. */
-  public enum CompilationStage {
-    INITIAL(0),
-    AFTER_PARSING(1),
-    AFTER_IMPORT_RESOLUTION(2),
-    AFTER_GLOBAL_TYPES(3),
-    AFTER_STATIC_PASSES(4),
-    AFTER_RUNTIME_STUBS(5),
-    AFTER_CODEGEN(6);
-
-    private final int ordinal;
-
-    CompilationStage(int ordinal) {
-      this.ordinal = ordinal;
-    }
-
-    /**
-     * Checks whether the current compilation stage is at least as advanced as the provided one.
-     *
-     * @param stage the stage to compare to.
-     * @return whether or not {@code this} is at least as advanced as {@code stage}.
-     */
-    public boolean isAtLeast(CompilationStage stage) {
-      return ordinal >= stage.ordinal;
-    }
-
-    /**
-     * Checks that the current compilation stage is before the provided one.
-     *
-     * @param stage the stage to compare to.
-     * @return whether or not {@code this} is before then {@code stage}.
-     */
-    public boolean isBefore(CompilationStage stage) {
-      return ordinal < stage.ordinal;
-    }
-  }
-
+public final class Module implements EnsoObject {
   private ModuleScope scope;
   private ModuleSources sources;
   private PatchedModuleValues patchedValues;
@@ -93,7 +57,7 @@ public final class Module implements TruffleObject {
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
-  private IR.Module ir;
+  private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
   private final ModuleCache cache;
@@ -105,7 +69,8 @@ public final class Module implements TruffleObject {
    * directory then contains submodules of this module that should be directly accessible from this
    * module - achieved by both filling in this list, and inserting synthetic imports and exports
    * into this module - See {@link
-   * org.enso.compiler.Compiler#injectSyntheticModuleExports(IR.Module, List)}.
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(org.enso.compiler.core.ir.Module,
+   * List)}.
    */
   private List<QualifiedName> directModulesRefs;
 
@@ -173,15 +138,11 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name,
-      Package<TruffleFile> pkg,
-      boolean synthetic,
-      Rope literalSource,
-      EnsoContext context) {
+      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this, context);
+    this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
@@ -198,8 +159,8 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, EnsoContext context) {
-    return new Module(name, pkg, false, null, context);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg, false, null);
   }
 
   /**
@@ -211,9 +172,8 @@ public final class Module implements TruffleObject {
    * @param source source of the module declaring exports of the desired modules
    * @return the synthetic module
    */
-  public static Module synthetic(
-      QualifiedName name, Package<TruffleFile> pkg, Rope source, EnsoContext context) {
-    return new Module(name, pkg, true, source, context);
+  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+    return new Module(name, pkg, true, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -282,10 +242,10 @@ public final class Module implements TruffleObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<IR.Expression, IR.Expression> fn =
-            new Function1<IR.Expression, IR.Expression>() {
+        final Function1<Expression, Expression> fn =
+            new Function1<Expression, Expression>() {
               @Override
-              public IR.Expression apply(IR.Expression v1) {
+              public Expression apply(Expression v1) {
                 if (v1 == change) {
                   return update.newIr();
                 }
@@ -333,7 +293,7 @@ public final class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists(context);
+    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -344,9 +304,9 @@ public final class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists(EnsoContext context) {
+  public void ensureScopeExists() {
     if (scope == null) {
-      scope = new ModuleScope(this, context);
+      scope = new ModuleScope(this);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -404,7 +364,7 @@ public final class Module implements TruffleObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists(context);
+    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
     scope.reset();
@@ -413,7 +373,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @return IR defined by this module. */
-  public IR.Module getIr() {
+  public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
 
@@ -451,7 +411,7 @@ public final class Module implements TruffleObject {
    *
    * @param compilationStage the new compilation stage for the module.
    */
-  public void unsafeSetCompilationStage(CompilationStage compilationStage) {
+  void unsafeSetCompilationStage(CompilationStage compilationStage) {
     this.compilationStage = compilationStage;
   }
 
@@ -464,7 +424,7 @@ public final class Module implements TruffleObject {
    *
    * @param ir the new IR for the module.
    */
-  public void unsafeSetIr(IR.Module ir) {
+  void unsafeSetIr(org.enso.compiler.core.ir.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
   }
@@ -537,7 +497,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
-  public void setLoadedFromCache(boolean wasLoadedFromCache) {
+  void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
@@ -550,7 +510,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
+  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 
@@ -646,8 +606,8 @@ public final class Module implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      Object[] imports = context.getCompiler().gatherImportStatements(module);
-      return new Array(imports);
+      String[] imports = context.getCompiler().gatherImportStatements(module);
+      return ArrayLikeHelpers.wrapStrings(imports);
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -726,7 +686,7 @@ public final class Module implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(
+    return ArrayLikeHelpers.wrapStrings(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,

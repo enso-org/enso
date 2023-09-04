@@ -119,16 +119,16 @@ impl OvershootAnimation {
 
             // Hard changes are bounded on input.
             input_bounded <- frp.hard_change_to.map3(&frp.set_min_bound, &frp.set_max_bound,
-                |t, min, max| t.clamp(*min, *max));
+                |t, min, max| t.max(*min).min(*max));
 
 
             unbounded_position <- any(frp.soft_change_to, input_bounded);
             bounded_position <- unbounded_position.map3(&frp.set_min_bound, &frp.set_max_bound,
-                |t, min, max| t.clamp(*min, *max));
+                |t, min, max| t.max(*min).min(*max));
             soft_position <- unbounded_position.map3(&bounded_position, &frp.set_overshoot_limit,
                 |unbounded, bounded, overshoot_limit| {
                     let position = linear_interpolation(*bounded, *unbounded, OUT_OF_BOUNDS_SENSITIVITY);
-                    position.clamp(bounded - overshoot_limit, bounded + overshoot_limit)
+                    position.max(bounded - overshoot_limit).min(bounded + overshoot_limit)
                 });
 
             soft_bounce_cool_off.frp.set_delay <+ frp.set_bounce_delay;

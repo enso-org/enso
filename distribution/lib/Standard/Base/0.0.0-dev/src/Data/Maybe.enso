@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Text.Text
-
 from project.Data.Boolean import Boolean, False, True
 
 ## A type representing computations that may fail.
@@ -22,7 +21,8 @@ type Maybe
              example_some = Maybe.Some "yes!"
     Some value
 
-    ## Applies the provided function to the contained value if it exists,
+    ## GROUP Metadata
+       Applies the provided function to the contained value if it exists,
        otherwise returning the provided default value.
 
        Arguments:
@@ -42,7 +42,8 @@ type Maybe
         Maybe.None -> default
         Maybe.Some val -> function val
 
-    ## Check if the maybe value is `Some`.
+    ## GROUP Metadata
+       Check if the maybe value is `Some`.
 
        > Example
          Check if `None` is `Some`.
@@ -55,7 +56,8 @@ type Maybe
         Maybe.None -> False
         Maybe.Some _ -> True
 
-    ## Check if the maybe value is `None`.
+    ## GROUP Metadata
+       Check if the maybe value is `None`.
     is_none : Boolean
     is_none self = self.is_some.not
 

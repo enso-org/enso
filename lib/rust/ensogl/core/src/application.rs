@@ -65,10 +65,11 @@ pub struct Application {
     inner: Rc<ApplicationData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
     pub cursor:    Cursor,
+    #[display_object]
     pub display:   World,
     pub commands:  command::Registry,
     pub shortcuts: shortcut::Registry,
@@ -84,7 +85,7 @@ impl Application {
         scene.display_in(dom);
         let commands = command::Registry::create();
         let shortcuts =
-            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene.keyboard.frp, &commands);
+            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene, &scene, &commands);
         let views = view::Registry::create(&commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
@@ -124,12 +125,6 @@ impl Application {
     }
 }
 
-impl display::Object for Application {
-    fn display_object(&self) -> &display::object::Instance {
-        self.display.display_object()
-    }
-}
-
 
 
 // ==================
@@ -158,6 +153,17 @@ pub mod test_utils {
             let scene = &self.display.default_scene;
             scene.dom.root.override_shape(TEST_SCREEN_SHAPE);
         }
+    }
+
+    /// Create a new application and a view for testing.
+    pub fn init_component_for_test<T>() -> (Application, T)
+    where T: View {
+        let app = Application::new("root");
+        app.set_screen_size_for_tests();
+        let view = View::new(&app);
+        app.display.add_child(&view);
+        crate::animation::test_utils::next_frame();
+        (app, view)
     }
 }
 

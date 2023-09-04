@@ -43,43 +43,6 @@ async fn create_new_project_and_add_nodes() {
 }
 
 #[wasm_bindgen_test]
-async fn debug_mode() {
-    let test = Fixture::setup_new_project().await;
-    let project = test.project_view();
-    let graph_editor = test.graph_editor();
-
-    assert!(!graph_editor.debug_mode.value());
-
-    // Turning On
-    let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
-    project.enable_debug_mode();
-    assert!(expect_mode.expect());
-    let message = expect_popup_message.expect();
-    assert!(
-        message.contains("Debug Mode enabled"),
-        "Message \"{message}\" does not mention enabling Debug mode"
-    );
-    assert!(
-        message.contains(enso_gui::view::debug_mode_popup::DEBUG_MODE_SHORTCUT),
-        "Message \"{message}\" does not inform about shortcut to turn mode off"
-    );
-    assert!(graph_editor.debug_mode.value());
-
-    // Turning Off
-    let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
-    project.disable_debug_mode();
-    assert!(!expect_mode.expect());
-    let message = expect_popup_message.expect();
-    assert!(
-        message.contains("Debug Mode disabled"),
-        "Message \"{message}\" does not mention disabling of debug mode"
-    );
-    assert!(!graph_editor.debug_mode.value());
-}
-
-#[wasm_bindgen_test]
 async fn zooming() {
     let test = Fixture::setup_new_project().await;
     let project = test.project_view();
@@ -167,7 +130,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model().output_port_shape().expect("No output port");
+        let port = node_1.model().output_port_hover_shape().expect("No output port");
         port.events_deprecated.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
@@ -293,7 +256,7 @@ async fn mouse_oriented_node_placement() {
         }
 
         fn check_edge_drop(&self) {
-            let port = self.source_node.view.model().output_port_shape().unwrap();
+            let port = self.source_node.view.model().output_port_hover_shape().unwrap();
             port.events_deprecated.emit_mouse_down(PrimaryButton);
             port.events_deprecated.emit_mouse_up(PrimaryButton);
             self.scene.mouse.frp_deprecated.position.emit(self.mouse_position);

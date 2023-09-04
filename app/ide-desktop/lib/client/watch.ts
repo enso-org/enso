@@ -97,7 +97,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
-            devMode: true,
+            devMode: process.env.DEV_MODE !== 'false',
             supportsLocalBackend: true,
             supportsDeepLinks: false,
         })
@@ -142,7 +142,7 @@ process.on('SIGINT', () => {
     process.exit(0)
 })
 
-for (;;) {
+while (true) {
     console.log('Spawning Electron process.')
     const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',

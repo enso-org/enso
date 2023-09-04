@@ -191,12 +191,38 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
-- [Added prototype AI Searcher that can be used to create new nodes from  
-  natural language input][7146]
+- [Added prototype AI Searcher that can be used to create new nodes from natural
+  language input][7146]
 - [Allow visualization resizing][7164]. Now the user can adjust the
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Component Browser was redesigned][7372]. The three columns of groups turned
+  out to be non-practical, as they give too much information to comprehend.
+  Also, filtering results was kept in groups making second-best match not easily
+  available. Therefore, we introduced a new, impler CB design with single
+  column.
+- [Help chat][7151]. The link to the Discord server is replaced with a chat
+  bridge to the Discord server. This is intended to have the chat visible at the
+  same time as the IDE, so that help can be much more interactive.
+- [New breadcrumbs design][7362]. Breadcrumbs now optionally show the icon of
+  the item they represent. They also follow the new design of the component
+  browser.
+- [The libraries' authors may put entities to groups by adding GROUP tag in the
+  docstring]. It was requested as more convenient way than specifying full names
+  in package.yaml.
+- [Graph editor node was redesigned][7311]. Nodes have a color and icon matching
+  the selected entry in the component browser. Clear separating lines between
+  method arguments were added. The node selection was made easier with
+  additional thick interactive selection border.
+- [The shortcut for opening Component Browser was changed to
+  <kbd>enter</kbd>][7527]
+- [Connections to lamdas are displayed correctly][7550]. It is possible to drag
+  a connection to any expression inside the lambda body.
+- [Copying and pasting a single node][7618]. Using the common
+  <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
+  now possible to copy a single selected node and paste its code to the graph or
+  another program.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -215,7 +241,15 @@
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
+[7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7362]: https://github.com/enso-org/enso/pull/7362
+[7372]: https://github.com/enso-org/enso/pull/7372
+[7337]: https://github.com/enso-org/enso/pull/7337
+[7311]: https://github.com/enso-org/enso/pull/7311
+[7527]: https://github.com/enso-org/enso/pull/7527
+[7550]: https://github.com/enso-org/enso/pull/7550
+[7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
 
@@ -517,6 +551,19 @@
   `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
   [7223]
 - [Added `cross_join` support to database tables.][7234]
+- [Improving date/time support in Table - added `date_diff`, `date_add`,
+  `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
+  and nanosecond periods.][7221]
+- [Implemented `replace` on database columns.][7275]
+- [Retire `Column_Selector` and allow regex based selection of columns.][7295]
+- [`Text.parse_to_table` can take a `Regex`.][7297]
+- [Expose `Text.normalize`.][7425]
+- [Implemented new value types (various sizes of `Integer` type, fixed-length
+  and length-limited `Char` type) for the in-memory `Table` backend.][7557]
+- [Introducing generic `Any.to` conversion method][7704]
+- [Added `take` and `drop` to database tables.][7615]
+- [Added ability to specify expected value type in `Column.from_vector`,
+  `Column.map` and `Column.zip`.][7637]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -745,6 +792,15 @@
 [7174]: https://github.com/enso-org/enso/pull/7174
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
+[7221]: https://github.com/enso-org/enso/pull/7221
+[7275]: https://github.com/enso-org/enso/pull/7275
+[7295]: https://github.com/enso-org/enso/pull/7295
+[7297]: https://github.com/enso-org/enso/pull/7297
+[7425]: https://github.com/enso-org/enso/pull/7425
+[7557]: https://github.com/enso-org/enso/pull/7557
+[7704]: https://github.com/enso-org/enso/pull/7704
+[7615]: https://github.com/enso-org/enso/pull/7615
+[7637]: https://github.com/enso-org/enso/pull/7637
 
 #### Enso Compiler
 
@@ -871,6 +927,17 @@
 - [`executionComplete` response is sent on successful execution only][7143]
 - [Send info about function values][7168]
 - [Cache dataflow errors][7193]
+- [Add endpoint for downloading a project][7291]
+- [Update to GraalVM 23.0.0][7176]
+- [Using official BigInteger support][7420]
+- [Allow users to give a project other than Upper_Snake_Case name][7397]
+- [Support renaming variable or function][7515]
+- [Only use types as State keys][7585]
+- [Allow Java Enums in case of branches][7607]
+- [Notification about the project rename action][7613]
+- [Use `numpy` & co. from Enso!][7678]
+- [Changed layout of local libraries directory, making it easier to reference
+  projects next to each other][7634]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -996,7 +1063,17 @@
 [7090]: https://github.com/enso-org/enso/pull/7090
 [7143]: https://github.com/enso-org/enso/pull/7143
 [7168]: https://github.com/enso-org/enso/pull/7168
+[7176]: https://github.com/enso-org/enso/pull/7176
 [7193]: https://github.com/enso-org/enso/pull/7193
+[7291]: https://github.com/enso-org/enso/pull/7291
+[7420]: https://github.com/enso-org/enso/pull/7420
+[7397]: https://github.com/enso-org/enso/pull/7397
+[7515]: https://github.com/enso-org/enso/pull/7515
+[7585]: https://github.com/enso-org/enso/pull/7585
+[7607]: https://github.com/enso-org/enso/pull/7607
+[7613]: https://github.com/enso-org/enso/pull/7613
+[7678]: https://github.com/enso-org/enso/pull/7678
+[7634]: https://github.com/enso-org/enso/pull/7634
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

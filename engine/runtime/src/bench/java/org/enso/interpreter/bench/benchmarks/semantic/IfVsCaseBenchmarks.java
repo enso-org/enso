@@ -1,8 +1,6 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
@@ -10,11 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -53,7 +52,7 @@ public class IfVsCaseBenchmarks extends TestBase {
         .logHandler(out)
         .out(out)
         .err(out)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowExperimentalOptions(true)
         .option(
             "enso.languageHomeOverride",
