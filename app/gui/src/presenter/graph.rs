@@ -889,6 +889,11 @@ impl Graph {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
     }
 
+    /// Mark the node view as dirty, so it will be forcefully synced with the controller state.
+    pub fn mark_node_view_as_dirty(&self, ast_id: AstNodeId) {
+        self.model.state.mark_node_view_as_dirty(ast_id);
+    }
+
     /// Indicate whether the given node should be automatically synced with its view.
     ///
     /// The auto sync can be disabled, for cases where it is desirable to manually update the

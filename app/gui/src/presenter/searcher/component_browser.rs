@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
+use crate::model::undo_redo::Transaction;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
@@ -47,23 +48,46 @@ pub struct NoSuchComponent(component_grid::EntryId);
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    controller: controller::Searcher,
-    project:    view::project::View,
-    provider:   Rc<RefCell<Option<provider::Component>>>,
-    input_view: ViewNodeId,
-    view:       component_browser::View,
+    controller:       controller::Searcher,
+    graph_controller: controller::Graph,
+    graph_presenter:  presenter::Graph,
+    project:          view::project::View,
+    provider:         Rc<RefCell<Option<provider::Component>>>,
+    input_view:       ViewNodeId,
+    view:             component_browser::View,
+    mode:             Immutable<Mode>,
+    transaction:      Rc<Transaction>,
 }
 
 impl Model {
     #[profile(Debug)]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         controller: controller::Searcher,
+        graph_controller: &controller::Graph,
+        graph_presenter: &presenter::Graph,
         project: view::project::View,
         input_view: ViewNodeId,
         view: component_browser::View,
+        mode: Mode,
+        transaction: Rc<Transaction>,
     ) -> Self {
         let provider = default();
-        Self { controller, project, view, provider, input_view }
+        let graph_controller = graph_controller.clone_ref();
+
+        let graph_presenter = graph_presenter.clone_ref();
+        let mode = Immutable(mode);
+        Self {
+            controller,
+            graph_controller,
+            graph_presenter,
+            project,
+            view,
+            provider,
+            input_view,
+            mode,
+            transaction,
+        }
     }
 
     #[profile(Debug)]
@@ -123,10 +147,22 @@ impl Model {
             self.suggestion_accepted(entry_id);
         }
         if !self.controller.is_input_empty() {
-            self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-                error!("Error while committing node expression: {err}.");
-                None
-            })
+            match self.controller.commit_node() {
+                Ok(ast_id) => {
+                    if let Mode::EditNode { original_node_id, edited_node_id } = *self.mode {
+                        self.graph_presenter
+                            .assign_node_view_explicitly(self.input_view, original_node_id);
+                        if let Err(err) = self.graph_controller.remove_node(edited_node_id) {
+                            error!("Error while removing a temporary node: {err}.");
+                        }
+                    }
+                    Some(ast_id)
+                }
+                Err(err) => {
+                    error!("Error while committing node expression: {err}.");
+                    None
+                }
+            }
         } else {
             // if input is empty or contains spaces only, we cannot update the node (there is no
             // valid AST to assign). Because it is an expected thing, we also do not report error.
@@ -178,13 +214,10 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         // We get the position for searcher before initializing the input node, because the
         // added node will affect the AST, and the position will become incorrect.
         let position_in_code = graph_controller.graph().definition_end_location()?;
+        let graph = graph_controller.graph();
+        let transaction = graph.get_or_open_transaction("Open searcher");
 
-        let mode = Self::init_input_node(
-            parameters,
-            graph_presenter,
-            view.graph(),
-            &graph_controller.graph(),
-        )?;
+        let mode = Self::init_input_node(parameters, graph_presenter, view.graph(), &graph)?;
 
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             ide_controller,
@@ -206,7 +239,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(searcher_controller, view, input))
+        Ok(Self::new(searcher_controller, &graph, graph_presenter, view, input, mode, transaction))
     }
 
     fn expression_accepted(
@@ -219,7 +252,19 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
 
     fn abort_editing(self: Box<Self>) {
-        self.model.controller.abort_editing()
+        self.model.transaction.ignore();
+        self.model.controller.abort_editing();
+        if let Mode::EditNode { original_node_id, .. } = *self.model.mode {
+            self.model
+                .graph_presenter
+                .assign_node_view_explicitly(self.model.input_view, original_node_id);
+            // Mark the original node as dirty, so its view is updated with the old expression.
+            self.model.graph_presenter.mark_node_view_as_dirty(original_node_id);
+        }
+        let node_id = self.model.mode.node_id();
+        if let Err(err) = self.model.graph_controller.remove_node(node_id) {
+            error!("Error while removing a temporary node: {err}.");
+        }
     }
 
     fn input_view(&self) -> ViewNodeId {
@@ -231,11 +276,24 @@ impl ComponentBrowserSearcher {
     #[profile(Task)]
     fn new(
         controller: controller::Searcher,
+        graph_controller: &controller::Graph,
+        graph_presenter: &presenter::Graph,
         view: view::project::View,
         input_view: ViewNodeId,
+        mode: Mode,
+        transaction: Rc<Transaction>,
     ) -> Self {
         let searcher_view = view.searcher().clone_ref();
-        let model = Rc::new(Model::new(controller, view, input_view, searcher_view));
+        let model = Rc::new(Model::new(
+            controller,
+            graph_controller,
+            graph_presenter,
+            view,
+            input_view,
+            searcher_view,
+            mode,
+            transaction,
+        ));
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.project.graph().frp;

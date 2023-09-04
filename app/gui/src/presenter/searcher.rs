@@ -47,13 +47,12 @@ pub trait SearcherPresenter: Debug {
         let SearcherParams { input, .. } = parameters;
         let ast_node = graph_presenter.ast_node_of_view(input);
 
+        let (new_node, source_node) =
+            create_input_node(parameters, graph_presenter, graph_editor, graph_controller)?;
         let mode = match ast_node {
-            Some(node_id) => Mode::EditNode { node_id },
-            None => {
-                let (new_node, source_node) =
-                    create_input_node(parameters, graph_presenter, graph_editor, graph_controller)?;
-                Mode::NewNode { node_id: new_node, source_node }
-            }
+            Some(node_id) =>
+                Mode::EditNode { edited_node_id: new_node, original_node_id: node_id },
+            None => Mode::NewNode { node_id: new_node, source_node },
         };
         let target_node = mode.node_id();
 
@@ -65,11 +64,6 @@ pub trait SearcherPresenter: Debug {
         } else {
             warn!("No view associated with node {:?}.", target_node);
         }
-        // We disable auto-updates for the expression of the node, so we can set the expression
-        // of the input node without triggering an update of the graph. This is used, for example,
-        // to show a preview of the item selected in the component browser without changing the
-        // text the user has typed on the searcher input node.
-        graph_presenter.allow_expression_auto_updates(target_node, false);
 
         Ok(mode)
     }
@@ -213,16 +207,10 @@ fn create_input_node(
     new_node.metadata = Some(metadata);
     new_node.introduce_pattern = false;
     let transaction_name = "Add code for created node's visualization preview.";
-    let _transaction = graph_controller
-        .undo_redo_repository()
-        .open_ignored_transaction_or_ignore_current(transaction_name);
+    let _transaction = graph_controller.get_or_open_transaction(transaction_name);
     let created_node = graph_controller.add_node(new_node)?;
 
     graph.assign_node_view_explicitly(input, created_node);
-    // Display searcher preview. It needs to be done _after_ assigning AST node to view, because
-    // otherwise Visualization Manager would not know to what node the visualization should be
-    // attached.
-    graph_editor.show_node_editing_preview(input);
 
     let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
 

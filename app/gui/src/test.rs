@@ -300,7 +300,10 @@ pub mod mock {
             let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
-            let searcher_mode = controller::searcher::Mode::EditNode { node_id: searcher_target };
+            let searcher_mode = controller::searcher::Mode::EditNode {
+                original_node_id: searcher_target,
+                edited_node_id:   default(),
+            };
             let position_in_code = executed_graph.graph().definition_end_location().unwrap();
             let searcher = controller::Searcher::new_from_graph_controller(
                 ide.clone_ref(),

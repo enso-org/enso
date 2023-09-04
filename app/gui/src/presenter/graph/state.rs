@@ -35,9 +35,10 @@ pub struct Node {
     pub error:          Option<node_view::Error>,
     pub is_pending:     bool,
     pub visualization:  Option<visualization_view::Path>,
+    pub dirty:          bool,
 
     /// Indicate whether this node view is updated automatically by changes from the controller
-    /// or view, or will be explicitly updated..
+    /// or view, or will be explicitly updated.
     disable_expression_auto_update: bool,
 }
 
@@ -117,16 +118,22 @@ impl Nodes {
         view_id: ViewNodeId,
         ast_id: AstNodeId,
     ) -> &mut Node {
-        let mut displayed =
-            Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, ast_id);
-        if let Some(old_view) = displayed.view_id {
-            self.ast_node_by_view_id.remove(&old_view);
+        let mut displayed = self.nodes.entry(ast_id).or_default();
+        let old_ast_to_remove = if let Some(old_view) = displayed.view_id {
+            self.ast_node_by_view_id.remove(&old_view)
         } else {
-            self.nodes_without_view.remove_item(&ast_id);
-        }
+            None
+        };
         displayed.view_id = Some(view_id);
         self.ast_node_by_view_id.insert(view_id, ast_id);
-        displayed
+        // That is quite unfortunate, but we have to temporarily drop the acquired borrow over
+        // `nodes` to remove the old ast. It is needed to ensure we never have two displayed nodes
+        // updated from a single ast node.
+        if let Some(old_ast) = old_ast_to_remove {
+            self.nodes.remove(&old_ast);
+        }
+        // Unwrap is safe here, because we just inserted the node to the map.
+        self.nodes.get_mut(&ast_id).unwrap()
     }
 
     /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
@@ -273,6 +280,13 @@ impl State {
         self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
     }
 
+    /// Mark the node as dirty.
+    pub fn mark_node_view_as_dirty(&self, ast_id: AstNodeId) {
+        if let Some(node) = self.nodes.borrow_mut().get_mut(ast_id) {
+            node.dirty = true;
+        }
+    }
+
     /// Checks if the node should be synced with its AST automatically.
     pub fn should_receive_expression_auto_updates(&self, node: ast::Id) -> bool {
         // When node is in process of being created, it is not yet present in the state. In that
@@ -353,12 +367,13 @@ impl<'a> ControllerChange<'a> {
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
 
+        let dirty = displayed.dirty;
         let displayed_updated = displayed.expression != new_displayed_expr;
         let context_switch_updated = displayed.context_switch != node.info.ast_info.context_switch;
         let skip_updated = displayed.is_skipped != node.info.macros_info().skip;
         let freeze_updated = displayed.is_frozen != node.info.macros_info().freeze;
 
-        if displayed_updated || context_switch_updated || skip_updated || freeze_updated {
+        if dirty || displayed_updated || context_switch_updated || skip_updated || freeze_updated {
             debug!(
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
@@ -367,6 +382,7 @@ impl<'a> ControllerChange<'a> {
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
             self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
+            displayed.dirty = false;
             Some((displayed.view_id?, new_displayed_expr))
         } else {
             None
