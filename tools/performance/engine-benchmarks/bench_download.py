@@ -426,10 +426,12 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     query_fields["per_page"] = str(per_page)
     num_queries = math.ceil(total_count / per_page)
     parsed_bench_runs = []
-    async with asyncio.TaskGroup() as task_group:
-        # Page is indexed from 1
-        for page in range(1, num_queries + 1):
-            task_group.create_task(get_and_parse_run(page, parsed_bench_runs))
+
+    tasks = []
+    # Page is indexed from 1
+    for page in range(1, num_queries + 1):
+        tasks.append(get_and_parse_run(page, parsed_bench_runs))
+    await asyncio.gather(*tasks)
 
     return parsed_bench_runs
 
@@ -826,9 +828,10 @@ async def main():
             if _job_report:
                 job_reports.append(_job_report)
 
-        async with asyncio.TaskGroup() as task_group:
-            for bench_run in bench_runs:
-                task_group.create_task(_process_report(bench_run))
+        tasks = []
+        for bench_run in bench_runs:
+            tasks.append(_process_report(bench_run))
+        await asyncio.gather(*tasks)
 
         logging.debug(f"Got {len(job_reports)} job reports for branch {branch}")
         if len(job_reports) == 0:
