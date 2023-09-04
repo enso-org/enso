@@ -8,6 +8,7 @@ const props = defineProps<{
   navigator: ReturnType<typeof useNavigator>
 }>()
 
+
 const shown = ref(false)
 const scenePosition = ref(Vec2.Zero())
 
