@@ -129,7 +129,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
 
-  val sqlDatabase = SqlDatabase.inmem("memdb")
+  val sqlDatabase = SqlDatabase(directoriesConfig.suggestionsDatabaseFile)
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
