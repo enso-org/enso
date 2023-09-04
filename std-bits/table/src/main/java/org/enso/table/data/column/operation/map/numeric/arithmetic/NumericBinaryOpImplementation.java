@@ -1,8 +1,10 @@
-package org.enso.table.data.column.operation.map.numeric;
+package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
+import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
@@ -15,135 +17,29 @@ import org.graalvm.polyglot.Context;
 import java.math.BigInteger;
 import java.util.BitSet;
 
+import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
+
 /**
  * An operation expecting a numeric argument and returning a numeric column.
  */
 public abstract class NumericBinaryOpImplementation<T extends Number, I extends Storage<? super T>> extends BinaryMapOperation<T, I> implements NumericBinaryOpDefinition {
+
   // Regardless of input type, our integer operations return 64-bit integers.
-  private static final IntegerType INTEGER_RESULT_TYPE = IntegerType.INT_64;
+  public static final IntegerType INTEGER_RESULT_TYPE = IntegerType.INT_64;
 
   public NumericBinaryOpImplementation(String name) {
     super(name);
   }
 
-  public interface DoubleArrayAdapter {
-    double getItemAsDouble(int i);
-
-    boolean isNa(int i);
-
-    int size();
-  }
-
-  public interface BigIntegerArrayAdapter {
-    BigInteger getItem(int i);
-
-    int size();
-  }
-
-  protected static class LongStorageAsDouble implements DoubleArrayAdapter {
-    private final AbstractLongStorage storage;
-
-    LongStorageAsDouble(AbstractLongStorage storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public double getItemAsDouble(int i) {
-      long x = storage.getItem(i);
-      return (double) x;
-    }
-
-    @Override
-    public boolean isNa(int i) {
-      return storage.isNa(i);
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
-  }
-
-  protected static class BigIntegerStorageAsDouble implements DoubleArrayAdapter {
-    private final BigIntegerStorage storage;
-
-    BigIntegerStorageAsDouble(BigIntegerStorage storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public double getItemAsDouble(int i) {
-      BigInteger x = storage.getItem(i);
-      return x.doubleValue();
-    }
-
-    @Override
-    public boolean isNa(int i) {
-      return storage.getItem(i) == null;
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
-  }
-
-  protected static class BigIntegerStorageAsBigInteger implements BigIntegerArrayAdapter {
-    private final BigIntegerStorage storage;
-
-    BigIntegerStorageAsBigInteger(BigIntegerStorage storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public BigInteger getItem(int i) {
-      return storage.getItemBoxed(i);
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
-  }
-
-  protected static class LongStorageAsBigInteger implements BigIntegerArrayAdapter {
-    private final AbstractLongStorage storage;
-
-    LongStorageAsBigInteger(AbstractLongStorage storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public BigInteger getItem(int i) {
-      if (storage.isNa(i)) {
-        return null;
-      } else {
-        long x = storage.getItem(i);
-        return BigInteger.valueOf(x);
-      }
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
-  }
-
   @Override
   public Storage<? extends Number> runBinaryMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
-      return switch (storage) {
-        case AbstractLongStorage s -> LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
-        case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.size());
-        case DoubleStorage s -> DoubleStorage.makeEmpty(storage.size());
-        case default ->
-            throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
-      };
+      return allNullStorageOfSameType(storage);
     } else {
       if (arg instanceof BigInteger rhs) {
         return switch (storage) {
-          case AbstractLongStorage s -> runBigIntegerMap(new LongStorageAsBigInteger(s), rhs, problemBuilder);
-          case BigIntegerStorage s -> runBigIntegerMap(new BigIntegerStorageAsBigInteger(s), rhs, problemBuilder);
+          case AbstractLongStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), rhs, problemBuilder);
+          case BigIntegerStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), rhs, problemBuilder);
           case DoubleStorage s -> runDoubleMap(s, rhs.doubleValue(), problemBuilder);
           case default ->
               throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -153,7 +49,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
         return switch (storage) {
           case AbstractLongStorage s -> runLongMap(s, argAsLong, problemBuilder);
           case BigIntegerStorage s ->
-              runBigIntegerMap(new BigIntegerStorageAsBigInteger(s), BigInteger.valueOf(argAsLong), problemBuilder);
+              runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), BigInteger.valueOf(argAsLong), problemBuilder);
           case DoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemBuilder);
           case default ->
               throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -161,8 +57,8 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       } else if (NumericConverter.isCoercibleToDouble(arg)) {
         double doubleArg = NumericConverter.coerceToDouble(arg);
         return switch (storage) {
-          case AbstractLongStorage s -> runDoubleMap(new LongStorageAsDouble(s), doubleArg, problemBuilder);
-          case BigIntegerStorage s -> runDoubleMap(new BigIntegerStorageAsDouble(s), doubleArg, problemBuilder);
+          case AbstractLongStorage s -> runDoubleMap(DoubleArrayAdapter.fromStorage(s), doubleArg, problemBuilder);
+          case BigIntegerStorage s -> runDoubleMap(DoubleArrayAdapter.fromStorage(s), doubleArg, problemBuilder);
           case DoubleStorage s -> runDoubleMap(s, doubleArg, problemBuilder);
           case default ->
               throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -176,33 +72,35 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   @Override
   public Storage<? extends Number> runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     return switch (storage) {
-      case DoubleStorage lhs ->
-        runDoubleZip(lhs, numericStorageAsDouble(arg), problemBuilder);
+      case DoubleStorage lhs -> runDoubleZip(lhs, fromAnyStorage(arg), problemBuilder);
+
       case AbstractLongStorage lhs -> switch (arg) {
         case AbstractLongStorage rhs -> runLongZip(lhs, rhs, problemBuilder);
-        case BigIntegerStorage rhs ->
-            runBigIntegerZip(new LongStorageAsBigInteger(lhs), new BigIntegerStorageAsBigInteger(rhs), problemBuilder);
-        case DoubleStorage rhs -> runDoubleZip(new LongStorageAsDouble(lhs), rhs, problemBuilder);
+        case BigIntegerStorage rhs -> {
+          BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
+          BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
+          yield runBigIntegerZip(left, right, problemBuilder);
+        }
+        case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
         case default -> throw new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
       };
-      case BigIntegerStorage lhs -> switch (arg) {
-        case AbstractLongStorage rhs ->
-            runBigIntegerZip(new LongStorageAsBigInteger(rhs), new BigIntegerStorageAsBigInteger(lhs), problemBuilder);
-        case BigIntegerStorage rhs ->
-            runBigIntegerZip(new BigIntegerStorageAsBigInteger(lhs), new BigIntegerStorageAsBigInteger(rhs),
-                problemBuilder);
-        case DoubleStorage rhs -> runDoubleZip(new BigIntegerStorageAsDouble(lhs), rhs, problemBuilder);
-        case default -> throw new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
-      };
-      case default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
-    };
-  }
 
-  protected DoubleArrayAdapter numericStorageAsDouble(Storage<?> storage) {
-    return switch (storage) {
-      case DoubleStorage s -> s;
-      case AbstractLongStorage s -> new LongStorageAsDouble(s);
-      case BigIntegerStorage s -> new BigIntegerStorageAsDouble(s);
+      case BigIntegerStorage lhs -> {
+        BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
+        yield switch (arg) {
+          case AbstractLongStorage rhs -> {
+            BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
+            yield runBigIntegerZip(left, right, problemBuilder);
+          }
+          case BigIntegerStorage rhs -> {
+            BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
+            yield runBigIntegerZip(left, right, problemBuilder);
+          }
+          case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
+          case default -> throw new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
+        };
+      }
+
       case default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
@@ -230,6 +128,15 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     return new DoubleStorage(out, n, newMissing);
+  }
+
+  private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
+    return switch (storage) {
+      case AbstractLongStorage s -> LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
+      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.size());
+      case DoubleStorage s -> DoubleStorage.makeEmpty(storage.size());
+      case default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+    };
   }
 
   protected DoubleStorage runDoubleMap(DoubleArrayAdapter a, Double b, MapOperationProblemBuilder problemBuilder) {

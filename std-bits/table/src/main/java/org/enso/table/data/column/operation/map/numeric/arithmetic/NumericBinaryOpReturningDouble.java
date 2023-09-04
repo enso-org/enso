@@ -1,11 +1,14 @@
-package org.enso.table.data.column.operation.map.numeric;
+package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
 import java.math.BigInteger;
+
+import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
 
 public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends Storage<? super T>> extends NumericBinaryOpImplementation<T, I> {
   public NumericBinaryOpReturningDouble(String name) {
@@ -18,7 +21,7 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
       return DoubleStorage.makeEmpty(storage.size());
     }
 
-    DoubleArrayAdapter lhs = numericStorageAsDouble(storage);
+    DoubleArrayAdapter lhs = fromAnyStorage(storage);
     double rhs = (arg instanceof BigInteger bigInteger) ? bigInteger.doubleValue() :
         NumericConverter.coerceToDouble(arg);
     return runDoubleMap(lhs, rhs, problemBuilder);
@@ -26,8 +29,8 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
 
   @Override
   public Storage<? extends Number> runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
-    DoubleArrayAdapter lhs = numericStorageAsDouble(storage);
-    DoubleArrayAdapter rhs = numericStorageAsDouble(arg);
+    DoubleArrayAdapter lhs = fromAnyStorage(storage);
+    DoubleArrayAdapter rhs = fromAnyStorage(arg);
     return runDoubleZip(lhs, rhs, problemBuilder);
   }
 

@@ -17,6 +17,11 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
+import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -106,111 +111,11 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(new LongRoundOp(Maps.ROUND))
-        .add(
-            new LongComparison(Storage.Maps.GT) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a > b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a > b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.GTE) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a >= b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a >= b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.LT) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a < b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a < b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.LTE) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a <= b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a <= b;
-              }
-            })
-        .add(
-            new LongBooleanOp(Storage.Maps.EQ) {
-              @Override
-              public BoolStorage runBinaryMap(
-                  AbstractLongStorage storage,
-                  Object arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg instanceof Double) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runBinaryMap(storage, arg, problemBuilder);
-              }
-
-              @Override
-              public BoolStorage runZip(
-                  AbstractLongStorage storage,
-                  Storage<?> arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg instanceof DoubleStorage) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                } else if (!(arg instanceof AbstractLongStorage)) {
-                  boolean hasFloats = false;
-                  Context context = Context.getCurrent();
-                  for (int i = 0; i < storage.size(); i++) {
-                    if (arg.isNa(i)) {
-                      continue;
-                    }
-
-                    if (arg.getItemBoxed(i) instanceof Double) {
-                      hasFloats = true;
-                      break;
-                    }
-
-                    context.safepoint();
-                  }
-                  if (hasFloats) {
-                    problemBuilder.reportFloatingPointEquality(-1);
-                  }
-                }
-                return super.runZip(storage, arg, problemBuilder);
-              }
-
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doObject(long x, Object o) {
-                return false;
-              }
-            })
+        .add(new LessComparison<>())
+        .add(new LessOrEqualComparison<>())
+        .add(new EqualsComparison<>())
+        .add(new GreaterOrEqualComparison<>())
+        .add(new GreaterComparison<>())
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override

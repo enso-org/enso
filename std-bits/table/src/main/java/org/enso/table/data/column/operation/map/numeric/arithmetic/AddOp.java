@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.operation.map.numeric.NumericBinaryOpImplementation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 

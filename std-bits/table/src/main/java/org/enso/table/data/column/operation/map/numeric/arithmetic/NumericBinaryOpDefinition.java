@@ -1,4 +1,4 @@
-package org.enso.table.data.column.operation.map.numeric;
+package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 

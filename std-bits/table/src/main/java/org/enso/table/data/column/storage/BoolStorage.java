@@ -45,6 +45,10 @@ public final class BoolStorage extends Storage<Boolean> {
     return new BoolStorage(new BitSet(), isMissing, size, false);
   }
 
+  public static BoolStorage makeConstant(int size, boolean r) {
+    return new BoolStorage(new BitSet(), new BitSet(), size, r);
+  }
+
   @Override
   public int size() {
     return size;

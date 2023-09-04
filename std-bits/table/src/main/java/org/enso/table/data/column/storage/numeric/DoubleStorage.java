@@ -11,9 +11,13 @@ import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
-import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
-import org.enso.table.data.column.operation.map.numeric.NumericBinaryOpImplementation;
+import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
@@ -31,7 +35,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double> implements NumericBinaryOpImplementation.DoubleArrayAdapter {
+public final class DoubleStorage extends NumericStorage<Double> implements DoubleArrayAdapter {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -267,66 +271,11 @@ public final class DoubleStorage extends NumericStorage<Double> implements Numer
               }
             })
         .add(new DoubleRoundOp(Maps.ROUND))
-        .add(
-            new DoubleComparison(Maps.LT) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a < b;
-              }
-            })
-        .add(
-            new DoubleComparison(Maps.LTE) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a <= b;
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.EQ) {
-              @Override
-              public BoolStorage runBinaryMap(
-                  DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-                if (arg != null) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runBinaryMap(storage, arg, problemBuilder);
-              }
-
-              @Override
-              public BoolStorage runZip(
-                  DoubleStorage storage,
-                  Storage<?> arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg.countMissing() < arg.size()) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runZip(storage, arg, problemBuilder);
-              }
-
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doObject(double a, Object o) {
-                return false;
-              }
-            })
-        .add(
-            new DoubleComparison(Maps.GT) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a > b;
-              }
-            })
-        .add(
-            new DoubleComparison(Maps.GTE) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a >= b;
-              }
-            })
+        .add(new LessComparison<>())
+        .add(new LessOrEqualComparison<>())
+        .add(new EqualsComparison<>())
+        .add(new GreaterOrEqualComparison<>())
+        .add(new GreaterComparison<>())
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
