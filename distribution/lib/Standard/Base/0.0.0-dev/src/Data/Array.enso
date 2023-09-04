@@ -43,7 +43,7 @@ type Array
          Get the last element of an array.
 
              [1, 2, 3].to_array.at -1 == 3
-    at : Integer -> Any ! Index_Out_Of_Bounds
+    at : Integer | Text -> Any ! Index_Out_Of_Bounds
     at self index = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
@@ -764,3 +764,5 @@ type Array
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
     + self that = Vector.+ self that
+
+Vector.from (that:Array) = that.to_vector
