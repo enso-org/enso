@@ -136,6 +136,9 @@ useWindowEvent('keydown', (e) => {
           scrollToSelected()
           animatedScrollPosition.skip()
           highlightPosition.skip()
+          if (scroller.value) {
+            scroller.value.scrollTop = animatedScrollPosition.value
+          }
         })
       } else {
         shown.value = false
