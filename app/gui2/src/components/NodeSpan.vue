@@ -3,7 +3,7 @@ import { spanKindName, type Span } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
-import type { ExprId } from '../../shared/yjs-model'
+import type { ExprId } from '@shared/yjs-model'
 import { computed, onUpdated, ref, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
@@ -59,22 +59,11 @@ watch(exprRect, (rect) => {
 </script>
 
 <template>
-  <span
-    :class="['Span', spanClass]"
-    ref="rootNode"
-    style="{ transform }"
-    :data-span-id="props.span.id"
-    :data-span-start="props.offset"
-    ><template v-if="props.span.children.length > 0"
-      ><NodeSpan
-        v-for="(child, index) in props.span.children"
-        :key="child.id"
-        :content="props.content"
-        :span="child"
-        :offset="childOffsets[index]"
-        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" /></template
-    ><template v-else>{{ exprPart }}</template></span
-  >
+  <span :class="['Span', spanClass]" ref="rootNode" style="{ transform }" :data-span-id="props.span.id"
+    :data-span-start="props.offset"><template v-if="props.span.children.length > 0">
+      <NodeSpan v-for="(child, index) in props.span.children" :key="child.id" :content="props.content" :span="child"
+        :offset="childOffsets[index]" @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" />
+    </template><template v-else>{{ exprPart }}</template></span>
 </template>
 
 <style scoped>

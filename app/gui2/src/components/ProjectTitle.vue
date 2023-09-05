@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
-import type { ExecutionMode } from '@/components/ExecutionModeSelector.vue'
 
-export interface ProjectTitleModel {
-  mode: ExecutionMode
-}
-
-defineProps<{ title: string; modelValue: ProjectTitleModel }>()
-defineEmits<{ 'update:modelValue': [model: ProjectTitleModel] }>()
+const props = defineProps<{ title: string; modes: string[]; mode: string }>()
+const emit = defineEmits<{ execute: [], 'update:mode': [mode: string] }>()
 </script>
 
 <template>
   <div class="ProjectTitle">
     <span v-text="title" class="title"></span>
-    <ExecutionModeSelector v-model="modelValue.mode" />
+    <ExecutionModeSelector :modes="modes" :model-value="mode" @update:model-value="emit('update:mode', $event)" @execute="emit('execute')" />
   </div>
 </template>
 

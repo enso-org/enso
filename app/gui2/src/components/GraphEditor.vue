@@ -2,17 +2,29 @@
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
+import TopBar from '@/components/TopBar.vue'
+
 import { useGraphStore } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from '../../shared/yjs-model'
-import { reactive, ref } from 'vue'
 
+import type { ContentRange, ExprId } from '@shared/yjs-model'
+
+import { reactive, ref, watchEffect } from 'vue'
+
+const EXECUTION_MODES = ['design', 'live']
+
+const title = ref('Test Project')
+const mode = ref("design")
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
+
+watchEffect(() => {
+  console.log(`execution mode changed to '${mode.value}'.`)
+})
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -60,8 +72,8 @@ function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
 <template>
   <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos">
     <svg :viewBox="navigator.viewBox">
-      <GraphEdge v-for="edge in graphStore.edges" :key="`${edge.source},${edge.target}`" :edge="edge" :nodeRects="nodeRects" :exprRects="exprRects"
-        :exprNodes="graphStore.exprNodes" />
+      <GraphEdge v-for="edge in graphStore.edges" :key="`${edge.source},${edge.target}`" :edge="edge"
+        :nodeRects="nodeRects" :exprRects="exprRects" :exprNodes="graphStore.exprNodes" />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
       <GraphNode v-for="[id, node] in graphStore.nodes" :key="id" :node="node" @updateRect="updateNodeRect(id, $event)"
@@ -70,7 +82,11 @@ function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
         @updatePosition="graphStore.setNodePosition(id, $event)" />
     </div>
     <ComponentBrowser :navigator="navigator" />
-    <TopBar :breadcrumbs="['main', 'ad_analytics']" />
+    <TopBar :title="title" :modes="EXECUTION_MODES" v-model:mode="mode" :breadcrumbs="['main', 'ad_analytics']"
+      @breadcrumb-click="console.log(`breadcrumb #${$event + 1} clicked.`)"
+      @execute="console.log('execute button clicked.')"
+      @previous="console.log('breadcrumbs \'previous\' button clicked.')"
+      @next="console.log('breadcrumbs \'next\' button clicked.')" />
   </div>
 </template>
 

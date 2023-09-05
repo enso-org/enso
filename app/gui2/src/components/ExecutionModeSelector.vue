@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import WorkflowPlayIcon from '@/assets/icons/workflow_play.svg'
 
+import { useDocumentEvent } from '@/util/events'
+
 import { ref } from 'vue'
-import { useDocumentEvent } from '../util/events';
 
-const EXECUTION_MODES = ['design', 'live'] as const
-export type ExecutionMode = typeof EXECUTION_MODES[number]
-
-export type ExecutionModeSelectorModel = ExecutionMode
-
-const props = defineProps<{ modelValue: ExecutionMode }>()
-const emit = defineEmits<{ 'update:modelValue': [mode: ExecutionMode] }>()
+const props = defineProps<{ modes: string[], modelValue: string }>()
+const emit = defineEmits<{ execute: [], 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
 
@@ -31,16 +27,16 @@ useDocumentEvent('click', onDocumentClick)
 </script>
 
 <template>
-  <div class="ExecutionModeSelectorContainer">
-    <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
+  <div class="ExecutionModeSelector">
+    <div ref="executionModeSelectorNode" class="execution-mode-button">
       <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
         <span v-text="modelValue"></span>
       </div>
       <div class="divider"></div>
-      <img :src="WorkflowPlayIcon" class="play button" draggable="false" />
+      <img :src="WorkflowPlayIcon" class="play button" draggable="false" @click="emit('execute')" />
     </div>
-    <div v-if="isDropdownOpen" ref="executionModeDropdownNode" class="ExecutionModeDropdown">
-      <template v-for="otherMode in EXECUTION_MODES" :key="otherMode">
+    <div v-if="isDropdownOpen" ref="executionModeDropdownNode" class="execution-mode-dropdown">
+      <template v-for="otherMode in modes" :key="otherMode">
         <span v-if="modelValue !== otherMode" v-text="otherMode" class="button"
           @click="emit('update:modelValue', otherMode)"></span>
       </template>
@@ -56,49 +52,50 @@ span {
   padding-bottom: 1px;
 }
 
-.ExecutionModeSelectorContainer {
+.ExecutionModeSelector {
   position: relative;
   color: white;
 }
 
-.ExecutionModeSelector {
+.execution-mode-button {
   display: flex;
   border-radius: var(--radius-full);
   background: #64b526;
 }
 
-.ExecutionModeSelector>.execution-mode {
+.execution-mode-button>.execution-mode {
   padding-left: 8px;
   padding-right: 7.5px;
 }
 
-.ExecutionModeSelector>.divider {
+.execution-mode-button>.divider {
   width: 1px;
   background-color: rgba(0, 0, 0, 0.12);
 }
 
-.ExecutionModeSelector>.play {
+.execution-mode-button>.play {
   padding-left: 7.5px;
   padding-right: 8px;
 }
 
-.ExecutionModeDropdown {
+.execution-mode-dropdown {
   position: absolute;
   background: #64b526;
-  width: 100%;
-  top: calc(100% + 8px);
   border-radius: 10px;
+  width: 100%;
+  top: 100%;
+  margin-top: 4px;
   padding: 4px;
 }
 
-.ExecutionModeDropdown>span {
+.execution-mode-dropdown>span {
   border-radius: 6px;
   padding-left: 4px;
   padding-right: 4px;
   width: 100%;
 }
 
-.ExecutionModeDropdown>span:hover {
+.execution-mode-dropdown>span:hover {
   background: var(--color-dim);
 }
 </style>

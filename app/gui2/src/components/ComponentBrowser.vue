@@ -2,6 +2,7 @@
 import { useWindowEvent } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
+
 import { computed, ref } from 'vue'
 
 const props = defineProps<{
@@ -22,9 +23,8 @@ function positionAtMouse(): boolean {
 const transform = computed(() => {
   const nav = props.navigator
   const pos = scenePosition.value
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
-    1 / nav.scale
-  }) translateY(-100%)`
+  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${1 / nav.scale
+    }) translateY(-100%)`
 })
 
 useWindowEvent('keypress', (e) => {

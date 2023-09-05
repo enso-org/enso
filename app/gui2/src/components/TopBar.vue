@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
-import ProjectTitle, { type ProjectTitleModel } from './ProjectTitle.vue'
-import { ref, type Ref } from 'vue'
+import ProjectTitle from '@/components/ProjectTitle.vue'
 
-const props = defineProps<{ breadcrumbs: string[] }>()
-const emit = defineEmits<{ 'breadcrumbClick': [index: number] }>()
-
-const title: Ref<ProjectTitleModel> = ref({ mode: "design" })
+const props = defineProps<{ title: string, breadcrumbs: string[], modes: string[], mode: string }>()
+const emit = defineEmits<{
+  execute: []
+  previous: []
+  next: []
+  breadcrumbClick: [index: number], 'update:mode': [mode: string]
+}>()
 </script>
 
 <template>
   <div class="TopBar">
-    <ProjectTitle title="Test Project" v-model="title" />
-    <NavBar :breadcrumbs="breadcrumbs" @breadcrumb-click="emit('breadcrumbClick', $event)" />
+    <ProjectTitle :title="title" :modes="modes" :mode="mode" @update:mode="emit('update:mode', $event)"
+      @execute="emit('execute')" />
+    <NavBar @previous="emit('previous')" @next="emit('next')" :breadcrumbs="breadcrumbs"
+      @breadcrumb-click="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 
