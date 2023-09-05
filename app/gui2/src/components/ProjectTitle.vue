@@ -2,13 +2,18 @@
 import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
 
 const props = defineProps<{ title: string; modes: string[]; mode: string }>()
-const emit = defineEmits<{ execute: [], 'update:mode': [mode: string] }>()
+const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
 </script>
 
 <template>
   <div class="ProjectTitle">
     <span v-text="title" class="title"></span>
-    <ExecutionModeSelector :modes="modes" :model-value="mode" @update:model-value="emit('update:mode', $event)" @execute="emit('execute')" />
+    <ExecutionModeSelector
+      :modes="modes"
+      :model-value="mode"
+      @update:model-value="emit('update:mode', $event)"
+      @execute="emit('execute')"
+    />
   </div>
 </template>
 
@@ -26,7 +31,7 @@ const emit = defineEmits<{ execute: [], 'update:mode': [mode: string] }>()
   padding-bottom: 4px;
 }
 
-.ProjectTitle>.title {
+.ProjectTitle > .title {
   display: inline-block;
   height: 20px;
   padding-top: 1px;

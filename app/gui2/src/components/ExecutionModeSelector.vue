@@ -5,8 +5,8 @@ import { useDocumentEvent } from '@/util/events'
 
 import { ref } from 'vue'
 
-const props = defineProps<{ modes: string[], modelValue: string }>()
-const emit = defineEmits<{ execute: [], 'update:modelValue': [mode: string] }>()
+const props = defineProps<{ modes: string[]; modelValue: string }>()
+const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
 
@@ -37,8 +37,12 @@ useDocumentEvent('click', onDocumentClick)
     </div>
     <div v-if="isDropdownOpen" ref="executionModeDropdownNode" class="execution-mode-dropdown">
       <template v-for="otherMode in modes" :key="otherMode">
-        <span v-if="modelValue !== otherMode" v-text="otherMode" class="button"
-          @click="emit('update:modelValue', otherMode)"></span>
+        <span
+          v-if="modelValue !== otherMode"
+          v-text="otherMode"
+          class="button"
+          @click="emit('update:modelValue', otherMode)"
+        ></span>
       </template>
     </div>
   </div>
@@ -63,17 +67,17 @@ span {
   background: #64b526;
 }
 
-.execution-mode-button>.execution-mode {
+.execution-mode-button > .execution-mode {
   padding-left: 8px;
   padding-right: 7.5px;
 }
 
-.execution-mode-button>.divider {
+.execution-mode-button > .divider {
   width: 1px;
   background-color: rgba(0, 0, 0, 0.12);
 }
 
-.execution-mode-button>.play {
+.execution-mode-button > .play {
   padding-left: 7.5px;
   padding-right: 8px;
 }
@@ -88,14 +92,14 @@ span {
   padding: 4px;
 }
 
-.execution-mode-dropdown>span {
+.execution-mode-dropdown > span {
   border-radius: 6px;
   padding-left: 4px;
   padding-right: 4px;
   width: 100%;
 }
 
-.execution-mode-dropdown>span:hover {
+.execution-mode-dropdown > span:hover {
   background: var(--color-dim);
 }
 </style>

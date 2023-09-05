@@ -17,7 +17,7 @@ import { reactive, ref, watchEffect } from 'vue'
 const EXECUTION_MODES = ['design', 'live']
 
 const title = ref('Test Project')
-const mode = ref("design")
+const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
@@ -72,21 +72,38 @@ function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
 <template>
   <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos">
     <svg :viewBox="navigator.viewBox">
-      <GraphEdge v-for="edge in graphStore.edges" :key="`${edge.source},${edge.target}`" :edge="edge"
-        :nodeRects="nodeRects" :exprRects="exprRects" :exprNodes="graphStore.exprNodes" />
+      <GraphEdge
+        v-for="edge in graphStore.edges"
+        :key="`${edge.source},${edge.target}`"
+        :edge="edge"
+        :nodeRects="nodeRects"
+        :exprRects="exprRects"
+        :exprNodes="graphStore.exprNodes"
+      />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
-      <GraphNode v-for="[id, node] in graphStore.nodes" :key="id" :node="node" @updateRect="updateNodeRect(id, $event)"
-        @delete="graphStore.deleteNode(id)" @updateExprRect="updateExprRect"
+      <GraphNode
+        v-for="[id, node] in graphStore.nodes"
+        :key="id"
+        :node="node"
+        @updateRect="updateNodeRect(id, $event)"
+        @delete="graphStore.deleteNode(id)"
+        @updateExprRect="updateExprRect"
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
-        @updatePosition="graphStore.setNodePosition(id, $event)" />
+        @updatePosition="graphStore.setNodePosition(id, $event)"
+      />
     </div>
     <ComponentBrowser :navigator="navigator" />
-    <TopBar :title="title" :modes="EXECUTION_MODES" v-model:mode="mode" :breadcrumbs="['main', 'ad_analytics']"
+    <TopBar
+      :title="title"
+      :modes="EXECUTION_MODES"
+      v-model:mode="mode"
+      :breadcrumbs="['main', 'ad_analytics']"
       @breadcrumb-click="console.log(`breadcrumb #${$event + 1} clicked.`)"
       @back="console.log('breadcrumbs \'back\' button clicked.')"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
-      @execute="console.log('\'execute\' button clicked.')" />
+      @execute="console.log('\'execute\' button clicked.')"
+    />
   </div>
 </template>
 

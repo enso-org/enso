@@ -21,7 +21,7 @@ span {
   border-radius: var(--radius-full);
 }
 
-.NavBreadcrumb>.blur-container {
+.NavBreadcrumb > .blur-container {
   border-radius: var(--radius-full);
   background-color: var(--color-frame-bg);
   backdrop-filter: var(--backdrop-blur);

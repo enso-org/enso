@@ -59,11 +59,23 @@ watch(exprRect, (rect) => {
 </script>
 
 <template>
-  <span :class="['Span', spanClass]" ref="rootNode" style="{ transform }" :data-span-id="props.span.id"
-    :data-span-start="props.offset"><template v-if="props.span.children.length > 0">
-      <NodeSpan v-for="(child, index) in props.span.children" :key="child.id" :content="props.content" :span="child"
-        :offset="childOffsets[index]" @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" />
-    </template><template v-else>{{ exprPart }}</template></span>
+  <span
+    :class="['Span', spanClass]"
+    ref="rootNode"
+    style="{ transform }"
+    :data-span-id="props.span.id"
+    :data-span-start="props.offset"
+    ><template v-if="props.span.children.length > 0">
+      <NodeSpan
+        v-for="(child, index) in props.span.children"
+        :key="child.id"
+        :content="props.content"
+        :span="child"
+        :offset="childOffsets[index]"
+        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+      /> </template
+    ><template v-else>{{ exprPart }}</template></span
+  >
 </template>
 
 <style scoped>

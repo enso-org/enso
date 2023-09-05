@@ -2,21 +2,31 @@
 import NavBar from '@/components/NavBar.vue'
 import ProjectTitle from '@/components/ProjectTitle.vue'
 
-const props = defineProps<{ title: string, breadcrumbs: string[], modes: string[], mode: string }>()
+const props = defineProps<{ title: string; breadcrumbs: string[]; modes: string[]; mode: string }>()
 const emit = defineEmits<{
   execute: []
   back: []
   forward: []
-  breadcrumbClick: [index: number], 'update:mode': [mode: string]
+  breadcrumbClick: [index: number]
+  'update:mode': [mode: string]
 }>()
 </script>
 
 <template>
   <div class="TopBar">
-    <ProjectTitle :title="title" :modes="modes" :mode="mode" @update:mode="emit('update:mode', $event)"
-      @execute="emit('execute')" />
-    <NavBar @back="emit('back')" @forward="emit('forward')" :breadcrumbs="breadcrumbs"
-      @breadcrumb-click="emit('breadcrumbClick', $event)" />
+    <ProjectTitle
+      :title="title"
+      :modes="modes"
+      :mode="mode"
+      @update:mode="emit('update:mode', $event)"
+      @execute="emit('execute')"
+    />
+    <NavBar
+      @back="emit('back')"
+      @forward="emit('forward')"
+      :breadcrumbs="breadcrumbs"
+      @breadcrumb-click="emit('breadcrumbClick', $event)"
+    />
   </div>
 </template>
 

@@ -23,8 +23,9 @@ function positionAtMouse(): boolean {
 const transform = computed(() => {
   const nav = props.navigator
   const pos = scenePosition.value
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${1 / nav.scale
-    }) translateY(-100%)`
+  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
+    1 / nav.scale
+  }) translateY(-100%)`
 })
 
 useWindowEvent('keypress', (e) => {

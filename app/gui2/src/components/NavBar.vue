@@ -6,7 +6,7 @@ import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 
 const props = defineProps<{ breadcrumbs: string[] }>()
-const emit = defineEmits<{ back: [], forward: [], breadcrumbClick: [index: number] }>()
+const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
@@ -34,7 +34,7 @@ const emit = defineEmits<{ back: [], forward: [], breadcrumbClick: [index: numbe
   padding-bottom: 4px;
 }
 
-.NavBar>.breadcrumbs-controls {
+.NavBar > .breadcrumbs-controls {
   display: flex;
 }
 </style>

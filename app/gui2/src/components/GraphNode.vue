@@ -252,13 +252,29 @@ function handleClick(e: PointerEvent) {
 </script>
 
 <template>
-  <div class="Node" ref="rootNode" :style="{ transform }" v-on="dragPointer.events"
-    :class="{ dragging: dragPointer.dragging }">
+  <div
+    class="Node"
+    ref="rootNode"
+    :style="{ transform }"
+    v-on="dragPointer.events"
+    :class="{ dragging: dragPointer.dragging }"
+  >
     <div class="icon" @pointerdown="handleClick">@ &nbsp</div>
     <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
-    <div class="editable" contenteditable ref="editableRoot" @beforeinput="editContent" spellcheck="false"
-      @pointerdown.stop>
-      <NodeSpan :content="node.content" :span="node.rootSpan" :offset="0" @updateExprRect="updateExprRect" />
+    <div
+      class="editable"
+      contenteditable
+      ref="editableRoot"
+      @beforeinput="editContent"
+      spellcheck="false"
+      @pointerdown.stop
+    >
+      <NodeSpan
+        :content="node.content"
+        :span="node.rootSpan"
+        :offset="0"
+        @updateExprRect="updateExprRect"
+      />
     </div>
   </div>
 </template>
