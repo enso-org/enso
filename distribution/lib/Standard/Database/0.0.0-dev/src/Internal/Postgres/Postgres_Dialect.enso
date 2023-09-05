@@ -70,7 +70,15 @@ type Postgres_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        Base_Generator.generate_query self.internal_generator_dialect query . build
+        case query of
+            # Special handling to use TRUNCATE TABLE instead of the default (since being more portable) DELETE FROM.
+            Query.Truncate_Table name ->
+                wrapped_name = self.internal_generator_dialect.wrap_identifier name
+                # ONLY is used to avoid truncating other tables that inherit from this table, which is the default behaviour on Postgres.
+                Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name
+            _ ->
+                # Rely on the base generator for most queries.
+                Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
        Prepares an ordering descriptor.
