@@ -1768,7 +1768,7 @@ type Column
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
-            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name value_type
+            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name target_storage_type
             new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder.to_java
             problems = cast_problem_builder.get_problems
             on_problems.attach_problems_before problems <|

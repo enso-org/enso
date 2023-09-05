@@ -42,7 +42,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         case BigIntegerStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemBuilder);
         case DoubleStorage s -> runDoubleMap(s, bigInteger.doubleValue(), problemBuilder);
         default ->
-            throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+            throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
     } else if (NumericConverter.isCoercibleToLong(arg)) {
       long rhs = NumericConverter.coerceToLong(arg);
@@ -51,7 +51,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         case BigIntegerStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), BigInteger.valueOf(rhs), problemBuilder);
         case DoubleStorage s -> runDoubleMap(s, (double) rhs, problemBuilder);
         default ->
-            throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+            throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
       DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
@@ -139,7 +139,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           yield runBigIntegerZip(left, right, problemBuilder);
         }
         case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-        case default -> throw new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
+        case default -> runMixedZip(lhs, arg, problemBuilder);
       };
 
       case BigIntegerStorage lhs -> {
@@ -154,11 +154,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             yield runBigIntegerZip(left, right, problemBuilder);
           }
           case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-          case default -> throw new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
+          case default -> runMixedZip(lhs, arg, problemBuilder);
         };
       }
 
-      case default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+      case default -> throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
     };
   }
 
@@ -231,6 +231,57 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         missing.set(i);
       } else {
         boolean r = doBigInteger(x, y);
+        if (r) {
+          comparisonResults.set(i);
+        }
+      }
+
+      context.safepoint();
+    }
+
+    if (m < n) {
+      missing.set(m, n);
+    }
+
+    return new BoolStorage(comparisonResults, missing, n, false);
+  }
+
+  protected BoolStorage runMixedZip(Storage<?> lhs, Storage<?> rhs, MapOperationProblemBuilder problemBuilder) {
+    int n = lhs.size();
+    int m = Math.min(lhs.size(), rhs.size());
+    BitSet comparisonResults = new BitSet();
+    BitSet missing = new BitSet();
+    Context context = Context.getCurrent();
+    for (int i = 0; i < m; ++i) {
+      Object x = lhs.getItemBoxed(i);
+      Object y = rhs.getItemBoxed(i);
+      if (x == null || y == null) {
+        missing.set(i);
+      } else {
+        boolean r = false;
+        // Any number is coercible to double, if the value is not coercible, it is not a supported number type.
+        if (NumericConverter.isCoercibleToDouble(x) && NumericConverter.isCoercibleToDouble(y)) {
+
+          // If any of the values is decimal like, then decimal type is used for comparison.
+          if (NumericConverter.isDecimalLike(x) || NumericConverter.isDecimalLike(y)) {
+            double a = NumericConverter.coerceToDouble(x);
+            double b = NumericConverter.coerceToDouble(y);
+            r = doDouble(a, b);
+          } else {
+            if (x instanceof BigInteger || y instanceof BigInteger) {
+              BigInteger a = NumericConverter.coerceToBigInteger(x);
+              BigInteger b = NumericConverter.coerceToBigInteger(y);
+              r = doBigInteger(a, b);
+            } else {
+              long a = NumericConverter.coerceToLong(x);
+              long b = NumericConverter.coerceToLong(y);
+              r = doLong(a, b);
+            }
+          }
+        } else {
+          r = onOtherType();
+        }
+
         if (r) {
           comparisonResults.set(i);
         }

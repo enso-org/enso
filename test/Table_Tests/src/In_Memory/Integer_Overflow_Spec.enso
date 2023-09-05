@@ -172,6 +172,7 @@ spec =
             (x%2).value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
     Test.group "[In-Memory] Handling of Big Integer values" <|
+        # TODO remove warnings
         Test.specify "should warn when creating a numeric-only column with big integer values" <|
             c0 = Column.from_vector "X" [Java_Long.MAX_VALUE, 0, 1]
             Problems.assume_no_problems c0
@@ -249,7 +250,7 @@ spec =
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Mixed
 
-        Test.specify "will return a helpful error when a big integer is provided as an argument to an operation" <|
+        Test.specify "will return a helpful error when a big integer is provided as an argument to an operation" pending="TODO convert to positive tests" <|
             c = Column.from_vector "X" [1, 2, Nothing, 3]
             x = 2^70
 

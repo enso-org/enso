@@ -72,18 +72,15 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
 
   @Override
   public boolean accepts(Object o) {
-    return NumericConverter.isCoercibleToLong(o) || o instanceof BigInteger;
+    return NumericConverter.isCoercibleToBigInteger(o);
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
       data[currentSize++] = null;
-    } else if (o instanceof BigInteger i) {
-      data[currentSize++] = i;
     } else {
-      long x = NumericConverter.coerceToLong(o);
-      data[currentSize++] = BigInteger.valueOf(x);
+      data[currentSize++] = NumericConverter.coerceToBigInteger(o);
     }
   }
 
