@@ -1017,17 +1017,18 @@ spec make_new_connection prefix persistent_connector=True =
             r2.should_equal 3
             target.at "X" . to_vector . should_equal [0, 3500]
 
-        Test.specify "will work fine if the source or target table contains NULL keys" <|
-            t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]] primary_key=["X"]
+        Test.specify "will work fine if the target table contains NULL keys" <|
+            t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]]
             s1 = source_table_builder [["X", ["b", "c"]]]
-            t1.delete_rows s1 . should_equal 2
+            t1.delete_rows s1 key_columns=["X"] . should_equal 2
             m1 = t1.read . order_by "X"
             m1.at "X" . to_vector . should_equal [Nothing, "a"]
             m1.at "Y" . to_vector . should_equal [3, 1]
 
-            t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]] primary_key=["X"]
+        Test.specify "will raise an error if they source table contains NULL keys" <|
+            t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]]
             s2 = source_table_builder [["X", ["b", Nothing]]]
-            t2.delete_rows s2 . should_equal 1
+            t2.delete_rows s2 key_columns=["X"] . should_equal 1
             m2 = t2.read . order_by "X"
             m2.at "X" . to_vector . should_equal ["a", "c"]
             m2.at "Y" . to_vector . should_equal [1, Nothing]
