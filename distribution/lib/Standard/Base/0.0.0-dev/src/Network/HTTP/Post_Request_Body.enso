@@ -1,7 +1,10 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Map.Map
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.System.File.File
+from project.Data.Boolean.Boolean import False, True
 
 ## The HTTP POST request body.
 type Post_Request_Body
@@ -23,3 +26,11 @@ type Post_Request_Body
        Arguments:
        - file: The file to send.
     Binary (file:File)
+
+    ## Request body with form data.
+
+       Arguments:
+       - form_data: the form fields (text or file) to be sent
+       - url_encoded: if true, use a URL-encoded form; otherwise, use a
+         multi-part encoding.
+    Form_Data (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False)

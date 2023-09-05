@@ -26,16 +26,6 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
-        Test.specify "Can perform a File POST" <|
-            test_file = enso_project.data / "sample.txt"
-            response = Data.post url_post (Post_Request_Body.Binary test_file)
-            response.at "data" . should_equal test_file.read_text
-
-        Test.specify "Can perform a binary File POST" <|
-            test_file = enso_project.data / "sample.png"
-            response = Data.post url_post (Post_Request_Body.Binary test_file)
-            response.at "data" . should_start_with 'data:application/octet-stream;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
-
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
@@ -88,6 +78,21 @@ spec =
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Post_Request_Body.Binary test_file)
             response.at "data" . should_start_with 'data:application/octet-stream;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
+
+        Test.specify "Can perform a url-encoded form POST" <|
+            test_file = enso_project.data / "sample.txt"
+            form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+            response = Data.post url_post (Post_Request_Body.Form_Data form_data url_encoded=True)
+            response.at "data" . should_start_with "key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll"
+            response.at "headers" . at "Content-Length" . should_equal "432"
+
+        Test.specify "Can perform a multipart form POST" <|
+            test_file = enso_project.data / "sample.png"
+            form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+            response = Data.post url_post (Post_Request_Body.Form_Data form_data)
+            response.at "form" . at "key" . should_equal "val"
+            response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
+            response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
 
     Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"

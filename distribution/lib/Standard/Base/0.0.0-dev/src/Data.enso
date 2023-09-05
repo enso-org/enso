@@ -1,6 +1,6 @@
 import project.Any.Any
 import project.Data.Pair.Pair
-import Standard.Base.Network.HTTP.Form.Form
+import project.Data.Map.Map
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -10,6 +10,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.IO
 import project.Meta
+import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -28,8 +29,10 @@ from project.System.File_Format import Auto_Detect, File_Format
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.http.HttpResponse
 polyglot java import java.nio.file.Path
+polyglot java import org.enso.base.Http_Utils
 
 ## ALIAS load, open
    GROUP Input
@@ -210,48 +213,74 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
             _ : URI -> url
         builder.uri uri.internal_uri
 
-        body_publisher = case post_request_body of
+        body_publisher_and_headers = case post_request_body of
             Post_Request_Body.Text text encoding content_type ->
                 header = Header.content_type content_type
                 builder.header header.name header.value
-                body_publishers.ofString text encoding.to_java_charset
+                Pair.new (body_publishers.ofString text encoding.to_java_charset) []
             Post_Request_Body.Json x ->
                 builder.header Header.application_json.name Header.application_json.value
                 json = x.to_json
                 json.if_not_error <|
-                    body_publishers.ofString json
+                    Pair.new (body_publishers.ofString json) []
             Post_Request_Body.Binary file ->
                 builder.header Header.application_octet_stream.name Header.application_octet_stream.value
                 path = Path.of file.path
-                body_publishers.ofFile path
+                Pair.new (body_publishers.ofFile path) []
+            Post_Request_Body.Form_Data form_data url_encoded ->
+                build_form_body_publisher form_data url_encoded
             _ ->
                 Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + post_request_body.to_display_text + "; this is a bug in the Data library"))
 
-        body_publisher.if_not_error <|
-            # set method and body
-            builder.method method.to_http_method_name body_publisher
-            # set headers
-            parse_headers headers . map h-> builder.header h.name h.value
+        IO.println "HHH"
+        IO.println body_publisher_and_headers
+        body_publisher_and_headers.if_not_error <| case body_publisher_and_headers of
+            Pair.Value body_publisher additional_headers ->
+                # set method and body
+                builder.method method.to_http_method_name body_publisher
 
-            http_request = builder.build
-            body_handler = HttpResponse.BodyHandlers . ofByteArray
-            http = HTTP.new
+                # set headers
+                parse_headers headers . map h-> builder.header h.name h.value
+                all_headers = (parse_headers headers) + additional_headers
+                all_headers.map h-> builder.header h.name h.value
 
-            IO.println 'AAA http_request'
-            IO.println http_request
+                http_request = builder.build
+                body_handler = HttpResponse.BodyHandlers . ofByteArray
+                http = HTTP.new
 
-            response = Response.Value (http.internal_http_client.send http_request body_handler)
+                IO.println 'AAA http_request'
+                IO.println http_request
 
-            IO.println 'AAA response'
-            IO.println response
+                response = Response.Value (http.internal_http_client.send http_request body_handler)
 
-            r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-                if try_auto_parse_response.not then response else
-                    response.decode if_unsupported=response . catch handler=(_->response)
-            IO.println 'AAA parsed(?) response'
-            IO.println r
-            IO.println <| Meta.get_simple_type_name r
-            r
+                IO.println 'AAA response'
+                IO.println response
+
+                r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                    if try_auto_parse_response.not then response else
+                        response.decode if_unsupported=response . catch handler=(_->response)
+                IO.println 'AAA parsed(?) response'
+                IO.println r
+                IO.println <| Meta.get_simple_type_name r
+                r
+
+build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
+build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+    True ->
+        body_builder = Http_Utils.urlencoded_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        Pair.new body_builder.build []
+    False ->
+        body_builder = Http_Utils.multipart_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        boundary = body_builder.get_boundary
+        Pair.new body_builder.build [Header.multipart_form_data boundary]
 
 old_post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 old_post uri body mime_type=Nothing headers=[] try_auto_parse=True =
