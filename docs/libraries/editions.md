@@ -189,36 +189,48 @@ so edition files that already exist on disk are not redownloaded.
 Below are listed the steps that are taken when resolving an import of library
 `Foo.Bar`:
 
-1. If and only if the project has `prefer-local-libraries` set to `true` and if
-   any directory on the library path contains `Foo/Bar`, that local instance is
-   chosen as the library that should be used, regardless of the version that is
-   there;
+1. If and only if the project has `prefer-local-libraries` set to `true`, the
+   library path is searched for sub-directories containing Enso packages. If any
+   of such packages has a `package.yaml` that defines `namespace:Foo` and
+   `name: Bar`, that local instance of the library is chosen. In this particular
+   scenario the version check is skipped - whatever version is present in the
+   local library path is used.
 2. Otherwise, the list of libraries defined directly in the `edition` section of
    `package.yaml` of the current project is checked, and if the library is
    defined there, it is selected.
 3. Otherwise, any parent editions are consulted; if they too do not contain the
    library that we are searching for, an error is reported.
 4. Once we know the library version to be used:
-   1. If the repository associated with the library is `local`, the library path
-      is searched for the first directory to contain `Foo/Bar` and this path is
-      loaded. If the library is not present on the library path, an error is
-      reported.
+   1. If the repository associated with the library is `local`, the local
+      library path is searched for the first directory to contain the requested
+      library and this path is loaded. If the library is not present on the
+      library path, an error is reported.
    2. Otherwise, the edition must have defined an exact `<version>` of the
       library that is supposed to be used.
-   3. If the library is already downloaded in the local repository cache, that
-      is the directory `$ENSO_DATA_DIRECTORY/lib/Foo/Bar/<version>` exists, that
+   3. If the library is already downloaded in the local repository cache (the
+      directory `$ENSO_DATA_DIRECTORY/lib/Foo/Bar/<version>` exists), that
       package is loaded.
    4. Otherwise, the library is missing and must be downloaded from its
       associated repository (and placed in the cache as above).
 
-By default, the library path is `<ENSO_HOME>/libraries/` but it can be
-overridden by setting the `ENSO_LIBRARY_PATH` environment variable. It may
-include a list of directories (separated by the system specific path separator);
-the first directory on the list has the highest precedence.
+By default, the local library path consists of two directories:
 
-In particular, if `prefer-local-libraries` is `false`, and the edition does not
-define a library at all, when trying to resolve such a library, it is reported
-as not found even if a local version of it exists. That is because
-auto-discovery of local libraries is only done with `prefer-local-libraries` set
-to `true`. In all other cases, the `local` repository overrides should be set
-explicitly.
+- `<ENSO_HOME>/libraries/`,
+- the parent directory of the currently opened project.
+
+This allows the user to access libraries that are placed next to the current
+project (although ones located in the Enso home still take precedence). Still,
+to access local libraries they either have to be defined in the edition, or the
+`prefer-local-libraries` flag must be set to `true`.
+
+The local library search path can be overridden by setting the
+`ENSO_LIBRARY_PATH` environment variable. It may include a list of directories
+(separated by the system specific path separator); the first directory on the
+list has the highest precedence. If the environment variable is defined, it
+overrides the default paths.
+
+If `prefer-local-libraries` is `false`, and the edition does not define a
+library at all, when trying to resolve such a library, it is reported as not
+found even if a local version of it exists. That is because auto-discovery of
+local libraries is only done with `prefer-local-libraries` set to `true`. In all
+other cases, the `local` repository overrides should be set explicitly.

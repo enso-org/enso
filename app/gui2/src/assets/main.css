@@ -1,0 +1,12 @@
+@import './base.css';
+
+body {
+  display: flex;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-weight: normal;
+}
