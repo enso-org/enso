@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { Suspense } from 'vue'
 import ProjectView from './views/ProjectView.vue'
 </script>
 
 <template>
-  <ProjectView class="flex" />
+  <Suspense>
+    <ProjectView class="flex" />
+  </Suspense>
 </template>
 
 <style scoped>

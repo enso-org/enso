@@ -2,13 +2,15 @@
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, wasmModule } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from '../../shared/yjs-model'
 import { reactive, ref } from 'vue'
+
+await wasmModule
 
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)

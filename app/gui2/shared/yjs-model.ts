@@ -204,20 +204,27 @@ class DistributedModule {
     return newId
   }
 
-  setExpressionContent(id: ExprId, content: string): void {
-    const rangeJson = this.idMap.get(id)
-    if (rangeJson == null) return
-    const range = [
-      y.createRelativePositionFromJSON(rangeJson[0]),
-      y.createRelativePositionFromJSON(rangeJson[1]),
+  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
+    const exprRangeJson = this.idMap.get(id)
+    if (exprRangeJson == null) return
+    const exprRange = [
+      y.createRelativePositionFromJSON(exprRangeJson[0]),
+      y.createRelativePositionFromJSON(exprRangeJson[1]),
     ]
-    const start = y.createAbsolutePositionFromRelativePosition(range[0], this.doc)?.index
-    const end = y.createAbsolutePositionFromRelativePosition(range[1], this.doc)?.index
-    const idMapData = this.idMap.toJSON()
-    if (start == null || end == null) return
+    const exprStart = y.createAbsolutePositionFromRelativePosition(exprRange[0], this.doc)?.index
+    const exprEnd = y.createAbsolutePositionFromRelativePosition(exprRange[1], this.doc)?.index
+    if (exprStart == null || exprEnd == null) return
+    const start = range == null ? exprStart : exprStart + range[0]
+    const end = range == null ? exprEnd : exprStart + range[1]
+    if (start > end) throw new Error('Invalid range')
+    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
     this.doc.transact(() => {
-      this.contents.delete(start, end - start)
-      this.contents.insert(start, content)
+      if (content.length > 0) {
+        this.contents.insert(start, content)
+      }
+      if (start !== end) {
+        this.contents.delete(start + content.length, end - start)
+      }
     })
   }
 
@@ -233,6 +240,26 @@ class DistributedModule {
   dispose(): void {
     this.doc.destroy()
   }
+}
+
+function commonPrefixLength(a: string, b: string): number {
+  const commonLen = Math.min(a.length, b.length)
+  for (let i = 0; i < commonLen; i++) {
+    if (a[i] !== b[i]) {
+      return i
+    }
+  }
+  return commonLen
+}
+
+function commonSuffixLength(a: string, b: string): number {
+  const commonLen = Math.min(a.length, b.length)
+  for (let i = 0; i < commonLen; i++) {
+    if (a[a.length - i - 1] !== b[b.length - i - 1]) {
+      return i
+    }
+  }
+  return commonLen
 }
 
 export interface RelativeRange {
@@ -336,7 +363,7 @@ export class IdMap {
       })
 
       this.rangeToExpr.forEach((expr, key) => {
-        // for all remaining expressions, we need to write them into the map
+        // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
         const range = key.split(':').map((x) => parseInt(x, 10)) as [number, number]
         const start = y.createRelativePositionFromTypeIndex(this.contents, range[0])
@@ -358,4 +385,8 @@ export type ContentRange = [number, number]
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
+}
+
+export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
+  return a[0] <= b[1] && a[1] >= b[0]
 }

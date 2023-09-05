@@ -5,15 +5,20 @@ import { Vec2 } from '@/util/vec2'
 import { assertNever, assert } from '@/util/assert'
 import { useProjectStore } from './project'
 import * as Y from 'yjs'
-import { useObserveYjs, useObserveYjsDeep } from '@/util/crdt'
+import { useObserveYjs } from '@/util/crdt'
 import {
   rangeEncloses,
   type ContentRange,
   type ExprId,
   type IdMap,
   type NodeMetadata,
+  rangeIntersects,
 } from '../../shared/yjs-model'
 import type { Opt } from '@/util/opt'
+
+import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
+
+export const wasmModule = init()
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -24,28 +29,69 @@ export const useGraphStore = defineStore('graph', () => {
   let text = computed(() => proj.module?.contents)
   let metadata = computed(() => proj.module?.metadata)
 
+  const textContent = ref('')
+
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
 
   useObserveYjs(text, (event) => {
-    readState()
+    const delta = event.changes.delta
+    if (delta.length === 0) return
+
+    const affectedRanges: ContentRange[] = []
+    function addAffectedRange(range: ContentRange) {
+      const lastRange = affectedRanges[affectedRanges.length - 1]
+      if (lastRange?.[1] === range[0]) {
+        lastRange[1] = range[1]
+      } else {
+        affectedRanges.push(range)
+      }
+    }
+
+    let newContent = ''
+    let oldIdx = 0
+    let newIdx = 0
+    for (const op of delta) {
+      if (op.retain) {
+        newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
+        oldIdx += op.retain
+        newIdx += op.retain
+      } else if (op.delete) {
+        addAffectedRange([newIdx, newIdx])
+        oldIdx += op.delete
+      } else if (op.insert && typeof op.insert === 'string') {
+        addAffectedRange([newIdx, newIdx + op.insert.length])
+        newContent += op.insert
+        newIdx += op.insert.length
+      } else {
+        console.error('Unexpected Yjs operation:', op)
+      }
+    }
+    newContent += textContent.value.substring(oldIdx)
+    textContent.value = newContent
+    updateState(affectedRanges)
   })
 
   watch(text, (value) => {
-    if (value != null) readState()
+    textContent.value = value?.toString() ?? ''
+    if (value != null) updateState()
   })
 
   const _parsed = ref([] as Statement[])
+  const _parsed_enso = ref<any>()
 
-  function readState() {
+  watchEffect(() => {})
+
+  function updateState(affectedRanges?: ContentRange[]) {
     if (proj.module == null) return
     const idMap = proj.module.getIdMap()
     const meta = proj.module.metadata
     const text = proj.module.contents
-    const textContent = text.toString()
-    const parsed = parseBlock(0, textContent, idMap)
-    _parsed.value = parsed
+    const textContentLocal = textContent.value
+    const parsed = parseBlock(0, textContentLocal, idMap)
 
+    _parsed.value = parsed
+    _parsed_enso.value = JSON.parse(parse_to_json(textContentLocal))
     const accessed = idMap.accessedSoFar()
 
     for (const nodeId of nodes.keys()) {
@@ -53,12 +99,30 @@ export const useGraphStore = defineStore('graph', () => {
         nodeDeleted(nodeId)
       }
     }
-    for (const stmt of parsed) {
-      const nodeMeta = meta.get(stmt.id)
-      nodeInsertedOrUpdated(stmt, text, textContent, nodeMeta)
-    }
-
     idMap.finishAndSynchronize()
+
+    for (const stmt of parsed) {
+      const id = stmt.id
+      const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
+
+      if (affectedRanges != null) {
+        while (affectedRanges[0]?.[1] < exprRange[0]) {
+          affectedRanges.shift()
+        }
+        if (affectedRanges.length === 0) break
+        const nodeAffected = rangeIntersects(exprRange, affectedRanges[0])
+        if (!nodeAffected) continue
+      }
+
+      const nodeMeta = meta.get(id)
+      const nodeContent = textContentLocal.substring(exprRange[0], exprRange[1])
+      let node = nodes.get(id)
+      if (node == null) {
+        nodeInserted(stmt, text, nodeContent, nodeMeta)
+      } else {
+        nodeUpdated(node, stmt, text, nodeContent, nodeMeta)
+      }
+    }
   }
 
   useObserveYjs(metadata, (event) => {
@@ -80,60 +144,46 @@ export const useGraphStore = defineStore('graph', () => {
   const identDefinitions = reactive(new Map<string, ExprId>())
   const identUsages = reactive(new Map<string, Set<ExprId>>())
 
-  function nodeInsertedOrUpdated(
+  function nodeInserted(stmt: Statement, text: Y.Text, content: string, meta: Opt<NodeMetadata>) {
+    console.log('nodeInserted', stmt.id)
+    const node: Node = {
+      content,
+      binding: stmt.binding ?? '',
+      rootSpan: stmt.expression,
+      position: meta == null ? Vec2.Zero() : new Vec2(meta.x, meta.y),
+      docRange: [
+        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
+        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
+      ],
+    }
+    identDefinitions.set(node.binding, stmt.id)
+    addSpanUsages(stmt.id, node)
+    nodes.set(stmt.id, node)
+  }
+
+  function nodeUpdated(
+    node: Node,
     stmt: Statement,
     text: Y.Text,
-    moduleContent: string,
+    content: string,
     meta: Opt<NodeMetadata>,
   ) {
-    const id = stmt.id
-    let node = nodes.get(id)
-    const content = moduleContent.substring(
-      stmt.exprOffset,
-      stmt.exprOffset + stmt.expression.length,
-    )
-    if (node == null) {
-      node = {
-        content,
-        binding: stmt.binding ?? '',
-        rootSpan: stmt.expression,
-        position: meta == null ? Vec2.Zero() : new Vec2(meta.x, meta.y),
-        docRange: [
-          Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
-          Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
-        ],
-      }
-      identDefinitions.set(node.binding, id)
-      addSpanUsages(id, node)
-      nodes.set(id, node)
-    } else {
-      clearSpanUsages(id, node)
-      if (node.content !== content) {
-        node.content = content
-        for (let [span, offset] of walkSpansBfs(stmt.expression, stmt.exprOffset)) {
-          if (span.kind === SpanKind.Ident) {
-            let ident = moduleContent.substring(offset, offset + span.length)
-            map.setIfUndefined(identUsages, ident, set.create).add(span.id)
-            exprNodes.set(span.id, id)
-          }
-        }
-      }
-      if (node.binding !== stmt.binding) {
-        identDefinitions.delete(node.binding)
-        node.binding = stmt.binding ?? ''
-        identDefinitions.set(node.binding, id)
-      }
-      if (node.rootSpan.id === stmt.expression.id) {
-        patchSpan(node.rootSpan, stmt.expression)
-      } else {
-        node.rootSpan = stmt.expression
-      }
-      if (meta != null && !node.position.equals(new Vec2(meta.x, meta.y))) {
-        node.position = new Vec2(meta.x, meta.y)
-      }
+    console.log('nodeUpdated', stmt.id)
+    clearSpanUsages(stmt.id, node)
+    node.content = content
+    if (node.binding !== stmt.binding) {
+      identDefinitions.delete(node.binding)
+      node.binding = stmt.binding ?? ''
+      identDefinitions.set(node.binding, stmt.id)
     }
-
-    addSpanUsages(id, node)
+    if (node.rootSpan.id === stmt.expression.id) {
+      patchSpan(node.rootSpan, stmt.expression)
+    } else {
+      node.rootSpan = stmt.expression
+    }
+    if (meta != null && !node.position.equals(new Vec2(meta.x, meta.y))) {
+      node.position = new Vec2(meta.x, meta.y)
+    }
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
@@ -219,7 +269,7 @@ export const useGraphStore = defineStore('graph', () => {
   function deleteNode(id: ExprId) {
     const mod = proj.module
     if (mod == null) return
-    mod.setExpressionContent(id, '')
+    mod.replaceExpressionContent(id, '')
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -229,15 +279,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setExpressionContent(id: ExprId, content: string) {
-    proj.module?.setExpressionContent(id, content)
+    proj.module?.replaceExpressionContent(id, content)
   }
 
   function replaceNodeSubexpression(id: ExprId, range: ContentRange, content: string) {
     const node = nodes.get(id)
     if (node == null) return
-    const newContent =
-      node.content.substring(0, range[0]) + content + node.content.substring(range[1])
-    setExpressionContent(node.rootSpan.id, newContent)
+    proj.module?.replaceExpressionContent(node.rootSpan.id, content, range)
   }
 
   function setNodePosition(id: ExprId, position: Vec2) {
@@ -248,6 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   return {
     _parsed,
+    _parsed_enso,
     nodes,
     exprNodes,
     edges,

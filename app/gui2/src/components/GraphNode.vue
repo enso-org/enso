@@ -30,8 +30,19 @@ watchEffect(() => {
   }
 })
 
-const dragPointer = usePointer((event) => {
-  emit('updatePosition', props.node.position.add(event.delta))
+let dragged = false
+
+const dragPointer = usePointer((event, _, ty) => {
+  if (ty === 'start') {
+    dragged = false
+  }
+  if (!event.delta.isZero()) {
+    dragged = true
+    emit('updatePosition', props.node.position.add(event.delta))
+  }
+  if (ty === 'stop' && !dragged && editableRoot.value != null) {
+    editableRoot.value.focus()
+  }
 })
 
 const transform = computed(() => {
@@ -89,6 +100,8 @@ function editContent(e: Event) {
       getRelatedSpanOffset(r.endContainer, r.endOffset),
     ]
   })
+  console.log(e, ranges)
+
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''

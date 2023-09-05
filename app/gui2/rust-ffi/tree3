@@ -1,0 +1,221 @@
+rust-ffi v0.1.0 (C:\Projects\enso\enso\app\gui2\rust-ffi)
+├── enso-parser v0.1.0 (C:\Projects\enso\enso\lib\rust\parser)
+│   ├── bincode v1.3.3
+│   │   └── serde v1.0.188
+│   │       └── serde_derive v1.0.188 (proc-macro)
+│   │           ├── proc-macro2 v1.0.66
+│   │           │   └── unicode-ident v1.0.11
+│   │           ├── quote v1.0.33
+│   │           │   └── proc-macro2 v1.0.66 (*)
+│   │           └── syn v2.0.31
+│   │               ├── proc-macro2 v1.0.66 (*)
+│   │               ├── quote v1.0.33 (*)
+│   │               └── unicode-ident v1.0.11
+│   ├── enso-data-structures v0.2.0 (C:\Projects\enso\enso\lib\rust\data-structures)
+│   │   ├── bytemuck v1.13.1
+│   │   │   └── bytemuck_derive v1.4.1 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.66 (*)
+│   │   │       ├── quote v1.0.33 (*)
+│   │   │       └── syn v2.0.31 (*)
+│   │   ├── enso-prelude v0.2.6 (C:\Projects\enso\enso\lib\rust\prelude)
+│   │   │   ├── anyhow v1.0.75
+│   │   │   ├── assert_approx_eq v1.1.0
+│   │   │   ├── backtrace v0.3.69
+│   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   └── rustc-demangle v0.1.23
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── cc v1.0.83
+│   │   │   ├── boolinator v2.4.0
+│   │   │   ├── bytemuck v1.13.1 (*)
+│   │   │   ├── derivative v2.2.0 (proc-macro)
+│   │   │   │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   ├── quote v1.0.33 (*)
+│   │   │   │   └── syn v1.0.109
+│   │   │   │       ├── proc-macro2 v1.0.66 (*)
+│   │   │   │       ├── quote v1.0.33 (*)
+│   │   │   │       └── unicode-ident v1.0.11
+│   │   │   ├── derive_more v0.99.17 (proc-macro)
+│   │   │   │   ├── convert_case v0.4.0
+│   │   │   │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   ├── quote v1.0.33 (*)
+│   │   │   │   └── syn v1.0.109 (*)
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── rustc_version v0.4.0
+│   │   │   │       └── semver v1.0.18
+│   │   │   ├── enso-logging v0.3.1 (C:\Projects\enso\enso\lib\rust\logging)
+│   │   │   │   ├── enso-logging-macros v0.1.0 (proc-macro) (C:\Projects\enso\enso\lib\rust\logging\macros)
+│   │   │   │   │   ├── Inflector v0.11.4
+│   │   │   │   │   │   ├── lazy_static v1.4.0
+│   │   │   │   │   │   └── regex v1.9.5
+│   │   │   │   │   │       ├── aho-corasick v1.0.5
+│   │   │   │   │   │       │   └── memchr v2.6.3
+│   │   │   │   │   │       ├── memchr v2.6.3
+│   │   │   │   │   │       ├── regex-automata v0.3.8
+│   │   │   │   │   │       │   ├── aho-corasick v1.0.5 (*)
+│   │   │   │   │   │       │   ├── memchr v2.6.3
+│   │   │   │   │   │       │   └── regex-syntax v0.7.5
+│   │   │   │   │   │       └── regex-syntax v0.7.5
+│   │   │   │   │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │   ├── quote v1.0.33 (*)
+│   │   │   │   │   └── syn v2.0.31 (*)
+│   │   │   │   ├── wasm-bindgen v0.2.87
+│   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   └── wasm-bindgen-macro v0.2.87 (proc-macro)
+│   │   │   │   │       ├── quote v1.0.33 (*)
+│   │   │   │   │       └── wasm-bindgen-macro-support v0.2.87
+│   │   │   │   │           ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │           ├── quote v1.0.33 (*)
+│   │   │   │   │           ├── syn v2.0.31 (*)
+│   │   │   │   │           ├── wasm-bindgen-backend v0.2.87
+│   │   │   │   │           │   ├── bumpalo v3.13.0
+│   │   │   │   │           │   ├── log v0.4.20
+│   │   │   │   │           │   ├── once_cell v1.18.0
+│   │   │   │   │           │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │           │   ├── quote v1.0.33 (*)
+│   │   │   │   │           │   ├── syn v2.0.31 (*)
+│   │   │   │   │           │   └── wasm-bindgen-shared v0.2.87
+│   │   │   │   │           └── wasm-bindgen-shared v0.2.87
+│   │   │   │   └── web-sys v0.3.64
+│   │   │   │       ├── js-sys v0.3.64
+│   │   │   │       │   └── wasm-bindgen v0.2.87 (*)
+│   │   │   │       └── wasm-bindgen v0.2.87 (*)
+│   │   │   ├── enso-reflect v0.1.0 (C:\Projects\enso\enso\lib\rust\reflect)
+│   │   │   │   ├── derivative v2.2.0 (proc-macro) (*)
+│   │   │   │   ├── enso-metamodel v0.1.0 (C:\Projects\enso\enso\lib\rust\metamodel)
+│   │   │   │   │   ├── derivative v2.2.0 (proc-macro) (*)
+│   │   │   │   │   ├── derive_more v0.99.17 (proc-macro) (*)
+│   │   │   │   │   └── enso-zst v0.1.0 (C:\Projects\enso\enso\lib\rust\zst)
+│   │   │   │   │       ├── bytemuck v1.13.1 (*)
+│   │   │   │   │       ├── paste v1.0.14 (proc-macro)
+│   │   │   │   │       └── serde v1.0.188 (*)
+│   │   │   │   └── enso-reflect-macros v0.1.0 (proc-macro) (C:\Projects\enso\enso\lib\rust\reflect\macros)
+│   │   │   │       ├── proc-macro2 v1.0.66 (*)
+│   │   │   │       ├── quote v1.0.33 (*)
+│   │   │   │       └── syn v1.0.109 (*)
+│   │   │   ├── enso-shapely v0.2.0 (C:\Projects\enso\enso\lib\rust\shapely)
+│   │   │   │   ├── derivative v2.2.0 (proc-macro) (*)
+│   │   │   │   ├── enso-shapely-macros v0.2.1 (proc-macro) (C:\Projects\enso\enso\lib\rust\shapely\macros)
+│   │   │   │   │   ├── Inflector v0.11.4 (*)
+│   │   │   │   │   ├── boolinator v2.4.0
+│   │   │   │   │   ├── enso-macro-utils v0.2.0 (C:\Projects\enso\enso\lib\rust\macro-utils)
+│   │   │   │   │   │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │   │   ├── quote v1.0.33 (*)
+│   │   │   │   │   │   └── syn v1.0.109 (*)
+│   │   │   │   │   ├── itertools v0.10.5
+│   │   │   │   │   │   └── either v1.9.0
+│   │   │   │   │   ├── paste v1.0.14 (proc-macro)
+│   │   │   │   │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │   ├── quote v1.0.33 (*)
+│   │   │   │   │   └── syn v1.0.109 (*)
+│   │   │   │   ├── enso-zst v0.1.0 (C:\Projects\enso\enso\lib\rust\zst) (*)
+│   │   │   │   ├── paste v1.0.14 (proc-macro)
+│   │   │   │   ├── rustversion v1.0.14 (proc-macro)
+│   │   │   │   ├── wasm-bindgen v0.2.87 (*)
+│   │   │   │   └── web-sys v0.3.64 (*)
+│   │   │   ├── enso-zst v0.1.0 (C:\Projects\enso\enso\lib\rust\zst) (*)
+│   │   │   ├── failure v0.1.8
+│   │   │   │   ├── backtrace v0.3.69 (*)
+│   │   │   │   └── failure_derive v0.1.8 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.66 (*)
+│   │   │   │       ├── quote v1.0.33 (*)
+│   │   │   │       ├── syn v1.0.109 (*)
+│   │   │   │       └── synstructure v0.12.6
+│   │   │   │           ├── proc-macro2 v1.0.66 (*)
+│   │   │   │           ├── quote v1.0.33 (*)
+│   │   │   │           ├── syn v1.0.109 (*)
+│   │   │   │           └── unicode-xid v0.2.4
+│   │   │   ├── futures v0.3.28
+│   │   │   │   ├── futures-channel v0.3.28
+│   │   │   │   │   ├── futures-core v0.3.28
+│   │   │   │   │   └── futures-sink v0.3.28
+│   │   │   │   ├── futures-core v0.3.28
+│   │   │   │   ├── futures-executor v0.3.28
+│   │   │   │   │   ├── futures-core v0.3.28
+│   │   │   │   │   ├── futures-task v0.3.28
+│   │   │   │   │   └── futures-util v0.3.28
+│   │   │   │   │       ├── futures-channel v0.3.28 (*)
+│   │   │   │   │       ├── futures-core v0.3.28
+│   │   │   │   │       ├── futures-io v0.3.28
+│   │   │   │   │       ├── futures-macro v0.3.28 (proc-macro)
+│   │   │   │   │       │   ├── proc-macro2 v1.0.66 (*)
+│   │   │   │   │       │   ├── quote v1.0.33 (*)
+│   │   │   │   │       │   └── syn v2.0.31 (*)
+│   │   │   │   │       ├── futures-sink v0.3.28
+│   │   │   │   │       ├── futures-task v0.3.28
+│   │   │   │   │       ├── memchr v2.6.3
+│   │   │   │   │       ├── pin-project-lite v0.2.13
+│   │   │   │   │       ├── pin-utils v0.1.0
+│   │   │   │   │       └── slab v0.4.9
+│   │   │   │   │           [build-dependencies]
+│   │   │   │   │           └── autocfg v1.1.0
+│   │   │   │   ├── futures-io v0.3.28
+│   │   │   │   ├── futures-sink v0.3.28
+│   │   │   │   ├── futures-task v0.3.28
+│   │   │   │   └── futures-util v0.3.28 (*)
+│   │   │   ├── gen-iter v0.2.1
+│   │   │   ├── itertools v0.10.5 (*)
+│   │   │   ├── lazy_static v1.4.0
+│   │   │   ├── paste v1.0.14 (proc-macro)
+│   │   │   ├── serde v1.0.188 (*)
+│   │   │   ├── serde_json v1.0.105
+│   │   │   │   ├── itoa v1.0.9
+│   │   │   │   ├── ryu v1.0.15
+│   │   │   │   └── serde v1.0.188 (*)
+│   │   │   ├── smallvec v1.11.0
+│   │   │   ├── wasm-bindgen v0.2.87 (*)
+│   │   │   ├── weak-table v0.3.2
+│   │   │   └── web-sys v0.3.64 (*)
+│   │   ├── failure v0.1.8 (*)
+│   │   ├── rustversion v1.0.14 (proc-macro)
+│   │   ├── serde v1.0.188 (*)
+│   │   └── typenum v1.16.0
+│   ├── enso-parser-syntax-tree-visitor v0.1.0 (proc-macro) (C:\Projects\enso\enso\lib\rust\parser\src\syntax\tree\visitor)
+│   │   ├── enso-macro-utils v0.2.0 (C:\Projects\enso\enso\lib\rust\macro-utils) (*)
+│   │   ├── proc-macro2 v1.0.66 (*)
+│   │   ├── quote v1.0.33 (*)
+│   │   └── syn v1.0.109 (*)
+│   ├── enso-prelude v0.2.6 (C:\Projects\enso\enso\lib\rust\prelude) (*)
+│   ├── enso-reflect v0.1.0 (C:\Projects\enso\enso\lib\rust\reflect) (*)
+│   ├── enso-shapely-macros v0.2.1 (proc-macro) (C:\Projects\enso\enso\lib\rust\shapely\macros) (*)
+│   ├── enso-types v0.1.0 (C:\Projects\enso\enso\lib\rust\types)
+│   │   ├── enso-prelude v0.2.6 (C:\Projects\enso\enso\lib\rust\prelude) (*)
+│   │   ├── enso-reflect v0.1.0 (C:\Projects\enso\enso\lib\rust\reflect) (*)
+│   │   ├── nalgebra v0.26.2
+│   │   │   ├── approx v0.4.0
+│   │   │   │   └── num-traits v0.2.16
+│   │   │   │       [build-dependencies]
+│   │   │   │       └── autocfg v1.1.0
+│   │   │   ├── matrixmultiply v0.3.7
+│   │   │   │   └── rawpointer v0.2.1
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── autocfg v1.1.0
+│   │   │   ├── num-complex v0.3.1
+│   │   │   │   ├── num-traits v0.2.16 (*)
+│   │   │   │   └── serde v1.0.188 (*)
+│   │   │   ├── num-rational v0.3.2
+│   │   │   │   ├── num-integer v0.1.45
+│   │   │   │   │   └── num-traits v0.2.16 (*)
+│   │   │   │   │   [build-dependencies]
+│   │   │   │   │   └── autocfg v1.1.0
+│   │   │   │   └── num-traits v0.2.16 (*)
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── autocfg v1.1.0
+│   │   │   ├── num-traits v0.2.16 (*)
+│   │   │   ├── serde v1.0.188 (*)
+│   │   │   ├── simba v0.4.0
+│   │   │   │   ├── approx v0.4.0 (*)
+│   │   │   │   ├── num-complex v0.3.1 (*)
+│   │   │   │   ├── num-traits v0.2.16 (*)
+│   │   │   │   └── paste v1.0.14 (proc-macro)
+│   │   │   └── typenum v1.16.0
+│   │   ├── num-traits v0.2.16 (*)
+│   │   ├── paste v1.0.14 (proc-macro)
+│   │   └── serde v1.0.188 (*)
+│   │   [build-dependencies]
+│   │   └── enso-prelude v0.2.6 (C:\Projects\enso\enso\lib\rust\prelude) (*)
+│   ├── serde v1.0.188 (*)
+│   ├── serde_json v1.0.105 (*)
+│   └── uuid v1.4.1
+│       └── serde v1.0.188 (*)
+├── serde_json v1.0.105 (*)
+└── wasm-bindgen v0.2.87 (*)
