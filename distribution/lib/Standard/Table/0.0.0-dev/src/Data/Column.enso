@@ -452,11 +452,7 @@ type Column
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
     + self other =
-        checked = case Value_Type_Helpers.resolve_addition_kind self other of
-            Value_Type_Helpers.Addition_Kind.Numeric_Add ->
-                disallow_decimal_type other <| Nothing
-            Value_Type_Helpers.Addition_Kind.Text_Concat -> Nothing
-        checked.if_not_error <|
+        Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self Java_Storage.Maps.ADD other
 
     ## ALIAS minus, subtract
@@ -498,8 +494,7 @@ type Column
     - self other =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
-                disallow_decimal_type other <|
-                    run_vectorized_binary_op self Java_Storage.Maps.SUB other
+                run_vectorized_binary_op self Java_Storage.Maps.SUB other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
                 case self.inferred_precise_value_type of
                     Value_Type.Date ->
@@ -2506,15 +2501,3 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
-
-## PRIVATE
-   This is a workaround that ensures that Big Integer values do not get through to our operations.
-   It shall be removed once Big Integer support is added to Table: #7712.
-   It is needed, because our normal type checks like `expect_numeric` _do allow_
-   the Decimal type. That is because it is a valid type for the Database backend,
-   and we want to keep the logic common.
-disallow_decimal_type argument ~continuation =
-    value_type = Value_Type_Helpers.find_argument_type argument
-    case value_type.is_decimal of
-        False -> continuation
-        True  -> Error.throw (Unsupported_Operation.Error "Big integer arithmetic is not supported by the in-memory table backend.")
