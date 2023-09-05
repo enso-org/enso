@@ -6,12 +6,12 @@ use ensogl::prelude::*;
 use engine_protocol::language_server::MethodPointer;
 
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use ensogl_component::breadcrumbs::*;
+
 
 
 // ===========================
