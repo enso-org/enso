@@ -16,18 +16,19 @@ const emit = defineEmits<{ click: [index: number] }>()
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
 const sortedValuesAndIndices = computed(() => {
-  const valuesAndIndices = props.values.map<[value: string, index: number]>(
-    (value, index) => [value, index]
-  )
+  const valuesAndIndices = props.values.map<[value: string, index: number]>((value, index) => [
+    value,
+    index,
+  ])
   switch (sortDirection.value) {
     case SortDirection.none: {
       return valuesAndIndices
     }
     case SortDirection.ascending: {
-      return valuesAndIndices.sort((a, b) => a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0)
+      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0))
     }
     case SortDirection.descending: {
-      return valuesAndIndices.sort((a, b) => a[0] > b[0] ? -1 : a[0] < b[0] ? 1 : 0)
+      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? -1 : a[0] < b[0] ? 1 : 0))
     }
   }
 })
@@ -46,36 +47,44 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 </script>
 
 <template>
-  <div :tabindex="-1" class="DropdownContainer" @wheel.stop>
-    <div class="Dropdown" :style="{ background: color }">
+  <div :tabindex="-1" class="Dropdown" @wheel.stop>
+    <ul class="list" :style="{ background: color }">
       <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
-        <div v-if="value === selectedValue">
+        <li v-if="value === selectedValue">
           <div class="selected-item"><span v-text="value"></span></div>
-        </div>
-        <div v-else class="selectable-item button" @click="emit('click', index)"><span v-text="value"></span></div>
+        </li>
+        <li v-else class="selectable-item button" @click="emit('click', index)">
+          <span v-text="value"></span>
+        </li>
       </template>
-      <img class="sort button" :src="ICON_LOOKUP[sortDirection]"
-        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]">
-    </div>
+      <img
+        class="sort button"
+        :src="ICON_LOOKUP[sortDirection]"
+        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
+      />
+    </ul>
   </div>
 </template>
 
 <style scoped>
-.DropdownContainer {
+.Dropdown {
+  position: absolute;
   user-select: none;
   overflow: auto;
   clip-path: inset(0 round 8px);
   width: min-content;
+  top: 100%;
+  margin-top: 4px;
   height: 136px;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.DropdownContainer::-webkit-scrollbar {
+.Dropdown::-webkit-scrollbar {
   display: none;
 }
 
-.Dropdown {
+.list {
   position: relative;
   color: var(--color-text-light);
   padding-left: 8px;
@@ -83,7 +92,7 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   width: min-content;
 }
 
-.Dropdown>* {
+.list > * {
   position: relative;
 }
 

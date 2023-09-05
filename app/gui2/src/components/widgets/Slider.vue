@@ -1,20 +1,42 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 
-const props = defineProps<{ modelValue: number; max: number }>()
+const props = defineProps<{ modelValue: number; min: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
+
+const sliderNode = ref<HTMLElement>()
+const isDragging = ref(false)
 
 /** The flag in `event.buttons` representing the left mouse button. */
 const BUTTON_LEFT_FLAG = 1
 
 function onMouseMove(event: MouseEvent) {
-  const currentTarget = event.currentTarget
-  if ((event.buttons & BUTTON_LEFT_FLAG) === 0 || !(currentTarget instanceof Element)) { return }
-  const rect = currentTarget.getBoundingClientRect()
-  const fraction = (event.clientX - rect.left) / (rect.right - rect.left)
-  const newValue = Math.round(fraction * props.max)
-  emit('update:modelValue', newValue)
+  if (isDragging.value && event.currentTarget instanceof HTMLElement) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const fraction = (event.clientX - rect.left) / (rect.right - rect.left)
+    const newValue = props.min + Math.round(fraction * (props.max - props.min))
+    emit('update:modelValue', newValue)
+  }
 }
+
+useDocumentEvent('mouseup', () => {
+  isDragging.value = false
+})
+
+useDocumentEventConditional('mousemove', isDragging, (event) => {
+  if (sliderNode.value != null) {
+    const rect = sliderNode.value.getBoundingClientRect()
+    const fractionRaw = (event.clientX - rect.left) / (rect.right - rect.left)
+    const fraction = Math.max(0, Math.min(1, fractionRaw))
+    const newValue = props.min + Math.round(fraction * (props.max - props.min))
+    emit('update:modelValue', newValue)
+  }
+})
+
+const sliderWidth = computed(
+  () => `${((props.modelValue - props.min) * 100) / (props.max - props.min)}%`,
+)
 
 const inputValue = computed({
   get() {
@@ -22,14 +44,19 @@ const inputValue = computed({
   },
   set(value) {
     emit('update:modelValue', value)
-  }
+  },
 })
 </script>
 
 <template>
-  <div class="Slider" @mousemove="onMouseMove">
-    <div class="fraction" :style="{ width: `${modelValue * 100 / max}%` }"></div>
-    <input type="number" :size="1" class="value" v-model.number="inputValue">
+  <div
+    ref="sliderNode"
+    class="Slider"
+    @mousemove="onMouseMove"
+    @mousedown="($event.buttons & BUTTON_LEFT_FLAG) !== 0 && (isDragging = true)"
+  >
+    <div class="fraction" :style="{ width: sliderWidth }"></div>
+    <input type="number" :size="1" class="value" v-model.number="inputValue" />
   </div>
 </template>
 
@@ -45,14 +72,14 @@ const inputValue = computed({
   width: 56px;
 }
 
-.Slider>.fraction {
+.Slider > .fraction {
   position: absolute;
   height: 100%;
   left: 0;
   background: var(--color-widget);
 }
 
-.Slider>.value {
+.Slider > .value {
   position: relative;
   display: inline-block;
   background: none;

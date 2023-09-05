@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Checkbox from '@/components/widgets/Checkbox.vue'
+import Dropdown from '@/components/widgets/Dropdown.vue'
+import Placeholder from '@/components/widgets/Placeholder.vue'
+import Slider from '@/components/widgets/Slider.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
@@ -21,7 +25,7 @@ const emit = defineEmits<{
 
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const editableRoot = ref<HTMLElement>()
+const editableRootNode = ref<HTMLElement>()
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -155,7 +159,7 @@ interface SavedSelections {
 let selectionToRecover: SavedSelections | null = null
 
 function saveSelections() {
-  const root = editableRoot.value
+  const root = editableRootNode.value
   const selection = window.getSelection()
   if (root == null || selection == null || !selection.containsNode(root, true)) return
   const ranges: ContentRange[] = Array.from({ length: selection.rangeCount }, (_, i) =>
@@ -184,9 +188,9 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  if (selectionToRecover != null && editableRoot.value != null) {
+  if (selectionToRecover != null && editableRootNode.value != null) {
     const saved = selectionToRecover
-    const root = editableRoot.value
+    const root = editableRootNode.value
     selectionToRecover = null
     const selection = window.getSelection()
     if (selection == null) return
@@ -249,6 +253,16 @@ function handleClick(e: PointerEvent) {
     e.stopPropagation()
   }
 }
+
+const dropdownColor = '#357ab9'
+const checkboxValue = ref(true)
+const dropdownOptions = ['address', 'id', 'age', 'language', 'workplace', 'location']
+const dropdownValue = ref('location')
+const sliderValue = ref(37)
+
+watchEffect(() => {
+  console.log('what', dropdownValue.value)
+})
 </script>
 
 <template>
@@ -264,7 +278,7 @@ function handleClick(e: PointerEvent) {
     <div
       class="editable"
       contenteditable
-      ref="editableRoot"
+      ref="editableRootNode"
       @beforeinput="editContent"
       spellcheck="false"
       @pointerdown.stop
@@ -275,6 +289,18 @@ function handleClick(e: PointerEvent) {
         :offset="0"
         @updateExprRect="updateExprRect"
       />
+      <Checkbox v-model="checkboxValue" />
+      <div>
+        <span v-text="dropdownValue"></span>
+        <Dropdown
+          :color="dropdownColor"
+          :values="dropdownOptions"
+          :selected-value="dropdownValue"
+          @click="dropdownValue = dropdownOptions[$event]"
+        />
+      </div>
+      <Slider :min="10" :max="100" v-model="sliderValue" />
+      <Placeholder />
     </div>
   </div>
 </template>
@@ -307,6 +333,8 @@ function handleClick(e: PointerEvent) {
 
 .editable {
   outline: none;
+  display: flex;
+  gap: 4px;
 }
 
 .icon {

@@ -18,7 +18,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   background: var(--color-widget);
 }
 
-.Checkbox>div {
+.Checkbox > div {
   margin: 6px;
   width: 12px;
   height: 12px;
