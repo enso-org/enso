@@ -91,7 +91,7 @@ type Query
        They key columns must be present under the same name in both tables.
 
        This will usually be a query of the form
-       `DELETE FROM target WHERE (key_columns...) NOT IN (SELECT key_columns... FROM source)`.
+       `DELETE FROM target WHERE (key_columns...) NOT EXISTS (SELECT 1 FROM source WHERE source.key_columns = target.key_columns)`.
     Delete_Unmatched_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
 
     ## PRIVATE
@@ -102,5 +102,5 @@ type Query
        They key columns must be present under the same name in both tables.
 
        This will usually be a query of the form
-       `DELETE FROM target WHERE (key_columns...) IN (SELECT key_columns... FROM source)`.
+       `DELETE FROM target WHERE (key_columns...) EXISTS (SELECT 1 FROM source WHERE source.key_columns = target.key_columns)`.
     Delete_Matching_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
