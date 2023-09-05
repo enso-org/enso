@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.bigInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -12,20 +12,21 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "%", description = "Big integer modulo division.")
-public abstract class ModNode extends Node {
+@BuiltinMethod(type = "Integer", name = "div", description = "Division of numbers.")
+public abstract class DivNode extends Node {
+
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(EnsoBigInteger self, Object that);
+  abstract Object execute(Object self, Object that);
 
-  static ModNode build() {
-    return ModNodeGen.create();
+  static DivNode build() {
+    return DivNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger self, long that) {
+  Object doLong(long self, long that) {
     try {
-      return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that));
+      return self / that;
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
           EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
@@ -33,22 +34,31 @@ public abstract class ModNode extends Node {
   }
 
   @Specialization
-  double doDouble(EnsoBigInteger self, double that) {
-    // No need to trap, as floating-point modulo returns NaN for division by zero instead of
-    // throwing.
-    return BigIntegerOps.toDouble(self.getValue()) % that;
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    // No need to trap, as 0 is never represented as an EnsoBigInteger.
+    return 0L;
+  }
+
+  @Specialization
+  Object doLong(EnsoBigInteger self, long that) {
+    try {
+      return toEnsoNumberNode.execute(BigIntegerOps.divide(self.getValue(), that));
+    } catch (ArithmeticException e) {
+      return DataflowError.withoutTrace(
+          EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
+    }
   }
 
   @Specialization
   Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
-    return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that.getValue()));
+    return toEnsoNumberNode.execute(BigIntegerOps.divide(self.getValue(), that.getValue()));
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger self, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var number = builtins.number().getNumber();
-    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
+    var integer = builtins.number().getInteger();
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "self"), this);
   }
 }

@@ -16,9 +16,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class AddNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(Object self, Object that);
+  public abstract Object execute(Object self, Object that);
 
-  static AddNode build() {
+  public static AddNode build() {
     return AddNodeGen.create();
   }
 

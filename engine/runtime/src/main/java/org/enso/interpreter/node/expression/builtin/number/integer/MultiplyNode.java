@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.bigInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,14 +11,34 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "*", description = "Big integer multiplication.")
+@BuiltinMethod(type = "Integer", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  public abstract Object execute(EnsoBigInteger self, Object that);
+  abstract Object execute(Object self, Object that);
 
-  public static MultiplyNode build() {
+  static MultiplyNode build() {
     return MultiplyNodeGen.create();
+  }
+
+  @Specialization(rewriteOn = ArithmeticException.class)
+  long doLong(long self, long that) {
+    return Math.multiplyExact(self, that);
+  }
+
+  @Specialization
+  Object doOverflow(long self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.multiply(self, that));
+  }
+
+  @Specialization
+  double doDouble(long self, double that) {
+    return ((double) self) * that;
+  }
+
+  @Specialization
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.multiply(that.getValue(), self));
   }
 
   @Specialization
@@ -37,7 +57,7 @@ public abstract class MultiplyNode extends Node {
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger self, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

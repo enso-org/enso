@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.bigInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,28 +11,38 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "bit_xor", description = "Bitwise exclusive or.")
-public abstract class BitXorNode extends Node {
+@BuiltinMethod(type = "Integer", name = "bit_or", description = "Bitwise or.")
+public abstract class BitOrNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(EnsoBigInteger self, Object that);
+  abstract Object execute(Object self, Object that);
 
-  static BitXorNode build() {
-    return BitXorNodeGen.create();
+  static BitOrNode build() {
+    return BitOrNodeGen.create();
+  }
+
+  @Specialization
+  long doLong(long self, long that) {
+    return self | that;
+  }
+
+  @Specialization
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(self, that.getValue()));
   }
 
   @Specialization
   Object doLong(EnsoBigInteger self, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(self.getValue(), that));
+    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(self.getValue(), that));
   }
 
   @Specialization
   Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(self.getValue(), that.getValue()));
+    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(self.getValue(), that.getValue()));
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger self, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

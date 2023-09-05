@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;

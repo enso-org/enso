@@ -1,23 +1,24 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "abs", description = "Absolute value of a number")
+@BuiltinMethod(type = "Integer", name = "abs", description = "Absolute value of a number")
 public abstract class AbsNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  static AbsNode build() {
+  public static AbsNode build() {
     return AbsNodeGen.create();
   }
 
-  abstract Object execute(long self);
+  public abstract Object execute(Object self);
 
   @Specialization(rewriteOn = ArithmeticException.class)
-  long doNormal(long self) {
+  long doLong(long self) {
     if (self < 0) {
       return Math.negateExact(self);
     } else {
@@ -25,8 +26,13 @@ public abstract class AbsNode extends Node {
     }
   }
 
-  @Specialization
-  Object doOverflow(long self) {
+  @Specialization(replaces = "doLong")
+  Object doLongOverflow(long self) {
     return toEnsoNumberNode.execute(BigIntegerOps.abs(self));
+  }
+
+  @Specialization
+  Object doBigInt(EnsoBigInteger self) {
+    return toEnsoNumberNode.execute(BigIntegerOps.abs(self.getValue()));
   }
 }

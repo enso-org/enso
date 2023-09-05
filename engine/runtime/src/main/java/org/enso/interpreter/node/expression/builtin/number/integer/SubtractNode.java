@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,11 +11,11 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "-", description = "Subtraction of numbers.")
+@BuiltinMethod(type = "Integer", name = "-", description = "Subtraction of numbers.")
 public abstract class SubtractNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(long self, Object that);
+  abstract Object execute(Object self, Object that);
 
   static SubtractNode build() {
     return SubtractNodeGen.create();
@@ -41,8 +41,23 @@ public abstract class SubtractNode extends Node {
     return toEnsoNumberNode.execute(BigIntegerOps.subtract(self, that.getValue()));
   }
 
+  @Specialization
+  Object doLong(EnsoBigInteger self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.subtract(self.getValue(), that));
+  }
+
+  @Specialization
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.subtract(self.getValue(), that.getValue()));
+  }
+
+  @Specialization
+  double doDouble(EnsoBigInteger self, double that) {
+    return BigIntegerOps.toDouble(self.getValue()) - that;
+  }
+
   @Fallback
-  Object doOther(long self, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

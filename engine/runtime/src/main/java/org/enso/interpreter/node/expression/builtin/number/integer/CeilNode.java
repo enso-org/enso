@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -7,24 +7,30 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "bit_not", description = "Bitwise negation.")
-public abstract class BitNotNode extends Node {
+@BuiltinMethod(type = "Integer", name = "ceil", description = "Small integer ceiling.")
+public abstract class CeilNode extends Node {
   abstract Object execute(Object self);
 
-  static BitNotNode build() {
-    return BitNotNodeGen.create();
+  public static CeilNode build() {
+    return CeilNodeGen.create();
   }
 
   @Specialization
   long doLong(long self) {
-    return ~self;
+    return self;
+  }
+
+  @Specialization
+  EnsoBigInteger doBigInt(EnsoBigInteger self) {
+    return self;
   }
 
   @Fallback
   Object doOther(Object self) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var integer = builtins.number().getInteger();
-    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "self"), this);
   }
 }

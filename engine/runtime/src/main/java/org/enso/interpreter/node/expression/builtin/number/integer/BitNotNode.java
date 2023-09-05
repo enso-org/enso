@@ -1,6 +1,6 @@
-package org.enso.interpreter.node.expression.builtin.number.bigInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "bit_not", description = "Bitwise negation.")
+@BuiltinMethod(type = "Integer", name = "bit_not", description = "Bitwise negation.")
 public abstract class BitNotNode extends Node {
   abstract Object execute(Object self);
 
@@ -19,7 +19,12 @@ public abstract class BitNotNode extends Node {
   }
 
   @Specialization
-  @CompilerDirectives.TruffleBoundary
+  long doLong(long self) {
+    return ~self;
+  }
+
+  @Specialization
+  @TruffleBoundary
   EnsoBigInteger doBigInteger(EnsoBigInteger self) {
     return new EnsoBigInteger(self.getValue().not());
   }
@@ -28,6 +33,6 @@ public abstract class BitNotNode extends Node {
   Object doOther(Object self) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var integer = builtins.number().getInteger();
-    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "self"), this);
   }
 }

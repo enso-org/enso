@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,24 +11,34 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "bit_and", description = "Bitwise and.")
+@BuiltinMethod(type = "Integer", name = "bit_and", description = "Bitwise and.")
 public abstract class BitAndNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
-  abstract Object execute(Object self, Object that);
+  public abstract Object execute(Object self, Object that);
 
-  static BitAndNode build() {
+  public static BitAndNode build() {
     return BitAndNodeGen.create();
   }
 
   @Specialization
-  long doLong(long self, long that) {
+  long doLongLong(long self, long that) {
     return self & that;
   }
 
   @Specialization
-  Object doBigInteger(long self, EnsoBigInteger that) {
+  Object doLongBigInt(long self, EnsoBigInteger that) {
     return toEnsoNumberNode.execute(BigIntegerOps.bitAnd(self, that.getValue()));
+  }
+
+  @Specialization
+  Object doBigIntLong(EnsoBigInteger self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitAnd(self.getValue(), that));
+  }
+
+  @Specialization
+  Object doBigIntBigInt(EnsoBigInteger self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitAnd(self.getValue(), that.getValue()));
   }
 
   @Fallback
