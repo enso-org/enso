@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public class StringBuilder extends TypedBuilderImpl<String> {
@@ -26,13 +27,16 @@ public class StringBuilder extends TypedBuilderImpl<String> {
 
   @Override
   public void appendNoGrow(Object o) {
-    String str = (String) o;
-    if (!type.fits(str)) {
-      str = type.adapt(str);
-
+    try {
+      String str = (String) o;
+      if (type.fits(str)) {
+        data[currentSize++] = str;
+      } else {
+        throw new ValueTypeMismatchException(type, str);
+      }
+    } catch (ClassCastException e) {
+      throw new ValueTypeMismatchException(type, o);
     }
-
-    data[currentSize++] = str;
   }
 
   @Override

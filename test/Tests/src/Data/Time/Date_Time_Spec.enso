@@ -779,8 +779,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         pending_date_diff_test = if name.contains "Python" then "Loose Zone conversions are on, skipping the test"
 
         Test.specify "should allow computing date_diff" pending=pending_date_diff_test <|
-            t1 = create_new_datetime 2021 11 3 10 15 0
-            t2 = create_new_datetime 2021 12 5 12 30 20
+            t1 = create_new_datetime 2021 11 3 10 15 0 zone=Time_Zone.utc
+            t2 = create_new_datetime 2021 12 5 12 30 20 zone=Time_Zone.utc
 
             t1.date_diff t2 Date_Period.Day . should_equal 32
             t2.date_diff t1 Date_Period.Day . should_equal -32
@@ -795,22 +795,22 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             t1.date_diff t2 Time_Period.Day . should_equal 32
 
             t1.date_diff t2 Time_Period.Hour . should_equal 770
-            t1.date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . should_equal 2
+            t1.date_diff (Date_Time.new 2021 11 3 12 15 0 zone=Time_Zone.utc) Time_Period.Hour . should_equal 2
 
             t1.date_diff t2 Time_Period.Minute . should_equal 46215
-            t1.date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . should_equal 30
+            t1.date_diff (Date_Time.new 2021 11 3 10 45 0 zone=Time_Zone.utc) Time_Period.Minute . should_equal 30
 
             t1.date_diff t2 Time_Period.Second . should_equal 2772920
-            t1.date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . should_equal 30
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 zone=Time_Zone.utc) Time_Period.Second . should_equal 30
 
             t1.date_diff t2 Time_Period.Millisecond . should_equal 2772920000
-            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . should_equal 30123
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 zone=Time_Zone.utc) Time_Period.Millisecond . should_equal 30123
 
             if nanoseconds_loss_in_precision.not then
                 t1.date_diff t2 Time_Period.Microsecond . should_equal 2772920000000
-                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . should_equal 30123456
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 zone=Time_Zone.utc) Time_Period.Microsecond . should_equal 30123456
                 t1.date_diff t2 Time_Period.Nanosecond . should_equal 2772920000000000
-                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_equal 30123456789
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=Time_Zone.utc) Time_Period.Nanosecond . should_equal 30123456789
 
         Test.specify "should allow shifting with date_add" <|
             t1 = Date_Time.new 2021 01 01 12 30 0

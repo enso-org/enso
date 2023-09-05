@@ -1,7 +1,8 @@
 package org.enso.compiler.test.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.DiagnosticStorage
+import org.enso.compiler.core.ir.{Diagnostic, DiagnosticStorage, Empty}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.test.CompilerTest
 
 class DiagnosticStorageTest extends CompilerTest {
@@ -13,8 +14,8 @@ class DiagnosticStorageTest extends CompilerTest {
     * @param name the name to give the internal diagnostic
     * @return a new diagnostic
     */
-  def mkDiagnostic(name: String): IR.Diagnostic = {
-    IR.Warning.Shadowed.FunctionParam(name, IR.Empty(None), None)
+  def mkDiagnostic(name: String): Diagnostic = {
+    warnings.Shadowed.FunctionParam(name, Empty(None), None)
   }
 
   // === The Tests ============================================================
@@ -70,7 +71,7 @@ class DiagnosticStorageTest extends CompilerTest {
       )
 
       diagnostics.mapInPlace {
-        case s: IR.Warning.Shadowed.FunctionParam =>
+        case s: warnings.Shadowed.FunctionParam =>
           s.copy(shadowedName = "aaa")
         case x => x
       }
@@ -79,7 +80,7 @@ class DiagnosticStorageTest extends CompilerTest {
     }
 
     "collecting across the diagnostics to produce a new sequence" in {
-      val err = IR.Error.Syntax(null, IR.Error.Syntax.UnsupportedSyntax("aa"))
+      val err = errors.Syntax(null, errors.Syntax.UnsupportedSyntax("aa"))
 
       val diagnostics = new DiagnosticStorage(
         List(
@@ -90,7 +91,7 @@ class DiagnosticStorageTest extends CompilerTest {
         )
       )
 
-      diagnostics.collect { case e: IR.Error.Syntax =>
+      diagnostics.collect { case e: errors.Syntax =>
         e
       } shouldEqual Seq(err)
     }
@@ -109,7 +110,7 @@ class DiagnosticStorageTest extends CompilerTest {
       )
 
       diagnostics.filter {
-        case s: IR.Warning.Shadowed.FunctionParam =>
+        case s: warnings.Shadowed.FunctionParam =>
           s.shadowedName.contains("a")
         case _ => false
       } shouldEqual result
@@ -127,7 +128,7 @@ class DiagnosticStorageTest extends CompilerTest {
       val result = List(mkDiagnostic("aa"), mkDiagnostic("ba"))
 
       diagnostics.filterInPlace {
-        case s: IR.Warning.Shadowed.FunctionParam =>
+        case s: warnings.Shadowed.FunctionParam =>
           s.shadowedName.contains("a")
         case _ => false
       }
@@ -146,8 +147,8 @@ class DiagnosticStorageTest extends CompilerTest {
 
       diagnostics.foldLeft("")((str, d) =>
         d match {
-          case f: IR.Warning.Shadowed.FunctionParam => str + f.shadowedName
-          case _                                    => str
+          case f: warnings.Shadowed.FunctionParam => str + f.shadowedName
+          case _                                  => str
         }
       ) shouldEqual "abcd"
     }

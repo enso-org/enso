@@ -2,33 +2,32 @@
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
-import TopBar from '@/components/TopBar.vue'
-
-import { useGraphStore, type ContentRange, type ExprId, type NodeId } from '@/stores/graph'
+import { useGraphStore } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { ref } from 'vue'
+import type { ContentRange, ExprId } from '../../shared/yjs-model'
+import { reactive, ref } from 'vue'
 
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 
-const nodeRects = ref(new Map<NodeId, Rect>())
-const exprRects = ref(new Map<ExprId, Rect>())
+const nodeRects = reactive(new Map<ExprId, Rect>())
+const exprRects = reactive(new Map<ExprId, Rect>())
 
-function updateNodeRect(id: NodeId, rect: Rect) {
-  nodeRects.value.set(id, rect)
+function updateNodeRect(id: ExprId, rect: Rect) {
+  nodeRects.set(id, rect)
 }
 
 function updateExprRect(id: ExprId, rect: Rect) {
-  exprRects.value.set(id, rect)
+  exprRects.set(id, rect)
 }
 
 const circlePos = ref(Vec2.Zero())
 
-function onViewportClick() {
+function updateMousePos() {
   const pos = navigator.sceneMousePos
   if (pos != null) {
     circlePos.value = pos
@@ -47,30 +46,31 @@ useWindowEvent('keypress', (e) => {
   switch (e.key) {
     case 'n':
       const n = graphStore.createNode(pos)
+      if (n == null) return
       graphStore.setNodeContent(n, 'hello "world"! 123 + x')
       break
   }
 })
 
-function updateNodeContent(id: NodeId, range: ContentRange, content: string) {
+function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
   graphStore.replaceNodeSubexpression(id, range, content)
 }
 </script>
 
 <template>
-  <div ref="viewportNode" class="viewport" v-on="navigator.events" @click="onViewportClick">
+  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos">
     <svg :viewBox="navigator.viewBox">
-      <circle :cx="circlePos.x" :cy="circlePos.y" r="6" fill="red" />
-      <GraphEdge v-for="edge in graphStore.edges" :edge="edge" :nodeRects="nodeRects" :exprRects="exprRects" />
+      <GraphEdge v-for="edge in graphStore.edges" :key="`${edge.source},${edge.target}`" :edge="edge" :nodeRects="nodeRects" :exprRects="exprRects"
+        :exprNodes="graphStore.exprNodes" />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
-      <div class="circle" :style="{ transform: `translate(${circlePos.x - 5}px, ${circlePos.y - 5}px)` }"></div>
-      <GraphNode v-for="[id, node] in graphStore.nodes" :key="<any>id" :node="node"
-        @updateNodeRect="updateNodeRect(id, $event)" @updateExprRect="updateExprRect"
-        @updateNodeContent="(range, c) => updateNodeContent(id, range, c)" />
+      <GraphNode v-for="[id, node] in graphStore.nodes" :key="id" :node="node" @updateRect="updateNodeRect(id, $event)"
+        @delete="graphStore.deleteNode(id)" @updateExprRect="updateExprRect"
+        @updateContent="(range, c) => updateNodeContent(id, range, c)"
+        @updatePosition="graphStore.setNodePosition(id, $event)" />
     </div>
-    <TopBar :breadcrumbs="['main', 'ad_analytics']" />
     <ComponentBrowser :navigator="navigator" />
+    <TopBar :breadcrumbs="['main', 'ad_analytics']" />
   </div>
 </template>
 

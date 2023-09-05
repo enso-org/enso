@@ -4,6 +4,9 @@ import com.oracle.truffle.api.source.Source
 import java.util.UUID
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -80,7 +83,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           ir.preorder.filter(_.getExternalId == directlyAffectedId)
         val oldIr = literals.head
 
-        def newIR(edit: PendingEdit): Option[IR.Literal] = {
+        def newIR(edit: PendingEdit): Option[Literal] = {
           val value = edit match {
             case pending: PendingEdit.SetExpressionValue => pending.value
             case other: PendingEdit.ApplyEdit            => other.edit.text
@@ -91,16 +94,16 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             compiler
               .generateIRInline(compiler.parse(source.getCharacters()))
               .flatMap(_ match {
-                case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
-                case _              => None
+                case ir: Literal => Some(ir.setLocation(oldIr.location))
+                case _           => None
               })
           }.get
         }
 
         oldIr match {
-          case node: IR.Literal.Number =>
+          case node: Literal.Number =>
             newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
-          case node: IR.Literal.Text =>
+          case node: Literal.Text =>
             newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
           case _ => None
         }
@@ -322,8 +325,8 @@ object ChangesetBuilder {
 
   /** Get the IR name if available. */
   private def getName(ir: IR): Option[String] = ir match {
-    case name: IR.Name => Some(name.name)
-    case _             => None
+    case name: Name => Some(name.name)
+    case _          => None
   }
 
   /** Build an internal representation of the [[IR]].
@@ -511,9 +514,9 @@ object ChangesetBuilder {
     */
   private def getExpressionName(ir: IR, id: IR.Identifier): Option[String] =
     ir.preorder.find(_.getId == id).collect {
-      case name: IR.Name =>
+      case name: Name =>
         name.name
-      case method: IR.Module.Scope.Definition.Method =>
+      case method: definition.Method =>
         method.methodName.name
     }
 

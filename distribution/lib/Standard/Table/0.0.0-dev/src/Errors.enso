@@ -436,7 +436,7 @@ type Invalid_Value_Type
         Invalid_Value_Type.Column expected actual related_column ->
             "Expected type "+expected.to_display_text+", but got a column ["+related_column+"] of type "+actual.to_display_text+"."
         Invalid_Value_Type.Value expected actual value ->
-            "Expected type "+expected.to_display_text+", but got a value "+value.to_text+" of type "+actual.to_display_text+"."
+            "Expected type "+expected.to_display_text+", but got a value "+value.to_display_text+" of type "+actual.to_display_text+"."
         Invalid_Value_Type.Not_Ordered actual ->
             "Type "+actual.to_display_text+" does not support comparisons."
         Invalid_Value_Type.Incomparable type_1 type_2 ->

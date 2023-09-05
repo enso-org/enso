@@ -1268,4 +1268,86 @@ class RuntimeSuggestionUpdatesTest
     context.consumeOut shouldEqual List("Hello World!")
   }
 
+  it should "invalidate modules index on command" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main = IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, code))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val updates1 = context.receiveNIgnoreExpressionUpdates(4)
+    updates1.length shouldEqual 4
+    updates1 should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
+    val indexedModules = updates1.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(moduleName, _, _, _)
+          ) =>
+        moduleName
+    }
+    indexedModules should contain theSameElementsAs Seq(moduleName)
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // clear indexes
+    context.send(Api.Request(requestId, Api.InvalidateModulesIndexRequest()))
+    context.receiveN(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.InvalidateModulesIndexResponse())
+    )
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+    )
+    val updates2 = context.receiveNIgnoreExpressionUpdates(4)
+    updates2.length shouldEqual 4
+    updates2 should contain allOf (
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
+    val indexedModules2 = updates1.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(moduleName, _, _, _)
+          ) =>
+        moduleName
+    }
+    indexedModules2 should contain theSameElementsAs Seq(moduleName)
+    context.consumeOut shouldEqual List("Hello World!")
+  }
 }

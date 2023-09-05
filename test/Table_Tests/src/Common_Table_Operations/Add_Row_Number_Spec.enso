@@ -1,13 +1,14 @@
 from Standard.Base import all
 
+import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_In_Memory_Table
+
 from Standard.Table import Sort_Column
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
-
-import Standard.Database.Extensions.Upload_Database_Table
-import Standard.Database.Extensions.Upload_In_Memory_Table
 
 import project.Database.Helpers.Name_Generator
 from project.Common_Table_Operations.Util import run_default_backend
@@ -93,6 +94,15 @@ spec setup =
             t2.at "X" . to_vector . should_equal [4, 3, 2, 1]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40]
             t2.at "Row" . to_vector . should_equal [1, 2, 3, 4]
+
+        Test.specify "Should work correctly after aggregation" <|
+            t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
+            t1 = t0.aggregate [Group_By "X", Sum "Y"]
+
+            t2 = t1.order_by "X" . add_row_number
+            t2.at "X" . to_vector . should_equal ['a', 'b', 'c']
+            t2.at "Sum Y" . to_vector . should_equal [5.0, 2.0, 8.0]
+            t2.at "Row" . to_vector . should_equal [1, 2, 3]
 
     if setup.is_database.not then Test.group prefix+"Table.add_row_number (in-memory specific)" <|
         Test.specify "should add a row numbering column" <|

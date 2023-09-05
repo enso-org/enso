@@ -2,8 +2,8 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Pattern, Warning}
+import org.enso.compiler.core.ir.{Expression, Name, Pattern}
+import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -26,14 +26,14 @@ class ShadowedPatternFieldsTest extends CompilerTest {
     *
     * @param ir the expression to lint
     */
-  implicit class LintExxpression(ir: IR.Expression) {
+  implicit class LintExxpression(ir: Expression) {
 
     /** Lints [[ir]] for shadowed pattern variables.
       *
       * @param inlineContext the context in which linting is taking place
       * @return [[ir]], with shadowed pattern variables linted
       */
-    def lint(implicit inlineContext: InlineContext): IR.Expression = {
+    def lint(implicit inlineContext: InlineContext): Expression = {
       ShadowedPatternFields.runExpression(ir, inlineContext)
     }
   }
@@ -56,7 +56,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
         |case f of
         |    Foo a b a -> a + a
         |""".stripMargin.preprocessExpression.get.lint
-        .asInstanceOf[IR.Case.Expr]
+        .asInstanceOf[Case.Expr]
 
     val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
 
@@ -65,20 +65,20 @@ class ShadowedPatternFieldsTest extends CompilerTest {
 
       pattern.fields.head
         .asInstanceOf[Pattern.Name]
-        .name shouldBe an[IR.Name.Blank]
+        .name shouldBe an[Name.Blank]
       pattern
         .fields(1)
         .asInstanceOf[Pattern.Name]
-        .name shouldBe an[IR.Name.Literal]
+        .name shouldBe an[Name.Literal]
     }
 
     "attach a shadowing warning to each shadowed field" in {
       atLeast(1, pattern.fields.head.diagnostics.toList) shouldBe a[
-        Warning.Shadowed.PatternBinding
+        warnings.Shadowed.PatternBinding
       ]
 
       val warning = pattern.fields.head.diagnostics.collect {
-        case w: Warning.Shadowed.PatternBinding => w
+        case w: warnings.Shadowed.PatternBinding => w
       }.head
 
       warning.shadowedName shouldEqual "a"
