@@ -75,7 +75,7 @@ type Postgres_Dialect
             Query.Truncate_Table name ->
                 wrapped_name = self.internal_generator_dialect.wrap_identifier name
                 # ONLY is used to avoid truncating other tables that inherit from this table, which is the default behaviour on Postgres.
-                Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name
+                (Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name) . build
             _ ->
                 # Rely on the base generator for most queries.
                 Base_Generator.generate_query self.internal_generator_dialect query . build
