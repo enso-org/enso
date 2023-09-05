@@ -5,8 +5,8 @@ import ProjectTitle from '@/components/ProjectTitle.vue'
 const props = defineProps<{ title: string, breadcrumbs: string[], modes: string[], mode: string }>()
 const emit = defineEmits<{
   execute: []
-  previous: []
-  next: []
+  back: []
+  forward: []
   breadcrumbClick: [index: number], 'update:mode': [mode: string]
 }>()
 </script>
@@ -15,7 +15,7 @@ const emit = defineEmits<{
   <div class="TopBar">
     <ProjectTitle :title="title" :modes="modes" :mode="mode" @update:mode="emit('update:mode', $event)"
       @execute="emit('execute')" />
-    <NavBar @previous="emit('previous')" @next="emit('next')" :breadcrumbs="breadcrumbs"
+    <NavBar @back="emit('back')" @forward="emit('forward')" :breadcrumbs="breadcrumbs"
       @breadcrumb-click="emit('breadcrumbClick', $event)" />
   </div>
 </template>

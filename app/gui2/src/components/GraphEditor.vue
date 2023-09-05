@@ -84,9 +84,9 @@ function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
     <ComponentBrowser :navigator="navigator" />
     <TopBar :title="title" :modes="EXECUTION_MODES" v-model:mode="mode" :breadcrumbs="['main', 'ad_analytics']"
       @breadcrumb-click="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @execute="console.log('execute button clicked.')"
-      @previous="console.log('breadcrumbs \'previous\' button clicked.')"
-      @next="console.log('breadcrumbs \'next\' button clicked.')" />
+      @back="console.log('breadcrumbs \'back\' button clicked.')"
+      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      @execute="console.log('\'execute\' button clicked.')" />
   </div>
 </template>
 

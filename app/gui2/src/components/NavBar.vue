@@ -6,15 +6,15 @@ import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 
 const props = defineProps<{ breadcrumbs: string[] }>()
-const emit = defineEmits<{ previous: [], next: [], breadcrumbClick: [index: number] }>()
+const emit = defineEmits<{ back: [], forward: [], breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
   <div class="NavBar">
     <img :src="GraphEditorIcon" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
-      <img :src="ArrowLeftIcon" draggable="false" class="icon button" @click="emit('previous')" />
-      <img :src="ArrowRightIcon" draggable="false" class="icon button" @click="emit('next')" />
+      <img :src="ArrowLeftIcon" draggable="false" class="icon button" @click="emit('back')" />
+      <img :src="ArrowRightIcon" draggable="false" class="icon button" @click="emit('forward')" />
     </div>
     <NavBreadcrumbs :breadcrumbs="breadcrumbs" @click="emit('breadcrumbClick', $event)" />
   </div>
