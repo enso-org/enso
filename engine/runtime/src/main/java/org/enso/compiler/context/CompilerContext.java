@@ -10,10 +10,13 @@ import java.util.logging.Level;
 import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.Passes;
+import org.enso.compiler.SerializationManager;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.QualifiedName;
@@ -21,6 +24,9 @@ import org.enso.polyglot.CompilationStage;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
+ * It is implemented by {@code TruffleCompilerContext}. This adds an abstraction between {@link
+ * Compiler} and the information it needs from the runtime. The ultimate state is to compile the
+ * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
 public interface CompilerContext {
   boolean isIrCachingDisabled();
@@ -54,12 +60,24 @@ public interface CompilerContext {
 
   void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
 
-  void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, IR.Module ir);
+  void truffleRunCodegen(
+      Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir);
 
   ExpressionNode truffleRunInline(
-      Source source, InlineContext scope, CompilerConfig config, IR.Expression ir);
+      Source source, LocalScope localScope, Module module, CompilerConfig config, Expression ir);
 
   // module related
+
+  void runStubsGenerator(Module module);
+
+  boolean typeContainsValues(String name);
+
+  void initializeBuiltinsIr(
+      boolean irCachingEnabled,
+      SerializationManager serializationManager,
+      FreshNameSupply freshNameSupply,
+      Passes passes);
+
   QualifiedName getModuleName(Module module);
 
   CharSequence getCharacters(Module module) throws IOException;
@@ -74,7 +92,7 @@ public interface CompilerContext {
 
   boolean hasCrossModuleLinks(Module module);
 
-  IR.Module getIr(Module module);
+  org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
 
@@ -83,7 +101,7 @@ public interface CompilerContext {
   <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
 
   public static interface Updater {
-    void ir(IR.Module ir);
+    void ir(org.enso.compiler.core.ir.Module ir);
 
     void compilationStage(CompilationStage stage);
 

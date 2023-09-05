@@ -115,7 +115,7 @@ object VersionDescription {
            |  "ref": "${Info.ref}",
            |  "dirty": ${Info.isDirty},
            |  "commit": "${Info.commit}",
-           |  $runtimeDescription$parameters
+           |$runtimeDescription$parameters
            |}""".stripMargin
       }
     }

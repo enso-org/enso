@@ -18,7 +18,10 @@ export enum AssetListEventType {
     newProject = 'new-project',
     uploadFiles = 'upload-files',
     newSecret = 'new-secret',
+    closeFolder = 'close-folder',
+    willDelete = 'will-delete',
     delete = 'delete',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset list events. */
@@ -32,7 +35,10 @@ interface AssetListEvents {
     newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
     newSecret: AssetListNewSecretEvent
+    closeFolder: AssetListCloseFolderEvent
+    willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
+    removeSelf: AssetListRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
@@ -76,10 +82,26 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
     value: string
 }
 
+/** A signal to close (collapse) a folder. */
+interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
+    id: backend.DirectoryId
+    key: backend.DirectoryId
+}
+
+/** A signal that a file will be deleted. */
+interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
+    key: backend.AssetId
+}
+
 /** A signal that a file has been deleted. This must not be called before the request is
  * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
     key: backend.AssetId
+}
+
+/** A signal for a file to remove itself from the asset list, without being deleted. */
+interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {
+    id: backend.AssetId
 }
 
 /** Every possible type of asset list event. */

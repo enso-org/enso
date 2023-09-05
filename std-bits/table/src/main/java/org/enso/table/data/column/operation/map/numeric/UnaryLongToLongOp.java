@@ -32,6 +32,7 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
       context.safepoint();
     }
 
-    return new LongStorage(newVals, newVals.length, newMissing);
+    // TODO is inheriting type ok? it may not be enough!
+    return new LongStorage(newVals, newVals.length, newMissing, storage.getType());
   }
 }

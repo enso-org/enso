@@ -10,6 +10,8 @@ import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.Runtime.Source_Location.Source_Location
 
+## PRIVATE
+   Utilities for working with Polyglot objects.
 @Builtin_Type
 type Polyglot
     ## PRIVATE

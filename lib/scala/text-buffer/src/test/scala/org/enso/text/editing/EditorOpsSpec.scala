@@ -42,7 +42,7 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result mustBe Left(
       InvalidPosition(
         Position(5, 4),
-        "text edit start line (5) outside of buffer's line count (4)"
+        "text edit start line (5) outside of buffer's line count (4, last line '    result`)"
       )
     )
   }

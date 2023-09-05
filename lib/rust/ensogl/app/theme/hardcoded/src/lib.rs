@@ -215,9 +215,18 @@ define_themes! { [light:0, dark:1]
                 }
             }
             breadcrumbs {
+              entry {
+                    text {
+                        selected_color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                        greyed_out_color = Lcha(0.49, 0.0, 0.75, 0.6), Lcha(0.49, 0.0, 0.75, 0.6);
+                    }
+                }
+                separator {
+                            color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                }
+                background = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
                 full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-                selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
                 deselected  {
                     left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
@@ -241,9 +250,20 @@ define_themes! { [light:0, dark:1]
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                 corner_radius = 20.0, 20.0;
                 breadcrumbs {
+                    background = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
                     padding_y = 8.0, 8.0;
                     padding_x = 10.0, 10.0;
                     height = 40.0, 40.0;
+                    entry {
+                        text {
+                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
+                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
+
+                        }
+                    }
+                    separator {
+                                color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
+                    }
                 }
             }
             component_list_panel {
@@ -358,9 +378,8 @@ define_themes! { [light:0, dark:1]
                     breadcrumbs {
                         crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
-                        height = 44.0, 44.0;
+                        height = 28.0, 28.0;
                         background_padding_x = 15.0, 15.0;
-                        background_color = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
                         background_height = 28.0, 28.0;
                         background_y_offset = 2.0, 2.0;
                         separator {
@@ -390,9 +409,7 @@ define_themes! { [light:0, dark:1]
                             text_size = 11.5, 11.5;
                             icon_x_offset = 2.0, 2.0;
                             icon_y_offset = 6.0, 6.0;
-                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
                         }
                     }
                 }

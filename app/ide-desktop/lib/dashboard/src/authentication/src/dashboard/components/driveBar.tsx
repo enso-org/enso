@@ -69,27 +69,26 @@ export default function DriveBar(props: DriveBarProps) {
                 </button>
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
-                        <>
-                            <Button
-                                active
-                                image={AddFolderIcon}
-                                disabledOpacityClassName="opacity-20"
-                                onClick={() => {
-                                    unsetModal()
-                                    doCreateDirectory()
-                                }}
-                            />
-                            <Button
-                                active
-                                disabled
-                                image={AddConnectorIcon}
-                                error="Not implemented yet."
-                                disabledOpacityClassName="opacity-20"
-                                onClick={() => {
-                                    // No backend support yet.
-                                }}
-                            />
-                        </>
+                        <Button
+                            active
+                            image={AddFolderIcon}
+                            disabledOpacityClassName="opacity-20"
+                            onClick={() => {
+                                unsetModal()
+                                doCreateDirectory()
+                            }}
+                        />
+                    )}
+                    {backend.type !== backendModule.BackendType.local && (
+                        <Button
+                            disabled
+                            image={AddConnectorIcon}
+                            error="Not implemented yet."
+                            disabledOpacityClassName="opacity-20"
+                            onClick={() => {
+                                // No backend support yet.
+                            }}
+                        />
                     )}
                     <input
                         ref={uploadFilesRef}
@@ -120,7 +119,7 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active
+                        active={backend.type === backendModule.BackendType.local}
                         disabled={backend.type !== backendModule.BackendType.local}
                         image={DataDownloadIcon}
                         error="Not implemented yet."

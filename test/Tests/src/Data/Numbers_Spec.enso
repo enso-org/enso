@@ -3,12 +3,13 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Test.Shared.Round_Spec
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+import project.Data.Round_Spec
 
 polyglot java import java.math.BigInteger
 

@@ -37,8 +37,8 @@ pub mod separator {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
         alignment = center;
-        (style: Style) {
-            let color = style.get_color(theme::separator::color);
+        (style: Style, color: Vector4) {
+            let color: Var<color::Rgba> = color.into();
             let width = style.get_number(theme::separator::width);
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
@@ -115,9 +115,7 @@ pub struct Style {
     pub text_size:                f32,
     pub icon_x_offset:            f32,
     pub icon_y_offset:            f32,
-    pub selected_color:           color::Rgba,
     pub highlight_corners_radius: f32,
-    pub greyed_out_color:         color::Rgba,
 }
 
 
@@ -272,7 +270,7 @@ impl EntryData {
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
         self.icon.set_x(-size.x / 2.0 - icon_x_offset);
-        self.icon.set_y(-ICON_WIDTH - icon_y_offset);
+        self.icon.set_y(-ICON_WIDTH / 2.0 - icon_y_offset);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
@@ -341,6 +339,9 @@ pub struct Params {
     pub style:            Style,
     /// The first greyed out column. All columns to the right will also be greyed out.
     pub greyed_out_start: Option<Col>,
+    pub selected_color:   color::Rgba,
+    pub greyed_out_color: color::Rgba,
+    pub separator_color:  color::Rgba,
 }
 
 
@@ -377,12 +378,13 @@ impl ensogl_grid_view::Entry for Entry {
             hover_color <- input.set_params.map(|p| p.style.hover_color).cloned_into().on_change();
             font <- input.set_params.map(|p| p.style.font_name.clone_ref()).on_change();
             text_padding <- input.set_params.map(|p| p.style.text_padding_left).on_change();
-            text_color <- input.set_params.map(|p| p.style.selected_color).cloned_into().on_change();
+            text_color <- input.set_params.map(|p| p.selected_color).cloned_into().on_change();
             text_y_offset <- input.set_params.map(|p| p.style.text_y_offset).on_change();
             text_size <- input.set_params.map(|p| p.style.text_size).on_change();
             icon_x_offset <- input.set_params.map(|p| p.style.icon_x_offset).on_change();
             icon_y_offset <- input.set_params.map(|p| p.style.icon_y_offset).on_change();
-            greyed_out_color <- input.set_params.map(|p| p.style.greyed_out_color).cloned_into().on_change();
+            greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).cloned_into().on_change();
+            separator_color <- input.set_params.map(|p| p.separator_color).cloned_into().on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.style.highlight_corners_radius).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             transparent_color <- init.constant(color::Lcha::transparent());
@@ -414,6 +416,7 @@ impl ensogl_grid_view::Entry for Entry {
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
+            eval separator_color((c: &color::Rgba) data.separator.color.set(Vector4::from(c)));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
             out.disabled <+ is_disabled;
             out.contour <+ contour;
@@ -426,7 +429,6 @@ impl ensogl_grid_view::Entry for Entry {
             // For text entries, we also listen for [`Text::width`] changes.
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
-            out.override_column_width <+ entry_width;
 
 
             // === Layout ===
@@ -451,7 +453,7 @@ impl ensogl_grid_view::Entry for Entry {
 
             // We need to adjust the width of the grid view column depending on the width of
             // the entry.
-            out.override_column_width <+ override_column_width;
+            out.override_column_width <+ any(entry_width,override_column_width);
         }
         init.emit(());
         Self { frp, data }

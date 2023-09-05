@@ -2,7 +2,15 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
+import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -25,26 +33,26 @@ class DemandAnalysisTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(List(precursorPasses), passConfig)
 
-  /** Adds an extension method to run alias analysis on an [[IR.Module]].
+  /** Adds an extension method to run alias analysis on an [[Module]].
     *
     * @param ir the module to run alias analysis on
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Runs demand analysis on a module.
       *
       * @return [[ir]], transformed by the demand analysis pass
       */
-    def analyse: IR.Module = {
+    def analyse: Module = {
       DemandAnalysis.runModule(ir, buildModuleContext())
     }
   }
 
-  /** Adds an extension method to run alias analysis on an [[IR.Expression]].
+  /** Adds an extension method to run alias analysis on an [[Expression]].
     *
     * @param ir the expression to run alias analysis on
     */
-  implicit class AnalyseExpression(ir: IR.Expression) {
+  implicit class AnalyseExpression(ir: Expression) {
 
     /** Runs demand analysis on an expression.
       *
@@ -52,7 +60,7 @@ class DemandAnalysisTest extends CompilerTest {
       *                      expression
       * @return [[ir]], transformed by the demand analysis pass
       */
-    def analyse(implicit inlineContext: InlineContext): IR.Expression = {
+    def analyse(implicit inlineContext: InlineContext): Expression = {
       DemandAnalysis.runExpression(ir, inlineContext)
     }
   }
@@ -88,16 +96,16 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val boundX = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .expressions
         .head
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
 
-      boundX shouldBe an[IR.Application.Force]
-      boundX.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
+      boundX shouldBe an[Application.Force]
+      boundX.asInstanceOf[Application.Force].target shouldBe an[Name]
     }
 
     "work correctly when deeply nested" in {
@@ -109,11 +117,11 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val xUsage = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
 
-      xUsage shouldBe an[IR.Application.Force]
-      xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
+      xUsage shouldBe an[Application.Force]
+      xUsage.asInstanceOf[Application.Force].target shouldBe an[Name]
     }
 
     "not be forced when passed to functions" in {
@@ -125,18 +133,18 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
       app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .asInstanceOf[CallArgument.Specified]
+        .value shouldBe an[Name]
 
       app
         .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .asInstanceOf[CallArgument.Specified]
+        .value shouldBe an[Name]
     }
 
     "be forced when used in vector literals" in {
@@ -148,13 +156,13 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val vec = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Literal.Sequence]
+        .asInstanceOf[Application.Sequence]
 
-      vec.items(0) shouldBe an[IR.Application.Force]
-      vec.items(1) shouldBe an[IR.Application.Force]
-      vec.items(2) shouldBe an[IR.Application.Force]
+      vec.items(0) shouldBe an[Application.Force]
+      vec.items(1) shouldBe an[Application.Force]
+      vec.items(2) shouldBe an[Application.Force]
 
     }
   }
@@ -173,16 +181,16 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val irBody = ir
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       irBody
         .expressions(1)
-        .asInstanceOf[IR.Expression.Binding]
-        .expression shouldBe an[IR.Application.Force]
+        .asInstanceOf[Expression.Binding]
+        .expression shouldBe an[Application.Force]
 
-      irBody.returnValue shouldBe an[IR.Application.Force]
+      irBody.returnValue shouldBe an[Application.Force]
     }
 
     "not be forced when passed to a function" in {
@@ -196,15 +204,15 @@ class DemandAnalysisTest extends CompilerTest {
           |    bar blck
           |""".stripMargin.preprocessExpression.get.analyse
 
-      ir.asInstanceOf[IR.Function.Lambda]
+      ir.asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .returnValue
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
         .arguments
         .head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
+        .asInstanceOf[CallArgument.Specified]
+        .value shouldBe an[Name]
     }
 
     "force terms in blocks passed directly as arguments" in {
@@ -217,21 +225,21 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
 
       val barFunc = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
       val oprCall = barFunc.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
-      oprCall.function.asInstanceOf[IR.Name].name shouldEqual "<|"
+      oprCall.function.asInstanceOf[Name].name shouldEqual "<|"
       oprCall.arguments.length shouldEqual 2
 
-      val xArg = oprCall.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+      val xArg = oprCall.arguments(1).asInstanceOf[CallArgument.Specified]
 
-      xArg.value shouldBe an[IR.Expression.Block]
+      xArg.value shouldBe an[Expression.Block]
       xArg.value
-        .asInstanceOf[IR.Expression.Block]
-        .returnValue shouldBe an[IR.Application.Force]
+        .asInstanceOf[Expression.Block]
+        .returnValue shouldBe an[Application.Force]
     }
   }
 }
