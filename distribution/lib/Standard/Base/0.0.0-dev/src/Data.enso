@@ -212,7 +212,7 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
         body_publisher = case post_request_body of
             Post_Request_Body.Text text encoding content_type ->
                 builder.header Header.text_plain.name Header.text_plain.value
-                body_publishers.ofString text
+                body_publishers.ofString text encoding.to_java_charset
             Post_Request_Body.Json x ->
                 builder.header Header.application_json.name Header.application_json.value
                 json = x.to_json
