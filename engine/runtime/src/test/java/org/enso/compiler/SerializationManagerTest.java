@@ -23,6 +23,8 @@ import org.junit.Test;
 
 public class SerializationManagerTest {
 
+  private static final long COMPILE_TIMEOUT_SECONDS = 20;
+
   private final PackageManager<TruffleFile> packageManager;
   private final InterpreterContext interpreterContext;
   private final EnsoContext ensoContext;
@@ -71,7 +73,12 @@ public class SerializationManagerTest {
     ensoContext
         .getPackageRepository()
         .registerMainProjectPackage(standardBaseLibrary, standardBasePackage);
-    Object result = ensoContext.getCompiler().compile(false, false).get(20, TimeUnit.SECONDS);
+
+    Object result =
+        ensoContext
+            .getCompiler()
+            .compile(false, false)
+            .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 
     SuggestionsCache.CachedSuggestions cachedSuggestions =
