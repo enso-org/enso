@@ -3,6 +3,9 @@
 import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { isValidNumber } from '@/util/visualizationHelpers'
+
+import Visualization from '@viz/Visualization.vue'
+// FIXME: either move this to @viz, or change to a different impl
 import { registerVisualization } from '@/util/visualizations'
 
 import * as d3 from 'd3'
@@ -43,12 +46,18 @@ registerVisualization(
 // TODO: deduplicate props.width / 40 and props.height / 20
 
 const props = defineProps<{
+  isCircularMenuVisible: boolean
   data: Data
   defaultPointColor: Color // Was previously `theme.get('accent')`
-  width: number
+  // FIXME: should height and width be slot props
   height: number
+  width: number
   xLabel?: string
   yLabel?: string
+}>()
+const emit = defineEmits<{
+  hide: []
+  'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 interface Color {
@@ -197,7 +206,12 @@ function updatePreprocessor() {
     args.push('Nothing')
   }
   args.push(limit.toString())
-  setPreprocessor('Standard.Visualization.Scatter_Plot', 'process_to_json_text', ...args)
+  emit(
+    'update:preprocessor',
+    'Standard.Visualization.Scatter_Plot',
+    'process_to_json_text',
+    ...args,
+  )
 }
 
 onMounted(() => {
@@ -421,7 +435,7 @@ const brush = computed(() =>
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
-    .on('start brush', (event) => {
+    .on('start brush', (event: D3BrushEvent) => {
       isZoomToSelectedVisible.value = true
       brushExtent.value = event.selection
     }),
@@ -680,47 +694,47 @@ const yLabelLeft = computed(() =>
 const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
-const zoomElem = scatter .append('g') .attr('class', 'zoom') .attr('width', boxWidth)
-.attr('height', boxHeight) .style('fill', 'none') .call(zoom) brush
 <template>
-  <div class="Scatterplot visualization" ref="containerNode" :width="width" :height="height">
-    <svg :width="canvasWidth" :height="canvasHeight">
-      <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
-        <defs>
-          <clipPath id="clip">
-            <rect :width="boxWidth" :height="boxHeight" :x="0" :y="0"></rect>
-          </clipPath>
-        </defs>
-        <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-        <g ref="yAxisNode" class="label axis-y" :transform="`translate(0, ${boxHeight})`"></g>
-        <text
-          v-if="xLabel"
-          class="label label-x"
-          text-anchor="end"
-          :x="xLabelLeft"
-          :y="xLabelTop"
-          v-text="xLabel"
-        ></text>
-        <text
-          v-if="yLabel"
-          class="label label-y"
-          text-anchor="end"
-          :x="yLabelLeft"
-          :y="yLabelTop"
-          v-text="yLabel"
-        ></text>
-        <g ref="scatterplotNode" clip-path="url(#clip)"></g>
-        <!-- FIXME: pan -->
-        <g class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-          <g ref="brushNode" class="brush"></g>
+  <Visualization :is-circular-menu-visible="isCircularMenuVisible">
+    <div class="Scatterplot" ref="containerNode">
+      <svg :width="canvasWidth" :height="canvasHeight">
+        <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
+          <defs>
+            <clipPath id="clip">
+              <rect :width="boxWidth" :height="boxHeight" :x="0" :y="0"></rect>
+            </clipPath>
+          </defs>
+          <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+          <g ref="yAxisNode" class="label axis-y" :transform="`translate(0, ${boxHeight})`"></g>
+          <text
+            v-if="xLabel"
+            class="label label-x"
+            text-anchor="end"
+            :x="xLabelLeft"
+            :y="xLabelTop"
+            v-text="xLabel"
+          ></text>
+          <text
+            v-if="yLabel"
+            class="label label-y"
+            text-anchor="end"
+            :x="yLabelLeft"
+            :y="yLabelTop"
+            v-text="yLabel"
+          ></text>
+          <g ref="scatterplotNode" clip-path="url(#clip)"></g>
+          <!-- FIXME: pan -->
+          <g class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+            <g ref="brushNode" class="brush"></g>
+          </g>
         </g>
-      </g>
-    </svg>
-    <button class="fit-all-button" @click="unzoom">Fit all</button>
-    <button v-if="isZoomToSelectedVisible" class="zoom-to-selected-button" @click="zoomIn">
-      Zoom to selected
-    </button>
-  </div>
+      </svg>
+      <button class="fit-all-button" @click="unzoom">Fit all</button>
+      <button v-if="isZoomToSelectedVisible" class="zoom-to-selected-button" @click="zoomIn">
+        Zoom to selected
+      </button>
+    </div>
+  </Visualization>
 </template>
 
 <style scoped>

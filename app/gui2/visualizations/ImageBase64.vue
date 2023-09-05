@@ -3,13 +3,10 @@ import { registerVisualization } from '@/util/visualizations'
 
 import { computed } from 'vue'
 
-registerVisualization('Image', 'Standard.Image.Data.Image.Image')
+registerVisualization('Image (Base64)', 'Standard.Image.Data.Image.Image')
 
-const props = defineProps<{
-  width: number
-  height: number
-  data: Data | string
-}>()
+const props = defineProps<{ isCircularMenuVisible: boolean; data: Data | string }>()
+const emit = defineEmits<{ hide: [] }>()
 
 interface Data {
   mediaType?: string
@@ -24,12 +21,12 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 </script>
 
 <template>
-  <img
-    class="Image"
-    :width="width"
-    :height="height"
-    :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`"
-  />
+  <Visualization :is-circular-menu-visible="isCircularMenuVisible" @hide="emit('hide')">
+    <img
+      class="Image"
+      :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`"
+    />
+  </Visualization>
 </template>
 
 <style scoped></style>

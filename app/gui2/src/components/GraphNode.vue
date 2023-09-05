@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import CircularMenu from '@/components/CircularMenu.vue'
+import NodeSpan from '@/components/NodeSpan.vue'
+import Warnings from '@viz/Warnings.vue'
+
 import type { ContentRange, ExprId, Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
-import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import NodeSpan from '@/components/NodeSpan.vue'
+
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   node: Node
@@ -240,46 +244,81 @@ const isCircularMenuVisible = ref(true)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
-const isVisualizationDropdownVisible = ref(true)
-const isVisualizationFullscreen = ref(false)
 const isVisualizationVisible = ref(true)
-const visualizationType = ref('a')
+const visualizationType = ref('Warnings')
+const visualization = shallowRef<unknown>()
+
+// FIXME: this will not work for user-defined components
+const VISUALIZATION_GETTERS: Record<string, any> = {
+  Warnings: () => import('@viz/Warnings.vue'),
+  Bubble: () => import('@viz/Bubble.vue'),
+  'Image (Base64)': () => import('@viz/ImageBase64.vue'),
+  GeoMap: () => import('@viz/GeoMap.vue'),
+  Scatterplot: () => import('@viz/Scatterplot.vue'),
+}
+const VISUALIZATION_TYPES: Record<string, unknown> = {}
+watchEffect(async (onCleanup) => {
+  let shouldSwitchVisualization = true
+  onCleanup(() => {
+    shouldSwitchVisualization = false
+  })
+  const currentVisualizationType = visualizationType.value
+  const cachedComponent = VISUALIZATION_TYPES[currentVisualizationType]
+  if (cachedComponent != null) {
+    return cachedComponent
+  }
+  const component = (await VISUALIZATION_GETTERS[visualizationType.value]()).default
+  VISUALIZATION_TYPES[currentVisualizationType] = component
+  if (shouldSwitchVisualization) {
+    visualization.value = component
+  }
+})
 </script>
 
 <template>
-  <div class="Node" ref="rootNode" :style="{ transform }">
+  <div class="GraphNode" :style="{ transform }">
     <div class="binding" @click="isVisualizationVisible = !isVisualizationVisible">
       {{ node.binding }}
     </div>
-    <div class="container">
-      <div
-        class="editable"
-        contenteditable
-        ref="editableRoot"
-        @beforeinput="editContent"
-        spellcheck="false"
-      >
-        <NodeSpan :content="node.content" :span="node.rootSpan" @updateExprRect="updateExprRect" />
+    <CircularMenu
+      v-if="isCircularMenuVisible"
+      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
+      v-model:is-docs-visible="isDocsVisible"
+      v-model:is-visualization-visible="isVisualizationVisible"
+    />
+    <component
+      :is="visualization"
+      v-if="isVisualizationVisible"
+      :is-circular-menu-visible="isCircularMenuVisible"
+      :data="['warning 1', 'warning 2!!']"
+    />
+    <div class="node" ref="rootNode">
+      <div class="container">
+        <div
+          class="editable"
+          contenteditable
+          ref="editableRoot"
+          @beforeinput="editContent"
+          spellcheck="false"
+        >
+          <NodeSpan
+            :content="node.content"
+            :span="node.rootSpan"
+            @updateExprRect="updateExprRect"
+          />
+        </div>
       </div>
-      <CircularMenu
-        v-if="isCircularMenuVisible"
-        v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
-        v-model:is-docs-visible="isDocsVisible"
-        v-model:is-visualization-visible="isVisualizationVisible"
-      />
-      <Visualization
-        v-if="isVisualizationVisible"
-        v-model:is-fullscreen="isVisualizationFullscreen"
-        :is-visualization-dropdown-visible="isVisualizationDropdownVisible"
-      >
-      </Visualization>
     </div>
   </div>
 </template>
 
 <style scoped>
-.Node {
+.GraphNode {
   position: absolute;
+}
+
+.node {
+  position: relative;
   top: 0;
   left: 0;
 
@@ -295,7 +334,6 @@ const visualizationType = ref('a')
 
 .binding {
   user-select: none;
-  color: #ccc;
   margin-right: 10px;
   position: absolute;
   right: 100%;
