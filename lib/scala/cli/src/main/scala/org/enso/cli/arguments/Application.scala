@@ -83,6 +83,7 @@ class Application[Config](
         additionalArguments,
         applicationName = commandName
       )
+
     val finalResult = parseResult.flatMap {
       case ((topLevelAction, commandResult), pluginIntercepted) =>
         pluginIntercepted match {
