@@ -42,7 +42,7 @@ public class EqualsComparison<T extends Number, I extends Storage<? super T>> ex
   }
 
   @Override
-  protected boolean onOtherType() {
+  protected boolean onOtherType(Object a, Object b) {
     return false;
   }
 }
