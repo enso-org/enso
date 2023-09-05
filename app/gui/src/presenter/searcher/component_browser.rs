@@ -255,6 +255,7 @@ impl ComponentBrowserSearcher {
             // must be up-to-date.
             action_list_changed <+ model.project.searcher_input_changed.constant(());
 
+            eval_ model.project.request_dump_suggestion_database(model.controller.dump_database_as_json());
             eval_ model.project.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
         }
