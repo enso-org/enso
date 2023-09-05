@@ -5,6 +5,7 @@ import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Write_Extensions
@@ -17,7 +18,8 @@ type Response_Body
 
        Arguments:
        - bytes: The body of the response as binary data.
-    Value bytes
+       - content_type: The content type of the response.
+    Value bytes (content_type:Text|Nothing) uri:URI
 
     ## ALIAS parse as text
        GROUP Conversions
@@ -66,3 +68,6 @@ type Response_Body
     to_file self file =
         self.bytes.write_bytes file
         file
+
+## PRIVATE
+Response_Body.from Response:that = Response_Body.Value that.internal_http_response.body that.content_type that.uri

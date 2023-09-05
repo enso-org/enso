@@ -7,6 +7,7 @@ import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Internal.Auth
 
+polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
@@ -15,8 +16,7 @@ polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## GROUP Standard.Base.Input
-   Gets the list of the S3 bucket names.
+## Gets the list of the S3 bucket names.
 
    Arguments:
    - credentials: AWS credentials. If not provided, the default credentials will
@@ -28,8 +28,7 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
-## GROUP Standard.Base.Input
-   Gets the list of the items inside a bucket.
+## Gets the list of the items inside a bucket.
 
    Arguments:
    - bucket: the name of the bucket.
@@ -38,28 +37,35 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
 @credentials AWS_Credential.default_widget
-list_objects : Text -> Text -> Integer -> AWS_Credential | Nothing -> Vector Text ! S3_Error
-list_objects bucket prefix="" max_count=1000 credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Text ! S3_Error
+list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
+    read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+
+## Reads an S3 bucket returning a pair of vectors, one with common prefixes and
+   one with object keys.
+@credentials AWS_Credential.default_widget
+read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error (Vector Text)
+read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors <|
     client = make_client credentials
 
     per_request = Math.min max_count 1000
-    request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . prefix prefix . build
+    request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . delimiter delimiter . prefix prefix . build
 
-    iterator request count current =
+    iterator request count current prefixes first =
         response = client.listObjectsV2 request
-        objects = response.contents.map o->o.key
 
-        result = if current != [] then current + objects else
-            (response.commonPrefixes.map p->p.prefix) + objects
+        ## Note the AWS API does not limit the count of common prefixes.
+        common_prefixes = if first then response.commonPrefixes.map _.prefix else prefixes
+        result = current + (response.contents.map _.key)
 
-        if response.isTruncated.not then result else
+        if response.isTruncated.not then Pair.new common_prefixes result else
             new_count = count + result.length
-            if new_count >= max_count then (Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") result) else
+            if new_count >= max_count then (Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") (Pair.new common_prefixes result)) else
                 new_items = Math.min (Math.max 0 max_count-new_count) 1000
                 new_request = request.toBuilder.continuationToken response.nextContinuationToken . maxKeys new_items . build
-                @Tail_Call iterator new_request new_count result
+                @Tail_Call iterator new_request new_count result common_prefixes False
 
-    iterator request 0 []
+    iterator request 0 [] [] True
 
 ## Gets the metadata of a bucket or object
 
@@ -81,8 +87,21 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_er
             Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key)) <|
                 client.headObject request
 
-    pairs = response.sdkFields.map f-> [f.memberName, f.get Nothing]
+    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Map.from_vector pairs
+
+get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+    client = make_client credentials
+    request = GetObjectRequest.builder.bucket bucket . key key . build
+    Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key)) <|
+        response = client.getObject request
+        inner_response = response.response
+        mime_type = inner_response.contentType
+        s3_uri = "s3://" + bucket + "/" + key
+        format = Auto_Detect.get_web_parser mime_type s3_uri
+        response_body = Response_Body.Value
+        if format.is_nothing then _ else _
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.

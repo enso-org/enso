@@ -13,6 +13,7 @@ import project.Metadata.Widget
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
+import project.Network.URI.URI
 import project.Nothing.Nothing
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
@@ -30,6 +31,13 @@ type Response
        - internal_http_response: The internal representation of the HTTP
          response.
     Value internal_http_response
+
+    ## GROUP Metadata
+       Get the uri for the response.
+    uri : URI
+    uri self =
+        uri_string = self.internal_http_response.uri.toString
+        URI.parse uri_string
 
     ## GROUP Metadata
        Get the response headers.
@@ -62,7 +70,7 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = Response_Body.Value (Vector.from_polyglot_array self.internal_http_response.body)
+    body self = Response_Body.from self
 
     ## Get the response status code.
 

@@ -1,16 +1,29 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Syntax_Error
 
 import project.AWS_Credential.AWS_Credential
 import project.S3.S3
 
-type S3_Folder
+type S3_File
+    ## PUBLIC
+    new : Text -> AWS_Credential | Nothing -> S3_File
+    new uri credentials =
+        output = S3_File.Value uri credentials
+        output.if_valid_uri _->_->output
+
     ## PRIVATE
     Value uri:Text auth:AWS_Credential
 
+    ## PRIVATE
+    if_valid_uri : (Text -> Text -> Any) -> Any ! Syntax_Error
+    if_valid_uri self action =
+        parts = S3.parse_uri self.uri
+        if parts.is_nothing then Error.throw (Syntax_Error.Error "Invalid S3 URI.") else
+            action parts.first parts.second
+
     ## Checks if the folder or file exists
     exists : Boolean
-    exists self =
-        parts = S3.parse_uri self.uri
-        if parts.is_nothing then False else
-            if parts.second == "" then S3.head parts.first . is_error . not else
-                Error.throw "Not implemented"
+    exists self = self.if_valid_uri bucket->prefix->
+        if prefix == "" then S3.head bucket "" self.credentials . is_error . not else
+            pair = S3.read_bucket bucket prefix self.credentials max_count=1
+            pair.second.length > 0
