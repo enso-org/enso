@@ -1,15 +1,6 @@
-export interface Visualizations {}
+// FIXME: change to use store
+export const VISUALIZATION_TYPES = new Map<string, string>()
 
-export type VisualizationType = keyof Visualizations
-
-export const VISUALIZATION_TYPES = new Map<
-  VisualizationType,
-  Visualizations[keyof Visualizations]
->()
-
-export function registerVizualization(
-  label: keyof Visualizations,
-  inputType: Visualizations[keyof Visualizations],
-) {
+export function registerVisualization(label: string, inputType: string) {
   VISUALIZATION_TYPES.set(label, inputType)
 }

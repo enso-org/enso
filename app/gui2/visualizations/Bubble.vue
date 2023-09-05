@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { registerVizualization } from '@/util/visualizations'
+import { registerVisualization } from '@/util/visualizations'
 
 import { computed } from 'vue'
 
-declare module '@/util/visualizations' {
-  export interface Visualizations {
-    Bubble: 'Any'
-  }
-}
-
-registerVizualization('Bubble', 'Any')
+registerVisualization('Bubble', 'Any')
 
 const props = defineProps<{
   width: number
@@ -20,7 +14,7 @@ const props = defineProps<{
 type Data = [x: number, y: number, r: number][]
 
 const data = computed<Data>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data
+  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
 )
 </script>
 
@@ -30,10 +24,4 @@ const data = computed<Data>(() =>
   </svg>
 </template>
 
-<style>
-.Image {
-  max-height: 100%;
-  max-width: 100%;
-  border-radius: 14px;
-}
-</style>
+<style scoped></style>

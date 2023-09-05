@@ -1,20 +1,17 @@
 <script setup lang="ts">
 /** ScatterPlot Visualization. */
-import { useDocumentEvent, useDocumentEventConditional, } from '@/util/events'
+import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { isValidNumber } from '@/util/visualizationHelpers'
-import { registerVizualization } from '@/util/visualizations'
+import { registerVisualization } from '@/util/visualizations'
 
 import * as d3 from 'd3'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 
-declare module '@/util/visualizations' {
-  export interface Visualizations {
-    Scatterplot: 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
-  }
-}
-
-registerVizualization('Scatterplot', 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector')
+registerVisualization(
+  'Scatterplot',
+  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector',
+)
 
 // TODO refactor this to avoid loading scripts on startup. See issue #985.
 /**
@@ -93,7 +90,11 @@ const SCALE_TO_D3_SCALE: Record<Scale, d3.AxisScale<number>> = {
   [Scale.logarithmic]: d3.scaleLog(),
 }
 
-interface Focus { x: number, y: number, zoom: number }
+interface Focus {
+  x: number
+  y: number
+  zoom: number
+}
 
 interface Point {
   x: number
@@ -130,23 +131,19 @@ interface D3ZoomStartEvent extends D3Event {
   sourceEvent: WheelEvent
 }
 
-type Extent = [
-  topLeft: [left: number, top: number],
-  bottomRight: [right: number, bottom: number],
-]
+type Extent = [topLeft: [left: number, top: number], bottomRight: [right: number, bottom: number]]
 
 interface D3BrushEvent extends D3Event {
   selection: Extent
 }
 
 const data = computed<Data>(() => {
-  let rawData: Partial<Data> | number[] = typeof props.data === 'string'
-    ? JSON.parse(props.data)
-    : props.data
+  let rawData: Partial<Data> | number[] =
+    typeof props.data === 'string' ? JSON.parse(props.data) : props.data
   const unfilteredData = Array.isArray(rawData)
     ? rawData.map((y, index) => ({ x: index, y }))
     : rawData.data ?? []
-  const data = unfilteredData.filter(point => isValidNumber(point.x) && isValidNumber(point.y))
+  const data = unfilteredData.filter((point) => isValidNumber(point.x) && isValidNumber(point.y))
   if (Array.isArray(rawData)) {
     rawData = {}
   }
@@ -168,7 +165,10 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 const bounds = ref<[number, number, number, number] | null>(null)
-const brushExtent = ref<Extent>([[0, 0], [0, 0]])
+const brushExtent = ref<Extent>([
+  [0, 0],
+  [0, 0],
+])
 const limit = ref(DEFAULT_LIMIT)
 const isZoomToSelectedVisible = ref(false)
 
@@ -217,12 +217,12 @@ const extremesAndDeltas = computed(() => {
   let yMin = -Infinity
   let yMax = Infinity
   {
-    const xs = data.value.data.map(point => point.x)
+    const xs = data.value.data.map((point) => point.x)
     xMin = Math.min(...xs)
     xMax = Math.max(...xs)
   }
   {
-    const ys = data.value.data.map(point => point.y)
+    const ys = data.value.data.map((point) => point.y)
     yMin = Math.min(...ys)
     yMax = Math.max(...ys)
   }
@@ -272,7 +272,7 @@ function addPanAndZoom() {
         return false
       }
     })
-    .wheelDelta(event => {
+    .wheelDelta((event) => {
       const minDelta = 0.002
       const medDelta = 0.05
       const maxDelta = 1
@@ -281,11 +281,15 @@ function addPanAndZoom() {
       return -event.deltaY * wheelSpeedMultiplier
     })
     .scaleExtent(extent)
-    .extent([[0, 0], [boxWidth.value, boxHeight.value]])
+    .extent([
+      [0, 0],
+      [boxWidth.value, boxHeight.value],
+    ])
     .on('zoom', zoomed)
     .on('start', startZoom)
 
-  const zoomElem = d3.select(scatterplotNode.value!)
+  const zoomElem = d3
+    .select(scatterplotNode.value!)
     .append('g')
     .attr('class', 'zoom')
     .attr('width', boxWidth.value)
@@ -330,39 +334,39 @@ function addPanAndZoom() {
       } else {
         const distanceScale = d3.zoomIdentity.translate(
           -event.sourceEvent.deltaX,
-          -event.sourceEvent.deltaY
+          -event.sourceEvent.deltaY,
         )
         rescale(distanceScale)
       }
-    } else if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === midButtonClicked) {
+    } else if (
+      event.sourceEvent instanceof MouseEvent &&
+      event.sourceEvent.buttons === midButtonClicked
+    ) {
       const movementFactor = 2
       const distanceScale = d3.zoomIdentity.translate(
         event.sourceEvent.movementX / movementFactor,
-        event.sourceEvent.movementY / movementFactor
+        event.sourceEvent.movementY / movementFactor,
       )
       rescale(distanceScale)
     } else {
       rescale(event.transform)
     }
 
-    scaleAndAxis.xAxis.call(
-      d3.axisBottom(transformedScale.xScale).ticks(props.width / 40)
-    )
-    scaleAndAxis.yAxis.call(
-      d3.axisLeft(transformedScale.yScale).ticks(props.height / 20)
-    )
+    scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(props.width / 40))
+    scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(props.height / 20))
     d3.select(scatterplotNode.value!)
       .selectAll<SVGPathElement, Point>('path')
       .attr(
         'transform',
-        d => 'translate(' + transformedScale.xScale(d.x) + ',' + transformedScale.yScale(d.y) + ')'
+        (d) =>
+          'translate(' + transformedScale.xScale(d.x) + ',' + transformedScale.yScale(d.y) + ')',
       )
 
     if (data.value.points.labels === VISIBLE_POINTS) {
       d3.select(scatterplotNode.value!)
         .selectAll<SVGTextElement, Point>('text')
-        .attr('x', d => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X)
-        .attr('y', d => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y)
+        .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X)
+        .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y)
     }
   }
 
@@ -410,19 +414,25 @@ function removePointerEventsAttrsFromBrush() {
   }
 }
 
-const brush = computed(() => d3.brush()
-  .extent([[0, 0], [boxWidth.value, boxHeight.value]])
-  .on('start brush', event => {
-    isZoomToSelectedVisible.value = true
-    brushExtent.value = event.selection
-  }))
+const brush = computed(() =>
+  d3
+    .brush()
+    .extent([
+      [0, 0],
+      [boxWidth.value, boxHeight.value],
+    ])
+    .on('start brush', (event) => {
+      isZoomToSelectedVisible.value = true
+      brushExtent.value = event.selection
+    }),
+)
 
 /**
-* Adds brushing functionality to the plot.
-*
-* Brush is a tool which enables user to select points, and zoom into selection via
-* keyboard shortcut or button event.
-*/
+ * Adds brushing functionality to the plot.
+ *
+ * Brush is a tool which enables user to select points, and zoom into selection via
+ * keyboard shortcut or button event.
+ */
 function addBrushing() {
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
@@ -467,7 +477,7 @@ function zoomIn() {
   zoomingHelper(zoom.transformedScale)
 }
 
-useDocumentEventConditional('keydown', isZoomToSelectedVisible, event => {
+useDocumentEventConditional('keydown', isZoomToSelectedVisible, (event) => {
   if (shortcuts.zoomIn(event)) {
     zoomIn()
     endBrushing()
@@ -493,7 +503,7 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
     .duration(ANIMATION_DURATION)
     .attr(
       'transform',
-      d => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')'
+      (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
     )
 
   if (data.value.points.labels === VISIBLE_POINTS) {
@@ -501,8 +511,8 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
       .selectAll<SVGTextElement, Point>('text')
       .transition()
       .duration(ANIMATION_DURATION)
-      .attr('x', d => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
-      .attr('y', d => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
+      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
+      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
   }
 }
 
@@ -521,12 +531,15 @@ function updateScatter() {
     .data(data.value.data)
     .enter()
     .append('path')
-    .attr('d', symbol.type(matchShape).size(d => (d.size ?? 1.0) * sizeScaleMultiplier))
+    .attr(
+      'd',
+      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * sizeScaleMultiplier),
+    )
     .attr(
       'transform',
-      d => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')'
+      (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
     )
-    .style('fill', d => d.color ?? fillColor)
+    .style('fill', (d) => d.color ?? fillColor)
 
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3.select(svgNode.value!)
@@ -534,9 +547,9 @@ function updateScatter() {
       .data(data.value.data)
       .enter()
       .append('text')
-      .text(d => d.label ?? '')
-      .attr('x', d => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
-      .attr('y', d => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
+      .text((d) => d.label ?? '')
+      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
+      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
       .attr('class', 'label')
       .attr('fill', 'black')
   }
@@ -605,18 +618,16 @@ function updateAxes() {
   let xScale = axisD3Scale(data.value.axis?.x) as d3.ScaleLinear<number, number, never>
   xScale.domain(domains.value.x)
   xScale.range([0, boxWidth.value])
-  let xAxis = d3.select(xAxisNode.value!)
-    .call(d3.axisBottom(xScale).ticks(props.width / 40))
+  let xAxis = d3.select(xAxisNode.value!).call(d3.axisBottom(xScale).ticks(props.width / 40))
 
   let yScale = axisD3Scale(data.value.axis?.y) as d3.ScaleLinear<number, number, never>
   yScale.domain(domains.value.y)
   yScale.range([boxHeight.value, 0])
-  let yAxis = d3.select(yAxisNode.value!)
-    .call(d3.axisLeft(yScale).ticks(props.height / 20))
+  let yAxis = d3.select(yAxisNode.value!).call(d3.axisLeft(yScale).ticks(props.height / 20))
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
 
-useDocumentEvent('keydown', event => {
+useDocumentEvent('keydown', (event) => {
   if (shortcuts.showAll(event)) {
     unzoom()
   }
@@ -658,27 +669,19 @@ watchEffect(() => {
 })
 
 const xLabelLeft = computed(() =>
-  props.xLabel == null
-    ? 0
-    : margin.value.left + getTextWidth(props.xLabel, LABEL_FONT_STYLE) / 2
+  props.xLabel == null ? 0 : margin.value.left + getTextWidth(props.xLabel, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(() =>
   props.yLabel == null
     ? 0
-    : -margin.value.top - boxHeight.value / 2 + getTextWidth(props.yLabel, LABEL_FONT_STYLE) / 2
+    : -margin.value.top - boxHeight.value / 2 + getTextWidth(props.yLabel, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
-const zoomElem = scatter
-.append('g')
-.attr('class', 'zoom')
-.attr('width', boxWidth)
-.attr('height', boxHeight)
-.style('fill', 'none')
-.call(zoom)
-brush
+const zoomElem = scatter .append('g') .attr('class', 'zoom') .attr('width', boxWidth)
+.attr('height', boxHeight) .style('fill', 'none') .call(zoom) brush
 <template>
   <div class="Scatterplot visualization" ref="containerNode" :width="width" :height="height">
     <svg :width="canvasWidth" :height="canvasHeight">
@@ -690,8 +693,22 @@ brush
         </defs>
         <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
         <g ref="yAxisNode" class="label axis-y" :transform="`translate(0, ${boxHeight})`"></g>
-        <text v-if="xLabel" class="label label-x" text-anchor="end" :x="xLabelLeft" :y="xLabelTop" v-text="xLabel"></text>
-        <text v-if="yLabel" class="label label-y" text-anchor="end" :x="yLabelLeft" :y="yLabelTop" v-text="yLabel"></text>
+        <text
+          v-if="xLabel"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="xLabel"
+        ></text>
+        <text
+          v-if="yLabel"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="yLabel"
+        ></text>
         <g ref="scatterplotNode" clip-path="url(#clip)"></g>
         <!-- FIXME: pan -->
         <g class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
@@ -700,12 +717,13 @@ brush
       </g>
     </svg>
     <button class="fit-all-button" @click="unzoom">Fit all</button>
-    <button v-if="isZoomToSelectedVisible" class="zoom-to-selected-button" @click="zoomIn">Zoom to
-      selected</button>
+    <button v-if="isZoomToSelectedVisible" class="zoom-to-selected-button" @click="zoomIn">
+      Zoom to selected
+    </button>
   </div>
 </template>
 
-<style>
+<style scoped>
 @import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
 
 :root {

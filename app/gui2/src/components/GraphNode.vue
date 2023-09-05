@@ -235,23 +235,44 @@ onUpdated(() => {
   }
 })
 
-const VISUALIZATION_TYPES = [] as const
-type VisualizationType = typeof VISUALIZATION_TYPES[number]
+// FIXME: these all should default to `false`
+const isCircularMenuVisible = ref(true)
 
-const visualizationVisible = ref(false)
-const visualizationType = ref<VisualizationType>('a')
+const isAutoEvaluationDisabled = ref(false)
+const isDocsVisible = ref(false)
+const isVisualizationDropdownVisible = ref(true)
+const isVisualizationFullscreen = ref(false)
+const isVisualizationVisible = ref(true)
+const visualizationType = ref('a')
 </script>
 
 <template>
   <div class="Node" ref="rootNode" :style="{ transform }">
-    <div class="binding" @click="visualizationVisible = !visualizationVisible">{{ node.binding }}</div>
+    <div class="binding" @click="isVisualizationVisible = !isVisualizationVisible">
+      {{ node.binding }}
+    </div>
     <div class="container">
-      <div class="editable" contenteditable ref="editableRoot" @beforeinput="editContent" spellcheck="false">
+      <div
+        class="editable"
+        contenteditable
+        ref="editableRoot"
+        @beforeinput="editContent"
+        spellcheck="false"
+      >
         <NodeSpan :content="node.content" :span="node.rootSpan" @updateExprRect="updateExprRect" />
       </div>
-      <div v-if="visualizationVisible" class="visualization">
-        <div></div>
-      </div>
+      <CircularMenu
+        v-if="isCircularMenuVisible"
+        v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
+        v-model:is-docs-visible="isDocsVisible"
+        v-model:is-visualization-visible="isVisualizationVisible"
+      />
+      <Visualization
+        v-if="isVisualizationVisible"
+        v-model:is-fullscreen="isVisualizationFullscreen"
+        :is-visualization-dropdown-visible="isVisualizationDropdownVisible"
+      >
+      </Visualization>
     </div>
   </div>
 </template>
