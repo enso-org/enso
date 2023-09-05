@@ -787,34 +787,34 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   transition: all 0.3s ease;
 }
 
-.vis-scatterplot button:hover {
+button:hover {
   background-color: var(--color-button-light);
   color: var(--color-selection-fill-dark);
 }
 
 /* FIXME[sb]: Dark theme is currently not supported. */
-.dark-theme .vis-scatterplot button {
+.dark-theme button {
   border: 0;
   background-color: var(--color-stroke-dark);
 }
 
-.dark-theme .vis-scatterplot button:hover {
+.dark-theme button:hover {
   background-color: var(--color-button-dark-hover);
 }
 
-.dark-theme .vis-scatterplot .selection {
+.dark-theme .selection {
   fill: var(--color-selection-fill-dark);
 }
 
-.dark-theme .vis-scatterplot line {
+.dark-theme line {
   stroke: var(--color-stroke-dark);
 }
 
-.dark-theme .vis-scatterplot .domain {
+.dark-theme .domain {
   stroke: var(--color-stroke-dark);
 }
 
-.dark-theme .vis-scatterplot text {
+.dark-theme text {
   fill: var(--color-stroke-dark);
 }
 </style>
