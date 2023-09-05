@@ -1,7 +1,6 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
-import akka.http.scaladsl.model.Uri
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
@@ -12,6 +11,7 @@ import org.enso.projectmanager.protocol.ProjectManagementApi.{
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 
+import java.net.URI
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `logging-service/get-endpoint` commands.
@@ -88,7 +88,7 @@ class LoggingServiceEndpointRequestHandler(
       context.stop(self)
   }
 
-  private case class LoggingServiceInitialized(endpoint: Option[Uri])
+  private case class LoggingServiceInitialized(endpoint: Option[URI])
 }
 
 object LoggingServiceEndpointRequestHandler {

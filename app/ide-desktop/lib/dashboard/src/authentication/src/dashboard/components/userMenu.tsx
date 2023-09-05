@@ -82,7 +82,7 @@ export default function UserMenu(props: UserMenuProps) {
                         <div className="flex flex-col">
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signIn}
-                                paddingClassName="py-1"
+                                paddingClassName="p-1"
                                 doAction={() => {
                                     navigate(app.LOGIN_PATH)
                                 }}

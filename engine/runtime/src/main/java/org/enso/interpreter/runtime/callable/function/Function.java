@@ -402,16 +402,53 @@ public final class Function implements EnsoObject {
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
+    return toString(true);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public final String toString(boolean includeArguments) {
     var n = callTarget.getRootNode();
     var ss = n.getSourceSection();
     if (ss == null) {
       return super.toString();
     }
-    var s = ss.getSource();
+    var iop = InteropLibrary.getUncached();
+    var src = ss.getSource();
     var start = ss.getStartLine();
-    final int end = start + s.getLineCount();
-    return n.getName() + "[" + s.getName() + ":" + start + "-" + end + "]";
+    var end = ss.getEndLine();
+    var sb = new StringBuilder();
+    sb.append(n.getName());
+    sb.append("[").append(src.getName()).append(":").append(start);
+    if (end == start) {
+      sb.append(":").append(ss.getStartColumn()).append("-").append(ss.getEndColumn());
+    } else {
+      sb.append("-").append(end);
+    }
+    sb.append("]");
+    if (includeArguments) {
+      for (var i = 0; i < schema.getArgumentsCount(); i++) {
+        ArgumentDefinition info = schema.getArgumentInfos()[i];
+        if (info.hasDefaultValue()) {
+          continue;
+        }
+        var name = info.getName();
+        sb.append(" ").append(name).append("=");
+        if (preAppliedArguments != null && preAppliedArguments[i] != null) {
+          sb.append(iop.toDisplayString(preAppliedArguments[i], false));
+        } else {
+          sb.append("_");
+        }
+      }
+      if (schema.getOversaturatedArguments() != null) {
+        for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
+          if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
+            sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
+            sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
+          }
+        }
+      }
+    }
+    return sb.toString();
   }
 }

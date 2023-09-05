@@ -1,6 +1,7 @@
 name: Table_Tests
+namespace: enso_dev
 version: 0.0.1
-enso-version: default
 license: MIT
 author: enso-dev@enso.org
 maintainer: enso-dev@enso.org
+prefer-local-libraries: true

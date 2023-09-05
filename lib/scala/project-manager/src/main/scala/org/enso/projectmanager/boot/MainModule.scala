@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.loggingservice.LogLevel
+import org.enso.logger.akka.AkkaConverter
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
@@ -53,7 +53,7 @@ class MainModule[
 
   implicit val system: ActorSystem =
     ActorSystem("project-manager", None, None, Some(computeExecutionContext))
-  system.eventStream.setLogLevel(LogLevel.toAkka(processConfig.logLevel))
+  system.eventStream.setLogLevel(AkkaConverter.toAkka(processConfig.logLevel))
 
   implicit val materializer: SystemMaterializer = SystemMaterializer.get(system)
 

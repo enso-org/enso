@@ -32,7 +32,7 @@ class ProjectCreateDefaultToLatestSpec
         */
       val message =
         "Project manager 9999.0.0 is required to install the requested " +
-        "engine. Please upgrade."
+        "engine. Current version is 0.1.0. Please upgrade."
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",

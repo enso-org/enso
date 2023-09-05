@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+from Standard.Table import Column, Value_Type, Auto
+import Standard.Table.Data.Type.Value_Type.Bits
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+
+type Data
+    Value ~ints
+
+    create num_rows =
+        # 0-argument block to make it lazy
+        ints =
+            Vector.new num_rows i->
+                i % 1000
+        Data.Value ints
+
+
+collect_benches = Bench.build builder->
+    num_rows = 1000000
+    data = Data.create num_rows
+
+    builder.group ("Column_from_vector_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Integers_type_Integer_64_bit" <|
+            Column.from_vector "Ints64" data.ints value_type=(Value_Type.Integer Bits.Bits_64)
+        group_builder.specify "Integers_type_Integer_checked_16_bit" <|
+            Column.from_vector "Ints16" data.ints value_type=(Value_Type.Integer Bits.Bits_16)
+        group_builder.specify "Integers_type_Float" <|
+            Column.from_vector "Floats" data.ints value_type=Value_Type.Float
+        group_builder.specify "Integers_type_Auto" <|
+            Column.from_vector "Auto" data.ints value_type=Auto
+
+main = collect_benches . run_main

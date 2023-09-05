@@ -119,6 +119,7 @@ export interface AppProps {
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
     onAuthenticated: (accessToken: string | null) => void
+    projectManagerUrl: string | null
     appRunner: AppRunner
 }
 
@@ -130,7 +131,7 @@ export interface AppProps {
 export default function App(props: AppProps) {
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
+    const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (
@@ -166,6 +167,7 @@ function AppRouter(props: AppProps) {
         isAuthenticationDisabled,
         shouldShowDashboard,
         onAuthenticated,
+        projectManagerUrl,
     } = props
     const navigate = hooks.useNavigate()
     if (IS_DEV_MODE) {
@@ -198,7 +200,7 @@ function AppRouter(props: AppProps) {
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
-        ? new localBackend.LocalBackend(null)
+        ? new localBackend.LocalBackend(projectManagerUrl, null)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!
@@ -245,6 +247,7 @@ function AppRouter(props: AppProps) {
                             supportsLocalBackend={supportsLocalBackend}
                             authService={authService}
                             onAuthenticated={onAuthenticated}
+                            projectManagerUrl={projectManagerUrl}
                         >
                             <modalProvider.ModalProvider>
                                 <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>

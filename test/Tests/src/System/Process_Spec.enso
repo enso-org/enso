@@ -3,107 +3,185 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-spec = Test.group "Process" <|
-    Test.specify "should call simple command" <|
-        result = case Platform.os of
-            Platform.OS.Windows ->
-                Process.run "PowerShell" ["-Command", "exit 0"]
-            _ ->
-                Process.run "bash" ["-c", "exit 0"]
-        result.exit_code.should_equal Exit_Code.Success
-    Test.specify "should return exit code" <|
-        case Platform.os of
-            Platform.OS.Unknown ->
-                Test.fail "Unsupported platform."
-            Platform.OS.Windows ->
-                r = Process.run "PowerShell" ["-Command", "exit 42"]
-                r.exit_code.should_equal <| Exit_Code.Failure 42
+polyglot java import java.lang.System as Java_System
+polyglot java import java.io.File as Java_File
 
-                s = Process.run "PowerShell" ["-Command", "exit 0"]
-                s.exit_code.should_equal <| Exit_Code.Success
-            _ ->
-                r = Process.run "bash" ["-c", "exit 42"]
-                r.exit_code.should_equal <| Exit_Code.Failure 42
+pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
+    Can't run Python tests, Python is not installed.
 
-                s = Process.run "bash" ["-c", "exit 0"]
-                s.exit_code.should_equal <| Exit_Code.Success
-    Test.specify "should return stdout" <|
-        case Platform.os of
-            Platform.OS.Unknown ->
-                Test.fail "Unsupported platform."
-            Platform.OS.Windows ->
-                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal "Hello"
-                result.stderr . should_equal ""
+spec =
+    Test.group "Process" <|
+        Test.specify "should call simple command" <|
+            result = case Platform.os of
+                Platform.OS.Windows ->
+                    Process.run "PowerShell" ["-Command", "exit 0"]
+                _ ->
+                    Process.run "bash" ["-c", "exit 0"]
+            result.exit_code.should_equal Exit_Code.Success
+        Test.specify "should return exit code" <|
+            case Platform.os of
+                Platform.OS.Unknown ->
+                    Test.fail "Unsupported platform."
+                Platform.OS.Windows ->
+                    r = Process.run "PowerShell" ["-Command", "exit 42"]
+                    r.exit_code.should_equal <| Exit_Code.Failure 42
 
-                run_result = Process.run "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal "Hello"
-                run_result.stderr . should_equal ""
-            _ ->
-                builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal "Hello"
-                result.stderr . should_equal ""
+                    s = Process.run "PowerShell" ["-Command", "exit 0"]
+                    s.exit_code.should_equal <| Exit_Code.Success
+                _ ->
+                    r = Process.run "bash" ["-c", "exit 42"]
+                    r.exit_code.should_equal <| Exit_Code.Failure 42
 
-                run_result = Process.run "bash" ["-c", "echo -n Hello"]
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal "Hello"
-                run_result.stderr . should_equal ""
-    Test.specify "should return stderr" <|
-        case Platform.os of
-            Platform.OS.Unknown ->
-                Test.fail "Unsupported platform."
-            Platform.OS.Windows ->
-                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"]
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal ""
-                result.stderr . should_equal "Error"
+                    s = Process.run "bash" ["-c", "exit 0"]
+                    s.exit_code.should_equal <| Exit_Code.Success
+        Test.specify "should return stdout" <|
+            case Platform.os of
+                Platform.OS.Unknown ->
+                    Test.fail "Unsupported platform."
+                Platform.OS.Windows ->
+                    builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal "Hello"
+                    result.stderr . should_equal ""
 
-                run_result = Process.run "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"]
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal ""
-                run_result.stderr . should_equal "Error"
-            _ ->
-                builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"]
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal ""
-                result.stderr . should_equal "Error"
+                    run_result = Process.run "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal "Hello"
+                    run_result.stderr . should_equal ""
+                _ ->
+                    builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal "Hello"
+                    result.stderr . should_equal ""
 
-                run_result = Process.run "bash" ["-c", "echo -n Error 1>&2"]
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal ""
-                run_result.stderr . should_equal "Error"
-    Test.specify "should feed stdin" <|
-        case Platform.os of
-            Platform.OS.Unknown ->
-                Test.fail "Unsupported platform."
-            Platform.OS.Windows ->
-                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] . set_stdin "sample"
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal 'sample\r\n'
-                result.stderr . should_equal ""
+                    run_result = Process.run "bash" ["-c", "echo -n Hello"]
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal "Hello"
+                    run_result.stderr . should_equal ""
+        Test.specify "should return stderr" <|
+            case Platform.os of
+                Platform.OS.Unknown ->
+                    Test.fail "Unsupported platform."
+                Platform.OS.Windows ->
+                    builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"]
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal ""
+                    result.stderr . should_equal "Error"
 
-                run_result = Process.run "PowerShell" ["-Command", "[System.Console]::ReadLine()"] stdin="sample"
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal 'sample\r\n'
-                run_result.stderr . should_equal ""
-            _ ->
-                builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
-                result = builder.create
-                result.exit_code.to_number . should_equal 0
-                result.stdout . should_equal "sample"
-                result.stderr . should_equal ""
+                    run_result = Process.run "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"]
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal ""
+                    run_result.stderr . should_equal "Error"
+                _ ->
+                    builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"]
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal ""
+                    result.stderr . should_equal "Error"
 
-                run_result = Process.run "bash" ["-c", "read line; echo -n $line"] stdin="sample"
-                run_result.exit_code.to_number . should_equal 0
-                run_result.stdout . should_equal 'sample'
-                run_result.stderr . should_equal ""
+                    run_result = Process.run "bash" ["-c", "echo -n Error 1>&2"]
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal ""
+                    run_result.stderr . should_equal "Error"
+        Test.specify "should feed stdin" <|
+            case Platform.os of
+                Platform.OS.Unknown ->
+                    Test.fail "Unsupported platform."
+                Platform.OS.Windows ->
+                    builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] . set_stdin "sample"
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal 'sample\r\n'
+                    result.stderr . should_equal ""
+
+                    run_result = Process.run "PowerShell" ["-Command", "[System.Console]::ReadLine()"] stdin="sample"
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal 'sample\r\n'
+                    run_result.stderr . should_equal ""
+                _ ->
+                    builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
+                    result = builder.create
+                    result.exit_code.to_number . should_equal 0
+                    result.stdout . should_equal "sample"
+                    result.stderr . should_equal ""
+
+                    run_result = Process.run "bash" ["-c", "read line; echo -n $line"] stdin="sample"
+                    run_result.exit_code.to_number . should_equal 0
+                    run_result.stdout . should_equal 'sample'
+                    run_result.stderr . should_equal ""
+    Test.group "Enso on Enso" <|
+        enso_bin =
+            p = Java_System.getProperty "truffle.class.path.append"
+            s = p.split Java_File.separator
+            paths = s.take (Index_Sub_Range.While _!="..")
+            j = paths . join Java_File.separator
+            File.new j / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
+
+        create_new_enso_project =
+            bin = enso_bin
+
+            tmp_file = File.create_temporary_file "enso_prj" ""
+            dir = tmp_file/".."/(tmp_file.name+".dir") . normalize
+            res = Process.run bin.path [ "--new", dir.path ]
+            IO.println res.stdout
+            IO.println res.stderr
+            res.exit_code . should_equal Exit_Code.Success
+            dir
+
+        Test.specify "Create Enso Project with numpy" pending=pending_python_missing <|
+            setup_venv dir =
+                gvm = File.new <| Java_System.getProperty "java.home"
+                python = gvm/"bin"/"graalpy"
+                res = Process.run python.path [ "-m", "venv", dir.path ]
+                IO.println res.stdout
+                IO.println res.stderr
+                res.exit_code . should_equal Exit_Code.Success
+
+            install_num_py dir =
+                python = dir/"bin"/"graalpy"
+                res = Process.run python.path [ "-m", "pip", "install", "numpy" ]
+                IO.println res.stdout
+                IO.println res.stderr
+                res.exit_code . should_equal Exit_Code.Success
+
+            rewrite_main_file dir =
+                main = dir/"src"/"Main.enso"
+                main.exists . should_be_true
+                code = """
+                    foreign python random_array s = """
+                        import numpy
+                        return numpy.random.normal(size=s)
+
+                    main = random_array 10
+
+                code . write main on_existing_file=Existing_File_Behavior.Overwrite
+
+            IO.println "==== Generating Enso Project ===="
+            prj = create_new_enso_project
+            IO.println "Project ready at "+prj.path
+
+            IO.println "==== Changing Main.enso ===="
+            rewrite_main_file prj
+
+            IO.println "==== Preparing Python Virtual Environment ===="
+            setup_venv prj/"polyglot"/"python"
+
+            IO.println "==== Installing numpy ===="
+            install_num_py prj/"polyglot"/"python"
+
+            IO.println "==== Executing project ===="
+
+            res = Process.run enso_bin.path [ "--run", prj.path ]
+            IO.println res.stdout
+            IO.println res.stderr
+            res.exit_code . should_equal Exit_Code.Success
+
+            IO.println "==== Done ===="
+
+            res.stdout.should_contain "array(["
+            res.stdout.should_contain "])"
 
 main = Test_Suite.run_main spec

@@ -10,12 +10,16 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.*;
+import org.enso.table.error.ColumnCountMismatchException;
+import org.enso.table.error.ColumnNameMismatchException;
+import org.enso.table.error.ExistingDataException;
+import org.enso.table.error.InvalidLocationException;
+import org.enso.table.error.RangeExceededException;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
@@ -311,7 +315,7 @@ public class ExcelWriter {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
       cell.setCellValue(doubleStorage.getItem(j));
-    } else if (storage instanceof LongStorage longStorage) {
+    } else if (storage instanceof AbstractLongStorage longStorage) {
       cell.setCellValue(longStorage.getItem(j));
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.getItem(j));

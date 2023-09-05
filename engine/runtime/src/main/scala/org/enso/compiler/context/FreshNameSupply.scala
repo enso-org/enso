@@ -1,6 +1,6 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Name
 
 /** This class provides a supply of fresh names guaranteed not to exist in this
   * program.
@@ -11,8 +11,8 @@ class FreshNameSupply {
   private def mkName(
     numId: Long,
     isMethod: Boolean
-  ): IR.Name.Literal = {
-    IR.Name.Literal(
+  ): Name.Literal = {
+    Name.Literal(
       s"<internal-${numId}>",
       isMethod,
       None
@@ -26,7 +26,7 @@ class FreshNameSupply {
     */
   def newName(
     isMethod: Boolean = false
-  ): IR.Name.Literal = {
+  ): Name.Literal = {
     val num = counter
     counter += 1
 

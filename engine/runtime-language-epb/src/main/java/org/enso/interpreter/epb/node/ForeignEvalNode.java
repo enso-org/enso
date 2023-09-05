@@ -1,22 +1,25 @@
 package org.enso.interpreter.epb.node;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.enso.interpreter.epb.EpbContext;
+import org.enso.interpreter.epb.EpbLanguage;
+import org.enso.interpreter.epb.EpbParser;
+import org.enso.interpreter.epb.runtime.ForeignParsingException;
+import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
+
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.enso.interpreter.epb.EpbContext;
-import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.epb.EpbParser;
-import org.enso.interpreter.epb.runtime.ForeignParsingException;
-import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
@@ -50,7 +53,11 @@ public class ForeignEvalNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     ensureParsed();
     if (foreign != null) {
-      return foreign.execute(frame.getArguments());
+      try {
+        return foreign.execute(frame.getArguments());
+      } catch (InteropException ex) {
+        throw new ForeignParsingException(ex.getMessage(), this);
+      }
     } else {
       CompilerDirectives.transferToInterpreter();
       throw parseException;
@@ -131,12 +138,13 @@ public class ForeignEvalNode extends RootNode {
   private void parsePy() {
     try {
       String args = Arrays.stream(argNames).collect(Collectors.joining(","));
-      String head =
-          "import polyglot\n"
-              + "@polyglot.export_value\n"
-              + "def polyglot_enso_python_eval("
-              + args
-              + "):\n";
+      String head = """
+        import site
+        import polyglot
+        @polyglot.export_value
+        def polyglot_enso_python_eval("""
+            + args
+            + "):\n";
       String indentLines =
           code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
       Source source =

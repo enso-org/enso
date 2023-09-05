@@ -88,6 +88,8 @@ pub enum Benchmarks {
     Runtime,
     /// Run benchmarks written in pure Enso.
     Enso,
+    /// Run Enso benchmarks via JMH
+    EnsoJMH,
 }
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
@@ -103,6 +105,7 @@ impl Benchmarks {
             Benchmarks::All => Some("bench"),
             Benchmarks::Runtime => Some("runtime/bench"),
             Benchmarks::Enso => None,
+            Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
         }
     }
 }

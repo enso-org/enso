@@ -48,7 +48,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
             setUserPermissions(userPermissions)
             outerSetUserPermission(userPermissions)
             toastAndLog(
-                `Unable to set permissions of '${newUserPermissions.user.user_email}'`,
+                `Could not set permissions of '${newUserPermissions.user.user_email}'`,
                 error
             )
         }

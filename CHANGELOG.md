@@ -221,6 +221,10 @@
   a connection to any expression inside the lambda body.
 - [Atom types in dropdowns do not produce redundant imports][#7670]. The
   possibility of imports conflicts is reduced.
+- [Copying and pasting a single node][7618]. Using the common
+  <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
+  now possible to copy a single selected node and paste its code to the graph or
+  another program.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -248,6 +252,7 @@
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
 [7670]: https://github.com/enso-org/enso/pull/7670
+[7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
 
@@ -556,6 +561,12 @@
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 - [Expose `Text.normalize`.][7425]
+- [Implemented new value types (various sizes of `Integer` type, fixed-length
+  and length-limited `Char` type) for the in-memory `Table` backend.][7557]
+- [Introducing generic `Any.to` conversion method][7704]
+- [Added `take` and `drop` to database tables.][7615]
+- [Added ability to specify expected value type in `Column.from_vector`,
+  `Column.map` and `Column.zip`.][7637]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -789,6 +800,10 @@
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
+[7557]: https://github.com/enso-org/enso/pull/7557
+[7704]: https://github.com/enso-org/enso/pull/7704
+[7615]: https://github.com/enso-org/enso/pull/7615
+[7637]: https://github.com/enso-org/enso/pull/7637
 
 #### Enso Compiler
 
@@ -920,9 +935,13 @@
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
 - [Support renaming variable or function][7515]
+- [Replace custom logging service with off the shelf library][7559]
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
+- [Use `numpy` & co. from Enso!][7678]
+- [Changed layout of local libraries directory, making it easier to reference
+  projects next to each other][7634]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1054,9 +1073,12 @@
 [7420]: https://github.com/enso-org/enso/pull/7420
 [7397]: https://github.com/enso-org/enso/pull/7397
 [7515]: https://github.com/enso-org/enso/pull/7515
+[7559]: https://github.com/enso-org/enso/pull/7559
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
 [7613]: https://github.com/enso-org/enso/pull/7613
+[7678]: https://github.com/enso-org/enso/pull/7678
+[7634]: https://github.com/enso-org/enso/pull/7634
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -30,10 +30,10 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
@@ -43,6 +43,14 @@ type Column
        Arguments:
        - name: The name of the column to create.
        - items: The elements to contain in the column.
+       - value_type: The type of the values in the column. If `Auto`, the type
+         will be inferred from the items in the column.
+
+       ! Error Conditions
+
+         - If some values in `items` do not match the `value_type`, an
+           `Invalid_Value_Type` error is raised.
+         - With the default `value_type` of `Auto`, no errors should occur.
 
        > Example
          Create a new column called "My Column" from a vector of numbers.
@@ -51,15 +59,38 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Column
-    from_vector name items =
-        ## TODO [RW] in #6111 use a more specific storage type, and if it is a
-           type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
-        expected_storage_type = Nothing
-        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    from_vector name items value_type=Auto =
+        ## If the type does not accept date-time-like values, we can skip the
+           additional logic for polyglot conversions that would normally be used,
+           which is quite costly - so if we can guarantee it is unnecessary,
+           it is good to skip it.
+        needs_polyglot_conversion = case value_type of
+            Value_Type.Char _ _  -> False
+            Value_Type.Float _   -> False
+            Value_Type.Integer _ -> False
+            Value_Type.Boolean   -> False
+            Value_Type.Byte      -> False
+            _                    -> True
+        expected_storage_type = case value_type of
+            Auto -> Nothing
+            _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
+        raise_invalid_value_type_error problematic_value =
+            expected_type = value_type
+            actual_type = Enso_Types.most_specific_value_type problematic_value use_smallest=True
+            Error.throw (Invalid_Value_Type.Value expected_type actual_type problematic_value)
+        handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
+            java_exception = caught_panic.payload
+            raise_invalid_value_type_error java_exception.getValue
+        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
             java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
-                Java_Column.fromItems name items expected_storage_type
-            Column.Value java_column
+                case needs_polyglot_conversion of
+                    True -> Java_Column.fromItems name items expected_storage_type
+                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
+            result = Column.Value java_column . throw_on_warning Conversion_Failure
+            result.catch Conversion_Failure error->
+                if error.example_values.is_empty then result else
+                    raise_invalid_value_type_error error.example_values.first
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -142,7 +173,8 @@ type Column
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## ALIAS Equals
+    ## ALIAS equals
+       GROUP Standard.Base.Operators
        Element-wise equality comparison.
 
        Arguments:
@@ -181,7 +213,8 @@ type Column
             a == b
         run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
-    ## Element-wise case-insensitive text equality comparison.
+    ## GROUP Standard.Base.Logical
+       Element-wise case-insensitive text equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -205,7 +238,8 @@ type Column
                 new_name = naming_helper.function_name "equals_ignore_case" [self, other]
                 run_binary_op self fallback other new_name expected_result_type=Value_Type.Boolean
 
-    ## ALIAS Not Equals
+    ## ALIAS not equals
+       GROUP Standard.Base.Operators
        Element-wise non-equality comparison.
 
        Arguments:
@@ -240,7 +274,8 @@ type Column
         new_name = naming_helper.binary_operation_name "!=" self other
         (self == other).not . rename new_name
 
-    ## ALIAS Greater Than Or Equal
+    ## ALIAS greater than or equal
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -269,7 +304,8 @@ type Column
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
-    ## ALIAS Less Than Or Equal
+    ## ALIAS less than or equal
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -298,7 +334,8 @@ type Column
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -327,7 +364,8 @@ type Column
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Standard.Base.Operators
        Element-wise order comparison.
 
        Arguments:
@@ -356,7 +394,8 @@ type Column
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
-    ## Element-wise inclusive bounds check.
+    ## GROUP Standard.Base.Logical
+       Element-wise inclusive bounds check.
 
        Arguments:
        - lower: The lower bound to compare elements of `self` against. If
@@ -377,7 +416,8 @@ type Column
                 result = (self >= lower) && (self <= upper)
                 result.rename new_name
 
-    ## ALIAS Add, Plus, Concatenate
+    ## ALIAS add, concatenate, plus
+       GROUP Standard.Base.Operators
        Element-wise addition. Works on numeric types or text.
 
        Arguments:
@@ -387,6 +427,15 @@ type Column
 
        Returns a column with results of adding `other` from each element of
        `self`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Add two columns to each other.
@@ -406,7 +455,8 @@ type Column
         Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self Java_Storage.Maps.ADD other
 
-    ## ALIAS Subtract, Minus
+    ## ALIAS minus, subtract
+       GROUP Standard.Base.Operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
 
@@ -417,6 +467,15 @@ type Column
 
        Returns a column with results of subtracting `other` from each element of
        `self`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Subtract one column from another.
@@ -450,7 +509,8 @@ type Column
                     _ ->
                         run_vectorized_binary_op self Java_Storage.Maps.SUB other
 
-    ## ALIAS Multiply, Times, Product
+    ## ALIAS multiply, product, times
+       GROUP Standard.Base.Operators
        Element-wise multiplication.
 
        Arguments:
@@ -460,6 +520,15 @@ type Column
 
        Returns a column containing the result of multiplying each element of
        `self` by `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Multiply the elements of two columns together.
@@ -479,7 +548,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.MUL other
 
-    ## ALIAS Divide
+    ## ALIAS divide
+       GROUP Standard.Base.Operators
        Element-wise division.
 
        Arguments:
@@ -494,6 +564,15 @@ type Column
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Divide the elements of one column by the elements of another.
@@ -514,7 +593,8 @@ type Column
             new_name = naming_helper.binary_operation_name "/" self other
             run_vectorized_binary_op self Java_Storage.Maps.DIV other new_name
 
-    ## ALIAS Modulus, Modulo
+    ## ALIAS modulo, modulus
+       GROUP Standard.Base.Operators
        Element-wise modulus.
 
        Arguments:
@@ -549,7 +629,8 @@ type Column
             new_name = naming_helper.binary_operation_name "%" self other
             run_vectorized_binary_op self Java_Storage.Maps.MOD other new_name
 
-    ## ALIAS Power
+    ## ALIAS power
+       GROUP Standard.Base.Operators
        Element-wise raising to the power.
 
        Arguments:
@@ -559,6 +640,15 @@ type Column
 
        Returns a column containing the result of raising each element of `self`
        by `other`.
+
+       ? Arithmetic Overflow
+
+         For integer columns, the operation may yield results that will not fit
+         into the range supported by the column. In such case, the in-memory
+         backend will replace such results with `Nothing` and report a
+         `Arithmetic_Overflow` warning. The behaviour in Database backends is
+         not specified and will depend on the particular database - it may
+         cause a hard error, the value may be truncated or wrap-around etc.
 
        > Example
          Squares the elements of one column.
@@ -578,7 +668,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.POWER other
 
-    ## ALIAS And
+    ## ALIAS and
+       GROUP Standard.Base.Operators
        Element-wise boolean conjunction.
 
        Arguments:
@@ -608,7 +699,8 @@ type Column
         Value_Type_Helpers.check_binary_boolean_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.AND other
 
-    ## ALIAS Or
+    ## ALIAS or
+       GROUP Standard.Base.Operators
 
        Element-wise boolean disjunction.
 
@@ -639,7 +731,8 @@ type Column
         Value_Type_Helpers.check_binary_boolean_op self other <|
            run_vectorized_binary_op self Java_Storage.Maps.OR other
 
-    ## ALIAS NOT
+    ## ALIAS not
+       GROUP Standard.Base.Logical
 
        Boolean negation of each element in self column.
 
@@ -655,7 +748,8 @@ type Column
             new_name = naming_helper.concat ["not", naming_helper.to_expression_text self]
             run_vectorized_unary_op self Java_Storage.Maps.NOT new_name
 
-    ## ALIAS IF
+    ## ALIAS if
+       GROUP Standard.Base.Logical
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
@@ -716,7 +810,8 @@ type Column
     const : Any -> Column
     const self value = self.to_table.make_constant_column value
 
-    ## Round the values in a numeric column to a specified number of decimal
+    ## GROUP Standard.Base.Math
+       Round the values in a numeric column to a specified number of decimal
        places.
 
        For integers, rounding to 0 or more decimal places simply returns the
@@ -753,10 +848,9 @@ type Column
          results near the precision limit (about 15 decimal places), especially
          when rounding mid-point values. For example:
 
-         Postgres: rounding 1.2222222222222235 to 15 decimal places returns:
-             1.222222222222224
-         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
-             1.222222222222223
+         Rounding 1.2222222222222235 to 15 decimal places returns:
+         - 1.222222222222224 in Postgres.
+         - 1.222222222222223 in SQLite.
 
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest
@@ -774,6 +868,7 @@ type Column
             run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
 
     ## ALIAS int
+       GROUP Standard.Base.Rounding
 
        If the column is numeric, truncate the floating-point values to an
        integer by dropping the fractional part. This is equivalent to
@@ -807,7 +902,8 @@ type Column
                     Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
-    ## Computes the nearest integer above this number for values in a numeric
+    ## GROUP Standard.Base.Rounding
+       Computes the nearest integer above this number for values in a numeric
        column.
 
        Returns a column of `Integer`.
@@ -825,7 +921,8 @@ type Column
             False ->
                 simple_unary_op self Java_Storage.Maps.CEIL
 
-    ## Computes the nearest integer below this number for values in a numeric
+    ## GROUP Standard.Base.Rounding
+       Computes the nearest integer below this number for values in a numeric
        column.
 
        Returns a column of `Integer`.
@@ -843,7 +940,8 @@ type Column
             False ->
                 simple_unary_op self Java_Storage.Maps.FLOOR
 
-    ## Returns a column of first non-`Nothing` value on each row of `self` and
+    ## GROUP Standard.Base.Logical
+       Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
        Arguments:
@@ -860,7 +958,8 @@ type Column
         fallback a b = a.if_nothing b
         run_vectorized_many_op self "coalesce" fallback values
 
-    ## Returns a column of minimum on each row of `self` and `values`.
+    ## GROUP Standard.Base.Math
+       Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
        - values: list of columns or values to minimum with `self`, or a single
@@ -880,7 +979,8 @@ type Column
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             run_vectorized_many_op self "min" fallback values
 
-    ## Returns a column of maximum on each row of `self` and `values`.
+    ## GROUP Standard.Base.Math
+       Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
        - values: list of columns or values to maximum with `self`, or a single
@@ -900,7 +1000,8 @@ type Column
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             run_vectorized_many_op self "max" fallback values
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Logical
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
 
        > Example
@@ -914,7 +1015,8 @@ type Column
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is null"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Math
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self = Value_Type.expect_numeric self <|
@@ -930,7 +1032,8 @@ type Column
             _           -> False
         run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Math
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
     is_infinite : Column
@@ -955,7 +1058,8 @@ type Column
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## GROUP Standard.Base.Logical
+       Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
        > Example
@@ -991,7 +1095,8 @@ type Column
             _ -> self.is_nothing
         result.rename new_name
 
-    ## ALIAS Fill Missing, if_nothing
+    ## ALIAS fill missing, if_nothing
+       GROUP Standard.Base.Values
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -1022,7 +1127,8 @@ type Column
             col = Java_Column.new self.name new_st
             Column.Value col
 
-    ## ALIAS Fill Empty, if_empty
+    ## ALIAS fill empty, if_empty
+       GROUP Standard.Base.Values
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1045,7 +1151,8 @@ type Column
                 result = self.is_empty.iif default self
                 result.rename self.name
 
-    ## Checks for each element of the column if it starts with `other`.
+    ## GROUP Standard.Base.Text
+       Checks for each element of the column if it starts with `other`.
 
        Arguments:
        - other: The value to compare `self` with. If `other` is a column, the
@@ -1081,7 +1188,8 @@ type Column
         new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
-    ## Checks for each element of the column if it ends with `other`.
+    ## GROUP Standard.Base.Text
+       Checks for each element of the column if it ends with `other`.
 
        Arguments:
        - other: The value to compare `self` with. If `other` is a column, the
@@ -1110,7 +1218,8 @@ type Column
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
-    ## Checks for each element of the column if it contains `other`.
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it contains `other`.
 
        Arguments:
        - other: The value to compare `self` with. If `other` is a column, the
@@ -1139,7 +1248,8 @@ type Column
         new_name = naming_helper.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
-    ## Checks for each element of the column if it matches an SQL-like pattern.
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it matches an SQL-like pattern.
 
        Arguments:
        - pattern: The pattern to match `self` against. If it is a column, the
@@ -1160,7 +1270,8 @@ type Column
             Value_Type.expect_text pattern <|
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
 
-    ## This function removes the specified characters, by default any
+    ## GROUP Standard.Base.Text
+       This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
        Arguments:
@@ -1182,7 +1293,8 @@ type Column
             mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get i)
             Column.from_vector new_name mapped
 
-    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+    ## GROUP Standard.Base.Text
+       Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the column unchanged.
 
        This method follows the exact replacement semantics of the
@@ -1229,14 +1341,15 @@ type Column
                 length = self.length
                 storage = self.java_column.getStorage
 
-                builder = StringBuilder.new length
+                builder = make_string_builder length
                 0.up_to length . each i->
                     replaced = do_replace i (storage.getItem i)
                     builder.append replaced
 
                 Column.from_storage new_name builder.seal
 
-    ## Gets the year as a number from the date stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1244,7 +1357,8 @@ type Column
     year self = Value_Type.expect_has_date self <|
         simple_unary_op self Java_Storage.Maps.YEAR
 
-    ## Gets the month as a number (1-12) from the date stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1252,7 +1366,8 @@ type Column
     month self = Value_Type.expect_has_date self <|
         simple_unary_op self Java_Storage.Maps.MONTH
 
-    ## Gets the day of the month as a number (1-31) from the date stored in the
+    ## GROUP Standard.Base.DateTime
+       Gets the day of the month as a number (1-31) from the date stored in the
        column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1261,7 +1376,8 @@ type Column
     day self = Value_Type.expect_has_date self <|
         simple_unary_op self Java_Storage.Maps.DAY
 
-    ## Gets the hour as a number (0-23) from the time stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the hour as a number (0-23) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1269,7 +1385,8 @@ type Column
     hour self = Value_Type.expect_has_time self <|
         simple_unary_op self Java_Storage.Maps.HOUR
 
-    ## Gets the minute as a number (0-59) from the time stored in the column.
+    ## GROUP Standard.Base.DateTime
+       Gets the minute as a number (0-59) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1277,7 +1394,8 @@ type Column
     minute self = Value_Type.expect_has_time self <|
         simple_unary_op self Java_Storage.Maps.MINUTE
 
-    ## Gets the second as an integer (0-60) from the time stored in the column.
+    ## GROUP Standard.Base.Selections
+       Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
@@ -1285,7 +1403,8 @@ type Column
     second self = Value_Type.expect_has_time self <|
         simple_unary_op self Java_Storage.Maps.SECOND
 
-    ## Gets the date part of the date/time value.
+    ## GROUP Standard.Base.DateTime
+       Gets the date part of the date/time value.
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
@@ -1293,7 +1412,8 @@ type Column
     date_part self period =
         Date_Time_Helpers.make_date_part_function self period simple_unary_op naming_helper
 
-    ## Computes a time difference between the two dates.
+    ## GROUP Standard.Base.DateTime
+       Computes a time difference between the two dates.
 
        It returns a column of integers expressing how many periods fit between
        the two dates/times.
@@ -1334,7 +1454,8 @@ type Column
                     run_binary_op self fn end new_name
 
 
-    ## Shifts the date/time by a specified period, returning a new date/time
+    ## GROUP Standard.Base.DateTime
+       Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
        Arguments:
@@ -1367,7 +1488,8 @@ type Column
                         java_unit.addTo date amount
                     run_binary_op self fn amount new_name
 
-    ## Checks for each element of the column if it is contained within the
+    ## GROUP Standard.Base.Logical
+       Checks for each element of the column if it is contained within the
        provided vector or column.
 
        Arguments:
@@ -1396,7 +1518,8 @@ type Column
                 set = Set.from_vector as_vector error_on_duplicates=False
                 run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
-    ## Parses a text column into values.
+    ## GROUP Standard.Base.Conversions
+       Parses a text column into values.
 
        In the Database backends, the default formatting settings of the
        particular database are used.
@@ -1490,7 +1613,8 @@ type Column
                 parser.parseColumn self.name storage
             Column.Value (Java_Column.new self.name new_storage)
 
-    ## Format a `Column` using a format string (or `Column` of format strings).
+    ## GROUP Standard.Base.Conversions
+       Format a `Column` using a format string (or `Column` of format strings).
 
        Arguments:
        - format: The type-dependent format string to use to format the values.
@@ -1593,7 +1717,8 @@ type Column
             _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
         new_column
 
-    ## Cast the column to a specific type.
+    ## GROUP Standard.Base.Conversions
+       Cast the column to a specific type.
 
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
@@ -1649,7 +1774,7 @@ type Column
             on_problems.attach_problems_before problems <|
                 Column.from_storage self.name new_storage
 
-    ## ALIAS Transform Column
+    ## ALIAS transform column
 
        Applies `function` to each item in this column and returns the column
        of results.
@@ -1658,6 +1783,18 @@ type Column
        - function: The function to apply to each element of `self` column.
        - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
          `Nothing` values will be passed to the `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Multiply each element of the column by itself.
@@ -1665,13 +1802,13 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Boolean -> Column
-    map self function skip_nothing=True =
+    map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    map self function skip_nothing=True expected_value_type=Auto =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map new_fn
-        Column.from_vector self.name new_st
+        Column.from_vector self.name new_st value_type=expected_value_type
 
-    ## ALIAS Transform Columns
+    ## ALIAS transform columns
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1685,6 +1822,18 @@ type Column
          the value in either column is missing and automatically append
          `Nothing` to the result table. If set to `False`, every pair of values
          is passed to `function`.
+       - expected_value_type: The expected value type of the resulting column.
+         If `Auto`, the value type will be inferred from the values returned by
+         `function`.
+
+       ! Error Conditions
+
+         - If any of the values returned by `function` do not fit the expected
+           value type, an `Invalid_Value_Type` error is raised.
+         - If the `function` raises a dataflow error on any row, the first such
+           error is propagated.
+         - If an invocation of the `function` returns a value with warnings,
+           these warnings are attached to the overall result.
 
        > Example
          Zip two columns together as pairs.
@@ -1693,8 +1842,8 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
-    zip self that function skip_nothing=True =
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    zip self that function skip_nothing=True expected_value_type=Auto =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -1704,9 +1853,10 @@ type Column
             False -> function
         new_name = naming_helper.binary_operation_name "x" self that
         vec = self.to_vector.zip that.to_vector new_fn
-        Column.from_vector new_name vec
+        Column.from_vector new_name vec value_type=expected_value_type
 
-    ## Returns a new column, containing the same elements as `self`, but with
+    ## GROUP Standard.Base.Metadata
+       Returns a new column, containing the same elements as `self`, but with
        the given name.
 
        Arguments:
@@ -1723,7 +1873,8 @@ type Column
         Illegal_Argument.handle_java_exception <|
             Column.Value (self.java_column.rename name)
 
-    ## Returns the name of this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the name of this column.
 
        > Example
          Get the name of a column.
@@ -1734,7 +1885,8 @@ type Column
     name : Text
     name self = self.java_column.getName
 
-    ## Returns the length of this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the length of this column.
 
        > Example
          Get the length of a column.
@@ -1745,7 +1897,8 @@ type Column
     length : Integer
     length self = self.java_column . getSize
 
-    ## Returns the number of missing items in this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of missing items in this column.
 
        > Example
          Count the number of missing values in a column.
@@ -1756,7 +1909,8 @@ type Column
     count_nothing : Integer
     count_nothing self = self.java_column.getStorage.countMissing
 
-    ## Returns the number of non-null items in this column.
+    ## GROUP Standard.Base.Metadata
+       Returns the number of non-null items in this column.
 
        > Example
          Count the number of not missing values in a column.
@@ -1767,7 +1921,8 @@ type Column
     count : Integer
     count self = self.length - self.count_nothing
 
-    ## Returns the value contained in this column at the given index.
+    ## GROUP Standard.Base.Selections
+       Returns the value contained in this column at the given index.
 
        Arguments:
        - index: The index in the column from which to get the value.
@@ -1798,7 +1953,8 @@ type Column
     read self max_rows=Nothing =
         if max_rows.is_nothing then self else self.slice 0 max_rows
 
-    ## Returns a vector containing all the elements in this column.
+    ## GROUP Standard.Base.Conversions
+       Returns a vector containing all the elements in this column.
 
        > Example
          Get the elements of a column as a vector.
@@ -1809,7 +1965,8 @@ type Column
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList
 
-    ## Returns the `Value_Type` associated with that column.
+    ## GROUP Standard.Base.Metadata
+       Returns the `Value_Type` associated with that column.
 
        The value type determines what type of values the column is storing and
        what operations are permitted.
@@ -1858,7 +2015,8 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## Returns a Table describing this column's contents.
+    ## GROUP Standard.Base.Metadata
+       Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
@@ -1866,6 +2024,7 @@ type Column
     info self = self.to_table.info
 
     ## ALIAS order_by
+       GROUP Standard.Base.Selections
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -1922,7 +2081,8 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## Creates a new Column with the specified range of rows from the input
+    ## GROUP Standard.Base.Selections
+       Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -1932,7 +2092,8 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## Creates a new Column from the input with the specified range of rows
+    ## GROUP Standard.Base.Selections
+       Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:
@@ -1951,7 +2112,8 @@ type Column
         limit = ((end - offset).min (length - offset)).max 0
         Column.Value (self.java_column.slice offset limit)
 
-    ## Returns the first element in the column, if it exists.
+    ## GROUP Standard.Base.Selections
+       Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
@@ -1965,7 +2127,8 @@ type Column
     first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Returns the last element in the column, if it exists.
+    ## GROUP Standard.Base.Selections
+       Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
@@ -1979,7 +2142,8 @@ type Column
     last : Any ! Index_Out_Of_Bounds
     last self = self.at (self.length - 1)
 
-    ## Returns a column containing the values of `self` column with their order
+    ## GROUP Standard.Base.Selections
+       Returns a column containing the values of `self` column with their order
        reversed.
 
        > Example
@@ -1993,7 +2157,8 @@ type Column
         mask = OrderBuilder.buildReversedMask self.length
         Column.Value (self.java_column.applyMask mask)
 
-    ## Returns a column of numbers, in which every entry denotes how many times
+    ## GROUP Standard.Base.Metadata
+       Returns a column of numbers, in which every entry denotes how many times
        the value at the given position occured before.
 
        > Example

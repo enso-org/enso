@@ -279,9 +279,6 @@
     "name":"org.enso.compiler.pass.resolve.TypeSignatures$Signature"
   },
   {
-    "name":"org.enso.data.Shifted"
-  },
-  {
     "name":"org.enso.pkg.QualifiedName"
   },
   {
