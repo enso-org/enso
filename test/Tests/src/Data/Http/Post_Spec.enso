@@ -69,6 +69,12 @@ spec =
             response.at "headers" . at "Content-Length" . should_equal "24"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
+        Test.specify "Can perform a Text POST with explicit content type" <|
+            response = Data.post url_post (Post_Request_Body.Text 'a,b,c\n' sdcontent_type="text/csv")
+            response.at "data" . should_equal 'a,b,c\n'
+            response.at "headers" . at "Content-Length" . should_equal "6"
+            response.at "headers" . at "Content-Type" . should_equal "text/csv"
+
     Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"

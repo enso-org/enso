@@ -9,7 +9,7 @@ type Post_Request_Body
 
        Arguments:
        - text: The plain text in the request body.
-    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_Type:Text="application/json")
+    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_type:Text="text/plain")
 
     ## Request body with an object to be sent as JSON.
 
