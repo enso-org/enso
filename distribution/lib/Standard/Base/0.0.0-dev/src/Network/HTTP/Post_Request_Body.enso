@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.System.File.File
 
 ## The HTTP POST request body.
 type Post_Request_Body
@@ -14,5 +15,11 @@ type Post_Request_Body
     ## Request body with an object to be sent as JSON.
 
        Arguments:
-       - x: The object to convert to JSON using `.to_json`
+       - x: The object to convert to JSON using `.to_json`.
     Json (x:Any)
+
+    ## Request body with an object to be sent as a binary file.
+
+       Arguments:
+       - file: The file to send.
+    Binary (file:File)

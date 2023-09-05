@@ -29,6 +29,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpResponse
+polyglot java import java.nio.file.Path
 
 ## ALIAS load, open
    GROUP Input
@@ -219,6 +220,10 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
                 json = x.to_json
                 json.if_not_error <|
                     body_publishers.ofString json
+            Post_Request_Body.Binary file ->
+                builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                path = Path.of file.path
+                body_publishers.ofFile path
             _ ->
                 Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + post_request_body.to_display_text + "; this is a bug in the Data library"))
 
