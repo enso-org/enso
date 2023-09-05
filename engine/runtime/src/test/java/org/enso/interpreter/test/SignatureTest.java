@@ -139,6 +139,12 @@ public class SignatureTest extends TestBase {
     } catch (PolyglotException e) {
       assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
     }
+    try {
+      var secondError = someHello.invokeMember("value");
+      fail("not expecting any value again: " + secondError);
+    } catch (PolyglotException e) {
+      assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
+    }
   }
 
   @Test
