@@ -6,9 +6,7 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
-import org.enso.table.data.column.operation.map.numeric.LongComparison;
-import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
+import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
@@ -25,7 +23,6 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public abstract long getItem(int idx);
