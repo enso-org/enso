@@ -47,6 +47,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   private final Type[] expectedTypes;
   @CompilerDirectives.CompilationFinal
   private String expectedTypeMessage;
+  @CompilerDirectives.CompilationFinal
   private LazyCheckRootNode lazyCheck;
 
   ReadArgumentCheckNode(String name, Type[] expectedTypes) {
