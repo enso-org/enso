@@ -2,8 +2,12 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Function
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.SuspendedArguments
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -32,14 +36,14 @@ class SuspendedArgumentsTest extends CompilerTest {
     *
     * @param ir the IR to add the extension method to
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Resolves suspended arguments in [[ir]].
       *
       * @param moduleContext the context in which resolution is taking place
       * @return [[ir]], with all suspended arguments resolved
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       SuspendedArguments.runModule(ir, moduleContext)
     }
   }
@@ -49,14 +53,14 @@ class SuspendedArgumentsTest extends CompilerTest {
     *
     * @param ir the expression to add the extension method to
     */
-  implicit class ResolveExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: Expression) {
 
     /** Resolves suspended arguments in [[ir]].
       *
       * @param inlineContext the context in which resolution is taking place
       * @return [[ir]], with all suspended arguments resolved
       */
-    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): Expression = {
       SuspendedArguments.runExpression(ir, inlineContext)
     }
   }
@@ -91,9 +95,9 @@ class SuspendedArgumentsTest extends CompilerTest {
           |Any.id : Suspended -> a
           |Any.id self a = a
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Method]
+          .asInstanceOf[definition.Method]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
 
       bodyLam.arguments.length shouldEqual 2
       assert(
@@ -118,17 +122,17 @@ class SuspendedArgumentsTest extends CompilerTest {
           |
           |    lazy_id a
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Method]
+          .asInstanceOf[definition.Method]
 
       val bodyBlock = ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
 
       val lazyId = bodyBlock.expressions.head
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
       assert(lazyId.arguments.head.suspended, "x was not suspended")
     }
@@ -141,9 +145,9 @@ class SuspendedArgumentsTest extends CompilerTest {
           |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
           |File.with_output_stream open_options action = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Method.Explicit]
+          .asInstanceOf[definition.Method.Explicit]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
 
       bodyLam.arguments.length shouldEqual 3
 
@@ -158,9 +162,9 @@ class SuspendedArgumentsTest extends CompilerTest {
         """File.from : Text -> Suspended -> Any
           |File.from (that : Text) config=Nothing = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Method.Conversion]
+          .asInstanceOf[definition.Method.Conversion]
 
-      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val bodyLam = ir.body.asInstanceOf[Function.Lambda]
       val args    = bodyLam.arguments
 
       args.length shouldEqual 3
@@ -175,9 +179,9 @@ class SuspendedArgumentsTest extends CompilerTest {
         """File.from (~that : Text) = undefined
           |""".stripMargin.preprocessModule.resolve.bindings.head
 
-      ir shouldBe an[IR.Error.Conversion]
-      ir.asInstanceOf[IR.Error.Conversion]
-        .reason shouldBe an[IR.Error.Conversion.SuspendedSourceArgument]
+      ir shouldBe an[errors.Conversion]
+      ir.asInstanceOf[errors.Conversion]
+        .reason shouldBe an[errors.Conversion.SuspendedSourceArgument]
     }
 
     "work for local functions applications" in {
@@ -190,12 +194,12 @@ class SuspendedArgumentsTest extends CompilerTest {
           |
           |foo 1 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
-          .asInstanceOf[Method]
+          .asInstanceOf[definition.Method]
 
       val lam = ir.body
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       val bodyBlock = lam.body
-        .asInstanceOf[IR.Application.Prefix]
+        .asInstanceOf[Application.Prefix]
 
       lam.arguments.length shouldEqual 2
       lam.arguments(1).suspended shouldBe true
@@ -213,12 +217,12 @@ class SuspendedArgumentsTest extends CompilerTest {
           |f : A -> Suspended -> B
           |f a b = b
           |""".stripMargin.preprocessExpression.get.resolve
-          .asInstanceOf[IR.Expression.Block]
+          .asInstanceOf[Expression.Block]
 
       val func = ir.returnValue
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
       assert(!func.arguments.head.suspended, "a is suspended")
       assert(func.arguments(1).suspended, "b is not suspended")
     }
@@ -231,8 +235,8 @@ class SuspendedArgumentsTest extends CompilerTest {
           |(x -> y -> y + x) : Suspended -> a -> a
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      val lam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
+      val lam = ir.asInstanceOf[Function.Lambda]
       assert(lam.arguments.head.suspended, "x is not suspended")
       assert(!lam.arguments(1).suspended, "y is suspended")
     }
@@ -249,15 +253,15 @@ class SuspendedArgumentsTest extends CompilerTest {
           |    f 100 50
           |""".stripMargin.preprocessExpression.get.resolve
 
-      ir shouldBe an[IR.Function.Lambda]
-      val lam = ir.asInstanceOf[IR.Function.Lambda]
+      ir shouldBe an[Function.Lambda]
+      val lam = ir.asInstanceOf[Function.Lambda]
       val f = lam.body
-        .asInstanceOf[IR.Expression.Block]
+        .asInstanceOf[Expression.Block]
         .expressions
         .head
-        .asInstanceOf[IR.Expression.Binding]
+        .asInstanceOf[Expression.Binding]
         .expression
-        .asInstanceOf[IR.Function.Lambda]
+        .asInstanceOf[Function.Lambda]
 
       assert(!f.arguments.head.suspended, "a was suspended")
       assert(f.arguments(1).suspended, "b was not suspended")

@@ -1,7 +1,7 @@
 package org.enso.compiler.pass
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.CompilerError
 
 // TODO [AA] In the future, the pass ordering should be _computed_ from the list
@@ -53,22 +53,22 @@ class PassManager(
     passes
   }
 
-  /** Executes all pass groups on the [[IR.Module]].
+  /** Executes all pass groups on the [[Module]].
     *
     * @param ir the module to execute the compiler passes on
     * @param moduleContext the module context in which the passes are executed
     * @return the result of executing `passGroup` on `ir`
     */
   def runPassesOnModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     passes.foldLeft(ir)((ir, group) =>
       runPassesOnModule(ir, moduleContext, group)
     )
   }
 
-  /** Executes the provided `passGroup` on the [[IR.Module]].
+  /** Executes the provided `passGroup` on the [[Module]].
     *
     * @param ir the module to execute the compiler passes on
     * @param moduleContext the module context in which the passes are executed
@@ -76,10 +76,10 @@ class PassManager(
     * @return the result of executing `passGroup` on `ir`
     */
   def runPassesOnModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext,
     passGroup: PassGroup
-  ): IR.Module = {
+  ): Module = {
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
     }
@@ -103,22 +103,22 @@ class PassManager(
     }
   }
 
-  /** Executes all passes on the [[IR.Expression]].
+  /** Executes all passes on the [[Expression]].
     *
     * @param ir the expression to execute the compiler passes on
     * @param inlineContext the inline context in which the passes are executed
     * @return the result of executing `passGroup` on `ir`
     */
   def runPassesInline(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     passes.foldLeft(ir)((ir, group) =>
       runPassesInline(ir, inlineContext, group)
     )
   }
 
-  /** Executes the provided `passGroup` on the [[IR.Expression]].
+  /** Executes the provided `passGroup` on the [[Expression]].
     *
     * @param ir the expression to execute the compiler passes on
     * @param inlineContext the inline context in which the passes are executed
@@ -126,10 +126,10 @@ class PassManager(
     * @return the result of executing `passGroup` on `ir`
     */
   def runPassesInline(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext,
     passGroup: PassGroup
-  ): IR.Expression = {
+  ): Expression = {
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
     }
@@ -188,7 +188,7 @@ class PassManager(
     * @return the result of updating metadata in `copyOfIr` globally using
     *         information from `sourceIr`
     */
-  def runMetadataUpdate(sourceIr: IR.Module, copyOfIr: IR.Module): IR.Module = {
+  def runMetadataUpdate(sourceIr: Module, copyOfIr: Module): Module = {
     allPasses.foldLeft(copyOfIr) { (module, pass) =>
       pass.updateMetadataInDuplicate(sourceIr, module)
     }

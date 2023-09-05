@@ -12,7 +12,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.SerializationManager;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Module;
@@ -60,10 +60,11 @@ public interface CompilerContext {
 
   void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
 
-  void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, IR.Module ir);
+  void truffleRunCodegen(
+      Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir);
 
   ExpressionNode truffleRunInline(
-      Source source, LocalScope localScope, Module module, CompilerConfig config, IR.Expression ir);
+      Source source, LocalScope localScope, Module module, CompilerConfig config, Expression ir);
 
   // module related
 
@@ -91,7 +92,7 @@ public interface CompilerContext {
 
   boolean hasCrossModuleLinks(Module module);
 
-  IR.Module getIr(Module module);
+  org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
 
@@ -100,7 +101,7 @@ public interface CompilerContext {
   <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
 
   public static interface Updater {
-    void ir(IR.Module ir);
+    void ir(org.enso.compiler.core.ir.Module ir);
 
     void compilationStage(CompilationStage stage);
 

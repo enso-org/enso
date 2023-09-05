@@ -22,4 +22,8 @@ export class Rect {
   center(): Vec2 {
     return this.pos.addScaled(this.size, 0.5)
   }
+
+  rangeX(): [number, number] {
+    return [this.pos.x, this.pos.x + this.size.x]
+  }
 }

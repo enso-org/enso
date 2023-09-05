@@ -2,7 +2,20 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Case.Branch
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Pattern,
+  Type
+}
+import org.enso.compiler.core.ir.expression.{Case, Comment, Error}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.module.scope.Export
+import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -39,9 +52,9 @@ case object DocumentationComments extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = resolveModule(ir)
+  ): Module = resolveModule(ir)
 
   /** Collects comments for an expression.
     *
@@ -52,9 +65,9 @@ case object DocumentationComments extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = resolveExpression(ir)
+  ): Expression = resolveExpression(ir)
 
   /** @inheritdoc */
 
@@ -65,14 +78,14 @@ case object DocumentationComments extends IRPass {
     * @param ir the IR node to resolve comments in
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
-  private def resolveExpression(ir: IR.Expression): IR.Expression =
+  private def resolveExpression(ir: Expression): Expression =
     ir.transformExpressions({
-      case block: IR.Expression.Block =>
+      case block: Expression.Block =>
         val newLines       = resolveList(block.expressions :+ block.returnValue)
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
         block.copy(expressions = newExpressions, returnValue = newReturn)
-      case caseExpr: IR.Case.Expr =>
+      case caseExpr: Case.Expr =>
         val newScrutinee = resolveExpression(caseExpr.scrutinee)
         val newBranches  = resolveBranches(caseExpr.branches)
         caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
@@ -85,11 +98,11 @@ case object DocumentationComments extends IRPass {
     * @return `items`, with any doc comments associated with nodes as metadata
     */
   private def resolveList[T <: IR](items: List[T]): List[T] = {
-    var lastDoc: Option[IR.Comment.Documentation] = None
+    var lastDoc: Option[Comment.Documentation] = None
     items.flatMap {
-      case annotation: IR.Name.Annotation =>
+      case annotation: Name.Annotation =>
         Some(annotation.asInstanceOf[T])
-      case doc: IR.Comment.Documentation =>
+      case doc: Comment.Documentation =>
         lastDoc = Some(doc)
         None
       case other =>
@@ -108,13 +121,13 @@ case object DocumentationComments extends IRPass {
     * @param items the list of branches
     * @return `items`, with any doc comments associated with nodes as metadata
     */
-  private def resolveBranches(items: Seq[Branch]): Seq[Branch] = {
+  private def resolveBranches(items: Seq[Case.Branch]): Seq[Case.Branch] = {
     var lastDoc: Option[String] = None
     items.flatMap {
-      case Branch(IR.Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
+      case Case.Branch(Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
         lastDoc = Some(doc)
         None
-      case branch @ Branch(pattern, expression, _, _, _, _) =>
+      case branch @ Case.Branch(pattern, expression, _, _, _, _) =>
         val resolved =
           branch.copy(
             pattern    = pattern.mapExpressions(resolveExpression),
@@ -135,29 +148,29 @@ case object DocumentationComments extends IRPass {
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
   private def resolveDefinition(
-    ir: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition =
+    ir: Definition
+  ): Definition =
     ir match {
-      case _: IR.Module.Scope.Definition.Method.Conversion =>
+      case _: definition.Method.Conversion =>
         throw new CompilerError(
           "Conversion methods should not yet be present in the compiler " +
           "pipeline."
         )
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: Definition.Type =>
         throw new CompilerError(
           "Union types should not yet be present in the compiler pipeline."
         )
-      case method: IR.Module.Scope.Definition.Method.Binding =>
+      case method: definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: definition.Method.Explicit =>
         method.copy(body = resolveExpression(method.body))
-      case tpe: IR.Module.Scope.Definition.SugaredType =>
+      case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation  => doc
-      case tySig: IR.Type.Ascription      => tySig
-      case err: IR.Error                  => err
-      case ann: IR.Name.GenericAnnotation => ann
-      case _: IR.Name.BuiltinAnnotation =>
+      case doc: Comment.Documentation  => doc
+      case tySig: Type.Ascription      => tySig
+      case err: Error                  => err
+      case ann: Name.GenericAnnotation => ann
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "documentation comment resolution."
@@ -169,7 +182,7 @@ case object DocumentationComments extends IRPass {
     * @param ir the module to resolve comments in
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
-  private def resolveModule(ir: IR.Module): IR.Module = {
+  private def resolveModule(ir: Module): Module = {
     // All entities that came from source (the only ones we care about).
     val allModuleEntities: List[IR] =
       (ir.imports ++ ir.exports ++ ir.bindings)
@@ -188,7 +201,7 @@ case object DocumentationComments extends IRPass {
           leftLocation.start < rightLocation.start
         }
     val newBindings = (allModuleEntities.headOption match {
-      case Some(doc: IR.Comment.Documentation) =>
+      case Some(doc: Comment.Documentation) =>
         ir.updateMetadata(this -->> Doc(doc.doc))
         resolveList(ir.bindings.drop(1))
       case _ => resolveList(ir.bindings)
@@ -203,15 +216,15 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: IR.Module                     => resolveModule(module)
-      case expr: IR.Expression                   => resolveExpression(expr)
-      case df: IR.Module.Scope.Definition        => resolveDefinition(df)
-      case data: IR.Module.Scope.Definition.Data => data
-      case imp: IR.Module.Scope.Import           => imp
-      case exp: IR.Module.Scope.Export.Module    => exp
-      case arg: IR.CallArgument                  => arg
-      case arg: IR.DefinitionArgument            => arg
-      case pat: IR.Pattern                       => pat
+      case module: Module          => resolveModule(module)
+      case expr: Expression        => resolveExpression(expr)
+      case df: Definition          => resolveDefinition(df)
+      case data: Definition.Data   => data
+      case imp: Import             => imp
+      case exp: Export.Module      => exp
+      case arg: CallArgument       => arg
+      case arg: DefinitionArgument => arg
+      case pat: Pattern            => pat
     }
 
   // === Metadata =============================================================

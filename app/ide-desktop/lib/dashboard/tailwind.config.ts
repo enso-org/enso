@@ -36,6 +36,9 @@ export const theme = {
             share: '#64b526',
             inversed: '#ffffff',
             delete: 'rgba(243, 24, 10, 0.87)',
+            v3: '#252423',
+            youtube: '#c62421',
+            discord: '#404796',
             dim: 'rgba(0, 0, 0, 0.25)',
             frame: 'rgba(255, 255, 255, 0.40)',
             'frame-selected': 'rgba(255, 255, 255, 0.70)',
@@ -59,6 +62,8 @@ export const theme = {
         fontSize: {
             xs: '0.71875rem',
             sm: '0.8125rem',
+            xl: '1.1875rem',
+            '4xl': '2.375rem',
         },
         lineHeight: {
             '144.5': '144.5%',
@@ -70,17 +75,22 @@ export const theme = {
             '1.75': '0.4375rem',
             '2.25': '0.5625rem',
             '3.25': '0.8125rem',
+            '3.5': '0.875rem',
             '4.5': '1.125rem',
             '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '6.5': '1.625rem',
             '9.5': '2.375rem',
+            '9.75': '2.4375rem',
             '13': '3.25rem',
             '18': '4.5rem',
+            '25': '6.25rem',
             '29': '7.25rem',
             '30': '7.5rem',
             '30.25': '7.5625rem',
             '42': '10.5rem',
+            '45': '11.25rem',
+            '51': '12.75rem',
             '51.5': '12.875rem',
             '54': '13.5rem',
             '57.5': '14.375rem',
@@ -114,24 +124,6 @@ export const theme = {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
-            'soft-dark': `0 0.5px 2.2px 0px #00000010, 0 1.2px 5.3px 0px #00000014, \
-0 2.3px 10px 0 #0000001c, 0 4px 18px 0 #00000022, 0 7.5px 33.4px 0 #00000028, \
-0 18px 80px 0 #00000038`,
-            'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
-inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
-inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
-inset 0 36px 51px -51px #00000014`,
-            'inset-b-lg': `inset 0 -1px 1.4px -1.4px #00000002, \
-inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
-inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
-inset 0 -36px 51px -51px #00000014`,
-            'inset-v-lg': `inset 0 1px 1.4px -1.4px #00000002, \
-inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
-inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
-inset 0 36px 51px -51px #00000014, inset 0 -1px 1.4px -1.4px #00000002, \
-inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
-inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
-inset 0 -36px 51px -51px #00000014`,
         },
         animation: {
             'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
@@ -151,6 +143,7 @@ inset 0 -36px 51px -51px #00000014`,
         },
         gridTemplateColumns: {
             'fill-60': 'repeat(auto-fill, minmax(15rem, 1fr))',
+            'fill-75': 'repeat(auto-fill, minmax(18.75rem, 1fr))',
         },
     },
 }

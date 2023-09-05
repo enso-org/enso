@@ -59,8 +59,9 @@
 body {
   min-height: 100vh;
   color: var(--color-text);
-  /* FIXME[sb]: Temporary. */
-  background: #2228;
+  /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
+  background: #e4d4be;
+  background: var(--color-background);
   transition:
     color 0.5s,
     background-color 0.5s;

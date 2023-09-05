@@ -1,15 +1,186 @@
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { defineStore } from 'pinia'
 import { map, set } from 'lib0'
 import { Vec2 } from '@/util/vec2'
-import { assertNever } from '@/util/assert'
+import { assertNever, assert } from '@/util/assert'
+import { useProjectStore } from './project'
+import * as Y from 'yjs'
+import { useObserveYjs, useObserveYjsDeep } from '@/util/crdt'
+import {
+  rangeEncloses,
+  type ContentRange,
+  type ExprId,
+  type IdMap,
+  type NodeMetadata,
+} from '../../shared/yjs-model'
+import type { Opt } from '@/util/opt'
 
 export const useGraphStore = defineStore('graph', () => {
-  let nextId = 1n
-  const nodes = reactive(new Map<NodeId, Node>())
+  const proj = useProjectStore()
 
-  const identDefinitions = reactive(new Map<string, NodeId>())
+  proj.setProjectName('test')
+  proj.setObservedFileName('Main.enso')
+
+  let text = computed(() => proj.module?.contents)
+  let metadata = computed(() => proj.module?.metadata)
+
+  const nodes = reactive(new Map<ExprId, Node>())
+  const exprNodes = reactive(new Map<ExprId, ExprId>())
+
+  useObserveYjs(text, (event) => {
+    readState()
+  })
+
+  watch(text, (value) => {
+    if (value != null) readState()
+  })
+
+  const _parsed = ref([] as Statement[])
+
+  function readState() {
+    if (proj.module == null) return
+    const idMap = proj.module.getIdMap()
+    const meta = proj.module.metadata
+    const text = proj.module.contents
+    const textContent = text.toString()
+    const parsed = parseBlock(0, textContent, idMap)
+    _parsed.value = parsed
+
+    const accessed = idMap.accessedSoFar()
+
+    for (const nodeId of nodes.keys()) {
+      if (!accessed.has(nodeId)) {
+        nodeDeleted(nodeId)
+      }
+    }
+    for (const stmt of parsed) {
+      const nodeMeta = meta.get(stmt.id)
+      nodeInsertedOrUpdated(stmt, text, textContent, nodeMeta)
+    }
+
+    idMap.finishAndSynchronize()
+  }
+
+  useObserveYjs(metadata, (event) => {
+    const meta = event.target
+    for (const [id, op] of event.changes.keys) {
+      if (op.action === 'update') {
+        const data = meta.get(id)
+        let node = nodes.get(id as ExprId)
+        if (data != null && node != null) {
+          const pos = new Vec2(data.x, data.y)
+          if (!node.position.equals(pos)) {
+            node.position = pos
+          }
+        }
+      }
+    }
+  })
+
+  const identDefinitions = reactive(new Map<string, ExprId>())
   const identUsages = reactive(new Map<string, Set<ExprId>>())
+
+  function nodeInsertedOrUpdated(
+    stmt: Statement,
+    text: Y.Text,
+    moduleContent: string,
+    meta: Opt<NodeMetadata>,
+  ) {
+    const id = stmt.id
+    let node = nodes.get(id)
+    const content = moduleContent.substring(
+      stmt.exprOffset,
+      stmt.exprOffset + stmt.expression.length,
+    )
+    if (node == null) {
+      node = {
+        content,
+        binding: stmt.binding ?? '',
+        rootSpan: stmt.expression,
+        position: meta == null ? Vec2.Zero() : new Vec2(meta.x, meta.y),
+        docRange: [
+          Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
+          Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
+        ],
+      }
+      identDefinitions.set(node.binding, id)
+      addSpanUsages(id, node)
+      nodes.set(id, node)
+    } else {
+      clearSpanUsages(id, node)
+      if (node.content !== content) {
+        node.content = content
+        for (let [span, offset] of walkSpansBfs(stmt.expression, stmt.exprOffset)) {
+          if (span.kind === SpanKind.Ident) {
+            let ident = moduleContent.substring(offset, offset + span.length)
+            map.setIfUndefined(identUsages, ident, set.create).add(span.id)
+            exprNodes.set(span.id, id)
+          }
+        }
+      }
+      if (node.binding !== stmt.binding) {
+        identDefinitions.delete(node.binding)
+        node.binding = stmt.binding ?? ''
+        identDefinitions.set(node.binding, id)
+      }
+      if (node.rootSpan.id === stmt.expression.id) {
+        patchSpan(node.rootSpan, stmt.expression)
+      } else {
+        node.rootSpan = stmt.expression
+      }
+      if (meta != null && !node.position.equals(new Vec2(meta.x, meta.y))) {
+        node.position = new Vec2(meta.x, meta.y)
+      }
+    }
+
+    addSpanUsages(id, node)
+  }
+
+  function addSpanUsages(id: ExprId, node: Node) {
+    for (let [span, offset] of walkSpansBfs(node.rootSpan)) {
+      exprNodes.set(span.id, id)
+      let ident = node.content.substring(offset, offset + span.length)
+      if (span.kind === SpanKind.Ident) {
+        map.setIfUndefined(identUsages, ident, set.create).add(span.id)
+      }
+    }
+  }
+
+  function clearSpanUsages(id: ExprId, node: Node) {
+    for (let [span, offset] of walkSpansBfs(node.rootSpan)) {
+      exprNodes.delete(span.id)
+      if (span.kind === SpanKind.Ident) {
+        let ident = node.content.substring(offset, offset + span.length)
+        let usages = identUsages.get(ident)
+        if (usages != null) {
+          usages.delete(span.id)
+          if (usages.size === 0) {
+            identUsages.delete(ident)
+          }
+        }
+      }
+    }
+  }
+
+  function nodeDeleted(id: ExprId) {
+    const node = nodes.get(id)
+    nodes.delete(id)
+    if (node != null) {
+      identDefinitions.delete(node.binding)
+      clearSpanUsages(id, node)
+    }
+  }
+
+  function patchSpan(span: Span, newSpan: Span) {
+    assert(span.id === newSpan.id)
+    // TODO: deep patching of children of matching ID
+    span.length = newSpan.length
+    span.kind = newSpan.kind
+    span.children = newSpan.children
+    // for (let i = 0; i < span.children.length; i++) {
+    //   patchSpan(span.children[i], newSpan.children[i])
+    // }
+  }
 
   function generateUniqueIdent() {
     let ident: string
@@ -31,117 +202,76 @@ export const useGraphStore = defineStore('graph', () => {
     return edges
   })
 
-  function createNode(position: Vec2): NodeId {
-    const id = nextId++ as NodeId
-    const node: Node = {
-      content: '',
-      binding: generateUniqueIdent(),
-      rootSpan: mkSpan(new Map(), id, SpanKind.Root, 0, 0),
-      position,
+  function createNode(position: Vec2): Opt<ExprId> {
+    const mod = proj.module
+    if (mod == null) return
+    const { contents } = mod
+
+    const meta: NodeMetadata = {
+      x: position.x,
+      y: position.y,
     }
-    nodes.set(id, node)
-    identDefinitions.set(node.binding, id)
-    return id
+    const ident = generateUniqueIdent()
+    const content = `${ident} = x`
+    return mod.insertNewNode(contents.length, content, meta)
   }
 
-  function setNodeContent(id: NodeId, content: string, idMap: IdMap = new Map()) {
-    const node = nodes.get(id)
-
-    if (node != null) {
-      for (let span of walkSpans(node.rootSpan)) {
-        if (span.kind === SpanKind.Ident) {
-          let ident = node.content.substring(span.range.start, span.range.end)
-          identUsages.get(ident)?.delete(span.id)
-        }
-      }
-      node.content = content
-      node.rootSpan = parseNodeExpression(id, node.content, idMap)
-
-      for (let span of walkSpans(node.rootSpan)) {
-        if (span.kind === SpanKind.Ident) {
-          let ident = node.content.substring(span.range.start, span.range.end)
-          map.setIfUndefined(identUsages, ident, set.create).add(span.id)
-        }
-      }
-    }
+  function deleteNode(id: ExprId) {
+    const mod = proj.module
+    if (mod == null) return
+    mod.setExpressionContent(id, '')
   }
 
-  function replaceNodeSubexpression(id: NodeId, range: ContentRange, content: string) {
+  function setNodeContent(id: ExprId, content: string) {
     const node = nodes.get(id)
     if (node == null) return
+    setExpressionContent(node.rootSpan.id, content)
+  }
 
-    const indexAdjust = content.length - (range.end - range.start)
-    const idMap = new Map()
+  function setExpressionContent(id: ExprId, content: string) {
+    proj.module?.setExpressionContent(id, content)
+  }
 
-    for (const span of walkSpans(node.rootSpan)) {
-      const adjustedRange: ContentRange = {
-        start: span.range.start >= range.end ? span.range.start + indexAdjust : span.range.start,
-        end: span.range.end >= range.end ? span.range.end + indexAdjust : span.range.end,
-      }
-      idMap.set(idMapKey(adjustedRange), span.id)
-    }
-
+  function replaceNodeSubexpression(id: ExprId, range: ContentRange, content: string) {
+    const node = nodes.get(id)
+    if (node == null) return
     const newContent =
-      node.content.substring(0, range.start) + content + node.content.substring(range.end)
-    setNodeContent(id, newContent, idMap)
+      node.content.substring(0, range[0]) + content + node.content.substring(range[1])
+    setExpressionContent(node.rootSpan.id, newContent)
   }
 
-  function updateNodeContentAutoDiff(id: NodeId, content: string) {
+  function setNodePosition(id: ExprId, position: Vec2) {
     const node = nodes.get(id)
     if (node == null) return
-    const commonPrefix = commonPrefixLength(node.content, content)
-    const commonSuffix = commonSuffixLength(node.content, content)
-    const updateRange = { start: commonPrefix, end: node.content.length - commonSuffix }
-    const updateContent = content.substring(commonPrefix, content.length - commonSuffix)
-    console.log(updateRange, updateContent)
-    replaceNodeSubexpression(id, updateRange, updateContent)
+    proj.module?.updateNodeMetadata(id, { x: position.x, y: position.y })
   }
 
   return {
+    _parsed,
     nodes,
+    exprNodes,
     edges,
+    identDefinitions,
+    identUsages,
     createNode,
+    deleteNode,
     setNodeContent,
+    setExpressionContent,
     replaceNodeSubexpression,
-    updateNodeContentAutoDiff,
+    setNodePosition,
   }
 })
-
-function commonPrefixLength(a: string, b: string): number {
-  const commonLen = Math.min(a.length, b.length)
-  for (let i = 0; i < commonLen; i++) {
-    if (a[i] !== b[i]) {
-      return i
-    }
-  }
-  return commonLen
-}
-
-function commonSuffixLength(a: string, b: string): number {
-  const commonLen = Math.min(a.length, b.length)
-  for (let i = 0; i < commonLen; i++) {
-    if (a[a.length - i - 1] !== b[b.length - i - 1]) {
-      return i
-    }
-  }
-  return commonLen
-}
 
 function randomString() {
   return Math.random().toString(36).substring(2, 10)
 }
-
-declare const BRAND_ExprId: unique symbol
-export type ExprId = bigint & { [BRAND_ExprId]: never }
-
-declare const BRAND_NodeId: unique symbol
-export type NodeId = bigint & { [BRAND_NodeId]: never }
 
 export interface Node {
   content: string
   binding: string
   rootSpan: Span
   position: Vec2
+  docRange: [Y.RelativePosition, Y.RelativePosition]
 }
 
 export const enum SpanKind {
@@ -175,32 +305,47 @@ export function spanKindName(kind: SpanKind): string {
 export interface Span {
   id: ExprId
   kind: SpanKind
-  range: ContentRange
+  length: number
   children: Span[]
 }
 
-function findSpanEnclosing(span: Span, range: ContentRange): Span | null {
-  let deepestSpan = null
-  for (let innerSpan of walkSpans(span, (s) => rangeEncloses(s.range, range))) {
-    if (rangeEncloses(innerSpan.range, range)) {
-      deepestSpan = innerSpan
+function findSpanEnclosing(
+  span: Span,
+  spanOffset: number,
+  range: ContentRange,
+): [Span, number] | null {
+  let deepestSpan: [Span, number] | null = null
+  for (let [innerSpan, offset] of walkSpansBfs(span, spanOffset, (s, offset) =>
+    rangeEncloses([offset, offset + s.length], range),
+  )) {
+    if (rangeEncloses([offset, offset + span.length], range)) {
+      deepestSpan = [innerSpan, offset]
     }
   }
   return deepestSpan
 }
 
-function walkSpans(span: Span, visitChildren?: (span: Span) => boolean): IterableIterator<Span> {
-  let stack: Span[] = [span]
+function walkSpansBfs(
+  span: Span,
+  offset: number = 0,
+  visitChildren?: (span: Span, offset: number) => boolean,
+): IterableIterator<[Span, number]> {
+  let stack: [Span, number][] = [[span, offset]]
   return {
     next() {
       if (stack.length === 0) {
         return { done: true, value: undefined }
       }
-      const span = stack.pop()!
-      if (visitChildren?.(span) !== false) {
-        stack.push(...span.children)
+      const [span, spanOffset] = stack.shift()!
+      if (visitChildren?.(span, spanOffset) !== false) {
+        let offset = spanOffset
+        for (let i = 0; i < span.children.length; i++) {
+          const child = span.children[i]
+          stack.push([child, offset])
+          offset += child.length
+        }
       }
-      return { done: false, value: span }
+      return { done: false, value: [span, spanOffset] }
     },
     [Symbol.iterator]() {
       return this
@@ -208,108 +353,109 @@ function walkSpans(span: Span, visitChildren?: (span: Span) => boolean): Iterabl
   }
 }
 
-export interface ContentRange {
-  start: number
-  end: number
-}
-
-function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
-  return a.start <= b.start && a.end >= b.end
-}
-
-export interface TargetEndpoint {
-  node: NodeId
-  port: ExprId
-}
-
 export interface Edge {
-  source: NodeId
+  source: ExprId
   target: ExprId
 }
 
-const NULL_ID: ExprId = 0n as ExprId
-
-let _nextExprId = 1n
-function nextExprId(node: NodeId): ExprId {
-  return ((node << 64n) | _nextExprId++) as ExprId
+interface Statement {
+  id: ExprId
+  binding: Opt<string>
+  exprOffset: number
+  expression: Span
 }
 
-type IdMap = Map<string, ExprId>
-function idMapKey(range: ContentRange) {
-  return `${range.start}-${range.end}`
+function parseBlock(offset: number, content: string, idMap: IdMap): Statement[] {
+  const stmtRegex = /^( *)(([a-zA-Z0-9_]+) *= *)?(.*)$/gm
+  const stmts: Statement[] = []
+  content.replace(stmtRegex, (stmt, ident, beforeExpr, binding, expr, index) => {
+    if (stmt.trim().length === 0) return stmt
+    const pos = offset + index + ident.length
+    const id = idMap.getOrInsertUniqueId([pos, pos + stmt.length])
+    const exprOffset = pos + (beforeExpr?.length ?? 0)
+    stmts.push({
+      id,
+      binding,
+      exprOffset,
+      expression: parseNodeExpression(exprOffset, expr, idMap),
+    })
+    return stmt
+  })
+  return stmts
 }
 
-function queryIdMap(idMap: IdMap, range: ContentRange): ExprId | undefined {
-  return idMap.get(idMapKey(range))
-}
-
-function parseNodeExpression(node: NodeId, content: string, idMap: IdMap): Span {
-  const root = mkSpanGroup(SpanKind.Root, 0)
+function parseNodeExpression(offset: number, content: string, idMap: IdMap): Span {
+  const root = mkSpanGroup(SpanKind.Root)
   let span: Span = root
-  const stack: Span[] = []
+  let spanOffset = offset
+  const stack: [Span, number][] = []
 
   const tokenRegex = /(?:(\".*?\"|[0-9]+\b)|(\s+)|([a-zA-Z0-9_]+)|(.))/g
   content.replace(tokenRegex, (token, tokLit, tokSpace, tokIdent, tokSymbol, index) => {
+    const pos = offset + index
     if (tokSpace != null) {
-      span.children.push(mkSpan(idMap, node, SpanKind.Spacing, index, token.length))
+      span.children.push(mkSpan(idMap, SpanKind.Spacing, pos, token.length))
     } else if (tokIdent != null) {
-      span.children.push(mkSpan(idMap, node, SpanKind.Ident, index, token.length))
+      span.children.push(mkSpan(idMap, SpanKind.Ident, pos, token.length))
     } else if (tokLit != null) {
-      span.children.push(mkSpan(idMap, node, SpanKind.Literal, index, token.length))
+      span.children.push(mkSpan(idMap, SpanKind.Literal, pos, token.length))
     } else if (tokSymbol != null) {
       if (token === '(') {
-        stack.push(span)
-        span = mkSpanGroup(SpanKind.Group, index)
+        stack.push([span, spanOffset])
+        span = mkSpanGroup(SpanKind.Group)
+        spanOffset = pos
       }
 
-      span.children.push(mkSpan(idMap, node, SpanKind.Token, index, token.length))
+      span.children.push(mkSpan(idMap, SpanKind.Token, pos, token.length))
 
       if (token === ')') {
         const popped = stack.pop()
         if (popped != null) {
-          finishSpanGroup(span, idMap, node)
-          popped.children.push(span)
-          span = popped
+          finishSpanGroup(span, idMap, spanOffset)
+          popped[0].children.push(span)
+          span = popped[0]
+          spanOffset = popped[1]
         }
       }
     }
-    return ''
+    return token
   })
 
   let popped
   while ((popped = stack.pop())) {
-    finishSpanGroup(span, idMap, node)
-    popped.children.push(span)
-    span = popped
+    finishSpanGroup(span, idMap, spanOffset)
+    popped[0].children.push(span)
+    span = popped[0]
+    spanOffset = popped[1]
   }
 
-  finishSpanGroup(root, idMap, node)
+  finishSpanGroup(root, idMap, offset)
   return root
 }
 
-function mkSpanGroup(kind: SpanKind, offset: number): Span {
+const NULL_ID: ExprId = '00000-' as ExprId
+
+function mkSpanGroup(kind: SpanKind): Span {
   return {
     id: NULL_ID,
     kind,
-    range: { start: offset, end: offset },
+    length: 0,
     children: [],
   }
 }
 
-function mkSpan(idMap: IdMap, node: NodeId, kind: SpanKind, offset: number, len: number): Span {
-  const range = { start: offset, end: offset + len }
+function mkSpan(idMap: IdMap, kind: SpanKind, offset: number, length: number): Span {
+  const range: ContentRange = [offset, offset + length]
   return {
-    id: queryIdMap(idMap, range) ?? nextExprId(node),
+    id: idMap.getOrInsertUniqueId(range),
     kind,
-    range,
+    length,
     children: [],
   }
 }
 
-function finishSpanGroup(span: Span, idMap: IdMap, node: NodeId) {
-  let lastChild = span.children[span.children.length - 1]
-  if (lastChild != null && lastChild != null) {
-    span.range.end = lastChild.range.end
-  }
-  span.id = queryIdMap(idMap, span.range) ?? nextExprId(node)
+function finishSpanGroup(span: Span, idMap: IdMap, offset: number) {
+  const totalLength = span.children.reduce((acc, child) => acc + child.length, 0)
+  span.length = totalLength
+  span.id = idMap.getOrInsertUniqueId([offset, offset + span.length])
 }

@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /**
  * A LongBuilder that does not need to check value ranges, because it stores 64-bit integers and no
@@ -18,8 +19,12 @@ public class LongBuilderUnchecked extends LongBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else {
-      long x = NumericConverter.coerceToLong(o);
-      data[currentSize++] = x;
+      try {
+        long x = NumericConverter.coerceToLong(o);
+        data[currentSize++] = x;
+      } catch (UnsupportedOperationException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
   }
 
