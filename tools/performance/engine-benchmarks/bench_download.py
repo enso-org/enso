@@ -92,7 +92,7 @@ since 2023-08-22.
 """
 STDLIBS_BENCH_WORKFLOW_ID = 66661001
 """
-Workflod ID of stdlibs benchmarks, got via `gh api 
+Workflow ID of stdlibs benchmarks, got via `gh api 
 '/repos/enso-org/enso/actions/workflows'`.
 The name is 'Benchmark Standard Libraries'
 """
