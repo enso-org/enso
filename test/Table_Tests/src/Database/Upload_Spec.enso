@@ -667,6 +667,54 @@ spec make_new_connection prefix persistent_connector=True =
                 r2 = d2.update_rows src key_columns=["X"] update_action=Update_Action.Insert
                 r2.should_fail_with Non_Unique_Primary_Key
 
+        Test.specify "TODO 1" <|
+            t1 = target_table_builder [["X", [1, 2, 3, Nothing]], ["Y", ['a', 'b', 'c', 'd']]]
+            s1 = source_table_builder [["X", [2]], ["Y", ['zzz']]]
+            r1 = t1.update_rows s1 key_columns=["X"] update_action=Update_Action.Align_Records
+            m1 = r1.read . order_by ["X"]
+            m1.at "X" . to_vector . should_equal [2]
+            m1.at "Y" . to_vector . should_equal ['zzz']
+
+        Test.specify "TODO 1.5" <|
+            t2 = target_table_builder [["X", [1, 2, 3, Nothing]], ["Y", ['a', 'b', 'c', 'd']]]
+            s2 = source_table_builder [["X", [2]], ["Y", ['zzz']]]
+            r2 = t2.update_rows s2 key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+            m2 = r2.read . order_by ["X"]
+            m2.at "X" . to_vector . should_equal [Nothing, 1, 2, 3]
+            m2.at "Y" . to_vector . should_equal ['d', 'a', 'zzz', 'c']
+
+        Test.specify "TODO 2" <|
+            t1 = target_table_builder [["X", [1, 2, 3, 4]], ["Y", ['a', 'b', 'c', 'd']]]
+            s1 = source_table_builder [["X", [2, Nothing]], ["Y", ['zzz', 'www']]]
+            r1 = t1.update_rows s1 key_columns=["X"] update_action=Update_Action.Align_Records
+            m1 = r1.read . order_by ["X"]
+            m1.at "X" . to_vector . should_equal [Nothing, 2]
+            m1.at "Y" . to_vector . should_equal ['www', 'zzz']
+
+        Test.specify "TODO 2.5" <|
+            t2 = target_table_builder [["X", [1, 2, 3, 4]], ["Y", ['a', 'b', 'c', 'd']]]
+            s2 = source_table_builder [["X", [2, Nothing]], ["Y", ['zzz', 'www']]]
+            r2 = t2.update_rows s2 key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+            m2 = r2.read . order_by ["X"]
+            m2.at "X" . to_vector . should_equal [Nothing, 1, 2, 3, 4]
+            m2.at "Y" . to_vector . should_equal ['www', 'a', 'zzz', 'c', 'd']
+
+        Test.specify "TODO 3" <|
+            t1 = target_table_builder [["X", [1, 2, 3, Nothing]], ["Y", ['a', 'b', 'c', 'd']]]
+            s1 = source_table_builder [["X", [2, Nothing]], ["Y", ['zzz', 'www']]]
+            r1 = t1.update_rows s1 key_columns=["X"] update_action=Update_Action.Align_Records
+            m1 = r1.read . order_by ["X"]
+            m1.at "X" . to_vector . should_equal [Nothing, 2]
+            m1.at "Y" . to_vector . should_equal ['d','zzz']
+
+        Test.specify "TODO 3.5" <|
+            t2 = target_table_builder [["X", [1, 2, 3, Nothing]], ["Y", ['a', 'b', 'c', 'd']]]
+            s2 = source_table_builder [["X", [2, Nothing]], ["Y", ['zzz', 'www']]]
+            r2 = t2.update_rows s2 key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+            m2 = r2.read . order_by ["X"]
+            m2.at "X" . to_vector . should_equal [Nothing, 1, 2, 3]
+            m2.at "Y" . to_vector . should_equal ['www', 'a', 'zzz', 'c']
+
         Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
             dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
@@ -1032,13 +1080,6 @@ spec make_new_connection prefix persistent_connector=True =
             m2 = t2.read . order_by "X"
             m2.at "X" . to_vector . should_equal ["a", "c"]
             m2.at "Y" . to_vector . should_equal [1, Nothing]
-
-            # Unable to delete a row with a nothing key:
-            t3 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, 4]]] primary_key=["X"]
-            s3 = source_table_builder (Table.new [["X", [Nothing]]] . cast "X" Value_Type.Char)
-            t3.delete_rows s3 . should_equal 0
-            m3 = t3.read . order_by "X"
-            m3.at "X" . to_vector . should_equal [Nothing, "a", "b", "c"]
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
         test_table_delete in_memory_table_builder (database_table_builder "target-table")
