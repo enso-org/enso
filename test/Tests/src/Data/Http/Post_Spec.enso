@@ -9,11 +9,11 @@ import Standard.Test.Extensions
 
 polyglot java import java.lang.System as Java_System
 
-type TestType
+type Test_Type
     Aaa (s:Text)
     Bbb (i:Integer)
 
-type BadToJson
+type Bad_To_Json
     Aaa (s:Text)
     to_json self = JS_Object.from_pairs [Pair.new [] 0]
 
@@ -32,7 +32,28 @@ spec =
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
-    Test.group "post" pending=pending_has_url <|
+        Test.specify "Can perform a Text POST" <|
+            response = Data.post url_post "hello world"
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Can perform a Post_Request_Body.Json POST" <|
+            response = Data.post url_post (Post_Request_Body.Json (Test_Type.Aaa "abc"))
+            response.at "data" . should_equal '{"type":"Test_Type","constructor":"Aaa","s":"abc"}'
+            response.at "headers" . at "Content-Length" . should_equal "50"
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Can perform am object JSON POST" <|
+            response = Data.post url_post (Test_Type.Bbb 12)
+            response.at "data" . should_equal '{"type":"Test_Type","constructor":"Bbb","i":12}'
+            response.at "headers" . at "Content-Length" . should_equal "47"
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "can handle a bad .to_json" <|
+            Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
+
+    Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
@@ -49,8 +70,8 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "application/json"
 
         Test.specify "Can perform an object .to_json POST" <|
-            response = Data.old_post url_post (TestType.Aaa "abcd")
-            response.at "data" . should_equal '{"type":"TestType","constructor":"Aaa","s":"abcd"}'
+            response = Data.old_post url_post (Test_Type.Aaa "abcd")
+            response.at "data" . should_equal '{"type":"Test_Type","constructor":"Aaa","s":"abcd"}'
             response.at "headers" . at "Content-Length" . should_equal "50"
             response.at "headers" . at "Content-Type" . should_equal "application/json"
 
@@ -85,12 +106,12 @@ spec =
             Data.old_post url_post body . at "headers" . at "Content-Type" . should_equal "text/plain"
             Data.old_post url_post body mime_type="text/plain" . at "headers" . at "Content-Type" . should_equal "text/plain"
             Data.old_post url_post body mime_type="application/json" . at "headers" . at "Content-Type" . should_equal "application/json"
-            Data.old_post url_post (TestType.Aaa "abcd") . at "headers" . at "Content-Type" . should_equal "application/json"
-            Data.old_post url_post (TestType.Bbb 123) . at "headers" . at "Content-Type" . should_equal "application/json"
+            Data.old_post url_post (Test_Type.Aaa "abcd") . at "headers" . at "Content-Type" . should_equal "application/json"
+            Data.old_post url_post (Test_Type.Bbb 123) . at "headers" . at "Content-Type" . should_equal "application/json"
             Data.old_post url_post (Request_Body.Text "abcd") . at "headers" . at "Content-Type" . should_equal "text/plain"
             Data.old_post url_post (Request_Body.Json '{ "a" : 1 }') . at "headers" . at "Content-Type" . should_equal "application/json"
 
         Test.specify "can handle a bad .to_json" <|
-            Data.old_post url_post (BadToJson.Aaa "abcd") . should_fail_with Illegal_Argument
+            Data.old_post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec

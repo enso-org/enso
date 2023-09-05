@@ -188,12 +188,18 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
 
     # Convert some plain objects to proper Post_Request_Body values.
     post_request_body = case body of
+        _ : Post_Request_Body -> body
         _ : Text -> Post_Request_Body.Text body
-        _ -> body
+        _ -> Post_Request_Body.Json body
+    IO.println "VVV"
+    IO.println post_request_body
+    IO.println method
+    IO.println "---"
 
     handle_request_error =
         Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
-    Panic.recover Any <| handle_request_error <|
+    #Panic.recover Any <| handle_request_error <|
+    (x-> x) <|
         body_publishers = HttpRequest.BodyPublishers
         builder = HttpRequest.newBuilder
 
@@ -207,33 +213,39 @@ post url body method=HTTP_Method.Post headers=[] try_auto_parse_response=True =
             Post_Request_Body.Text text encoding content_type ->
                 builder.header Header.text_plain.name Header.text_plain.value
                 body_publishers.ofString text
+            Post_Request_Body.Json x ->
+                builder.header Header.application_json.name Header.application_json.value
+                json = x.to_json
+                json.if_not_error <|
+                    body_publishers.ofString json
             _ ->
-                Error.throw (Illegal_Argument.Error "Unsupported POST body: " + post_request_body.to_display_text + "; this is a bug in the Data library")
+                Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + post_request_body.to_display_text + "; this is a bug in the Data library"))
 
-        # set method and body
-        builder.method method.to_http_method_name body_publisher
-        # set headers
-        parse_headers headers . map h-> builder.header h.name h.value
+        body_publisher.if_not_error <|
+            # set method and body
+            builder.method method.to_http_method_name body_publisher
+            # set headers
+            parse_headers headers . map h-> builder.header h.name h.value
 
-        http_request = builder.build
-        body_handler = HttpResponse.BodyHandlers . ofByteArray
-        http = HTTP.new
+            http_request = builder.build
+            body_handler = HttpResponse.BodyHandlers . ofByteArray
+            http = HTTP.new
 
-        IO.println 'AAA http_request'
-        IO.println http_request
+            IO.println 'AAA http_request'
+            IO.println http_request
 
-        response = Response.Value (http.internal_http_client.send http_request body_handler)
+            response = Response.Value (http.internal_http_client.send http_request body_handler)
 
-        IO.println 'AAA response'
-        IO.println response
+            IO.println 'AAA response'
+            IO.println response
 
-        r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-            if try_auto_parse_response.not then response else
-                response.decode if_unsupported=response . catch handler=(_->response)
-        IO.println 'AAA parsed(?) response'
-        IO.println r
-        IO.println <| Meta.get_simple_type_name r
-        r
+            r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                if try_auto_parse_response.not then response else
+                    response.decode if_unsupported=response . catch handler=(_->response)
+            IO.println 'AAA parsed(?) response'
+            IO.println r
+            IO.println <| Meta.get_simple_type_name r
+            r
 
 old_post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
 old_post uri body mime_type=Nothing headers=[] try_auto_parse=True =

@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 
@@ -9,3 +10,9 @@ type Post_Request_Body
        Arguments:
        - text: The plain text in the request body.
     Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_Type:Text="application/json")
+
+    ## Request body with an object to be sent as JSON.
+
+       Arguments:
+       - x: The object to convert to JSON using `.to_json`
+    Json (x:Any)
