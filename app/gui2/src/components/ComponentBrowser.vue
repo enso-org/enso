@@ -5,7 +5,9 @@ import type { Component } from '@/stores/components'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, ref } from 'vue'
-import icons from '@/assets/icons.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+
 import { useApproach } from '@/util/animation'
 
 const ITEM_SIZE = 32
@@ -124,6 +126,10 @@ function updateScroll() {
   }
 }
 
+// === Documentation Panel ===
+
+const docs_visible = ref(true)
+
 // === Key Events Handler ===
 
 useWindowEvent('keydown', (e) => {
@@ -136,6 +142,8 @@ useWindowEvent('keydown', (e) => {
           scrollToSelected()
           animatedScrollPosition.skip()
           highlightPosition.skip()
+          // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
+          // the template. We need to manually assign it this time.
           if (scroller.value) {
             scroller.value.scrollTop = animatedScrollPosition.value
           }
@@ -165,55 +173,62 @@ useWindowEvent('keydown', (e) => {
 <template>
   <div class="ComponentBrowser" v-if="shown" :style="{ transform }">
     <div class="panel components">
-      <div
-        ref="scroller"
-        class="list"
-        :scrollTop.prop="animatedScrollPosition.value"
-        @wheel.stop
-        @scroll="updateScroll"
-      >
-        <div class="list-variant">
-          <div
-            v-for="item in visibleComponents"
-            class="component"
-            @mousemove="selected = item.index"
-            :key="item.component.id"
-            :style="componentStyle(item.index)"
-          >
-            <svg>
-              <use
-                :href="`${icons}#${item.component.icon}`"
-                :style="{ color: componentColor(item.component) }"
-              ></use>
-            </svg>
-            {{ item.component.label }}
-          </div>
+      <div class="top-bar">
+        <div class="top-bar-inner">
+          <ToggleIcon icon_name="local_scope2" />
+          <ToggleIcon icon_name="command_key3" />
+          <ToggleIcon icon_name="unstable2" />
+          <ToggleIcon icon_name="marketplace" />
+          <ToggleIcon icon_name="right_side_panel" v-model="docs_visible" class="first-on-right" />
         </div>
-        <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-          <div
-            v-for="item in visibleComponents"
-            class="component"
-            :key="item.component.id"
-            :style="{
-              backgroundColor: componentColor(item.component),
-              ...componentStyle(item.index),
-            }"
-          >
-            <svg>
-              <use :href="`${icons}#${item.component.icon}`"></use>
-            </svg>
-            {{ item.component.label }}
+      </div>
+      <div class="components-content">
+        <div
+          ref="scroller"
+          class="list"
+          :scrollTop.prop="animatedScrollPosition.value"
+          @wheel.stop
+          @scroll="updateScroll"
+        >
+          <div class="list-variant">
+            <div
+              v-for="item in visibleComponents"
+              class="component"
+              @mousemove="selected = item.index"
+              :key="item.component.id"
+              :style="componentStyle(item.index)"
+            >
+              <SvgIcon
+                :name="item.component.icon"
+                :style="{ color: componentColor(item.component) }"
+              />
+              {{ item.component.label }}
+            </div>
+          </div>
+          <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
+            <div
+              v-for="item in visibleComponents"
+              class="component"
+              :key="item.component.id"
+              :style="{
+                backgroundColor: componentColor(item.component),
+                ...componentStyle(item.index),
+              }"
+            >
+              <SvgIcon :name="item.component.icon" />
+              {{ item.component.label }}
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="panel docs">DOCS</div>
+    <div class="panel docs" :class="{ hidden: !docs_visible }">DOCS</div>
   </div>
 </template>
 
 <style scoped>
 .ComponentBrowser {
-  color: black;
+  color: rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: row;
   gap: 4px;
@@ -228,11 +243,24 @@ useWindowEvent('keydown', (e) => {
 
 .components {
   width: 190px;
+  position: relative;
+}
+
+.components-content {
+  position: absolute;
+  top: 0px;
   padding: 4px;
+  width: 100%;
+  height: 100%;
 }
 
 .docs {
   width: 406px;
+  clip-path: inset(0 0 0 0 round 20px);
+  transition: clip-path 0.2s;
+}
+.hidden {
+  clip-path: inset(0 100% 0 0 round 20px);
 }
 
 .list {
@@ -268,8 +296,42 @@ useWindowEvent('keydown', (e) => {
   color: white;
 }
 
-.component > svg {
-  width: 16px;
-  height: 16px;
+.top-bar {
+  width: 100%;
+  height: 40px;
+  padding: 4px;
+  background-color: #eaeaea;
+  border-radius: 20px;
+  position: absolute;
+  top: 0px;
+  z-index: 1;
+}
+
+.top-bar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 7px;
+}
+
+.top-bar-inner > svg {
+  color: rgba(0, 0, 0, 0.18);
+  transition: color 0.2s;
+}
+
+.top-bar-inner > .first-on-right {
+  margin-left: auto;
+}
+
+.top-bar-inner > .toggled_on {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.top-bar-inner > svg:not(.toggled_on):hover {
+  color: rgba(0, 0, 0, 0.3);
 }
 </style>
