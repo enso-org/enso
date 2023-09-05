@@ -878,13 +878,15 @@ spec make_new_connection prefix persistent_connector=True =
                 additional_tables_2 = (Set.from_vector tables_after_wait).difference (Set.from_vector existing_tables)
                 additional_tables_2.to_vector . should_equal []
 
-    database_table_builder name_prefix args primary_key=[] connection=connection =
-        in_memory_table = Table.new args
-        in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
-
     in_memory_table_builder args primary_key=[] connection=connection =
         _ = [primary_key, connection]
-        Table.new args
+        case args of
+            table : Table -> table
+            _ -> Table.new args
+
+    database_table_builder name_prefix args primary_key=[] connection=connection =
+        in_memory_table = in_memory_table_builder args
+        in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
 
     Test.group prefix+"Appending an in-memory table to a Database table" <|
         test_table_append in_memory_table_builder (database_table_builder "target-table")
@@ -1014,6 +1016,28 @@ spec make_new_connection prefix persistent_connector=True =
             # All 3 rows were deleted
             r2.should_equal 3
             target.at "X" . to_vector . should_equal [0, 3500]
+
+        Test.specify "will work fine if the source or target table contains NULL keys" <|
+            t1 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, Nothing]]] primary_key=["X"]
+            s1 = source_table_builder [["X", ["b", "c"]]]
+            t1.delete_rows s1 . should_equal 2
+            m1 = t1.read . order_by "X"
+            m1.at "X" . to_vector . should_equal [Nothing, "a"]
+            m1.at "Y" . to_vector . should_equal [3, 1]
+
+            t2 = target_table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, Nothing]]] primary_key=["X"]
+            s2 = source_table_builder [["X", ["b", Nothing]]]
+            t2.delete_rows s2 . should_equal 1
+            m2 = t2.read . order_by "X"
+            m2.at "X" . to_vector . should_equal ["a", "c"]
+            m2.at "Y" . to_vector . should_equal [1, Nothing]
+
+            # Unable to delete a row with a nothing key:
+            t3 = target_table_builder [["X", ["a", "b", Nothing, "c"]], ["Y", [1, 2, 3, 4]]] primary_key=["X"]
+            s3 = source_table_builder (Table.new [["X", [Nothing]]] . cast "X" Value_Type.Char)
+            t3.delete_rows s3 . should_equal 0
+            m3 = t3.read . order_by "X"
+            m3.at "X" . to_vector . should_equal [Nothing, "a", "b", "c"]
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
         test_table_delete in_memory_table_builder (database_table_builder "target-table")
