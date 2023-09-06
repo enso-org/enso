@@ -260,7 +260,7 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(true)
 const visualizationType = ref('Warnings')
-const visualization = shallowRef<unknown>()
+const visualization = shallowRef<typeof import('@viz/Visualization.vue').default>()
 
 // FIXME: this will not work for user-defined components
 const VISUALIZATION_GETTERS: Record<string, any> = {
@@ -287,6 +287,10 @@ watchEffect(async (onCleanup) => {
     visualization.value = component
   }
 })
+
+const visualizationWidth = ref<number | null>(null)
+const visualizationHeight = ref<number | null>(null)
+const isVisualizationFullscreen = ref(false)
 </script>
 
 <template>
@@ -301,10 +305,17 @@ watchEffect(async (onCleanup) => {
       v-model:is-visualization-visible="isVisualizationVisible"
     />
     <component
+      v-if="visualization"
       :is="visualization"
-      v-if="isVisualizationVisible"
-      :is-circular-menu-visible="isCircularMenuVisible"
       :data="['warning 1', 'warning 2!!&<>;\'\x22']"
+      :is-circular-menu-visible="isCircularMenuVisible"
+      v-model:width="visualizationWidth"
+      v-model:height="visualizationHeight"
+      v-model:fullscreen="isVisualizationFullscreen"
+      @update:preprocessor="
+        (module, method, ...args) =>
+          console.log(`preprocessor changed. module: ${module}, method: ${method}, args: ${args}`)
+      "
     />
     <div
       class="node"

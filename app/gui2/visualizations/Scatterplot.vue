@@ -705,6 +705,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 
 <template>
   <Visualization
+    :data="data"
     @hide="emit('hide')"
     :is-circular-menu-visible="isCircularMenuVisible"
     :width="width"

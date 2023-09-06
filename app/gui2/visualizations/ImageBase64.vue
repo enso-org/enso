@@ -34,6 +34,7 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 
 <template>
   <Visualization
+    :data="data"
     @hide="emit('hide')"
     :is-circular-menu-visible="isCircularMenuVisible"
     :width="width"

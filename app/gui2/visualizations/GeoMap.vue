@@ -36,6 +36,7 @@ const data = computed<Data>(() =>
 
 <template>
   <Visualization
+    :data="data"
     @hide="emit('hide')"
     :is-circular-menu-visible="isCircularMenuVisible"
     :width="width"

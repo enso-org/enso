@@ -18,6 +18,7 @@ const emit = defineEmits<{
   'update:width': [width: number]
   'update:height': [height: number]
   'update:fullscreen': [fullscreen: boolean]
+  'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 type Data = [x: number, y: number, r: number][]
@@ -29,6 +30,7 @@ const data = computed<Data>(() =>
 
 <template>
   <Visualization
+    :data="data"
     @hide="emit('hide')"
     :is-circular-menu-visible="isCircularMenuVisible"
     :width="width"

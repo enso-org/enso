@@ -6,6 +6,7 @@ import CompassIcon from './Visualization/compass.svg'
 
 import { ref } from 'vue'
 
+// FIXME: visualization chooser
 // FIXME: resizers to change `width` and `height`
 const props = defineProps<{
   /** If true, the visualization should display below the node background. */
@@ -17,12 +18,14 @@ const props = defineProps<{
   width: number
   height: number
   fullscreen: boolean
+  data: {} | string
 }>()
 const emit = defineEmits<{
   hide: []
   'update:width': [width: number]
   'update:height': [height: number]
   'update:fullscreen': [fullscreen: boolean]
+  'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 const isChooserVisible = ref(false)

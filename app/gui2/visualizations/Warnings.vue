@@ -37,6 +37,7 @@ const data = computed<Data>(() =>
 <template>
   <Visualization
     below-toolbar
+    :data="data"
     @hide="emit('hide')"
     :is-circular-menu-visible="isCircularMenuVisible"
     :width="width"
