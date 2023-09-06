@@ -14,6 +14,9 @@ module.exports = {
   },
   ignorePatterns: ["rust-ffi/pkg/**"],
   rules: {
+    "camelcase": [1, {
+      "ignoreImports": true,
+    }],
     "no-inner-declarations": 0,
     "vue/v-on-event-hyphenation": [2, "never"],
     "@typescript-eslint/no-unused-vars": [1, {

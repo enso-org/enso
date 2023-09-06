@@ -74,7 +74,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   const _parsed = ref([] as Statement[])
-  const _parsed_enso = ref<any>()
+  const _parsedEnso = ref<any>()
 
   watchEffect(() => {})
 
@@ -87,7 +87,7 @@ export const useGraphStore = defineStore('graph', () => {
     const parsed = parseBlock(0, textContentLocal, idMap)
 
     _parsed.value = parsed
-    _parsed_enso.value = parseEnso(textContentLocal)
+    _parsedEnso.value = parseEnso(textContentLocal)
 
     const accessed = idMap.accessedSoFar()
 
@@ -293,7 +293,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   return {
     _parsed,
-    _parsed_enso,
+    _parsedEnso: _parsedEnso,
     nodes,
     exprNodes,
     edges,

@@ -3,8 +3,8 @@ import { setIfUndefined } from 'lib0/map'
 import { isSome, type Opt } from '@/util/opt'
 
 export type Uuid = ReturnType<typeof crypto.randomUUID>
-declare const BRAND_ExprId: unique symbol
-export type ExprId = Uuid & { [BRAND_ExprId]: never }
+declare const brandExprId: unique symbol
+export type ExprId = Uuid & { [brandExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
 export interface NodeMetadata {
@@ -23,17 +23,13 @@ interface NamedDoc {
   doc: y.Doc
 }
 
-let next_id = 0
-
 type NamedDocMap = y.Map<y.Text | y.Doc>
 
 export class NamedDocArray {
-  _name: string
   array: y.Array<NamedDocMap>
   nameToIndex: Map<string, y.RelativePosition[]>
 
   constructor(doc: y.Doc, name: string) {
-    this._name = `${name}#${next_id++}`
     this.array = doc.getArray(name)
     this.nameToIndex = new Map()
     this.array.forEach(this.integrateAddedItem.bind(this))
