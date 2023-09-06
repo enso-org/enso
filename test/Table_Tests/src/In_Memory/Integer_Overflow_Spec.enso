@@ -335,7 +335,7 @@ spec =
             r3.value_type . should_equal Value_Type.Float
             # 2^70 is not exactly representable as a Float.
             (2^70 + 0.0).truncate . should_not_equal (2^70)
-            Problems.expect_only_warning Loss_Of_Integer_Precision r7
+            Problems.expect_only_warning Loss_Of_Integer_Precision r3
             r3.to_vector . should_equal [10^30, 2^70, 1.5, 3]
 
             r4 = x.fill_nothing 23
@@ -380,3 +380,21 @@ spec =
             r7 = c.fill_nothing x
             r7.value_type . should_be_a (Value_Type.Decimal ...)
             r7.to_vector . should_equal [1, 2, x, 3]
+
+        Test.specify "should work fine with typing edge cases" <|
+            c1 = Column.from_vector "X" [2^70, 100, Nothing, 200]
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
+
+            c2 = c1.fill_nothing "NA"
+            c2.value_type . should_equal Value_Type.Mixed
+            c2.to_vector . should_equal [2^70, 100, "NA", 200]
+
+            c3 = (c2 == "NA").iif 0 c2
+            c3.to_vector . should_equal [2^70, 100, 0, 200]
+            # Still a mixed value type due to combining of input types: Integer+Mixed->Mixed
+            c3.value_type . should_equal Value_Type.Mixed
+
+            # But the precise type should be inferred:
+            c3.inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
+            # And so arithmetic should work:
+            (c3 + 100) . to_vector . should_equal [2^70 + 100, 200, 100, 300]
