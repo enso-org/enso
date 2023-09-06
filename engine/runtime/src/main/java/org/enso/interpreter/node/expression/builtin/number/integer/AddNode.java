@@ -55,6 +55,11 @@ public abstract class AddNode extends Node {
     return toEnsoNumberNode.execute(BigIntegerOps.add(self.getValue(), that));
   }
 
+  @Specialization
+  double doBigIntDouble(EnsoBigInteger self, double that) {
+    return self.asDouble() + that;
+  }
+
   @Fallback
   Object doOther(Object self, Object that) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
