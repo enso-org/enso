@@ -94,6 +94,10 @@ spec =
             response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
             response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
 
+        Test.specify "Can skip auto-parse" <|
+            response = Data.post url_post (Post_Request_Body.Text "hello world") try_auto_parse_response=False
+            response.body.bytes.length should_equal 383
+
         Test.specify "Can send a custom header" <|
             response = Data.post url_post (Post_Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
             response.at "data" . should_equal "hello world"
