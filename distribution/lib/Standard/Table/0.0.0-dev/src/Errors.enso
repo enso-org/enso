@@ -646,17 +646,6 @@ type Arithmetic_Overflow
     to_text self =
         "(Arithmetic_Overflow.Warning (target_type = " + self.target_type.to_text + ") (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_operands = " + self.example_operands.to_display_text + "))"
 
-## PRIVATE
-type Unsupported_Operation
-    ## PRIVATE
-       Indicates that some operation is currently not supported.
-    Error (message : Text)
-
-    ## PRIVATE
-       Create a human-readable version of the error.
-    to_display_text : Text
-    to_display_text self = self.message
-
 type Invalid_Value_For_Type
     ## PRIVATE
        Indicates that a column construction/transformation failed because the

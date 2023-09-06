@@ -57,8 +57,6 @@ translate_problem p = case p of
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : UnquotedDelimiter ->
         Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : UnsupportedFeature ->
-        Unsupported_Operation.Error p.getMessage
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
     _ : AdditionalInvalidRows ->
