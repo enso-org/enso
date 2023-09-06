@@ -1,13 +1,13 @@
 package org.enso.table.data.column.operation.map.numeric.comparisons;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 
-import java.math.BigInteger;
-
-public class EqualsComparison<T extends Number, I extends Storage<? super T>> extends NumericComparison<T, I> {
+public class EqualsComparison<T extends Number, I extends Storage<? super T>>
+    extends NumericComparison<T, I> {
   public EqualsComparison() {
     super(Storage.Maps.EQ);
   }
@@ -18,18 +18,18 @@ public class EqualsComparison<T extends Number, I extends Storage<? super T>> ex
   }
 
   @Override
-  protected BoolStorage runDoubleMap(DoubleArrayAdapter lhs, double rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runDoubleMap(
+      DoubleArrayAdapter lhs, double rhs, MapOperationProblemBuilder problemBuilder) {
     problemBuilder.reportFloatingPointEquality(-1);
     return super.runDoubleMap(lhs, rhs, problemBuilder);
   }
 
   @Override
-  protected BoolStorage runDoubleZip(DoubleArrayAdapter lhs, DoubleArrayAdapter rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runDoubleZip(
+      DoubleArrayAdapter lhs, DoubleArrayAdapter rhs, MapOperationProblemBuilder problemBuilder) {
     problemBuilder.reportFloatingPointEquality(-1);
     return super.runDoubleZip(lhs, rhs, problemBuilder);
   }
-
-
 
   @Override
   protected boolean doLong(long a, long b) {

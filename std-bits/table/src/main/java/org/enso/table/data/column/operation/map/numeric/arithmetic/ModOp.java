@@ -1,11 +1,11 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 
-import java.math.BigInteger;
-
-public class ModOp<T extends Number, I extends Storage<? super T>> extends NumericBinaryOpImplementation<T, I> {
+public class ModOp<T extends Number, I extends Storage<? super T>>
+    extends NumericBinaryOpImplementation<T, I> {
   public ModOp() {
     super(Storage.Maps.MOD);
   }
@@ -30,7 +30,8 @@ public class ModOp<T extends Number, I extends Storage<? super T>> extends Numer
   }
 
   @Override
-  public BigInteger doBigInteger(BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public BigInteger doBigInteger(
+      BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
     if (b.equals(BigInteger.ZERO)) {
       problemBuilder.reportDivisionByZero(ix);
       return null;

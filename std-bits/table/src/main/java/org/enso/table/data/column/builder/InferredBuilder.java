@@ -139,8 +139,7 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
           new RetypeInfo(Byte.class, IntegerType.INT_64),
-          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE)
-      );
+          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {

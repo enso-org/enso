@@ -50,7 +50,9 @@ public final class MixedStorage extends ObjectStorage {
   }
 
   private boolean isNumeric(StorageType type) {
-    return type instanceof IntegerType || type instanceof FloatType || type instanceof BigIntegerType;
+    return type instanceof IntegerType
+        || type instanceof FloatType
+        || type instanceof BigIntegerType;
   }
 
   private StorageType commonNumericType(StorageType a, StorageType b) {

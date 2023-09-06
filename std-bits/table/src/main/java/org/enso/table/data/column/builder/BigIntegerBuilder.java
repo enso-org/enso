@@ -1,5 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
@@ -8,9 +10,6 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-
-import java.math.BigInteger;
-import java.util.Arrays;
 
 // For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {

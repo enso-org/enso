@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-
-import java.math.BigInteger;
 
 public interface BigIntegerArrayAdapter {
   BigInteger getItem(int i);

@@ -1,12 +1,12 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-import java.math.BigInteger;
-
-public class AddOp<T extends Number, I extends Storage<? super T>> extends NumericBinaryOpImplementation<T, I> {
+public class AddOp<T extends Number, I extends Storage<? super T>>
+    extends NumericBinaryOpImplementation<T, I> {
   public AddOp() {
     super(Storage.Maps.ADD);
   }
@@ -27,7 +27,8 @@ public class AddOp<T extends Number, I extends Storage<? super T>> extends Numer
   }
 
   @Override
-  public BigInteger doBigInteger(BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public BigInteger doBigInteger(
+      BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
     return a.add(b);
   }
 }

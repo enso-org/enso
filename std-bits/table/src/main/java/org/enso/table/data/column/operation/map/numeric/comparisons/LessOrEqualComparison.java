@@ -1,10 +1,10 @@
 package org.enso.table.data.column.operation.map.numeric.comparisons;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.storage.Storage;
 
-import java.math.BigInteger;
-
-public class LessOrEqualComparison<T extends Number, I extends Storage<? super T>> extends NumericComparison<T, I> {
+public class LessOrEqualComparison<T extends Number, I extends Storage<? super T>>
+    extends NumericComparison<T, I> {
   public LessOrEqualComparison() {
     super(Storage.Maps.LTE);
   }
