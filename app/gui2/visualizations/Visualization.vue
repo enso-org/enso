@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import FullscreenIcon from './Visualization/fullscreen.svg'
+import ExitFullscreenIcon from './Visualization/exit_fullscreen.svg'
 import EyeIcon from './Visualization/eye.svg'
 import CompassIcon from './Visualization/compass.svg'
+
 import { ref } from 'vue'
 
 // FIXME: add back `width` and `height` to parent components
@@ -14,24 +17,28 @@ const emit = defineEmits<{
   hide: []
 }>()
 
+const isFullscreen = ref(false)
 const isChooserVisible = ref(false)
 </script>
 
 <template>
   <div
     class="Visualization"
-    :class="{ 'dodge-buttons': dodgeButtons }"
+    :class="{ fullscreen: isFullscreen, 'dodge-buttons': dodgeButtons }"
     :style="{ background: background ?? '#fff2f2' }"
   >
     <slot></slot>
     <div class="toolbars">
-      <div v-if="!isCircularMenuVisible"></div>
-      <div :class="{ toolbar: true, invisible: isCircularMenuVisible }">
+      <div v-if="!isCircularMenuVisible && !isFullscreen"></div>
+      <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: isFullscreen }">
         <div class="background"></div>
         <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
       </div>
       <div class="toolbar">
         <div class="background"></div>
+        <button class="button active" @click="isFullscreen = !isFullscreen">
+          <img :src="isFullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+        </button>
         <button class="button active" @click="isChooserVisible = !isChooserVisible">
           <img :src="CompassIcon" />
         </button>
@@ -58,6 +65,17 @@ const isChooserVisible = ref(false)
 
 .Visualization.dodge-buttons {
   padding-top: 52px;
+}
+
+.Visualization.fullscreen {
+  z-index: var(--z-fullscreen);
+  position: fixed;
+  padding-top: unset;
+  border-radius: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 .toolbars {
@@ -108,5 +126,13 @@ const isChooserVisible = ref(false)
 
 .button > * {
   vertical-align: top;
+}
+
+.invisible {
+  opacity: 0;
+}
+
+.hidden {
+  display: none;
 }
 </style>
