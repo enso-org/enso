@@ -607,7 +607,8 @@ object Runtime {
       )
     )
     sealed trait VisualizationExpression extends ToLogString {
-      def module: String
+      def module:                         String
+      def positionalArgumentsExpressions: Vector[String]
     }
     object VisualizationExpression {
 
@@ -619,11 +620,13 @@ object Runtime {
       case class Text(module: String, expression: String)
           extends VisualizationExpression {
 
+        override val positionalArgumentsExpressions: Vector[String] =
+          Vector()
+
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Text(module=$module" +
-          s",expression=" +
-          (if (shouldMask) STUB else expression) +
+          s",expression=$expression" +
           ")"
       }
 
@@ -644,9 +647,9 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"ModuleMethod(methodPointer=$methodPointer," +
-          s"positionalArgumentsExpressions=" +
-          (if (shouldMask) STUB else positionalArgumentsExpressions) +
-          s")"
+          "positionalArgumentsExpressions=" +
+          positionalArgumentsExpressions.mkString("[", ",", "]") +
+          ")"
       }
     }
 
