@@ -1215,7 +1215,7 @@ spec make_new_connection prefix persistent_connector=True =
                 Context.Output.with_disabled <|
                     src = source_table_builder [["X", [4, 5, 6]]]
                     r1 = dest.update_rows src update_action=Update_Action.Insert key_columns=[]
-                    Problems.expect_warning Dry_Run_Operation r1
+                    Problems.expect_only_warning Dry_Run_Operation r1
                     r1.column_names . should_equal ["X"]
                     # The target table is returned, as usually.
                     r1.name . should_equal dest.name
@@ -1232,7 +1232,7 @@ spec make_new_connection prefix persistent_connector=True =
                     r1 = dest.delete_rows src key_columns=["X"]
                     # 2 rows would be deleted
                     r1.should_equal 2
-                    Problems.expect_warning Dry_Run_Operation r1
+                    Problems.expect_only_warning Dry_Run_Operation r1
 
                     # The target table is unaffected.
                     dest.at "X" . to_vector . should_equal v
@@ -1241,7 +1241,7 @@ spec make_new_connection prefix persistent_connector=True =
                     r2 = dest.delete_rows src2 key_columns=["X"] allow_duplicate_matches=True
                     # 3 rows would be deleted
                     r2.should_equal 3
-                    Problems.expect_warning Dry_Run_Operation r2
+                    Problems.expect_only_warning Dry_Run_Operation r2
                     dest.at "X" . to_vector . should_equal v
 
             if persistent_connector then
@@ -1251,7 +1251,7 @@ spec make_new_connection prefix persistent_connector=True =
                         tmp_connection1 = make_new_connection Nothing
                         src1 = source_table_builder [["A", [1, 2, 3]]] connection=tmp_connection1
                         dry_run_table = src1.select_into_database_table tmp_connection1 target_name temporary=True . should_succeed
-                        Problems.expect_warning Dry_Run_Operation dry_run_table
+                        Problems.expect_only_warning Dry_Run_Operation dry_run_table
                         dry_run_table.column_names . should_equal ["A"]
                         name = Warning.clear dry_run_table.name
                         tmp_connection1.close
