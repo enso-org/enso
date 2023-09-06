@@ -10,250 +10,297 @@ order: 6
 
 The Enso project features a centralised logging service to allow for the
 aggregation of logs from multiple components. This service can be started with
-one of the main components, allowing other components connect to it. The service
-aggregates all logs in one place for easier analysis of the interaction between
-components.
+one of the main components, allowing other components to connect to it. The
+service aggregates all logs in one place for easier analysis of the interaction
+between components. Components can also log to console or files directly without
+involving the centralized logging service.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Protocol](#protocol)
-  - [Types](#types)
-  - [Messages](#messages)
-  - [Examples](#examples)
+- [Configuration](#configuration)
+  - [Custom Log Levels](#custom-log-levels)
+  - [Appenders](#appenders)
+    - [Format](#format)
+    - [File](#file-appender)
+    - [Network](#socket-appender)
+    - [Sentry.io](#sentry-appender)
 - [JVM Architecture](#jvm-architecture)
   - [SLF4J Interface](#slf4j-interface)
   - [Setting Up Logging](#setting-up-logging)
   - [Log Masking](#log-masking)
-  - [Configuration](#configuration)
   - [Logging in Tests](#logging-in-tests)
 
 <!-- /MarkdownTOC -->
 
-## Protocol
+## Configuration
 
-The service relies on a WebSocket connection to a specified endpoint that
-exchanges JSON-encoded text messages. The communication is uni-directional - the
-only messages are log messages that are sent from a connected client to the
-server that aggregates the logs.
+The logging settings should be placed under the `logging-service` key of the
+`application.conf` config. Each of the main components can customize format and
+output target via section in `application.conf` configuration file. The
+configuration is using HOCON-style, as defined by
+[lightbend/config](https://github.com/lightbend/config). Individual values
+accepted in the config are inspired by SLF4J's properties, formatting and
+implementations.
 
-### Types
+The configuration has two main sections:
 
-##### `LogLevel`
+- [custom log levels](#custom-log-levels)
+- [applications' appenders](#appenders) (also known as configuration of log
+  events output target)
 
-The log level encoded as a number. Possible values are:
+During component's setup, its `application.conf` config file is parsed. The
+config's keys and values are validated and, if correct, the parsed
+representation is available as an instance of
+`org.enso.logger.config.LoggingServiceConfig` class. The class encapsulates the
+`logging-service` section of `application.conf` file and is used to
+programmatically initialize loggers.
 
-- 0 - indicating `ERROR` level,
-- 1 - indicating `WARN` level,
-- 2 - indicating `INFO` level,
-- 3 - indicating `DEBUG` level,
-- 4 - indicating `TRACE` level.
+As per [configuration schema](https://github.com/lightbend/config) any key can
+have a default value that can be overridden by an environment variable. For
+example
 
-```typescript
-type LogLevel = 0 | 1 | 2 | 3 | 4;
+```
+  {
+    host = localhost
+    host = $ENSO_HOST
+  }
 ```
 
-##### `UTCTime`
+defines a `host` key once, except that `ENSO_HOST` values takes a precedence if
+it is defined during loading of the config file.
 
-Message timestamp encoded as milliseconds elapsed from the UNIX epoch, i.e.
-1970-01-01T00:00:00Z.
+### Custom Log Levels
 
-```typescript
-type UTCTime = number;
+The `logging-service.logger` configuration provides an ability to override the
+default application log level for particular loggers. In the `logger` subconfig
+the key specifies the logger name (or it's prefix) and the value specifies the
+log level for that logger.
+
 ```
-
-##### `Exception`
-
-Encodes an exception that is related to a log message.
-
-The `cause` field may be omitted if the exception does not have another
-exception as its cause.
-
-```typescript
-interface Exception {
-  // Name of the exception. In Java this can be the qualified classname.
-  name: String;
-  // Message associated with the exception. May be empty.
-  message: String;
-  // A stack trace indicating code location where the exception has originated
-  // from. May be empty if unavailable.
-  trace: [TraceElement];
-  // Optional, another exception that caused this one.
-  cause?: Exception;
-}
-```
-
-##### `TraceElement`
-
-Represents a single element of exception's stacktrace.
-
-```typescript
-interface TraceElement {
-  // Name of the stack location. For example, in Java this can be a qualified
-  // method name.
-  element: String;
-  // Code location of the element.
-  location: String;
-}
-```
-
-In Java, the location is usually a filename and line number locating the code
-that corresponds to the indicated stack location, for example `Main.java:123`.
-Native methods may be handled differently, as well as code from different
-languages, for example Enso also includes the columns - `Test.enso:4:3-19`.
-
-### Messages
-
-Currently, the service supports only one message type - `LogMessage`, messages
-not conforming to this format will be ignored. The first non-conforming message
-for each connection will emit a warning.
-
-#### `LogMessage`
-
-Describes the log message that the server should report and does not expect any
-response.
-
-##### Parameters
-
-```typescript
-{
-  // Log level associated with the message.
-  level: LogLevel;
-  // Timestamp indicating when the message was sent.
-  time: UTCTime;
-  // An identifier of a log group - the group should indicate which component
-  // the message originated from and any (possibly nested) context.
-  group: String;
-  // The actual log message.
-  message: String;
-  // Optional exception associated with the message.
-  exception?: Exception;
-}
-```
-
-The `exception` field may be omitted if there is no exception associated with
-the message.
-
-In general, the `group` name can be arbitrary, but it is often the quallified
-name of the class that the log message originates from and it is sometimes
-extended with additional nested context, for example:
-
-- `org.enso.launcher.cli.Main`
-- `org.enso.compiler.pass.analyse.AliasAnalysis.analyseType`
-
-### Examples
-
-For example, an error message with an attached exception may look like this (the
-class names are made up):
-
-```json
-{
-  "level": 0,
-  "time": 1600864353151,
-  "group": "org.enso.launcher.Main",
-  "message": "Failed to load a configuration file.",
-  "exception": {
-    "name": "org.enso.componentmanager.config.ConfigurationLoaderFailure",
-    "message": "Configuration file does not exist.",
-    "trace": [
-      {
-        "element": "org.enso.componentmanager.config.ConfigurationLoader.load",
-        "location": "ConfigurationLoader.scala:123"
-      },
-      {
-        "element": "org.enso.launcher.Main",
-        "location": "Main.scala:42"
-      }
-    ],
-    "cause": {
-      "name": "java.io.FileNotFoundException",
-      "message": "config.yaml (No such file or directory)",
-      "trace": []
-    }
+logging-service.logger {
+  akka.actor = info
+  akka.event = error
+  akka.io = error
+  slick {
+    jdbc.JdbcBackend.statement = debug
+    "*" = error
   }
 }
 ```
 
-Another example could be an info message (without attached exceptions):
+For example, the config above limits all `akka.actor.*` loggers to the info
+level logging, and `akka.event.*` loggers can emit only the error level
+messages.
 
-```json
-{
-  "level": 2,
-  "time": 1600864353151,
-  "group": "org.enso.launcher.Main",
-  "message": "Configuration file loaded successfully."
-}
+Config supports globs (`*`). For example, the config above sets
+`jdbc.JdbcBackend.statement` SQL statements logging to debug level, and the rest
+of the slick loggers to error level.
+
+Additionally, custom log events can be provided during runtime via system
+properties, without re-packaging the updated config file. For example
+
+```typescript
+akka.actor = info;
 ```
+
+is equivalent to
+
+```typescript
+  -Dakka.actor.Logger.level=info
+```
+
+Any custom log level is therefore defined with `-Dx.y.Z.Logger.level` where `x`,
+`y` and `Z` refer to the package elements and class name, respectively. System
+properties always have a higher priority over those defined in the
+`application.conf` file.
+
+### Appenders
+
+Log output target is also configured in the `application.conf` files in the
+"appenders" section ("appender" is equivalent to `java.util.logging.Handler`
+semantics). Each appender section can provide further required and optional
+key/value pairs, to better customize the log target output.
+
+Currently supported are
+
+- console appender - the most basic appender that prints log events to stdout
+- [file appender](#file-appender) - appender that writes log events to a file,
+  with optional rolling file policy
+- [socket appender](#socket-appender) - appender that forwards log events to
+  some logging server
+- [sentry.io appender](#sentry-appender) - appender that forwards log events to
+  a sentry.io service
+
+The appenders are defined by the `logging-service.appenders`. Currently only a
+single appender can be selected at a time. The selection may also be done via an
+environmental variable `$ENSO_APPENDER_DEFAULT`.
+
+#### Format
+
+The pattern follows the classic's
+[PatternLayout](https://logback.qos.ch/manual/layouts.html#ClassicPatternLayout)
+format.
+
+Appenders that store/display log events can specify the format of the log
+message via `pattern` field e.g.
+
+```typescript
+
+  appenders = [
+    {
+      name = "console"
+      pattern = "[%level{lowercase=true}] [%d{yyyy-MM-dd'T'HH:mm:ssXXX}] [%logger] %msg%n%nopex"
+    }
+    ...
+  ]
+```
+
+#### File Appender
+
+Enabled with `ENSO_APPENDER_DEFAULT=file` environment variable.
+
+File appender directs all log events to a log file:
+
+```
+  {
+    name = "file"
+    append = <boolean, optional>
+    immediate-flush = <boolean, optional>
+    pattern = <string, optional>
+    rolling-policy {
+      max-file-size = <string, optional>
+      max-history = <int, optional>
+      max-total-size = <string, optional>
+    }
+  }
+```
+
+Rolling policy is a fully optional property of File Appender that would trigger
+automatic log rotation. All properties are optional with some reasonable
+defaults if missing (defined in `org.enso.logger.config.FileAppender` config
+class).
+
+#### Socket Appender
+
+Enabled with `ENSO_APPENDER_DEFAULT=socket` environment variable.
+
+Configuration
+
+```
+  {
+    name = "socket"
+    hostname = <string, required>
+    port = <string, required>
+  }
+```
+
+The two fields can be overridden via environment variables:
+
+- `hostname` has an equivalent `$ENSO_LOGSERVER_HOSTNAME` variable
+- `port` has an equivalent `$ENSO_LOGSERVER_PORT` variable
+
+#### Sentry Appender
+
+Enabled with `ENSO_APPENDER_DEFAULT=sentry` environment variable.
+
+```
+  {
+    name = "sentry"
+    dsn = <string, required>
+    flush-timeout = <int, optional>
+    debug = <boolean, optional>
+  }
+```
+
+Sentry's Appender has a single required field, `dsn`. The `dsn` value can be
+provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`. `flush-timeout`
+determines how often logger should send its collected events to sentry.io
+service. If `debug` value is `true`, logging will print to stdout additional
+trace information of the logging process itself.
 
 ## JVM Architecture
 
-A default implementation of both a client and server for the logger service are
-provided for the JVM.
+Enso's logging makes use of two logging APIs - `java.util.logging` and
+`org.slf4j`. The former is being used Truffle runtime, which itself relies on
+`jul`, while the latter is used everywhere else. The implementation of the
+logging is using off the shelf `Logback` implementation with some custom setup
+methods. The two APIss cooperate by essentially forwarding log messages from the
+former to the latter.
+
+While typically any SLF4J customization would be performed via custom
+`LoggerFacotry` and `Logger` implementation that is returned via a
+`StaticLoggerBinder` instance, this is not possible for our use-case:
+
+- file logging requires Enso-specific directory which is only known during
+  runtime
+- centralized logging
+- modifying log levels without recompilation
 
 ### SLF4J Interface
 
-The `logging-service` provides a class `org.enso.loggingservice.WSLogger` which
-implements the `org.slf4j.Logger` interface, so it is compatible with all code
-using SLF4J logging. When the `logging-service` is added to a project, it
-automatically binds its logger instance as the SLF4J backend. So from the
-perspective of the user, all that they have to do is use SLF4J compliant logging
-in the application.
+The user code must not be calling any of the underlying implementations, such as
+Log4J or Logback, and should only request loggers via factory methods.
 
-One can use the `org.slf4j.LoggerFactory` directly, but for Scala code, it is
-much better to use the `com.typesafe.scalalogging.Logger` which wraps the SLF4J
-logger with macros that compute the log messages only if the given logging level
-is enabled, and allows much prettier initialisation. Additionally, the
-`logging-service` provides syntactic sugar for working with nested logging
-contexts.
+One can use the `org.slf4j.LoggerFactory` directly to retrieve class-specific
+logger. For Scala code, it is recommended to use the
+`com.typesafe.scalalogging.Logger` instead which wraps the SLF4J logger with
+macros that compute the log messages only if the given logging level is enabled,
+and allows much prettier initialisation.
 
-```
-package foo
-import com.typesafe.scalalogging.Logger
-import org.enso.logger.LoggerSyntax
+```java
+package foo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class Foo {
-  private val logger = Logger[Foo]
+public class Foo {
+    private Logger logger = LoggerFactory.getLogger(Foo.class);
 
-  def bar(): Unit = {
-    logger.info("Hello world") // Logs `Hello world` from context `foo.Foo`.
-    baz()
-  }
-
-  def baz(): Unit = {
-    val bazLogger = logger.enter("baz")
-    bazLogger.warn("Inner") // Logs `Inner` from context `foo.Foo.baz`
-  }
+    public void bar() {
+        logger.info("Hello world!");
+    }
 }
 ```
 
-The `enter` extension method follows the convention that each level of context
-nesting is separated by `.`, much like package names. The root context is
-usually the qualified name of the relevant class, but other components are free
-to use other conventions if needed.
-
 ### Setting Up Logging
 
-The logger described above must know where it should send its logs, and this is
-handled by the `LoggingServiceManager`. It allows to configure the logging
-location, log level and setup the logging service in one of three different
-modes:
+The `org.slf4j.Logger` instances have to know where to send log events. This
+setting is typically performed once, when the service starts, and applies
+globally during its execution. Currently, it is not possible to dynamically
+change where log events are being stored. The main (abstract) class used for
+setting up logging is `org.enso.logger.LoggerSetup`. An instance of that class
+can be retrieved with the thread-safe `org.enso.logger.LoggerSetup.get` factory
+method. `org.enso.logger.LoggerSetup` provides a number of `setupXYZAppender`
+methods that will direct loggers to send log events to an `XYZ` appender.
+Setting a specific hard-coded appender programmatically should however be
+avoided by the users. Instead, one should invoke one of the overloaded `setup`
+variants that initialize loggers based on the provided `logging-service`
+configuration.
 
-- _Server mode_, that will listen on a given port, gather both local and remote
-  logs and print them to stderr and to a file.
-- _Client mode_, that will connect to a specified server and send all of its
-  logs there. It will not print anything.
-- _Fallback mode_, that will just write the logs to stderr (and optionally) a
-  file, without setting up any services or connections.
+```java
+package foo;
+import org.enso.logger.LoggerSetup;
+import org.slf4j.event.Level;
 
-This logging mode initialization cannot usually happen at the time of static
-initialization, since the connection details may depend on CLI arguments or
-other configuration which may not be accessed immediately. To help with this,
-the logger will buffer any log messages that are issued before the
-initialization has happened and send them as soon as the service is initialized.
+public class MyService {
 
-In a rare situation where the service would not be initialized at all, a
-shutdown hook is added that will print the pending log messages before exiting.
-Some of the messages may be dropped, however, if more messages are buffered than
-the buffer can hold.
+  private Logger logger = LoggerFactory.getLogger(Foo.class);
+  ...
+  public void start(Level logLevel) {
+    LoggerSetup.get().setup(logLevel);
+    logger.info("My service is starting...");
+    ...
+  }
+  ...
+}
+```
+
+`org.enso.logging.LoggingSetupHelper` class was introduced to help with the most
+common use cases - establishing a file-based logging in the Enso's dedicated
+directories or connecting to an existing logging server once it starts accepting
+connections. That is why services don't call `LoggerSetup` directly but instead
+provide a service-specific implementation of
+`org.enso.logging.LoggingSetupHelper`. `LoggingSetupHelper` and `LoggerSetup`
+provide `teardown` methods to properly dispose of log events.
 
 ### Log Masking
 
@@ -281,51 +328,8 @@ String interpolation in log statements `s"Created $obj"` should be avoided
 because it uses default `toString` implementation and can leak critical
 information even if the object implements custom interface for masked logging.
 
-### Configuration
-
-The Logging Service settings should be placed under the `logging-service` key of
-the `application.conf` config.
-
-The `logging-service.logger` configuration provides an ability to override the
-default application log level for particular loggers. In the `logger` subconfig
-the key specifies the logger name (or it's prefix) and the value specifies the
-log level for that logger.
-
-```
-logging-service.logger {
-  akka.actor = info
-  akka.event = error
-  akka.io = error
-  slick {
-    jdbc.JdbcBackend.statement = debug
-    "*" = error
-  }
-}
-```
-
-For example, the config above limits all `akka.actor.*` loggers to the info
-level logging, and `akka.event.*` loggers can emit only the error level
-messages.
-
-Config supports globs (`*`). For example, the config above sets
-`jdbc.JdbcBackend.statement` SQL statements logging to debug level, and the rest
-of the slick loggers to error level.
-
 ### Logging in Tests
 
-The Logging Service provides several utilities for managing logs inside of
-tests.
-
-The primary method for setting log-level for all tests in a project is by
-creating an `application.conf` file in `resources` of the `test` target with the
-configuration key `logging-service.test-log-level` which should be set to a log
-level name (possible values are: `off`, `error`, `warning`, `info`, `debug`,
-`trace`). If this key is set to any value, the default logging queue is replaced
-with a special test queue which handles the log messages depending on status of
-the service. If a service has been set up, it just forwards them (so tests can
-easily override the log handling). However if it has not been set up, the
-enabled log messages are printed to STDERR and the rest is dropped.
-
-Another useful tool is `TestLogger.gatherLogs` - a function that wraps an action
-and will return a sequence of logs reported when performing that action. It can
-be used to verify logs of an action inside of a test.
+The Logging Service provides a helper function `TestLogger.gatherLogs` that will
+execute the closure and collect all logs reported in the specified class. That
+way it can verify that all logs are being reported within the provided code.

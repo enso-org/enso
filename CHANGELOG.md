@@ -219,6 +219,8 @@
   <kbd>enter</kbd>][7527]
 - [Connections to lamdas are displayed correctly][7550]. It is possible to drag
   a connection to any expression inside the lambda body.
+- [Atom types in dropdowns do not produce redundant imports][#7670]. The
+  possibility of imports conflicts is reduced.
 - [Copying and pasting a single node][7618]. Using the common
   <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
   now possible to copy a single selected node and paste its code to the graph or
@@ -249,6 +251,7 @@
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
+[7670]: https://github.com/enso-org/enso/pull/7670
 [7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
@@ -932,6 +935,7 @@
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
 - [Support renaming variable or function][7515]
+- [Replace custom logging service with off the shelf library][7559]
 - [Only use types as State keys][7585]
 - [Allow Java Enums in case of branches][7607]
 - [Notification about the project rename action][7613]
@@ -1069,6 +1073,7 @@
 [7420]: https://github.com/enso-org/enso/pull/7420
 [7397]: https://github.com/enso-org/enso/pull/7397
 [7515]: https://github.com/enso-org/enso/pull/7515
+[7559]: https://github.com/enso-org/enso/pull/7559
 [7585]: https://github.com/enso-org/enso/pull/7585
 [7607]: https://github.com/enso-org/enso/pull/7607
 [7613]: https://github.com/enso-org/enso/pull/7613

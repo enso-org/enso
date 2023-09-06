@@ -1,9 +1,4 @@
 {
-  "compilerOptions": {
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true
-  },
   "files": [],
   "references": [
     {

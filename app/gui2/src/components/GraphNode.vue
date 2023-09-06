@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
-import Warnings from '@viz/Warnings.vue'
 
-import type { ContentRange, ExprId, Node } from '@/stores/graph'
+import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { useResizeObserver } from '@/util/events'
+import { usePointer, useResizeObserver } from '@/util/events'
+import type { ContentRange, ExprId } from '../../shared/yjs-model'
+import type { Vec2 } from '@/util/vec2'
 
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
@@ -14,9 +15,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (event: 'updateNodeRect', rect: Rect): void
-  (event: 'updateExprRect', id: ExprId, rect: Rect): void
-  (event: 'updateNodeContent', range: ContentRange, content: string): void
+  updateRect: [rect: Rect]
+  updateExprRect: [id: ExprId, rect: Rect]
+  updateContent: [range: ContentRange, content: string]
+  updatePosition: [pos: Vec2]
+  delete: []
 }>()
 
 const rootNode = ref<HTMLElement>()
@@ -26,8 +29,12 @@ const editableRoot = ref<HTMLElement>()
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateNodeRect', new Rect(props.node.position, nodeSize.value))
+    emit('updateRect', new Rect(props.node.position, nodeSize.value))
   }
+})
+
+const dragPointer = usePointer((event) => {
+  emit('updatePosition', props.node.position.add(event.delta))
 })
 
 const transform = computed(() => {
@@ -55,8 +62,8 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 function updateRange(range: ContentRange, threhsold: number, adjust: number) {
-  range.start = updateOffset(range.start, threhsold, adjust)
-  range.end = updateOffset(range.end, threhsold, adjust)
+  range[0] = updateOffset(range[0], threhsold, adjust)
+  range[1] = updateOffset(range[1], threhsold, adjust)
 }
 
 function updateOffset(offset: number, threhsold: number, adjust: number) {
@@ -79,20 +86,20 @@ function editContent(e: Event) {
   if (!(e instanceof InputEvent)) return
 
   const domRanges = e.getTargetRanges()
-  const ranges = domRanges.map((r) => {
-    return {
-      start: getRelatedSpanOffset(r.startContainer, r.startOffset),
-      end: getRelatedSpanOffset(r.endContainer, r.endOffset),
-    }
+  const ranges = domRanges.map<ContentRange>((r) => {
+    return [
+      getRelatedSpanOffset(r.startContainer, r.startOffset),
+      getRelatedSpanOffset(r.endContainer, r.endOffset),
+    ]
   })
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''
       for (let range of ranges) {
-        if (range.start != range.end) {
+        if (range[0] != range[1]) {
           editsToApply.push({ range, content: '' })
         }
-        editsToApply.push({ range: { start: range.end, end: range.end }, content })
+        editsToApply.push({ range: [range[1], range[1]], content })
       }
       break
     }
@@ -127,18 +134,18 @@ watch(editsToApply, () => {
   while ((edit = editsToApply.shift())) {
     const range = edit.range
     const content = edit.content
-    const adjust = content.length - (range.end - range.start)
-    editsToApply.forEach((e) => updateRange(e.range, range.end, adjust))
+    const adjust = content.length - (range[1] - range[0])
+    editsToApply.forEach((e) => updateRange(e.range, range[1], adjust))
     if (selectionToRecover) {
-      selectionToRecover.ranges.forEach((r) => updateRange(r, range.end, adjust))
+      selectionToRecover.ranges.forEach((r) => updateRange(r, range[1], adjust))
       if (selectionToRecover.anchor != null) {
-        selectionToRecover.anchor = updateOffset(selectionToRecover.anchor, range.end, adjust)
+        selectionToRecover.anchor = updateOffset(selectionToRecover.anchor, range[1], adjust)
       }
       if (selectionToRecover.focus != null) {
-        selectionToRecover.focus = updateOffset(selectionToRecover.focus, range.end, adjust)
+        selectionToRecover.focus = updateOffset(selectionToRecover.focus, range[1], adjust)
       }
     }
-    emit('updateNodeContent', range, content)
+    emit('updateContent', range, content)
   }
 })
 
@@ -158,11 +165,10 @@ function saveSelections() {
     selection.getRangeAt(i),
   )
     .filter((r) => r.intersectsNode(root))
-    .map((r) => {
-      const start = getRelatedSpanOffset(r.startContainer, r.startOffset)
-      const end = getRelatedSpanOffset(r.endContainer, r.endOffset)
-      return { start, end }
-    })
+    .map((r) => [
+      getRelatedSpanOffset(r.startContainer, r.startOffset),
+      getRelatedSpanOffset(r.endContainer, r.endOffset),
+    ])
 
   let anchor =
     selection.anchorNode && root.contains(selection.anchorNode)
@@ -216,8 +222,8 @@ onUpdated(() => {
     }
 
     for (let range of saved.ranges) {
-      const start = findTextNodeAtOffset(range.start)
-      const end = findTextNodeAtOffset(range.end)
+      const start = findTextNodeAtOffset(range[0])
+      const end = findTextNodeAtOffset(range[1])
       if (start == null || end == null) continue
       let newRange = document.createRange()
       newRange.setStart(start.node, start.offset)
@@ -238,6 +244,14 @@ onUpdated(() => {
     }
   }
 })
+
+function handleClick(e: PointerEvent) {
+  if (e.shiftKey) {
+    emit('delete')
+    e.preventDefault()
+    e.stopPropagation()
+  }
+}
 
 // FIXME: these all should default to `false`
 const isCircularMenuVisible = ref(true)
@@ -292,21 +306,27 @@ watchEffect(async (onCleanup) => {
       :is-circular-menu-visible="isCircularMenuVisible"
       :data="['warning 1', 'warning 2!!']"
     />
-    <div class="node" ref="rootNode">
-      <div class="container">
-        <div
-          class="editable"
-          contenteditable
-          ref="editableRoot"
-          @beforeinput="editContent"
-          spellcheck="false"
-        >
-          <NodeSpan
-            :content="node.content"
-            :span="node.rootSpan"
-            @updateExprRect="updateExprRect"
-          />
-        </div>
+    <div
+      class="node"
+      ref="rootNode"
+      @="dragPointer.events"
+      :class="{ dragging: dragPointer.dragging }"
+    >
+      <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
+      <div
+        class="editable"
+        contenteditable
+        ref="editableRoot"
+        @beforeinput="editContent"
+        spellcheck="false"
+        @pointerdown.stop
+      >
+        <NodeSpan
+          :content="node.content"
+          :span="node.rootSpan"
+          :offset="0"
+          @updateExprRect="updateExprRect"
+        />
       </div>
     </div>
   </div>
@@ -329,7 +349,8 @@ watchEffect(async (onCleanup) => {
   align-items: center;
   white-space: nowrap;
   background: #222;
-  border-radius: 20px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
 }
 
 .binding {
@@ -348,6 +369,16 @@ watchEffect(async (onCleanup) => {
 
 .container {
   position: relative;
+}
+
+.icon {
+  color: white;
+  cursor: grab;
+}
+
+.Node.dragging,
+.Node.dragging .icon {
+  cursor: grabbing;
 }
 
 .visualization {

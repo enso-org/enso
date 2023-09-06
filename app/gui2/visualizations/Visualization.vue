@@ -27,14 +27,17 @@ const isChooserVisible = ref(false)
     <div class="toolbars">
       <div v-if="!isCircularMenuVisible"></div>
       <div :class="{ toolbar: true, invisible: isCircularMenuVisible }">
+        <div class="background"></div>
         <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
       </div>
       <div class="toolbar">
+        <div class="background"></div>
         <button class="button active" @click="isChooserVisible = !isChooserVisible">
           <img :src="CompassIcon" />
         </button>
       </div>
       <div class="toolbar">
+        <div class="background"></div>
         <slot name="toolbar"></slot>
       </div>
     </div>
@@ -61,19 +64,33 @@ const isChooserVisible = ref(false)
   position: absolute;
   display: flex;
   gap: 4px;
-  top: 20px;
+  top: 24px;
+}
+
+.toolbar > * {
+  position: relative;
+}
+
+.toolbar > .background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 80%);
+  backdrop-filter: blur(64px);
 }
 
 .toolbar {
+  position: relative;
   display: flex;
-  background: rgba(255, 255, 255, 80%);
-  backdrop-filter: blur(64px);
   border-radius: var(--radius-full);
   gap: 12px;
   padding: 8px;
 }
 
-.toolbar:not(:first-child):not(:has(> *)) {
+.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
   display: none;
 }
 

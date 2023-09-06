@@ -17,6 +17,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="CircularMenu">
+    <div class="background"></div>
     <button
       :class="{ button: true, 'no-auto-evaluate-button': true, active: isAutoEvaluationDisabled }"
       @click="emit('update:isAutoEvaluationDisabled', !isAutoEvaluationDisabled)"
@@ -41,13 +42,19 @@ const emit = defineEmits<{
 <style scoped>
 .CircularMenu {
   position: absolute;
-  clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
+  top: 0px;
+  left: -40px;
+  width: 76px;
+  height: 76px;
+}
+
+.CircularMenu > .background {
+  position: absolute;
+  clip-path: path('m0 20a56 56 0 0 0 56 56a16 16 0 0 0 0 -32a24 24 0 0 1-24-24a16 16 0 0 0-32 0');
   background: rgba(255, 255, 255, 80%);
   backdrop-filter: blur(64px);
-  top: 0px;
-  left: -36px;
-  width: 68px;
-  height: 68px;
+  width: 100%;
+  height: 100%;
 }
 
 .button {
@@ -64,19 +71,19 @@ const emit = defineEmits<{
 
 .no-auto-evaluate-button {
   position: absolute;
-  left: 9px;
-  top: 8px;
+  left: 11px;
+  top: 10px;
 }
 
 .docs-button {
   position: absolute;
-  left: 18.54px;
-  top: 33.46px;
+  left: 20px;
+  top: 38px;
 }
 
 .visualization-button {
   position: absolute;
-  left: 44px;
-  top: 44px;
+  left: 48px;
+  top: 52px;
 }
 </style>

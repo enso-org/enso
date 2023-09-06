@@ -5,8 +5,8 @@ import org.enso.cli.ProgressBar
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
 import org.enso.libraryupload.{auth, LibraryUploader}
-import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
+import org.slf4j.event.Level
 
 import java.nio.file.Path
 
@@ -31,7 +31,7 @@ object ProjectUploader {
     uploadUrl: String,
     authToken: Option[String],
     showProgress: Boolean,
-    logLevel: LogLevel
+    logLevel: Level
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     val progressReporter = new ProgressReporter {
@@ -69,7 +69,7 @@ object ProjectUploader {
     * @param logLevel the log level to use for the context gathering
     *                 dependencies
     */
-  def updateManifest(projectRoot: Path, logLevel: LogLevel): Unit = {
+  def updateManifest(projectRoot: Path, logLevel: Level): Unit = {
     val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
 
     val dependencyExtractor = new CompilerBasedDependencyExtractor(logLevel)
