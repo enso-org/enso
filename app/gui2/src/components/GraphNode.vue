@@ -270,7 +270,7 @@ watchEffect(() => {
     class="Node"
     ref="rootNode"
     :style="{ transform }"
-    v-on="dragPointer.events"
+    @="dragPointer.events"
     :class="{ dragging: dragPointer.dragging }"
   >
     <div class="icon" @pointerdown="handleClick">@ &nbsp</div>

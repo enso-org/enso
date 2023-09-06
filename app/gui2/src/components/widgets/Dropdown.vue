@@ -47,8 +47,8 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 </script>
 
 <template>
-  <div :tabindex="-1" class="Dropdown" @wheel.stop>
-    <ul class="list" :style="{ background: color }">
+  <div class="Dropdown">
+    <ul class="list" :style="{ background: color }" @wheel.stop>
       <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
         <li v-if="value === selectedValue">
           <div class="selected-item"><span v-text="value"></span></div>
@@ -57,49 +57,67 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
           <span v-text="value"></span>
         </li>
       </template>
-      <img
-        class="sort button"
-        :src="ICON_LOOKUP[sortDirection]"
-        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
-      />
     </ul>
+    <img
+      class="sort button"
+      :src="ICON_LOOKUP[sortDirection]"
+      @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
+    />
   </div>
 </template>
 
 <style scoped>
 .Dropdown {
   position: absolute;
-  user-select: none;
-  overflow: auto;
-  clip-path: inset(0 round 8px);
-  width: min-content;
   top: 100%;
   margin-top: 4px;
   height: 136px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.Dropdown::-webkit-scrollbar {
-  display: none;
 }
 
 .list {
   position: relative;
-  color: var(--color-text-light);
-  padding-left: 8px;
-  padding-right: 8px;
+  user-select: none;
+  overflow: auto;
+  border-radius: 8px;
   width: min-content;
+  height: 100%;
+  scrollbar-width: none;
+  scrollbar-gutter: stable both-edges;
+  list-style-type: none;
+  color: var(--color-text-light);
+  padding: 4px 0;
 }
 
-.list > * {
-  position: relative;
+.list::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 8px;
+}
+
+.list::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+}
+
+.list::-webkit-scrollbar-thumb {
+  border: 2px solid #0000;
+  border-left-width: 1px;
+  border-right-width: 3px;
+  background-clip: padding-box;
+  border-radius: var(--radius-full);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.list::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0);
+}
+
+.list::-webkit-scrollbar-button {
+  height: 4px;
 }
 
 .sort {
   position: absolute;
   top: 3px;
-  right: 3px;
+  right: 6px;
 }
 
 .selected-item {
@@ -107,5 +125,10 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   background-color: var(--color-port-connected);
   padding-left: 8px;
   padding-right: 8px;
+  width: min-content;
+}
+
+.selectable-item {
+  margin-right: 16px;
 }
 </style>

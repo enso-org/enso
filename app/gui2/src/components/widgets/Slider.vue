@@ -1,38 +1,28 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
+import { PointerButtonMask, usePointer } from '@/util/events'
 
 const props = defineProps<{ modelValue: number; min: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
 
 const sliderNode = ref<HTMLElement>()
-const isDragging = ref(false)
 
 /** The flag in `event.buttons` representing the left mouse button. */
 const BUTTON_LEFT_FLAG = 1
 
-function onMouseMove(event: MouseEvent) {
-  if (isDragging.value && event.currentTarget instanceof HTMLElement) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const fraction = (event.clientX - rect.left) / (rect.right - rect.left)
-    const newValue = props.min + Math.round(fraction * (props.max - props.min))
-    emit('update:modelValue', newValue)
+const dragPointer = usePointer((pos, _, eventType) => {
+  if (sliderNode.value == null) {
+    return
   }
-}
-
-useDocumentEvent('mouseup', () => {
-  isDragging.value = false
-})
-
-useDocumentEventConditional('mousemove', isDragging, (event) => {
-  if (sliderNode.value != null) {
-    const rect = sliderNode.value.getBoundingClientRect()
-    const fractionRaw = (event.clientX - rect.left) / (rect.right - rect.left)
-    const fraction = Math.max(0, Math.min(1, fractionRaw))
-    const newValue = props.min + Math.round(fraction * (props.max - props.min))
-    emit('update:modelValue', newValue)
+  if (eventType !== 'move') {
+    return
   }
-})
+  const rect = sliderNode.value.getBoundingClientRect()
+  const fractionRaw = (pos.absolute.x - rect.left) / (rect.right - rect.left)
+  const fraction = Math.max(0, Math.min(1, fractionRaw))
+  const newValue = props.min + Math.round(fraction * (props.max - props.min))
+  emit('update:modelValue', newValue)
+}, PointerButtonMask.Main)
 
 const sliderWidth = computed(
   () => `${((props.modelValue - props.min) * 100) / (props.max - props.min)}%`,
@@ -49,12 +39,7 @@ const inputValue = computed({
 </script>
 
 <template>
-  <div
-    ref="sliderNode"
-    class="Slider"
-    @mousemove="onMouseMove"
-    @mousedown="($event.buttons & BUTTON_LEFT_FLAG) !== 0 && (isDragging = true)"
-  >
+  <div ref="sliderNode" class="Slider" @="dragPointer.events">
     <div class="fraction" :style="{ width: sliderWidth }"></div>
     <input type="number" :size="1" class="value" v-model.number="inputValue" />
   </div>
