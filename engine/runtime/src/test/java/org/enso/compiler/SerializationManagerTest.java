@@ -18,8 +18,7 @@ import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.Suggestion;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 
 public class SerializationManagerTest {
 
@@ -38,6 +37,17 @@ public class SerializationManagerTest {
             .getBindings(LanguageInfo.ID)
             .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
             .asHostObject();
+  }
+
+  @Before
+  public void setup() {
+    interpreterContext.ctx().initialize(LanguageInfo.ID);
+    interpreterContext.ctx().enter();
+  }
+
+  @After
+  public void teardown() {
+    interpreterContext.ctx().close();
   }
 
   private Path getLibraryPath(LibraryName libraryName) {
