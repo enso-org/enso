@@ -25,13 +25,13 @@ public sealed interface StorageType permits AnyObjectType, BigIntegerType, Boole
     }
 
     return switch (item) {
+      case String s -> TextType.VARIABLE_LENGTH;
+      case BigInteger i -> BigIntegerType.INSTANCE;
       case Boolean b -> BooleanType.INSTANCE;
       case LocalDate d -> DateType.INSTANCE;
       case LocalTime t -> TimeOfDayType.INSTANCE;
       case LocalDateTime d -> DateTimeType.INSTANCE;
       case ZonedDateTime d -> DateTimeType.INSTANCE;
-      case String s -> TextType.VARIABLE_LENGTH;
-      case BigInteger i -> BigIntegerType.INSTANCE;
       default -> null;
     };
   }

@@ -101,18 +101,18 @@ public class InferredBuilder extends Builder {
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
-    } else if (NumericConverter.isCoercibleToDouble(o)) {
+    } else if (NumericConverter.isDecimalLike(o)) {
       currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
+    } else if (o instanceof String) {
+      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
+    } else if (o instanceof BigInteger) {
+      currentBuilder = new BigIntegerBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
       currentBuilder = new DateTimeBuilder(initialCapacity);
-    } else if (o instanceof String) {
-      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
-    } else if (o instanceof BigInteger) {
-      currentBuilder = new BigIntegerBuilder(initialCapacity);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }

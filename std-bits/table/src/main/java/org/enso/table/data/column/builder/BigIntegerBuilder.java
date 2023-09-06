@@ -7,8 +7,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.table.problems.UnsupportedFeature;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.error.ValueTypeMismatchException;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -77,7 +76,11 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
     if (o == null) {
       data[currentSize++] = null;
     } else {
-      data[currentSize++] = NumericConverter.coerceToBigInteger(o);
+      try {
+        data[currentSize++] = NumericConverter.coerceToBigInteger(o);
+      } catch (UnsupportedOperationException e) {
+        throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
+      }
     }
   }
 

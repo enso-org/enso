@@ -293,8 +293,8 @@ spec =
             r4.value_type . should_equal Value_Type.Float
             r4.to_vector . should_equal [(10^30)^(10^20), (2^70)^2, Nothing, 3^4]
 
-            (x.min y).to_vector . should_equal [10^20, 2, Nothing, 3]
-            (x.max y).to_vector . should_equal [10^30, 2^70, Nothing, 4]
+            (x.min y).to_vector . should_equal [10^20, 2, 3, 3]
+            (x.max y).to_vector . should_equal [10^30, 2^70, 3, 4]
 
             r5 = x.fill_nothing y
             r5.value_type . should_be_a (Value_Type.Decimal ...)
@@ -328,8 +328,8 @@ spec =
             (x != z) . to_vector . should_equal [True, True, Nothing, True]
             (x > z) . to_vector . should_equal [True, True, Nothing, False]
             (x <= z) . to_vector . should_equal [False, False, Nothing, True]
-            (x.min y) . to_vector . should_equal [1, 2, Nothing, 3]
-            (x.max y) . to_vector . should_equal [10^30, 2^70, Nothing, 4]
+            (x.min y) . to_vector . should_equal [1, 2, 3, 3]
+            (x.max y) . to_vector . should_equal [10^30, 2^70, 3, 4]
 
             r3 = x.fill_nothing 1.5
             r3.value_type . should_equal Value_Type.Float
@@ -372,9 +372,8 @@ spec =
             r5.to_vector . should_equal [1 ^ x, 2 ^ x, Nothing, 3 ^ x]
 
             r6 = c.min x
-            # Even though the value `x` is not actually used in the result, the common type is still Decimal:
             r6.value_type . should_be_a (Value_Type.Decimal ...)
-            r6.to_vector . should_equal [1, 2, Nothing, 3]
+            r6.to_vector . should_equal [1, 2, x, 3]
             c.max x . to_vector . should_equal [x, x, Nothing, x]
 
             r7 = c.fill_nothing x
@@ -385,7 +384,10 @@ spec =
             c1 = Column.from_vector "X" [2^70, 100, Nothing, 200]
             c1.value_type . should_be_a (Value_Type.Decimal ...)
 
-            c2 = c1.fill_nothing "NA"
+            r2 = c1.fill_nothing "NA"
+            r2.should_fail_with No_Common_Type
+
+            c2 = c1.cast Value_Type.Mixed . fill_nothing "NA"
             c2.value_type . should_equal Value_Type.Mixed
             c2.to_vector . should_equal [2^70, 100, "NA", 200]
 

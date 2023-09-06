@@ -91,6 +91,9 @@ public class DoubleBuilder extends NumericBuilder {
       long value = NumericConverter.coerceToLong(o);
       double converted = convertIntegerToDouble(value);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
+    } else if (o instanceof BigInteger bigInteger) {
+      double converted = convertBigIntegerToDouble(bigInteger);
+      data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
