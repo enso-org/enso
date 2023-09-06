@@ -94,6 +94,13 @@ spec =
             response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
             response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
 
+        Test.specify "Can send a custom header" <|
+            response = Data.post url_post (Post_Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "headers" . at "Custom" . should_equal "asdf,asdf"
+
     Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
