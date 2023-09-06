@@ -104,14 +104,16 @@ function navigateLast() {
 }
 
 function navigateUp() {
-  if (selected.value !== null && selected.value > 0) {
+  if (selected.value == null) {
+    selected.value = componentStore.components.length - 1
+  } else if (selected.value > 0) {
     selected.value -= 1
   }
   scrollToSelected()
 }
 
 function navigateDown() {
-  if (selected.value !== null && selected.value < componentStore.components.length - 1) {
+  if (selected.value != null && selected.value < componentStore.components.length - 1) {
     selected.value += 1
   }
   scrollToSelected()
@@ -128,7 +130,7 @@ const listContentHeight = computed(() => componentStore.components.length * ITEM
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
 function scrollToSelected() {
-  if (selectedPosition.value === null) return
+  if (selectedPosition.value == null) return
   scrollPosition.value = selectedPosition.value - scrollerSize.value.y + ITEM_SIZE
 }
 
@@ -181,7 +183,8 @@ useWindowEvent('keydown', (e) => {
       e.preventDefault()
       navigateLast()
       break
-    case 'Esc':
+    case 'Escape':
+      console.log('ESC')
       e.preventDefault()
       selected.value = null
       break
@@ -190,7 +193,11 @@ useWindowEvent('keydown', (e) => {
 </script>
 
 <template>
-  <div class="ComponentBrowser" v-if="shown" :style="{ transform }">
+  <div
+    class="ComponentBrowser"
+    v-if="shown"
+    :style="{ transform, '--list-height': listContentHeightPx }"
+  >
     <div class="panel components">
       <div class="top-bar">
         <div class="top-bar-inner">
@@ -209,7 +216,7 @@ useWindowEvent('keydown', (e) => {
           @wheel.stop
           @scroll="updateScroll"
         >
-          <div class="list-variant">
+          <div class="list-variant" style="">
             <div
               v-for="item in visibleComponents"
               class="component"
@@ -247,6 +254,7 @@ useWindowEvent('keydown', (e) => {
 
 <style scoped>
 .ComponentBrowser {
+  --list-height: 0px;
   color: rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: row;
@@ -278,7 +286,7 @@ useWindowEvent('keydown', (e) => {
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
 }
-.hidden {
+.docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);
 }
 
@@ -293,13 +301,13 @@ useWindowEvent('keydown', (e) => {
 .list-variant {
   top: 0px;
   width: 100%;
-  height: v-bind(listContentHeightPx);
+  height: var(--list-height);
   position: absolute;
 }
 
 .component {
   width: 100%;
-  height: calc(v-bind(ITEM_SIZE) * 1px);
+  height: 32px;
   flex-direction: row;
   align-items: center;
   gap: 8px;
@@ -309,10 +317,9 @@ useWindowEvent('keydown', (e) => {
 }
 .selected {
   color: white;
-}
-
-.selected > div > svg > use {
-  color: white;
+  & svg {
+    color: white;
+  }
 }
 
 .top-bar {
@@ -335,22 +342,20 @@ useWindowEvent('keydown', (e) => {
   flex-direction: row;
   gap: 12px;
   padding: 7px;
-}
 
-.top-bar-inner > svg {
-  color: rgba(0, 0, 0, 0.18);
-  transition: color 0.2s;
-}
+  & svg {
+    color: rgba(0, 0, 0, 0.18);
+    transition: color 0.2s;
+  }
+  & .first-on-right {
+    margin-left: auto;
+  }
+  & > svg.toggledOn {
+    color: rgba(0, 0, 0, 0.6);
+  }
 
-.top-bar-inner > .first-on-right {
-  margin-left: auto;
-}
-
-.top-bar-inner > .toggledOn {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.top-bar-inner > svg:not(.toggledOn):hover {
-  color: rgba(0, 0, 0, 0.3);
+  & > svg:not(.toggledOn):hover {
+    color: rgba(0, 0, 0, 0.3);
+  }
 }
 </style>
