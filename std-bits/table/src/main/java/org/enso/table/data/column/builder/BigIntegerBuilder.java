@@ -57,11 +57,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
     }
   }
 
-  private boolean wasSealed = false;
-
   @Override
   protected Storage<BigInteger> doSeal() {
-    wasSealed = true;
     return new BigIntegerStorage(data, currentSize);
   }
 
@@ -86,15 +83,6 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
 
   public void appendRawNoGrow(BigInteger value) {
     data[currentSize++] = value;
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    AggregatedProblems parent = super.getProblems();
-    if (wasSealed) {
-      parent.add(new UnsupportedFeature("Big integer arithmetic is currently not supported. You can cast to Value_Type.Integer which will replace the big integer values with Nothing."));
-    }
-    return parent;
   }
 
   public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {

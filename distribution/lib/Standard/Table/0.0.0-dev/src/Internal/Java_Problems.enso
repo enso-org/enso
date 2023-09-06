@@ -15,7 +15,6 @@ polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
-polyglot java import org.enso.table.data.table.problems.UnsupportedFeature
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
