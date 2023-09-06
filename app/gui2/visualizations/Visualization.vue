@@ -6,39 +6,46 @@ import CompassIcon from './Visualization/compass.svg'
 
 import { ref } from 'vue'
 
-// FIXME: add back `width` and `height` to parent components
+// FIXME: resizers to change `width` and `height`
 const props = defineProps<{
-  /** If true, the visualization should have extra padding to avoid buttons as well. */
-  dodgeButtons?: boolean
+  /** If true, the visualization should display below the node background. */
+  belowNode?: boolean
+  /** If true, the visualization should display below the toolbar buttons. */
+  belowToolbar?: boolean
   background?: string
   isCircularMenuVisible: boolean
+  width: number
+  height: number
+  fullscreen: boolean
 }>()
 const emit = defineEmits<{
   hide: []
+  'update:width': [width: number]
+  'update:height': [height: number]
+  'update:fullscreen': [fullscreen: boolean]
 }>()
 
-const isFullscreen = ref(false)
 const isChooserVisible = ref(false)
 </script>
 
 <template>
-  <Teleport to="body" :disabled="!isFullscreen">
+  <Teleport to="body" :disabled="!fullscreen">
     <div
       class="Visualization"
-      :class="{ fullscreen: isFullscreen, 'dodge-buttons': dodgeButtons }"
+      :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
       :style="{ background: background ?? '#fff2f2' }"
     >
       <slot></slot>
       <div class="toolbars">
-        <div v-if="!isCircularMenuVisible || isFullscreen"></div>
-        <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: isFullscreen }">
+        <div v-if="!isCircularMenuVisible || fullscreen"></div>
+        <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
           <div class="background"></div>
           <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="button active" @click="isFullscreen = !isFullscreen">
-            <img :src="isFullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+          <button class="button active" @click="emit('update:fullscreen', !fullscreen)">
+            <img :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
           </button>
           <button class="button active" @click="isChooserVisible = !isChooserVisible">
             <img :src="CompassIcon" />
@@ -58,14 +65,16 @@ const isChooserVisible = ref(false)
 .Visualization {
   position: absolute;
   top: 50%;
-  padding-top: 16px;
   width: 100%;
   z-index: -1;
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  border-radius: 16px;
 }
 
-.Visualization.dodge-buttons {
+.Visualization.below-node {
+  padding-top: 20px;
+}
+
+.Visualization.below-toolbar {
   padding-top: 52px;
 }
 
@@ -80,7 +89,7 @@ const isChooserVisible = ref(false)
   height: 100vh;
 }
 
-.Visualization.fullscreen.dodge-buttons {
+.Visualization.fullscreen.below-toolbar {
   padding-top: 38px;
 }
 

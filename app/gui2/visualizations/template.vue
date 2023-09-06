@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { registerVisualization } from '@/util/visualizations'
-import Visualization from './Visualization.vue'
 
 import { computed } from 'vue'
+import Visualization from './Visualization.vue'
 
-registerVisualization('Bubble', 'Any')
-
-type Data = [x: number, y: number, r: number][]
+registerVisualization('<visualization name here>', 'Any')
 
 const props = defineProps<{
   isCircularMenuVisible: boolean
@@ -21,6 +19,8 @@ const emit = defineEmits<{
   'update:height': [height: number]
   'update:fullscreen': [fullscreen: boolean]
 }>()
+
+type Data = [x: number, y: number, r: number][]
 
 const data = computed<Data>(() =>
   typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
@@ -38,9 +38,7 @@ const data = computed<Data>(() =>
     :fullscreen="fullscreen"
     @update:fullscreen="emit('update:fullscreen', $event)"
   >
-    <svg class="Bubble">
-      <circle v-for="[x, y, r] in data" stroke="black" fill="red" :cx="x" :cy="y" :r="r"></circle>
-    </svg>
+    <!-- <visualization content here> -->
   </Visualization>
 </template>
 

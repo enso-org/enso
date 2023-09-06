@@ -1,11 +1,4 @@
 /**
- * Check that value is a number other than NaN.
- */
-export function isValidNumber(value: unknown) {
-  return typeof value === 'number' && !Number.isNaN(value)
-}
-
-/**
  * Add script to the DOM.
  */
 export function loadScript(url: string, onload: (this: GlobalEventHandlers, ev: Event) => void) {

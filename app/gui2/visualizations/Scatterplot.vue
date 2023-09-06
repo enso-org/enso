@@ -2,7 +2,6 @@
 /** ScatterPlot Visualization. */
 import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
-import { isValidNumber } from '@/util/visualizationHelpers'
 
 import Visualization from '@viz/Visualization.vue'
 // FIXME: either move this to @viz, or change to a different impl
@@ -47,16 +46,20 @@ registerVisualization(
 
 const props = defineProps<{
   isCircularMenuVisible: boolean
-  data: Data
-  defaultPointColor: Color // Was previously `theme.get('accent')`
-  // FIXME: should height and width be slot props
-  height: number
   width: number
+  height: number
+  fullscreen: boolean
+  data: Data | string
+  // FIXME: these should be part of data.
+  defaultPointColor: Color // Was previously `theme.get('accent')`
   xLabel?: string
   yLabel?: string
 }>()
 const emit = defineEmits<{
   hide: []
+  'update:width': [width: number]
+  'update:height': [height: number]
+  'update:fullscreen': [fullscreen: boolean]
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
@@ -152,7 +155,13 @@ const data = computed<Data>(() => {
   const unfilteredData = Array.isArray(rawData)
     ? rawData.map((y, index) => ({ x: index, y }))
     : rawData.data ?? []
-  const data = unfilteredData.filter((point) => isValidNumber(point.x) && isValidNumber(point.y))
+  const data = unfilteredData.filter(
+    (point) =>
+      typeof point.x === 'number' &&
+      !Number.isNaN(point.x) &&
+      typeof point.y === 'number' &&
+      !Number.isNaN(point.y),
+  )
   if (Array.isArray(rawData)) {
     rawData = {}
   }
@@ -695,7 +704,16 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <Visualization :is-circular-menu-visible="isCircularMenuVisible">
+  <Visualization
+    @hide="emit('hide')"
+    :is-circular-menu-visible="isCircularMenuVisible"
+    :width="width"
+    @update:width="emit('update:width', $event)"
+    :height="height"
+    @update:height="emit('update:height', $event)"
+    :fullscreen="fullscreen"
+    @update:fullscreen="emit('update:fullscreen', $event)"
+  >
     <div class="Scatterplot" ref="containerNode">
       <svg :width="canvasWidth" :height="canvasHeight">
         <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">

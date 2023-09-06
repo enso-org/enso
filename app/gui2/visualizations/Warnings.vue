@@ -1,24 +1,29 @@
 <script setup lang="ts">
-import { escapeHtml } from '@/util/escapeHtml'
 import { registerVisualization } from '@/util/visualizations'
+import Visualization from './Visualization.vue'
 
 import { computed, onMounted } from 'vue'
-import Visualization from './Visualization.vue'
 
 /** Simple Warning Visualization. */
 
 registerVisualization('Warnings', 'Any')
 
+type Data = string[]
+
 const props = defineProps<{
   isCircularMenuVisible: boolean
+  width: number
+  height: number
+  fullscreen: boolean
   data: Data | string
 }>()
 const emit = defineEmits<{
   hide: []
+  'update:width': [width: number]
+  'update:height': [height: number]
+  'update:fullscreen': [fullscreen: boolean]
   'update:preprocessor': [module: string, method: string]
 }>()
-
-type Data = string[]
 
 onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Warnings', 'process_to_json_text')
@@ -31,14 +36,20 @@ const data = computed<Data>(() =>
 
 <template>
   <Visualization
-    dodge-buttons
-    :is-circular-menu-visible="isCircularMenuVisible"
+    below-toolbar
     @hide="emit('hide')"
+    :is-circular-menu-visible="isCircularMenuVisible"
+    :width="width"
+    @update:width="emit('update:width', $event)"
+    :height="height"
+    @update:height="emit('update:height', $event)"
+    :fullscreen="fullscreen"
+    @update:fullscreen="emit('update:fullscreen', $event)"
   >
     <div class="Warnings">
       <ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre">
         <li v-if="data.length === 0">There are no warnings.</li>
-        <li v-for="warning in data" v-text="escapeHtml(warning)"></li>
+        <li v-for="warning in data" v-text="warning"></li>
       </ul>
     </div>
   </Visualization>

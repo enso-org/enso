@@ -304,7 +304,7 @@ watchEffect(async (onCleanup) => {
       :is="visualization"
       v-if="isVisualizationVisible"
       :is-circular-menu-visible="isCircularMenuVisible"
-      :data="['warning 1', 'warning 2!!']"
+      :data="['warning 1', 'warning 2!!&<>;\'\x22']"
     />
     <div
       class="node"
