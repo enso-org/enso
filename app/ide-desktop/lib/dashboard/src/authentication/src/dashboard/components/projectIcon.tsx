@@ -114,7 +114,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         ((state: spinner.SpinnerState | null) => void) | null
     >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
-    const [isRunningInBackground, setIsRunningInBackground] = React.useState(false)
+    const [isRunningInBackground, setIsRunningInBackground] = React.useState(
+        item.projectState.execute_async ?? false
+    )
     const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
