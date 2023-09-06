@@ -451,7 +451,7 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
 
             this_bbox <- on_resized.map(|t| BoundingBox::from_size(*t));
             dragged_item_bbox <- all_with3(&dragged_item_size, &dragged_item_offset, &pos_on_move,
-                |size, offset, pos| BoundingBox::from_position_and_size(*pos + *offset, *size)
+                |size, offset, pos| BoundingBox::from_bottom_left_position_and_size(*pos + *offset, *size)
             );
             is_close <- all_with(&this_bbox, &dragged_item_bbox, |a, b| a.intersects(b)).on_change();
             dragged_item_bbox_center <- dragged_item_bbox.map(|bbox| bbox.center());

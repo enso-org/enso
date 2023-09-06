@@ -14,9 +14,8 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.loggingservice.LogLevel
 import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
-
+import org.slf4j.event.Level
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
@@ -25,7 +24,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future}
   * @param config a LS config
   * @param logLevel log level for the Language Server
   */
-class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
+class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     extends LifecycleComponent
     with LazyLogging {
 

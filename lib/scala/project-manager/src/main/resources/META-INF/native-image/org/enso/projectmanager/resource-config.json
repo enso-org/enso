@@ -51,6 +51,9 @@
       "pattern": "\\Qorg/enso/projectmanager/service/versionmanagement/RuntimeVersionManagerMixin$ErrorRecovery.class\\E"
     },
     { "pattern": "\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E" },
+    { "pattern": "\\QMETA-INF/services/org.enso.logger.LoggerSetup\\E" },
+    { "pattern": "\\QMETA-INF/services/org.enso.logging.LogbackLoggingServiceFactory\\E" },
+    { "pattern": "\\Qch/qos/logback/classic/spi/Configurator.class\\E" },
     { "pattern": "\\Qreference.conf\\E" },
     { "pattern": "\\Qversion.conf\\E" },
     { "pattern": "\\Qzio/App$$anon$1.class\\E" },

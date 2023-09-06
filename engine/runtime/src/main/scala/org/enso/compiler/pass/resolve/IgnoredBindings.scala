@@ -2,8 +2,16 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Case, Pattern}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name,
+  Pattern
+}
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -55,9 +63,9 @@ case object IgnoredBindings extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.mapExpressions(
       runExpression(
         _,
@@ -78,9 +86,9 @@ case object IgnoredBindings extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "Desugaring underscore arguments to lambdas requires a fresh name " +
@@ -110,13 +118,13 @@ case object IgnoredBindings extends IRPass {
     * @return `expression`, with any ignored bidings desugared
     */
   private def resolveExpression(
-    expression: IR.Expression,
+    expression: Expression,
     supply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     expression.transformExpressions {
-      case binding: IR.Expression.Binding => resolveBinding(binding, supply)
-      case function: IR.Function          => resolveFunction(function, supply)
-      case cse: IR.Case                   => resolveCase(cse, supply)
+      case binding: Expression.Binding => resolveBinding(binding, supply)
+      case function: Function          => resolveFunction(function, supply)
+      case cse: Case                   => resolveCase(cse, supply)
     }
   }
 
@@ -127,9 +135,9 @@ case object IgnoredBindings extends IRPass {
     * @return `binding`, with any ignored bindings desugared
     */
   def resolveBinding(
-    binding: IR.Expression.Binding,
+    binding: Expression.Binding,
     supply: FreshNameSupply
-  ): IR.Expression.Binding = {
+  ): Expression.Binding = {
     if (isIgnore(binding.name)) {
       val newName = supply
         .newName()
@@ -162,11 +170,11 @@ case object IgnoredBindings extends IRPass {
     * @return `function`, with any ignores desugared
     */
   def resolveFunction(
-    function: IR.Function,
+    function: Function,
     supply: FreshNameSupply
-  ): IR.Function = {
+  ): Function = {
     function match {
-      case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+      case lam @ Function.Lambda(args, body, _, _, _, _) =>
         val argIsIgnore = args.map(isIgnoreArg)
         val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
           genNewArg(arg, isIgnore, supply)
@@ -176,7 +184,7 @@ case object IgnoredBindings extends IRPass {
           arguments = newArgs,
           body      = resolveExpression(body, supply)
         )
-      case _: IR.Function.Binding =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during ignored " +
           "bindings desugaring."
@@ -195,13 +203,13 @@ case object IgnoredBindings extends IRPass {
     * @return `arg`, if `isIgnored` is `false`, otherwise `arg` with a new name
     */
   def genNewArg(
-    arg: IR.DefinitionArgument,
+    arg: DefinitionArgument,
     isIgnored: Boolean,
     freshNameSupply: FreshNameSupply
-  ): IR.DefinitionArgument = {
+  ): DefinitionArgument = {
     arg match {
-      case spec @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, _, _, _),
+      case spec @ DefinitionArgument.Specified(
+            Name.Self(_, _, _, _),
             _,
             _,
             _,
@@ -215,7 +223,7 @@ case object IgnoredBindings extends IRPass {
             spec.defaultValue.map(resolveExpression(_, freshNameSupply))
           )
           .updateMetadata(this -->> State.Ignored)
-      case spec: IR.DefinitionArgument.Specified =>
+      case spec: DefinitionArgument.Specified =>
         if (isIgnored) {
           val newName = freshNameSupply
             .newName()
@@ -249,9 +257,9 @@ case object IgnoredBindings extends IRPass {
     * @param ir the definition argument to check
     * @return `true` if `ir` represents an ignore, otherwise `false`
     */
-  def isIgnoreArg(ir: IR.DefinitionArgument): Boolean = {
+  def isIgnoreArg(ir: DefinitionArgument): Boolean = {
     ir match {
-      case IR.DefinitionArgument.Specified(name, _, _, _, _, _, _) =>
+      case DefinitionArgument.Specified(name, _, _, _, _, _, _) =>
         isIgnore(name)
     }
   }
@@ -261,11 +269,11 @@ case object IgnoredBindings extends IRPass {
     * @param ir the name to check
     * @return `true` if `ir` represents an ignore, otherwise `false`
     */
-  def isIgnore(ir: IR.Name): Boolean = {
+  def isIgnore(ir: Name): Boolean = {
     ir match {
-      case _: IR.Name.Blank                  => true
-      case IR.Name.Literal(name, _, _, _, _) => name == "_"
-      case _                                 => false
+      case _: Name.Blank                  => true
+      case Name.Literal(name, _, _, _, _) => name == "_"
+      case _                              => false
     }
   }
 
@@ -275,7 +283,7 @@ case object IgnoredBindings extends IRPass {
     * @param supply the compiler's fresh name supply
     * @return `cse`, with any ignored bindings resolved
     */
-  def resolveCase(cse: IR.Case, supply: FreshNameSupply): IR.Case = {
+  def resolveCase(cse: Case, supply: FreshNameSupply): Case = {
     cse match {
       case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
@@ -312,9 +320,9 @@ case object IgnoredBindings extends IRPass {
     * @return `pattern`, with any ignored bindings resolved
     */
   def resolvePattern(
-    pattern: IR.Pattern,
+    pattern: Pattern,
     supply: FreshNameSupply
-  ): IR.Pattern = {
+  ): Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
         if (isIgnore(name)) {
@@ -359,7 +367,7 @@ case object IgnoredBindings extends IRPass {
             name = setNotIgnored(name)
           )
         }
-      case err: IR.Error.Pattern => err
+      case err: errors.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

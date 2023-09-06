@@ -49,7 +49,15 @@ trait WithTemporaryDirectory
             Thread.sleep(200)
             tryRemoving(retry - 1)
           } else {
-            FileUtils.forceDeleteOnExit(dir)
+            try {
+              FileUtils.forceDeleteOnExit(dir)
+            } catch {
+              case e: IOException =>
+                System.err.println(
+                  s"Cannot delete a temporary test directory [$dir] due to error: $e"
+                )
+                e.printStackTrace()
+            }
           }
       }
     }

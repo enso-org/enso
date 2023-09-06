@@ -66,6 +66,10 @@ class LibraryResolverSpec
         fixtures
           .get(libraryName)
           .map(LibraryRoot(_))
+
+      /** @inheritdoc */
+      override def findAvailableLocalLibraries(): List[LibraryName] =
+        fixtures.keys.toList
     }
 
     val localLibraries = Map(

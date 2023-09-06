@@ -169,3 +169,11 @@ type Column_Naming_Helper
     in_memory : Column_Naming_Helper
     in_memory =
         Column_Naming_Helper.Value Unlimited_Naming_Properties.Instance
+
+    ## PRIVATE
+       Create a column called "temp", possibly renamed.
+    make_temp_column_name : Vector Text -> Text
+    make_temp_column_name self existing_column_names =
+        renamer = self.create_unique_name_strategy
+        renamer.mark_used existing_column_names
+        renamer.make_unique "temp"

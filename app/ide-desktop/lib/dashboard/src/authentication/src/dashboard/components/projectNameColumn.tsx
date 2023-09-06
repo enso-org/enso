@@ -67,7 +67,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
             backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
-    const isOtherUserUsingProject = asset.projectState.opened_by !== organization?.email
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        asset.projectState.opened_by != null &&
+        asset.projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -222,7 +225,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )}`}
             onClick={event => {
                 if (rowState.isEditingName || isOtherUserUsingProject) {
-                    // The project should not be edited in these cases.
+                    // The project should neither be edited nor opened in these cases.
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
