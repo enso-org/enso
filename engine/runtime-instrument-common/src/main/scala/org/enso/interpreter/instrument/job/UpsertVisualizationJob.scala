@@ -102,7 +102,7 @@ class UpsertVisualizationJob(
       ctx.locking.releaseContextLock(config.executionContextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [{0}] for {1} milliseconds.",
+        "Kept context lock [{0}] for {1} milliseconds.",
         Array(
           getClass.getSimpleName,
           System.currentTimeMillis() - lockTimestamp
@@ -216,12 +216,12 @@ object UpsertVisualizationJob {
     else Left(ModuleNotFound(moduleName))
   }
 
-  /** Evaluate the visualization argument in a given module.
+  /** Evaluate the visualization arguments in a given module.
     *
     * @param module the module where to evaluate arguments for the expression
     * @param argumentExpressions the list of argument expression to the visualization function
     * @param ctx the runtime context
-    * @return either the evaluation result or an evaluation failure    *
+    * @return either the evaluation result or an evaluation failure
     */
   private def evaluateArgumentExpressions(
     module: Module,
