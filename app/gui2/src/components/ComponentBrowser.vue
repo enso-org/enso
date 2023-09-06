@@ -4,7 +4,7 @@ import { useComponentsStore } from '@/stores/components'
 import type { Component } from '@/stores/components'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
@@ -68,13 +68,28 @@ function componentColor(component: Component): string {
 
 // === Highlight ===
 
-const selected = ref(-1)
-const selectedPosition = computed(() => componentPos(selected.value))
-const highlightPosition = useApproach(selectedPosition)
+const selected = ref<number | null>(null)
+const highlightPosition = ref(0)
+const selectedPosition = computed(() =>
+  selected.value != null ? componentPos(selected.value) : null,
+)
+const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
+const animatedHighlightPosition = useApproach(highlightPosition)
+const animatedHighlightHeight = useApproach(highlightHeight)
+
+watch(selectedPosition, (newPos) => {
+  if (newPos == null) return
+  highlightPosition.value = newPos
+  if (animatedHighlightHeight.value <= 1.0) {
+    animatedHighlightPosition.skip()
+  }
+})
 
 const highlightClipPath = computed(() => {
-  let top = highlightPosition.value
-  let bottom = listContentHeight.value - top - ITEM_SIZE
+  let height = animatedHighlightHeight.value
+  let position = animatedHighlightPosition.value
+  let top = position + ITEM_SIZE - height
+  let bottom = listContentHeight.value - position - ITEM_SIZE
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
@@ -89,14 +104,14 @@ function navigateLast() {
 }
 
 function navigateUp() {
-  if (selected.value > 0) {
+  if (selected.value !== null && selected.value > 0) {
     selected.value -= 1
   }
   scrollToSelected()
 }
 
 function navigateDown() {
-  if (selected.value < componentStore.components.length - 1) {
+  if (selected.value !== null && selected.value < componentStore.components.length - 1) {
     selected.value += 1
   }
   scrollToSelected()
@@ -113,6 +128,7 @@ const listContentHeight = computed(() => componentStore.components.length * ITEM
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
 function scrollToSelected() {
+  if (selectedPosition.value === null) return
   scrollPosition.value = selectedPosition.value - scrollerSize.value.y + ITEM_SIZE
 }
 
@@ -138,9 +154,9 @@ useWindowEvent('keydown', (e) => {
         nextTick(() => {
           scrollToSelected()
           animatedScrollPosition.skip()
-          highlightPosition.skip()
+          animatedHighlightPosition.skip()
           // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
-          // the template. We need to manually assign it this time.
+          // the template. We need to manually assign it.
           if (scroller.value) {
             scroller.value.scrollTop = animatedScrollPosition.value
           }
@@ -164,6 +180,10 @@ useWindowEvent('keydown', (e) => {
     case 'End':
       e.preventDefault()
       navigateLast()
+      break
+    case 'Esc':
+      e.preventDefault()
+      selected.value = null
       break
   }
 })
@@ -326,11 +346,11 @@ useWindowEvent('keydown', (e) => {
   margin-left: auto;
 }
 
-.top-bar-inner > .toggled_on {
+.top-bar-inner > .toggledOn {
   color: rgba(0, 0, 0, 0.6);
 }
 
-.top-bar-inner > svg:not(.toggled_on):hover {
+.top-bar-inner > svg:not(.toggledOn):hover {
   color: rgba(0, 0, 0, 0.3);
 }
 </style>

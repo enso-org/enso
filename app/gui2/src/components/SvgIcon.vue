@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import icons from '@/assets/icons.svg'
 
-const props = defineProps<{ variant: String }>()
+const props = defineProps<{ variant: string }>()
 </script>
 
 <template>

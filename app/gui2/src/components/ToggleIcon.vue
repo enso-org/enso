@@ -1,20 +1,23 @@
 <script setup lang="ts">
+/**
+ *
+ */
+
 import SvgIcon from '@/components/SvgIcon.vue'
 import { ref } from 'vue'
 
-const props = defineProps<{ icon: String; modelValue?: Boolean }>()
+const props = withDefaults(defineProps<{ icon: string; modelValue?: boolean }>(), {
+  modelValue: false,
+})
 const emit = defineEmits<{
-  (e: 'update:modelValue', toggledOn: Boolean): void
+  (e: 'update:modelValue', toggledOn: boolean): void
 }>()
-
-const toggledOn = ref(props.modelValue ?? false)
-
-function toggle() {
-  toggledOn.value = !toggledOn.value
-  emit('update:modelValue', toggledOn.value)
-}
 </script>
 
 <template>
-  <SvgIcon :variant="props.icon" :class="{ toggled_on: toggledOn }" @click="toggle" />
+  <SvgIcon
+    :variant="props.icon"
+    :class="{ toggledOn: modelValue }"
+    @click="emit('update:modelValue', !modelValue)"
+  />
 </template>
