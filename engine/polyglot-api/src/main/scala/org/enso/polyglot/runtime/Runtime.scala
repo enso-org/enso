@@ -670,7 +670,7 @@ object Runtime {
         s"VisualizationConfiguration(" +
         s"executionContextId=$executionContextId," +
         s"expression=${expression.toLogString(shouldMask)})" +
-        s"visualizationModule=${visualizationModule})"
+        s"visualizationModule=$visualizationModule)"
     }
 
     /** An operation applied to the suggestion argument. */

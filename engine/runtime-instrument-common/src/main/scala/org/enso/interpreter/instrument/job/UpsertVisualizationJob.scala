@@ -270,7 +270,7 @@ object UpsertVisualizationJob {
           ctx.executionService.getLogger.log(
             Level.SEVERE,
             "Evaluation of visualization argument [{0}] in module [{1}] was interrupted [{2}] times.",
-            Array(
+            Array[Object](
               argumentExpression,
               module.getName.toString,
               retryCount,
@@ -288,7 +288,7 @@ object UpsertVisualizationJob {
           ctx.executionService.getLogger.log(
             Level.SEVERE,
             "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
-            Array(
+            Array[Object](
               argumentExpression,
               module.getName.toString,
               error.getClass.getSimpleName,
@@ -352,8 +352,8 @@ object UpsertVisualizationJob {
         case error: ThreadInterruptedException =>
           ctx.executionService.getLogger.log(
             Level.SEVERE,
-            s"Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
-            Array(
+            "Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
+            Array[Object](
               expression,
               expressionModule,
               retryCount,
@@ -371,7 +371,7 @@ object UpsertVisualizationJob {
           ctx.executionService.getLogger.log(
             Level.SEVERE,
             "Evaluation of visualization [{0}] failed in module [{1}] with [{2}]: {3}",
-            Array(
+            Array[Object](
               expression,
               expressionModule,
               error.getClass,
