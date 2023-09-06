@@ -7,18 +7,14 @@ import { useProjectStore } from './project'
 import * as Y from 'yjs'
 import { useObserveYjs } from '@/util/crdt'
 import {
-  rangeEncloses,
   type ContentRange,
   type ExprId,
   type IdMap,
   type NodeMetadata,
   rangeIntersects,
-} from '../../shared/yjs-model'
+} from 'shared/yjs-model'
 import type { Opt } from '@/util/opt'
-
-import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
-
-export const wasmModule = init()
+import { parseEnso } from '@/util/ffi'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -26,8 +22,8 @@ export const useGraphStore = defineStore('graph', () => {
   proj.setProjectName('test')
   proj.setObservedFileName('Main.enso')
 
-  let text = computed(() => proj.module?.contents)
-  let metadata = computed(() => proj.module?.metadata)
+  const text = computed(() => proj.module?.contents)
+  const metadata = computed(() => proj.module?.metadata)
 
   const textContent = ref('')
 
@@ -91,7 +87,8 @@ export const useGraphStore = defineStore('graph', () => {
     const parsed = parseBlock(0, textContentLocal, idMap)
 
     _parsed.value = parsed
-    _parsed_enso.value = JSON.parse(parse_to_json(textContentLocal))
+    _parsed_enso.value = parseEnso(textContentLocal)
+
     const accessed = idMap.accessedSoFar()
 
     for (const nodeId of nodes.keys()) {
@@ -116,7 +113,7 @@ export const useGraphStore = defineStore('graph', () => {
 
       const nodeMeta = meta.get(id)
       const nodeContent = textContentLocal.substring(exprRange[0], exprRange[1])
-      let node = nodes.get(id)
+      const node = nodes.get(id)
       if (node == null) {
         nodeInserted(stmt, text, nodeContent, nodeMeta)
       } else {
@@ -130,7 +127,7 @@ export const useGraphStore = defineStore('graph', () => {
     for (const [id, op] of event.changes.keys) {
       if (op.action === 'update') {
         const data = meta.get(id)
-        let node = nodes.get(id as ExprId)
+        const node = nodes.get(id as ExprId)
         if (data != null && node != null) {
           const pos = new Vec2(data.x, data.y)
           if (!node.position.equals(pos)) {
@@ -187,9 +184,9 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
-    for (let [span, offset] of walkSpansBfs(node.rootSpan)) {
+    for (const [span, offset] of walkSpansBfs(node.rootSpan)) {
       exprNodes.set(span.id, id)
-      let ident = node.content.substring(offset, offset + span.length)
+      const ident = node.content.substring(offset, offset + span.length)
       if (span.kind === SpanKind.Ident) {
         map.setIfUndefined(identUsages, ident, set.create).add(span.id)
       }
@@ -197,11 +194,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function clearSpanUsages(id: ExprId, node: Node) {
-    for (let [span, offset] of walkSpansBfs(node.rootSpan)) {
+    for (const [span, offset] of walkSpansBfs(node.rootSpan)) {
       exprNodes.delete(span.id)
       if (span.kind === SpanKind.Ident) {
-        let ident = node.content.substring(offset, offset + span.length)
-        let usages = identUsages.get(ident)
+        const ident = node.content.substring(offset, offset + span.length)
+        const usages = identUsages.get(ident)
         if (usages != null) {
           usages.delete(span.id)
           if (usages.size === 0) {
@@ -242,10 +239,10 @@ export const useGraphStore = defineStore('graph', () => {
 
   const edges = computed(() => {
     const edges = []
-    for (let [ident, usages] of identUsages) {
-      let source = identDefinitions.get(ident)
+    for (const [ident, usages] of identUsages) {
+      const source = identDefinitions.get(ident)
       if (source == null) continue
-      for (let target of usages) {
+      for (const target of usages) {
         edges.push({ source, target })
       }
     }
@@ -358,28 +355,12 @@ export interface Span {
   children: Span[]
 }
 
-function findSpanEnclosing(
-  span: Span,
-  spanOffset: number,
-  range: ContentRange,
-): [Span, number] | null {
-  let deepestSpan: [Span, number] | null = null
-  for (let [innerSpan, offset] of walkSpansBfs(span, spanOffset, (s, offset) =>
-    rangeEncloses([offset, offset + s.length], range),
-  )) {
-    if (rangeEncloses([offset, offset + span.length], range)) {
-      deepestSpan = [innerSpan, offset]
-    }
-  }
-  return deepestSpan
-}
-
 function walkSpansBfs(
   span: Span,
   offset: number = 0,
   visitChildren?: (span: Span, offset: number) => boolean,
 ): IterableIterator<[Span, number]> {
-  let stack: [Span, number][] = [[span, offset]]
+  const stack: [Span, number][] = [[span, offset]]
   return {
     next() {
       if (stack.length === 0) {
@@ -439,7 +420,7 @@ function parseNodeExpression(offset: number, content: string, idMap: IdMap): Spa
   let spanOffset = offset
   const stack: [Span, number][] = []
 
-  const tokenRegex = /(?:(\".*?\"|[0-9]+\b)|(\s+)|([a-zA-Z0-9_]+)|(.))/g
+  const tokenRegex = /(?:(".*?"|[0-9]+\b)|(\s+)|([a-zA-Z0-9_]+)|(.))/g
   content.replace(tokenRegex, (token, tokLit, tokSpace, tokIdent, tokSymbol, index) => {
     const pos = offset + index
     if (tokSpace != null) {

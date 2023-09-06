@@ -1,6 +1,6 @@
 <script setup lang="ts">
-const props = defineProps<{}>()
-const emit = defineEmits<{}>()
+const _props = defineProps<{}>()
+const _emit = defineEmits<{}>()
 </script>
 
 <template>

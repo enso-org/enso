@@ -23,3 +23,5 @@ export function isNone<T>(value: Opt<T>): value is null | undefined {
  * Helper type operator that provides the `T` type wrapped in `Opt<T>`.
  */
 export type UnwrapOpt<T> = T extends Opt<infer U> ? U : never
+
+export type NonEmptyArray<T> = [T, ...T[]]

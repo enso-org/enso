@@ -1,8 +1,8 @@
-import { computed, ref, watchEffect } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { defineStore } from 'pinia'
 import * as Y from 'yjs'
 import { attachProvider } from '@/util/crdt'
-import { DistributedModel } from '@/../shared/yjs-model'
+import { DistributedModel } from 'shared/yjs-model'
 import { computedAsync } from '@vueuse/core'
 import { Awareness } from 'y-protocols/awareness'
 
@@ -22,7 +22,7 @@ export const useProjectStore = defineStore('project', () => {
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
-    let socketUrl = location.origin.replace(/^http/, 'ws') + '/room'
+    const socketUrl = location.origin.replace(/^http/, 'ws') + '/room'
     const provider = attachProvider(socketUrl, 'enso-projects', doc, awareness)
     onCleanup(() => {
       provider.dispose()

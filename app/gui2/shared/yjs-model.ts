@@ -7,10 +7,6 @@ declare const BRAND_ExprId: unique symbol
 export type ExprId = Uuid & { [BRAND_ExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
-interface Handle {
-  dispose(): void
-}
-
 export interface NodeMetadata {
   x: number
   y: number
@@ -58,8 +54,8 @@ export class NamedDocArray {
     const map = new y.Map<y.Text | y.Doc>()
     const yName = map.set(NamedDocKey.NAME, new y.Text(name))
     const doc = map.set(NamedDocKey.DOC, new y.Doc())
-    const pos = y.createRelativePositionFromTypeIndex(this.array, this.array.length)
     this.array.push([map])
+    this.integrateAddedItem(map, this.array.length - 1)
     return { name: yName, doc }
   }
 
@@ -242,26 +238,6 @@ class DistributedModule {
   }
 }
 
-function commonPrefixLength(a: string, b: string): number {
-  const commonLen = Math.min(a.length, b.length)
-  for (let i = 0; i < commonLen; i++) {
-    if (a[i] !== b[i]) {
-      return i
-    }
-  }
-  return commonLen
-}
-
-function commonSuffixLength(a: string, b: string): number {
-  const commonLen = Math.min(a.length, b.length)
-  for (let i = 0; i < commonLen; i++) {
-    if (a[a.length - i - 1] !== b[b.length - i - 1]) {
-      return i
-    }
-  }
-  return commonLen
-}
-
 export interface RelativeRange {
   start: y.RelativePosition
   end: y.RelativePosition
@@ -316,9 +292,6 @@ export class IdMap {
   getOrInsertUniqueId(range: [number, number]): ExprId {
     if (this.finished) {
       throw new Error('IdMap already finished')
-    }
-    if (range[0] === 0 && range[1] == 1) {
-      debugger
     }
 
     const key = IdMap.keyForRange(range)
