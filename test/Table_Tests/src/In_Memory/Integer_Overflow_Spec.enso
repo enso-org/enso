@@ -330,6 +330,31 @@ spec =
             (x <= z) . to_vector . should_equal [False, False, Nothing, True]
             (x.min y) . to_vector . should_equal [1, 2, 3, 3]
             (x.max y) . to_vector . should_equal [10^30, 2^70, 3, 4]
+            (x.min z) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
+            (x.max [y, z]) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+
+            (y * x) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
+            (y % x) . to_vector . should_equal [1, 2, Nothing, 3]
+            (z / x) . to_vector . should_equal [1.5 / 10^30, 2.5 / 2^70, Nothing, 3.5 / 3]
+            (z ^ x) . to_vector . should_equal [1.5^(10^30), 2.5^(2^70), Nothing, 3^3]
+            (z == x) . to_vector . should_equal [False, False, Nothing, False]
+            (z < x) . to_vector . should_equal [True, True, Nothing, False]
+            (z >= x) . to_vector . should_equal [False, False, Nothing, True]
+            (y != x) . to_vector . should_equal [True, True, Nothing, True]
+            (y > x) . to_vector . should_equal [False, False, Nothing, True]
+            (y <= x) . to_vector . should_equal [True, True, Nothing, False]
+            (y.min x) . to_vector . should_equal [1, 2, 3, 3]
+            (y.max x) . to_vector . should_equal [10^30, 2^70, 3, 4]
+            (z.min x) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
+            (z.max x) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+
+            x.fill_nothing y . to_vector . should_equal [10^30, 2^70, 3, 3]
+            x.fill_nothing z . to_vector . should_equal [10^30, 2^70, 1.5, 3]
+            y.fill_nothing x . to_vector . should_equal [1, 2, 3, 4]
+            y2 = (y < 2).iif Nothing y
+            y2.to_vector . should_equal [Nothing, 2, 3, 4]
+            y2.fill_nothing x . to_vector . should_equal [10^30, 2, 3, 4]
+            ((z < 2).iif Nothing z).fill_nothing x . to_vector . should_equal [10^30, 2.5, 3.5, 4.5]
 
             r3 = x.fill_nothing 1.5
             r3.value_type . should_equal Value_Type.Float
