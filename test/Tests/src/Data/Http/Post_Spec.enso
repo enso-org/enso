@@ -36,12 +36,6 @@ spec =
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
-        Test.specify "Can perform a Text POST" <|
-            response = Data.post url_post "hello world"
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-
         Test.specify "Can perform a Post_Request_Body.Json POST" <|
             response = Data.post url_post (Post_Request_Body.Json (Test_Type.Aaa "abc"))
             response.at "data" . should_equal '{"type":"Test_Type","constructor":"Aaa","s":"abc"}'
@@ -94,9 +88,20 @@ spec =
             response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
             response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
 
+        Test.specify "Can perform a File POST with auto-conversion" <|
+            test_file = enso_project.data / "sample.txt"
+            response = Data.post url_post test_file
+            response.at "data" . should_equal test_file.read_text
+
+        Test.specify "Can perform a Text POST with auto-conversion" <|
+            response = Data.post url_post "hello world"
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Post_Request_Body.Text "hello world") try_auto_parse_response=False
-            response.body.bytes.length should_equal 383
+            response.body.bytes.length . should_equal 383
 
         Test.specify "Can send a custom header" <|
             response = Data.post url_post (Post_Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
