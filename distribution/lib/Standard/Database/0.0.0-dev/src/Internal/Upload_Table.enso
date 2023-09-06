@@ -492,7 +492,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
         connection = target_table.connection
         Panic.recover SQL_Error <| connection.jdbc_connection.run_within_transaction <|
             dry_run = Context.Output.is_enabled.not
-            Context.Output.with_enabled <| check_for_null_keys key_values_to_delete key_columns <|
+            check_for_null_keys key_values_to_delete key_columns <| Context.Output.with_enabled <|
                 source = prepare_source_table_for_delete_matching key_values_to_delete connection key_columns dry_run
                 source_db_table = source.db_table
                 source_db_table.if_not_error <|
