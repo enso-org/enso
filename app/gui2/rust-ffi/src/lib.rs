@@ -1,4 +1,4 @@
-use enso_parser::*;
+use enso_parser::Parser;
 use wasm_bindgen::prelude::*;
 
 
