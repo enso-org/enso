@@ -12,16 +12,22 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
   },
-  ignorePatterns: ["rust-ffi/pkg/**"],
+  ignorePatterns: ['rust-ffi/pkg/**'],
   rules: {
-    "camelcase": [1, {
-      "ignoreImports": true,
-    }],
-    "no-inner-declarations": 0,
-    "vue/v-on-event-hyphenation": [2, "never"],
-    "@typescript-eslint/no-unused-vars": [1, {
-      varsIgnorePattern: "^_",
-      argsIgnorePattern: "^_",
-    }]
-  }
+    camelcase: [
+      1,
+      {
+        ignoreImports: true,
+      },
+    ],
+    'no-inner-declarations': 0,
+    'vue/v-on-event-hyphenation': [2, 'never'],
+    '@typescript-eslint/no-unused-vars': [
+      1,
+      {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+      },
+    ],
+  },
 }

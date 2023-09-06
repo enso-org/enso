@@ -8,11 +8,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = { version = "0.2.84", features = [] }
-enso-parser = { path="../../../lib/rust/parser" }
+enso-parser = { path = "../../../lib/rust/parser" }
 serde_json = "1.0"
 
 [workspace]
-
 
 [profile.release]
 debug = false
