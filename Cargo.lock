@@ -2116,6 +2116,7 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "pretty_assertions",
+ "serde",
 ]
 
 [[package]]
@@ -2588,6 +2589,8 @@ dependencies = [
  "flo_stream",
  "futures",
  "parser",
+ "serde",
+ "serde_json",
  "span-tree",
  "wasm-bindgen-test",
 ]

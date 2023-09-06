@@ -219,6 +219,8 @@
   <kbd>enter</kbd>][7527]
 - [Connections to lamdas are displayed correctly][7550]. It is possible to drag
   a connection to any expression inside the lambda body.
+- [Atom types in dropdowns do not produce redundant imports][#7670]. The
+  possibility of imports conflicts is reduced.
 - [Copying and pasting a single node][7618]. Using the common
   <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
   now possible to copy a single selected node and paste its code to the graph or
@@ -249,6 +251,7 @@
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
+[7670]: https://github.com/enso-org/enso/pull/7670
 [7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
