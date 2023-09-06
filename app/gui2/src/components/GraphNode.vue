@@ -258,7 +258,7 @@ const isCircularMenuVisible = ref(true)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
-const isVisualizationVisible = ref(true)
+const isVisualizationVisible = ref(false)
 const visualizationType = ref('Warnings')
 const visualization = shallowRef<typeof import('@viz/Visualization.vue').default>()
 
@@ -305,7 +305,7 @@ const isVisualizationFullscreen = ref(false)
       v-model:is-visualization-visible="isVisualizationVisible"
     />
     <component
-      v-if="visualization"
+      v-if="isVisualizationVisible && visualization"
       :is="visualization"
       :data="['warning 1', 'warning 2!!&<>;\'\x22']"
       :is-circular-menu-visible="isCircularMenuVisible"
