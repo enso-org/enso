@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import Checkbox from '@/components/widgets/Checkbox.vue'
-import Dropdown from '@/components/widgets/Dropdown.vue'
-import Placeholder from '@/components/widgets/Placeholder.vue'
-import Slider from '@/components/widgets/Slider.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
@@ -253,16 +249,6 @@ function handleClick(e: PointerEvent) {
     e.stopPropagation()
   }
 }
-
-const dropdownColor = '#357ab9'
-const checkboxValue = ref(true)
-const dropdownOptions = ['address', 'id', 'age', 'language', 'workplace', 'location']
-const dropdownValue = ref('location')
-const sliderValue = ref(37)
-
-watchEffect(() => {
-  console.log('what', dropdownValue.value)
-})
 </script>
 
 <template>
@@ -289,18 +275,6 @@ watchEffect(() => {
         :offset="0"
         @updateExprRect="updateExprRect"
       />
-      <Checkbox v-model="checkboxValue" />
-      <div>
-        <span v-text="dropdownValue"></span>
-        <Dropdown
-          :color="dropdownColor"
-          :values="dropdownOptions"
-          :selected-value="dropdownValue"
-          @click="dropdownValue = dropdownOptions[$event]"
-        />
-      </div>
-      <Slider :min="10" :max="100" v-model="sliderValue" />
-      <Placeholder />
     </div>
   </div>
 </template>
