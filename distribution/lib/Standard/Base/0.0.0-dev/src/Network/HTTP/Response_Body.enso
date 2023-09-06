@@ -68,6 +68,3 @@ type Response_Body
     to_file self file =
         self.bytes.write_bytes file
         file
-
-## PRIVATE
-Response_Body.from Response:that = Response_Body.Value that.internal_http_response.body that.content_type that.uri
