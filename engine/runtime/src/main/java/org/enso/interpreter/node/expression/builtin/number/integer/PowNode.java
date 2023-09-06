@@ -16,15 +16,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
-  private @Child MultiplyNode
-      longMultiplyNode =
-          MultiplyNode.build();
-  private @Child org.enso.interpreter.node.expression.builtin.number.integer.MultiplyNode
-      bigIntMultiplyNode =
-          org.enso.interpreter.node.expression.builtin.number.integer.MultiplyNode.build();
-  private @Child org.enso.interpreter.node.expression.builtin.number.integer.PowNode
-      bigIntPowNode =
-          org.enso.interpreter.node.expression.builtin.number.integer.PowNode.build();
+  private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
   abstract Object execute(Object self, Object that);
 
@@ -43,18 +35,10 @@ public abstract class PowNode extends Node {
       Object base = self;
       while (that > 0) {
         if (that % 2 == 0) {
-          if (base instanceof Long) {
-            base = longMultiplyNode.execute((long) base, base);
-          } else {
-            base = bigIntMultiplyNode.execute((EnsoBigInteger) base, base);
-          }
+          base = multiplyNode.execute(base, base);
           that /= 2;
         } else {
-          if (res instanceof Long) {
-            res = longMultiplyNode.execute((long) res, base);
-          } else {
-            res = bigIntMultiplyNode.execute((EnsoBigInteger) res, base);
-          }
+          res = multiplyNode.execute(res, base);
           that--;
         }
       }
@@ -69,7 +53,7 @@ public abstract class PowNode extends Node {
 
   @Specialization
   Object doBigInteger(long self, EnsoBigInteger that) {
-    return bigIntPowNode.execute(toBigInteger(self), that);
+    return doBigInteger(toBigInteger(self), that);
   }
 
   @Specialization
