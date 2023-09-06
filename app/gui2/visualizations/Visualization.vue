@@ -22,34 +22,36 @@ const isChooserVisible = ref(false)
 </script>
 
 <template>
-  <div
-    class="Visualization"
-    :class="{ fullscreen: isFullscreen, 'dodge-buttons': dodgeButtons }"
-    :style="{ background: background ?? '#fff2f2' }"
-  >
-    <slot></slot>
-    <div class="toolbars">
-      <div v-if="!isCircularMenuVisible && !isFullscreen"></div>
-      <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: isFullscreen }">
-        <div class="background"></div>
-        <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
+  <Teleport to="body" :disabled="!isFullscreen">
+    <div
+      class="Visualization"
+      :class="{ fullscreen: isFullscreen, 'dodge-buttons': dodgeButtons }"
+      :style="{ background: background ?? '#fff2f2' }"
+    >
+      <slot></slot>
+      <div class="toolbars">
+        <div v-if="!isCircularMenuVisible || isFullscreen"></div>
+        <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: isFullscreen }">
+          <div class="background"></div>
+          <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
+        </div>
+        <div class="toolbar">
+          <div class="background"></div>
+          <button class="button active" @click="isFullscreen = !isFullscreen">
+            <img :src="isFullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+          </button>
+          <button class="button active" @click="isChooserVisible = !isChooserVisible">
+            <img :src="CompassIcon" />
+          </button>
+        </div>
+        <div class="toolbar">
+          <div class="background"></div>
+          <slot name="toolbar"></slot>
+        </div>
       </div>
-      <div class="toolbar">
-        <div class="background"></div>
-        <button class="button active" @click="isFullscreen = !isFullscreen">
-          <img :src="isFullscreen ? ExitFullscreenIcon : FullscreenIcon" />
-        </button>
-        <button class="button active" @click="isChooserVisible = !isChooserVisible">
-          <img :src="CompassIcon" />
-        </button>
-      </div>
-      <div class="toolbar">
-        <div class="background"></div>
-        <slot name="toolbar"></slot>
-      </div>
+      <div v-if="isChooserVisible"></div>
     </div>
-    <div v-if="isChooserVisible"></div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -70,7 +72,7 @@ const isChooserVisible = ref(false)
 .Visualization.fullscreen {
   z-index: var(--z-fullscreen);
   position: fixed;
-  padding-top: unset;
+  padding-top: 0;
   border-radius: 0;
   left: 0;
   top: 0;
@@ -78,11 +80,19 @@ const isChooserVisible = ref(false)
   height: 100vh;
 }
 
+.Visualization.fullscreen.dodge-buttons {
+  padding-top: 38px;
+}
+
 .toolbars {
   position: absolute;
   display: flex;
   gap: 4px;
   top: 24px;
+}
+
+.Visualization.fullscreen .toolbars {
+  top: 4px;
 }
 
 .toolbar > * {
