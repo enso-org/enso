@@ -301,7 +301,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
-                    Context.Output.with_enabled <|
+                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
                         tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
@@ -492,7 +492,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
         connection = target_table.connection
         Panic.recover SQL_Error <| connection.jdbc_connection.run_within_transaction <|
             dry_run = Context.Output.is_enabled.not
-            Context.Output.with_enabled <|
+            Context.Output.with_enabled <| check_for_null_keys key_values_to_delete key_columns <|
                 source = prepare_source_table_for_delete_matching key_values_to_delete connection key_columns dry_run
                 source_db_table = source.db_table
                 source_db_table.if_not_error <|
@@ -593,3 +593,20 @@ check_multiple_rows_match left_table right_table key_columns ~continuation =
             offending_key = row.drop 1
             count = row.first
             Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+
+## PRIVATE
+check_for_null_keys table key_columns ~continuation =
+    keys = table.select_columns key_columns
+    is_any_key_blank = keys.columns.map (_.is_nothing) . reduce (||)
+    null_keys = table.filter is_any_key_blank Filter_Condition.Is_True
+    example = null_keys.read max_rows=1
+    case example.row_count == 0 of
+        True -> continuation
+        False ->
+            example_key = example.first_row.to_vector
+            Error.throw (Null_Values_In_Key_Columns.Error example_key)
+
+## PRIVATE
+check_for_null_keys_if_any_keys_set table key_columns ~continuation =
+    if key_columns.is_empty then continuation else
+        check_for_null_keys table key_columns continuation
