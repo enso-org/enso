@@ -58,11 +58,13 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
         </li>
       </template>
     </ul>
-    <img
-      class="sort button"
-      :src="ICON_LOOKUP[sortDirection]"
-      @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
-    />
+    <div class="sort button">
+      <div class="sort-background" :style="{ background: color }"></div>
+      <img
+        :src="ICON_LOOKUP[sortDirection]"
+        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
+      />
+    </div>
   </div>
 </template>
 
@@ -114,10 +116,30 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   height: 4px;
 }
 
+.sort-background {
+  position: absolute;
+  border-top-left-radius: var(--radius-full);
+  border-bottom-left-radius: var(--radius-full);
+  opacity: 0.5;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+}
+
 .sort {
   position: absolute;
-  top: 3px;
+  border-top-left-radius: var(--radius-full);
+  border-bottom-left-radius: var(--radius-full);
+  top: 1px;
   right: 6px;
+  padding: 2px;
+  padding-right: 0;
+  line-height: 0;
+}
+
+.sort > img {
+  position: relative;
 }
 
 .selected-item {
