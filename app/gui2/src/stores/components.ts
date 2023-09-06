@@ -30,7 +30,6 @@ export const useComponentsStore = defineStore('components', () => {
     }
   }
   const components = ref<Array<Component>>([...generate(300)].reverse())
-  console.log(components)
   const groups = ref<Array<Group>>([
     { color: '#4D9A29', name: 'Data Input' },
     { color: '#B37923', name: 'Input' },

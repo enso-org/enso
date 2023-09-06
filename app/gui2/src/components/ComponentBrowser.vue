@@ -7,7 +7,6 @@ import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, ref } from 'vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-
 import { useApproach } from '@/util/animation'
 
 const ITEM_SIZE = 32
@@ -42,15 +41,13 @@ function positionAtMouse(): boolean {
 const componentStore = useComponentsStore()
 
 const visibleComponents = computed(() => {
-  if (scroller.value) {
-    const first_visible = componentAtY(animatedScrollPosition.value)
-    const last_visible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
-    return componentStore.components.slice(first_visible, last_visible + 1).map((component, i) => {
-      return { component, index: i + first_visible }
-    })
-  } else {
-    return []
-  }
+  if (scroller.value == null) return []
+  const scrollPosition = animatedScrollPosition.value
+  const firstVisible = componentAtY(scrollPosition)
+  const lastVisible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
+  return componentStore.components.slice(firstVisible, lastVisible + 1).map((component, i) => {
+    return { component, index: i + firstVisible }
+  })
 })
 
 function componentPos(index: number) {
@@ -109,7 +106,7 @@ function navigateDown() {
 
 const scroller = ref<HTMLElement>()
 const scrollerSize = useResizeObserver(scroller)
-const scrollPosition = ref(123)
+const scrollPosition = ref(0)
 const animatedScrollPosition = useApproach(scrollPosition)
 
 const listContentHeight = computed(() => componentStore.components.length * ITEM_SIZE)
@@ -128,7 +125,7 @@ function updateScroll() {
 
 // === Documentation Panel ===
 
-const docs_visible = ref(true)
+const docsVisible = ref(true)
 
 // === Key Events Handler ===
 
@@ -161,9 +158,11 @@ useWindowEvent('keydown', (e) => {
       navigateDown()
       break
     case 'Home':
+      e.preventDefault()
       navigateFirst()
       break
     case 'End':
+      e.preventDefault()
       navigateLast()
       break
   }
@@ -175,11 +174,11 @@ useWindowEvent('keydown', (e) => {
     <div class="panel components">
       <div class="top-bar">
         <div class="top-bar-inner">
-          <ToggleIcon icon_name="local_scope2" />
-          <ToggleIcon icon_name="command_key3" />
-          <ToggleIcon icon_name="unstable2" />
-          <ToggleIcon icon_name="marketplace" />
-          <ToggleIcon icon_name="right_side_panel" v-model="docs_visible" class="first-on-right" />
+          <ToggleIcon icon="local_scope2" />
+          <ToggleIcon icon="command_key3" />
+          <ToggleIcon icon="unstable2" />
+          <ToggleIcon icon="marketplace" />
+          <ToggleIcon icon="right_side_panel" v-model="docsVisible" class="first-on-right" />
         </div>
       </div>
       <div class="components-content">
@@ -199,7 +198,7 @@ useWindowEvent('keydown', (e) => {
               :style="componentStyle(item.index)"
             >
               <SvgIcon
-                :name="item.component.icon"
+                :variant="item.component.icon"
                 :style="{ color: componentColor(item.component) }"
               />
               {{ item.component.label }}
@@ -215,14 +214,14 @@ useWindowEvent('keydown', (e) => {
                 ...componentStyle(item.index),
               }"
             >
-              <SvgIcon :name="item.component.icon" />
+              <SvgIcon :variant="item.component.icon" />
               {{ item.component.label }}
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="panel docs" :class="{ hidden: !docs_visible }">DOCS</div>
+    <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
   </div>
 </template>
 

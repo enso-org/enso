@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import icons from '@/assets/icons.svg'
 
-const props = defineProps<{ name: String }>()
+const props = defineProps<{ variant: String }>()
 </script>
 
 <template>
   <svg>
-    <use :href="`${icons}#${props.name}`"></use>
+    <use :href="`${icons}#${props.variant}`"></use>
   </svg>
 </template>
 
