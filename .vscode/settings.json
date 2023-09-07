@@ -4,6 +4,6 @@
   "vue.complete.casing.props": "camel",
   "vue.complete.casing.tags": "pascal",
   "auto-snippets.snippets": [
-      { "language": "vue", "snippet": "Vue single-file component"}
-  ],
+    { "language": "vue", "snippet": "Vue single-file component" }
+  ]
 }
