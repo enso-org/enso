@@ -253,23 +253,31 @@ function handleClick(e: PointerEvent) {
   }
 }
 
-// FIXME: these all should default to `false`
+// FIXME: this should default to `false`
 const isCircularMenuVisible = ref(true)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
+
+// FIXME: statically resolved imports will not work for user-defined components
+const VISUALIZATION_GETTERS: Record<
+  string,
+  () => Promise<typeof import('@viz/Visualization.vue').default>
+> = {
+  Warnings: async () => (await import('@viz/Warnings.vue')).default,
+  Bubble: async () => (await import('@viz/Bubble.vue')).default,
+  'Image (Base64)': async () => (await import('@viz/ImageBase64.vue')).default,
+  GeoMap: async () => (await import('@viz/GeoMap.vue')).default,
+  Scatterplot: async () => (await import('@viz/Scatterplot.vue')).default,
+} as any
+
 const visualizationType = ref('Warnings')
 const visualization = shallowRef<typeof import('@viz/Visualization.vue').default>()
+const visualizationTypes = computed(() =>
+  Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
+)
 
-// FIXME: this will not work for user-defined components
-const VISUALIZATION_GETTERS: Record<string, any> = {
-  Warnings: () => import('@viz/Warnings.vue'),
-  Bubble: () => import('@viz/Bubble.vue'),
-  'Image (Base64)': () => import('@viz/ImageBase64.vue'),
-  GeoMap: () => import('@viz/GeoMap.vue'),
-  Scatterplot: () => import('@viz/Scatterplot.vue'),
-}
 const VISUALIZATION_TYPES: Record<string, unknown> = {}
 watchEffect(async (onCleanup) => {
   let shouldSwitchVisualization = true
@@ -281,7 +289,7 @@ watchEffect(async (onCleanup) => {
   if (cachedComponent != null) {
     return cachedComponent
   }
-  const component = (await VISUALIZATION_GETTERS[visualizationType.value]()).default
+  const component = await VISUALIZATION_GETTERS[visualizationType.value]()
   VISUALIZATION_TYPES[currentVisualizationType] = component
   if (shouldSwitchVisualization) {
     visualization.value = component
@@ -314,8 +322,14 @@ const isVisualizationFullscreen = ref(false)
       v-model:fullscreen="isVisualizationFullscreen"
       @update:preprocessor="
         (module, method, ...args) =>
-          console.log(`preprocessor changed. module: ${module}, method: ${method}, args: ${args}`)
+          console.log(
+            `preprocessor changed. module: ${module}, method: ${method}, args: [${args.join(
+              ', ',
+            )}]`,
+          )
       "
+      :types="visualizationTypes"
+      @update:type="visualizationType = $event"
     />
     <div
       class="node"

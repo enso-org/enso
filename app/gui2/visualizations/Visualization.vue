@@ -13,15 +13,18 @@ const props = defineProps<{
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
+  /** Possible visualization types that can be switched to. */
+  types: string[]
   background?: string
   isCircularMenuVisible: boolean
   width: number | undefined
   height: number | undefined
   fullscreen: boolean
-  data: {} | string
+  data?: {} | string
 }>()
 const emit = defineEmits<{
   hide: []
+  'update:type': [type: string]
   'update:width': [width: number]
   'update:height': [height: number]
   'update:fullscreen': [fullscreen: boolean]

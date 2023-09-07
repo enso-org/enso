@@ -25,7 +25,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization :="<any>$attrs" below-toolbar>
+  <Visualization :="<any>$attrs" :below-toolbar="true">
     <div class="Warnings">
       <ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre">
         <li v-if="data.length === 0">There are no warnings.</li>
