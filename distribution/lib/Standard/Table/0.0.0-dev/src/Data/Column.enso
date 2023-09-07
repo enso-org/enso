@@ -1937,7 +1937,7 @@ type Column
 
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self index =
+    at self (index : Integer) =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
             storage = self.java_column.getStorage
