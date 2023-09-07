@@ -51,13 +51,9 @@ public class IntegerTest extends TestBase {
           assertEquals(bigInt, absNode.execute(bigInt));
           assertEquals(bigInt, absNode.execute(bigIntNegative));
           assertThrows(
-              "Decimals are not supported",
-              PanicException.class,
-              () -> absNode.execute(23.0));
+              "Decimals are not supported", PanicException.class, () -> absNode.execute(23.0));
           assertThrows(
-              "Java int is not supported",
-              PanicException.class,
-              () -> absNode.execute(23));
+              "Java int is not supported", PanicException.class, () -> absNode.execute(23));
           return null;
         });
   }
@@ -67,13 +63,8 @@ public class IntegerTest extends TestBase {
     executeInContext(
         ctx,
         () -> {
-          assertEquals(
-              23L,
-              addNode.execute(22L, 1L)
-          );
-          assertThrows(
-              PanicException.class,
-              () -> addNode.execute(23L, "Hello"));
+          assertEquals(23L, addNode.execute(22L, 1L));
+          assertThrows(PanicException.class, () -> addNode.execute(23L, "Hello"));
           return null;
         });
   }

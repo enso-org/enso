@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -25,5 +26,10 @@ public abstract class ToDecimalNode extends Node {
   @Specialization
   double doBigInt(EnsoBigInteger self) {
     return BigIntegerOps.toDouble(self.getValue());
+  }
+
+  @Fallback
+  Object doOther(Object self) {
+    return IntegerUtils.throwTypeErrorIfNotInt(self, this);
   }
 }

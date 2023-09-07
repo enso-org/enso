@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -30,5 +31,10 @@ public abstract class NegateNode extends Node {
   @Specialization
   Object doOverflow(long self) {
     return toEnsoNumberNode.execute(BigIntegerOps.negate(self));
+  }
+
+  @Fallback
+  Object doOther(Object self) {
+    return IntegerUtils.throwTypeErrorIfNotInt(self, this);
   }
 }

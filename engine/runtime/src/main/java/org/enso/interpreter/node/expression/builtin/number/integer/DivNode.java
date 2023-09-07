@@ -7,9 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "div", description = "Division of numbers.")
@@ -57,8 +55,6 @@ public abstract class DivNode extends Node {
 
   @Fallback
   Object doOther(Object self, Object that) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var integer = builtins.number().getInteger();
-    throw new PanicException(builtins.error().makeTypeError(integer, self, "self"), this);
+    return IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
   }
 }

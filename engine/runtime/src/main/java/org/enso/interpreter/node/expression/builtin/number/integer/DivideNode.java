@@ -5,9 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "/", description = "Division of numbers.")
@@ -50,8 +47,6 @@ public abstract class DivideNode extends Node {
 
   @Fallback
   double doOther(Object self, Object that) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var number = builtins.number().getNumber();
-    throw new PanicException(builtins.error().makeTypeError(number, self, "self"), this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
   }
 }
