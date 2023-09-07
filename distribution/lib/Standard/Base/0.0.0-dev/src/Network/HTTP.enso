@@ -1,9 +1,13 @@
 import project.Any.Any
+import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.IO
 import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Form.Part_Value
 import project.Network.HTTP.Header.Header
@@ -16,12 +20,15 @@ import project.Network.Proxy.Proxy
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.IO
+import project.Runtime.Context
+import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Json.Extensions import all
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.http.HttpResponse
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
@@ -337,6 +344,73 @@ type HTTP
         req = Request.delete uri headers
         self.request req
 
+    request : Request -> Response ! Request_Error
+    request self req =
+        case req of
+            Request.Value method uri headers body ->
+                check_method ~action =
+                    if method == HTTP_Method.Post || method == HTTP_Method.Put || method == HTTP_Method.Patch then action else
+                        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text + ", only POST/PUT/PATCH are currently supported"))
+                check_output_context ~action =
+                    if Context.Output.is_enabled then action else
+                        Error.throw (Forbidden_Operation.Error "HTTP POST/PUT/PATCH are forbidden as the Output context is disabled.")
+                handle_request_error =
+                    Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
+
+                check_method <| check_output_context <| # Panic.recover Any <| handle_request_error <|
+                    body_publishers = HttpRequest.BodyPublishers
+                    builder = HttpRequest.newBuilder
+
+                    # set uri
+                    parsed_uri = case uri of
+                        _ : Text -> uri.to_uri
+                        _ : URI -> uri
+                    builder.uri parsed_uri.internal_uri
+
+                    # Generate body publisher, possibly generating additional headers
+                    body_publisher_and_headers = case body of
+                        Request_Body.Text text encoding content_type ->
+                            header = Header.content_type content_type
+                            builder.header header.name header.value
+                            Pair.new (body_publishers.ofString text encoding.to_java_charset) []
+                        Request_Body.Json x ->
+                            builder.header Header.application_json.name Header.application_json.value
+                            json = x.to_json
+                            json.if_not_error <|
+                                Pair.new (body_publishers.ofString json) []
+                        Request_Body.Binary file ->
+                            builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                            path = Path.of file.path
+                            Pair.new (body_publishers.ofFile path) []
+                        Request_Body.Form_Data form_data url_encoded ->
+                            build_form_body_publisher form_data url_encoded
+                        _ ->
+                            Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
+
+                    # Send request
+                    body_publisher_and_headers.if_not_error <| case body_publisher_and_headers of
+                        Pair.Value body_publisher additional_headers ->
+                            # set method and body
+                            builder.method method.to_http_method_name body_publisher
+
+                            # set headers
+                            all_headers = headers + additional_headers
+                            all_headers.map h-> builder.header h.name h.value
+
+                            http_request = builder.build
+                            body_handler = HttpResponse.BodyHandlers . ofByteArray
+                            http = HTTP.new
+
+                            IO.println 'AAA http_request'
+                            IO.println http_request
+
+                            response = Response.Value (http.internal_http_client.send http_request body_handler)
+
+                            IO.println 'AAA response'
+                            IO.println response
+
+                            response
+
     ## ADVANCED
        Create a request
 
@@ -418,59 +492,60 @@ type HTTP
                  req = Request.new HTTP_Method.Post "http://httpbin.org/post" . with_form form
                  http = HTTP.new (timeout = (Duration.new seconds=30))
                  http.request req
-    request : Request -> Response ! Request_Error
-    request self req =
-        handle_request_error =
-            Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
-        Panic.recover Any <| handle_request_error <|
-            body_publishers = HttpRequest.BodyPublishers
-            builder = HttpRequest.newBuilder
-            # set uri
-            builder.uri (Panic.rethrow req.uri.internal_uri)
-            # prepare headers and body
-            req_with_body = case req.body of
-                Request_Body.Empty ->
-                    Pair.new req body_publishers.noBody
-                Request_Body.Text text ->
-                    builder.header Header.text_plain.name Header.text_plain.value
-                    Pair.new req (body_publishers.ofString text)
-                Request_Body.Json json ->
-                    builder.header Header.application_json.name Header.application_json.value
-                    Pair.new req (body_publishers.ofString json)
-                Request_Body.Form form ->
-                    add_multipart form =
-                        body_builder = Http_Utils.multipart_body_builder
-                        form.parts.map part-> case part.value of
-                            Part_Value.Text text -> body_builder.add_part_text part.key text
-                            Part_Value.File file -> body_builder.add_part_file part.key file.path
-                        boundary = body_builder.get_boundary
-                        Pair.new (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
-                    add_urlencoded form =
-                        body_builder = Http_Utils.urlencoded_body_builder
-                        form.parts.map part-> case part.value of
-                            Part_Value.Text text -> body_builder.add_part_text part.key text
-                            Part_Value.File file -> body_builder.add_part_file part.key file.path
-                        Pair.new req body_builder.build
-                    if req.headers.contains Header.multipart_form_data then add_multipart form else
-                        add_urlencoded form
-                Request_Body.File file ->
-                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    path = Path.of file.path
-                    Pair.new req (body_publishers.ofFile path)
-                Request_Body.Bytes bytes ->
-                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair.new req (body_publishers.ofByteArray bytes)
-            # method
-            req_http_method = req.method.to_http_method_name
-            case req_with_body of
-                Pair.Value req body ->
-                    # set method and body
-                    builder.method req_http_method body
-                    # set headers
-                    req.headers.map h-> builder.header h.name h.value
-            http_request = builder.build
-            body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.Value (self.internal_http_client.send http_request body_handler)
+    ##
+        old_request : Request -> Response ! Request_Error
+        old_request self req =
+            handle_request_error =
+                Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
+            Panic.recover Any <| handle_request_error <|
+                body_publishers = HttpRequest.BodyPublishers
+                builder = HttpRequest.newBuilder
+                # set uri
+                builder.uri (Panic.rethrow req.uri.internal_uri)
+                # prepare headers and body
+                req_with_body = case req.body of
+                    Request_Body.Empty ->
+                        Pair.new req body_publishers.noBody
+                    Request_Body.Text text ->
+                        builder.header Header.text_plain.name Header.text_plain.value
+                        Pair.new req (body_publishers.ofString text)
+                    Request_Body.Json json ->
+                        builder.header Header.application_json.name Header.application_json.value
+                        Pair.new req (body_publishers.ofString json)
+                    Request_Body.Form form ->
+                        add_multipart form =
+                            body_builder = Http_Utils.multipart_body_builder
+                            form.parts.map part-> case part.value of
+                                Part_Value.Text text -> body_builder.add_part_text part.key text
+                                Part_Value.File file -> body_builder.add_part_file part.key file.path
+                            boundary = body_builder.get_boundary
+                            Pair.new (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                        add_urlencoded form =
+                            body_builder = Http_Utils.urlencoded_body_builder
+                            form.parts.map part-> case part.value of
+                                Part_Value.Text text -> body_builder.add_part_text part.key text
+                                Part_Value.File file -> body_builder.add_part_file part.key file.path
+                            Pair.new req body_builder.build
+                        if req.headers.contains Header.multipart_form_data then add_multipart form else
+                            add_urlencoded form
+                    Request_Body.File file ->
+                        builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                        path = Path.of file.path
+                        Pair.new req (body_publishers.ofFile path)
+                    Request_Body.Bytes bytes ->
+                        builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                        Pair.new req (body_publishers.ofByteArray bytes)
+                # method
+                req_http_method = req.method.to_http_method_name
+                case req_with_body of
+                    Pair.Value req body ->
+                        # set method and body
+                        builder.method req_http_method body
+                        # set headers
+                        req.headers.map h-> builder.header h.name h.value
+                http_request = builder.build
+                body_handler = HttpResponse.BodyHandlers . ofByteArray
+                Response.Value (self.internal_http_client.send http_request body_handler)
 
     ## PRIVATE
        Build an HTTP client.
@@ -502,6 +577,25 @@ type HTTP
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
+
+## PRIVATE
+build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
+build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+    True ->
+        body_builder = Http_Utils.urlencoded_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        Pair.new body_builder.build []
+    False ->
+        body_builder = Http_Utils.multipart_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        boundary = body_builder.get_boundary
+        Pair.new body_builder.build [Header.multipart_form_data boundary]
 
 ## PRIVATE
    An error when sending an HTTP request.

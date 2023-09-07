@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
-import Standard.Base.Network.HTTP.Post_Request_Body.Post_Request_Body
 import Standard.Base.Runtime.Context
 
 from Standard.Test import Test, Test_Suite
@@ -32,14 +31,14 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
-        Test.specify "Can perform a Post_Request_Body.Text POST" <|
-            response = Data.post url_post (Post_Request_Body.Text "hello world")
+        Test.specify "Can perform a Request_Body.Text POST" <|
+            response = Data.post url_post (Request_Body.Text "hello world")
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
-        Test.specify "Can perform a Post_Request_Body.Json POST" <|
-            response = Data.post url_post (Post_Request_Body.Json (Test_Type.Aaa "abc"))
+        Test.specify "Can perform a Request_Body.Json POST" <|
+            response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
             response.at "data" . should_equal '{"type":"Test_Type","constructor":"Aaa","s":"abc"}'
             response.at "headers" . at "Content-Length" . should_equal "50"
             response.at "headers" . at "Content-Type" . should_equal "application/json"
@@ -54,38 +53,38 @@ spec =
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
 
         Test.specify "Can perform a Text POST with explicit encoding" <|
-            response = Data.post url_post (Post_Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
+            response = Data.post url_post (Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
             response.at "data" . should_equal 'H\u0000e\u0000l\u0000l\u0000o\u0000 \u0000W\u0000o\u0000r\u0000l\u0000d\u0000!\u0000'
             response.at "headers" . at "Content-Length" . should_equal "24"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
         Test.specify "Can perform a Text POST with explicit content type" <|
-            response = Data.post url_post (Post_Request_Body.Text 'a,b,c\n' content_type="text/csv")
+            response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
             response.at "data" . should_equal 'a,b,c\n'
             response.at "headers" . at "Content-Length" . should_equal "6"
             response.at "headers" . at "Content-Type" . should_equal "text/csv"
 
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
-            response = Data.post url_post (Post_Request_Body.Binary test_file)
+            response = Data.post url_post (Request_Body.Binary test_file)
             response.at "data" . should_equal test_file.read_text
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
-            response = Data.post url_post (Post_Request_Body.Binary test_file)
+            response = Data.post url_post (Request_Body.Binary test_file)
             response.at "data" . should_start_with 'data:application/octet-stream;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
 
         Test.specify "Can perform a url-encoded form POST" <|
             test_file = enso_project.data / "sample.txt"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
-            response = Data.post url_post (Post_Request_Body.Form_Data form_data url_encoded=True)
+            response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
             response.at "data" . should_start_with "key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll"
             response.at "headers" . at "Content-Length" . should_equal "432"
 
         Test.specify "Can perform a multipart form POST" <|
             test_file = enso_project.data / "sample.png"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
-            response = Data.post url_post (Post_Request_Body.Form_Data form_data)
+            response = Data.post url_post (Request_Body.Form_Data form_data)
             response.at "form" . at "key" . should_equal "val"
             response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
             response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
@@ -102,37 +101,37 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
         Test.specify "Can skip auto-parse" <|
-            response = Data.post url_post (Post_Request_Body.Text "hello world") try_auto_parse_response=False
+            response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
             response.body.bytes.length . should_equal 383
 
         Test.specify "Can send a custom header" <|
-            response = Data.post url_post (Post_Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
+            response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "headers" . at "Custom" . should_equal "asdf,asdf"
+            response.at "headers" . at "Custom" . should_equal "asdf"
 
         Test.specify "Cannot POST when output context is disabled" <|
             Context.Output.with_disabled <|
-                Data.post url_post (Post_Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
 
-        Test.specify "Can perform a Post_Request_Body.Text PUT" <|
+        Test.specify "Can perform a Request_Body.Text PUT" <|
             url_put = base_url_with_slash + "put"
-            response = Data.post url_put (Post_Request_Body.Text "hello world") method=HTTP_Method.Put
+            response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
-        Test.specify "Can perform a Post_Request_Body.Text PATCH" <|
+        Test.specify "Can perform a Request_Body.Text PATCH" <|
             url_patch = base_url_with_slash + "patch"
-            response = Data.post url_patch (Post_Request_Body.Text "hello world") method=HTTP_Method.Patch headers=[Header.content_type "application/diff"]
+            response = Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch headers=[Header.content_type "application/diff"]
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "application/diff"
 
         Test.specify "Unsupported method" <|
             url_get = base_url_with_slash + "get"
-            Data.post url_get (Post_Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
+            Data.post url_get (Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
 
     Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
