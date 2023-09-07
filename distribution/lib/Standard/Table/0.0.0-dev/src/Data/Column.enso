@@ -1123,7 +1123,7 @@ type Column
                     other_storage = java_col.getStorage
                     storage.fillMissingFrom other_storage storage_type
                 _ ->
-                    storage.fillMissing default
+                    storage.fillMissing default storage_type
             col = Java_Column.new self.name new_st
             Column.Value col
 
@@ -2204,9 +2204,10 @@ type Column
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Text|Nothing -> Boolean -> Column
 run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False =
     effective_operands = Vector.unify_vector_or_element operands
+    all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing <|
-        naming_helper.function_name name [column]+effective_operands
-    common_type = Value_Type_Helpers.find_common_type_for_arguments effective_operands
+        naming_helper.function_name name all_operands
+    common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
         problem_builder = MapOperationProblemBuilder.new effective_new_name
         storage_type = resolve_storage_type common_type

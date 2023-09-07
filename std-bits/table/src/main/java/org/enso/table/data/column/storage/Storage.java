@@ -380,10 +380,12 @@ public abstract class Storage<T> {
    * Return a new storage, where missing elements have been replaced by arg.
    *
    * @param arg the value to use for missing elements
+   * @param commonType the common type of this storage and the provided value
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage<?> fillMissing(Value arg) {
-    return fillMissingHelper(arg, new MixedBuilder(size()));
+  public Storage<?> fillMissing(Value arg, StorageType commonType) {
+    Builder builder = Builder.getForType(commonType, size());
+    return fillMissingHelper(arg, builder);
   }
 
   /**

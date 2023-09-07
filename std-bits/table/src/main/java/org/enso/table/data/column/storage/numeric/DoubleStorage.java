@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
@@ -158,17 +159,51 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     return builder.seal();
   }
 
+  /** Special handling to ensure loss of precision is reported. */
+  private Storage<?> fillMissingBigInteger(BigInteger arg) {
+    final var builder = NumericBuilder.createDoubleBuilder(size());
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendBigInteger(arg);
+      } else {
+        builder.appendRawNoGrow(data[i]);
+      }
+
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
+  /** Special handling to ensure loss of precision is reported. */
+  private Storage<?> fillMissingLong(long arg) {
+    final var builder = NumericBuilder.createDoubleBuilder(size());
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendLong(arg);
+      } else {
+        builder.appendRawNoGrow(data[i]);
+      }
+
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
   @Override
-  public Storage<?> fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
-        return fillMissingDouble(arg.asLong());
+        return fillMissingLong(arg.asLong());
+      } else if (arg.fitsInBigInteger()) {
+        return fillMissingBigInteger(arg.asBigInteger());
       } else if (arg.fitsInDouble()) {
         return fillMissingDouble(arg.asDouble());
       }
     }
 
-    return super.fillMissing(arg);
+    return super.fillMissing(arg, commonType);
   }
 
   @Override

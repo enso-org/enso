@@ -16,7 +16,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.WithAggregatedProblems;
-import org.enso.table.problems.WithProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -134,11 +133,11 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {
-      return super.fillMissing(arg);
+      return super.fillMissing(arg, commonType);
     }
   }
 

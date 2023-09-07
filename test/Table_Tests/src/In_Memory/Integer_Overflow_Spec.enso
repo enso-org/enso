@@ -334,9 +334,9 @@ spec =
             (x.max [y, z]) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
 
             (y * x) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
-            (y % x) . to_vector . should_equal [1, 2, Nothing, 3]
-            (z / x) . to_vector . should_equal [1.5 / 10^30, 2.5 / 2^70, Nothing, 3.5 / 3]
-            (z ^ x) . to_vector . should_equal [1.5^(10^30), 2.5^(2^70), Nothing, 3^3]
+            (y % x) . to_vector . should_equal [1, 2, Nothing, 1]
+            (z / x) . to_vector . should_equal [1.5 / 10^30, 2.5 / 2^70, Nothing, 4.5 / 3]
+            (z ^ x) . to_vector . should_equal [1.5^(10^30), 2.5^(2^70), Nothing, (4.5)^3]
             (z == x) . to_vector . should_equal [False, False, Nothing, False]
             (z < x) . to_vector . should_equal [True, True, Nothing, False]
             (z >= x) . to_vector . should_equal [False, False, Nothing, True]
@@ -349,7 +349,7 @@ spec =
             (z.max x) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
 
             x.fill_nothing y . to_vector . should_equal [10^30, 2^70, 3, 3]
-            x.fill_nothing z . to_vector . should_equal [10^30, 2^70, 1.5, 3]
+            x.fill_nothing z . to_vector . should_equal [10^30, 2^70, 3.5, 3]
             y.fill_nothing x . to_vector . should_equal [1, 2, 3, 4]
             y2 = (y < 2).iif Nothing y
             y2.to_vector . should_equal [Nothing, 2, 3, 4]
@@ -369,6 +369,7 @@ spec =
 
         Test.specify "returns a Decimal column if the scalar argument is a big integer" <|
             c = Column.from_vector "X" [1, 2, Nothing, 3]
+            c.value_type.should_equal Value_Type.Integer
             x = 2^70
 
             r1 = c + x
@@ -399,7 +400,7 @@ spec =
             r6 = c.min x
             r6.value_type . should_be_a (Value_Type.Decimal ...)
             r6.to_vector . should_equal [1, 2, x, 3]
-            c.max x . to_vector . should_equal [x, x, Nothing, x]
+            c.max x . to_vector . should_equal [x, x, x, x]
 
             r7 = c.fill_nothing x
             r7.value_type . should_be_a (Value_Type.Decimal ...)
