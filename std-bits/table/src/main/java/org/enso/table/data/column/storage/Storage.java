@@ -17,6 +17,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -383,7 +384,7 @@ public abstract class Storage<T> {
    * @param commonType the common type of this storage and the provided value
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage<?> fillMissing(Value arg, StorageType commonType) {
+  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
     Builder builder = Builder.getForType(commonType, size());
     return fillMissingHelper(arg, builder);
   }
@@ -395,7 +396,7 @@ public abstract class Storage<T> {
    * @param commonType a common type that should fit values from both storages
    * @return a new storage with missing values filled
    */
-  public Storage<?> fillMissingFrom(Storage<?> other, StorageType commonType) {
+  public WithAggregatedProblems<Storage<?>> fillMissingFrom(Storage<?> other, StorageType commonType) {
     var builder = Builder.getForType(commonType, size());
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -407,10 +408,11 @@ public abstract class Storage<T> {
 
       context.safepoint();
     }
-    return builder.seal();
+
+    return builder.sealWithProblems();
   }
 
-  protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
+  protected final WithAggregatedProblems<Storage<?>> fillMissingHelper(Value arg, Builder builder) {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -423,7 +425,8 @@ public abstract class Storage<T> {
 
       context.safepoint();
     }
-    return builder.seal();
+
+    return builder.sealWithProblems();
   }
 
   /**

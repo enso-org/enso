@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -91,7 +92,7 @@ public final class LongStorage extends AbstractLongStorage {
     return isMissing.get((int) idx);
   }
 
-  private Storage<?> fillMissingDouble(double arg) {
+  private WithAggregatedProblems<Storage<?>> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size);
     long rawArg = Double.doubleToRawLongBits(arg);
     Context context = Context.getCurrent();
@@ -105,10 +106,11 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return builder.seal();
+
+    return builder.sealWithProblems();
   }
 
-  private Storage<?> fillMissingLong(long arg) {
+  private WithAggregatedProblems<Storage<?>> fillMissingLong(long arg) {
     final var builder = NumericBuilder.createLongBuilder(size, IntegerType.INT_64);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -120,11 +122,12 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return builder.seal();
+
+    return builder.sealWithProblems();
   }
 
 
-  private Storage<?> fillMissingBigInteger(BigInteger bigInteger) {
+  private WithAggregatedProblems<Storage<?>> fillMissingBigInteger(BigInteger bigInteger) {
     final var builder = new BigIntegerBuilder(size);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -136,11 +139,12 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return builder.seal();
+
+    return builder.sealWithProblems();
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg, StorageType commonType) {
+  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
     if (arg.isNumber()) {
       if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
         return fillMissingLong(arg.asLong());

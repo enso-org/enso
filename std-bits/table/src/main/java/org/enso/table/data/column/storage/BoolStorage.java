@@ -15,6 +15,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -122,18 +123,19 @@ public final class BoolStorage extends Storage<Boolean> {
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  private BoolStorage fillMissingBoolean(boolean arg) {
+  private WithAggregatedProblems<Storage<?>> fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg) {
       newValues.or(isMissing);
     } else {
       newValues.andNot(isMissing);
     }
-    return new BoolStorage(newValues, new BitSet(), size, negated);
+    var storage = new BoolStorage(newValues, new BitSet(), size, negated);
+    return new WithAggregatedProblems<>(storage, AggregatedProblems.of());
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg, StorageType commonType) {
+  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {

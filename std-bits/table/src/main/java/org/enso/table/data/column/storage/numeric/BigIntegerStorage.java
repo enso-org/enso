@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.numeric;
 
-import java.math.BigInteger;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -20,6 +19,8 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+
+import java.math.BigInteger;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   /**
