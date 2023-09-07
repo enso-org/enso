@@ -11,13 +11,11 @@ const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 const isDropdownOpen = ref(false)
 
 const executionModeSelectorNode = ref<HTMLElement>()
-const executionModeDropdownNode = ref<HTMLElement>()
 
 function onDocumentClick(event: MouseEvent) {
   if (
     event.target instanceof Node &&
-    executionModeSelectorNode.value?.contains(event.target) === false &&
-    executionModeDropdownNode.value?.contains(event.target) === false
+    executionModeSelectorNode.value?.contains(event.target) === false
   ) {
     isDropdownOpen.value = false
   }
@@ -27,15 +25,25 @@ useDocumentEvent('click', onDocumentClick)
 </script>
 
 <template>
-  <div class="ExecutionModeSelector">
-    <div ref="executionModeSelectorNode" class="execution-mode-button">
+  <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
+    <div class="execution-mode-button">
       <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
         <span v-text="modelValue"></span>
       </div>
       <div class="divider"></div>
-      <img :src="WorkflowPlayIcon" class="play button" draggable="false" @click="emit('execute')" />
+      <img
+        :src="WorkflowPlayIcon"
+        class="play button"
+        draggable="false"
+        @click="
+          () => {
+            isDropdownOpen = false
+            emit('execute')
+          }
+        "
+      />
     </div>
-    <div v-if="isDropdownOpen" ref="executionModeDropdownNode" class="execution-mode-dropdown">
+    <div v-if="isDropdownOpen" class="execution-mode-dropdown">
       <template v-for="otherMode in modes" :key="otherMode">
         <span
           v-if="modelValue !== otherMode"
