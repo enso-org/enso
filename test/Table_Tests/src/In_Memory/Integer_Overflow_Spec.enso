@@ -140,7 +140,7 @@ spec =
 
         Test.specify "if we cast to Decimal first, then the operations will not overflow" <|
             t0 = Table.new [["X", [0, 1, Java_Long.MAX_VALUE, 0]], ["U", [1, 1, 1, 1]]]
-            t1 = t0.at "X" . cast (Value_Type.Decimal scale=0)
+            t1 = t0.cast "X" (Value_Type.Decimal scale=0)
             x = t1.at "X"
             u = t1.at "U"
 
