@@ -13,8 +13,8 @@ interface Data {
 
 const props = defineProps<{
   isCircularMenuVisible: boolean
-  width: number
-  height: number
+  width: number | undefined
+  height: number | undefined
   fullscreen: boolean
   data: Data | string
 }>()

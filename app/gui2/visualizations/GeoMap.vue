@@ -15,8 +15,8 @@ type Data = [x: number, y: number, r: number][]
 
 const props = defineProps<{
   isCircularMenuVisible: boolean
-  width: number
-  height: number
+  width: number | undefined
+  height: number | undefined
   fullscreen: boolean
   data: Data | string
 }>()

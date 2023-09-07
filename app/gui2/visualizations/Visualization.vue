@@ -15,8 +15,8 @@ const props = defineProps<{
   belowToolbar?: boolean
   background?: string
   isCircularMenuVisible: boolean
-  width: number
-  height: number
+  width: number | undefined
+  height: number | undefined
   fullscreen: boolean
   data: {} | string
 }>()
@@ -36,7 +36,7 @@ const isChooserVisible = ref(false)
     <div
       class="Visualization"
       :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
-      :style="{ background: background ?? '#fff2f2' }"
+      :style="{ background: background ?? '#fff2f2', width, height }"
     >
       <slot></slot>
       <div class="toolbars">

@@ -288,8 +288,8 @@ watchEffect(async (onCleanup) => {
   }
 })
 
-const visualizationWidth = ref<number | null>(null)
-const visualizationHeight = ref<number | null>(null)
+const visualizationWidth = ref<number>()
+const visualizationHeight = ref<number>()
 const isVisualizationFullscreen = ref(false)
 </script>
 
