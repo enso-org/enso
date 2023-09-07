@@ -8,9 +8,7 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import type { ContentRange, ExprId } from '../../shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
-import { computed, onMounted, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-
-import yaml from 'js-yaml'
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   node: Node
@@ -263,43 +261,26 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
 
+type VisualizationModule = typeof import('visualizations/VisualizationContainer.vue') & {
+  name?: string
+  inputType?: string
+}
+
 // FIXME: statically resolved imports will not work for user-defined components
-const VISUALIZATION_GETTERS: Record<
-  string,
-  () => Promise<
-    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/VisualizationContainer.vue').default
-  >
-> = {
-  Warnings: async () =>
-    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Warnings.vue')).default,
-  Bubble: async () =>
-    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Bubble.vue')).default,
-  'Image (Base64)': async () =>
-    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/ImageBase64.vue')).default,
-  GeoMap: async () =>
-    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/GeoMap.vue')).default,
-  Scatterplot: async () =>
-    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Scatterplot.vue')).default,
+const VISUALIZATION_GETTERS: Record<string, () => Promise<VisualizationModule>> = {
+  Warnings: () => import('visualizations/WarningsVisualization.vue'),
+  Bubble: () => import('visualizations/BubbleVisualization.vue'),
+  'Image (Base64)': () => import('visualizations/ImageBase64Visualization.vue'),
+  GeoMap: () => import('visualizations/GeoMapVisualization.vue'),
+  Scatterplot: () => import('visualizations/ScatterplotVisualization.vue'),
 } as any
 
 const visualizationType = ref('Warnings')
 const visualization =
-  shallowRef<
-    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/VisualizationContainer.vue').default
-  >()
+  shallowRef<typeof import('visualizations/VisualizationContainer.vue').default>()
 const visualizationTypes = computed(() =>
   Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
 )
-
-async function loadDefaultVisualizations() {
-  const path = (await import('lib/Standard/Visualization/0.0.0-dev/package.yaml')).default
-  const file = await fetch(path)
-  return yaml.load(await file.text())
-}
-
-onMounted(() => {
-  loadDefaultVisualizations()
-})
 
 const queuedVisualizationData = computed<{}>(() => {
   switch (visualizationType.value) {
@@ -325,6 +306,10 @@ const queuedVisualizationData = computed<{}>(() => {
 })
 const visualizationData = ref<{}>({})
 
+function registerVisualization(name: string, inputType: string) {
+  console.log(`registering visualization: name=${name}, inputType=${inputType}`)
+}
+
 // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
 const VISUALIZATION_TYPES: Record<string, any> = {}
 watchEffect(async (onCleanup) => {
@@ -333,9 +318,12 @@ watchEffect(async (onCleanup) => {
     shouldSwitchVisualization = false
   })
   const currentVisualizationType = visualizationType.value
-  let component = VISUALIZATION_TYPES[currentVisualizationType]
+  let component: VisualizationModule['default'] = VISUALIZATION_TYPES[currentVisualizationType]
   if (component == null) {
-    component = await VISUALIZATION_GETTERS[currentVisualizationType]()
+    const module = await VISUALIZATION_GETTERS[currentVisualizationType]()
+    // TODO: fallback to name based on path to visualization.
+    registerVisualization(module.name ?? currentVisualizationType, module.inputType ?? 'Any')
+    component = module.default
     VISUALIZATION_TYPES[currentVisualizationType] = component
   }
   if (shouldSwitchVisualization) {

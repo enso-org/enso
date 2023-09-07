@@ -1,5 +1,10 @@
+<script lang="ts">
+export const name = 'Bubble'
+export const inputType = 'Any'
+</script>
+
 <script setup lang="ts">
-import Visualization from './Visualization.vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed } from 'vue'
 
@@ -18,11 +23,19 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
     <svg class="Bubble">
-      <circle v-for="[x, y, r] in data" stroke="black" fill="red" :cx="x" :cy="y" :r="r" />
+      <circle
+        v-for="([x, y, r], index) in data"
+        :key="index"
+        stroke="black"
+        fill="red"
+        :cx="x"
+        :cy="y"
+        :r="r"
+      />
     </svg>
-  </Visualization>
+  </VisualizationContainer>
 </template>
 
 <style scoped></style>

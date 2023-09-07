@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Visualization from './Visualization.vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed } from 'vue'
 
@@ -18,12 +18,12 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 </script>
 
 <template>
-  <Visualization :="<any>$attrs">
+  <VisualizationContainer :="<any>$attrs">
     <img
       class="Image"
       :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`"
     />
-  </Visualization>
+  </VisualizationContainer>
 </template>
 
 <style scoped></style>

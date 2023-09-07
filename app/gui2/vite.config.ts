@@ -1,4 +1,4 @@
-import { fileURLToPath, parse } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 import { defineConfig, Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -11,7 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      lib: fileURLToPath(new URL('./lib', import.meta.url)),
+      visualizations: fileURLToPath(new URL('./visualizations', import.meta.url)),
     },
   },
   css: {

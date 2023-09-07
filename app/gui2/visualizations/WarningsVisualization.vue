@@ -1,5 +1,10 @@
+<script lang="ts">
+export const name = 'Warnings'
+export const inputType = 'Any'
+</script>
+
 <script setup lang="ts">
-import Visualization from './VisualizationContainer.vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted } from 'vue'
 
@@ -22,14 +27,14 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
     <div class="Warnings">
       <ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre">
         <li v-if="data.length === 0">There are no warnings.</li>
         <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
       </ul>
     </div>
-  </Visualization>
+  </VisualizationContainer>
 </template>
 
 <style scoped>

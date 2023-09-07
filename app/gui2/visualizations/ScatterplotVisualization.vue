@@ -3,7 +3,7 @@
 import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 
-import Visualization from './Visualization.vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 import * as d3 from 'd3'
 import { computed, onMounted, ref, watchEffect } from 'vue'
@@ -41,6 +41,8 @@ const props = defineProps<{
   data: Data | string
   // FIXME: these should be part of data.
   defaultPointColor: Color // Was previously `theme.get('accent')`
+  width: number
+  height: number
   xLabel?: string
   yLabel?: string
 }>()
@@ -199,7 +201,7 @@ function updatePreprocessor() {
   } else {
     args.push('Nothing')
   }
-  args.push(limit.toString())
+  args.push(limit.value.toString())
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
@@ -689,7 +691,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <Visualization :="<any>$attrs">
+  <VisualizationContainer :="<any>$attrs" :width="width" :height="height">
     <div class="Scatterplot" ref="containerNode">
       <svg :width="canvasWidth" :height="canvasHeight">
         <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
@@ -728,7 +730,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
         Zoom to selected
       </button>
     </div>
-  </Visualization>
+  </VisualizationContainer>
 </template>
 
 <style scoped>
