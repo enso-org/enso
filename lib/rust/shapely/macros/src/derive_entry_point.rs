@@ -65,7 +65,6 @@ pub fn derive(
                 #(#attrs)*
                 #[wasm_bindgen::prelude::wasm_bindgen]
                 pub #fn_sig {
-                    init_global();
                     #block
                 }
 

@@ -1,14 +1,5 @@
-import {
-  computed,
-  isRef,
-  onUnmounted,
-  proxyRefs,
-  ref,
-  watch,
-  type WatchSource,
-  type Ref,
-} from 'vue'
-import { evalWatchSource } from './reactivity'
+import { onUnmounted, proxyRefs, ref, watch, type WatchSource } from 'vue'
+import { watchSourceToRef } from './reactivity'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []
 
@@ -101,7 +92,7 @@ export function useApproach(
   epsilon = 0.005,
   diffFn = defaultDiffFn,
 ) {
-  const target = evalWatchSource(to)
+  const target = watchSourceToRef(to)
   const current = ref(target.value)
 
   useRaf(

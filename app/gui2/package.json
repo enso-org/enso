@@ -12,7 +12,8 @@
     "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "yjs-server": "PORT=1234 YPERSISTENCE=./dbDir node ./node_modules/y-websocket/bin/server.js"
+    "build-rust-ffi": "cd rust-ffi && wasm-pack build --release --target web",
+    "preinstall": "npm run build-rust-ffi"
   },
   "dependencies": {
     "@types/ws": "^8.5.5",
