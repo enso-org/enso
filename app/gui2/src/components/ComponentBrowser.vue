@@ -145,6 +145,10 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
+// === Input ===
+
+const input = ref('')
+
 // === Key Events Handler ===
 
 useWindowEvent('keydown', (e) => {
@@ -198,57 +202,60 @@ useWindowEvent('keydown', (e) => {
     class="ComponentBrowser"
     :style="{ transform, '--list-height': listContentHeightPx }"
   >
-    <div class="panel components">
-      <div class="top-bar">
-        <div class="top-bar-inner">
-          <ToggleIcon icon="local_scope2" />
-          <ToggleIcon icon="command_key3" />
-          <ToggleIcon icon="unstable2" />
-          <ToggleIcon icon="marketplace" />
-          <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
-        </div>
-      </div>
-      <div class="components-content">
-        <div
-          ref="scroller"
-          class="list"
-          :scrollTop.prop="animatedScrollPosition.value"
-          @wheel.stop
-          @scroll="updateScroll"
-        >
-          <div class="list-variant" style="">
-            <div
-              v-for="item in visibleComponents"
-              :key="item.component.id"
-              class="component"
-              :style="componentStyle(item.index)"
-              @mousemove="selected = item.index"
-            >
-              <SvgIcon
-                :name="item.component.icon"
-                :style="{ color: componentColor(item.component) }"
-              />
-              {{ item.component.label }}
-            </div>
-          </div>
-          <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-            <div
-              v-for="item in visibleComponents"
-              :key="item.component.id"
-              class="component"
-              :style="{
-                backgroundColor: componentColor(item.component),
-                ...componentStyle(item.index),
-              }"
-            >
-              <SvgIcon :name="item.component.icon" />
-              {{ item.component.label }}
-            </div>
+    <div class="panels">
+      <div class="panel components">
+        <div class="top-bar">
+          <div class="top-bar-inner">
+            <ToggleIcon icon="local_scope2" />
+            <ToggleIcon icon="command_key3" />
+            <ToggleIcon icon="unstable2" />
+            <ToggleIcon icon="marketplace" />
+            <ToggleIcon icon="right_side_panel" v-model="docsVisible" class="first-on-right" />
           </div>
         </div>
+        <div class="components-content">
+          <div
+            ref="scroller"
+            class="list"
+            :scrollTop.prop="animatedScrollPosition.value"
+            @wheel.stop
+            @scroll="updateScroll"
+          >
+            <div class="list-variant" style="">
+              <div
+                v-for="item in visibleComponents"
+                class="component"
+                @mousemove="selected = item.index"
+                :key="item.component.id"
+                :style="componentStyle(item.index)"
+              >
+                <SvgIcon
+                  :variant="item.component.icon"
+                  :style="{ color: componentColor(item.component) }"
+                />
+                {{ item.component.label }}
+              </div>
+            </div>
+            <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
+              <div
+                v-for="item in visibleComponents"
+                class="component"
+                :key="item.component.id"
+                :style="{
+                  backgroundColor: componentColor(item.component),
+                  ...componentStyle(item.index),
+                }"
+              >
+                <SvgIcon :variant="item.component.icon" />
+                {{ item.component.label }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+    <div class="CBInput" contenteditable="plaintext-only"></div>
   </div>
 </template>
 
@@ -257,6 +264,13 @@ useWindowEvent('keydown', (e) => {
   --list-height: 0px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panels {
   display: flex;
   flex-direction: row;
   gap: 4px;
@@ -295,7 +309,6 @@ useWindowEvent('keydown', (e) => {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  font-size: 11.5px;
   position: relative;
 }
 
@@ -358,5 +371,12 @@ useWindowEvent('keydown', (e) => {
   & > svg:not(.toggledOn):hover {
     color: rgba(0, 0, 0, 0.3);
   }
+}
+
+.CBInput {
+  border-radius: 20px;
+  background-color: #eaeaea;
+  height: 40px;
+  padding: 12px;
 }
 </style>

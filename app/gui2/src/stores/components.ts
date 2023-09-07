@@ -9,11 +9,6 @@ export interface Component {
   group: number
 }
 
-export interface Group {
-  color: string
-  name: string
-}
-
 export const useComponentsStore = defineStore('components', () => {
   function* generate(sets: number) {
     for (let i = 0; i < sets; i += 10) {
