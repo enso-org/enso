@@ -28,7 +28,7 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
-    Test.group "post" pending=pending_has_url <|
+    Test.group "postasdfasdf" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
@@ -115,6 +115,24 @@ spec =
         Test.specify "Cannot POST when output context is disabled" <|
             Context.Output.with_disabled <|
                 Data.post url_post (Post_Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+
+        Test.specify "Can perform a Post_Request_Body.Text PUT" <|
+            url_put = base_url_with_slash + "put"
+            response = Data.post url_put (Post_Request_Body.Text "hello world") method=HTTP_Method.Put
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Can perform a Post_Request_Body.Text PATCH" <|
+            url_patch = base_url_with_slash + "patch"
+            response = Data.post url_patch (Post_Request_Body.Text "hello world") method=HTTP_Method.Patch headers=[Header.content_type "application/diff"]
+            response.at "data" . should_equal "hello world"
+            response.at "headers" . at "Content-Length" . should_equal "11"
+            response.at "headers" . at "Content-Type" . should_equal "application/diff"
+
+        Test.specify "Unsupported method" <|
+            url_get = base_url_with_slash + "get"
+            Data.post url_get (Post_Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
 
     Test.group "old post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
