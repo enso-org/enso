@@ -33,42 +33,87 @@ import org.enso.pkg.QualifiedName;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-public final class Type implements EnsoObject {
+public abstract class Type implements EnsoObject {
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
-  private final boolean builtin;
-  private final Type supertype;
+  final boolean builtin;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
 
   private boolean gettersGenerated;
 
-  private Type(
-      String name, ModuleScope definitionScope, Type supertype, Type eigentype, boolean builtin) {
+  private Type(String name, ModuleScope definitionScope, Type eigentype, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
-    this.supertype = supertype;
     this.builtin = builtin;
     this.eigentype = Objects.requireNonNullElse(eigentype, this);
     this.constructors = new HashMap<>();
   }
 
+  public abstract Type[] allTypes(EnsoContext ctx);
+
+  abstract Type getSupertype();
+
   public static Type createSingleton(
       String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
-    var result = new Type(name, definitionScope, supertype, null, builtin);
+    var result = new Simple(name, definitionScope, supertype, null, builtin);
     result.generateQualifiedAccessor();
     return result;
   }
 
   public static Type create(
       String name, ModuleScope definitionScope, Type supertype, Type any, boolean builtin) {
-    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin);
-    var result = new Type(name, definitionScope, supertype, eigentype, builtin);
+    var eigentype = new Simple(name + ".type", definitionScope, any, null, builtin);
+    var result = new Simple(name, definitionScope, supertype, eigentype, builtin);
     result.generateQualifiedAccessor();
     return result;
   }
 
-  private void generateQualifiedAccessor() {
+  public static Type createMultiType(Type[] allTypes) {
+    return new Multi(allTypes);
+  }
+
+  private static final class Simple extends Type {
+    private final Type supertype;
+
+    private Simple(
+        String name, ModuleScope definitionScope, Type supertype, Type eigentype, boolean builtin) {
+      super(name, definitionScope, eigentype, builtin);
+      this.supertype = supertype;
+    }
+
+    @Override
+    public Type[] allTypes(EnsoContext ctx) {
+      if (supertype == null) {
+        if (builtin) {
+          return new Type[] {this};
+        }
+        return new Type[] {this, ctx.getBuiltins().any()};
+      }
+      if (supertype == ctx.getBuiltins().any()) {
+        return new Type[] {this, ctx.getBuiltins().any()};
+      }
+      var superTypes = supertype.allTypes(ctx);
+      var allTypes = new Type[superTypes.length + 1];
+      System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
+      allTypes[0] = this;
+      return allTypes;
+    }
+
+    @Override
+    Type getSupertype() {
+      if (supertype == null) {
+        if (builtin) {
+          return null;
+        }
+        var ctx = EnsoContext.get(null);
+        return ctx.getBuiltins().any();
+      }
+      return supertype;
+    }
+  }
+
+  final void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
     var function =
         new Function(
@@ -121,34 +166,6 @@ public final class Type implements EnsoObject {
 
   public boolean isBuiltin() {
     return builtin;
-  }
-
-  private Type getSupertype() {
-    if (supertype == null) {
-      if (builtin) {
-        return null;
-      }
-      var ctx = EnsoContext.get(null);
-      return ctx.getBuiltins().any();
-    }
-    return supertype;
-  }
-
-  public Type[] allTypes(EnsoContext ctx) {
-    if (supertype == null) {
-      if (builtin) {
-        return new Type[] {this};
-      }
-      return new Type[] {this, ctx.getBuiltins().any()};
-    }
-    if (supertype == ctx.getBuiltins().any()) {
-      return new Type[] {this, ctx.getBuiltins().any()};
-    }
-    var superTypes = supertype.allTypes(ctx);
-    var allTypes = new Type[superTypes.length + 1];
-    System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
-    allTypes[0] = this;
-    return allTypes;
   }
 
   public void generateGetters(EnsoLanguage language) {
@@ -353,5 +370,24 @@ public final class Type implements EnsoObject {
   private boolean isNothing(Node lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();
+  }
+
+  private static final class Multi extends Type {
+    private final Type[] allTypes;
+
+    private Multi(Type[] allTypes) {
+      super("&", null, null, false);
+      this.allTypes = allTypes;
+    }
+
+    @Override
+    public Type[] allTypes(EnsoContext ctx) {
+      return allTypes;
+    }
+
+    @Override
+    Type getSupertype() {
+      return null;
+    }
   }
 }

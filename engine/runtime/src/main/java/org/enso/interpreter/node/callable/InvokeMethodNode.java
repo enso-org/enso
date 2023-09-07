@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
@@ -208,9 +209,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
-      var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-      var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
-      throw new PanicException(payload, cause, this);
+      throw methodNotFound(symbol, self);
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
@@ -269,6 +268,36 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
     assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self) throws PanicException {
+    var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
+    var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
+    throw new PanicException(payload, cause, this);
+  }
+
+  @Specialization
+  Object doMultiValue(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      EnsoMultiValue self,
+      Object[] arguments,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode
+  ) {
+    var ctx = EnsoContext.get(this);
+    var types = self.getType().allTypes(ctx);
+    for (var i = 0; i < types.length; i++) {
+      var fn = methodResolverNode.execute(types[i], symbol);
+      if (fn != null) {
+        var unwrapSelf = self.getValue(i);
+        if (arguments[0] == self) {
+          arguments[0] = unwrapSelf;
+        }
+        return execute(frame, state, symbol, unwrapSelf, arguments);
+      }
+    }
+    throw methodNotFound(symbol, self);
   }
 
   @Specialization

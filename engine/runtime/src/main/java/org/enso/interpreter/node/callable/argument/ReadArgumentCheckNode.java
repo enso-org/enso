@@ -25,8 +25,10 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
 import com.oracle.truffle.api.CompilerAsserts;
@@ -40,6 +42,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
 
 public abstract class ReadArgumentCheckNode extends Node {
@@ -78,25 +81,21 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   public static ReadArgumentCheckNode allOf(Name argumentName, ReadArgumentCheckNode... checks) {
-    return null;
+    var arr = toArray(Arrays.asList(checks));
+    return switch (arr.length) {
+      case 0 -> null;
+      case 1 -> arr[0];
+      default -> new AllOfNode(argumentName.name(), arr);
+    };
   }
 
   public static ReadArgumentCheckNode oneOf(Name argumentName, List<ReadArgumentCheckNode> checks) {
-    if (checks == null || checks.isEmpty()) {
-      return null;
-    } else {
-      var name = argumentName.name();
-      var cnt = (int) checks.stream().filter(n -> n != null).count();
-      var arr = new ReadArgumentCheckNode[cnt];
-      var it = checks.iterator();
-      for (int i = 0; i < cnt;) {
-        var element = it.next();
-        if (element != null) {
-          arr[i++] = element;
-        }
-      }
-      return new OneOfNode(name, arr);
-    }
+    var arr = toArray(checks);
+    return switch (arr.length) {
+      case 0 -> null;
+      case 1 -> arr[0];
+      default -> new OneOfNode(argumentName.name(), arr);
+    };
   }
 
   public static ReadArgumentCheckNode build(Name argumentName, Type expectedType) {
@@ -109,6 +108,59 @@ public abstract class ReadArgumentCheckNode extends Node {
       return fn.getPreAppliedArguments()[0] instanceof Function wrappedFn && wrappedFn.isThunk();
     }
     return false;
+  }
+
+  private static ReadArgumentCheckNode[] toArray(List<ReadArgumentCheckNode> list) {
+    if (list == null) {
+      return new ReadArgumentCheckNode[0];
+    }
+    var cnt = (int) list.stream().filter(n -> n != null).count();
+    var arr = new ReadArgumentCheckNode[cnt];
+    var it = list.iterator();
+    for (int i = 0; i < cnt;) {
+      var element = it.next();
+      if (element != null) {
+        arr[i++] = element;
+      }
+    }
+    return arr;
+  }
+
+  static final class AllOfNode extends ReadArgumentCheckNode {
+    @Children
+    private ReadArgumentCheckNode[] checks;
+    @Child
+    private TypesLibrary types;
+
+    AllOfNode(String name, ReadArgumentCheckNode[] checks) {
+      super(name);
+      this.checks = checks;
+      this.types = TypesLibrary.getFactory().createDispatched(checks.length);
+    }
+
+    @Override
+    @ExplodeLoop
+    Object executeCheckOrConversion(VirtualFrame frame, Object value) {
+      var values = new Object[checks.length];
+      var valueTypes = new Type[checks.length];
+      var at = 0;
+      for (var n : checks) {
+        var result = n.executeCheckOrConversion(frame, value);
+        if (result == null) {
+          return null;
+        }
+        values[at] = result;
+        valueTypes[at] = types.getType(result);
+        at++;
+      }
+      var multiType = Type.createMultiType(valueTypes);
+      return EnsoMultiValue.create(multiType, values);
+    }
+
+    @Override
+    String expectedTypeMessage() {
+      return Arrays.stream(checks).map(n -> n.expectedTypeMessage()).collect(Collectors.joining(" & "));
+    }
   }
 
   static final class OneOfNode extends ReadArgumentCheckNode {
@@ -206,6 +258,14 @@ public abstract class ReadArgumentCheckNode extends Node {
         var lazyCheckFn = lazyCheck.wrapThunk(fn);
         return lazyCheckFn;
       }
+      if (v instanceof EnsoMultiValue mv) {
+        var types = mv.getType().allTypes(null);
+        for (var i = 0; i < types.length; i++) {
+          if (expectedType == types[i]) {
+            return mv.getValue(i);
+          }
+        }
+      }
       if (checkType.execute(expectedType, v)) {
         return v;
       }
@@ -228,7 +288,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     ApplicationNode findConversionNode(Type from) {
       var convAndType = findConversion(from);
 
-      if (convAndType != null && getParent() instanceof ReadArgumentNode ran) {
+      if (convAndType != null && NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
         CompilerAsserts.neverPartOfCompilation();
         var convNode = LiteralNode.build(convAndType.getLeft());
         var intoNode = LiteralNode.build(convAndType.getRight());
