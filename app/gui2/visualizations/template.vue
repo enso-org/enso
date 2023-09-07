@@ -29,17 +29,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization
-    :data="data"
-    @hide="emit('hide')"
-    :is-circular-menu-visible="isCircularMenuVisible"
-    :width="width"
-    @update:width="emit('update:width', $event)"
-    :height="height"
-    @update:height="emit('update:height', $event)"
-    :fullscreen="fullscreen"
-    @update:fullscreen="emit('update:fullscreen', $event)"
-  >
+  <Visualization :="<any>$attrs">
     <!-- <visualization content here> -->
   </Visualization>
 </template>

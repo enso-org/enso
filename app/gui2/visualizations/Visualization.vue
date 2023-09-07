@@ -48,10 +48,10 @@ const isChooserVisible = ref(false)
         <div class="toolbar">
           <div class="background"></div>
           <button class="button active" @click="emit('update:fullscreen', !fullscreen)">
-            <img :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+            <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
           </button>
           <button class="button active" @click="isChooserVisible = !isChooserVisible">
-            <img :src="CompassIcon" />
+            <img class="icon" :src="CompassIcon" />
           </button>
         </div>
         <div class="toolbar">
@@ -71,29 +71,29 @@ const isChooserVisible = ref(false)
   width: 100%;
   z-index: -1;
   border-radius: 16px;
-}
 
-.Visualization.below-node {
-  padding-top: 20px;
-}
+  &.below-node {
+    padding-top: 20px;
+  }
 
-.Visualization.below-toolbar {
-  padding-top: 52px;
-}
+  &.below-toolbar {
+    padding-top: 52px;
+  }
 
-.Visualization.fullscreen {
-  z-index: var(--z-fullscreen);
-  position: fixed;
-  padding-top: 0;
-  border-radius: 0;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-}
+  &.fullscreen {
+    z-index: var(--z-fullscreen);
+    position: fixed;
+    padding-top: 0;
+    border-radius: 0;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+  }
 
-.Visualization.fullscreen.below-toolbar {
-  padding-top: 38px;
+  &.fullscreen.below-toolbar {
+    padding-top: 38px;
+  }
 }
 
 .toolbars {
@@ -107,31 +107,31 @@ const isChooserVisible = ref(false)
   top: 4px;
 }
 
-.toolbar > * {
-  position: relative;
-}
-
-.toolbar > .background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 80%);
-  backdrop-filter: blur(64px);
-}
-
 .toolbar {
   position: relative;
   display: flex;
   border-radius: var(--radius-full);
   gap: 12px;
   padding: 8px;
-}
 
-.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
-  display: none;
+  > * {
+    position: relative;
+  }
+
+  > .background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 80%);
+    backdrop-filter: blur(64px);
+  }
+
+  &:not(:first-child):not(:has(> :nth-child(2))) {
+    display: none;
+  }
 }
 
 .button {
@@ -140,14 +140,14 @@ const isChooserVisible = ref(false)
   padding: 0;
   border: none;
   opacity: 30%;
-}
 
-.button.active {
-  opacity: unset;
-}
+  &.active {
+    opacity: unset;
+  }
 
-.button > * {
-  vertical-align: top;
+  > * {
+    vertical-align: top;
+  }
 }
 
 .invisible {

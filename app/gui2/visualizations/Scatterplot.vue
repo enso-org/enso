@@ -45,10 +45,6 @@ registerVisualization(
 // TODO: deduplicate props.width / 40 and props.height / 20
 
 const props = defineProps<{
-  isCircularMenuVisible: boolean
-  width: number | undefined
-  height: number | undefined
-  fullscreen: boolean
   data: Data | string
   // FIXME: these should be part of data.
   defaultPointColor: Color // Was previously `theme.get('accent')`
@@ -56,10 +52,6 @@ const props = defineProps<{
   yLabel?: string
 }>()
 const emit = defineEmits<{
-  hide: []
-  'update:width': [width: number]
-  'update:height': [height: number]
-  'update:fullscreen': [fullscreen: boolean]
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
@@ -704,17 +696,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <Visualization
-    :data="data"
-    @hide="emit('hide')"
-    :is-circular-menu-visible="isCircularMenuVisible"
-    :width="width"
-    @update:width="emit('update:width', $event)"
-    :height="height"
-    @update:height="emit('update:height', $event)"
-    :fullscreen="fullscreen"
-    @update:fullscreen="emit('update:fullscreen', $event)"
-  >
+  <Visualization :="<any>$attrs">
     <div class="Scatterplot" ref="containerNode">
       <svg :width="canvasWidth" :height="canvasHeight">
         <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">

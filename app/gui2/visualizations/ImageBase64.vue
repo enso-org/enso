@@ -11,19 +11,7 @@ interface Data {
   base64: string
 }
 
-const props = defineProps<{
-  isCircularMenuVisible: boolean
-  width: number | undefined
-  height: number | undefined
-  fullscreen: boolean
-  data: Data | string
-}>()
-const emit = defineEmits<{
-  hide: []
-  'update:width': [width: number]
-  'update:height': [height: number]
-  'update:fullscreen': [fullscreen: boolean]
-}>()
+const props = defineProps<{ data: Data | string }>()
 
 const data = computed<Data>(() =>
   typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
@@ -33,17 +21,7 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 </script>
 
 <template>
-  <Visualization
-    :data="data"
-    @hide="emit('hide')"
-    :is-circular-menu-visible="isCircularMenuVisible"
-    :width="width"
-    @update:width="emit('update:width', $event)"
-    :height="height"
-    @update:height="emit('update:height', $event)"
-    :fullscreen="fullscreen"
-    @update:fullscreen="emit('update:fullscreen', $event)"
-  >
+  <Visualization :="<any>$attrs">
     <img
       class="Image"
       :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`"
