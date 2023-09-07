@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
@@ -87,7 +88,7 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization(guards = "that >= 0", replaces = "doBigIntShiftLeft")
   Object doBigIntShiftLeftExplicit(EnsoBigInteger self, long that,
-      @Cached CountingConditionProfile fitsInIntProfileLeftShift) {
+      @Exclusive @Cached CountingConditionProfile fitsInIntProfileLeftShift) {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(self, that);
     } else {
@@ -103,7 +104,7 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization(guards = "that < 0", replaces = "doBigIntShiftRight")
   Object doBigIntShiftRightExplicit(EnsoBigInteger self, long that,
-      @Cached CountingConditionProfile fitsInIntProfileRightShift) {
+      @Exclusive @Cached CountingConditionProfile fitsInIntProfileRightShift) {
     if (fitsInIntProfileRightShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftRight(self, -that);
     } else {
