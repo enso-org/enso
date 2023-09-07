@@ -126,7 +126,7 @@ public abstract class BitShiftNode extends Node {
 
   @Fallback
   Object doOther(Object self, Object that) {
-    return IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
   }
 
   boolean hasFreeBitsLeftShift(long number, long shift) {

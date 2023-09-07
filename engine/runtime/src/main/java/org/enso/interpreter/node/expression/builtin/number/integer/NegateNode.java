@@ -35,6 +35,6 @@ public abstract class NegateNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    return IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
   }
 }

@@ -55,6 +55,6 @@ public abstract class MultiplyNode extends Node {
 
   @Fallback
   Object doOther(Object self, Object that) {
-    return IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
   }
 }

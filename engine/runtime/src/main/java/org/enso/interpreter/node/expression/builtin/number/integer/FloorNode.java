@@ -27,6 +27,6 @@ public abstract class FloorNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    return IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
   }
 }

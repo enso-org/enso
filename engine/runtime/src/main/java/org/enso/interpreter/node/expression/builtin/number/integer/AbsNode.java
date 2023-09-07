@@ -39,6 +39,6 @@ public abstract class AbsNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    return IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
   }
 }
