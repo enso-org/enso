@@ -273,7 +273,7 @@ object UpsertVisualizationJob {
             Array[Object](
               argumentExpression,
               module.getName.toString,
-              retryCount,
+              retryCount: Integer,
               error
             )
           )
@@ -356,7 +356,7 @@ object UpsertVisualizationJob {
             Array[Object](
               expression,
               expressionModule,
-              retryCount,
+              retryCount: Integer,
               error
             )
           )
