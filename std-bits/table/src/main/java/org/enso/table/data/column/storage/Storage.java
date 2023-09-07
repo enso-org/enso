@@ -8,7 +8,6 @@ import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -396,7 +395,8 @@ public abstract class Storage<T> {
    * @param commonType a common type that should fit values from both storages
    * @return a new storage with missing values filled
    */
-  public WithAggregatedProblems<Storage<?>> fillMissingFrom(Storage<?> other, StorageType commonType) {
+  public WithAggregatedProblems<Storage<?>> fillMissingFrom(
+      Storage<?> other, StorageType commonType) {
     var builder = Builder.getForType(commonType, size());
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
