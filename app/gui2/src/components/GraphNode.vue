@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import NodeSpan from '@/components/NodeSpan.vue'
+
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import NodeSpan from '@/components/NodeSpan.vue'
-import type { ContentRange, ExprId } from '@shared/yjs-model'
+import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
 const props = defineProps<{
@@ -15,7 +16,7 @@ const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [range: ContentRange, content: string]
-  updatePosition: [pos: Vec2]
+  movePosition: [delta: Vec2]
   delete: []
 }>()
 
@@ -31,7 +32,7 @@ watchEffect(() => {
 })
 
 const dragPointer = usePointer((event) => {
-  emit('updatePosition', props.node.position.add(event.delta))
+  emit('movePosition', event.delta)
 })
 
 const transform = computed(() => {
@@ -89,6 +90,7 @@ function editContent(e: Event) {
       getRelatedSpanOffset(r.endContainer, r.endOffset),
     ]
   })
+
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''
@@ -253,20 +255,20 @@ function handleClick(e: PointerEvent) {
 
 <template>
   <div
-    class="Node"
     ref="rootNode"
+    class="Node"
     :style="{ transform }"
-    v-on="dragPointer.events"
     :class="{ dragging: dragPointer.dragging }"
+    v-on="dragPointer.events"
   >
-    <div class="icon" @pointerdown="handleClick">@ &nbsp</div>
+    <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
     <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
     <div
+      ref="editableRoot"
       class="editable"
       contenteditable
-      ref="editableRoot"
-      @beforeinput="editContent"
       spellcheck="false"
+      @beforeinput="editContent"
       @pointerdown.stop
     >
       <NodeSpan

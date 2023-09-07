@@ -1,21 +1,27 @@
 package org.enso.interpreter.node.callable.argument;
 
-import com.oracle.truffle.api.dsl.Cached.Shared;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -23,13 +29,16 @@ import org.graalvm.collections.Pair;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
@@ -38,6 +47,8 @@ public abstract class ReadArgumentCheckNode extends Node {
   private final Type[] expectedTypes;
   @CompilerDirectives.CompilationFinal
   private String expectedTypeMessage;
+  @CompilerDirectives.CompilationFinal
+  private LazyCheckRootNode lazyCheck;
 
   ReadArgumentCheckNode(String name, Type[] expectedTypes) {
     this.name = name;
@@ -55,10 +66,18 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   public abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
 
+  public static boolean isWrappedThunk(Function fn) {
+    if (fn.getSchema() == LazyCheckRootNode.SCHEMA) {
+      return fn.getPreAppliedArguments()[0] instanceof Function wrappedFn && wrappedFn.isThunk();
+    }
+    return false;
+  }
+
   @Specialization(rewriteOn = InvalidAssumptionException.class)
   Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
-    if (findAmongTypes(v)) {
-      return v;
+    var ret = findAmongTypes(v);
+    if (ret != null) {
+      return ret;
     } else {
       throw new InvalidAssumptionException();
     }
@@ -83,26 +102,34 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Shared("typeOfNode") @Cached TypeOfNode typeOfNode
   ) {
     var type = findType(typeOfNode, v);
-    return doWithConversionUncachedBoundary(frame.materialize(), v, type);
+    return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
   }
 
   private static boolean isAllFitValue(Object v) {
-    return v instanceof DataflowError
-            || (v instanceof Function fn && fn.isThunk())
-            || AtomWithAHoleNode.isHole(v);
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 
   @ExplodeLoop
-  private boolean findAmongTypes(Object v) {
+  private Object findAmongTypes(Object v) {
     if (isAllFitValue(v)) {
-      return true;
+      return v;
+    }
+    if (v instanceof Function fn && fn.isThunk()) {
+      if (lazyCheck == null) {
+        CompilerDirectives.transferToInterpreter();
+        var enso = EnsoLanguage.get(this);
+        var node = (ReadArgumentCheckNode) copy();
+        lazyCheck = new LazyCheckRootNode(enso, node);
+      }
+      var lazyCheckFn = lazyCheck.wrapThunk(fn);
+      return lazyCheckFn;
     }
     for (Type t : expectedTypes) {
       if (checkType.execute(t, v)) {
-        return true;
+        return v;
       }
     }
-    return false;
+    return null;
   }
 
   @ExplodeLoop
@@ -149,8 +176,9 @@ public abstract class ReadArgumentCheckNode extends Node {
           VirtualFrame frame, Object v, ApplicationNode convertNode
   ) throws PanicException {
     if (convertNode == null) {
-      if (findAmongTypes(v)) {
-        return v;
+      var ret = findAmongTypes(v);
+      if (ret != null) {
+        return ret;
       }
       throw panicAtTheEnd(v);
     } else {
@@ -180,5 +208,41 @@ public abstract class ReadArgumentCheckNode extends Node {
             expectedTypes[0].toString() :
             Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
     return expectedTypeMessage;
+  }
+
+  private static final class LazyCheckRootNode extends RootNode {
+    @Child
+    private ThunkExecutorNode evalThunk;
+    @Child
+    private ReadArgumentCheckNode check;
+
+    static final FunctionSchema SCHEMA = new FunctionSchema(
+      FunctionSchema.CallerFrameAccess.NONE,
+      new ArgumentDefinition[] { new ArgumentDefinition(0, "delegate", null, null, ExecutionMode.EXECUTE) },
+      new boolean[] { true },
+      new CallArgumentInfo[0],
+      new Annotation[0]
+    );
+
+    LazyCheckRootNode(TruffleLanguage<?> language, ReadArgumentCheckNode check) {
+      super(language);
+      this.check = check;
+      this.evalThunk = ThunkExecutorNode.build();
+    }
+
+    Function wrapThunk(Function thunk) {
+      return new Function(getCallTarget(), thunk.getScope(), SCHEMA, new Object[] { thunk }, null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      var state = Function.ArgumentsHelper.getState(frame.getArguments());
+      var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+      assert args.length == 1;
+      assert args[0] instanceof Function fn && fn.isThunk();
+      var raw = evalThunk.executeThunk(frame, args[0], state, TailStatus.NOT_TAIL);
+      var result = check.executeCheckOrConversion(frame, raw);
+      return result;
+    }
   }
 }

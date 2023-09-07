@@ -921,6 +921,17 @@ extern "C" {
     pub fn set_stack_trace_limit();
 }
 
+/// Initialize panic handling in web environment.
+#[cfg(target_arch = "wasm32")]
+pub fn init_global() {
+    forward_panic_hook_to_console();
+    set_stack_trace_limit();
+}
+
+/// Initialize panic handling in web environment.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn init_global() {}
+
 
 
 // ============

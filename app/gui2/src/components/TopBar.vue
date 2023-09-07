@@ -22,10 +22,10 @@ const emit = defineEmits<{
       @execute="emit('execute')"
     />
     <NavBar
+      :breadcrumbs="breadcrumbs"
       @back="emit('back')"
       @forward="emit('forward')"
-      :breadcrumbs="breadcrumbs"
-      @breadcrumb-click="emit('breadcrumbClick', $event)"
+      @breadcrumbClick="emit('breadcrumbClick', $event)"
     />
   </div>
 </template>

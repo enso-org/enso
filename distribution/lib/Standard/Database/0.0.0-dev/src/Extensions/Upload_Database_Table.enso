@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Errors import all
 
@@ -59,10 +60,19 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
     select_into_table_implementation self connection table_name primary_key temporary on_problems
 
 ## GROUP Standard.Base.Output
-   Updates the target table with the contents of this table.
+   Updates the database table with the contents of the provided table.
+
+   This operation will only work if this table is a 'trivial' table reference,
+   like returned by `Connection.query`, so it corresponds directly to a table
+   existing in a Database. If the target table is transformed in any way, this
+   correspondence is lost and the update operation cannot be performed on such a
+   transformed object.
 
    Arguments:
-   - target_table: the target table to update. It must be a database table.
+   - source_table: the table containing values for the update. This table may be
+     in-memory (in which case it will be uploaded as a temporary table) or any
+     database query with any desired transformations applied, as long as it is
+     coming from the same Connection as the target table.
    - update_action: specifies the update strategy - how to handle existing new
      and missing rows.
    - key_columns: the names of the columns to use identify correlate rows from
@@ -119,6 +129,65 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
      More expensive checks, like clashing keys or unmatched rows are checked
      only on a sample of rows, so errors may still occur when the output action
      is enabled.
-Table.update_database_table : Table -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-Table.update_database_table self target_table (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns target_table) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    common_update_table self target_table update_action key_columns error_on_missing_columns on_problems
+Table.update_rows : Table -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+Table.update_rows self (source_table : Table | In_Memory_Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns self) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    common_update_table source_table self update_action key_columns error_on_missing_columns on_problems
+
+## GROUP Standard.Base.Output
+   Removes rows from a database table.
+
+   It returns the count of the rows that have been deleted.
+
+   This operation will only work if this table is a 'trivial' table reference,
+   like returned by `Connection.query`, so it corresponds directly to a table
+   existing in a Database. If the target table is transformed in any way, this
+   correspondence is lost and the update operation cannot be performed on such a
+   transformed object.
+
+   Arguments:
+   - key_values_to_delete: a table that contains the values of the primary key
+     columns of the rows to delete. The table must have all columns specified as
+     `key_columns`. Any other columns are ignored.
+   - key_columns: the names of the columns that are used to correlate rows from
+     `key_values_to_delete` with rows in the target table. Defaults to the
+     primary key of the target table. If no primary key is set, this argument is
+     required.
+   - allow_duplicate_matches: specifies if the key values are expected to match
+     more than one row each. Defaults to `False`, meaning that if a key value
+     matches more than one row, an error will be reported and no rows will be
+     deleted. This setting is meant to prevent additional deletion of too many
+     rows.
+
+   > Example
+
+     Remove students that have graduated from the `students` table.
+
+         students.delete_rows graduated_students key_columns=["student_id"]
+
+   ! Error Conditions
+
+     - If the provided primary key columns are not present in the source or
+       target table, `Missing_Input_Columns` error is raised.
+     - If `allow_duplicate_matches` is set to `False` (the default) and a key
+       value matches more than one row,
+       a `Multiple_Target_Rows_Matched_For_Update` error is raised.
+     - An `SQL_Error` may be reported if there is a failure on the database
+       side.
+
+     If an error has been raised, the table is not modified (that may not always
+     apply to `SQL_Error`).
+
+     Note that it is possible for a row in `key_values_to_delete` to have no
+     corresponding rows in the target table. That does not cause any error. This
+     can be detected by checking the returned count of deleted rows.
+
+   ? Dry Run if Output disabled
+
+     If performing output actions is disabled, only a dry run is performed and
+     no permanent changes occur. The operation checks for errors like missing
+     columns, and returns the count of rows that would have been deleted by this
+     operation, with a `Dry_Run_Operation` warning attached.
+@key_columns Widget_Helpers.make_column_name_vector_selector
+Table.delete_rows : Table -> Vector Text | Nothing -> Boolean -> Integer ! Missing_Input_Columns | SQL_Error
+Table.delete_rows self (key_values_to_delete : Table | In_Memory_Table) (key_columns : Vector Text = default_key_columns_required self) (allow_duplicate_matches : Boolean = False) =
+    common_delete_rows self key_values_to_delete key_columns allow_duplicate_matches

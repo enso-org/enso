@@ -401,7 +401,7 @@ macro_rules! newtype_no_sub {
 macro_rules! newtype_struct {
     ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
         $crate::newtype_struct_def!   {$(#$meta)* $name { $($field : $field_type),*}}
-        $crate::newtype_struct_impls! {$(#$meta)* $name { $($field : $field_type),*}}
+        $crate::newtype_struct_impls! {$name { $($field : $field_type),*}}
     }
 }
 
@@ -410,7 +410,7 @@ macro_rules! newtype_struct {
 macro_rules! newtype_struct_float_like {
     ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
         $crate::newtype_struct_def_float_like! {$(#$meta)* $name { $($field : $field_type),*}}
-        $crate::newtype_struct_impls!          {$(#$meta)* $name { $($field : $field_type),*}}
+        $crate::newtype_struct_impls!          {$name { $($field : $field_type),*}}
     }
 }
 
@@ -441,9 +441,8 @@ macro_rules! newtype_struct_def_float_like {
 /// Unit definition macro. See module docs to learn more.
 #[macro_export]
 macro_rules! newtype_struct_impls {
-    ($(#$meta:tt)* $name:ident { $field:ident : $field_type:ty $(,)? }) => {
+    ($name:ident { $field:ident : $field_type:ty $(,)? }) => {
         /// Smart constructor.
-        $(#$meta)*
         #[allow(non_snake_case)]
         pub const fn $name($field:$field_type) -> $name { $name {$field} }
 

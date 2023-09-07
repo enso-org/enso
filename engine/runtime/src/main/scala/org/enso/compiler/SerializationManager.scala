@@ -26,9 +26,7 @@ import java.util.logging.Level
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
-final class SerializationManager(
-  compiler: Compiler
-) {
+final class SerializationManager(compiler: Compiler) {
 
   import SerializationManager._
 
@@ -260,7 +258,7 @@ final class SerializationManager(
           suggestions
         }
         .map { suggestion =>
-          val reexport = Option(exportsMap.get(suggestion)).map(_.toString)
+          val reexport = exportsMap.get(suggestion).map(_.toString)
           suggestion.withReexport(reexport)
         }
         .foreach(suggestions.add)

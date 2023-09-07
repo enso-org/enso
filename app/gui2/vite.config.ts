@@ -10,8 +10,8 @@ export default defineConfig({
   plugins: [vue(), yWebsocketServer()],
   resolve: {
     alias: {
+      shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
     },
   },
   css: {

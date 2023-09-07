@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -9,6 +10,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
@@ -94,6 +96,149 @@ public class SignatureTest extends TestBase {
 
     var yieldsError = neg.execute(error);
     assertTrue("Yields Error value", yieldsError.isException());
+  }
+
+  @Test
+  public void lazyIntegerInConstructor() throws Exception {
+    final URI uri = new URI("memory://int_simple_complex.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
+    type Int
+        Simple v
+        Complex (~unwrap : Int)
+
+        value self = case self of
+            Int.Simple v -> v
+            Int.Complex unwrap -> unwrap.value
+
+        + self (that:Int) = Int.Simple self.value+that.value
+
+    simple v = Int.Simple v
+    complex x y = Int.Complex (x+y)
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var simple = module.invokeMember("eval_expression", "simple");
+    var complex = module.invokeMember("eval_expression", "complex");
+
+    var six = simple.execute(6);
+    var seven = simple.execute(7);
+    var some13 = complex.execute(six, seven);
+    var thirteen = some13.invokeMember("value");
+    assertNotNull("member found", thirteen);
+    assertEquals(13, thirteen.asInt());
+
+    var someHello = complex.execute("Hello", "World");
+    try {
+      var error = someHello.invokeMember("value");
+      fail("not expecting any value: " + error);
+    } catch (PolyglotException e) {
+      assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
+    }
+    try {
+      var secondError = someHello.invokeMember("value");
+      fail("not expecting any value again: " + secondError);
+    } catch (PolyglotException e) {
+      assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void runtimeCheckOfLazyAscribedFunctionSignature() throws Exception {
+    final URI uri = new URI("memory://neg_lazy.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, IO
+
+    build (~zero : Integer) =
+      neg (~a : Integer) = zero - a
+      neg
+
+    make arr = build <|
+      arr.at 0
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var zeroValue = new Object[] { 0 };
+    var neg = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+
+    zeroValue[0] = "Wrong";
+    try {
+      var error = neg.execute(-5);
+      fail("Expecting an error: " + error);
+    } catch (PolyglotException ex) {
+      assertTypeError("`zero`", "Integer", "Text", ex.getMessage());
+    }
+
+    zeroValue[0] = 0;
+    var five = neg.execute(-5);
+    assertEquals("Five", 5, five.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+    zeroValue[0] = 5;
+    var fifteen = neg.execute(-10);
+    assertEquals("Five + Ten as the zeroValue[0] is always read again", 15, fifteen.asInt());
+
+    zeroValue[0] = 0;
+    var ten = neg.execute(-10);
+    assertEquals("Just ten as the zeroValue[0] is always read again", 10, ten.asInt());
+  }
+
+  @Test
+  public void runtimeCheckOfLazyAscribedConstructorSignature() throws Exception {
+    final URI uri = new URI("memory://neg_lazy_const.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, IO, Polyglot
+
+    type Lazy
+        Value (~zero : Integer)
+
+        neg self (~a : Integer) = self.zero - a
+
+    make arr = Lazy.Value <|
+      Polyglot.invoke arr "add" [ arr.length ]
+      arr.at 0
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var zeroValue = new ArrayList<Integer>();
+    zeroValue.add(0);
+    var lazy = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+    assertEquals("No read from zeroValue, still size 1", 1, zeroValue.size());
+
+    var five = lazy.invokeMember("neg", -5);
+    assertEquals("Five", 5, five.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
+
+    try {
+      var res = lazy.invokeMember("neg", "Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+    zeroValue.set(0, 5);
+    var fifteen = lazy.invokeMember("neg", -10);
+    assertEquals("Five + Ten as the zeroValue[0] is never read again", 10, fifteen.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
+
+    zeroValue.set(0, 0);
+    var ten = lazy.invokeMember("neg", -9);
+    assertEquals("Just nine as the zeroValue[0] is always read again", 9, ten.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
   }
 
   @Test

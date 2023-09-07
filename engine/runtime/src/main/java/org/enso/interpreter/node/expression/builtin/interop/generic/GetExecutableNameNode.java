@@ -25,6 +25,14 @@ public class GetExecutableNameNode extends Node {
   private final BranchProfile err = BranchProfile.create();
 
   Text execute(Object function) {
+    // Workaround for https://github.com/oracle/graal/issues/7359
+    if (!functionsLibrary.hasExecutableName(function)) {
+      err.enter();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
+      throw new PanicException(
+          builtins.error().makeTypeError(builtins.function(), function, "function"), this);
+    }
+
     try {
       var name = functionsLibrary.getExecutableName(function);
       if (name == null || !stringsLibrary.isString(name)) {
