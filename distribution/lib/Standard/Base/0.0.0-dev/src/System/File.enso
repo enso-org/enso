@@ -656,7 +656,7 @@ type File
             opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions self (self.input_stream opts)
             resource = Managed_Resource.register stream close_stream
-            Input_Stream.Value self resource
+            Input_Stream.Value resource (File_Error.handle_java_exceptions self)
 
     ## PRIVATE
        Reads first `n` bytes from the file (or less if the file is too small)
@@ -806,18 +806,18 @@ type Output_Stream
 
     ## PRIVATE
        ADVANCED
-       Writes an InputStream into the file at the current stream position.
-       Closes the InputStream.
+       Writes an Input_Stream into the file at the current stream position.
 
        Arguments:
-       - contents: An Java_Input_Stream to write into the file.
-    write_stream : Java_Input_Stream -> Nothing ! File_Error
+       - contents: An Input_Stream to write into the file.
+    write_stream : Input_Stream -> Nothing ! File_Error
     write_stream self contents = self.stream_resource . with java_stream->
         File_Error.handle_java_exceptions self.file <|
-            contents.transferTo java_stream
-            contents.close
-            java_stream.flush
-            Nothing
+            contents.with_java_stream contents_stream->
+                contents_stream.transferTo java_stream
+                contents.close
+                java_stream.flush
+                Nothing
 
     ## PRIVATE
        ADVANCED
@@ -871,24 +871,20 @@ type Output_Stream
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
-   An input stream, allowing for interactive reading of contents from an open
-   file.
+   An input stream, allowing for interactive reading of contents.
 type Input_Stream
-
     ## PRIVATE
-
-       An input stream, allowing for interactive reading of contents from an open
-       file.
+       An input stream, allowing for interactive reading of contents.
 
        Arguments:
-       - file: The file from which the stream will read.
        - stream_resource: The internal resource that represents the underlying
          stream.
-    Value file stream_resource
+       - error_handler: An error handler for IOExceptions thrown when reading.
+    Value stream_resource error_handler
 
     ## PRIVATE
        ADVANCED
-       Reads all the bytes in this file into a vector of bytes.
+       Reads all the bytes in this stream into a vector of bytes.
 
        > Example
          Read all of the bytes from a file using a stream.
@@ -902,23 +898,22 @@ type Input_Stream
                  bytes = in_stream.read_all_bytes
                  in_stream.close
                  bytes
-    read_all_bytes : Vector ! File_Error
+    read_all_bytes : Vector
     read_all_bytes self = self.stream_resource . with java_stream->
-        File_Error.handle_java_exceptions self.file <|
-            Vector.from_polyglot_array java_stream.readAllBytes
+        self.error_handler <| Vector.from_polyglot_array java_stream.readAllBytes
 
     ## PRIVATE
        ADVANCED
-       Reads _up to_ the provided number of bytes from the stream.
-
-       Arguments:
-       - n: The number of bytes to read from the file.
+       Reads up to the provided number of bytes from the stream.
 
        Makes a best-effort to read as many bytes as provided, however fewer
        bytes may be read, if end of stream is encountered.
 
        The length of the returned vector is the same as the number of bytes
        read.
+
+       Arguments:
+       - n: The number of bytes to read from the stream.
 
        > Example
          Read 10 of the bytes from a file using a stream.
@@ -932,9 +927,9 @@ type Input_Stream
                  bytes = in_stream.read_n_bytes 10
                  in_stream.close
                  bytes
-    read_n_bytes : Integer -> Vector ! File_Error
+    read_n_bytes : Integer -> Vector
     read_n_bytes self n = self.stream_resource . with java_stream->
-        File_Error.handle_java_exceptions self.file <|
+        self.error_handler <|
             bytes = java_stream.readNBytes n
             Vector.from_polyglot_array bytes
 
@@ -957,9 +952,9 @@ type Input_Stream
                  bytes = in_stream.read_byte
                  in_stream.close
                  bytes
-    read_byte : Integer ! File_Error
+    read_byte : Integer
     read_byte self = self.stream_resource . with java_stream->
-        File_Error.handle_java_exceptions self.file <|
+        self.error_handler <|
             java_stream.read
 
     ## PRIVATE

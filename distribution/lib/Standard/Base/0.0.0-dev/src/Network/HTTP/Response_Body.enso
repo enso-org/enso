@@ -5,13 +5,18 @@ import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.Input_Stream
 import project.System.File.Write_Extensions
 from project.Data.Text.Extensions import all
+from project.System.File import close_stream
+
+polyglot java import java.io.InputStream
 
 ## PRIVATE
 type Response_Body
@@ -22,11 +27,14 @@ type Response_Body
        - content_type: The content type of the response.
        - uri: The URI of the response.
        - bytes: The body as a Vector of bytes.
-    new : Input_Stream -> Text -> URI -> Response_Body
-    new stream content_type uri = Response_Body stream content_type uri (stream.readAllBytes)
+    new : InputStream -> Text -> URI -> Response_Body
+    new stream content_type uri =
+        resource = Managed_Resource.register stream close_stream
+        enso_stream = Input_Stream.Value resource (HTTP_Error.handle_java_exceptions uri)
+        Response_Body enso_stream content_type uri (stream.read_all_bytes)
 
     ## PRIVATE
-    Value stream (content_type:Text|Nothing) uri:URI ~bytes:Vector
+    Value (stream:Input_Stream) (content_type:Text|Nothing) uri:URI ~bytes:Vector
 
     ## ALIAS parse as text
        GROUP Conversions
