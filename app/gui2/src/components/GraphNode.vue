@@ -278,7 +278,7 @@ const visualizationTypes = computed(() =>
   Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
 )
 
-const visualizationData = computed(() => {
+const queuedVisualizationData = computed<{}>(() => {
   switch (visualizationType.value) {
     case 'Warnings': {
       return ['warning 1', "warning 2!!&<>;'\x22"]
@@ -295,24 +295,29 @@ const visualizationData = computed(() => {
         [100, 100, 10],
       ]
     }
+    default: {
+      return {}
+    }
   }
 })
+const visualizationData = ref<{}>({})
 
-const VISUALIZATION_TYPES: Record<string, unknown> = {}
+// NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
+const VISUALIZATION_TYPES: Record<string, any> = {}
 watchEffect(async (onCleanup) => {
   let shouldSwitchVisualization = true
   onCleanup(() => {
     shouldSwitchVisualization = false
   })
   const currentVisualizationType = visualizationType.value
-  const cachedComponent = VISUALIZATION_TYPES[currentVisualizationType]
-  if (cachedComponent != null) {
-    return cachedComponent
+  let component = VISUALIZATION_TYPES[currentVisualizationType]
+  if (component == null) {
+    component = await VISUALIZATION_GETTERS[currentVisualizationType]()
+    VISUALIZATION_TYPES[currentVisualizationType] = component
   }
-  const component = await VISUALIZATION_GETTERS[currentVisualizationType]()
-  VISUALIZATION_TYPES[currentVisualizationType] = component
   if (shouldSwitchVisualization) {
     visualization.value = component
+    visualizationData.value = queuedVisualizationData.value
   }
 })
 
