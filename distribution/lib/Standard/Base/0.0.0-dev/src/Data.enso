@@ -5,6 +5,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -21,6 +22,7 @@ import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Network.Extensions import all
@@ -187,72 +189,73 @@ fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
 
 post : (URI | Text) -> Post_Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (url:(URI | Text)) (body:Post_Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    if method != HTTP_Method.Post then
-        Error.throw (Illegal_Argument.Error "Unsupported method " + method.to_display_text + ", only POST is currently supported")
+    if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "HTTP POST is forbidden as the Output context is disabled.") else
+        if method != HTTP_Method.Post then
+            Error.throw (Illegal_Argument.Error "Unsupported method " + method.to_display_text + ", only POST is currently supported")
 
-    handle_request_error =
-        Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
-    #Panic.recover Any <| handle_request_error <|
-    (x-> x) <|
-        body_publishers = HttpRequest.BodyPublishers
-        builder = HttpRequest.newBuilder
+        handle_request_error =
+            Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
+        #Panic.recover Any <| handle_request_error <|
+        (x-> x) <|
+            body_publishers = HttpRequest.BodyPublishers
+            builder = HttpRequest.newBuilder
 
-        # set uri
-        uri = case url of
-            _ : Text -> url.to_uri
-            _ : URI -> url
-        builder.uri uri.internal_uri
+            # set uri
+            uri = case url of
+                _ : Text -> url.to_uri
+                _ : URI -> url
+            builder.uri uri.internal_uri
 
-        body_publisher_and_headers = case body of
-            Post_Request_Body.Text text encoding content_type ->
-                header = Header.content_type content_type
-                builder.header header.name header.value
-                Pair.new (body_publishers.ofString text encoding.to_java_charset) []
-            Post_Request_Body.Json x ->
-                builder.header Header.application_json.name Header.application_json.value
-                json = x.to_json
-                json.if_not_error <|
-                    Pair.new (body_publishers.ofString json) []
-            Post_Request_Body.Binary file ->
-                builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                path = Path.of file.path
-                Pair.new (body_publishers.ofFile path) []
-            Post_Request_Body.Form_Data form_data url_encoded ->
-                build_form_body_publisher form_data url_encoded
-            _ ->
-                Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
+            body_publisher_and_headers = case body of
+                Post_Request_Body.Text text encoding content_type ->
+                    header = Header.content_type content_type
+                    builder.header header.name header.value
+                    Pair.new (body_publishers.ofString text encoding.to_java_charset) []
+                Post_Request_Body.Json x ->
+                    builder.header Header.application_json.name Header.application_json.value
+                    json = x.to_json
+                    json.if_not_error <|
+                        Pair.new (body_publishers.ofString json) []
+                Post_Request_Body.Binary file ->
+                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                    path = Path.of file.path
+                    Pair.new (body_publishers.ofFile path) []
+                Post_Request_Body.Form_Data form_data url_encoded ->
+                    build_form_body_publisher form_data url_encoded
+                _ ->
+                    Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
 
-        IO.println "HHH"
-        IO.println body_publisher_and_headers
-        body_publisher_and_headers.if_not_error <| case body_publisher_and_headers of
-            Pair.Value body_publisher additional_headers ->
-                # set method and body
-                builder.method method.to_http_method_name body_publisher
+            IO.println "HHH"
+            IO.println body_publisher_and_headers
+            body_publisher_and_headers.if_not_error <| case body_publisher_and_headers of
+                Pair.Value body_publisher additional_headers ->
+                    # set method and body
+                    builder.method method.to_http_method_name body_publisher
 
-                # set headers
-                parse_headers headers . map h-> builder.header h.name h.value
-                all_headers = (parse_headers headers) + additional_headers
-                all_headers.map h-> builder.header h.name h.value
+                    # set headers
+                    parse_headers headers . map h-> builder.header h.name h.value
+                    all_headers = (parse_headers headers) + additional_headers
+                    all_headers.map h-> builder.header h.name h.value
 
-                http_request = builder.build
-                body_handler = HttpResponse.BodyHandlers . ofByteArray
-                http = HTTP.new
+                    http_request = builder.build
+                    body_handler = HttpResponse.BodyHandlers . ofByteArray
+                    http = HTTP.new
 
-                IO.println 'AAA http_request'
-                IO.println http_request
+                    IO.println 'AAA http_request'
+                    IO.println http_request
 
-                response = Response.Value (http.internal_http_client.send http_request body_handler)
+                    response = Response.Value (http.internal_http_client.send http_request body_handler)
 
-                IO.println 'AAA response'
-                IO.println response
+                    IO.println 'AAA response'
+                    IO.println response
 
-                r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-                    if try_auto_parse_response.not then response else
-                        response.decode if_unsupported=response . catch handler=(_->response)
-                IO.println 'AAA parsed(?) response'
-                IO.println r
-                IO.println <| Meta.get_simple_type_name r
-                r
+                    r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                        if try_auto_parse_response.not then response else
+                            response.decode if_unsupported=response . catch handler=(_->response)
+                    IO.println 'AAA parsed(?) response'
+                    IO.println r
+                    IO.println <| Meta.get_simple_type_name r
+                    r
 
 build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
