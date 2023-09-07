@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { registerVisualization } from '@/util/visualizations'
 import Visualization from './Visualization.vue'
 
 import { computed } from 'vue'
-
-registerVisualization('Image (Base64)', 'Standard.Image.Data.Image.Image')
 
 interface Data {
   mediaType?: string

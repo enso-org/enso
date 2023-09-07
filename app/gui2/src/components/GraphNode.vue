@@ -8,7 +8,9 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import type { ContentRange, ExprId } from '../../shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+
+import yaml from 'js-yaml'
 
 const props = defineProps<{
   node: Node
@@ -187,39 +189,40 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  if (selectionToRecover != null && editableRoot.value != null) {
-    const saved = selectionToRecover
-    const root = editableRoot.value
-    selectionToRecover = null
-    const selection = window.getSelection()
-    if (selection == null) return
+  const root = editableRoot.value
 
-    function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
-      if (offset == null) return null
-      for (let textSpan of root.querySelectorAll<HTMLSpanElement>('span[data-span-start]')) {
-        if (textSpan.children.length > 0) continue
-        const start = parseInt(textSpan.dataset.spanStart ?? '0')
-        const text = textSpan.textContent ?? ''
-        const end = start + text.length
-        if (start <= offset && offset <= end) {
-          let remainingOffset = offset - start
-          for (let node of textSpan.childNodes) {
-            if (node instanceof Text) {
-              let length = node.data.length
-              if (remainingOffset > length) {
-                remainingOffset -= length
-              } else {
-                return {
-                  node,
-                  offset: remainingOffset,
-                }
+  function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
+    if (offset == null) return null
+    for (let textSpan of root?.querySelectorAll<HTMLSpanElement>('span[data-span-start]') ?? []) {
+      if (textSpan.children.length > 0) continue
+      const start = parseInt(textSpan.dataset.spanStart ?? '0')
+      const text = textSpan.textContent ?? ''
+      const end = start + text.length
+      if (start <= offset && offset <= end) {
+        let remainingOffset = offset - start
+        for (let node of textSpan.childNodes) {
+          if (node instanceof Text) {
+            let length = node.data.length
+            if (remainingOffset > length) {
+              remainingOffset -= length
+            } else {
+              return {
+                node,
+                offset: remainingOffset,
               }
             }
           }
         }
       }
-      return null
     }
+    return null
+  }
+
+  if (selectionToRecover != null && editableRoot.value != null) {
+    const saved = selectionToRecover
+    selectionToRecover = null
+    const selection = window.getSelection()
+    if (selection == null) return
 
     for (let range of saved.ranges) {
       const start = findTextNodeAtOffset(range[0])
@@ -264,7 +267,7 @@ const isVisualizationVisible = ref(false)
 const VISUALIZATION_GETTERS: Record<
   string,
   () => Promise<
-    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/Visualization.vue').default
+    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/VisualizationContainer.vue').default
   >
 > = {
   Warnings: async () =>
@@ -282,11 +285,21 @@ const VISUALIZATION_GETTERS: Record<
 const visualizationType = ref('Warnings')
 const visualization =
   shallowRef<
-    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/Visualization.vue').default
+    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/VisualizationContainer.vue').default
   >()
 const visualizationTypes = computed(() =>
   Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
 )
+
+async function loadDefaultVisualizations() {
+  const path = (await import('lib/Standard/Visualization/0.0.0-dev/package.yaml')).default
+  const file = await fetch(path)
+  return yaml.load(await file.text())
+}
+
+onMounted(() => {
+  loadDefaultVisualizations()
+})
 
 const queuedVisualizationData = computed<{}>(() => {
   switch (visualizationType.value) {
@@ -369,7 +382,7 @@ const isVisualizationFullscreen = ref(false)
     <div
       class="node"
       ref="rootNode"
-      @="dragPointer.events"
+      v-on="dragPointer.events"
       :class="{ dragging: dragPointer.dragging }"
     >
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>

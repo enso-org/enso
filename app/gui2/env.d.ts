@@ -4,3 +4,8 @@ module 'y-websocket' {
   // hack for bad module resolution
   export * from 'node_modules/y-websocket/dist/src/y-websocket'
 }
+
+module '*.yaml' {
+  const src: string
+  export default src
+}

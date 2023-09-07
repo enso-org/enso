@@ -19,6 +19,7 @@ export default defineConfig({
       plugins: [postcssNesting],
     },
   },
+  assetsInclude: ['**/*.yaml'],
 })
 
 const roomNameRegex = /^[a-z0-9-]+$/i

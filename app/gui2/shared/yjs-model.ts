@@ -46,7 +46,7 @@ export class NamedDocArray {
   private integrateAddedItem(item: NamedDocMap, index: number): void {
     const name = item.get(NamedDocKey.NAME)?.toString()
     if (name == null) return
-    const indices = setIfUndefined(this.nameToIndex, name, () => [] as y.RelativePosition[])
+    const indices = setIfUndefined(this.nameToIndex, name, (): y.RelativePosition[] => [])
     indices.push(y.createRelativePositionFromTypeIndex(this.array, index))
   }
 

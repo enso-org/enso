@@ -7,7 +7,12 @@ const emit = defineEmits<{ 'update:type': [type: string] }>()
   <div class="VisualizationSelector">
     <div class="background"></div>
     <ul>
-      <li v-for="type_ in types" v-text="type_" @click="emit('update:type', type_)"></li>
+      <li
+        v-for="type_ in types"
+        :key="type_"
+        v-text="type_"
+        @click="emit('update:type', type_)"
+      ></li>
     </ul>
   </div>
 </template>

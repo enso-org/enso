@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { registerVisualization } from '@/util/visualizations'
-
 import { computed } from 'vue'
 import Visualization from './Visualization.vue'
-
-registerVisualization('<visualization name here>', 'Any')
 
 const props = defineProps<{
   isCircularMenuVisible: boolean
@@ -21,7 +17,7 @@ const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
-type Data = [x: number, y: number, r: number][]
+type Data = { dataType: 'here' }
 
 const data = computed<Data>(() =>
   typeof props.data === 'string' ? JSON.parse(props.data) : props.data,

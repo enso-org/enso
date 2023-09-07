@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { registerVisualization } from '@/util/visualizations'
-import Visualization from './Visualization.vue'
+import Visualization from './VisualizationContainer.vue'
 
 import { computed, onMounted } from 'vue'
 
 /** Simple Warning Visualization. */
-
-registerVisualization('Warnings', 'Any')
 
 type Data = string[]
 
@@ -29,7 +26,7 @@ const data = computed<Data>(() =>
     <div class="Warnings">
       <ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre">
         <li v-if="data.length === 0">There are no warnings.</li>
-        <li v-for="warning in data" v-text="warning"></li>
+        <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
       </ul>
     </div>
   </Visualization>
