@@ -278,6 +278,26 @@ const visualizationTypes = computed(() =>
   Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
 )
 
+const visualizationData = computed(() => {
+  switch (visualizationType.value) {
+    case 'Warnings': {
+      return ['warning 1', "warning 2!!&<>;'\x22"]
+    }
+    case 'Bubble': {
+      return [
+        [1, 1, 1],
+        [2, 2, 2],
+        [3, 3, 3],
+        [5, 5, 5],
+        [10, 10, 10],
+        [10, 100, 10],
+        [100, 10, 10],
+        [100, 100, 10],
+      ]
+    }
+  }
+})
+
 const VISUALIZATION_TYPES: Record<string, unknown> = {}
 watchEffect(async (onCleanup) => {
   let shouldSwitchVisualization = true
@@ -289,7 +309,7 @@ watchEffect(async (onCleanup) => {
   if (cachedComponent != null) {
     return cachedComponent
   }
-  const component = await VISUALIZATION_GETTERS[visualizationType.value]()
+  const component = await VISUALIZATION_GETTERS[currentVisualizationType]()
   VISUALIZATION_TYPES[currentVisualizationType] = component
   if (shouldSwitchVisualization) {
     visualization.value = component
@@ -315,7 +335,7 @@ const isVisualizationFullscreen = ref(false)
     <component
       v-if="isVisualizationVisible && visualization"
       :is="visualization"
-      :data="['warning 1', 'warning 2!!&<>;\'\x22']"
+      :data="visualizationData"
       :is-circular-menu-visible="isCircularMenuVisible"
       v-model:width="visualizationWidth"
       v-model:height="visualizationHeight"

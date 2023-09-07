@@ -32,6 +32,12 @@
 
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
+
+  --color-app-bg: rgba(255, 255, 255, 0.8);
+
+  --color-menu-entry-hover-bg: rgba(0, 0, 0, 0.1);
+
+  --color-visualization-bg: #fff2f2;
 }
 
 /* non-color variables */
@@ -41,6 +47,8 @@
 
   /* The z-index of fullscreen elements that should display over the entire GUI. */
   --z-fullscreen: 1;
+
+  --blur-app-bg: blur(64px);
 }
 
 *,

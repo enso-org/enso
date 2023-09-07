@@ -4,9 +4,10 @@ import ExitFullscreenIcon from './Visualization/exit_fullscreen.svg'
 import EyeIcon from './Visualization/eye.svg'
 import CompassIcon from './Visualization/compass.svg'
 
+import VisualizationSelector from './Visualization/VisualizationSelector.vue'
+
 import { ref } from 'vue'
 
-// FIXME: visualization chooser
 // FIXME: resizers to change `width` and `height`
 const props = defineProps<{
   /** If true, the visualization should display below the node background. */
@@ -31,7 +32,7 @@ const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
-const isChooserVisible = ref(false)
+const isSelectorVisible = ref(false)
 </script>
 
 <template>
@@ -39,7 +40,7 @@ const isChooserVisible = ref(false)
     <div
       class="Visualization"
       :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
-      :style="{ background: background ?? '#fff2f2', width, height }"
+      :style="{ '--color-visualization-bg': background, width, height }"
     >
       <slot></slot>
       <div class="toolbars">
@@ -53,22 +54,34 @@ const isChooserVisible = ref(false)
           <button class="button active" @click="emit('update:fullscreen', !fullscreen)">
             <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
           </button>
-          <button class="button active" @click="isChooserVisible = !isChooserVisible">
-            <img class="icon" :src="CompassIcon" />
-          </button>
+          <div class="icon-container">
+            <button class="button active" @click="isSelectorVisible = !isSelectorVisible">
+              <img class="icon" :src="CompassIcon" />
+            </button>
+            <VisualizationSelector
+              v-if="isSelectorVisible"
+              :types="types"
+              @update:type="
+                (type) => {
+                  isSelectorVisible = false
+                  emit('update:type', type)
+                }
+              "
+            />
+          </div>
         </div>
         <div class="toolbar">
           <div class="background"></div>
           <slot name="toolbar"></slot>
         </div>
       </div>
-      <div v-if="isChooserVisible"></div>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
 .Visualization {
+  background: var(--color-visualization-bg);
   position: absolute;
   top: 50%;
   width: 100%;
@@ -128,8 +141,8 @@ const isChooserVisible = ref(false)
     width: 100%;
     height: 100%;
     border-radius: var(--radius-full);
-    background: rgba(255, 255, 255, 80%);
-    backdrop-filter: blur(64px);
+    background: var(--color-app-bg);
+    backdrop-filter: var(--blur-app-bg);
   }
 
   &:not(:first-child):not(:has(> :nth-child(2))) {
@@ -159,5 +172,9 @@ const isChooserVisible = ref(false)
 
 .hidden {
   display: none;
+}
+
+.icon-container {
+  display: inline-flex;
 }
 </style>

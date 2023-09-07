@@ -51,8 +51,8 @@ const emit = defineEmits<{
 .CircularMenu > .background {
   position: absolute;
   clip-path: path('m0 20a56 56 0 0 0 56 56a16 16 0 0 0 0 -32a24 24 0 0 1-24-24a16 16 0 0 0-32 0');
-  background: rgba(255, 255, 255, 80%);
-  backdrop-filter: blur(64px);
+  background: var(--color-app-bg);
+  backdrop-filter: var(--blur-app-bg);
   width: 100%;
   height: 100%;
 }
