@@ -3,7 +3,6 @@ import {
   onMounted,
   onUnmounted,
   proxyRefs,
-  reactive,
   ref,
   type Ref,
   shallowRef,

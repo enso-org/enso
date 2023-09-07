@@ -5,7 +5,7 @@ import NodeSpan from '@/components/NodeSpan.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
-import type { ContentRange, ExprId } from '../../shared/yjs-model'
+import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
@@ -18,7 +18,7 @@ const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [range: ContentRange, content: string]
-  updatePosition: [pos: Vec2]
+  movePosition: [delta: Vec2]
   delete: []
 }>()
 
@@ -34,7 +34,7 @@ watchEffect(() => {
 })
 
 const dragPointer = usePointer((event) => {
-  emit('updatePosition', props.node.position.add(event.delta))
+  emit('movePosition', event.delta)
 })
 
 const transform = computed(() => {
@@ -92,6 +92,7 @@ function editContent(e: Event) {
       getRelatedSpanOffset(r.endContainer, r.endOffset),
     ]
   })
+
   switch (e.inputType) {
     case 'insertText': {
       const content = e.data ?? ''
@@ -339,7 +340,11 @@ const isVisualizationFullscreen = ref(false)
 
 <template>
   <div class="GraphNode" :style="{ transform }">
-    <div class="binding" @click="isVisualizationVisible = !isVisualizationVisible">
+    <div
+      class="binding"
+      @click="isVisualizationVisible = !isVisualizationVisible"
+      @pointerdown.stop
+    >
       {{ node.binding }}
     </div>
     <CircularMenu
@@ -349,13 +354,14 @@ const isVisualizationFullscreen = ref(false)
       v-model:is-visualization-visible="isVisualizationVisible"
     />
     <component
-      v-if="isVisualizationVisible && visualization"
       :is="visualization"
-      :data="visualizationData"
-      :is-circular-menu-visible="isCircularMenuVisible"
+      v-if="isVisualizationVisible && visualization"
       v-model:width="visualizationWidth"
       v-model:height="visualizationHeight"
       v-model:fullscreen="isVisualizationFullscreen"
+      :types="visualizationTypes"
+      :data="visualizationData"
+      :is-circular-menu-visible="isCircularMenuVisible"
       @update:preprocessor="
         (module, method, ...args) =>
           console.log(
@@ -364,22 +370,21 @@ const isVisualizationFullscreen = ref(false)
             )}]`,
           )
       "
-      :types="visualizationTypes"
       @update:type="visualizationType = $event"
     />
     <div
-      class="node"
       ref="rootNode"
-      v-on="dragPointer.events"
+      class="node"
       :class="{ dragging: dragPointer.dragging }"
+      v-on="dragPointer.events"
     >
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
       <div
+        ref="editableRoot"
         class="editable"
         contenteditable
-        ref="editableRoot"
-        @beforeinput="editContent"
         spellcheck="false"
+        @beforeinput="editContent"
         @pointerdown.stop
       >
         <NodeSpan

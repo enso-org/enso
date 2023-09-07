@@ -41,7 +41,7 @@ useWindowEvent('keypress', (e) => {
 </script>
 
 <template>
-  <div class="ComponentBrowser" v-if="shown" :style="{ transform }">
+  <div v-if="shown" class="ComponentBrowser" :style="{ transform }">
     <div class="panel components">COMPONENTS</div>
     <div class="panel docs">DOCS</div>
   </div>

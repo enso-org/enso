@@ -3,16 +3,28 @@
 """
 Script for downloading Engine benchmark results into a single static web page
 that visualizes all the benchmarks. Without any options, downloads and
-visualizes benchmark data for the last 14 days.
+visualizes benchmark data for the last 14 days. By default, no data is written
+to the disk except for the generated web page, and the data are downloaded
+asynchronously.
 
-It downloads the data synchronously and uses a cache directory by default.
-It is advised to use `-v|--verbose` option all the time.
+Set the `--source` parameter to either `engine` or `stdlib`.
+
+The generated website is placed under "generated_site" directory
+
+The default GH artifact retention period is 3 months, which means that all
+the artifacts older than 3 months are dropped. If you wish to gather the data
+for benchmarks older than 3 months, make sure that the `use_cache` parameter
+is set to true, and that the cache directory is populated with older data.
+If the script encounters an expired artifact, it prints a warning.
+
+This script is under continuous development, so it is advised to use
+`-v|--verbose` option all the time.
 
 It queries only successful benchmark runs. If there are no successful benchmarks
 in a given period, no results will be written.
 
 The process of the script is roughly as follows:
-- Gather all the benchmark results from GH API into job reports (JobReport dataclass)
+- Asynchronously gather all the benchmark results from GH API into job reports (JobReport dataclass)
     - Use cache if possible to avoid unnecessary GH API queries
 - Transform the gathered results into data for a particular benchmark sorted
   by an appropriate commit timestamp.
@@ -33,9 +45,11 @@ Dependencies for the script:
         - Used as a template engine for the HTML.
 """
 
+import asyncio
 import json
 import logging
 import logging.config
+import math
 import os
 import re
 import shutil
@@ -45,10 +59,13 @@ import tempfile
 import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
+from enum import Enum
 from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
+import xml.etree.ElementTree as ET
+
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
@@ -58,18 +75,48 @@ try:
     import numpy as np
     import jinja2
 except ModuleNotFoundError as err:
-    print("ERROR: One of pandas, numpy, or jinja2 packages not installed")
+    print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
     exit(1)
 
-BENCH_RUN_NAME = "Benchmark Engine"
 DATE_FORMAT = "%Y-%m-%d"
-# Workflod ID of engine benchmarks, got via `gh api '/repos/enso-org/enso/actions/workflows'`
-BENCH_WORKFLOW_ID = 29450898
+ENGINE_BENCH_WORKFLOW_ID = 29450898
+"""
+Workflow ID of engine benchmarks, got via `gh api 
+'/repos/enso-org/enso/actions/workflows'`.
+The name of the workflow is 'Benchmark Engine'
+"""
+NEW_ENGINE_BENCH_WORKFLOW_ID = 67075764
+"""
+Workflow ID for 'Benchmark Engine' workflow, which is the new workflow
+since 2023-08-22.
+"""
+STDLIBS_BENCH_WORKFLOW_ID = 66661001
+"""
+Workflow ID of stdlibs benchmarks, got via `gh api 
+'/repos/enso-org/enso/actions/workflows'`.
+The name is 'Benchmark Standard Libraries'
+"""
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 """ Date format as returned from responses in GH API"""
 ENSO_COMMIT_BASE_URL = "https://github.com/enso-org/enso/commit/"
-JINJA_TEMPLATE = "template_jinja.html"
+JINJA_TEMPLATE = "templates/template_jinja.html"
 """ Path to the Jinja HTML template """
+TEMPLATES_DIR = "templates"
+GENERATED_SITE_DIR = "generated_site"
+GH_ARTIFACT_RETENTION_PERIOD = timedelta(days=90)
+
+
+class Source(Enum):
+    ENGINE = "engine"
+    STDLIB = "stdlib"
+
+    def workflow_ids(self) -> List[int]:
+        if self == Source.ENGINE:
+            return [ENGINE_BENCH_WORKFLOW_ID, NEW_ENGINE_BENCH_WORKFLOW_ID]
+        elif self == Source.STDLIB:
+            return [STDLIBS_BENCH_WORKFLOW_ID]
+        else:
+            raise ValueError(f"Unknown source {self}")
 
 
 @dataclass
@@ -155,16 +202,21 @@ class TemplateBenchData:
     """ Data for one benchmark label (with a unique name and ID) """
     id: str
     """ ID of the benchmark, must not contain dots """
+    name: str
+    """ Human readable name of the benchmark """
     branches_datapoints: Dict[str, List[BenchDatapoint]]
     """ Mapping of branches to datapoints for that branch """
 
 
 @dataclass
 class JinjaData:
+    bench_source: Source
     bench_datas: List[TemplateBenchData]
     branches: List[str]
     since: datetime
     until: datetime
+    display_since: datetime
+    """ The date from which all the datapoints are first displayed """
 
 
 def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
@@ -213,24 +265,22 @@ def _bench_report_to_json(bench_report: JobReport) -> Dict[Any, Any]:
     }
 
 
-def _parse_bench_report_from_xml(bench_report_xml: str, bench_run: JobRun) -> "JobReport":
-    logging.debug(f"Parsing BenchReport from {bench_report_xml}")
-    with open(bench_report_xml, "r") as f:
-        lines = f.readlines()
-    label_pattern = re.compile("<label>(?P<label>.+)</label>")
-    score_pattern = re.compile("<score>(?P<score>.+)</score>")
-    label_score_dict = {}
-    label: Optional[str] = None
-    for line in lines:
-        line = line.strip()
-        label_match = label_pattern.match(line)
-        score_match = score_pattern.match(line)
-        if label_match:
-            label = label_match.group("label")
-        if score_match:
-            score = score_match.group("score")
-            assert label, "label element must be before score element"
-            label_score_dict[label] = float(score)
+def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> "JobReport":
+    logging.debug(f"Parsing BenchReport from {bench_report_xml_path}")
+    tree = ET.parse(bench_report_xml_path)
+    root = tree.getroot()
+    label_score_dict: Dict[str, float] = dict()
+    for cases in root:
+        assert cases.tag == "cases"
+        for case in cases:
+            assert case.tag == "case"
+            label = case.findtext("label").strip()
+            scores = case.find("scores")
+            scores_float = [float(score.text.strip()) for score in scores]
+            if len(scores_float) > 1:
+                logging.warning(f"More than one score for benchmark {label}, "
+                                f"using the best one (the smallest one).")
+            label_score_dict[label] = min(scores_float)
     return JobReport(
         label_score_dict=label_score_dict,
         bench_run=bench_run
@@ -247,7 +297,7 @@ def _read_json(json_file: str) -> Dict[Any, Any]:
         return json.load(f)
 
 
-def _invoke_gh_api(endpoint: str,
+async def _invoke_gh_api(endpoint: str,
                    query_params: Dict[str, str] = {},
                    result_as_text: bool = True) -> Union[Dict[str, Any], bytes]:
     query_str_list = [key + "=" + value for key, value in query_params.items()]
@@ -257,18 +307,21 @@ def _invoke_gh_api(endpoint: str,
         "api",
         f"/repos/enso-org/enso{endpoint}" + ("" if len(query_str) == 0 else "?" + query_str)
     ]
-    logging.info(f"Running subprocess `{' '.join(cmd)}`")
-    try:
-        ret = subprocess.run(cmd, check=True, text=result_as_text, capture_output=True)
-        if result_as_text:
-            return json.loads(ret.stdout)
-        else:
-            return ret.stdout
-    except subprocess.CalledProcessError as err:
-        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(err.returncode))
-        print(err.stdout)
-        print(err.stderr)
-        exit(err.returncode)
+    logging.info(f"Starting subprocess `{' '.join(cmd)}`")
+    proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+    out, err = await proc.communicate()
+    logging.info(f"Finished subprocess `{' '.join(cmd)}`")
+    if proc.returncode != 0:
+        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(
+            proc.returncode))
+        print(err.decode())
+        exit(proc.returncode)
+    if result_as_text:
+        return json.loads(out.decode())
+    else:
+        return out
 
 
 class Cache:
@@ -331,7 +384,7 @@ class FakeCache:
         return None
 
     def __setitem__(self, key, value):
-        raise NotImplementedError()
+        pass
 
     def __contains__(self, item):
         return False
@@ -340,12 +393,13 @@ class FakeCache:
         return 0
 
 
-def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun]:
+async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow_id: int) -> List[JobRun]:
     """
     Fetches the list of all the job runs from the GH API for the specified `branch`.
     """
     logging.info(f"Looking for all successful Engine benchmark workflow run "
-                 f"actions from {since} to {until} for branch {branch}")
+                 f"actions from {since} to {until} for branch {branch} "
+                 f"and workflow ID {workflow_id}")
     query_fields = {
         "branch": branch,
         "status": "success",
@@ -353,29 +407,36 @@ def get_bench_runs(since: datetime, until: datetime, branch: str) -> List[JobRun
         # Start with 1, just to determine the total count
         "per_page": "1"
     }
-    res = _invoke_gh_api(f"/actions/workflows/{BENCH_WORKFLOW_ID}/runs", query_fields)
+    res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", query_fields)
     total_count = int(res["total_count"])
-    per_page = 30
-    logging.debug(f"Total count of all runs: {total_count}, will process {per_page} runs per page")
+    per_page = 3
+    logging.debug(f"Total count of all runs: {total_count} for workflow ID "
+                  f"{workflow_id}. Will process {per_page} runs per page")
 
-    query_fields["per_page"] = str(per_page)
-    processed = 0
-    page = 1
-    parsed_bench_runs = []
-    while processed < total_count:
-        logging.debug(f"Processing page {page}, processed={processed}, total_count={total_count}")
-        query_fields["page"] = str(page)
-        res = _invoke_gh_api(f"/actions/workflows/{BENCH_WORKFLOW_ID}/runs", query_fields)
+    async def get_and_parse_run(page: int, parsed_bench_runs) -> None:
+        _query_fields = query_fields.copy()
+        _query_fields["page"] = str(page)
+        res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
-        parsed_bench_runs += [_parse_bench_run_from_json(bench_run_json)
+        _parsed_bench_runs = [_parse_bench_run_from_json(bench_run_json)
                               for bench_run_json in bench_runs_json]
-        processed += per_page
-        page += 1
+        parsed_bench_runs.extend(_parsed_bench_runs)
+
+    # Now we know the total count, so we can fetch all the runs
+    query_fields["per_page"] = str(per_page)
+    num_queries = math.ceil(total_count / per_page)
+    parsed_bench_runs = []
+
+    tasks = []
+    # Page is indexed from 1
+    for page in range(1, num_queries + 1):
+        tasks.append(get_and_parse_run(page, parsed_bench_runs))
+    await asyncio.gather(*tasks)
 
     return parsed_bench_runs
 
 
-def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
+async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
     """
     Extracts some data from the given bench_run, which was fetched via the GH API,
     optionally getting it from the cache.
@@ -389,16 +450,13 @@ def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional
         logging.info(f"Getting bench run with ID {bench_run.id} from cache")
         return cache[bench_run.id]
 
-    logging.info(f"Getting bench run with ID {bench_run.id} from GitHub API")
     # There might be multiple artifacts in the artifact list for a benchmark run
     # We are looking for the one named 'Runtime Benchmark Report', which will
     # be downloaded as a ZIP file.
-    obj = _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
+    obj: Dict[str, Any] = await _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
-    bench_report_artifact = None
-    for artifact in artifacts:
-        if artifact["name"] == "Runtime Benchmark Report":
-            bench_report_artifact = artifact
+    assert len(artifacts) == 1, "There should be exactly one artifact for a benchmark run"
+    bench_report_artifact = artifacts[0]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
     if bench_report_artifact["expired"]:
@@ -410,7 +468,7 @@ def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional
         return None
 
     # Get contents of the ZIP artifact file
-    artifact_ret = _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
+    artifact_ret = await _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
     logging.debug(f"Writing artifact ZIP content into {zip_file_name}")
     with open(zip_file_name, "wb") as zip_file:
@@ -565,6 +623,7 @@ def create_template_data(
         logging.debug(f"Template data for benchmark {bench_label} created")
         template_bench_datas.append(TemplateBenchData(
             id=_label_to_id(bench_label),
+            name=_label_to_name(bench_label),
             branches_datapoints=branch_datapoints,
         ))
     return template_bench_datas
@@ -572,6 +631,22 @@ def create_template_data(
 
 def _label_to_id(label: str) -> str:
     return label.replace(".", "_")
+
+
+def _label_to_name(label: str) -> str:
+    items = label.split(".")
+    assert len(items) >= 2
+    filtered_items = \
+        [item for item in items if item not in (
+            "org",
+            "enso",
+            "benchmark",
+            "benchmarks",
+            "semantic",
+            "interpreter",
+            "bench"
+        )]
+    return "_".join(filtered_items)
 
 
 def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
@@ -590,89 +665,76 @@ def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
 def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
     jinja_template = jinja_env.get_template(template_file)
-    generated_html = jinja_template.render({
-        "since": jinja_data.since,
-        "until": jinja_data.until,
-        "bench_datas": jinja_data.bench_datas,
-        "branches": jinja_data.branches
-    })
+    generated_html = jinja_template.render(jinja_data.__dict__)
+    if path.exists(html_out_fname):
+        logging.info(f"{html_out_fname} already exist, rewritting")
     with open(html_out_fname, "w") as html_file:
         html_file.write(generated_html)
 
 
-def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir: str) -> None:
-    def perc_str(perc: float) -> str:
-        s = "+" if perc > 0 else ""
-        s += "{:.5f}".format(perc)
-        s += "%"
-        return s
-
-    def percent_change(old_val: float, new_val: float) -> float:
-        return ((new_val - old_val) / old_val) * 100
-
-    def commit_to_str(commit: Commit) -> str:
-        return f"{commit.timestamp} {commit.author.name}  '{commit.message.splitlines()[0]}'"
-
-    res_1 = _invoke_gh_api(f"/actions/runs/{bench_run_id_1}")
-    bench_run_1 = _parse_bench_run_from_json(res_1)
-    res_2 = _invoke_gh_api(f"/actions/runs/{bench_run_id_2}")
-    bench_run_2 = _parse_bench_run_from_json(res_2)
-    bench_report_1 = get_bench_report(bench_run_1, cache, tmp_dir)
-    bench_report_2 = get_bench_report(bench_run_2, cache, tmp_dir)
-    # Check that the runs have the same labels, and get their intersection
-    bench_labels_1 = set(bench_report_1.label_score_dict.keys())
-    bench_labels_2 = set(bench_report_2.label_score_dict.keys())
-    if bench_labels_1 != bench_labels_2:
-        logging.warning(
-            f"Benchmark labels are not the same in both runs. This means that "
-            f"there will be some missing numbers in one of the runs. "
-            f"The set difference is {bench_labels_1.difference(bench_labels_2)}")
-    all_labels: List[str] = sorted(
-        list(bench_labels_1.intersection(bench_labels_2)))
-    bench_report_2.label_score_dict.keys()
-
-    df = pd.DataFrame(columns=["bench_label", "score-run-1", "score-run-2"])
-    for bench_label in all_labels:
-        df = pd.concat([df, pd.DataFrame([{
-            "bench_label": bench_label,
-            "score-run-1": bench_report_1.label_score_dict[bench_label],
-            "score-run-2": bench_report_2.label_score_dict[bench_label],
-        }])], ignore_index=True)
-    df["score-diff"] = np.diff(df[["score-run-1", "score-run-2"]], axis=1)
-    df["score-diff-perc"] = df.apply(lambda row: perc_str(
-        percent_change(row["score-run-1"], row["score-run-2"])),
-                                     axis=1)
-    print("================================")
-    print(df.to_string(index=False, header=True, justify="center", float_format="%.5f"))
-    print("================================")
-    print("Latest commit on bench-run-id-1: ")
-    print("    " + commit_to_str(bench_run_1.head_commit))
-    print("Latest commit on bench-run-id-2: ")
-    print("    " + commit_to_str(bench_run_2.head_commit))
+def ensure_gh_installed() -> None:
+    try:
+        out = subprocess.run(["gh", "--version"], check=True, capture_output=True)
+        if out.returncode != 0:
+            print("`gh` command not found - GH CLI utility is not installed. "
+                  "See https://cli.github.com/", file=sys.stderr)
+            exit(1)
+    except subprocess.CalledProcessError:
+        print("`gh` command not found - GH CLI utility is not installed. "
+              "See https://cli.github.com/", file=sys.stderr)
+        exit(1)
 
 
-if __name__ == '__main__':
-    default_since: date = (datetime.now() - timedelta(days=14)).date()
-    default_until: date = datetime.now().date()
+async def main():
+    default_since: datetime = (datetime.now() - timedelta(days=14))
+    default_until: datetime = datetime.now()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
+    default_csv_out = "Engine_Benchs/data/benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
+
+    def _parse_bench_source(_bench_source: str) -> Source:
+        try:
+            return Source(_bench_source)
+        except ValueError:
+            print(f"Invalid benchmark source {_bench_source}.", file=sys.stderr)
+            print(f"Available sources: {[source.value for source in Source]}", file=sys.stderr)
+            exit(1)
 
     arg_parser = ArgumentParser(description=__doc__,
                                 formatter_class=RawDescriptionHelpFormatter)
-    arg_parser.add_argument("-s", "--since", action="store",
+    arg_parser.add_argument("-v", "--verbose", action="store_true")
+    arg_parser.add_argument("-s", "--source",
+                            action="store",
+                            required=True,
+                            metavar=f"({Source.ENGINE.value}|{Source.STDLIB.value})",
+                            type=lambda s: _parse_bench_source(s),
+                            help=f"The source of the benchmarks. Available sources: "
+                                 f"{[source.value for source in Source]}")
+    arg_parser.add_argument("--since", action="store",
                             default=default_since,
                             metavar="SINCE_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
                             help=f"The date from which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is 14 days before")
-    arg_parser.add_argument("-u", "--until", action="store",
+    arg_parser.add_argument("--until", action="store",
                             default=default_until,
                             metavar="UNTIL_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
+    arg_parser.add_argument("--use-cache",
+                            default=False,
+                            metavar="(true|false)",
+                            type=lambda input: True if input in ("true", "True") else False,
+                            help="Whether the cache directory should be used. The default is False.")
+    arg_parser.add_argument("-c", "--cache", action="store",
+                            default=default_cache_dir,
+                            metavar="CACHE_DIR",
+                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
+                                 f"The default is {default_cache_dir}. If there are any troubles with the "
+                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-b", "--branches", action="store",
                             nargs="+",
                             default=["develop"],
@@ -683,38 +745,18 @@ if __name__ == '__main__':
                             default=set(),
                             help="List of labels to gather the benchmark results from."
                                  "The default behavior is to gather all the labels")
-    arg_parser.add_argument("--compare",
-                            nargs=2,
-                            default=[],
-                            metavar=("<Bench action ID 1>", "<Bench action ID 2>"),
-                            help="Compare two benchmark actions runs. Choose an action from https://github.com/enso-org/enso/actions/workflows/benchmark.yml, "
-                                 "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
-                                 "This option excludes --since, --until, --output, and --create-csv options."
-                                 " Note: THIS OPTION IS DEPRECATED, use --branches instead")
-    arg_parser.add_argument("-o", "--output",
-                            default="Engine_Benchs/data/benchs.csv",
-                            metavar="CSV_OUTPUT",
-                            help="Output CSV file. Makes sense only when used with --create-csv argument")
-    arg_parser.add_argument("-c", "--cache", action="store",
-                            default=default_cache_dir,
-                            metavar="CACHE_DIR",
-                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
-                                 f"The default is {default_cache_dir}. If there are any troubles with the "
-                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-t", "--tmp-dir", action="store",
                             default=None,
                             help="Temporary directory with default created by `tempfile.mkdtemp()`")
-    arg_parser.add_argument("--use-cache",
-                            default=True,
-                            metavar="(true|false)",
-                            type=lambda input: True if input in ("true", "True") else False,
-                            help="Whether the cache directory should be used. The default is True.")
     arg_parser.add_argument("--create-csv", action="store_true",
                             default=False,
                             help="Whether an intermediate `benchs.csv` should be created. "
                                  "Appropriate to see whether the benchmark downloading was successful. "
                                  "Or if you wish to inspect the CSV with Enso")
-    arg_parser.add_argument("-v", "--verbose", action="store_true")
+    arg_parser.add_argument("--csv-output",
+                            default=default_csv_out,
+                            metavar="CSV_OUTPUT",
+                            help="Output CSV file. Makes sense only when used with --create-csv argument")
     args = arg_parser.parse_args()
     if args.verbose:
         log_level = logging.DEBUG
@@ -731,40 +773,66 @@ if __name__ == '__main__':
         temp_dir: str = args.tmp_dir
     use_cache: bool = args.use_cache
     assert cache_dir and temp_dir
-    csv_fname: str = args.output
+    bench_source: Source = args.source
+    csv_output: str = args.csv_output
     create_csv: bool = args.create_csv
-    compare: List[str] = args.compare
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
-    logging.info(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
-                 f"temp_dir={temp_dir}, use_cache={use_cache}, output={csv_fname}, "
-                 f"create_csv={create_csv}, compare={compare}, branches={branches}, "
+    logging.debug(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
+                 f"temp_dir={temp_dir}, use_cache={use_cache}, bench_source={bench_source}, "
+                 f"csv_output={csv_output}, "
+                 f"create_csv={create_csv}, branches={branches}, "
                  f"labels_override={labels_override}")
+
+    ensure_gh_installed()
+
+    # If the user requires benchmarks for which artifacts are not retained
+    # anymore, then cache should be used.
+    min_since_without_cache = datetime.today() - GH_ARTIFACT_RETENTION_PERIOD
+    if not use_cache and since < min_since_without_cache:
+        logging.warning(f"The default GH artifact retention period is "
+                        f"{GH_ARTIFACT_RETENTION_PERIOD.days} days. "
+                        f"This means that all the artifacts older than "
+                        f"{min_since_without_cache.date()} are expired."
+                        f"The use_cache parameter is set to False, so no "
+                        f"expired artifacts will be fetched.")
+        logging.warning(f"The `since` parameter is reset to "
+                        f"{min_since_without_cache.date()} to prevent "
+                        f"unnecessary GH API queries.")
+        since = min_since_without_cache
 
     if use_cache:
         cache = populate_cache(cache_dir)
     else:
         cache = FakeCache()
 
-    if len(compare) > 0:
-        compare_runs(compare[0], compare[1], cache, temp_dir)
-        exit(0)
-
     bench_labels: Optional[Set[str]] = None
     """ Set of all gathered benchmark labels from all the job reports """
     job_reports_per_branch: Dict[str, List[JobReport]] = {}
     for branch in branches:
-        bench_runs = get_bench_runs(since, until, branch)
+        bench_runs: List[JobRun] = []
+        for workflow_id in bench_source.workflow_ids():
+            bench_runs.extend(
+                await get_bench_runs(since, until, branch, workflow_id)
+            )
         if len(bench_runs) == 0:
             print(
                 f"No successful benchmarks found within period since {since}"
                 f" until {until} for branch {branch}")
             exit(1)
+
         job_reports: List[JobReport] = []
+
+        async def _process_report(_bench_run):
+            _job_report = await get_bench_report(_bench_run, cache, temp_dir)
+            if _job_report:
+                job_reports.append(_job_report)
+
+        tasks = []
         for bench_run in bench_runs:
-            job_report = get_bench_report(bench_run, cache, temp_dir)
-            if job_report:
-                job_reports.append(job_report)
+            tasks.append(_process_report(bench_run))
+        await asyncio.gather(*tasks)
+
         logging.debug(f"Got {len(job_reports)} job reports for branch {branch}")
         if len(job_reports) == 0:
             print(f"There were 0 job_reports in the specified time interval, "
@@ -774,20 +842,18 @@ if __name__ == '__main__':
 
         logging.debug("Sorting job_reports by commit date")
 
-
-        def get_timestamp(job_report: JobReport) -> datetime:
+        def _get_timestamp(job_report: JobReport) -> datetime:
             return datetime.strptime(
                 job_report.bench_run.head_commit.timestamp,
                 GH_DATE_FORMAT
             )
 
-
-        job_reports.sort(key=lambda report: get_timestamp(report))
+        job_reports.sort(key=lambda report: _get_timestamp(report))
 
         if create_csv:
-            write_bench_reports_to_csv(job_reports, csv_fname)
-            logging.info(f"Benchmarks written to {csv_fname}")
-            print(f"The generated CSV is in {csv_fname}")
+            write_bench_reports_to_csv(job_reports, csv_output)
+            logging.info(f"Benchmarks written to {csv_output}")
+            print(f"The generated CSV is in {csv_output}")
             exit(0)
 
         # Gather all the benchmark labels from all the job reports
@@ -812,14 +878,34 @@ if __name__ == '__main__':
 
     jinja_data = JinjaData(
         since=since,
+        display_since=max(until - timedelta(days=30), since),
         until=until,
         bench_datas=template_bench_datas,
+        bench_source=bench_source,
         branches=branches,
     )
 
     # Render Jinja template with jinja_data
-    render_html(jinja_data, JINJA_TEMPLATE, "index.html")
-    index_html_path = os.path.join(os.getcwd(), "index.html")
+    if not path.exists(GENERATED_SITE_DIR):
+        os.mkdir(GENERATED_SITE_DIR)
 
-    print(f"The generated HTML is in {index_html_path}")
-    print(f"Open file://{index_html_path} in the browser")
+    logging.debug(f"Rendering HTML from {JINJA_TEMPLATE} to {GENERATED_SITE_DIR}")
+    site_path = path.join(GENERATED_SITE_DIR, bench_source.value + "-benchs.html")
+    render_html(
+        jinja_data,
+        JINJA_TEMPLATE,
+        site_path
+    )
+    logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
+    shutil.copy(
+        path.join(TEMPLATES_DIR, "styles.css"),
+        path.join(GENERATED_SITE_DIR, "styles.css")
+    )
+
+    index_html_abs_path = path.abspath(site_path)
+    print(f"The generated HTML is in {index_html_abs_path}")
+    print(f"Open file://{index_html_abs_path} in the browser")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

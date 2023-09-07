@@ -3,13 +3,9 @@ import { setIfUndefined } from 'lib0/map'
 import { isSome, type Opt } from '@/util/opt'
 
 export type Uuid = ReturnType<typeof crypto.randomUUID>
-declare const BRAND_ExprId: unique symbol
-export type ExprId = Uuid & { [BRAND_ExprId]: never }
+declare const brandExprId: unique symbol
+export type ExprId = Uuid & { [brandExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
-
-interface Handle {
-  dispose(): void
-}
 
 export interface NodeMetadata {
   x: number
@@ -27,17 +23,13 @@ interface NamedDoc {
   doc: y.Doc
 }
 
-let next_id = 0
-
 type NamedDocMap = y.Map<y.Text | y.Doc>
 
 export class NamedDocArray {
-  _name: string
   array: y.Array<NamedDocMap>
   nameToIndex: Map<string, y.RelativePosition[]>
 
   constructor(doc: y.Doc, name: string) {
-    this._name = `${name}#${next_id++}`
     this.array = doc.getArray(name)
     this.nameToIndex = new Map()
     this.array.forEach(this.integrateAddedItem.bind(this))
@@ -58,8 +50,8 @@ export class NamedDocArray {
     const map = new y.Map<y.Text | y.Doc>()
     const yName = map.set(NamedDocKey.NAME, new y.Text(name))
     const doc = map.set(NamedDocKey.DOC, new y.Doc())
-    const pos = y.createRelativePositionFromTypeIndex(this.array, this.array.length)
     this.array.push([map])
+    this.integrateAddedItem(map, this.array.length - 1)
     return { name: yName, doc }
   }
 
@@ -204,20 +196,27 @@ class DistributedModule {
     return newId
   }
 
-  setExpressionContent(id: ExprId, content: string): void {
-    const rangeJson = this.idMap.get(id)
-    if (rangeJson == null) return
-    const range = [
-      y.createRelativePositionFromJSON(rangeJson[0]),
-      y.createRelativePositionFromJSON(rangeJson[1]),
+  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
+    const exprRangeJson = this.idMap.get(id)
+    if (exprRangeJson == null) return
+    const exprRange = [
+      y.createRelativePositionFromJSON(exprRangeJson[0]),
+      y.createRelativePositionFromJSON(exprRangeJson[1]),
     ]
-    const start = y.createAbsolutePositionFromRelativePosition(range[0], this.doc)?.index
-    const end = y.createAbsolutePositionFromRelativePosition(range[1], this.doc)?.index
-    const idMapData = this.idMap.toJSON()
-    if (start == null || end == null) return
+    const exprStart = y.createAbsolutePositionFromRelativePosition(exprRange[0], this.doc)?.index
+    const exprEnd = y.createAbsolutePositionFromRelativePosition(exprRange[1], this.doc)?.index
+    if (exprStart == null || exprEnd == null) return
+    const start = range == null ? exprStart : exprStart + range[0]
+    const end = range == null ? exprEnd : exprStart + range[1]
+    if (start > end) throw new Error('Invalid range')
+    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
     this.doc.transact(() => {
-      this.contents.delete(start, end - start)
-      this.contents.insert(start, content)
+      if (content.length > 0) {
+        this.contents.insert(start, content)
+      }
+      if (start !== end) {
+        this.contents.delete(start + content.length, end - start)
+      }
     })
   }
 
@@ -290,9 +289,6 @@ export class IdMap {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
-    if (range[0] === 0 && range[1] == 1) {
-      debugger
-    }
 
     const key = IdMap.keyForRange(range)
     const val = this.rangeToExpr.get(key)
@@ -336,7 +332,7 @@ export class IdMap {
       })
 
       this.rangeToExpr.forEach((expr, key) => {
-        // for all remaining expressions, we need to write them into the map
+        // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
         const range = key.split(':').map((x) => parseInt(x, 10)) as [number, number]
         const start = y.createRelativePositionFromTypeIndex(this.contents, range[0])
@@ -358,4 +354,8 @@ export type ContentRange = [number, number]
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
+}
+
+export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
+  return a[0] <= b[1] && a[1] >= b[0]
 }

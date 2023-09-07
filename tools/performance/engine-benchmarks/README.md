@@ -1,8 +1,8 @@
 # Engine benchmarks
 
 This directory contains a python script `bench_download.py` for downloading
-Engine benchmark results from GitHub and `Engine_Benchs` Enso project for
-analysing the downloaded data.
+Engine and stdlib benchmark results from GitHub, and `Engine_Benchs` Enso
+project for analysing the downloaded data.
 
 Dependencies for `bench_download.py`:
 
@@ -14,7 +14,9 @@ Dependencies for `bench_download.py`:
     `sudo apt-get install gh`
 
 Check `bench_download -h` for documentation and usage. Ensure that your
-`/usr/bin/env python` links to Python version at least 3.7.
+`/usr/bin/env python` links to Python version at least 3.7. `bench_download.py`
+creates `generated_site` directory with HTML files for visualizing the benchmark
+results.
 
 One can also analyze the benchmarks in Enso IDE by running
 `bench_download.py --create-csv` and then running `Engine_Benchs` project. The
