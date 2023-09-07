@@ -333,6 +333,24 @@ spec_write suffix test_sheet_name =
                 result
             temp.delete_if_exists
 
+        Test.specify 'should be able to write to an existing empty file' <|
+            out.delete_if_exists
+            [].write_bytes out
+
+            out_bak.delete_if_exists
+
+            table.write out on_problems=Report_Error . should_succeed . should_equal out
+            written = out.read
+            written.sheet_count . should_equal 1
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
+
+            out_bak.exists.should_be_true
+            out_bak.size.should_equal 0
+
+            out.delete_if_exists
+            out_bak.delete_if_exists
+
         Test.specify 'should fail to append to a sheet by name if missing columns' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out

@@ -44,7 +44,10 @@ spec =
             sample_file.exists.should_be_true
 
         Test.specify "should get file size" <|
-            sample_file.size.should_equal 403
+            file_size = sample_file.size
+            ## Allows for having line endings replaced.
+            valid_size = file_size==403 || file_size==406
+            valid_size.should_be_true
 
             result = non_existent_file.size
             result.should_fail_with File_Error
