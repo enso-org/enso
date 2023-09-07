@@ -3,17 +3,10 @@
 import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 
-import Visualization from '@viz/Visualization.vue'
-// FIXME: either move this to @viz, or change to a different impl
-import { registerVisualization } from '@/util/visualizations'
+import Visualization from './Visualization.vue'
 
 import * as d3 from 'd3'
 import { computed, onMounted, ref, watchEffect } from 'vue'
-
-registerVisualization(
-  'Scatterplot',
-  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector',
-)
 
 // TODO refactor this to avoid loading scripts on startup. See issue #985.
 /**

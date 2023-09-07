@@ -5,11 +5,8 @@ import GeoMapDistanceIcon from './GeoMap/geo_map_distance.svg'
 import GeoMapPinIcon from './GeoMap/geo_map_pin.svg'
 
 import Visualization from './Visualization.vue'
-import { registerVisualization } from '@/util/visualizations'
 
 import { computed } from 'vue'
-
-registerVisualization('GeoMap', 'Any')
 
 type Data = [x: number, y: number, r: number][]
 

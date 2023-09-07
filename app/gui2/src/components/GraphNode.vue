@@ -263,17 +263,27 @@ const isVisualizationVisible = ref(false)
 // FIXME: statically resolved imports will not work for user-defined components
 const VISUALIZATION_GETTERS: Record<
   string,
-  () => Promise<typeof import('@viz/Visualization.vue').default>
+  () => Promise<
+    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/Visualization.vue').default
+  >
 > = {
-  Warnings: async () => (await import('@viz/Warnings.vue')).default,
-  Bubble: async () => (await import('@viz/Bubble.vue')).default,
-  'Image (Base64)': async () => (await import('@viz/ImageBase64.vue')).default,
-  GeoMap: async () => (await import('@viz/GeoMap.vue')).default,
-  Scatterplot: async () => (await import('@viz/Scatterplot.vue')).default,
+  Warnings: async () =>
+    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Warnings.vue')).default,
+  Bubble: async () =>
+    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Bubble.vue')).default,
+  'Image (Base64)': async () =>
+    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/ImageBase64.vue')).default,
+  GeoMap: async () =>
+    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/GeoMap.vue')).default,
+  Scatterplot: async () =>
+    (await import('lib/Standard/Visualization/0.0.0-dev/visualizations/Scatterplot.vue')).default,
 } as any
 
 const visualizationType = ref('Warnings')
-const visualization = shallowRef<typeof import('@viz/Visualization.vue').default>()
+const visualization =
+  shallowRef<
+    typeof import('lib/Standard/Visualization/0.0.0-dev/visualizations/Visualization.vue').default
+  >()
 const visualizationTypes = computed(() =>
   Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
 )
