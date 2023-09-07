@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import NodeSpan from '@/components/NodeSpan.vue'
+
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import NodeSpan from './NodeSpan.vue'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
@@ -298,7 +299,6 @@ function handleClick(e: PointerEvent) {
 }
 
 .binding {
-  color: #ccc;
   margin-right: 10px;
   position: absolute;
   right: 100%;

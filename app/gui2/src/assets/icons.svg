@@ -1,0 +1,44 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <g id="arrow_left" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M8 6.00001L8 4.1315L6.4453 5.16796L3.4453 7.16796L2.19722 8.00001L3.4453 8.83206L6.4453 10.8321L8 11.8685L8 10L8 9.00001L13 9.00001L14 9.00001L14 7.00001L13 7.00001L8 7.00001L8 6.00001Z"
+        fill="#666666" />
+    </svg>
+  </g>
+  <g id="arrow_right_head_only" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 4L12 8L6 12L6 4Z" fill="#666666" />
+    </svg>
+  </g>
+  <g id="arrow_right" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M8 9.99999V11.8685L9.5547 10.832L12.5547 8.83204L13.8028 7.99999L12.5547 7.16794L9.5547 5.16794L8 4.13147V5.99999V6.99999L3 6.99999L2 6.99999V8.99999L3 8.99999L8 8.99999V9.99999Z"
+        fill="#666666" />
+    </svg>
+  </g>
+  <g id="graph_editor" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M2 4.5C2 3.11929 3.11929 2 4.5 2C5.88071 2 7 3.11929 7 4.5C7 5.88071 5.88071 7 4.5 7C3.11929 7 2 5.88071 2 4.5Z"
+        fill="#767676" />
+      <path
+        d="M9 4.5C9 3.11929 10.1193 2 11.5 2C12.8807 2 14 3.11929 14 4.5C14 5.88071 12.8807 7 11.5 7C10.1193 7 9 5.88071 9 4.5Z"
+        fill="#767676" />
+      <path
+        d="M2 11.5C2 10.1193 3.11929 9 4.5 9C5.88071 9 7 10.1193 7 11.5C7 12.8807 5.88071 14 4.5 14C3.11929 14 2 12.8807 2 11.5Z"
+        fill="#767676" />
+      <path
+        d="M9 11.5C9 10.1193 10.1193 9 11.5 9C12.8807 9 14 10.1193 14 11.5C14 12.8807 12.8807 14 11.5 14C10.1193 14 9 12.8807 9 11.5Z"
+        fill="#767676" />
+    </svg>
+  </g>
+  <g id="workflow_play" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M4.48489 3.22329L11.5226 7.12542C12.2094 7.50621 12.2094 8.49376 11.5226 8.87455L4.48488 12.7767C3.81837 13.1462 2.99998 12.6642 2.99998 11.9021L2.99998 4.09786C2.99998 3.33575 3.81837 2.85374 4.48489 3.22329Z"
+        fill="white" fill-opacity="0.75" />
+    </svg>
+  </g>
+</svg>

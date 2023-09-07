@@ -2,6 +2,7 @@
 import { useWindowEvent } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
+
 import { computed, ref } from 'vue'
 
 const props = defineProps<{

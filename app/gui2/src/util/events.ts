@@ -13,6 +13,26 @@ import {
 import { Vec2 } from './vec2'
 
 /**
+ * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * @param target element on which to register the event
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useElementEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (e: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    target.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    target.removeEventListener(event, handler, options)
+  })
+}
+
+/**
  * Add an event listener on window for the duration of component lifetime.
  * @param event name of event to register
  * @param handler event handler
@@ -27,6 +47,24 @@ export function useWindowEvent<K extends keyof WindowEventMap>(
   })
   onUnmounted(() => {
     window.removeEventListener(event, handler, options)
+  })
+}
+
+/**
+ * Add an event listener on document for the duration of component lifetime.
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useDocumentEvent<K extends keyof DocumentEventMap>(
+  event: K,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    document.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    document.removeEventListener(event, handler, options)
   })
 }
 
