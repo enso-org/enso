@@ -348,16 +348,13 @@ type HTTP
     request self req =
         case req of
             Request.Value method uri headers body ->
-                check_method ~action =
-                    if method == HTTP_Method.Post || method == HTTP_Method.Put || method == HTTP_Method.Patch then action else
-                        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text + ", only POST/PUT/PATCH are currently supported"))
                 check_output_context ~action =
                     if Context.Output.is_enabled then action else
                         Error.throw (Forbidden_Operation.Error "HTTP POST/PUT/PATCH are forbidden as the Output context is disabled.")
                 handle_request_error =
                     Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
-                check_method <| check_output_context <| # Panic.recover Any <| handle_request_error <|
+                check_output_context <| # Panic.recover Any <| handle_request_error <|
                     body_publishers = HttpRequest.BodyPublishers
                     builder = HttpRequest.newBuilder
 
@@ -384,6 +381,8 @@ type HTTP
                             Pair.new (body_publishers.ofFile path) []
                         Request_Body.Form_Data form_data url_encoded ->
                             build_form_body_publisher form_data url_encoded
+                        Request_Body.Empty ->
+                            Pair.new (body_publishers.noBody) []
                         _ ->
                             Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
 

@@ -131,6 +131,9 @@ type JS_Object
     ## PRIVATE
     Value js_object
 
+    ## PRIVATE
+    empty_map : JS_Object
+    empty_map = JS_Object.Value Map.empty
     ## Get a value for a key of the object, or a default value if that key is not present.
 
        Arguments:

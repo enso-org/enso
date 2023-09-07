@@ -42,33 +42,12 @@ spec =
             HTTP.new.get "not a uri" . should_fail_with Syntax_Error
 
         Test.specify "should send Get request using fetch" <|
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.7"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "args": {}
-                }
             res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.decode_as_json.should_equal expected_response
-        Test.specify "should send Get request using module method" <|
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Content-Length": "0",
-                    "User-Agent": "Java-http-client/17.0.7"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "args": {}
-                }
-            res = HTTP.new.get url_get
-            res.code.should_equal HTTP_Status_Code.ok
-            res.body.decode_as_json.should_equal expected_response
+            body = res.body.decode_as_json
+            body.at "headers" . at "Content-Length" . should_equal "0"
+            body.at "headers" . at "User-Agent" . should_equal "Java-http-client/17.0.7"
+            body.at "args" . should_equal JS_Object.empty_map # (JS_Object.Value Map.empty)
 
         Test.specify "should fetch the body of a Get request" <|
             expected_response = Json.parse <| '''
