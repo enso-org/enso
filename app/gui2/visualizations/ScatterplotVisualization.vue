@@ -1,3 +1,48 @@
+<script lang="ts">
+export const name = 'Scatterplot'
+export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+
+interface Data {
+  axis: AxesConfiguration
+  focus: Focus | undefined
+  data: Point[]
+  points: { labels: string }
+}
+
+interface Focus {
+  x: number
+  y: number
+  zoom: number
+}
+
+interface Point {
+  x: number
+  y: number
+  color?: string
+  label?: string
+}
+
+interface AxisConfiguration {
+  scale: Scale
+}
+
+enum Scale {
+  linear = 'linear',
+  logarithmic = 'logarithmic',
+}
+
+interface AxesConfiguration {
+  x: AxisConfiguration
+  y: AxisConfiguration
+}
+
+interface Color {
+  red: number
+  green: number
+  blue: number
+}
+</script>
+
 <script setup lang="ts">
 /** ScatterPlot Visualization. */
 import { useDocumentEvent, useDocumentEventConditional } from './events'
@@ -50,21 +95,10 @@ const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
-interface Color {
-  red: number
-  green: number
-  blue: number
-}
-
 // TODO[sb]: Consider switching to a global keyboard shortcut handler.
 let shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
   showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
-}
-
-enum Scale {
-  linear = 'linear',
-  logarithmic = 'logarithmic',
 }
 
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
@@ -87,35 +121,6 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const SCALE_TO_D3_SCALE: Record<Scale, d3.AxisScale<number>> = {
   [Scale.linear]: d3.scaleLinear(),
   [Scale.logarithmic]: d3.scaleLog(),
-}
-
-interface Focus {
-  x: number
-  y: number
-  zoom: number
-}
-
-interface Point {
-  x: number
-  y: number
-  color?: string
-  label?: string
-}
-
-interface AxisConfiguration {
-  scale: Scale
-}
-
-interface AxesConfiguration {
-  x: AxisConfiguration
-  y: AxisConfiguration
-}
-
-interface Data {
-  axis: AxesConfiguration
-  focus: Focus | undefined
-  data: Point[]
-  points: { labels: string }
 }
 
 interface D3Event {

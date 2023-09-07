@@ -1,3 +1,8 @@
+<script lang="ts">
+export const name = 'Geo Map'
+export const inputType = 'Standard.Table.Data.Table.Table'
+</script>
+
 <script setup lang="ts">
 import FindIcon from './GeoMap/find.svg'
 import Path2Icon from './GeoMap/path2.svg'

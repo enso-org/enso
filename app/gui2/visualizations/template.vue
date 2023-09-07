@@ -1,21 +1,26 @@
+<script lang="ts">
+export const name = '<name here>'
+export const inputType = '<allowed input type(s) here>'
+
+// Optional: Move the type `Data` here if it errors when placed in the `script setup` block.
+</script>
+
 <script setup lang="ts">
-import { computed } from 'vue'
-import Visualization from './Visualization.vue'
+import { computed, onMounted } from 'vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 const props = defineProps<{
-  isCircularMenuVisible: boolean
-  width: number
-  height: number
-  fullscreen: boolean
   data: Data | string
 }>()
 const emit = defineEmits<{
-  hide: []
-  'update:width': [width: number]
-  'update:height': [height: number]
-  'update:fullscreen': [fullscreen: boolean]
+  // Optional:
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+
+// Optional:
+onMounted(() => {
+  emit('update:preprocessor', '<module path here>', '<method name here>', '<optional args here>')
+})
 
 type Data = { dataType: 'here' }
 
@@ -25,9 +30,9 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization :="<any>$attrs">
-    <!-- <visualization content here> -->
-  </Visualization>
+  <VisualizationContainer :="<any>$attrs">
+    <!-- <content here> -->
+  </VisualizationContainer>
 </template>
 
 <style scoped></style>

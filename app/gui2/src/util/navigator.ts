@@ -1,6 +1,6 @@
 import { computed, proxyRefs, ref, type Ref } from 'vue'
-import { PointerButtonMask, usePointer, useResizeObserver, useWindowEvent } from './events'
-import { Vec2 } from './vec2'
+import { PointerButtonMask, usePointer, useResizeObserver, useWindowEvent } from '@/util/events'
+import { Vec2 } from '@/util/vec2'
 import { Rect } from '@/stores/rect'
 
 function elemRect(target: Element | undefined): Rect {

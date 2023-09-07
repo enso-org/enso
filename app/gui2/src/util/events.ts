@@ -10,7 +10,7 @@ import {
   watchEffect,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from './vec2'
+import { Vec2 } from '@/util/vec2'
 
 /**
  * Add an event listener on window for the duration of component lifetime.
