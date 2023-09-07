@@ -278,15 +278,29 @@ const queuedVisualizationData = computed<{}>(() => {
     }
     case 'Bubble': {
       return [
-        [1, 1, 1],
-        [2, 2, 2],
-        [3, 3, 3],
-        [5, 5, 5],
         [10, 10, 10],
         [10, 100, 10],
         [100, 10, 10],
         [100, 100, 10],
+        [25, 25, 5],
+        [25, 85, 5],
+        [85, 25, 5],
+        [85, 85, 5],
+        [55, 55, 20],
       ]
+    }
+    case 'Image': {
+      return {
+        mediaType: 'image/svg+xml',
+        base64: `PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MC\
+I+PGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj48cGF0aCBkPSJNMjAuMDUgMEEyMCAyMCAwIDAgMCAwIDIwLjA1IDIwLjA2IDIwLjA2I\
+DAgMSAwIDIwLjA1IDBabTAgMzYuMDVjLTguOTMgMC0xNi4xLTcuMTctMTYuMS0xNi4xIDAtOC45NCA3LjE3LTE2LjEgMTYuMS0x\
+Ni4xIDguOTQgMCAxNi4xIDcuMTYgMTYuMSAxNi4xYTE2LjE4IDE2LjE4IDAgMCAxLTE2LjEgMTYuMVoiLz48cGF0aCBkPSJNMjc\
+uMTIgMTcuNzdhNC42OCA0LjY4IDAgMCAxIDIuMzkgNS45MiAxMC4yMiAxMC4yMiAwIDAgMS05LjU2IDYuODZBMTAuMiAxMC4yID\
+AgMCAxIDkuNzcgMjAuMzZzMS41NSAyLjA4IDQuNTcgMi4wOGMzLjAxIDAgNC4zNi0xLjE0IDUuNi0yLjA4IDEuMjUtLjkzIDIuM\
+DktMyA1LjItMyAuNzMgMCAxLjQ2LjIgMS45OC40WiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNm\
+ZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
+      }
     }
     default: {
       return {}
@@ -303,6 +317,7 @@ watchEffect(async (onCleanup) => {
   const component = await visualizationStore.get(visualizationType.value)
   if (shouldSwitchVisualization) {
     visualization.value = component
+    console.log('wot', queuedVisualizationData.value)
     visualizationData.value = queuedVisualizationData.value
   }
 })
@@ -339,7 +354,7 @@ const isVisualizationFullscreen = ref(false)
       @update:preprocessor="
         (module, method, ...args) =>
           console.log(
-            `preprocessor changed. what: ${
+            `preprocessor changed. node id: ${
               node.rootSpan.id
             } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
           )

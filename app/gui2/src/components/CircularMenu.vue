@@ -41,6 +41,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .CircularMenu {
+  user-select: none;
   position: absolute;
   top: 0px;
   left: -40px;

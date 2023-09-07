@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** ScatterPlot Visualization. */
-import { useDocumentEvent, useDocumentEventConditional } from '@/util/events'
-import { getTextWidth } from '@/util/measurement'
+import { useDocumentEvent, useDocumentEventConditional } from './events'
+import { getTextWidth } from './measurement'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 

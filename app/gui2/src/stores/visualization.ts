@@ -12,7 +12,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const getters: Record<string, () => Promise<VisualizationModule>> = {
     Warnings: () => import('visualizations/WarningsVisualization.vue'),
     Bubble: () => import('visualizations/BubbleVisualization.vue'),
-    'Image (Base64)': () => import('visualizations/ImageBase64Visualization.vue'),
+    Image: () => import('visualizations/ImageBase64Visualization.vue'),
     GeoMap: () => import('visualizations/GeoMapVisualization.vue'),
     Scatterplot: () => import('visualizations/ScatterplotVisualization.vue'),
   } as any

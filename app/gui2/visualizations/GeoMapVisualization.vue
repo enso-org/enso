@@ -4,7 +4,7 @@ import Path2Icon from './GeoMap/path2.svg'
 import GeoMapDistanceIcon from './GeoMap/geo_map_distance.svg'
 import GeoMapPinIcon from './GeoMap/geo_map_pin.svg'
 
-import Visualization from './Visualization.vue'
+import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed } from 'vue'
 
@@ -20,14 +20,14 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <Visualization :="<any>$attrs">
+  <VisualizationContainer :="<any>$attrs">
     <template #toolbar>
       <button class="button"><img :src="FindIcon" /></button>
       <button class="button"><img :src="Path2Icon" /></button>
       <button class="button"><img :src="GeoMapDistanceIcon" /></button>
       <button class="button"><img :src="GeoMapPinIcon" /></button>
     </template>
-  </Visualization>
+  </VisualizationContainer>
 </template>
 
 <style scoped></style>

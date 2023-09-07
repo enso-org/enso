@@ -93,7 +93,7 @@ const isSelectorVisible = ref(false)
   }
 
   &.below-toolbar {
-    padding-top: 52px;
+    padding-top: 56px;
   }
 
   &.fullscreen {
@@ -113,6 +113,7 @@ const isSelectorVisible = ref(false)
 }
 
 .toolbars {
+  user-select: none;
   position: absolute;
   display: flex;
   gap: 4px;
