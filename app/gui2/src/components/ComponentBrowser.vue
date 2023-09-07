@@ -225,7 +225,7 @@ useWindowEvent('keydown', (e) => {
               :style="componentStyle(item.index)"
             >
               <SvgIcon
-                :variant="item.component.icon"
+                :name="item.component.icon"
                 :style="{ color: componentColor(item.component) }"
               />
               {{ item.component.label }}
@@ -241,7 +241,7 @@ useWindowEvent('keydown', (e) => {
                 ...componentStyle(item.index),
               }"
             >
-              <SvgIcon :variant="item.component.icon" />
+              <SvgIcon :name="item.component.icon" />
               {{ item.component.label }}
             </div>
           </div>

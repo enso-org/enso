@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A toggable `SvgIcon`.
+ * A toggleable `SvgIcon`.
  *
  * Clicking the icon will add `toggledOn` css class on its root `svg` element. The component
  * does not have any style by itself, so the `toggledOn` style should be specified in the usage
@@ -19,7 +19,7 @@ const emit = defineEmits<{
 
 <template>
   <SvgIcon
-    :variant="props.icon"
+    :name="props.icon"
     :class="{ toggledOn: modelValue }"
     @click="emit('update:modelValue', !modelValue)"
   />
