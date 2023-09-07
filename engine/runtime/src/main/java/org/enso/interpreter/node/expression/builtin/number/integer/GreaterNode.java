@@ -47,6 +47,7 @@ public abstract class GreaterNode extends Node {
   boolean doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     return BigIntegerOps.compare(self.getValue(), that.getValue()) > 0;
   }
+
   @Fallback
   Object doOther(Object self, Object that) {
     var builtins = EnsoContext.get(this).getBuiltins();

@@ -87,7 +87,9 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = "that >= 0", replaces = "doBigIntShiftLeft")
-  Object doBigIntShiftLeftExplicit(EnsoBigInteger self, long that,
+  Object doBigIntShiftLeftExplicit(
+      EnsoBigInteger self,
+      long that,
       @Exclusive @Cached CountingConditionProfile fitsInIntProfileLeftShift) {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(self, that);
@@ -103,7 +105,9 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = "that < 0", replaces = "doBigIntShiftRight")
-  Object doBigIntShiftRightExplicit(EnsoBigInteger self, long that,
+  Object doBigIntShiftRightExplicit(
+      EnsoBigInteger self,
+      long that,
       @Exclusive @Cached CountingConditionProfile fitsInIntProfileRightShift) {
     if (fitsInIntProfileRightShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftRight(self, -that);

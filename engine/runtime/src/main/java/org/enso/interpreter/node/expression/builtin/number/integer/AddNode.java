@@ -40,9 +40,7 @@ public abstract class AddNode extends Node {
   @TruffleBoundary
   @Specialization
   Object doBigIntegers(EnsoBigInteger self, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(
-        self.asBigInteger().add(that.asBigInteger())
-    );
+    return toEnsoNumberNode.execute(self.asBigInteger().add(that.asBigInteger()));
   }
 
   @Specialization
