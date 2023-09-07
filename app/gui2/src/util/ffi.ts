@@ -1,14 +1,15 @@
 import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
-import type { NonEmptyArray, Opt } from './opt'
+import type { NonEmptyArray } from './array'
+import type { Opt } from './opt'
 
 const _wasm = await init()
 
-export function parseEnso(code: string): ast.Tree {
+export function parseEnso(code: string): Ast.Tree {
   const json = parse_to_json(code)
   return JSON.parse(json)
 }
 
-export module ast {
+export namespace Ast {
   export interface Tree {
     span: Span
     variant: Variant
@@ -29,39 +30,47 @@ export module ast {
     | Token.TextStart
     | Token.Wildcard
 
-  module Token {
-    interface TokenBase<T> {
+  namespace Token {
+    declare const Brand: unique symbol
+
+    interface TokenBase<B, T = {}> {
       left_offset: Offset
       code: Code
-      variant: T
+      variant: T & { [Brand]: B }
     }
 
-    export type AutoScope = TokenBase<{}>
-    export type CloseSymbol = TokenBase<{}>
-    export type Digits = TokenBase<{
-      base: Opt<'Binary' | 'Octal' | 'Hexadecimal'>
-    }>
-    export type Ident = TokenBase<{
-      is_free: boolean
-      lift_level: number
-      is_type: boolean
-      is_operator_lexically: boolean
-    }>
-    export type Newline = TokenBase<{}>
-    export type NumberBase = TokenBase<{}>
-    export type OpenSymbol = TokenBase<{}>
-    export type Operator = TokenBase<{}>
-    export type TextEnd = TokenBase<{}>
-    export type TextEscape = TokenBase<{
-      /** Escaped character codepoint */
-      value: Opt<number>
-    }>
-    export type TextSection = TokenBase<{}>
-    export type TextStart = TokenBase<{}>
-    export type Wildcard = TokenBase<{
-      lift_level: number
-    }>
+    export type AutoScope = TokenBase<'AutoScope'>
+    export type CloseSymbol = TokenBase<'CloseSymbol'>
+    export type Digits = TokenBase<'Digits', { base: Opt<'Binary' | 'Octal' | 'Hexadecimal'> }>
+    export type Ident = TokenBase<
+      'Ident',
+      {
+        is_free: boolean
+        lift_level: number
+        is_type: boolean
+        is_operator_lexically: boolean
+      }
+    >
+    export type Newline = TokenBase<'Newline'>
+    export type NumberBase = TokenBase<'NumberBase'>
+    export type OpenSymbol = TokenBase<'OpenSymbol'>
+    export type Operator = TokenBase<'Operator'>
+    export type TextEnd = TokenBase<'TextEnd'>
+    export type TextEscape = TokenBase<
+      'TextEscape',
+      {
+        /**
+         * Escaped character Unicode scalar value, Serialized from Rust's `char`.
+         * https://doc.rust-lang.org/std/primitive.char.html
+         */
+        value: Opt<number>
+      }
+    >
+    export type TextSection = TokenBase<'TextSection'>
+    export type TextStart = TokenBase<'TextStart'>
+    export type Wildcard = TokenBase<'Wildcard', { lift_level: number }>
   }
+
   export interface Span {
     code_length: Length
     left_offset: Offset
@@ -127,7 +136,7 @@ export module ast {
     | { Documented: Variant.Documented }
     | { ConstructorDefinition: Variant.ConstructorDefinition }
 
-  module Variant {
+  export namespace Variant {
     export interface Invalid {
       error: Error
       ast: Tree
@@ -140,7 +149,6 @@ export module ast {
 
     export interface BlockOperatorLine {}
 
-    type OperatorOrError = { Ok: Token } | { Err: Error }
     export interface BodyBlock {
       statements: BlockLine[]
     }
@@ -149,6 +157,7 @@ export module ast {
       lhs: Opt<Tree>
       arguments: BlockLine[]
     }
+
     export interface OperatorBlockApplication {
       lhs: Opt<Tree>
       expressions: BlockOperatorLine[]
@@ -172,6 +181,7 @@ export module ast {
       token: Token.Wildcard
       de_bruijn_index: Opt<number>
     }
+
     export interface AutoScope {
       token: Token.AutoScope
     }
@@ -182,10 +192,12 @@ export module ast {
       elements: TextElement[]
       close: Opt<Token.TextEnd>
     }
+
     export interface App {
       func: Tree
       arg: Tree
     }
+
     export interface NamedApp {
       func: Tree
       open: Opt<Token.OpenSymbol>
@@ -194,23 +206,30 @@ export module ast {
       arg: Tree
       close: Opt<Token.CloseSymbol>
     }
+
     export interface DefaultApp {
       func: Tree
       default: Token.Ident
     }
+
+    type Result<T, E> = { Ok: T } | { Err: E }
+
     export interface OprApp {
       lhs: Opt<Tree>
-      opr: OperatorOrError
+      opr: Result<Token, Error>
       rhs: Opt<Tree>
     }
+
     export interface UnaryOprApp {
       opr: Token.Operator
       rhs: Opt<Tree>
     }
+
     export interface OprSectionBoundary {
       arguments: number
       ast: Tree
     }
+
     export interface TemplateFunction {
       arguments: number
       ast: Tree
@@ -235,14 +254,23 @@ export module ast {
       expression: Tree
     }
 
+    /** A function argument definition.  */
     export interface ArgumentDefinition {
+      /** Opening parenthesis (outer). */
       open: Opt<Token.OpenSymbol>
+      /** Opening parenthesis (inner). */
       open2: Opt<Token.OpenSymbol>
+      /** An optional execution-suspension unary operator (~). */
       suspension: Opt<Token.Operator>
+      /** The pattern being bound to an argument. */
       pattern: Tree
+      /** An optional type ascribed to an argument. */
       type: Opt<ArgumentType>
+      /** Closing parenthesis (inner). */
       close2: Opt<Token.CloseSymbol>
+      /** An optional default value for an argument. */
       default: Opt<ArgumentDefault>
+      /** Closing parenthesis (outer). */
       close: Opt<Token.CloseSymbol>
     }
 
@@ -257,17 +285,20 @@ export module ast {
       params: ArgumentDefinition[]
       body: BlockLine[]
     }
+
     export interface Assignment {
       pattern: Tree
       equals: Token.Operator
       expr: Tree
     }
+
     export interface Function {
       name: Tree
       args: ArgumentDefinition[]
       equals: Token.Operator
       body: Opt<Tree>
     }
+
     export interface ForeignFunction {
       foreign: Token.Ident
       language: Token.Ident
@@ -276,6 +307,7 @@ export module ast {
       equals: Token.Operator
       body: Tree
     }
+
     export interface Import {
       polyglot: Opt<MultiSegmentAppSegment>
       from: Opt<MultiSegmentAppSegment>
@@ -284,6 +316,7 @@ export module ast {
       as_: Opt<MultiSegmentAppSegment>
       hiding: Opt<MultiSegmentAppSegment>
     }
+
     export interface Export {
       from: Opt<MultiSegmentAppSegment>
       export: MultiSegmentAppSegment
@@ -291,16 +324,19 @@ export module ast {
       as_: Opt<MultiSegmentAppSegment>
       hiding: Opt<MultiSegmentAppSegment>
     }
+
     export interface Group {
       open: Opt<Token.OpenSymbol>
       body: Opt<Tree>
       close: Opt<Token.CloseSymbol>
     }
+
     export interface TypeSignature {
       variable: Tree
       operator: Token.Operator
       type_: Tree
     }
+
     export interface TypeAnnotated {
       expression: Tree
       operator: Token.Operator
@@ -325,6 +361,7 @@ export module ast {
       of: Token.Ident
       cases: CaseLine[]
     }
+
     export interface Lambda {
       operator: Token.Operator
       arrow: Opt<Tree>
@@ -341,12 +378,14 @@ export module ast {
       rest: OperatorDelimitedTree[]
       right: Token.CloseSymbol
     }
+
     export interface Tuple {
       left: Token.OpenSymbol
       first: Opt<Tree>
       rest: OperatorDelimitedTree[]
       right: Token.CloseSymbol
     }
+
     export interface Annotated {
       token: Token.Operator
       annotation: Token.Ident
@@ -354,16 +393,19 @@ export module ast {
       newlines: Token.Newline[]
       expression: Opt<Tree>
     }
+
     export interface AnnotatedBuiltin {
       token: Token.Operator
       annotation: Token.Ident
       newlines: Token.Newline[]
       expression: Opt<Tree>
     }
+
     export interface Documented {
       documentation: DocComment
       expression: Opt<Tree>
     }
+
     export interface ConstructorDefinition {
       constructor: Token.Ident
       arguments: ArgumentDefinition[]
@@ -383,16 +425,19 @@ export module ast {
     | { Newline: TextElement.Newline }
     | { Splice: TextElement.Splice }
 
-  export module TextElement {
+  export namespace TextElement {
     export interface Section {
       text: Token.TextSection
     }
+
     export interface Escape {
       token: Token.TextEscape
     }
+
     export interface Newline {
       newline: Token.Newline
     }
+
     export interface Splice {
       open: Token.OpenSymbol
       expression: Opt<Tree>

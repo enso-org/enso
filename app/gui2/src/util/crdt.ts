@@ -6,7 +6,7 @@ import type { Opt } from './opt'
 
 export function useObserveYjs<T>(
   typeRef: Ref<Opt<Y.AbstractType<T>>>,
-  observer: (_event: T, _transaction: Y.Transaction) => void,
+  observer: (event: T, transaction: Y.Transaction) => void,
 ) {
   watchEffect((onCleanup) => {
     const type = typeRef.value
@@ -21,7 +21,7 @@ export function useObserveYjs<T>(
 
 export function useObserveYjsDeep(
   typeRef: Ref<Opt<Y.AbstractType<any>>>,
-  observer: (_event: Y.YEvent<any>[], _transaction: Y.Transaction) => void,
+  observer: (event: Y.YEvent<any>[], transaction: Y.Transaction) => void,
 ) {
   watchEffect((onCleanup) => {
     const type = typeRef.value
