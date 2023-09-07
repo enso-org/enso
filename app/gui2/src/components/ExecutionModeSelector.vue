@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import WorkflowPlayIcon from '@/assets/icons/workflow_play.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 import { useDocumentEvent } from '@/util/events'
 
@@ -31,8 +31,8 @@ useDocumentEvent('click', onDocumentClick)
         <span v-text="modelValue"></span>
       </div>
       <div class="divider"></div>
-      <img
-        :src="WorkflowPlayIcon"
+      <SvgIcon
+        name="workflow_play"
         class="play button"
         draggable="false"
         @click="
@@ -71,23 +71,24 @@ span {
 
 .execution-mode-button {
   display: flex;
+  align-items: center;
   border-radius: var(--radius-full);
   background: #64b526;
-}
 
-.execution-mode-button > .execution-mode {
-  padding-left: 8px;
-  padding-right: 7.5px;
-}
+  > .execution-mode {
+    padding: 0 8px;
+  }
 
-.execution-mode-button > .divider {
-  width: 1px;
-  background-color: rgba(0, 0, 0, 0.12);
-}
+  > .divider {
+    align-self: stretch;
+    width: 1px;
+    background-color: rgba(0, 0, 0, 0.12);
+  }
 
-.execution-mode-button > .play {
-  padding-left: 7.5px;
-  padding-right: 8px;
+  > .play {
+    box-sizing: content-box;
+    padding: 0 8px;
+  }
 }
 
 .execution-mode-dropdown {
@@ -98,16 +99,16 @@ span {
   top: 100%;
   margin-top: 4px;
   padding: 4px;
-}
 
-.execution-mode-dropdown > span {
-  border-radius: 6px;
-  padding-left: 4px;
-  padding-right: 4px;
-  width: 100%;
-}
+  > span {
+    border-radius: 6px;
+    padding-left: 4px;
+    padding-right: 4px;
+    width: 100%;
+  }
 
-.execution-mode-dropdown > span:hover {
-  background: var(--color-dim);
+  *:hover {
+    background: var(--color-dim);
+  }
 }
 </style>

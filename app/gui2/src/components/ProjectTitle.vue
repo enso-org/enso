@@ -29,12 +29,12 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
   padding-right: 4px;
   padding-top: 4px;
   padding-bottom: 4px;
-}
 
-.ProjectTitle > .title {
-  display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  > .title {
+    display: inline-block;
+    height: 20px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
 }
 </style>

@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import ArrowLeftIcon from '@/assets/icons/arrow_left.svg'
-import ArrowRightIcon from '@/assets/icons/arrow_right.svg'
-import GraphEditorIcon from '@/assets/icons/graph_editor.svg'
-
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{ breadcrumbs: string[] }>()
 const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
@@ -11,10 +8,10 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 
 <template>
   <div class="NavBar">
-    <img :src="GraphEditorIcon" draggable="false" class="icon" />
+    <SvgIcon name="graph_editor" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
-      <img :src="ArrowLeftIcon" draggable="false" class="icon button" @click="emit('back')" />
-      <img :src="ArrowRightIcon" draggable="false" class="icon button" @click="emit('forward')" />
+      <SvgIcon name="arrow_left" draggable="false" class="icon button" @click="emit('back')" />
+      <SvgIcon name="arrow_right" draggable="false" class="icon button" @click="emit('forward')" />
     </div>
     <NavBreadcrumbs :breadcrumbs="breadcrumbs" @click="emit('breadcrumbClick', $event)" />
   </div>
@@ -32,9 +29,9 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   padding-right: 10px;
   padding-top: 4px;
   padding-bottom: 4px;
-}
 
-.NavBar > .breadcrumbs-controls {
-  display: flex;
+  > .breadcrumbs-controls {
+    display: flex;
+  }
 }
 </style>

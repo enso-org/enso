@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ArrowRightHeadOnly from '@/assets/icons/arrow_right_head_only.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
 
@@ -9,8 +9,8 @@ const emit = defineEmits<{ click: [index: number] }>()
 
 <template>
   <div class="NavBreadcrumbs">
-    <template v-for="(breadcrumb, index) in breadcrumbs">
-      <img v-if="index > 0" :src="ArrowRightHeadOnly" />
+    <template v-for="(breadcrumb, index) in breadcrumbs" :key="index">
+      <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
       <NavBreadcrumb :text="breadcrumb" @click="emit('click', index)" />
     </template>
   </div>
@@ -19,6 +19,7 @@ const emit = defineEmits<{ click: [index: number] }>()
 <style scoped>
 .NavBreadcrumbs {
   display: flex;
+  align-items: center;
   gap: 2px;
 }
 </style>
