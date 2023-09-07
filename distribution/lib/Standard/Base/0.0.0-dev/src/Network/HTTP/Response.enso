@@ -172,4 +172,4 @@ decode_format_selector =
     Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
 ## PRIVATE
-Response_Body.from that:Response = Response_Body.Value that.internal_http_response.body that.content_type that.uri
+Response_Body.from that:Response = Response_Body.new that.internal_http_response.body that.content_type that.uri

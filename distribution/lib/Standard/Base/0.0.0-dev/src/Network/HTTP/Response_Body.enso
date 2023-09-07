@@ -7,19 +7,26 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
+import project.System.File.Input_Stream
 import project.System.File.Write_Extensions
 from project.Data.Text.Extensions import all
 
 ## PRIVATE
 type Response_Body
-    ## PRIVATE
-       Response body
+    ## Create a Response_Body.
 
        Arguments:
-       - bytes: The body of the response as binary data.
+       - stream: The body of the response as an InputStream.
        - content_type: The content type of the response.
-    Value bytes (content_type:Text|Nothing) uri:URI
+       - uri: The URI of the response.
+       - bytes: The body as a Vector of bytes.
+    new : Input_Stream -> Text -> URI -> Response_Body
+    new stream content_type uri = Response_Body stream content_type uri (stream.readAllBytes)
+
+    ## PRIVATE
+    Value stream (content_type:Text|Nothing) uri:URI ~bytes:Vector
 
     ## ALIAS parse as text
        GROUP Conversions
@@ -47,13 +54,14 @@ type Response_Body
     ## PRIVATE
        Convert response body to Text.
     to_text : Text
-    to_text self = "Response_Body [" + self.bytes.length.to_text + " bytes]"
+    to_text self = "Response_Body"
 
     ## GROUP Output
        Write response body to a File.
 
        Arguments:
-       - file: The file to write the bytes to.
+       - file: The file to write the body to.
+       - on_existing_file: Specifies how to proceed if the file already exists.
 
        > Examples
          Write the contents of the request body to a scratch file on disk. The
@@ -63,8 +71,10 @@ type Response_Body
              import Standard.Examples
 
              example_to_file =
-                Examples.get_geo_data.body.to_file Examples.scratch_file
-    to_file : File -> File
-    to_file self file =
-        self.bytes.write_bytes file
-        file
+                Examples.get_geo_data.to_file Examples.scratch_file
+    to_file : File | Text -> File
+    to_file self file on_existing_file=Existing_File_Behavior.Backup =
+        f = File.new file
+        r = on_existing_file.write f stream->
+            stream.write_stream self.stream
+        r.if_not_error file

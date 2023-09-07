@@ -222,7 +222,7 @@ type HTTP
                 all_headers.map h-> builder.header h.name h.value
 
                 http_request = builder.build
-                body_handler = HttpResponse.BodyHandlers . ofByteArray
+                body_handler = HttpResponse.BodyHandlers . ofInputStream
 
                 response = Response.Value (self.internal_http_client.send http_request body_handler)
 

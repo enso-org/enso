@@ -17,7 +17,8 @@ polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## Gets the list of the S3 bucket names.
+## GROUP Standard.Base.Input
+   Gets the list of the S3 bucket names.
 
    Arguments:
    - credentials: AWS credentials. If not provided, the default credentials will

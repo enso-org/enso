@@ -797,10 +797,25 @@ type Output_Stream
                  file.with_output_stream [File_Access.Create, File_Access.Write] out_stream->
                     out_stream.write_bytes "hello".utf_8
                     out_stream.close
-    write_bytes : Vector File_Access -> Nothing ! File_Error
+    write_bytes : Vector Integer -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
         File_Error.handle_java_exceptions self.file <|
             java_stream.write contents
+            java_stream.flush
+            Nothing
+
+    ## PRIVATE
+       ADVANCED
+       Writes an InputStream into the file at the current stream position.
+       Closes the InputStream.
+
+       Arguments:
+       - contents: An Java_Input_Stream to write into the file.
+    write_stream : Java_Input_Stream -> Nothing ! File_Error
+    write_stream self contents = self.stream_resource . with java_stream->
+        File_Error.handle_java_exceptions self.file <|
+            contents.transferTo java_stream
+            contents.close
             java_stream.flush
             Nothing
 
