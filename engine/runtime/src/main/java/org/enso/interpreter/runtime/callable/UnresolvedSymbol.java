@@ -59,13 +59,11 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(Type type) {
-    Type current = type;
-    while (current != null) {
+    for (var current : type.allTypes(EnsoContext.get(null))) {
       Function candidate = scope.lookupMethodDefinition(current, name);
       if (candidate != null) {
         return candidate;
       }
-      current = current.getSupertype();
     }
     return null;
   }
@@ -77,13 +75,12 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Type resolveDeclaringType(Type type) {
-    Type current = type;
-    while (current != null) {
+    var ctx = EnsoContext.get(null);
+    for (var current : type.allTypes(ctx)) {
       Function candidate = scope.lookupMethodDefinition(current, name);
       if (candidate != null) {
         return current;
       }
-      current = current.getSupertype();
     }
     return null;
   }
