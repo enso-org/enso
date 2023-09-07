@@ -2,6 +2,7 @@
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 
+import { useVisualizationStore, type Visualization } from '@/stores/visualization'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
@@ -21,6 +22,8 @@ const emit = defineEmits<{
   movePosition: [delta: Vec2]
   delete: []
 }>()
+
+const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
@@ -262,25 +265,10 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
 
-type VisualizationModule = typeof import('visualizations/VisualizationContainer.vue') & {
-  name?: string
-  inputType?: string
-}
-
-// FIXME: statically resolved imports will not work for user-defined components
-const VISUALIZATION_GETTERS: Record<string, () => Promise<VisualizationModule>> = {
-  Warnings: () => import('visualizations/WarningsVisualization.vue'),
-  Bubble: () => import('visualizations/BubbleVisualization.vue'),
-  'Image (Base64)': () => import('visualizations/ImageBase64Visualization.vue'),
-  GeoMap: () => import('visualizations/GeoMapVisualization.vue'),
-  Scatterplot: () => import('visualizations/ScatterplotVisualization.vue'),
-} as any
-
 const visualizationType = ref('Warnings')
-const visualization =
-  shallowRef<typeof import('visualizations/VisualizationContainer.vue').default>()
+const visualization = shallowRef<Visualization>()
 const visualizationTypes = computed(() =>
-  Object.keys(VISUALIZATION_GETTERS).filter((type) => type !== visualizationType.value),
+  visualizationStore.types.filter((type) => type !== visualizationType.value),
 )
 
 const queuedVisualizationData = computed<{}>(() => {
@@ -307,26 +295,12 @@ const queuedVisualizationData = computed<{}>(() => {
 })
 const visualizationData = ref<{}>({})
 
-function registerVisualization(name: string, inputType: string) {
-  console.log(`registering visualization: name=${name}, inputType=${inputType}`)
-}
-
-// NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
-const VISUALIZATION_TYPES: Record<string, any> = {}
 watchEffect(async (onCleanup) => {
   let shouldSwitchVisualization = true
   onCleanup(() => {
     shouldSwitchVisualization = false
   })
-  const currentVisualizationType = visualizationType.value
-  let component: VisualizationModule['default'] = VISUALIZATION_TYPES[currentVisualizationType]
-  if (component == null) {
-    const module = await VISUALIZATION_GETTERS[currentVisualizationType]()
-    // TODO: fallback to name based on path to visualization.
-    registerVisualization(module.name ?? currentVisualizationType, module.inputType ?? 'Any')
-    component = module.default
-    VISUALIZATION_TYPES[currentVisualizationType] = component
-  }
+  const component = await visualizationStore.get(visualizationType.value)
   if (shouldSwitchVisualization) {
     visualization.value = component
     visualizationData.value = queuedVisualizationData.value
@@ -365,9 +339,9 @@ const isVisualizationFullscreen = ref(false)
       @update:preprocessor="
         (module, method, ...args) =>
           console.log(
-            `preprocessor changed. module: ${module}, method: ${method}, args: [${args.join(
-              ', ',
-            )}]`,
+            `preprocessor changed. what: ${
+              node.rootSpan.id
+            } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
           )
       "
       @update:type="visualizationType = $event"
