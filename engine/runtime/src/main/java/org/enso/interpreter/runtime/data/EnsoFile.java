@@ -242,10 +242,13 @@ public final class EnsoFile implements EnsoObject {
     return this.truffleFile.getName();
   }
 
-  @Builtin.Method(name = "size")
+  @Builtin.Method(name = "size_builtin")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public long getSize() throws IOException {
+    if ( this.truffleFile.isDirectory()) {
+      throw new IOException("size can only be called on files.");
+    }
     return this.truffleFile.size();
   }
 

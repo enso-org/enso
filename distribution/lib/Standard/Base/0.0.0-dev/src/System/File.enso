@@ -366,7 +366,7 @@ type File
     exists self = @Builtin_Method "File.exists"
 
     ## GROUP Metadata
-       Gets the size of a file or total size of a folder.
+       Gets the size of a file in bytes.
 
        > Example
          Gets the size of a file.
@@ -375,7 +375,8 @@ type File
 
              example_exists = Examples.csv.size
     size : Integer
-    size self = @Builtin_Method "File.size"
+    size self =
+        File_Error.handle_java_exceptions self <| self.size_builtin
 
     ## GROUP Text
        Checks whether the file is within another path.
