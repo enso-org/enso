@@ -567,6 +567,8 @@
 - [Added `take` and `drop` to database tables.][7615]
 - [Added ability to specify expected value type in `Column.from_vector`,
   `Column.map` and `Column.zip`.][7637]
+- [Added `delete_rows` method to Database Table, changed the
+  `update_database_table` API into `update_rows`.][7709]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -804,6 +806,7 @@
 [7704]: https://github.com/enso-org/enso/pull/7704
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
+[7709]: https://github.com/enso-org/enso/pull/7709
 
 #### Enso Compiler
 

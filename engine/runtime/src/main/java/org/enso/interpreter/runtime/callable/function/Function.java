@@ -429,7 +429,9 @@ public final class Function implements EnsoObject {
     if (includeArguments) {
       for (var i = 0; i < schema.getArgumentsCount(); i++) {
         ArgumentDefinition info = schema.getArgumentInfos()[i];
-        if (info.hasDefaultValue()) {
+        if (info.hasDefaultValue()
+            && preAppliedArguments != null
+            && preAppliedArguments[i] == null) {
           continue;
         }
         var name = info.getName();

@@ -110,6 +110,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                     type: assetEventModule.AssetEventType.openProject,
                                     id: asset.id,
                                     shouldAutomaticallySwitchPage: true,
+                                    runInBackground: false,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
+                    backend.type === backendModule.BackendType.remote && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.run}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.openProject,
+                                    id: asset.id,
+                                    shouldAutomaticallySwitchPage: false,
+                                    runInBackground: true,
                                 })
                             }}
                         />

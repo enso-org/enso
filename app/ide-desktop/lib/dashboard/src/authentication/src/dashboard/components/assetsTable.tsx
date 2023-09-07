@@ -297,6 +297,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
                         shouldAutomaticallySwitchPage: true,
+                        runInBackground: false,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
@@ -774,6 +775,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
                 shouldAutomaticallySwitchPage: true,
+                runInBackground: false,
             })
         },
         [/* should never change */ dispatchAssetEvent]

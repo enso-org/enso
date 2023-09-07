@@ -100,7 +100,10 @@ type SQLite_Dialect
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns]
+        table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used table.name
+        inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
+        setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
