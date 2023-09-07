@@ -43,6 +43,13 @@ spec =
             non_existent_file.exists.should_be_false
             sample_file.exists.should_be_true
 
+        Test.specify "should get file size" <|
+            sample_file.size.should_equal 403
+
+            result = non_existent_file.size
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.Not_Found
+
         Test.specify "should get file name" <|
             sample_file.name.should_equal "sample.txt"
 

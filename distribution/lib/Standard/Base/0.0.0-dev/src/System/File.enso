@@ -365,6 +365,18 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
+    ## GROUP Metadata
+       Gets the size of a file or total size of a folder.
+
+       > Example
+         Gets the size of a file.
+
+             import Standard.Examples
+
+             example_exists = Examples.csv.size
+    size : Integer
+    size self = @Builtin_Method "File.size"
+
     ## GROUP Text
        Checks whether the file is within another path.
 
