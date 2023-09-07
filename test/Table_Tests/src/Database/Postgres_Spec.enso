@@ -279,6 +279,26 @@ postgres_specific_spec connection db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
+        Test.specify "should be able to round-trip a BigInteger column" <|
+            x = 2^70
+            m1 = Table.new [["X", [10, x]]]
+            m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+            t1 = m1.select_into_database_table connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
+            t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+            t2 = t1.set "[X] + 10" "Y"
+            t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
+            t2.at "X" . to_vector . should_equal [10, x]
+            t2.at "Y" . to_vector . should_equal [20, x+10]
+
+            m2 = t2.read
+            m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            m2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
+            m2.at "X" . to_vector . should_equal [10, x]
+            m2.at "Y" . to_vector . should_equal [20, x+10]
+
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
