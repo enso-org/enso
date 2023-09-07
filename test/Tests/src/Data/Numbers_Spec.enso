@@ -304,6 +304,10 @@ spec =
             1/0 . is_infinite . should_be_true
             -1/0 . is_infinite . should_be_true
 
+            hundred_factorial%0 . should_fail_with Arithmetic_Error
+            hundred_factorial%hundred_factorial . should_equal 0
+            10%hundred_factorial . should_equal 10
+
         Test.specify "should support less than operator" <|
             (1 < 2).should_be_true
             (1 < 1).should_be_false
