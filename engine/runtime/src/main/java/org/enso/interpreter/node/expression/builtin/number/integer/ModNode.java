@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -38,6 +39,7 @@ public abstract class ModNode extends Node {
     return self % that;
   }
 
+  @TruffleBoundary
   @Specialization
   Object doBigInteger(long self, EnsoBigInteger that) {
     var selfBigInt = BigInteger.valueOf(self);
