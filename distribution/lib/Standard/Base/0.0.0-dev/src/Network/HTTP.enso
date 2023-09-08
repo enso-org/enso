@@ -167,7 +167,9 @@ type HTTP
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             response = HTTP.new.request request try_auto_parse_response
             response.if_not_error <|
-                response.body
+                case response of
+                    _ : Response -> response.body
+                    _ -> response
 
     ## PRIVATE
 

@@ -53,6 +53,23 @@ spec =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
 
+    Test.group "fetchasdfasdf" pending=pending_has_url <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
+
+        Test.specify "Can perform a Get with a JSON response" <|
+            response = HTTP.fetch url_get
+            response.at "headers" . at "Content-Length" . should_equal "0"
+
+        Test.specify "Can perform a Get with a file response" <|
+            f = enso_project.data / "spreadsheet.xls"
+            f.delete_if_exists
+            url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
+            HTTP.fetch url . to_file f
+            f.size . should_equal 7168
+            f.delete
+            f.exists.should_be_false
+
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
