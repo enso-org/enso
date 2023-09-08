@@ -29,7 +29,7 @@ type Request
 
              example_new = Request.new Method.Post (URI.parse "http://example.com")
     new : HTTP_Method -> (Text | URI) -> Vector -> Request_Body -> Request
-    new method addr (headers = []) (body = Request_Body.Empty) =
+    new (method:HTTP_Method) (addr:(Text | URI)) (headers:(Vector Header)=[]) (body:Request_Body=Request_Body.Empty) =
         Panic.recover Any (Request.Value method (Panic.rethrow (addr.to_uri)) headers body)
 
     ## Create an Options request.
