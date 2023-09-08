@@ -60,8 +60,14 @@ export interface SuggestionEntry {
   definedIn: QualifiedName
   /// A type or module this method or constructor belongs to.
   memberOf?: QualifiedName
+  isPublic: boolean
+  isStable: boolean
   /// A name of suggested object.
   name: string
+  /// A list of aliases.
+  aliases: string[]
+  /// A type of the "self" argument. This field is present only for instance methods.
+  selfType?: QualifiedName
   /// Argument lists of suggested object (atom or function). If the object does not take any
   /// arguments, the list is empty.
   arguments: SuggestionEntryArgument[]
@@ -71,8 +77,6 @@ export interface SuggestionEntry {
   reexportedIn: QualifiedName
   /// A list of documentation sections associated with object.
   documentation: string
-  /// A type of the "self" argument. This field is present only for instance methods.
-  selfType?: QualifiedName
   /// A scope where this suggestion is visible.
   scope: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.

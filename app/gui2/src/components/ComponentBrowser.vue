@@ -8,6 +8,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 
 const ITEM_SIZE = 32
 
@@ -39,6 +40,7 @@ function positionAtMouse(): boolean {
 // === Components List and Positions ===
 
 const componentStore = useComponentsStore()
+const suggestionDbStore = useSuggestionDbStore()
 
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
@@ -63,7 +65,7 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
-  return componentStore.groups[component.group].color
+  return suggestionDbStore.groups[component.group].color
 }
 
 // === Highlight ===
@@ -226,7 +228,7 @@ useWindowEvent('keydown', (e) => {
                 v-for="item in visibleComponents"
                 class="component"
                 @mousemove="selected = item.index"
-                :key="item.component.id"
+                :key="item.component.suggestion_id"
                 :style="componentStyle(item.index)"
               >
                 <SvgIcon
@@ -240,7 +242,7 @@ useWindowEvent('keydown', (e) => {
               <div
                 v-for="item in visibleComponents"
                 class="component"
-                :key="item.component.id"
+                :key="item.component.suggestion_id"
                 :style="{
                   backgroundColor: componentColor(item.component),
                   ...componentStyle(item.index),
@@ -255,7 +257,7 @@ useWindowEvent('keydown', (e) => {
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="CBInput" contenteditable="plaintext-only"></div>
+    <div class="CBInput"><input v-model="input" /></div>
   </div>
 </template>
 
