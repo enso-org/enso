@@ -5,6 +5,7 @@
  * It displays one group defined in `@/assets/icons.svg` file, specified by `variant` property.
  */
 import icons from '@/assets/icons.svg'
+
 const props = defineProps<{ name: string }>()
 </script>
 

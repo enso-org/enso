@@ -88,7 +88,7 @@ const defaultDiffFn = (a: number, b: number): number => b - a
  */
 export function useApproach(
   to: WatchSource<number>,
-  timeHorizon: number,
+  timeHorizon: number = 100,
   epsilon = 0.005,
   diffFn = defaultDiffFn,
 ) {
