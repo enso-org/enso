@@ -25,7 +25,7 @@
 
          example_get =
             headers = [Header.authorization_basic "user" "pass"]
-            HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers
+            HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers=headers
 
    > Example
      Send a Post request with binary data.
