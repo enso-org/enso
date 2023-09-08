@@ -32,7 +32,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .TopBar {
-  position: relative;
+  position: absolute;
   display: flex;
   gap: 8px;
   top: 9px;

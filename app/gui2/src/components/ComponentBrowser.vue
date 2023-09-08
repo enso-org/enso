@@ -255,6 +255,7 @@ useWindowEvent('keydown', (e) => {
 <style scoped>
 .ComponentBrowser {
   --list-height: 0px;
+  width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: row;
