@@ -223,7 +223,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {managesThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
-                        action={shortcuts.KeyboardAction.moveToTrash}
+                        action={
+                            backend.type === backendModule.BackendType.local
+                                ? shortcuts.KeyboardAction.delete
+                                : shortcuts.KeyboardAction.moveToTrash
+                        }
                         doAction={() => {
                             setModal(
                                 <ConfirmDeleteModal

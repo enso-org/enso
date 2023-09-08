@@ -1,0 +1,22 @@
+{
+  "Vue single-file component": {
+    "scope": "vue",
+    "prefix": "vue sfc",
+    "isFileTemplate": true,
+    "body": [
+      "<script setup lang=\"ts\">",
+      "const props = defineProps<{$0}>()",
+      "const emit = defineEmits<{}>()",
+      "</script>",
+      "",
+      "<template>",
+      "<div class=\"${TM_FILENAME_BASE}\"></div>",
+      "</template>",
+      "",
+      "<style scoped>",
+      ".${TM_FILENAME_BASE} {",
+      "}",
+      "</style>"
+    ]
+  }
+}

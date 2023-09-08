@@ -1,4 +1,4 @@
-import { fileURLToPath, parse } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 import { defineConfig, Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [vue(), yWebsocketServer()],
   resolve: {
     alias: {
+      shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },

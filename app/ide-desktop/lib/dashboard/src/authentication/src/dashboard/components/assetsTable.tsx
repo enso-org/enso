@@ -901,7 +901,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 {innerSelectedKeys.size !== 0 && (
                                     <ContextMenu>
                                         <MenuEntry
-                                            action={shortcuts.KeyboardAction.moveAllToTrash}
+                                            action={
+                                                backend.type === backendModule.BackendType.local
+                                                    ? shortcuts.KeyboardAction.deleteAll
+                                                    : shortcuts.KeyboardAction.moveAllToTrash
+                                            }
                                             doAction={doDeleteAll}
                                         />
                                     </ContextMenu>

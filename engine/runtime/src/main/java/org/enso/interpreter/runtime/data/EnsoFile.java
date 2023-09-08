@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -241,6 +240,16 @@ public final class EnsoFile implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   public String getName() {
     return this.truffleFile.getName();
+  }
+
+  @Builtin.Method(name = "size_builtin")
+  @Builtin.WrapException(from = IOException.class)
+  @CompilerDirectives.TruffleBoundary
+  public long getSize() throws IOException {
+    if ( this.truffleFile.isDirectory()) {
+      throw new IOException("size can only be called on files.");
+    }
+    return this.truffleFile.size();
   }
 
   @TruffleBoundary

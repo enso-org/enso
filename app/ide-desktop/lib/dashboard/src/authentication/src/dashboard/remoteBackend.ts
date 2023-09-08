@@ -20,6 +20,9 @@ const STATUS_SUCCESS_LAST = 299
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
 
+/** The number of milliseconds in one day. */
+const ONE_DAY_MS = 86_400_000
+
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = {
     forceCreate: false,
@@ -194,9 +197,16 @@ interface ListVersionsResponseBody {
 // === RemoteBackend ===
 // =====================
 
+/** Information for a cached default version. */
+interface DefaultVersionInfo {
+    version: backendModule.VersionNumber
+    lastUpdatedEpochMs: number
+}
+
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backendModule.Backend {
     readonly type = backendModule.BackendType.remote
+    protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 
     /** Create a new instance of the {@link RemoteBackend} API client.
      *
@@ -471,29 +481,19 @@ export class RemoteBackend extends backendModule.Backend {
         } else {
             const project = await response.json()
             const ideVersion =
-                project.ide_version ??
-                (
-                    await this.listVersions({
-                        versionType: backendModule.VersionType.ide,
-                        default: true,
-                    })
-                )[0]?.number
-            if (ideVersion == null) {
-                return this.throw('No IDE version found')
-            } else {
-                return {
-                    ...project,
-                    ideVersion,
-                    engineVersion: project.engine_version,
-                    jsonAddress:
-                        project.address != null
-                            ? backendModule.Address(`${project.address}json`)
-                            : null,
-                    binaryAddress:
-                        project.address != null
-                            ? backendModule.Address(`${project.address}binary`)
-                            : null,
-                }
+                project.ide_version ?? (await this.getDefaultVersion(backendModule.VersionType.ide))
+            return {
+                ...project,
+                ideVersion,
+                engineVersion: project.engine_version,
+                jsonAddress:
+                    project.address != null
+                        ? backendModule.Address(`${project.address}json`)
+                        : null,
+                binaryAddress:
+                    project.address != null
+                        ? backendModule.Address(`${project.address}binary`)
+                        : null,
             }
         }
     }
@@ -772,6 +772,32 @@ export class RemoteBackend extends backendModule.Backend {
             return this.throw(`Could not list versions of type '${params.versionType}'.`)
         } else {
             return (await response.json()).versions
+        }
+    }
+
+    /** Get the default version given the type of version (IDE or backend). */
+    protected async getDefaultVersion(versionType: backendModule.VersionType) {
+        const cached = this.defaultVersions[versionType]
+        const nowEpochMs = Number(new Date())
+        if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
+            return cached.version
+        } else {
+            const version = (
+                await this.listVersions({
+                    versionType,
+                    default: true,
+                })
+            )[0]?.number
+            if (version == null) {
+                throw new Error(`No default ${versionType} version found.`)
+            } else {
+                const info: DefaultVersionInfo = {
+                    version,
+                    lastUpdatedEpochMs: nowEpochMs,
+                }
+                this.defaultVersions[versionType] = info
+                return info.version
+            }
         }
     }
 
