@@ -365,6 +365,19 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
+    ## GROUP Metadata
+       Gets the size of a file in bytes.
+
+       > Example
+         Gets the size of a file.
+
+             import Standard.Examples
+
+             example_exists = Examples.csv.size
+    size : Integer
+    size self =
+        File_Error.handle_java_exceptions self <| self.size_builtin
+
     ## GROUP Text
        Checks whether the file is within another path.
 
