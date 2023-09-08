@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
@@ -5,14 +6,27 @@ import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
+import project.System.File_Format.Auto_Detect
+import project.System.File_Format.Bytes
+import project.System.File_Format.File_Format
+import project.System.File_Format.Plain_Text_Format
 import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
+from project.System.File_Format import format_types
 
 polyglot java import java.io.InputStream
 
@@ -24,22 +38,55 @@ type Response_Body
        - stream: The body of the response as an InputStream.
        - content_type: The content type of the response.
        - uri: The URI of the response.
-       - bytes: The body as a Vector of bytes.
     new : InputStream -> Text -> URI -> Response_Body
     new stream content_type uri =
         input_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions uri)
-        Response_Body.Value input_stream content_type uri (stream.read_all_bytes)
+        Response_Body.Value input_stream content_type uri
 
     ## PRIVATE
-    Value (stream:Input_Stream) (content_type:Text|Nothing) uri:URI ~bytes:Vector
+    Value (stream:Input_Stream) (content_type:Text|Nothing) uri:URI
+
+    ## PRIVATE
+    with_stream : (Input_Stream -> Any ! HTTP_Error) -> Any ! HTTP_Error
+    with_stream self action =
+        Managed_Resource.bracket (self.stream) (_.close) action
+
+    ## ALIAS parse
+       GROUP Conversions
+       Uses the format to decode the body.
+       If using `Auto_Detect`, the content-type will be used to determine the
+       format.
+
+       Arguments:
+       - format: The format to use to decode the body.
+       - if_unsupported: Specifies how to proceed if the format is not supported.
+    @format decode_format_selector
+    decode : File_Format -> Any -> Any
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+        case format of
+            Auto_Detect ->
+                content_type = self.content_type
+                content_type_format = if content_type.is_nothing then Nothing else
+                    Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
+                if content_type_format.is_nothing then if_unsupported else self.decode content_type_format
+            _ ->
+                type_obj = Meta.type_of format
+                if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from the web.") else
+                    Managed_Resource.bracket (self.stream) (_.close) stream->
+                        format.read_stream stream
+
+    ## ALIAS bytes
+       GROUP Input
+       Read the body as a byte array.
+    decode_as_bytes : Vector
+    decode_as_bytes self = self.decode Bytes
 
     ## ALIAS parse as text
        GROUP Conversions
        Decodes the body to a Text value.
     @encoding Encoding.default_widget
     decode_as_text : Encoding -> Text
-    decode_as_text self encoding=Encoding.utf_8 =
-        Text.from_bytes self.bytes encoding
+    decode_as_text self encoding=Encoding.utf_8 = self.decode (Plain_Text_Format.Plain_Text encoding)
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
@@ -83,3 +130,31 @@ type Response_Body
         r = on_existing_file.write f stream->
             stream.write_stream self.stream
         r.if_not_error file
+
+## PRIVATE
+type Unsupported_Content_Type
+    ## PRIVATE
+       A type representing an unsupported content type.
+
+       Arguments:
+       - content_type: The content type that is unsupported.
+    Error (content_type : Text | Nothing)
+
+    ## PRIVATE
+       Convert the error to a human readable string.
+    to_display_text : Text
+    to_display_text self = case self.content_type of
+        Nothing -> "The response did not contain a content type."
+        _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."
+
+## PRIVATE
+can_decode : File_Format -> Boolean
+can_decode type = Meta.meta type . methods . contains "read_stream"
+
+## PRIVATE
+   Selector for decoding from the web.
+decode_format_selector : Widget
+decode_format_selector =
+    all_types = [Auto_Detect] + (format_types.filter can_decode)
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))

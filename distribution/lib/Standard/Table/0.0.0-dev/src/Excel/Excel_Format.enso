@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -64,9 +65,13 @@ type Excel_Format
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Excel_Format | Nothing
     for_web content_type uri =
-        _ = [content_type, uri]
+        _ = [uri]
         ## Currently not loading Excel files automatically as these need to be loaded as a connection.
-        Nothing
+        parts = content_type.split ";" . map .trim
+        case parts.first of
+            "application/vnd.ms-excel" -> Excel_Format.Excel xls_format=True
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> Excel_Format.Excel xls_format=False
+            _ -> Nothing
 
     ## PRIVATE
        ADVANCED
@@ -77,6 +82,14 @@ type Excel_Format
         case self.section of
             Excel_Section.Workbook -> Excel_Workbook.new file format self.headers
             _ -> Excel_Reader.read_file file self.section self.headers on_problems format
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        if self.xls_format == Infer then Error.throw (Illegal_Argument.Error "Cannot infer xls_format from a stream.") else
+            workbook = Excel_Workbook.from_stream stream self.xls_format self.headers
+            workbook.read_section self.section
 
     ## PRIVATE
        ADVANCED
