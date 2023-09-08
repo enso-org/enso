@@ -7,29 +7,18 @@ import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.IO
 import project.Meta
-import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
-import project.Network.HTTP.Response.Response
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
-import project.Panic.Panic
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Network.HTTP.Request_Body import all
-from project.Network.Extensions import all
 from project.System.File_Format import Auto_Detect, File_Format
-
-polyglot java import java.lang.Exception as JException
-polyglot java import java.net.http.HttpRequest
-polyglot java import java.net.http.HttpResponse
-polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.Http_Utils
 
 ## ALIAS load, open
    GROUP Input
