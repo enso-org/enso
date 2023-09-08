@@ -311,12 +311,7 @@ const isVisualizationFullscreen = ref(false)
     <component
       :is="visualization"
       v-if="isVisualizationVisible && visualization"
-      :width="visualizationWidth"
-      @update:width="
-        () => {
-          throw new Error(':()')
-        }
-      "
+      v-model:width="visualizationWidth"
       v-model:height="visualizationHeight"
       v-model:fullscreen="isVisualizationFullscreen"
       :types="visualizationTypes"
