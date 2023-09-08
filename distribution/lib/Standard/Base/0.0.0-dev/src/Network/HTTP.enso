@@ -135,7 +135,6 @@ type HTTP
 
                             http_request = builder.build
                             body_handler = HttpResponse.BodyHandlers . ofByteArray
-                            http = HTTP.new
 
                             IO.println 'AAA http_request'
                             IO.println http_request
@@ -145,7 +144,7 @@ type HTTP
                             IO.println body_publisher.contentLength
                             IO.println additional_headers
 
-                            response = Response.Value (http.internal_http_client.send http_request body_handler)
+                            response = Response.Value (self.internal_http_client.send http_request body_handler)
 
                             IO.println 'AAA response'
                             IO.println response
