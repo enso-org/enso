@@ -242,6 +242,7 @@ public abstract class Atom implements EnsoObject {
       boolean allowSideEffects,
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile handleError
   ) {
     Object result = null;
@@ -255,6 +256,8 @@ public abstract class Atom implements EnsoObject {
         msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
       } else if (TypesGen.isText(result)) {
         return TypesGen.asText(result);
+      } else if (interop.isString(result)) {
+        return Text.create(interop.asString(result));
       } else {
         msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
