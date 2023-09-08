@@ -207,14 +207,8 @@ const height = computed(
 )
 const xTicks = computed(() => height.value / 40)
 const yTicks = computed(() => width.value / 20)
-const canvasWidth = computed(() => width.value)
-const canvasHeight = computed(() => Math.max(0, height.value - BUTTONS_HEIGHT))
-const boxWidth = computed(() =>
-  Math.max(0, canvasWidth.value - margin.value.left - margin.value.right),
-)
-const boxHeight = computed(() =>
-  Math.max(0, canvasHeight.value - margin.value.top - margin.value.bottom),
-)
+const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
+const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 
 function updatePreprocessor() {
   let args = []
@@ -745,7 +739,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
       </button>
     </template>
     <div ref="containerNode" class="Scatterplot">
-      <svg :width="canvasWidth" :height="canvasHeight">
+      <svg :width="width" :height="height">
         <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
@@ -792,6 +786,28 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 
 .Scatterplot {
   user-select: none;
+  display: flex;
+
+  > .selection {
+    rx: 4px;
+    stroke: transparent;
+  }
+
+  > button {
+    margin-left: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+    padding: 2px 10px;
+    outline: none;
+    background-color: transparent;
+    border: 1px solid var(--color-button-light);
+    color: var(--color-button-light);
+    border-radius: 14px;
+    font-size: 10px;
+    font-family: DejaVuSansMonoBook;
+    vertical-align: top;
+    transition: all 0.3s ease;
+  }
 }
 
 .fit-all-button {
@@ -811,27 +827,6 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 
 .label-y {
   transform: rotate(-90deg);
-}
-
-.Scatterplot .selection {
-  rx: 4px;
-  stroke: transparent;
-}
-
-.Scatterplot button {
-  margin-left: 5px;
-  margin-bottom: 5px;
-  display: inline-block;
-  padding: 2px 10px;
-  outline: none;
-  background-color: transparent;
-  border: 1px solid var(--color-button-light);
-  color: var(--color-button-light);
-  border-radius: 14px;
-  font-size: 10px;
-  font-family: DejaVuSansMonoBook;
-  vertical-align: top;
-  transition: all 0.3s ease;
 }
 
 button:hover {
