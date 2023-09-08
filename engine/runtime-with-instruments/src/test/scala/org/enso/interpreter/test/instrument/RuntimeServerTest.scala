@@ -5092,7 +5092,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: expected `that` to be Number, but got Function.",
+            "Type error: expected `that` to be Integer, but got Function.",
             Some(mainFile),
             Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
             None,

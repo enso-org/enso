@@ -187,7 +187,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idMainZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -209,7 +217,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idFooY,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -231,7 +247,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idFooZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "*"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -973,12 +997,30 @@ class RuntimeVisualizationsTest
         contextId,
         context.Main.idFooY,
         ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              "Standard.Base.Data.Numbers.Integer",
+              "+"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         context.Main.idFooZ,
         ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              "Standard.Base.Data.Numbers.Integer",
+              "*"
+            )
+          )
+        ),
         typeChanged = false
       ),
       context.executionComplete(contextId)

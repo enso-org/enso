@@ -85,7 +85,7 @@ public abstract class IsValueOfTypeNode extends Node {
     @Specialization
     boolean doLongCheck(Type expectedType, long payload) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getSmallInteger(), expectedType);
+      return checkParentTypes(numbers.getInteger(), expectedType);
     }
 
     @Specialization
@@ -97,7 +97,7 @@ public abstract class IsValueOfTypeNode extends Node {
     @Specialization
     boolean doBigIntegerCheck(Type expectedType, EnsoBigInteger value) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getBigInteger(), expectedType);
+      return checkParentTypes(numbers.getInteger(), expectedType);
     }
 
     @Specialization
