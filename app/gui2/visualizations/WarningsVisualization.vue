@@ -29,7 +29,7 @@ const data = computed<Data>(() =>
 <template>
   <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
     <div class="Warnings">
-      <ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre">
+      <ul>
         <li v-if="data.length === 0">There are no warnings.</li>
         <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
       </ul>
@@ -43,6 +43,7 @@ const data = computed<Data>(() =>
 }
 
 ul {
+  white-space: pre;
   padding-inline-start: 0;
 }
 

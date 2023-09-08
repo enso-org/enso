@@ -12,6 +12,8 @@ export type Visualization = VisualizationModule['default']
 export const useVisualizationStore = defineStore('visualization', () => {
   // FIXME: statically resolved imports will not work for user-defined components
   const getters: Record<string, () => Promise<VisualizationModule>> = {
+    JSON: () => import('visualizations/JSONVisualization.vue'),
+    Error: () => import('visualizations/ErrorVisualization.vue'),
     Warnings: () => import('visualizations/WarningsVisualization.vue'),
     Bubble: () => import('visualizations/BubbleVisualization.vue'),
     Image: () => import('visualizations/ImageBase64Visualization.vue'),
@@ -44,6 +46,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   function sampleData(type: string) {
     switch (type) {
+      case 'Error': {
+        return { kind: 'Dataflow', message: 'a data flow error' }
+      }
       case 'Warnings': {
         return ['warning 1', "warning 2!!&<>;'\x22"]
       }
@@ -73,6 +78,7 @@ uMDktMyA1LjItMyAuNzMgMCAxLjQ2LjIgMS45OC40WiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImE
 NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
         }
       }
+      case 'JSON':
       case 'Scatterplot': {
         return {
           axis: {

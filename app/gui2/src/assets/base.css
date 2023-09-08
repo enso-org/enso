@@ -33,11 +33,15 @@
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
 
-  --color-app-bg: rgba(255, 255, 255, 0.8);
-  --color-menu-entry-hover-bg: rgba(0, 0, 0, 0.1);
-  --color-visualization-bg: #fff2f2;
-  --color-dim: rgba(0, 0, 0, 0.25);
-  --color-frame-bg: rgba(255, 255, 255, 0.3);
+  --color-app-bg: rgba(255 255 255 / 0.8);
+  --color-menu-entry-hover-bg: rgba(0 0 0 / 0.1);
+  --color-visualization-bg: rgb(255 242 242);
+  --color-dim: rgba(0 0 0 / 0.25);
+  --color-frame-bg: rgba(255 255 255 / 0.3);
+
+  --color-error-dataflow: rgb(223 88 125);
+  --color-error-panic: rgb(180 60 20);
+  --color-error-warning: rgb(255 167 37);
 }
 
 /* non-color variables */
@@ -62,8 +66,6 @@
 
 body {
   min-height: 100vh;
-  /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
-  background: #e4d4be;
   color: var(--color-text);
   /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
   background: #e4d4be;
@@ -76,6 +78,10 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#app *:focus {
+  outline: none !important;
 }
 
 .icon {
@@ -121,4 +127,9 @@ body {
 
 .scrollable::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
+}
+
+.scrollable::-webkit-scrollbar-button {
+  height: 8px;
+  width: 8px;
 }

@@ -96,10 +96,6 @@ import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watch } from 'vue'
 
-console.log('d3', d3)
-
-// TODO: deduplicate props.width / 40 and props.height / 20
-
 const props = defineProps<{
   width: number | undefined
   height: number | undefined
@@ -734,7 +730,12 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true" :width="width" :height="height">
+  <VisualizationContainer
+    :="<any>$attrs"
+    :below-toolbar="true"
+    :width="props.width"
+    :height="props.height"
+  >
     <template #toolbar>
       <button class="image-button active">
         <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />

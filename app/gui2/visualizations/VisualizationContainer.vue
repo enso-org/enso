@@ -18,8 +18,8 @@ const props = defineProps<{
   types: string[]
   background?: string
   isCircularMenuVisible: boolean
-  width: number | undefined
-  height: number | undefined
+  width: number | null
+  height: number | null
   fullscreen: boolean
   data?: {} | string
 }>()
@@ -40,9 +40,20 @@ const isSelectorVisible = ref(false)
     <div
       class="Visualization"
       :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
-      :style="{ '--color-visualization-bg': background, width, height }"
+      :style="{
+        '--color-visualization-bg': background,
+      }"
     >
-      <slot></slot>
+      <div
+        class="content scrollable"
+        :style="{
+          width: fullscreen ? undefined : `${width}px`,
+          height: fullscreen ? undefined : `${height}px`,
+        }"
+        @wheel.stop
+      >
+        <slot></slot>
+      </div>
       <div class="toolbars">
         <div v-if="!isCircularMenuVisible || fullscreen"></div>
         <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
@@ -114,6 +125,10 @@ const isSelectorVisible = ref(false)
   &.fullscreen.below-toolbar {
     padding-top: 38px;
   }
+}
+
+.content {
+  overflow: auto;
 }
 
 .toolbars {

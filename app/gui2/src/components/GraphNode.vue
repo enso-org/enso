@@ -288,8 +288,8 @@ watchEffect(async (onCleanup) => {
   }
 })
 
-const visualizationWidth = ref<number>()
-const visualizationHeight = ref<number>()
+const visualizationWidth = ref<number | null>(null)
+const visualizationHeight = ref<number | null>(200)
 const isVisualizationFullscreen = ref(false)
 </script>
 
@@ -311,7 +311,12 @@ const isVisualizationFullscreen = ref(false)
     <component
       :is="visualization"
       v-if="isVisualizationVisible && visualization"
-      v-model:width="visualizationWidth"
+      :width="visualizationWidth"
+      @update:width="
+        () => {
+          throw new Error(':()')
+        }
+      "
       v-model:height="visualizationHeight"
       v-model:fullscreen="isVisualizationFullscreen"
       :types="visualizationTypes"
