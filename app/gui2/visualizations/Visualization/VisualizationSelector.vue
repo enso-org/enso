@@ -1,17 +1,29 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useDocumentEvent } from '../events'
+
 const props = defineProps<{ types: string[] }>()
-const emit = defineEmits<{ 'update:type': [type: string] }>()
+const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
+
+const rootNode = ref<HTMLElement>()
+
+useDocumentEvent('click', (event) => {
+  if (!(event.target instanceof HTMLElement) || rootNode.value?.contains(event.target)) {
+    return
+  }
+  emit('hide')
+})
 </script>
 
 <template>
-  <div class="VisualizationSelector">
+  <div ref="rootNode" class="VisualizationSelector">
     <div class="background"></div>
     <ul>
       <li
         v-for="type_ in types"
         :key="type_"
-        v-text="type_"
         @click="emit('update:type', type_)"
+        v-text="type_"
       ></li>
     </ul>
   </div>

@@ -95,10 +95,9 @@ const d3: typeof import('d3') = (window as any).d3
 // TODO: deduplicate props.width / 40 and props.height / 20
 
 const props = defineProps<{
-  data: Data | string
-  // FIXME: these should be part of data.
   width: number | undefined
   height: number | undefined
+  data: Data | string
 }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
@@ -113,7 +112,7 @@ let shortcuts = {
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
 const POINT_LABEL_PADDING_X = 7
 const POINT_LABEL_PADDING_Y = 2
-const ANIMATION_DURATION = 1000
+const ANIMATION_DURATION = 400
 const VISIBLE_POINTS = 'visible'
 const BUTTONS_HEIGHT = 25
 const DEFAULT_LIMIT = 1024
@@ -127,7 +126,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<Scale, d3.AxisScale<number>> = {
+const SCALE_TO_D3_SCALE: Record<Scale, d3.ScaleContinuousNumeric<number, number, never>> = {
   [Scale.linear]: d3.scaleLinear(),
   [Scale.logarithmic]: d3.scaleLog(),
 }
@@ -147,7 +146,7 @@ interface D3ZoomStartEvent extends D3Event {
 type Extent = [topLeft: [left: number, top: number], bottomRight: [right: number, bottom: number]]
 
 interface D3BrushEvent extends D3Event {
-  selection: Extent
+  selection: Extent | null
 }
 
 const data = computed<Data>(() => {
@@ -176,27 +175,15 @@ const data = computed<Data>(() => {
 })
 
 const containerNode = ref<HTMLElement>()
-const svgNode = ref<SVGGElement>()
-const scatterplotNode = ref<SVGGElement>()
+const rootNode = ref<SVGGElement>()
+const pointsNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 const bounds = ref<[number, number, number, number] | null>(null)
-const brushExtent = ref<Extent>([
-  [0, 0],
-  [0, 0],
-])
+const brushExtent = ref<Extent | null>(null)
 const limit = ref(DEFAULT_LIMIT)
-const isZoomToSelectedActive = ref(false)
 
-const height = computed(
-  () => props.width ?? containerNode.value?.getBoundingClientRect().width ?? 999,
-)
-const width = computed(
-  () => props.height ?? containerNode.value?.getBoundingClientRect().height ?? 999,
-)
-const xTicks = computed(() => height.value / 40)
-const yTicks = computed(() => width.value / 20)
 const margin = computed(() => {
   const xLabel = data.value.axis.x.label
   const yLabel = data.value.axis.y.label
@@ -210,11 +197,22 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
+const width = computed(
+  () => props.width ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+)
+const height = computed(
+  () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
+)
+const xTicks = computed(() => height.value / 40)
+const yTicks = computed(() => width.value / 20)
 const canvasWidth = computed(() => width.value)
-const canvasHeight = computed(() => height.value - BUTTONS_HEIGHT)
-// FIXME: why is this subtracting both left and right?
-const boxWidth = computed(() => canvasWidth.value - margin.value.left - margin.value.right)
-const boxHeight = computed(() => canvasHeight.value - margin.value.top - margin.value.bottom)
+const canvasHeight = computed(() => Math.max(0, height.value - BUTTONS_HEIGHT))
+const boxWidth = computed(() =>
+  Math.max(0, canvasWidth.value - margin.value.left - margin.value.right),
+)
+const boxHeight = computed(() =>
+  Math.max(0, canvasHeight.value - margin.value.top - margin.value.bottom),
+)
 
 function updatePreprocessor() {
   let args = []
@@ -244,20 +242,12 @@ onMounted(() => {
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  let xMin = -Infinity
-  let xMax = Infinity
-  let yMin = -Infinity
-  let yMax = Infinity
-  {
-    const xs = data.value.data.map((point) => point.x)
-    xMin = Math.min(...xs)
-    xMax = Math.max(...xs)
-  }
-  {
-    const ys = data.value.data.map((point) => point.y)
-    yMin = Math.min(...ys)
-    yMax = Math.max(...ys)
-  }
+  let [xMin, xMax] = d3.extent(data.value.data, (point) => point.x)
+  let [yMin, yMax] = d3.extent(data.value.data, (point) => point.y)
+  xMin ??= 0
+  xMax ??= 0
+  yMin ??= 0
+  yMax ??= 0
   const dx = xMax - xMin
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
@@ -265,14 +255,21 @@ const extremesAndDeltas = computed(() => {
   return { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy }
 })
 
-// FIXME: scaleAndAxis
 let scaleAndAxis = {} as ReturnType<typeof updateAxes>
+let zoom = {} as ReturnType<typeof addPanAndZoom>
+
+onMounted(() => {
+  scaleAndAxis = updateAxes()
+  zoom = addPanAndZoom()
+  redrawPoints()
+  addBrushing()
+})
 
 watch(
   () => [props.width, props.height],
   () => {
-    updateScatter()
     scaleAndAxis = updateAxes()
+    redrawPoints()
     addBrushing()
   },
 )
@@ -281,6 +278,10 @@ watch(
  * Adds panning and zooming functionality to the visualization.
  */
 function addPanAndZoom() {
+  if (pointsNode.value == null) {
+    throw new Error('Could not find the HTML element for the scatterplot.')
+  }
+  const scatterplot = pointsNode.value
   const minScale = 0.5
   const maxScale = 20
   const rightButton = 2
@@ -325,7 +326,7 @@ function addPanAndZoom() {
     .on('start', startZoom)
 
   const zoomElem = d3
-    .select(scatterplotNode.value!)
+    .select(scatterplot)
     .append('g')
     .attr('class', 'zoom')
     .attr('width', boxWidth.value)
@@ -355,14 +356,14 @@ function addPanAndZoom() {
     if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === rightButton) {
       transformedScale.xScale = tempRmbScale.xScale
       transformedScale.yScale = tempRmbScale.yScale
-      const rmbDivider = 100.0
+      const rmbDivider = 100
       const zoomAmount = rmbZoomValue(event.sourceEvent) / rmbDivider
       const scale = Math.exp(zoomAmount)
       const distanceScale = getScaleForZoom(scale, startPos)
       rescale(distanceScale)
     } else if (event.sourceEvent instanceof WheelEvent) {
       if (event.sourceEvent.ctrlKey) {
-        const pinchDivider = 100.0
+        const pinchDivider = 100
         const zoomAmount = -event.sourceEvent.deltaY / pinchDivider
         const scale = Math.exp(zoomAmount)
         const distanceScale = getScaleForZoom(scale, startPos)
@@ -390,7 +391,7 @@ function addPanAndZoom() {
 
     scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(xTicks.value))
     scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(yTicks.value))
-    d3.select(scatterplotNode.value!)
+    d3.select(scatterplot)
       .selectAll<SVGPathElement, Point>('path')
       .attr(
         'transform',
@@ -399,7 +400,7 @@ function addPanAndZoom() {
       )
 
     if (data.value.points.labels === VISIBLE_POINTS) {
-      d3.select(scatterplotNode.value!)
+      d3.select(scatterplot)
         .selectAll<SVGTextElement, Point>('text')
         .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X)
         .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y)
@@ -458,7 +459,6 @@ const brush = computed(() =>
       [boxWidth.value, boxHeight.value],
     ])
     .on('start brush', (event: D3BrushEvent) => {
-      isZoomToSelectedActive.value = true
       brushExtent.value = event.selection
     }),
 )
@@ -470,9 +470,12 @@ const brush = computed(() =>
  * keyboard shortcut or button event.
  */
 function addBrushing() {
+  if (brushNode.value == null) {
+    throw new Error('Could not find the HTML element for the brush.')
+  }
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
-  d3.select(brushNode.value!).call(brush.value)
+  d3.select(brushNode.value).call(brush.value)
   removePointerEventsAttrsFromBrush()
 }
 
@@ -480,8 +483,11 @@ function addBrushing() {
  * Removes brush, keyboard event and zoom button when end event is captured.
  */
 function endBrushing() {
-  isZoomToSelectedActive.value = false
-  d3.select(brushNode.value!).call(brush.value.move, null)
+  if (brushNode.value == null) {
+    throw new Error('Could not find the HTML element for the brush.')
+  }
+  brushExtent.value = null
+  d3.select(brushNode.value).call(brush.value.move, null)
   removePointerEventsAttrsFromBrush()
 }
 
@@ -497,8 +503,11 @@ useDocumentEvent('scroll', endBrushing)
  * Section "Brushing for zooming".
  */
 function zoomToSelected() {
-  isZoomToSelectedActive.value = false
+  if (brushExtent.value == null) {
+    return
+  }
   const [[xMinRaw, yMaxRaw], [xMaxRaw, yMinRaw]] = brushExtent.value
+  brushExtent.value = null
   let xMin = zoom.transformedScale.xScale.invert(xMinRaw)
   let xMax = zoom.transformedScale.xScale.invert(xMaxRaw)
   let yMin = zoom.transformedScale.yScale.invert(yMinRaw)
@@ -513,27 +522,40 @@ function zoomToSelected() {
   zoomingHelper(zoom.transformedScale)
 }
 
-useDocumentEventConditional('keydown', isZoomToSelectedActive, (event) => {
-  if (shortcuts.zoomIn(event)) {
-    zoomToSelected()
-    endBrushing()
-  }
-})
+useDocumentEventConditional(
+  'keydown',
+  () => brushExtent.value != null,
+  (event) => {
+    if (shortcuts.zoomIn(event)) {
+      zoomToSelected()
+      endBrushing()
+    }
+  },
+)
 
 /**
  * Helper function for zooming in after the scale has been updated.
  */
 function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
-  d3.select(xAxisNode.value!)
+  if (xAxisNode.value == null) {
+    throw new Error('Could not find the HTML element for the x axis.')
+  }
+  if (yAxisNode.value == null) {
+    throw new Error('Could not find the HTML element for the y axis.')
+  }
+  if (pointsNode.value == null) {
+    throw new Error('Could not find the root HTML element for the scatterplot.')
+  }
+  d3.select(xAxisNode.value)
     .transition()
     .duration(ANIMATION_DURATION)
     .call(d3.axisBottom(scaleAndAxis.xScale).ticks(xTicks.value))
-  d3.select(yAxisNode.value!)
+  d3.select(yAxisNode.value)
     .transition()
     .duration(ANIMATION_DURATION)
     .call(d3.axisLeft(scaleAndAxis.yScale).ticks(yTicks.value))
 
-  d3.select(scatterplotNode.value!)
+  d3.select(pointsNode.value)
     .selectAll<SVGPathElement, Point>('path')
     .transition()
     .duration(ANIMATION_DURATION)
@@ -543,7 +565,7 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
     )
 
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3.select(scatterplotNode.value!)
+    d3.select(pointsNode.value)
       .selectAll<SVGTextElement, Point>('text')
       .transition()
       .duration(ANIMATION_DURATION)
@@ -555,21 +577,25 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
 /**
  * Create a plot object and populate it with the given data.
  */
-function updateScatter() {
+function redrawPoints() {
+  if (pointsNode.value == null) {
+    throw new Error('Could not find the HTML element for the scatterplot.')
+  }
+  const points = pointsNode.value
   const symbol = d3.symbol()
   const sizeScaleMultiplier = 100
 
   const color = ACCENT_COLOR
   const fillColor = `rgba(${color.red * 255},${color.green * 255},${color.blue * 255},0.8)`
 
-  d3.select(svgNode.value!)
+  d3.select(points)
     .selectAll('dataPoint')
     .data(data.value.data)
     .enter()
     .append('path')
     .attr(
       'd',
-      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * sizeScaleMultiplier),
+      symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * sizeScaleMultiplier),
     )
     .attr(
       'transform',
@@ -578,7 +604,7 @@ function updateScatter() {
     .style('fill', (d) => d.color ?? fillColor)
 
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3.select(svgNode.value!)
+    d3.select(points)
       .selectAll('dataPoint')
       .data(data.value.data)
       .enter()
@@ -640,27 +666,20 @@ const domains = computed(() => {
   return { x: domainX, y: domainY }
 })
 
-// FIXME: vue-ify
 /**
  * Creates plot's axes.
  */
 function updateAxes() {
   if (xAxisNode.value == null) {
-    console.warn('Could not find HTML element for the x axis.')
+    throw new Error('Could not find the HTML element for the x axis.')
   }
   if (yAxisNode.value == null) {
-    console.warn('Could not find HTML element for the y axis.')
+    throw new Error('Could not find the HTML element for the y axis.')
   }
-
-  let xScale = axisD3Scale(data.value.axis?.x) as d3.ScaleLinear<number, number, never>
-  xScale.domain(domains.value.x)
-  xScale.range([0, boxWidth.value])
-  let xAxis = d3.select(xAxisNode.value!).call(d3.axisBottom(xScale).ticks(xTicks.value))
-
-  let yScale = axisD3Scale(data.value.axis?.y) as d3.ScaleLinear<number, number, never>
-  yScale.domain(domains.value.y)
-  yScale.range([boxHeight.value, 0])
-  let yAxis = d3.select(yAxisNode.value!).call(d3.axisLeft(yScale).ticks(yTicks.value))
+  let xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
+  let xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
+  let yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])
+  let yAxis = d3.select(yAxisNode.value).call(d3.axisLeft(yScale).ticks(yTicks.value))
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
 
@@ -669,9 +688,6 @@ useDocumentEvent('keydown', (event) => {
     fitAll()
   }
 })
-
-// FIXME: vue-ify
-const zoom = addPanAndZoom()
 
 function fitAll() {
   zoom.zoomElem.transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
@@ -712,25 +728,25 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :width="width" :height="height">
+  <VisualizationContainer :="<any>$attrs" :below-toolbar="true" :width="width" :height="height">
     <template #toolbar>
       <button class="image-button active">
         <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
       </button>
-      <button class="image-button" :class="{ active: isZoomToSelectedActive }">
+      <button class="image-button" :class="{ active: brushExtent != null }">
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="Scatterplot">
       <svg :width="canvasWidth" :height="canvasHeight">
-        <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
+        <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
               <rect :width="boxWidth" :height="boxHeight" :x="0" :y="0"></rect>
             </clipPath>
           </defs>
           <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="label axis-y" :transform="`translate(0, ${boxHeight})`"></g>
+          <g ref="yAxisNode" class="label axis-y"></g>
           <text
             v-if="data.axis.x.label"
             class="label label-x"
@@ -747,8 +763,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
             :y="yLabelTop"
             v-text="data.axis.y.label"
           ></text>
-          <g ref="scatterplotNode" clip-path="url(#clip)"></g>
-          <!-- FIXME: pan -->
+          <g ref="pointsNode" clip-path="url(#clip)"></g>
           <g class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
             <g ref="brushNode" class="brush"></g>
           </g>
@@ -766,6 +781,10 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   --color-button-light: #333;
   --color-button-dark-hover: rgba(255, 255, 255, 0.5);
   --color-selection-fill-dark: #efefef;
+}
+
+.Scatterplot {
+  user-select: none;
 }
 
 .fit-all-button {

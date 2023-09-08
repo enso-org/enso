@@ -55,12 +55,16 @@ const isSelectorVisible = ref(false)
             <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
           </button>
           <div class="icon-container">
-            <button class="image-button active" @click="isSelectorVisible = !isSelectorVisible">
+            <button
+              class="image-button active"
+              @click.stop="isSelectorVisible = !isSelectorVisible"
+            >
               <img class="icon" :src="CompassIcon" />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"
               :types="types"
+              @hide="isSelectorVisible = false"
               @update:type="
                 (type) => {
                   isSelectorVisible = false
