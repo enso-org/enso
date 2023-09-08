@@ -162,10 +162,12 @@ type HTTP
 
        Static helper for get-like methods
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            HTTP.new.request request try_auto_parse_response
+            response = HTTP.new.request request try_auto_parse_response
+            response.if_not_error <|
+                response.body
 
     ## PRIVATE
 
@@ -239,7 +241,7 @@ build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Bool
 
 ## PRIVATE
 fetch_methods : Vector HTTP_Method
-fetch_methods = [HTTP_Method.GET, HTTP_Method.HEAD, HTTP_Method.DELETE, HTTP_Method.OPTIONS]
+fetch_methods = [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Delete, HTTP_Method.Options]
 
 ## PRIVATE
 post_methods : Vector HTTP_Method
