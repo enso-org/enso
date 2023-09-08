@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
 
@@ -69,6 +70,9 @@ spec =
             f.size . should_equal 7168
             f.delete
             f.exists.should_be_false
+
+        Test.specify "unknown host" <|
+            HTTP.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
 
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
@@ -180,5 +184,8 @@ spec =
         Test.specify "Unsupported method" <|
             url_get = base_url_with_slash + "get"
             HTTP.post url_get (Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
+
+        Test.specify "unknown host" <|
+            HTTP.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
 
 main = Test_Suite.run_main spec
