@@ -128,7 +128,7 @@ type Connection
 
     ## PRIVATE
        Gets a list of the table types
-    table_types : [Text]
+    table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"

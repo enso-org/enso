@@ -106,7 +106,7 @@ make_order_by_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column rename name selector.
-make_rename_name_vector_selector : Table -> Display -> Vector_Editor
+make_rename_name_vector_selector : Table -> Display -> Widget
 make_rename_name_vector_selector table display=Display.Always =
     col_names = table.column_names
     names = col_names.map n-> Option n "["+n.pretty+", "+n.pretty+"]"

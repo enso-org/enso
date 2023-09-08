@@ -186,7 +186,7 @@ type Additional_Warnings
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Row
     ## PRIVATE
-    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text]) (expected_columns : Integer)
+    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : Vector Text) (expected_columns : Integer)
 
     ## PRIVATE
 
@@ -274,7 +274,7 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:Vector Text)
 
     ## PRIVATE
        Pretty print the invalid format error.

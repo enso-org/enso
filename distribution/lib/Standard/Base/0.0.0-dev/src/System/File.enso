@@ -175,7 +175,7 @@ type File
        Arguments:
        - options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
-    output_stream_builtin : Vector File_Access -> Output_Stream
+    output_stream_builtin : Vector File_Access -> Java_Output_Stream
     output_stream_builtin self options = @Builtin_Method "File.output_stream_builtin"
 
     ## PRIVATE
@@ -186,7 +186,7 @@ type File
        - open_options: A vector of `StandardOpenOption` polyglot objects
          determining how to open the stream. These options set the access
          properties of the stream.
-    input_stream : Vector StandardOpenOption -> Input_Stream
+    input_stream : Vector StandardOpenOption -> Java_Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
     ## PRIVATE
@@ -655,8 +655,7 @@ type File
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions self (self.input_stream opts)
-            resource = Managed_Resource.register stream close_stream
-            Input_Stream.Value resource (File_Error.handle_java_exceptions self)
+            Input_Stream.new stream (File_Error.handle_java_exceptions self)
 
     ## PRIVATE
        Reads first `n` bytes from the file (or less if the file is too small)
@@ -873,6 +872,16 @@ type Output_Stream
 ## PRIVATE
    An input stream, allowing for interactive reading of contents.
 type Input_Stream
+    ## PRIVATE
+       ADVANCED
+
+       Given a Java InputStream, wraps as a Managed_Resource and returns a new
+       Input_Stream.
+    new : Java_Input_Stream -> Any -> Input_Stream
+    new java_stream error_handler =
+        resource = Managed_Resource.register java_stream close_stream
+        Input_Stream.Value resource error_handler
+
     ## PRIVATE
        An input stream, allowing for interactive reading of contents.
 
