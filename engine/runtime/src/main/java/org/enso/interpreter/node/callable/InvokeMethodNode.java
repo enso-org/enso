@@ -352,7 +352,7 @@ public abstract class InvokeMethodNode extends BaseNode {
           e);
     }
 
-    Type typeOfSymbol = symbol.resolveDeclaringType(types.getType(selfWithoutWarnings));
+    Type typeOfSymbol = symbol.resolveDeclaringType(this, types.getType(selfWithoutWarnings));
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     if (typeOfSymbol == builtins.any()) {
       return symbol
