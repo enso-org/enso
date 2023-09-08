@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import DocsIcon from '@/assets/icons/docs.svg'
-import EyeIcon from '@/assets/icons/eye.svg'
-import NoAutoReplayIcon from '@/assets/icons/no_auto_replay.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   isAutoEvaluationDisabled: boolean
@@ -19,22 +17,25 @@ const emit = defineEmits<{
   <div class="CircularMenu">
     <div class="background"></div>
     <button
-      :class="{ button: true, 'no-auto-evaluate-button': true, active: isAutoEvaluationDisabled }"
+      class="icon-container no-auto-evaluate-button"
+      :class="{ active: isAutoEvaluationDisabled }"
       @click="emit('update:isAutoEvaluationDisabled', !isAutoEvaluationDisabled)"
     >
-      <img :src="NoAutoReplayIcon" />
+      <SvgIcon name="no_auto_replay" />
     </button>
     <button
-      :class="{ button: true, 'docs-button': true, active: isDocsVisible }"
+      class="icon-container docs-button"
+      :class="{ active: isDocsVisible }"
       @click="emit('update:isDocsVisible', !isDocsVisible)"
     >
-      <img :src="DocsIcon" />
+      <SvgIcon name="docs" />
     </button>
     <button
-      :class="{ button: true, 'visualization-button': true, active: isVisualizationVisible }"
+      class="icon-container visualization-button"
+      :class="{ active: isVisualizationVisible }"
       @click="emit('update:isVisualizationVisible', !isVisualizationVisible)"
     >
-      <img :src="EyeIcon" />
+      <SvgIcon name="eye" />
     </button>
   </div>
 </template>
@@ -43,48 +44,47 @@ const emit = defineEmits<{
 .CircularMenu {
   user-select: none;
   position: absolute;
-  top: 0px;
-  left: -40px;
+  left: -36px;
   width: 76px;
   height: 76px;
 }
 
 .CircularMenu > .background {
   position: absolute;
-  clip-path: path('m0 20a56 56 0 0 0 56 56a16 16 0 0 0 0 -32a24 24 0 0 1-24-24a16 16 0 0 0-32 0');
+  clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
   background: var(--color-app-bg);
   backdrop-filter: var(--blur-app-bg);
   width: 100%;
   height: 100%;
 }
 
-.button {
-  cursor: pointer;
+.icon-container {
+  display: inline-flex;
   background: none;
   padding: 0;
   border: none;
   opacity: 30%;
 }
 
-.button.active {
+.active {
   opacity: unset;
 }
 
 .no-auto-evaluate-button {
   position: absolute;
-  left: 11px;
-  top: 10px;
+  left: 9px;
+  top: 8px;
 }
 
 .docs-button {
   position: absolute;
-  left: 20px;
-  top: 38px;
+  left: 18.54px;
+  top: 33.46px;
 }
 
 .visualization-button {
   position: absolute;
-  left: 48px;
-  top: 52px;
+  left: 44px;
+  top: 44px;
 }
 </style>

@@ -33,6 +33,16 @@ const emit = defineEmits<{
 }>()
 
 const isSelectorVisible = ref(false)
+
+function onWheel(event: WheelEvent) {
+  if (
+    event.target instanceof HTMLElement &&
+    (event.target.scrollWidth > event.target.clientWidth ||
+      event.target.scrollHeight > event.target.clientHeight)
+  ) {
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
@@ -50,7 +60,7 @@ const isSelectorVisible = ref(false)
           width: fullscreen ? undefined : `${width}px`,
           height: fullscreen ? undefined : `${height}px`,
         }"
-        @wheel.stop
+        @wheel.passive="onWheel"
       >
         <slot></slot>
       </div>
@@ -136,7 +146,7 @@ const isSelectorVisible = ref(false)
   position: absolute;
   display: flex;
   gap: 4px;
-  top: 24px;
+  top: 20px;
 }
 
 .Visualization.fullscreen .toolbars {

@@ -370,7 +370,7 @@ const isVisualizationFullscreen = ref(false)
   align-items: center;
   white-space: nowrap;
   background: #222;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-full);
 }
 
@@ -385,7 +385,8 @@ const isVisualizationFullscreen = ref(false)
 
 .editable {
   outline: none;
-  margin: 4px 8px;
+  height: 24px;
+  padding: 1px 0;
 }
 
 .container {
@@ -395,6 +396,8 @@ const isVisualizationFullscreen = ref(false)
 .icon {
   color: white;
   cursor: grab;
+  width: unset;
+  height: unset;
 }
 
 .Node.dragging,

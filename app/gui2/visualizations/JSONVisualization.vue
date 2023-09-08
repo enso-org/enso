@@ -8,7 +8,7 @@ import VisualizationContainer from './VisualizationContainer.vue'
 
 import { onMounted } from 'vue'
 
-type Data = string
+type Data = Record<string, unknown>
 
 const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
