@@ -1,10 +1,11 @@
+import { qnLastSegment, qnParent, type QualifiedName } from '@/util/qualifiedName'
+
 export type SuggestionId = number
 
 export type UUID = string
-export type QualifiedName = string
 
 // The kind of a suggestion.
-export enum Kind {
+export enum SuggestionKind {
   Module,
   Type,
   Constructor,
@@ -55,13 +56,13 @@ export interface SuggestionEntryScope {
 }
 
 export interface SuggestionEntry {
-  kind: Kind
+  kind: SuggestionKind
   /// A module where the suggested object is defined.
   definedIn: QualifiedName
   /// A type or module this method or constructor belongs to.
   memberOf?: QualifiedName
-  isPublic: boolean
-  isStable: boolean
+  isPrivate: boolean
+  isUnstable: boolean
   /// A name of suggested object.
   name: string
   /// A list of aliases.
@@ -72,165 +73,79 @@ export interface SuggestionEntry {
   /// arguments, the list is empty.
   arguments: SuggestionEntryArgument[]
   /// A type returned by the suggested object.
-  return_type: QualifiedName
+  returnType: QualifiedName
   /// A module reexporting this entity.
-  reexportedIn: QualifiedName
+  reexportedIn?: QualifiedName
   /// A list of documentation sections associated with object.
   documentation: string
   /// A scope where this suggestion is visible.
-  scope: SuggestionEntryScope
+  scope?: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.
-  icon_name: string
+  icon_name?: string
   /// A name of a group this entry belongs to.
-  group_index: number
+  group_index?: number
 }
 
-// A type of suggestion entries.
-// export type SuggestionEntry =
-//   // A module
-//   | Module
-//   // A type
-//   | Type
-//   // A type constructor
-//   | Constructor
-//   // A method defined on a type
-//   | Method
-//   // A function
-//   | Function
-//   // A local value
-//   | Local
+export function makeSimpleEntry(
+  kind: SuggestionKind,
+  definedIn: QualifiedName,
+  name: string,
+  returnType: QualifiedName,
+): SuggestionEntry {
+  return {
+    kind,
+    definedIn,
+    name,
+    isPrivate: false,
+    isUnstable: false,
+    aliases: [],
+    arguments: [],
+    returnType,
+    documentation: '',
+  }
+}
 
-// export interface Module {
-//   /** The fully qualified module name. */
-//   module: string
+export function makeModule(definedIn: QualifiedName) {
+  return makeSimpleEntry(SuggestionKind.Module, definedIn, qnLastSegment(definedIn), definedIn)
+}
 
-//   /** The documentation string. */
-//   documentation?: string
+export function makeType(definedIn: QualifiedName, name: string) {
+  return makeSimpleEntry(SuggestionKind.Type, definedIn, name, `${definedIn}.${name}`)
+}
 
-//   /** The fully qualified module name re-exporting this module. */
-//   reexport?: string
-// }
+export function makeCon(type: QualifiedName, name: string) {
+  return {
+    memberOf: type,
+    ...makeSimpleEntry(SuggestionKind.Constructor, qnParent(type), name, type),
+  }
+}
 
-// export interface Type {
-//   /** The external id. */
-//   externalId?: UUID
+export function makeMethod(type: QualifiedName, name: string, returnType: string) {
+  return {
+    memberOf: type,
+    selfType: type,
+    ...makeSimpleEntry(SuggestionKind.Method, qnParent(type), name, returnType),
+  }
+}
 
-//   /** The type name. */
-//   name: string
+export function makeStaticMethod(type: QualifiedName, name: string, returnType: string) {
+  return {
+    memberOf: type,
+    ...makeSimpleEntry(SuggestionKind.Method, qnParent(type), name, returnType),
+  }
+}
 
-//   /** The qualified module name where the type is defined. */
-//   module: string
+export function makeModuleMethod(module: QualifiedName, name: string, returnType: string) {
+  return {
+    memberOf: module,
+    ...makeSimpleEntry(SuggestionKind.Method, module, name, returnType),
+  }
+}
 
-//   /** The list of type parameters. */
-//   params: SuggestionEntryArgument[]
+export function makeFunction(definedIn: QualifiedName, name: string, returnType: string) {
+  return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
+}
 
-//   /** Qualified name of the parent type. */
-//   parentType?: string
-
-//   /** The fully qualified module name re-exporting this type. */
-//   reexport?: string
-
-//   /** The documentation string. */
-//   documentation?: string
-// }
-
-// export interface Constructor {
-//   /** The external id. */
-//   externalId?: UUID
-
-//   /** The constructor name. */
-//   name: string
-
-//   /** The qualified module name where this constructor is defined. */
-//   module: string
-
-//   /** The list of arguments. */
-//   arguments: SuggestionEntryArgument[]
-
-//   /** The type of the constructor. */
-//   returnType: string
-
-//   /** The fully qualified module name re-exporting this constructor. */
-//   reexport?: string
-
-//   /** The documentation string. */
-//   documentation?: string
-
-//   /** The list of annotations. */
-//   annotations: string[]
-// }
-
-// export interface Method {
-//   /** The external id. */
-//   externalId?: UUID
-
-//   /** The method name. */
-//   name: string
-
-//   /** The module name where this method is defined. */
-//   module: string
-
-//   /** The list of arguments. */
-//   arguments: SuggestionEntryArgument[]
-
-//   /** The method self type. */
-//   selfType: string
-
-//   /** The return type of this method. */
-//   returnType: string
-
-//   /** The flag indicating whether this method is static or instance. */
-//   isStatic: boolean
-
-//   /** The fully qualified module name re-exporting this method. */
-//   reexport?: string
-
-//   /** The documentation string. */
-//   documentation?: string
-
-//   /** The list of annotations. */
-//   annotations: string[]
-// }
-
-// export interface Function {
-//   /** The external id. */
-//   externalId?: UUID
-
-//   /** The function name. */
-//   name: string
-
-//   /** The module name where this function is defined. */
-//   module: string
-
-//   /** The list of arguments. */
-//   arguments: SuggestionEntryArgument[]
-
-//   /** The function return type. */
-//   returnType: string
-
-//   /** The scope where the function is defined. */
-//   scope: SuggestionEntryScope
-
-//   /** The documentation string. */
-//   documentation?: string
-// }
-
-// export interface Local {
-//   /** The external id. */
-//   externalId?: UUID
-
-//   /** The name of a value. */
-//   name: string
-
-//   /** The module where this value is defined. */
-//   module: string
-
-//   /** The type of a value. */
-//   returnType: string
-
-//   /** The scope where the value is defined. */
-//   scope: SuggestionEntryScope
-
-//   /** The documentation string. */
-//   documentation?: string
-// }
+export function makeLocal(definedIn: QualifiedName, name: string, returnType: string) {
+  return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
+}

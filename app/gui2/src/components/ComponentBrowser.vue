@@ -45,19 +45,31 @@ const suggestionDbStore = useSuggestionDbStore()
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPosition = animatedScrollPosition.value
-  const firstVisible = componentAtY(scrollPosition)
-  const lastVisible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
-  return componentStore.components.slice(firstVisible, lastVisible + 1).map((component, i) => {
-    return { component, index: i + firstVisible }
-  })
+  const topmostVisible = componentAtY(scrollPosition)
+  const bottommostVisible = Math.max(
+    0,
+    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
+  )
+  return componentStore.components
+    .slice(bottommostVisible, topmostVisible + 1)
+    .map((component, i) => {
+      return { component, index: i + bottommostVisible }
+    })
+  // const firstVisible = componentAtY(scrollPosition)
+  // const lastVisible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
+  // return componentStore.components.slice(firstVisible, lastVisible + 1).map((component, i) => {
+  //   return { component, index: i + firstVisible }
+  // })
 })
 
 function componentPos(index: number) {
-  return index * ITEM_SIZE
+  return listContentHeight.value - (index + 1) * ITEM_SIZE
+  // return index * ITEM_SIZE
 }
 
 function componentAtY(pos: number) {
-  return Math.floor(pos / ITEM_SIZE)
+  return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
+  // return Math.floor(pos / ITEM_SIZE)
 }
 
 function componentStyle(index: number) {
@@ -65,7 +77,7 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
-  return suggestionDbStore.groups[component.group].color
+  return suggestionDbStore.groups[component.group]?.color ?? '#006b8a'
 }
 
 // === Highlight ===
@@ -95,28 +107,18 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-function navigateFirst() {
-  selected.value = 0
-  scrollToSelected()
-}
-
-function navigateLast() {
-  selected.value = componentStore.components.length - 1
-  scrollToSelected()
-}
-
 function navigateUp() {
-  if (selected.value == null) {
-    selected.value = componentStore.components.length - 1
-  } else if (selected.value > 0) {
-    selected.value -= 1
+  if (selected.value != null && selected.value < componentStore.components.length - 1) {
+    selected.value += 1
   }
   scrollToSelected()
 }
 
 function navigateDown() {
-  if (selected.value != null && selected.value < componentStore.components.length - 1) {
-    selected.value += 1
+  if (selected.value == null) {
+    selected.value = componentStore.components.length - 1
+  } else if (selected.value > 0) {
+    selected.value -= 1
   }
   scrollToSelected()
 }
@@ -147,10 +149,6 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
-// === Input ===
-
-const input = ref('')
-
 // === Key Events Handler ===
 
 useWindowEvent('keydown', (e) => {
@@ -158,7 +156,7 @@ useWindowEvent('keydown', (e) => {
     case 'Enter':
       if (!shown.value && positionAtMouse()) {
         shown.value = true
-        selected.value = componentStore.components.length - 1
+        selected.value = 0
         nextTick(() => {
           scrollToSelected()
           animatedScrollPosition.skip()
@@ -180,14 +178,6 @@ useWindowEvent('keydown', (e) => {
     case 'ArrowDown':
       e.preventDefault()
       navigateDown()
-      break
-    case 'Home':
-      e.preventDefault()
-      navigateFirst()
-      break
-    case 'End':
-      e.preventDefault()
-      navigateLast()
       break
     case 'Escape':
       console.log('ESC')
@@ -257,7 +247,7 @@ useWindowEvent('keydown', (e) => {
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="CBInput"><input v-model="input" /></div>
+    <div class="CBInput"><input v-model="componentStore.filter.pattern" /></div>
   </div>
 </template>
 
@@ -310,6 +300,7 @@ useWindowEvent('keydown', (e) => {
 .list {
   width: 100%;
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   position: relative;
 }

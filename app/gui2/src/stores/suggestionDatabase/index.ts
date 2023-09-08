@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
-import type { SuggestionEntry, SuggestionId } from './entry'
+import { SuggestionKind, type SuggestionEntry, type SuggestionId } from './entry'
+import mockDb from './TypesFunctions.json'
 
 export interface Group {
   color: string
@@ -9,6 +10,22 @@ export interface Group {
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new Map<SuggestionId, SuggestionEntry>())
+  for (const [id, entry] of mockDb.entries()) {
+    entries.set(id, {
+      kind: entry.methodType == 'ctor' ? SuggestionKind.Constructor : SuggestionKind.Method,
+      definedIn: entry.module,
+      memberOf: entry.type ?? entry.module,
+      selfType: entry.methodType == 'method' ? entry.type : undefined,
+      isPrivate: entry.accessor === 'PUBLIC',
+      isUnstable: true,
+      name: entry.name,
+      aliases: entry.aliases,
+      arguments: [],
+      returnType: entry.returnType,
+      documentation: '',
+      icon_name: entry.icon,
+    })
+  }
   const groups = ref<Array<Group>>([
     { color: '#4D9A29', name: 'Data Input' },
     { color: '#B37923', name: 'Input' },
