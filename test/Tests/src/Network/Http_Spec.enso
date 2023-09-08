@@ -31,9 +31,11 @@ spec =
 
         Test.specify "Can perform a Text POST with explicit encoding" <|
             response = HTTP.post url_post (Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
+            IO.println "LLL2"
+            IO.println response
             response.at "data" . should_equal 'H\u0000e\u0000l\u0000l\u0000o\u0000 \u0000W\u0000o\u0000r\u0000l\u0000d\u0000!\u0000'
             response.at "headers" . at "Content-Length" . should_equal "24"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+                response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -77,7 +79,12 @@ spec =
             HTTP.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
 
         Test.specify "Can perform a Text POST with explicit encoding" <|
-            response = HTTP.post url_post (Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
+            body = (Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
+            IO.println "AAA test start"
+            IO.println body
+            response = HTTP.post url_post body
+            IO.println "LLL"
+            IO.println response
             response.at "data" . should_equal 'H\u0000e\u0000l\u0000l\u0000o\u0000 \u0000W\u0000o\u0000r\u0000l\u0000d\u0000!\u0000'
             response.at "headers" . at "Content-Length" . should_equal "24"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"

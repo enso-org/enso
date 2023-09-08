@@ -140,6 +140,7 @@ public abstract class ReadArgumentCheckNode extends Node {
       var convert = UnresolvedConversion.build(root.getModuleScope());
       for (Type into : expectedTypes) {
         var conv = convert.resolveFor(ctx, into, from);
+        System.out.println("UUU " + from + " " + into + " " + conv);
         if (conv != null) {
           return Pair.create(conv, into);
         }
