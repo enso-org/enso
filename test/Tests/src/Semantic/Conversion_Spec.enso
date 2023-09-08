@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Conversion
+import Standard.Base.Errors.Common.Type_Error
 
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
@@ -143,6 +144,18 @@ spec =
         Test.specify "Use Any.to in Conversion_Use module" <|
             Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        Test.specify "Requesting Text & Foo" <|
+            check a (n : Text & Foo) = case a of
+                0 -> n.foo
+                1 -> n.take (First 3)
+
+            check 0 "Ahoj" . should_equal 4
+            check 1 "Ahoj" . should_equal "Aho"
+
+            # Boolean can be converted to Foo, but is not Text
+            fail = Panic.recover Type_Error <| check 0 True
+            fail . should_fail_with Type_Error
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
