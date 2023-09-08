@@ -205,7 +205,7 @@ useWindowEvent('keydown', (e) => {
           <ToggleIcon icon="command_key3" />
           <ToggleIcon icon="unstable2" />
           <ToggleIcon icon="marketplace" />
-          <ToggleIcon icon="right_side_panel" v-model="docsVisible" class="first-on-right" />
+          <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
         </div>
       </div>
       <div class="components-content">
@@ -219,10 +219,10 @@ useWindowEvent('keydown', (e) => {
           <div class="list-variant" style="">
             <div
               v-for="item in visibleComponents"
-              class="component"
-              @mousemove="selected = item.index"
               :key="item.component.id"
+              class="component"
               :style="componentStyle(item.index)"
+              @mousemove="selected = item.index"
             >
               <SvgIcon
                 :name="item.component.icon"
@@ -234,8 +234,8 @@ useWindowEvent('keydown', (e) => {
           <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
             <div
               v-for="item in visibleComponents"
-              class="component"
               :key="item.component.id"
+              class="component"
               :style="{
                 backgroundColor: componentColor(item.component),
                 ...componentStyle(item.index),

@@ -2,7 +2,7 @@
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 
-const props = defineProps<{ breadcrumbs: string[] }>()
+const _props = defineProps<{ breadcrumbs: string[] }>()
 const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
 </script>
 
@@ -10,7 +10,12 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   <div class="NavBar">
     <SvgIcon name="graph_editor" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
-      <SvgIcon name="arrow_left" draggable="false" class="icon button" @click="emit('back')" />
+      <SvgIcon
+        name="arrow_left"
+        draggable="false"
+        class="icon button inactive"
+        @click="emit('back')"
+      />
       <SvgIcon name="arrow_right" draggable="false" class="icon button" @click="emit('forward')" />
     </div>
     <NavBreadcrumbs :breadcrumbs="breadcrumbs" @click="emit('breadcrumbClick', $event)" />
@@ -32,6 +37,10 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 
   > .breadcrumbs-controls {
     display: flex;
+  }
+
+  & .inactive {
+    opacity: 0.4;
   }
 }
 </style>

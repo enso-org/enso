@@ -5,7 +5,7 @@ import { useDocumentEvent } from '@/util/events'
 
 import { ref } from 'vue'
 
-const props = defineProps<{ modes: string[]; modelValue: string }>()
+const _props = defineProps<{ modes: string[]; modelValue: string }>()
 const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
@@ -47,9 +47,9 @@ useDocumentEvent('click', onDocumentClick)
       <template v-for="otherMode in modes" :key="otherMode">
         <span
           v-if="modelValue !== otherMode"
-          v-text="otherMode"
           class="button"
           @click="emit('update:modelValue', otherMode)"
+          v-text="otherMode"
         ></span>
       </template>
     </div>
@@ -88,6 +88,7 @@ span {
   > .play {
     box-sizing: content-box;
     padding: 0 8px;
+    color: rgba(255, 255, 255, 0.75);
   }
 }
 
