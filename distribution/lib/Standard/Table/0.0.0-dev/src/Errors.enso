@@ -132,7 +132,7 @@ type No_Input_Columns_Selected
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation
     ## PRIVATE
-    Error (column:Text) (rows:[Integer]) (message:Text)
+    Error (column:Text) (rows:Vector Integer) (message:Text)
 
     ## PRIVATE
 
@@ -158,7 +158,7 @@ type Floating_Point_Equality
    without any quote character
 type Unquoted_Delimiter
     ## PRIVATE
-    Error (column:Text) (rows:[Integer])
+    Error (column:Text) (rows:Vector Integer)
 
     ## PRIVATE
 
@@ -239,7 +239,7 @@ type Parser_Error
    be corrupted.
 type Unquoted_Characters_In_Output
     ## PRIVATE
-    Warning (column : Text) (rows : [Integer])
+    Warning (column : Text) (rows : Vector Integer)
 
     ## PRIVATE
        Pretty print the unquoted characters error.
