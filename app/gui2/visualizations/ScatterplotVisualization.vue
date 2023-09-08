@@ -2,7 +2,35 @@
 /// <reference types="d3" />
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
-export const scripts = ['https://d3js.org/d3.v7.min.js']
+
+// eslint-disable-next-line no-redeclare
+declare var d3: typeof import('d3')
+
+/**
+ * A d3.js Scatterplot visualization.
+ *
+ * To zoom use scroll wheel.
+ * To select click and swipe with LMB.
+ * To deselect click outside of selection with LMB.
+ * To pan click and swipe with RMB.
+ * To zoom out click "Fit all" or use key combination "ctrl/cmd+a".
+ * To zoom into selection click appropriate button or use key combination "ctrl/cmd+z".
+ *
+ * Data format (JSON):
+ * {
+ *  "axis":{
+ *     "x":{"label":"x-axis label","scale":"linear"},
+ *     "y":{"label":"y-axis label","scale":"logarithmic"},
+ *  },
+ *  "focus":{"x":1.7,"y":2.1,"zoom":3.0},
+ *  "points":{"labels":"visible" | "invisible"},
+ *  "data":[
+ *     {"x":0.1,"y":0.7,"label":"foo","color":"FF0000","shape":"circle","size":0.2},
+ *     ...
+ *     {"x":0.4,"y":0.2,"label":"baz","color":"0000FF","shape":"square","size":0.3}
+ *  ]
+ * }
+ */
 
 interface Data {
   axis: AxesConfiguration
@@ -57,6 +85,10 @@ interface Color {
 import ShowAllIcon from './icons/show_all.svg'
 import FindIcon from './icons/find.svg'
 
+// @ts-expect-error
+// eslint-disable-next-line no-redeclare
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+
 import { useDocumentEvent, useDocumentEventConditional } from './events'
 import { getTextWidth } from './measurement'
 
@@ -64,33 +96,7 @@ import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watch } from 'vue'
 
-const d3: typeof import('d3') = (window as any).d3
-
-/**
- * A d3.js Scatterplot visualization.
- *
- * To zoom use scroll wheel.
- * To select click and swipe with LMB.
- * To deselect click outside of selection with LMB.
- * To pan click and swipe with RMB.
- * To zoom out click "Fit all" or use key combination "ctrl/cmd+a".
- * To zoom into selection click appropriate button or use key combination "ctrl/cmd+z".
- *
- * Data format (JSON):
- * {
- *  "axis":{
- *     "x":{"label":"x-axis label","scale":"linear"},
- *     "y":{"label":"y-axis label","scale":"logarithmic"},
- *  },
- *  "focus":{"x":1.7,"y":2.1,"zoom":3.0},
- *  "points":{"labels":"visible" | "invisible"},
- *  "data":[
- *     {"x":0.1,"y":0.7,"label":"foo","color":"FF0000","shape":"circle","size":0.2},
- *     ...
- *     {"x":0.4,"y":0.2,"label":"baz","color":"0000FF","shape":"square","size":0.3}
- *  ]
- * }
- */
+console.log('d3', d3)
 
 // TODO: deduplicate props.width / 40 and props.height / 20
 
