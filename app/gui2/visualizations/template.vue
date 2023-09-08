@@ -1,6 +1,8 @@
 <script lang="ts">
 export const name = '<name here>'
 export const inputType = '<allowed input type(s) here>'
+// Optional
+export const scripts = ['<js>', '<dependencies>', '<here>']
 
 // Optional: Move the type `Data` here if it errors when placed in the `script setup` block.
 </script>
@@ -35,4 +37,9 @@ const data = computed<Data>(() =>
   </VisualizationContainer>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Optional */
+@import url('<style>');
+@import url('<dependencies>');
+@import url('<here>');
+</style>

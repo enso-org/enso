@@ -3,13 +3,12 @@
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 export const scripts = ['https://d3js.org/d3.v7.min.js']
-export const styles = ['https://fonts.cdnfonts.com/css/dejavu-sans-mono']
 
 interface Data {
   axis: AxesConfiguration
   focus: Focus | undefined
+  points: PointsConfiguration
   data: Point[]
-  points: { labels: string }
 }
 
 interface Focus {
@@ -21,12 +20,19 @@ interface Focus {
 interface Point {
   x: number
   y: number
-  color?: string
   label?: string
+  color?: string
+  shape?: string
+  size?: number
 }
 
 interface AxisConfiguration {
+  label: string
   scale: Scale
+}
+
+interface PointsConfiguration {
+  labels: string
 }
 
 enum Scale {
@@ -47,7 +53,10 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-/** ScatterPlot Visualization. */
+/** Scatterplot Visualization. */
+import ShowAllIcon from './icons/show_all.svg'
+import FindIcon from './icons/find.svg'
+
 import { useDocumentEvent, useDocumentEventConditional } from './events'
 import { getTextWidth } from './measurement'
 
@@ -56,10 +65,9 @@ import VisualizationContainer from './VisualizationContainer.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const d3: typeof import('d3') = (window as any).d3
-console.log('what', d3)
 
 /**
- * A d3.js ScatterPlot visualization.
+ * A d3.js Scatterplot visualization.
  *
  * To zoom use scroll wheel.
  * To select click and swipe with LMB.
@@ -71,7 +79,7 @@ console.log('what', d3)
  * Data format (JSON):
  * {
  *  "axis":{
- *     "x":{"label":"x-axis label""scale":"linear"},
+ *     "x":{"label":"x-axis label","scale":"linear"},
  *     "y":{"label":"y-axis label","scale":"logarithmic"},
  *  },
  *  "focus":{"x":1.7,"y":2.1,"zoom":3.0},
@@ -91,8 +99,6 @@ const props = defineProps<{
   // FIXME: these should be part of data.
   width: number | undefined
   height: number | undefined
-  xLabel?: string
-  yLabel?: string
 }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
@@ -150,7 +156,7 @@ const data = computed<Data>(() => {
   const unfilteredData = Array.isArray(rawData)
     ? rawData.map((y, index) => ({ x: index, y }))
     : rawData.data ?? []
-  const data = unfilteredData.filter(
+  const data: Point[] = unfilteredData.filter(
     (point) =>
       typeof point.x === 'number' &&
       !Number.isNaN(point.x) &&
@@ -160,17 +166,15 @@ const data = computed<Data>(() => {
   if (Array.isArray(rawData)) {
     rawData = {}
   }
-  const axis = rawData.axis ?? {
-    x: { scale: Scale.linear },
-    y: { scale: Scale.linear },
+  const axis: AxesConfiguration = rawData.axis ?? {
+    x: { label: '', scale: Scale.linear },
+    y: { label: '', scale: Scale.linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
-  const focus = rawData.focus
+  const focus: Focus | undefined = rawData.focus
   return { axis, points, data, focus }
 })
 
-// FIXME: remove `dom`
-const dom = ref<HTMLElement>()
 const containerNode = ref<HTMLElement>()
 const svgNode = ref<SVGGElement>()
 const scatterplotNode = ref<SVGGElement>()
@@ -183,23 +187,31 @@ const brushExtent = ref<Extent>([
   [0, 0],
 ])
 const limit = ref(DEFAULT_LIMIT)
-const isZoomToSelectedVisible = ref(false)
+const isZoomToSelectedActive = ref(false)
 
-const xTicks = computed(() => props.width / 40)
-const yTicks = computed(() => props.height / 20)
+const height = computed(
+  () => props.width ?? containerNode.value?.getBoundingClientRect().width ?? 999,
+)
+const width = computed(
+  () => props.height ?? containerNode.value?.getBoundingClientRect().height ?? 999,
+)
+const xTicks = computed(() => height.value / 40)
+const yTicks = computed(() => width.value / 20)
 const margin = computed(() => {
-  if (props.xLabel == null && props.yLabel === null) {
+  const xLabel = data.value.axis.x.label
+  const yLabel = data.value.axis.y.label
+  if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
-  } else if (props.yLabel == null) {
+  } else if (yLabel == null) {
     return { top: 10, right: 20, bottom: 35, left: 35 }
-  } else if (props.xLabel == null) {
+  } else if (xLabel == null) {
     return { top: 20, right: 10, bottom: 20, left: 55 }
   } else {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const canvasWidth = computed(() => props.width)
-const canvasHeight = computed(() => props.height - BUTTONS_HEIGHT)
+const canvasWidth = computed(() => width.value)
+const canvasHeight = computed(() => height.value - BUTTONS_HEIGHT)
 // FIXME: why is this subtracting both left and right?
 const boxWidth = computed(() => canvasWidth.value - margin.value.left - margin.value.right)
 const boxHeight = computed(() => canvasHeight.value - margin.value.top - margin.value.bottom)
@@ -446,7 +458,7 @@ const brush = computed(() =>
       [boxWidth.value, boxHeight.value],
     ])
     .on('start brush', (event: D3BrushEvent) => {
-      isZoomToSelectedVisible.value = true
+      isZoomToSelectedActive.value = true
       brushExtent.value = event.selection
     }),
 )
@@ -468,7 +480,7 @@ function addBrushing() {
  * Removes brush, keyboard event and zoom button when end event is captured.
  */
 function endBrushing() {
-  isZoomToSelectedVisible.value = false
+  isZoomToSelectedActive.value = false
   d3.select(brushNode.value!).call(brush.value.move, null)
   removePointerEventsAttrsFromBrush()
 }
@@ -484,8 +496,8 @@ useDocumentEvent('scroll', endBrushing)
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
  * Section "Brushing for zooming".
  */
-function zoomIn() {
-  isZoomToSelectedVisible.value = false
+function zoomToSelected() {
+  isZoomToSelectedActive.value = false
   const [[xMinRaw, yMaxRaw], [xMaxRaw, yMinRaw]] = brushExtent.value
   let xMin = zoom.transformedScale.xScale.invert(xMinRaw)
   let xMax = zoom.transformedScale.xScale.invert(xMaxRaw)
@@ -501,9 +513,9 @@ function zoomIn() {
   zoomingHelper(zoom.transformedScale)
 }
 
-useDocumentEventConditional('keydown', isZoomToSelectedVisible, (event) => {
+useDocumentEventConditional('keydown', isZoomToSelectedActive, (event) => {
   if (shortcuts.zoomIn(event)) {
-    zoomIn()
+    zoomToSelected()
     endBrushing()
   }
 })
@@ -654,14 +666,14 @@ function updateAxes() {
 
 useDocumentEvent('keydown', (event) => {
   if (shortcuts.showAll(event)) {
-    unzoom()
+    fitAll()
   }
 })
 
 // FIXME: vue-ify
 const zoom = addPanAndZoom()
 
-function unzoom() {
+function fitAll() {
   zoom.zoomElem.transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
 
   let domainX = [
@@ -684,19 +696,31 @@ function unzoom() {
 }
 
 const xLabelLeft = computed(() =>
-  props.xLabel == null ? 0 : margin.value.left + getTextWidth(props.xLabel, LABEL_FONT_STYLE) / 2,
+  data.value.axis.x.label == null
+    ? 0
+    : margin.value.left + getTextWidth(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(() =>
-  props.yLabel == null
+  data.value.axis.y.label == null
     ? 0
-    : -margin.value.top - boxHeight.value / 2 + getTextWidth(props.yLabel, LABEL_FONT_STYLE) / 2,
+    : -margin.value.top -
+      boxHeight.value / 2 +
+      getTextWidth(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
   <VisualizationContainer :="<any>$attrs" :width="width" :height="height">
+    <template #toolbar>
+      <button class="image-button active">
+        <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
+      </button>
+      <button class="image-button" :class="{ active: isZoomToSelectedActive }">
+        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
+      </button>
+    </template>
     <div ref="containerNode" class="Scatterplot">
       <svg :width="canvasWidth" :height="canvasHeight">
         <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
@@ -708,20 +732,20 @@ const yLabelTop = computed(() => -margin.value.left + 15)
           <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="label axis-y" :transform="`translate(0, ${boxHeight})`"></g>
           <text
-            v-if="xLabel"
+            v-if="data.axis.x.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
             :y="xLabelTop"
-            v-text="xLabel"
+            v-text="data.axis.x.label"
           ></text>
           <text
-            v-if="yLabel"
+            v-if="data.axis.y.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
             :y="yLabelTop"
-            v-text="yLabel"
+            v-text="data.axis.y.label"
           ></text>
           <g ref="scatterplotNode" clip-path="url(#clip)"></g>
           <!-- FIXME: pan -->
@@ -730,10 +754,6 @@ const yLabelTop = computed(() => -margin.value.left + 15)
           </g>
         </g>
       </svg>
-      <button class="fit-all-button" @click="unzoom">Fit all</button>
-      <button v-if="isZoomToSelectedVisible" class="zoom-to-selected-button" @click="zoomIn">
-        Zoom to selected
-      </button>
     </div>
   </VisualizationContainer>
 </template>
@@ -764,7 +784,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 }
 
 .label-y {
-  transform: rotate(-90);
+  transform: rotate(-90deg);
 }
 
 .Scatterplot .selection {

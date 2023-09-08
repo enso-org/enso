@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import FullscreenIcon from './Visualization/fullscreen.svg'
-import ExitFullscreenIcon from './Visualization/exit_fullscreen.svg'
-import EyeIcon from './Visualization/eye.svg'
-import CompassIcon from './Visualization/compass.svg'
+import FullscreenIcon from './icons/fullscreen.svg'
+import ExitFullscreenIcon from './icons/exit_fullscreen.svg'
+import EyeIcon from './icons/eye.svg'
+import CompassIcon from './icons/compass.svg'
 
 import VisualizationSelector from './Visualization/VisualizationSelector.vue'
 
@@ -47,15 +47,15 @@ const isSelectorVisible = ref(false)
         <div v-if="!isCircularMenuVisible || fullscreen"></div>
         <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
           <div class="background"></div>
-          <button class="button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
+          <button class="image-button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="button active" @click="emit('update:fullscreen', !fullscreen)">
+          <button class="image-button active" @click="emit('update:fullscreen', !fullscreen)">
             <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
           </button>
           <div class="icon-container">
-            <button class="button active" @click="isSelectorVisible = !isSelectorVisible">
+            <button class="image-button active" @click="isSelectorVisible = !isSelectorVisible">
               <img class="icon" :src="CompassIcon" />
             </button>
             <VisualizationSelector
@@ -131,11 +131,7 @@ const isSelectorVisible = ref(false)
   gap: 12px;
   padding: 8px;
 
-  > * {
-    position: relative;
-  }
-
-  > .background {
+  > .background.background {
     position: absolute;
     top: 0;
     left: 0;
@@ -151,22 +147,6 @@ const isSelectorVisible = ref(false)
   }
 }
 
-.button {
-  cursor: pointer;
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-
-  &.active {
-    opacity: unset;
-  }
-
-  > * {
-    vertical-align: top;
-  }
-}
-
 .invisible {
   opacity: 0;
 }
@@ -177,5 +157,27 @@ const isSelectorVisible = ref(false)
 
 .icon-container {
   display: inline-flex;
+}
+</style>
+
+<style>
+.Visualization > .toolbars > .toolbar > * {
+  position: relative;
+}
+
+.image-button {
+  background: none;
+  padding: 0;
+  border: none;
+  opacity: 30%;
+
+  &.active {
+    cursor: pointer;
+    opacity: unset;
+  }
+
+  > * {
+    vertical-align: top;
+  }
 }
 </style>

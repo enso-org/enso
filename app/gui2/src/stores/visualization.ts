@@ -23,10 +23,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   const scriptsNode = document.body.appendChild(document.createElement('div'))
   scriptsNode.classList.add('visualization-scripts')
-  const stylesNode = document.body.appendChild(document.createElement('div'))
-  stylesNode.classList.add('visualization-styles')
   const loadedScripts = new Set<string>()
-  const loadedStyles = new Set<string>()
 
   function register(name: string, inputType: string) {
     console.log(`registering visualization: name=${name}, inputType=${inputType}`)
@@ -57,33 +54,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
             }),
           )
           scriptsNode.appendChild(node)
-        }
-      }
-    }
-    if ('styles' in module && module.styles) {
-      if (!Array.isArray(module.styles)) {
-        console.warn('Visualiation styles should be an array:', module.scripts)
-      }
-      const styles = Array.isArray(module.styles) ? module.styles : [module.styles]
-      for (const url of styles) {
-        if (typeof url !== 'string') {
-          console.warn('Visualization style should be a string, skipping URL:', url)
-        } else if (!loadedStyles.has(url)) {
-          loadedStyles.add(url)
-          const node = document.createElement('link')
-          node.rel = 'stylesheet'
-          node.href = url
-          promises.push(
-            new Promise<void>((resolve, reject) => {
-              node.addEventListener('load', () => {
-                resolve()
-              })
-              node.addEventListener('error', () => {
-                reject()
-              })
-            }),
-          )
-          stylesNode.appendChild(node)
         }
       }
     }
@@ -137,6 +107,20 @@ jcuMTIgMTcuNzdhNC42OCA0LjY4IDAgMCAxIDIuMzkgNS45MiAxMC4yMiAxMC4yMiAwIDAgMS05LjU2I
 IDAgMCAxIDkuNzcgMjAuMzZzMS41NSAyLjA4IDQuNTcgMi4wOGMzLjAxIDAgNC4zNi0xLjE0IDUuNi0yLjA4IDEuMjUtLjkzIDI\
 uMDktMyA1LjItMyAuNzMgMCAxLjQ2LjIgMS45OC40WiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9Ii\
 NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
+        }
+      }
+      case 'Scatterplot': {
+        return {
+          axis: {
+            x: { label: 'x-axis label', scale: 'linear' },
+            y: { label: 'y-axis label', scale: 'logarithmic' },
+          },
+          focus: { x: 1.7, y: 2.1, zoom: 3.0 },
+          points: { labels: 'visible' },
+          data: [
+            { x: 0.1, y: 0.7, label: 'foo', color: 'FF0000', shape: 'circle', size: 0.2 },
+            { x: 0.4, y: 0.2, label: 'baz', color: '0000FF', shape: 'square', size: 0.3 },
+          ],
         }
       }
       default: {
