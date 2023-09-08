@@ -132,7 +132,7 @@ type No_Input_Columns_Selected
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation
     ## PRIVATE
-    Error (column:Text) (rows:Vector Integer) (message:Text)
+    Error (column:Text) (rows:(Vector Integer)) (message:Text)
 
     ## PRIVATE
 
@@ -158,7 +158,7 @@ type Floating_Point_Equality
    without any quote character
 type Unquoted_Delimiter
     ## PRIVATE
-    Error (column:Text) (rows:Vector Integer)
+    Error (column:Text) (rows:(Vector Integer))
 
     ## PRIVATE
 
@@ -274,7 +274,7 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:Vector Text)
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:(Vector Text))
 
     ## PRIVATE
        Pretty print the invalid format error.

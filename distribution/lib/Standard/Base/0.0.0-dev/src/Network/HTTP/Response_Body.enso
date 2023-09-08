@@ -10,10 +10,9 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
-import project.System.File.Input_Stream
 import project.System.File.Write_Extensions
+import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
-from project.System.File import close_stream
 
 polyglot java import java.io.InputStream
 
