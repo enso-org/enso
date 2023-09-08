@@ -157,6 +157,19 @@ spec =
             fail = Panic.recover Type_Error <| check 0 True
             fail . should_fail_with Type_Error
 
+        Test.specify "Requesting Foo & Not_Foo & Boolean" <|
+            check a (n : Foo & Not_Foo & Boolean) = case a of
+                0 -> n.foo
+                1 -> n.not
+                2 -> n.notfoo
+
+            check 0 True . should_be_true
+            check 1 True . should_be_false
+            check 2 True . should_be_true
+
+            fail = Panic.recover Type_Error <| check 0 "not a boolean"
+            fail . should_fail_with Type_Error
+
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 

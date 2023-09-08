@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.argument;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.enso.compiler.core.ir.Name;
 import org.enso.interpreter.EnsoLanguage;
@@ -24,8 +25,8 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -81,7 +82,9 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   public static ReadArgumentCheckNode allOf(Name argumentName, ReadArgumentCheckNode... checks) {
-    var arr = toArray(Arrays.asList(checks));
+    var list = Arrays.asList(checks);
+    var flatten = list.stream().flatMap(n -> n instanceof AllOfNode all ? Arrays.asList(all.checks).stream() : Stream.of(n)).toList();
+    var arr = toArray(flatten);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
