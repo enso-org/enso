@@ -58,9 +58,6 @@ public abstract class IsValueOfTypeNode extends Node {
       Type tpe = TypesGen.asType(tpeOfPayload);
       var ctx = EnsoContext.get(typeOfNode);
       for (var superTpe : tpe.allTypes(ctx)) {
-        if (tpe == superTpe) {
-          break;
-        }
         boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
         if (testSuperTpe) {
           return true;
