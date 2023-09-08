@@ -167,79 +167,12 @@ list_directory directory name_filter=Nothing recursive=False =
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
-    Data.fetch_or_post uri Request_Body.Empty method headers try_auto_parse
+fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    HTTP.fetch uri method headers try_auto_parse_response
 
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    check_method ~action =
-        if method == HTTP_Method.Post || method == HTTP_Method.Put || method == HTTP_Method.Patch then action else
-            Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text + ", only POST/PUT/PATCH are currently supported"))
-    check_method <|
-        Data.fetch_or_post uri body method headers try_auto_parse_response
-
-## PRIVATE
-fetch_or_post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch_or_post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    request = Request.new method uri (parse_headers headers) body
-    response = HTTP.new.request request
-    r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-        if try_auto_parse_response.not then response else
-            response.decode if_unsupported=response . catch handler=(_->response)
-    IO.println 'AAA parsed(?) response'
-    IO.println r
-    IO.println <| Meta.get_simple_type_name r
-    r
-
-old_post : (URI | Text) -> Text | File | Request_Body | Any -> Text | Nothing -> Vector (Header | Pair Text Text) -> Boolean -> Any
-old_post uri body mime_type=Nothing headers=[] try_auto_parse=True =
-    parsed_headers = parse_headers headers
-
-    request = case body of
-        _ : Request_Body ->
-            if mime_type.is_nothing.not then
-                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting a Request_Body")
-            Request.new HTTP_Method.Post uri parsed_headers body
-        _ : Text ->
-            request_body_ctor = if mime_type == "text/plain" || mime_type.is_nothing then Request_Body.Text else if mime_type == "application/json" then Request_Body.Json else
-                Error.throw (Illegal_Argument.Error "When posting a Text object, mime type must be 'text/plain' or 'application/json'")
-            Request.new HTTP_Method.Post uri parsed_headers (request_body_ctor body)
-        _ : File ->
-            if mime_type.is_nothing.not then
-                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting a File")
-            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.File body)
-        _ ->
-            if mime_type.is_nothing.not then
-                Error.throw (Illegal_Argument.Error "Cannot specify a MIME type when posting an Enso object as JSON")
-            json = body.to_json
-            Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Json json)
-
-    perform_request_and_auto_parse request try_auto_parse
-
-old_post_file_as_form : (URI | Text) -> File -> Text -> Vector (Header | Pair Text Text) -> Boolean -> Any
-old_post_file_as_form uri file field_name headers=[] try_auto_parse=True =
-    parsed_headers = parse_headers headers
-    parts = [Form.file_field field_name file]
-    request = Request.new HTTP_Method.Post uri parsed_headers (Request_Body.Form (Form.new parts))
-    perform_request_and_auto_parse request try_auto_parse
-
-## PRIVATE
-perform_request_and_auto_parse : Request -> Boolean -> Any
-perform_request_and_auto_parse request try_auto_parse =
-    IO.println 'AAA'
-    IO.println request
-    response = HTTP.new.request request
-    IO.println 'AAA1'
-    IO.println response
-    IO.println <| Meta.get_simple_type_name response
-
-    r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-        if try_auto_parse.not then response else
-            response.decode if_unsupported=response . catch handler=(_->response)
-    IO.println 'AAA12'
-    IO.println r
-    IO.println <| Meta.get_simple_type_name r
-    r
+    HTTP.fetch_or_post uri body method headers try_auto_parse_response
 
 ## ALIAS download, http get
    GROUP Input
@@ -255,12 +188,3 @@ perform_request_and_auto_parse request try_auto_parse =
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
     Data.fetch self method headers try_auto_parse
-
-## PRIVATE
-parse_headers : Vector (Header | Pair Text Text) -> Vector Header
-parse_headers headers =
-    headers . map h-> case h of
-        _ : Vector -> Header.new (h.at 0) (h.at 1)
-        _ : Pair -> Header.new (h.at 0) (h.at 1)
-        _ : Header -> h
-        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
