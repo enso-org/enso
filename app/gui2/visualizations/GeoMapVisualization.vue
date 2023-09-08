@@ -1,10 +1,6 @@
 <script lang="ts">
 export const name = 'Geo Map'
 export const inputType = 'Standard.Table.Data.Table.Table'
-export const scripts = [
-  'https://unpkg.com/deck.gl@8.4/dist.min.js',
-  'https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.js',
-]
 
 /**
  * Provides a mapbox & deck.gl-based map visualization.
@@ -68,6 +64,9 @@ interface DataFrame {
   df_radius?: number[]
   df_label?: string[]
 }
+
+/// <reference types="@danmarshall/deckgl-typings" />
+declare var deckGl: typeof import('deck.gl')
 </script>
 
 <script setup lang="ts">
@@ -79,6 +78,11 @@ import GeoMapPinIcon from './icons/geo_map_pin.svg'
 import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watchEffect } from 'vue'
+
+// @ts-expect-error
+// eslint-disable-next-line no-redeclare
+import deckGl from 'https://cdn.jsdelivr.net/npm/deck.gl@8.9.27/+esm'
+// import mapboxGl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm'
 
 const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
@@ -127,6 +131,7 @@ const mapStyle = ref(DEFAULT_MAP_STYLE)
 const pitch = ref(0)
 const controller = ref(true)
 const showingLabels = ref(true)
+const deckgl = ref<import('deck.gl').DeckGL | null>()
 
 watchEffect(() => {
   if (updateState(data.value)) {
@@ -179,7 +184,7 @@ function updateState(data: Data) {
 }
 
 function updateMap() {
-  if (deckgl == null) {
+  if (deckgl.value == null) {
     initDeckGl()
   } else {
     updateDeckGl()
@@ -187,22 +192,22 @@ function updateMap() {
 }
 
 function makeScatterLayer() {
-  return new deck.ScatterplotLayer({
-    data: dataPoints,
-    getFillColor: (d) => d.color,
-    getRadius: (d) => d.radius,
-    pickable: showingLabels,
+  return new deckGl.ScatterplotLayer<Location>({
+    data: dataPoints.value,
+    getFillColor: (d) => d.color!,
+    getRadius: (d) => d.radius!,
+    pickable: showingLabels.value,
   })
 }
 
 function initDeckGl() {
   try {
-    deckgl = new deck.DeckGL({
+    deckgl.value = new deckGl.DeckGL({
       container: mapId,
       mapboxApiAccessToken: TOKEN,
-      mapStyle: mapStyle,
+      mapStyle: mapStyle.value,
       initialViewState: viewState(),
-      controller: controller,
+      controller: controller.value,
     })
   } catch (error) {
     console.error(error)
@@ -215,33 +220,39 @@ function initDeckGl() {
  * Reset the internal state of the visualization, discarding all previous data updates.
  */
 function resetState() {
-  // We only need to reset the data points as everything else will be overwritten when new
-  // data arrives.
-  dataPoints = []
+  // We only need to reset the data points as everything else will be overwritten when new data
+  // arrives.
+  dataPoints.value = []
 }
 
 function resetDeckGl() {
-  deckgl = undefined
+  deckgl.value = undefined
   resetMapElement()
 }
 
 function resetMapElement() {
-  while (mapElem.hasChildNodes()) {
-    mapElem.removeChild(mapElem.childNodes[0])
+  const map = mapNode.value
+  if (map == null) {
+    return
+  }
+  while (map.lastChild != null) {
+    map.removeChild(map.lastChild)
   }
 }
 
 function updateDeckGl() {
-  deckgl.viewState = viewState()
-  deckgl.mapStyle = mapStyle
-  deckgl.controller = controller
+  if (deckgl.value != null) {
+    deckgl.value.viewState = viewState()
+    deckgl.value.mapStyle = mapStyle.value
+    deckgl.value.controller = controller.value
+  }
 }
 
 function updateLayers() {
-  if (deckgl == null) {
+  if (deckgl.value == null) {
     return
   }
-  deckgl.setProps({
+  deckgl.value.setProps({
     layers: [makeScatterLayer()],
     getTooltip: ({ object }) =>
       object && {
@@ -260,47 +271,65 @@ function updateLayers() {
   })
 }
 
+/**
+ * Calculate the center of the bounding box of the given list of objects. The objects need to have
+ * a `position` attribute with two coordinates.
+ */
 function centerPoint() {
-  const { x, y } = calculateCenterPoint(dataPoints)
-  return { latitude: y, longitude: x }
+  let minX = 0
+  let maxX = 0
+  let minY = 0
+  let maxY = 0
+  {
+    const xs = dataPoints.value.map((p) => p.position[0])
+    minX = Math.min(...xs)
+    maxX = Math.min(...xs)
+  }
+  {
+    const ys = dataPoints.value.map((p) => p.position[1])
+    minY = Math.min(...ys)
+    maxY = Math.min(...ys)
+  }
+  let longitude = (minX + maxX) / 2
+  let latitude = (minY + maxY) / 2
+  return { latitude, longitude }
 }
 
 /**
  * Extract the visualization data from a full configuration object.
  */
-function extractVisualizationDataFromFullConfig(
-  parsedData: Location[],
-  preparedDataPoints: Location[],
-) {
+function extractVisualizationDataFromFullConfig(parsedData: Location[]) {
   if (parsedData.type === SCATTERPLOT_LAYER && parsedData.data.length) {
-    pushPoints(parsedData.data, preparedDataPoints)
+    pushPoints(parsedData.data)
   } else if (parsedData.layers != null) {
     parsedData.layers.forEach((layer) => {
       if (layer.type === SCATTERPLOT_LAYER) {
         let dataPoints = layer.data ?? []
-        pushPoints(dataPoints, preparedDataPoints)
+        pushPoints(dataPoints)
       } else {
         console.warn('Geo_Map: Currently unsupported deck.gl layer.')
       }
     })
   }
+  // eslint-disable-next-line no-self-assign
+  dataPoints.value = dataPoints.value
 }
 
 /**
  * Extract the visualization data from a dataframe.
  */
-function extractVisualizationDataFromDataFrame(
-  parsedData: LocationDataFrame,
-  preparedDataPoints: Location[],
-) {
+function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
+  const points = dataPoints.value
   for (let i = 0; i < parsedData.df_latitude.length; i += 1) {
     const latitude = parsedData.df_longitude[i]
     const longitude = parsedData.df_longitude[i]
     const label = parsedData.df_label?.[i]
     const color = parsedData.df_color?.[i]
     const radius = parsedData.df_radius?.[i]
-    return preparedDataPoints.push({ latitude, longitude, label, color, radius })
+    points.push({ latitude, longitude, label, color, radius })
   }
+  // eslint-disable-next-line no-self-assign
+  dataPoints.value = dataPoints.value
 }
 
 /**
@@ -311,14 +340,11 @@ function extractVisualizationDataFromDataFrame(
  * @param preparedDataPoints - List holding data points to push the GeoPoints into.
  * @param ACCENT_COLOR        - accent color of IDE if element doesn't specify one.
  */
-function extractDataPoints(
-  parsedData: Location[] | LocationDataFrame,
-  preparedDataPoints: Location[],
-) {
+function extractDataPoints(parsedData: Location[] | DataFrame) {
   if ('df_latitude' in parsedData && 'df_longitude' in parsedData) {
-    extractVisualizationDataFromDataFrame(parsedData, preparedDataPoints)
+    extractVisualizationDataFromDataFrame(parsedData)
   } else {
-    extractVisualizationDataFromFullConfig(parsedData, preparedDataPoints)
+    extractVisualizationDataFromFullConfig(parsedData)
   }
 }
 
@@ -329,53 +355,25 @@ function extractDataPoints(
  * Expects the `dataPoints` to be a list of objects that have a `longitude` and `latitude` and
  * optionally `radius`, `color` and `label`.
  */
-function pushPoints(dataPoints, targetList) {
-  dataPoints.forEach((geoPoint) => {
+function pushPoints(newPoints) {
+  const points = dataPoints.value
+  for (const point of newPoints) {
     if (
-      typeof geoPoint.longitude === 'number' &&
-      !Number.isNaN(geoPoint.longitude) &&
-      typeof geoPoint.latitude === 'number' &&
-      !Number.isNaN(geoPoint.latitude)
+      typeof point.longitude === 'number' &&
+      !Number.isNaN(point.longitude) &&
+      typeof point.latitude === 'number' &&
+      !Number.isNaN(point.latitude)
     ) {
-      let position = [geoPoint.longitude, geoPoint.latitude]
-      let radius = isValidNumber(geoPoint.radius) ? geoPoint.radius : DEFAULT_POINT_RADIUS
-      let color = geoPoint.color ?? ACCENT_COLOR
-      let label = geoPoint.label ?? ''
-      targetList.push({ position, color, radius, label })
+      let position = [point.longitude, point.latitude]
+      let radius =
+        typeof point.radius === 'number' && !Number.isNaN(point.radius)
+          ? point.radius
+          : DEFAULT_POINT_RADIUS
+      let color = point.color ?? ACCENT_COLOR
+      let label = point.label ?? ''
+      points.push({ position, color, radius, label })
     }
-  })
-}
-
-/**
- * Calculate the bounding box of the given list of objects. The objects need to have
- * a `position` attribute with two coordinates.
- */
-function calculateExtent(dataPoints) {
-  const xs = []
-  const ys = []
-  dataPoints.forEach((e) => {
-    xs.push(e.position[0])
-    ys.push(e.position[1])
-  })
-  if (xs.length && ys.length) {
-    let minX = Math.min(...xs)
-    let maxX = Math.max(...xs)
-    let minY = Math.min(...ys)
-    let maxY = Math.max(...ys)
-    return { minX, maxX, minY, maxY }
   }
-  return undefined
-}
-
-/**
- * Calculate the center of the bounding box of the given list of objects. The objects need to have
- * a `position` attribute with two coordinates.
- */
-function calculateCenterPoint(dataPoints): Point {
-  let { minX, maxX, minY, maxY } = calculateExtent(dataPoints)
-  let x = (minX + maxX) / 2
-  let y = (minY + maxY) / 2
-  return { x, y }
 }
 </script>
 

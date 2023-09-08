@@ -1,8 +1,6 @@
 <script lang="ts">
 export const name = '<name here>'
 export const inputType = '<allowed input type(s) here>'
-// Optional
-export const scripts = ['<js>', '<dependencies>', '<here>']
 
 // Optional: Move the type `Data` here if it errors when placed in the `script setup` block.
 </script>
@@ -10,6 +8,9 @@ export const scripts = ['<js>', '<dependencies>', '<here>']
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import VisualizationContainer from './VisualizationContainer.vue'
+// Optional
+// @ts-expect-error
+import dependency from 'http://<js dependency here>'
 
 const props = defineProps<{
   data: Data | string
