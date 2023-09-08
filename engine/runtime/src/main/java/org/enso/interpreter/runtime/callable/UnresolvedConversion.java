@@ -45,10 +45,12 @@ public final class UnresolvedConversion implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {
-    for (var current : from.allTypes(ctx)) {
-      Function candidate = scope.lookupConversionDefinition(current, into);
-      if (candidate != null) {
-        return candidate;
+    if (from != null) {
+      for (var current : from.allTypes(ctx)) {
+        Function candidate = scope.lookupConversionDefinition(current, into);
+        if (candidate != null) {
+          return candidate;
+        }
       }
     }
     return scope.lookupConversionDefinition(ctx.getBuiltins().any(), into);

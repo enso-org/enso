@@ -153,8 +153,7 @@ public abstract class ReadArgumentCheckNode extends Node {
         valueTypes[at] = types.getType(result);
         at++;
       }
-      var multiType = Type.createMultiType(valueTypes);
-      return EnsoMultiValue.create(multiType, values);
+      return EnsoMultiValue.create(valueTypes, values);
     }
 
     @Override
@@ -259,11 +258,9 @@ public abstract class ReadArgumentCheckNode extends Node {
         return lazyCheckFn;
       }
       if (v instanceof EnsoMultiValue mv) {
-        var types = mv.getType().allTypes(null);
-        for (var i = 0; i < types.length; i++) {
-          if (expectedType == types[i]) {
-            return mv.getValue(i);
-          }
+        var result = mv.castTo(expectedType);
+        if (result != null) {
+          return result;
         }
       }
       if (checkType.execute(expectedType, v)) {
@@ -337,7 +334,6 @@ public abstract class ReadArgumentCheckNode extends Node {
       }
       CompilerDirectives.transferToInterpreterAndInvalidate();
       expectedTypeMessage = expectedType.toString();
-      // TBD : Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
       return expectedTypeMessage;
     }
   }
