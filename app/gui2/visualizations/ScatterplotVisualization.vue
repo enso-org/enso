@@ -1,6 +1,9 @@
 <script lang="ts">
+/// <reference types="d3" />
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+export const scripts = ['https://d3js.org/d3.v7.min.js']
+export const styles = ['https://fonts.cdnfonts.com/css/dejavu-sans-mono']
 
 interface Data {
   axis: AxesConfiguration
@@ -50,10 +53,11 @@ import { getTextWidth } from './measurement'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
-import * as d3 from 'd3'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
-// TODO refactor this to avoid loading scripts on startup. See issue #985.
+const d3: typeof import('d3') = (window as any).d3
+console.log('what', d3)
+
 /**
  * A d3.js ScatterPlot visualization.
  *
@@ -85,9 +89,8 @@ import { computed, onMounted, ref, watchEffect } from 'vue'
 const props = defineProps<{
   data: Data | string
   // FIXME: these should be part of data.
-  defaultPointColor: Color // Was previously `theme.get('accent')`
-  width: number
-  height: number
+  width: number | undefined
+  height: number | undefined
   xLabel?: string
   yLabel?: string
 }>()
@@ -102,13 +105,13 @@ let shortcuts = {
 }
 
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
-const X_AXIS_LABEL_WIDTH = 30
 const POINT_LABEL_PADDING_X = 7
 const POINT_LABEL_PADDING_Y = 2
 const ANIMATION_DURATION = 1000
 const VISIBLE_POINTS = 'visible'
 const BUTTONS_HEIGHT = 25
 const DEFAULT_LIMIT = 1024
+const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 
 const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   cross: d3.symbolCross,
@@ -182,6 +185,8 @@ const brushExtent = ref<Extent>([
 const limit = ref(DEFAULT_LIMIT)
 const isZoomToSelectedVisible = ref(false)
 
+const xTicks = computed(() => props.width / 40)
+const yTicks = computed(() => props.height / 20)
 const margin = computed(() => {
   if (props.xLabel == null && props.yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
@@ -249,12 +254,16 @@ const extremesAndDeltas = computed(() => {
 })
 
 // FIXME: scaleAndAxis
-const scaleAndAxis = updateAxes()
-function drawScatterplot() {
-  updateScatter()
-  updateAxes()
-  addBrushing()
-}
+let scaleAndAxis = {} as ReturnType<typeof updateAxes>
+
+watch(
+  () => [props.width, props.height],
+  () => {
+    updateScatter()
+    scaleAndAxis = updateAxes()
+    addBrushing()
+  },
+)
 
 /**
  * Adds panning and zooming functionality to the visualization.
@@ -367,8 +376,8 @@ function addPanAndZoom() {
       rescale(event.transform)
     }
 
-    scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(props.width / 40))
-    scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(props.height / 20))
+    scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(xTicks.value))
+    scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(yTicks.value))
     d3.select(scatterplotNode.value!)
       .selectAll<SVGPathElement, Point>('path')
       .attr(
@@ -506,11 +515,11 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
   d3.select(xAxisNode.value!)
     .transition()
     .duration(ANIMATION_DURATION)
-    .call(d3.axisBottom(scaleAndAxis.xScale).ticks(props.width / 40))
+    .call(d3.axisBottom(scaleAndAxis.xScale).ticks(xTicks.value))
   d3.select(yAxisNode.value!)
     .transition()
     .duration(ANIMATION_DURATION)
-    .call(d3.axisLeft(scaleAndAxis.yScale).ticks(props.height / 20))
+    .call(d3.axisLeft(scaleAndAxis.yScale).ticks(yTicks.value))
 
   d3.select(scatterplotNode.value!)
     .selectAll<SVGPathElement, Point>('path')
@@ -538,7 +547,7 @@ function updateScatter() {
   const symbol = d3.symbol()
   const sizeScaleMultiplier = 100
 
-  const color = props.defaultPointColor
+  const color = ACCENT_COLOR
   const fillColor = `rgba(${color.red * 255},${color.green * 255},${color.blue * 255},0.8)`
 
   d3.select(svgNode.value!)
@@ -625,20 +634,21 @@ const domains = computed(() => {
  */
 function updateAxes() {
   if (xAxisNode.value == null) {
-    throw new Error('Could not find HTML element for the x axis.')
-  } else if (yAxisNode.value == null) {
-    throw new Error('Could not find HTML element for the y axis.')
+    console.warn('Could not find HTML element for the x axis.')
+  }
+  if (yAxisNode.value == null) {
+    console.warn('Could not find HTML element for the y axis.')
   }
 
   let xScale = axisD3Scale(data.value.axis?.x) as d3.ScaleLinear<number, number, never>
   xScale.domain(domains.value.x)
   xScale.range([0, boxWidth.value])
-  let xAxis = d3.select(xAxisNode.value!).call(d3.axisBottom(xScale).ticks(props.width / 40))
+  let xAxis = d3.select(xAxisNode.value!).call(d3.axisBottom(xScale).ticks(xTicks.value))
 
   let yScale = axisD3Scale(data.value.axis?.y) as d3.ScaleLinear<number, number, never>
   yScale.domain(domains.value.y)
   yScale.range([boxHeight.value, 0])
-  let yAxis = d3.select(yAxisNode.value!).call(d3.axisLeft(yScale).ticks(props.height / 20))
+  let yAxis = d3.select(yAxisNode.value!).call(d3.axisLeft(yScale).ticks(yTicks.value))
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
 
@@ -673,16 +683,6 @@ function unzoom() {
   updatePreprocessor()
 }
 
-watchEffect(() => {
-  dom.value?.setAttribute('width', String(props.width))
-  drawScatterplot()
-})
-
-watchEffect(() => {
-  dom.value?.setAttribute('height', String(props.height))
-  drawScatterplot()
-})
-
 const xLabelLeft = computed(() =>
   props.xLabel == null ? 0 : margin.value.left + getTextWidth(props.xLabel, LABEL_FONT_STYLE) / 2,
 )
@@ -697,7 +697,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 
 <template>
   <VisualizationContainer :="<any>$attrs" :width="width" :height="height">
-    <div class="Scatterplot" ref="containerNode">
+    <div ref="containerNode" class="Scatterplot">
       <svg :width="canvasWidth" :height="canvasHeight">
         <g ref="svgNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
@@ -791,31 +791,5 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 button:hover {
   background-color: var(--color-button-light);
   color: var(--color-selection-fill-dark);
-}
-
-/* FIXME[sb]: Dark theme is currently not supported. */
-.dark-theme button {
-  border: 0;
-  background-color: var(--color-stroke-dark);
-}
-
-.dark-theme button:hover {
-  background-color: var(--color-button-dark-hover);
-}
-
-.dark-theme .selection {
-  fill: var(--color-selection-fill-dark);
-}
-
-.dark-theme line {
-  stroke: var(--color-stroke-dark);
-}
-
-.dark-theme .domain {
-  stroke: var(--color-stroke-dark);
-}
-
-.dark-theme text {
-  fill: var(--color-stroke-dark);
 }
 </style>
