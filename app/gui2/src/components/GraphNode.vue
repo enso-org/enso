@@ -2,9 +2,9 @@
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 
-import { useVisualizationStore, type Visualization } from '@/stores/visualization'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
+import { useVisualizationStore, type Visualization } from '@/stores/visualization'
 import { usePointer, useResizeObserver } from '@/util/events'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'

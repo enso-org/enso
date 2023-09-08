@@ -2,17 +2,27 @@
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
+import TopBar from '@/components/TopBar.vue'
+
 import { useGraphStore } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
-import { reactive, ref } from 'vue'
+import { reactive, ref, watchEffect } from 'vue'
 
+const EXECUTION_MODES = ['design', 'live']
+
+const title = ref('Test Project')
+const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
+
+watchEffect(() => {
+  console.log(`execution mode changed to '${mode.value}'.`)
+})
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -90,6 +100,16 @@ function moveNode(id: ExprId, delta: Vec2) {
       />
     </div>
     <ComponentBrowser :navigator="navigator" />
+    <TopBar
+      v-model:mode="mode"
+      :title="title"
+      :modes="EXECUTION_MODES"
+      :breadcrumbs="['main', 'ad_analytics']"
+      @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
+      @back="console.log('breadcrumbs \'back\' button clicked.')"
+      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      @execute="console.log('\'execute\' button clicked.')"
+    />
   </div>
 </template>
 

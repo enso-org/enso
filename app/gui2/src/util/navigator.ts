@@ -30,20 +30,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     )
   }
 
-  let lastDragTimestamp: number = 0
-  let dragHasMoved: boolean = false
   let zoomPivot = Vec2.Zero()
   const zoomPointer = usePointer((pos, event, ty) => {
     if (ty === 'start') {
-      dragHasMoved = false
       zoomPivot = eventToScenePos(event, pos.initial)
     }
-    if (ty === 'move') {
-      dragHasMoved = true
-    }
-    if (dragHasMoved) {
-      lastDragTimestamp = event.timeStamp
-    }
+
     const prevScale = scale.value
     scale.value = Math.max(0.1, Math.min(10, scale.value * Math.exp(-pos.delta.y / 100)))
     center.value = center.value
@@ -78,9 +70,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
   useWindowEvent(
     'contextmenu',
     (e) => {
-      if (lastDragTimestamp >= e.timeStamp) {
-        e.preventDefault()
-      }
+      e.preventDefault()
     },
     { capture: true },
   )
