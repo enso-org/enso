@@ -91,7 +91,7 @@ type HTTP
                 handle_request_error =
                     Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
-                handle_request_error <| check_output_context <| # Panic.recover Any <|
+                Panic.recover Any <| handle_request_error <| check_output_context <|
                     body_publishers = HttpRequest.BodyPublishers
                     builder = HttpRequest.newBuilder
 
