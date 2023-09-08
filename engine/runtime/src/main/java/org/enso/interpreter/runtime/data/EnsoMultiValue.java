@@ -23,7 +23,8 @@ public final class EnsoMultiValue implements EnsoObject {
   private final Object[] values;
 
   private EnsoMultiValue(Type[] types, Object[] values) {
-    this.types = types;
+this.types = types;
+assert types.length == values.length;
     this.values = values;
   }
 
