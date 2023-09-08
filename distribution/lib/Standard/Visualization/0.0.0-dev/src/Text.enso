@@ -3,7 +3,7 @@ from Standard.Base import all
 ## PRIVATE
    Message to be sent to the IDE.
 type Message
-
+    ## PRIVATE
     Value chunks line_count max_line_length
 
     ## PRIVATE

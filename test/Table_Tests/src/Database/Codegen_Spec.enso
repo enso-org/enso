@@ -24,7 +24,7 @@ spec =
         c
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
-        Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
+        Test.specify "should serialize Tables and Columns to their SQL representation" pending="ToDo: decide on how we handle ==, see https://github.com/enso-org/enso/issues/5241" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]

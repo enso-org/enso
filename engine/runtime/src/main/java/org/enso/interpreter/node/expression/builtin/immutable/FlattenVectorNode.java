@@ -2,20 +2,17 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -28,87 +25,41 @@ public abstract class FlattenVectorNode extends Node {
     return FlattenVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object self);
+  abstract EnsoObject execute(Object self);
 
   @Specialization
-  Vector fromVector(
-      Vector self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
-      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    try {
-      return flatten(self.toArray(), copyNode, interop);
-    } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeTypeError(builtins.vector(), self, "self"), this);
-    }
-  }
-
-  @Specialization
-  Vector fromArray(
-      Array self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
-      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-    try {
-      return flatten(self, copyNode, interop);
-    } catch (UnsupportedMessageException e) {
-      throw unsupportedException(self);
-    }
-  }
-
-  @Specialization(guards = "interop.hasArrayElements(self)")
-  Vector fromArrayLike(
+  EnsoObject flattenAnything(
       Object self,
-      @Shared("copyNode") @Cached CopyNode copyNode,
-      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Cached ArrayLikeCopyToArrayNode copyNode,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode) {
+    return flatten(self, copyNode, lengthNode, atNode);
+  }
+
+  private EnsoObject flatten(
+      Object storage,
+      ArrayLikeCopyToArrayNode copyNode,
+      ArrayLikeLengthNode lengthNode,
+      ArrayLikeAtNode atNode) {
     try {
-      return flatten(self, copyNode, interop);
-    } catch (UnsupportedMessageException e) {
-      throw unsupportedException(self);
-    }
-  }
-
-  @Fallback
-  Vector fromUnknown(Object self) {
-    throw unsupportedException(self);
-  }
-
-  private PanicException unsupportedException(Object self) {
-    CompilerDirectives.transferToInterpreter();
-    var ctx = EnsoContext.get(this);
-    var err = ctx.getBuiltins().error().makeTypeError("polyglot array", self, "self");
-    throw new PanicException(err, this);
-  }
-
-  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop)
-      throws UnsupportedMessageException {
-    try {
-      long length = interop.getArraySize(storage);
+      long length = lengthNode.executeLength(storage);
 
       long flattened_length = 0;
       for (long i = 0; i < length; i++) {
-        var item = interop.readArrayElement(storage, i);
-        if (!interop.hasArrayElements(item)) {
-          CompilerDirectives.transferToInterpreter();
-          Builtins builtins = EnsoContext.get(this).getBuiltins();
-          throw new PanicException(
-              builtins.error().makeTypeError(builtins.vector(), item, "[" + i + "]"), this);
-        }
-
-        flattened_length += interop.getArraySize(item);
+        var item = atNode.executeAt(storage, i);
+        flattened_length += lengthNode.executeLength(item);
       }
 
-      Array result = Array.allocate(flattened_length);
+      var result = ArrayLikeHelpers.allocate(flattened_length);
       long current_index = 0;
       for (long i = 0; i < length; i++) {
-        var item = interop.readArrayElement(storage, i);
-        var item_length = interop.getArraySize(item);
+        var item = atNode.executeAt(storage, i);
+        var item_length = lengthNode.executeLength(item);
         copyNode.execute(item, 0, result, current_index, item_length);
         current_index += item_length;
       }
 
-      return Vector.fromArray(result);
+      return ArrayLikeHelpers.asVectorFromArray(result);
     } catch (InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();

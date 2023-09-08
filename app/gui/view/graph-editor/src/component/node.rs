@@ -4,7 +4,6 @@ use crate::prelude::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
-use crate::component::node::profiling::ProfilingLabel;
 use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
@@ -40,8 +39,6 @@ pub mod expression;
 pub mod growth_animation;
 pub mod input;
 pub mod output;
-#[warn(missing_docs)]
-pub mod profiling;
 #[deny(missing_docs)]
 pub mod vcs;
 
@@ -72,8 +69,9 @@ pub const COMMENT_MARGIN: f32 = 10.0;
 
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y: f32 = -20.0;
-const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, VISUALIZATION_OFFSET_Y);
+/// Distance between the origin of the node and the top of the visualization.
+const VISUALIZATION_OFFSET_Y: f32 = 25.0;
+const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, -VISUALIZATION_OFFSET_Y);
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
@@ -213,6 +211,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
+        set_pending           (bool),
         set_connections       (HashMap<span_tree::PortId, color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
@@ -239,7 +238,6 @@ ensogl::define_endpoints_2! {
         set_view_mode                     (view::Mode),
         set_profiling_min_global_duration (f32),
         set_profiling_max_global_duration (f32),
-        set_profiling_status              (profiling::Status),
         /// Indicate whether on hover the quick action icons should appear.
         show_quick_action_bar_on_hover    (bool),
         set_execution_environment         (ExecutionEnvironment),
@@ -378,7 +376,6 @@ pub struct NodeModel {
     pub display_object:      display::object::Instance,
     pub background:          Background,
     pub error_indicator:     Rectangle,
-    pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
     pub output:              output::Area,
     pub visualization:       visualization::Container,
@@ -403,12 +400,10 @@ impl NodeModel {
             .set_pointer_events(false)
             .set_color(color::Rgba::transparent())
             .set_border_and_inset(ERROR_BORDER_WIDTH);
-        let profiling_label = ProfilingLabel::new(app);
         let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
         let display_object = display::object::Instance::new_named("Node");
 
-        display_object.add_child(&profiling_label);
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
@@ -441,7 +436,6 @@ impl NodeModel {
             display_object,
             background,
             error_indicator,
-            profiling_label,
             input,
             output,
             visualization,
@@ -655,6 +649,7 @@ impl Node {
 
             model.input.set_connections <+ input.set_connections;
             model.input.set_disabled <+ input.set_disabled;
+            model.input.set_pending <+ input.set_pending;
             model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
@@ -712,7 +707,6 @@ impl Node {
 
             model.input.set_view_mode <+ input.set_view_mode;
             model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
-            model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
@@ -813,8 +807,8 @@ impl Node {
             visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
         }
         frp::extend! { network
-            update_error <- all(input.set_error,preview_visible);
-            eval update_error([model]((error,visible)){
+            update_error <- all(input.set_error, preview_visible);
+            eval update_error([model]((error, visible)){
                 if *visible {
                      model.set_error(error.as_ref());
                 } else {
@@ -828,17 +822,6 @@ impl Node {
             enable_fullscreen <- frp.enable_fullscreen_visualization.gate(&no_error_set);
             visualization.set_view_state <+ enable_fullscreen.constant(visualization::ViewState::Fullscreen);
 
-        }
-
-        frp::extend! { network
-            // === Profiling Indicator ===
-
-            model.profiling_label.set_min_global_duration
-                <+ input.set_profiling_min_global_duration;
-            model.profiling_label.set_max_global_duration
-                <+ input.set_profiling_max_global_duration;
-            model.profiling_label.set_status <+ input.set_profiling_status;
-            model.input.set_profiling_status <+ input.set_profiling_status;
         }
 
         frp::extend! { network
@@ -880,8 +863,19 @@ impl Node {
 
             let port_color_tint = style_frp.get_color_lcha(theme::graph_editor::node::port_color_tint);
             let editing_color = style_frp.get_color_lcha(theme::graph_editor::node::background);
+            let pending_alpha_factor =
+                style_frp.get_number(theme::graph_editor::node::pending::alpha_factor);
             base_color_source <- source();
-            out.base_color <+ base_color_source;
+            adjusted_base_color <- all_with3(
+                &base_color_source, &frp.set_pending, &pending_alpha_factor,
+                |c: &color::Lcha, pending, factor| {
+                    match *pending {
+                        true => c.multiply_alpha(*factor),
+                        false => *c,
+                    }
+                }
+            );
+            out.base_color <+ adjusted_base_color;
             out.port_color <+ out.base_color.all_with(&port_color_tint, |c, tint| tint.over(*c));
             background_color <- model.input.frp.editing.switch(&frp.base_color, &editing_color);
             node_colors <- all(background_color, frp.port_color);
@@ -889,18 +883,7 @@ impl Node {
             model.input.set_node_colors <+ node_colors;
         }
 
-
-        // TODO: handle color change. Will likely require moving the node background and backdrop
-        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
-        // are displayed as separate shapes.
-        let colors = [
-            color::Lcha(0.4911, 0.3390, 0.72658, 1.0),
-            color::Lcha(0.4468, 0.3788, 0.96805, 1.0),
-            color::Lcha(0.4437, 0.1239, 0.70062, 1.0),
-        ];
-        let mut hasher = crate::DefaultHasher::new();
-        Rc::as_ptr(&model).hash(&mut hasher);
-        base_color_source.emit(colors[hasher.finish() as usize % colors.len()]);
+        base_color_source.emit(color::Lcha(0.4911, 0.3390, 0.72658, 1.0));
 
 
         // Init defaults.
@@ -908,6 +891,7 @@ impl Node {
         model.error_visualization.set_layer(visualization::Layer::Front);
         frp.set_error.emit(None);
         frp.set_disabled.emit(false);
+        frp.set_pending.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
         let widget = gui::Widget::new(app, frp, model);
@@ -952,12 +936,11 @@ fn bounding_box(
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
-    let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
+    let node_bbox = BoundingBox::from_bottom_left_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
         let visualization_pos = node_position + VISUALIZATION_OFFSET;
-        let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
-            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
+            BoundingBox::from_top_left_position_and_size(visualization_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
         node_bbox

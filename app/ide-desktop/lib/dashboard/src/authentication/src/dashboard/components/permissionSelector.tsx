@@ -29,6 +29,7 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
     showDelete?: boolean
+    /** When true, the button is not clickable. */
     disabled?: boolean
     /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
     typeSelectorYOffsetPx?: number
@@ -92,7 +93,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                 : function Child() {
                       return (
                           <Modal
-                              className="fixed w-full h-full z-10"
+                              className="fixed w-full h-full z-1"
                               onClick={() => {
                                   setTheChild(null)
                               }}

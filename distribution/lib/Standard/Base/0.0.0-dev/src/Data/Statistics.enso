@@ -41,7 +41,8 @@ type Rank_Method
     ## Equal values are assigned the next rank in order that they occur.
     Ordinal
 
-    ## Assigns a rank to each value of data, dealing with equal values according to the method.
+    ## GROUP Statistics
+       Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
        - data: Input data to rank.
@@ -292,7 +293,8 @@ calculate_correlation_statistics_matrix data =
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
-## Compute a single statistic on the vector (ignoring Nothing and NaN values).
+## GROUP Statistics
+   Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistic: Statistic to calculate.
@@ -308,7 +310,8 @@ Vector.compute_bulk : Vector Statistic -> Vector Any
 Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
-## Compute a single running statistic on the vector (ignoring Nothing and NaN
+## GROUP Statistics
+   Compute a single running statistic on the vector (ignoring Nothing and NaN
    values).
 
    Arguments:
@@ -326,7 +329,8 @@ Vector.running_bulk : Vector Statistic -> Vector Any
 Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
-## Assigns a rank to each value of data, dealing with equal values according to
+## GROUP Statistics
+   Assigns a rank to each value of data, dealing with equal values according to
    the method.
 
    Arguments:
@@ -357,6 +361,7 @@ is_valid v = case v of
 
 ## PRIVATE
 type Accumulator
+    ## PRIVATE
     new : Boolean -> Integer -> Accumulator
     new min_max=True moments=0 = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0)
 

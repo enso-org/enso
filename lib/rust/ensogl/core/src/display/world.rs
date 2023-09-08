@@ -79,7 +79,7 @@ pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
 /// Initialize global state (set stack trace size, logger output, etc).
 #[before_main(0)]
 pub fn init() {
-    init_global();
+    web::init_global();
 }
 
 /// Initialize global context.
@@ -481,14 +481,9 @@ impl WorldData {
     }
 
     fn init(self) -> Self {
-        self.init_environment();
         self.init_composer();
         self.init_debug_hotkeys();
         self
-    }
-
-    fn init_environment(&self) {
-        init_global();
     }
 
     fn init_debug_hotkeys(&self) {

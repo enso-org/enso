@@ -126,6 +126,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Refactoring](#refactoring)
   - [`refactoring/renameProject`](#refactoringrenameproject)
   - [`refactoring/renameSymbol`](#refactoringrenamesymbol)
+  - [`refactoring/projectRenamed`](#refactoringprojectrenamed)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -182,6 +183,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/getPackage`](#librarygetpackage)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
+- [Runtime Operations](#runtime-operations)
+  - [`runtime/getComponentGroups`](#runtime-getcomponentgroups)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -3410,6 +3413,41 @@ Current limitations of the method renaming are:
 - [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
   refactoring of the given expression is not supported.
 
+### `refactoring/projectRenamed`
+
+This is a notification sent from the server to the clients to inform them about
+the new project name.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * Old normalized name of the project.
+   */
+  oldNormalizedName: string;
+
+  /**
+   * New normalized name of the prject.
+   */
+  newNormalizedName: string;
+
+  /**
+   * New display name of the project.
+   */
+  newName: string;
+}
+```
+
+#### Errors
+
+None
+
 ## Execution Management Operations
 
 The execution management portion of the language server API deals with exposing
@@ -3888,12 +3926,10 @@ null;
 Sent from the client to the server to get the list of component groups available
 in runtime.
 
-The engine is started with an empty list of libraries loaded. It means that the
-request should be sent after the first
-[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
-notification indicating that all the libraries are loaded, and the component
-group list is populated. If the request is sent before the first notification,
-the response may be empty or not contain all available components.
+#### Deprecated
+
+The request is deprecated in favor of
+[`runtime/getComponentGroups`](#runtime-getcomponentgroups).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -5332,6 +5368,43 @@ null;
   dependencies.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
+
+## Runtime Operations
+
+### `runtime/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+The engine is started with an empty list of libraries loaded. It means that the
+request should be sent after the first
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+notification indicating that all the libraries are loaded, and the component
+group list is populated. If the request is sent before the first notification,
+the response may be empty or not contain all available components.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+None
 
 ## Errors
 

@@ -51,21 +51,9 @@ impl SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
-        let child_level = ctx.info.nesting_level.next_if(ctx.span_node.kind.is_prefix_argument());
-        let is_primary = ctx.info.nesting_level.is_primary();
-
-        // When this is a top-level (primary) hierarchy widget, request children widgets to have
-        // separators. The "separator" widget is a wrapper which will display the default argument
-        // widget next to the separating line. This configuration will only be applied to nodes that
-        // the separator accepts, which is limited to arguments in prefix chains.
-        let separator_config = super::separator::Widget::default_config(&ctx).into_dyn();
-        let child_config = is_primary.then_some(&separator_config);
-
-        self.children_vec.clear();
-        self.children_vec.extend(ctx.span_node.children_iter().map(|node| {
-            ctx.builder.child_widget_of_type(node, child_level, child_config).root_object
-        }));
-
+        let level = ctx.info.nesting_level.next_if(ctx.span_node.kind.is_prefix_argument());
+        let iter = ctx.span_node.children_iter();
+        self.children_vec.extend(iter.map(|n| ctx.builder.child_widget(n, level).root_object));
         self.display_object.replace_children(&self.children_vec);
         self.children_vec.clear();
     }

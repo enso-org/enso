@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -26,15 +25,17 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
@@ -48,7 +49,7 @@ import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
-public final class Module implements TruffleObject {
+public final class Module implements EnsoObject {
   private ModuleScope scope;
   private ModuleSources sources;
   private PatchedModuleValues patchedValues;
@@ -56,7 +57,7 @@ public final class Module implements TruffleObject {
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
-  private IR.Module ir;
+  private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
   private final ModuleCache cache;
@@ -68,7 +69,8 @@ public final class Module implements TruffleObject {
    * directory then contains submodules of this module that should be directly accessible from this
    * module - achieved by both filling in this list, and inserting synthetic imports and exports
    * into this module - See {@link
-   * org.enso.compiler.Compiler#injectSyntheticModuleExports(IR.Module, List)}.
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(org.enso.compiler.core.ir.Module,
+   * List)}.
    */
   private List<QualifiedName> directModulesRefs;
 
@@ -240,10 +242,10 @@ public final class Module implements TruffleObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<IR.Expression, IR.Expression> fn =
-            new Function1<IR.Expression, IR.Expression>() {
+        final Function1<Expression, Expression> fn =
+            new Function1<Expression, Expression>() {
               @Override
-              public IR.Expression apply(IR.Expression v1) {
+              public Expression apply(Expression v1) {
                 if (v1 == change) {
                   return update.newIr();
                 }
@@ -371,7 +373,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @return IR defined by this module. */
-  public IR.Module getIr() {
+  public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
 
@@ -422,7 +424,7 @@ public final class Module implements TruffleObject {
    *
    * @param ir the new IR for the module.
    */
-  void unsafeSetIr(IR.Module ir) {
+  void unsafeSetIr(org.enso.compiler.core.ir.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
   }
@@ -604,8 +606,8 @@ public final class Module implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      Object[] imports = context.getCompiler().gatherImportStatements(module);
-      return new Array(imports);
+      String[] imports = context.getCompiler().gatherImportStatements(module);
+      return ArrayLikeHelpers.wrapStrings(imports);
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -684,7 +686,7 @@ public final class Module implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(
+    return ArrayLikeHelpers.wrapStrings(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,

@@ -1,23 +1,18 @@
 package org.enso.launcher.cli
 
 import java.nio.file.Path
-
 import org.enso.launcher.distribution.DefaultManagers
-import org.enso.loggingservice.{
-  ColorMode,
-  LogLevel,
-  LoggingServiceManager,
-  LoggingServiceSetupHelper
-}
-
+import org.enso.logger.LoggerSetup
+import org.slf4j.event.Level
+import org.enso.logging.LoggingSetupHelper
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages setting up the logging service within the launcher.
   */
-object LauncherLogging extends LoggingServiceSetupHelper {
+object LauncherLogging extends LoggingSetupHelper(global) {
 
   /** @inheritdoc */
-  override val defaultLogLevel: LogLevel = LogLevel.Warning
+  override val defaultLogLevel: Level = Level.WARN
 
   /** @inheritdoc */
   override val logFileSuffix: String = "enso-launcher"
@@ -35,10 +30,9 @@ object LauncherLogging extends LoggingServiceSetupHelper {
     * This is necessary on Windows to ensure that the logs file is closed, so
     * that the log directory can be removed.
     */
-  def prepareForUninstall(colorMode: ColorMode): Unit = {
+  def prepareForUninstall(logLevel: Option[Level]): Unit = {
     waitForSetup()
-    LoggingServiceManager.replaceWithFallback(printers =
-      Seq(stderrPrinter(colorMode, printExceptions = true))
-    )
+    val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
+    LoggerSetup.get().setupConsoleAppender(actualLogLevel)
   }
 }

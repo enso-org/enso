@@ -41,6 +41,14 @@
 //! 3. The default configuration for the node is created using [`Configuration::from_node`] method.
 //!    It uses the combination of span tree node kind data and type information to decide which
 //!    widget is the best fit for the node.
+//!
+//!
+//! ## Priority over override
+//!
+//! Whenever a configuration is selected using an override source (either point 1. or 2.), its
+//! application can still be rejected if there are other applicable widgets that define
+//! [`SpanWidget::PRIORITY_OVER_OVERRIDE`] as `true` in their implementation. In that case, the
+//! override will be applied again on their children that use the same span-tree node.
 
 use crate::prelude::*;
 
@@ -76,6 +84,7 @@ pub(super) mod prelude {
     pub use super::ConfigContext;
     pub use super::Configuration;
     pub use super::IdentityBase;
+    pub use super::KindFlags;
     pub use super::NodeInfo;
     pub use super::OverrideKey;
     pub use super::Score;
@@ -120,8 +129,8 @@ ensogl::define_endpoints_2! {
         set_edit_ready_mode  (bool),
         set_read_only        (bool),
         set_view_mode        (crate::view::Mode),
-        set_profiling_status (crate::node::profiling::Status),
         set_disabled         (bool),
+        set_pending          (bool),
         node_base_color      (color::Lcha),
         node_port_color      (color::Lcha),
     }
@@ -165,6 +174,13 @@ pub struct OverrideKey {
 pub trait SpanWidget: display::Object {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
+    /// Declare whether this widget should be considered for creation despite a config override
+    /// being present. Widgets that declare `true` here must create a child widget on the same
+    /// span-tree node, so that the override can be applied to this child instead.
+    ///
+    /// Only widgets declared above the overridden widget will take priority over it. That
+    /// declaration order is defined in the usage of [`define_widget_modules!`] macro.
+    const PRIORITY_OVER_OVERRIDE: bool = false;
     /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
     /// node or declaration type match specific patterns. When this method returns
     /// [`Score::Mismatch`], this widget kind will not be used, even if it was requested by an
@@ -269,20 +285,25 @@ macro_rules! define_widget_modules(
         bitflags::bitflags!{
             /// A set of flags that determine the widget kind.
             #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-            pub struct DynKindFlags: u32 {
+            pub struct KindFlags: u32 {
                 $(
                     #[allow(missing_docs, non_upper_case_globals)]
                     const $name = 1 << ${index()};
                 )*
+                /// A combination of flags for all widget kinds that has to be matched first before
+                /// accepting an overridden configuration.
+                const PRIORITY_OVER_OVERRIDE = $(
+                    (<$module::Widget as SpanWidget>::PRIORITY_OVER_OVERRIDE as u32) << ${index()}
+                )|*;
             }
         }
 
-        impl DynKindFlags {
+        impl KindFlags {
             /// Check whether the widget kind matching this flag is able to receive given span node.
             /// When more than one flag is set, [`Score::Mismatch`] will be returned.
             fn match_node(&self, ctx: &ConfigContext) -> Score {
                 match self {
-                    $(&DynKindFlags::$name => $module::Widget::match_node(ctx),)*
+                    $(&KindFlags::$name => $module::Widget::match_node(ctx),)*
                     _ => Score::Mismatch,
                 }
             }
@@ -290,7 +311,7 @@ macro_rules! define_widget_modules(
             /// Create default configuration of the widget kind contained within this flag.
             fn default_config(&self, ctx: &ConfigContext) -> Configuration {
                 match self {
-                    $(&DynKindFlags::$name => $module::Widget::default_config(ctx).into_dyn(),)*
+                    $(&KindFlags::$name => $module::Widget::default_config(ctx).into_dyn(),)*
                     _ => panic!("No widget kind specified.")
                 }
             }
@@ -298,10 +319,19 @@ macro_rules! define_widget_modules(
 
         impl DynConfig {
             /// Return a single flag that determines the used widget kind.
-            fn flag(&self) -> DynKindFlags {
+            fn flag(&self) -> KindFlags {
                 match self {
-                    $(DynConfig::$name(_) => DynKindFlags::$name,)*
+                    $(DynConfig::$name(_) => KindFlags::$name,)*
                 }
+            }
+
+            /// Return a bitfield that determines which widget kinds need to be checked for a match
+            /// before applying this configuration as override.
+            fn flags_with_priority_before_override(&self) -> KindFlags {
+                // All bits that are set before the current one. Since we know that the `self.flag`
+                // always has only a single bit set, we can just subtract 1 from it.
+                let all_defined_before = KindFlags::from_bits_retain(self.flag().bits() - 1);
+                all_defined_before & KindFlags::PRIORITY_OVER_OVERRIDE
             }
         }
 
@@ -364,11 +394,19 @@ macro_rules! define_widget_modules(
     };
 );
 
+// Definition of implemented widget kinds. The order of the definitions determines the order in
+// which the widgets are checked for a match with every span-tree node.
 define_widget_modules! {
     /// A widget for top-level Enso method calls. Displays an icon.
     Method method,
+    /// Separating line between top-level argument widgets. Can only be assigned through override,
+    /// which is currently done in hierarchy widget.
+    Separator separator,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
+    /// Displays the argument name next to its value widget. Can only be assigned through override,
+    /// which is currently done in separator widget.
+    ArgumentName argument_name,
     /// A widget for managing a list of values - adding, removing or reordering them.
     ListEditor list_editor,
     /// Empty widget that does not display anything, used for empty insertion points.
@@ -379,13 +417,6 @@ define_widget_modules! {
     Blank blank,
     /// Default widget that only displays text.
     Label label,
-    /// Separating line between top-level argument widgets. Can only be assigned through override,
-    /// which is currently done in hierarchy widget.
-    Separator separator,
-    /// Displays the argument name next to its value widget. Can only be assigned through override,
-    /// which is currently done in separator widget.
-    ArgumentName argument_name,
-
 }
 
 // =====================
@@ -416,22 +447,24 @@ impl Configuration {
     ///
     /// Will never return any configuration kind specified in `disallow` parameter, except for
     /// [`DynConfig::Label`] as an option of last resort.
-    fn infer_from_context(ctx: &ConfigContext, disallowed: DynKindFlags) -> Self {
-        let allowed = !disallowed;
+    fn infer_from_context(
+        ctx: &ConfigContext,
+        allowed: KindFlags,
+        score_better_than: Score,
+    ) -> Option<Self> {
         let mut best_match = None;
         for kind in allowed {
             let score = kind.match_node(ctx);
-            let current_score = best_match.map(|(_, score)| score).unwrap_or(Score::Mismatch);
+            let current_score = best_match.map(|(_, score)| score).unwrap_or(score_better_than);
             if score > current_score {
                 best_match = Some((kind, score));
-                if score == Score::Perfect {
+                if score >= Score::Perfect {
                     break;
                 }
             }
         }
 
-        let matched_kind = best_match.map_or(DynKindFlags::Label, |(kind, _)| kind);
-        matched_kind.default_config(ctx)
+        best_match.map(|(kind, _score)| kind.default_config(ctx))
     }
 
     /// An insertion point that always has a port.
@@ -544,7 +577,6 @@ pub struct WidgetsFrp {
     /// combination of `set_read_only`, `set_edit_ready_mode` and `set_ports_visible` signals.
     pub(super) allow_interaction:      frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
-    pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) hovered_port_children:  frp::Sampler<HashSet<WidgetIdentity>>,
     /// Remove given tree node's reference from the widget tree, and send its only remaining strong
     /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
@@ -612,7 +644,6 @@ impl Tree {
             set_edit_ready_mode <- frp.set_edit_ready_mode.sampler();
             set_read_only <- frp.set_read_only.sampler();
             set_view_mode <- frp.set_view_mode.sampler();
-            set_profiling_status <- frp.set_profiling_status.sampler();
             node_base_color <- frp.node_base_color.sampler();
             node_port_color <- frp.node_port_color.sampler();
             on_port_hover <- any(...);
@@ -644,7 +675,6 @@ impl Tree {
             set_read_only,
             allow_interaction,
             set_view_mode,
-            set_profiling_status,
             transfer_ownership,
             value_changed,
             request_import,
@@ -686,10 +716,15 @@ impl Tree {
         self.notify_dirty(self.model.set_disabled(disabled));
     }
 
+    /// Set pending status for given span tree node. The pending nodes will be semi-transparent.
+    /// The widgets might change behavior depending on the pending status.
+    pub fn set_pending(&self, pending: bool) {
+        self.notify_dirty(self.model.set_pending(pending));
+    }
 
     /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
     /// external to the span-tree is provided, using `set_config_override`, `set_usage_type`,
-    /// `set_connections` or `set_disabled` methods of the widget tree.
+    /// `set_connections`, `set_disabled`, or `set_pending` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
         tree: &span_tree::SpanTree,
@@ -721,7 +756,7 @@ impl Tree {
             styles,
         );
         self.frp.private.output.on_rebuild_finished.emit(());
-        trace!("Widget tree:\n{:?}", self.pretty_printer());
+        debug!("Widget tree:\n{:?}", self.pretty_printer());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -914,6 +949,7 @@ struct TreeModel {
     connected_map:  Rc<RefCell<HashMap<PortId, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
+    node_pending:   Cell<bool>,
     tree_dirty:     Cell<bool>,
 }
 
@@ -933,6 +969,7 @@ impl TreeModel {
             app,
             display_object,
             node_disabled: default(),
+            node_pending: default(),
             nodes_map: default(),
             hierarchy: default(),
             ports_map: default(),
@@ -981,6 +1018,12 @@ impl TreeModel {
     fn set_disabled(&self, disabled: bool) -> bool {
         let prev_disabled = self.node_disabled.replace(disabled);
         self.mark_dirty_flag(prev_disabled != disabled)
+    }
+
+    /// Set the execution status under given widget. It may cause the tree to be marked as dirty.
+    fn set_pending(&self, pending: bool) -> bool {
+        let prev_pending = self.node_pending.replace(pending);
+        self.mark_dirty_flag(prev_pending != pending)
     }
 
     /// Get parent of a node under given pointer, if exists.
@@ -1071,6 +1114,7 @@ impl TreeModel {
         let usage_type_map = self.usage_type_map.borrow();
         let old_nodes = self.nodes_map.take();
         let node_disabled = self.node_disabled.get();
+        let node_pending = self.node_pending.get();
 
         // Old hierarchy is not used during the rebuild, so we might as well reuse the allocation.
         let mut hierarchy = self.hierarchy.take();
@@ -1082,6 +1126,7 @@ impl TreeModel {
             app,
             frp,
             node_disabled,
+            node_pending,
             node_expression,
             layers,
             styles,
@@ -1149,6 +1194,8 @@ pub struct NodeInfo {
     /// Whether the node is disabled, i.e. its expression is not currently used in the computation.
     /// Widgets of disabled nodes are usually grayed out.
     pub disabled:           bool,
+    /// Whether the node is awaiting execution completion.
+    pub pending:            bool,
     /// Inferred type of Enso expression at this node's span. May differ from the definition type
     /// stored in the span tree.
     pub usage_type:         Option<crate::Type>,
@@ -1447,12 +1494,12 @@ impl WidgetIdentity {
 #[derive(Debug, Default)]
 struct PointerUsage {
     /// Next sequence index that will be assigned to a widget created for the same span tree node.
-    next_index:    usize,
+    next_index:       usize,
     /// The pointer index of a widget on this span tree that received a port, if any exist already.
-    assigned_port: Option<(PortId, usize)>,
-    /// The widget configuration kinds that were already used for this span tree node. Those will
-    /// be excluded from config possibilities of the next widget created for this node.
-    used_configs:  DynKindFlags,
+    assigned_port:    Option<(PortId, usize)>,
+    /// The widget kinds that are no longer allowed to be created for this widget pointer. Most
+    /// often used for widgets that were already created on this node.
+    disallowed_kinds: KindFlags,
 }
 
 impl PointerUsage {
@@ -1489,6 +1536,7 @@ struct TreeBuilder<'a> {
     app:             Application,
     frp:             WidgetsFrp,
     node_disabled:   bool,
+    node_pending:    bool,
     node_expression: &'a str,
     layers:          &'a GraphLayers,
     styles:          &'a StyleWatchFrp,
@@ -1540,6 +1588,17 @@ impl<'a> TreeBuilder<'a> {
     /// during edge dragging to determine which port is being hovered.
     pub fn override_port_hover_padding(&mut self, padding: Option<f32>) {
         self.node_settings.custom_child_port_hover_padding = padding;
+    }
+
+    /// Mark certain widget kinds as forbidden for particular span-tree node. When the widgets for
+    /// that node are being built, the builder will not evaluate those widget's matching rules.
+    /// This method only has an effect for future widgets created for the same node, and does not
+    /// affect widgets that were already created. Make sure to call it before using
+    /// [`TreeBuilder::create_widget`] on that node.
+    pub fn forbid_widget_kind(&mut self, span_node: &SpanRef<'_>, widget_kinds: KindFlags) {
+        let main_ptr = StableSpanIdentity::from_node(span_node);
+        let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
+        ptr_usage.disallowed_kinds |= widget_kinds;
     }
 
     /// Create a new child widget, along with its whole subtree. The widget type will be
@@ -1611,9 +1670,8 @@ impl<'a> TreeBuilder<'a> {
         });
 
         let disabled = self.node_disabled;
+        let pending = self.node_pending;
 
-        // TODO: We always use `main_nodes` here right now, as widgets are never visible when the
-        // node in edit mode. Once this changes, we will need to use conditionally use `edit_nodes`.
         let info = NodeInfo {
             identity: widget_id,
             insertion_index,
@@ -1621,20 +1679,32 @@ impl<'a> TreeBuilder<'a> {
             connection,
             subtree_connection,
             disabled,
+            pending,
             usage_type,
         };
 
-        // Get widget configuration. There are three potential sources for configuration, that are
+        // == Determine widget configuration ==
+
+        // There are three potential sources for configuration, that are
         // used in order, whichever is available and allowed first:
         // 1. The `configuration` argument, which can be set by the parent widget if it wants to
         //    override the configuration for its child.
         // 2. The override associated with a the span tree node, located using `OverrideKey`. This
-        // can be    set by an external source, e.g. based on language server.
+        // can be set by an external source, e.g. based on language server.
         // 3. The default configuration for the widget, which is determined based on the node kind,
         // usage type and whether it has children.
-        let disallowed_configs = ptr_usage.used_configs;
+        //
+        // Note that the override can still be rejected if there is an available higher priority
+        // applicable widget that defines [`SpanWidget::PRIORITY_OVER_OVERRIDE`] as `true` in its
+        // implementation. In that case, it is expected that the forcing widget will declare a child
+        // using the same span-tree node, so that the override can eventually be applied anyway.
+
+        let allowed_configs = !ptr_usage.disallowed_kinds;
         let parent_extensions_len = self.extensions.len();
 
+        // TODO: We always use `main_nodes` here right now, as widgets are never visible when the
+        // node is in edit the mode. Once this changes, we will need to use `edited_nodes`
+        // conditionally.
         let layers = self.layers.main_nodes.layers_for_widgets_at_depth(depth);
 
         let ctx = ConfigContext {
@@ -1646,41 +1716,68 @@ impl<'a> TreeBuilder<'a> {
         };
 
 
-        let mut select_configuration_override = || {
-            let is_applicable = |ctx: &ConfigContext, cfg: &Configuration| {
-                let flag = cfg.kind.flag();
-                !disallowed_configs.contains(flag)
-                    && !matches!(flag.match_node(ctx), Score::Mismatch)
-            };
-
-            if let Some(config) = configuration.filter(|c| is_applicable(&ctx, c)) {
-                return Some(Cow::Borrowed(config));
-            }
-
-            let kind = &ctx.span_node.kind;
-            let key = OverrideKey {
-                call_id:       kind.call_id()?,
-                argument_name: kind.argument_name()?.into(),
-            };
-            let local_override = ctx.builder.local_overrides.remove(&key);
-            let override_map = &ctx.builder.override_map;
-
-
-            let local = local_override.filter(|c| is_applicable(&ctx, c)).map(Cow::Owned);
-            local.or_else(|| {
-                override_map.get(&key).filter(|c| is_applicable(&ctx, c)).map(Cow::Borrowed)
-            })
+        let config_is_applicable = |ctx: &ConfigContext, cfg: &Configuration| {
+            let flag = cfg.kind.flag();
+            allowed_configs.contains(flag) && flag.match_node(ctx) > Score::Mismatch
         };
 
-        let configuration = match select_configuration_override() {
-            Some(config) => config,
-            None => Cow::Owned(Configuration::infer_from_context(&ctx, disallowed_configs)),
+        let mut local_override_key = None;
+        let arg_override =
+            configuration.filter(|c| config_is_applicable(&ctx, c)).map(Cow::Borrowed);
+        let applicable_override = arg_override.or_else(|| {
+            let key = OverrideKey {
+                call_id:       ctx.span_node.kind.call_id()?,
+                argument_name: ctx.span_node.kind.argument_name()?.into(),
+            };
+            let from_local_map = ctx.builder.local_overrides.remove(&key);
+            if let Some(local_override) = from_local_map.filter(|c| config_is_applicable(&ctx, c)) {
+                local_override_key = Some(key);
+                Some(Cow::Owned(local_override))
+            } else {
+                let external_override =
+                    ctx.builder.override_map.get(&key).filter(|c| config_is_applicable(&ctx, c));
+                external_override.map(Cow::Borrowed)
+            }
+        });
+
+        let configuration = match applicable_override {
+            Some(override_config) => {
+                // Once an override is determined, check if there are other higher-priority widgets
+                // that would like to force their configuration on this node, despite the override.
+                let with_priority =
+                    override_config.kind.flags_with_priority_before_override() & allowed_configs;
+
+                let matched_before_override =
+                    Configuration::infer_from_context(&ctx, with_priority, Score::OnlyOverride);
+                if let Some(matched) = matched_before_override {
+                    // When an applicable local override ends up not being applied, we need to put
+                    // it back into the local overrides map. It may still be used by a child widget
+                    // defined on the same span-tree node.
+                    if let Some(key) = local_override_key {
+                        ctx.builder.local_overrides.insert(key, override_config.into_owned());
+                    }
+                    Cow::Owned(matched)
+                } else {
+                    override_config
+                }
+
+                // If the override config was rejected, put it back into the local overrides map.
+            }
+            None => Cow::Owned(
+                Configuration::infer_from_context(&ctx, allowed_configs, Score::Mismatch)
+                    .unwrap_or_else(|| {
+                        // When no applicable widget was found, fallback to the label.
+                        KindFlags::Label.default_config(&ctx)
+                    }),
+            ),
         };
         let configuration = configuration.as_ref();
 
+        // == Apply selected configuration. ==
+
         let this = &mut *ctx.builder;
         let ptr_usage = this.pointer_usage.entry(main_ptr).or_default();
-        ptr_usage.used_configs |= configuration.kind.flag();
+        ptr_usage.disallowed_kinds |= configuration.kind.flag();
         let can_assign_port = configuration.has_port && !is_extended_ast;
         let widget_has_port =
             ptr_usage.request_port(&widget_id, ctx.span_node.port_id, can_assign_port);
@@ -1690,6 +1787,7 @@ impl<'a> TreeBuilder<'a> {
         let parent_info = mem::replace(&mut this.parent_info, Some(info.clone()));
         let saved_node_settings = mem::take(&mut this.node_settings);
 
+        // === Create the widget ===
 
         // Widget creation/update can recurse into the builder. All borrows must be dropped
         // at this point. The `configure` calls on the widgets are allowed to call back into the
@@ -1716,6 +1814,8 @@ impl<'a> TreeBuilder<'a> {
             TreeNode::Widget(widget)
         };
 
+        // === Maintain hierarchy ===
+
         // Once the node has been configured and all its children have been created, we can update
         // the hierarchy data.
         self.hierarchy[insertion_index].total_descendants =
@@ -1725,6 +1825,8 @@ impl<'a> TreeBuilder<'a> {
         self.parent_info = parent_info;
         self.last_ast_depth = parent_last_ast_depth;
         self.extensions.truncate(parent_extensions_len);
+
+        // === Apply layout ===
 
         let skip_self_margin = self.node_settings.skip_self_margin;
         self.node_settings = saved_node_settings;
@@ -1750,6 +1852,19 @@ impl<'a> TreeBuilder<'a> {
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
         Child { info, root_object: child_root }
+    }
+
+    /// Access a tree node widget at given span ID that were created during this build process. Only
+    /// widgets that were built before calling this method will be returned.
+    pub fn iter_built_widgets_of_span(
+        &self,
+        span_id: StableSpanIdentity,
+    ) -> impl DoubleEndedIterator<Item = &TreeNode> + '_ {
+        let last_index = self.pointer_usage.get(&span_id).map_or(0, |usage| usage.next_index);
+        (0..last_index).filter_map(move |index| {
+            let id = WidgetIdentity { main: span_id, index };
+            self.new_nodes.get(&id).map(|e| &e.node)
+        })
     }
 }
 

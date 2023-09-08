@@ -5,7 +5,8 @@ import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -14,17 +15,17 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets the current execution stacktrace.",
     autoRegister = false)
 public class GetStackTraceNode extends Node {
-  Array execute(VirtualFrame requestOwnStackFrame) {
+  EnsoObject execute(VirtualFrame requestOwnStackFrame) {
     var exception = new PanicException("Stacktrace", this);
     TruffleStackTrace.fillIn(exception);
     return stackTraceToArray(exception);
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static Array stackTraceToArray(Throwable exception) {
+  public static EnsoObject stackTraceToArray(Throwable exception) {
     var elements = TruffleStackTrace.getStackTrace(exception);
     if (elements == null) {
-      return Array.empty();
+      return ArrayLikeHelpers.empty();
     }
     int count = 0;
     for (int i = 0; i < elements.size(); i++) {
@@ -42,6 +43,6 @@ public class GetStackTraceNode extends Node {
       }
       arr[at++] = element.getGuestObject();
     }
-    return new Array(arr);
+    return ArrayLikeHelpers.wrapObjectsWithCheckAt(arr);
   }
 }

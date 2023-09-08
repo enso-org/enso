@@ -75,11 +75,14 @@ type Test_Suite
     is_fail : Boolean
     is_fail self = self.specs.any .is_fail
 
+    ## Number of tests that passed.
     tests_succeeded : Integer
     tests_succeeded self = self.specs.map .tests_succeeded . to_vector . compute Statistic.Sum . floor
 
+    ## Number of tests that failed.
     tests_failed : Integer
     tests_failed self = self.specs.map .tests_failed . to_vector . compute Statistic.Sum . floor
 
+    ## Number of tests that were skipped.
     tests_pending : Integer
     tests_pending self = self.specs.map .tests_pending . to_vector . compute Statistic.Sum . floor

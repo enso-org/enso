@@ -10,10 +10,11 @@ from Standard.Table import Column, Table
 from Standard.Image import Image, Matrix, Read_Flag
 
 ## An example error type used in a number of examples.
-
-   Arguments:
-   - message: The message contained in the error type.
 type Example_Error_Type
+    ## Create an example error.
+
+       Arguments:
+       - message: The message contained in the error type.
     Error message
 
 ## The standard library data directory.
@@ -122,6 +123,7 @@ no_such_method = Panic.recover Any No_Methods.frobnicate . catch
 
 ## A simple error type for example purposes.
 type My_Error
+    ## Construct a simple error.
     Error message
 
 ## Throws an error.

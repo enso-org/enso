@@ -36,6 +36,7 @@ import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject,
   RenameSymbol
 }
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -57,6 +58,7 @@ import org.enso.languageserver.requesthandler.visualization.{
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.runtime.VisualizationApi.{
   AttachVisualization,
   DetachVisualization,
@@ -130,6 +132,13 @@ class JsonConnectionController(
   import context.dispatcher
 
   implicit val timeout: Timeout = Timeout(requestTimeout)
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream
+      .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
+  }
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
@@ -296,6 +305,7 @@ class JsonConnectionController(
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
     case MessageHandler.Disconnected =>
+      logger.info("Json session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
@@ -414,6 +424,20 @@ class JsonConnectionController(
           FileManagerApi.ContentRootAdded.Params(root.toContentRoot)
         )
       }
+
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
+      webActor ! Notification(
+        RefactoringApi.ProjectRenamed,
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
+      )
 
     case Api.ProgressNotification(payload) =>
       val translated: Notification[_, _] =
@@ -581,7 +605,15 @@ class JsonConnectionController(
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
       ),
+      RenameProject -> RenameProjectHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
       RenameSymbol -> RenameSymbolHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
         requestTimeout,
         runtimeConnector
       )

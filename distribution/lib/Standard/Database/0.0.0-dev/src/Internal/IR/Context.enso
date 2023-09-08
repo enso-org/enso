@@ -171,5 +171,7 @@ type Context
 
         Subquery_Setup.Value new_from new_columns
 
+## PRIVATE
 type Subquery_Setup
+    ## PRIVATE
     Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))

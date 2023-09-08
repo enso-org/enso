@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.12-NAPSHOT</version>
+    <version>1.13-NAPSHOT</version>
     <build>
         <plugins>
             <plugin>

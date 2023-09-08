@@ -3,13 +3,14 @@ package org.enso.table.data.column.builder;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
@@ -89,8 +90,7 @@ public class DoubleBuilder extends NumericBuilder {
       double converted = convertIntegerToDouble(value);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else {
-      throw new IllegalStateException("Unexpected value type when appending to a DoubleBuilder: " + o.getClass().getCanonicalName() + "." +
-          " This is a bug in the Table library.");
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 
@@ -114,8 +114,8 @@ public class DoubleBuilder extends NumericBuilder {
                 + storage
                 + ". This is a bug in the Table library.");
       }
-    } else if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
-      if (storage instanceof LongStorage longStorage) {
+    } else if (storage.getType() instanceof IntegerType) {
+      if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
         for (int i = 0; i < n; i++) {
@@ -125,7 +125,7 @@ public class DoubleBuilder extends NumericBuilder {
         }
       } else {
         throw new IllegalStateException(
-            "Unexpected storage implementation for type LONG: "
+            "Unexpected storage implementation for type INTEGER: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
@@ -147,7 +147,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 

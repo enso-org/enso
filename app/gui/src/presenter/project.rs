@@ -224,6 +224,11 @@ impl Model {
         self.view.top_bar().project_name().set_project_changed(changed);
     }
 
+    fn project_renamed(&self) {
+        let actual_name = self.controller.model.name();
+        self.view.top_bar().project_name().set_name(actual_name);
+    }
+
     fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_complete.emit(());
@@ -331,16 +336,6 @@ impl Model {
             }
         });
     }
-
-    fn show_dashboard(&self) {
-        match enso_web::Event::new("show-dashboard") {
-            Ok(event) =>
-                if let Err(error) = enso_web::document.dispatch_event(&event) {
-                    error!("Failed to dispatch event to show the dashboard. {error:?}");
-                },
-            Err(error) => error!("Failed to create event to show the dashboard. {error:?}"),
-        }
-    }
 }
 
 
@@ -436,7 +431,6 @@ impl Project {
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
 
-            eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
             eval view.current_shortcut ((shortcut) model.handled_shortcut_changed(shortcut));
         }
 
@@ -501,6 +495,9 @@ impl Project {
                 }
                 Notification::ExecutionFailed => {
                     model.execution_failed();
+                }
+                Notification::Renamed => {
+                    model.project_renamed();
                 }
             };
             std::future::ready(())

@@ -212,20 +212,6 @@ macro_rules! reportable_error {
     };
 }
 
-pub fn init_global() {
-    init_global_internal();
-}
-
-#[cfg(target_arch = "wasm32")]
-fn init_global_internal() {
-    enso_web::forward_panic_hook_to_console();
-    enso_web::set_stack_trace_limit();
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn init_global_internal() {}
-
-
 
 // =================
 // === Immutable ===

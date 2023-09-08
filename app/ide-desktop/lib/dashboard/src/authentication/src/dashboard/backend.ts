@@ -1,18 +1,14 @@
 /** @file Type definitions common between all backends. */
+import * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as permissions from './permissions'
+import * as uniqueString from '../uniqueString'
 
-// =============
-// === Types ===
-// =============
-
-/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-    local = 'local',
-    remote = 'remote',
-}
+// ================
+// === Newtypes ===
+// ================
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
@@ -79,6 +75,46 @@ export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
+
+// =============
+// === Types ===
+// =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
+
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
     id: UserOrOrganizationId
@@ -101,6 +137,7 @@ export enum ProjectState {
     created = 'Created',
     new = 'New',
     openInProgress = 'OpenInProgress',
+    provisioned = 'Provisioned',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as
@@ -114,6 +151,28 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
     type: ProjectState
+    /* eslint-disable @typescript-eslint/naming-convention */
+    volume_id: string
+    instance_id?: string
+    execute_async?: boolean
+    address?: string
+    security_group_id?: string
+    ec2_id?: string
+    ec2_public_ip_address?: string
+    current_session_id?: string
+    opened_by?: EmailAddress
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
+    [ProjectState.created]: false,
+    [ProjectState.new]: false,
+    [ProjectState.openInProgress]: true,
+    [ProjectState.provisioned]: true,
+    [ProjectState.opened]: true,
+    [ProjectState.closed]: false,
+    [ProjectState.placeholder]: true,
+    [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -160,11 +219,15 @@ export interface Project extends ListedProject {
     ideVersion: VersionNumber
     engineVersion: VersionNumber | null
     currentSessionId: ProjectSessionId | null
+    openedBy?: EmailAddress
 }
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
     project: Project
+    projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
     backendType: BackendType
     accessToken: string | null
 }
@@ -287,19 +350,6 @@ export interface SimpleUser {
     email: EmailAddress
 }
 
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
-}
-
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
@@ -377,7 +427,7 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: dateTime.Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime
     /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
@@ -407,8 +457,36 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
+    return {
+        type: AssetType.specialLoading,
+        title: '',
+        id: LoadingAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
 export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
+    return {
+        type: AssetType.specialEmpty,
+        title: '',
+        id: EmptyAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
@@ -522,6 +600,7 @@ export interface ProjectUpdateRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
     forceCreate: boolean
+    executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */

@@ -23,7 +23,8 @@ handle_nothing value = case value of
     _ -> value
 
 type URI
-    ## ALIAS Get URI
+    ## ALIAS get uri
+       GROUP Conversions
 
        Parse a URI from text.
 
@@ -54,7 +55,8 @@ type URI
        - internal_uri: The internal representation of the URI.
     Value internal_uri
 
-    ## Convert this to URI.
+    ## PRIVATE
+       Convert this to URI.
 
        > Examples
          Convert a URI to a URI (a no op).
@@ -65,7 +67,8 @@ type URI
     to_uri : URI
     to_uri self = self
 
-    ## Get the scheme part of this URI.
+    ## GROUP Metadata
+       Get the scheme part of this URI.
 
        > Example
          Return the scheme from the URI.
@@ -76,7 +79,8 @@ type URI
     scheme : Text ! Nothing
     scheme self = handle_nothing self.internal_uri.getScheme
 
-    ## Get the user info part of this URI.
+    ## GROUP Metadata
+       Get the user info part of this URI.
 
        > Example
          Return the user info part of the URI.
@@ -87,7 +91,8 @@ type URI
     user_info : Text ! Nothing
     user_info self = handle_nothing self.internal_uri.getUserInfo
 
-    ## Get the host part of this URI.
+    ## GROUP Metadata
+       Get the host part of this URI.
 
        > Example
          Return the host portion of the URI.
@@ -123,7 +128,8 @@ type URI
         handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
 
-    ## Get the path part of this URI.
+    ## GROUP Metadata
+       Get the path part of this URI.
 
        > Example
          Return the path portion of the URI.
@@ -134,7 +140,8 @@ type URI
     path : Text ! Nothing
     path self = handle_nothing self.internal_uri.getPath
 
-    ## Get the query part of this URI.
+    ## GROUP Metadata
+       Get the query part of this URI.
 
        > Example
          Return the query portion of the URI.

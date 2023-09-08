@@ -10,10 +10,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Comment$Documentation;
-import org.enso.compiler.core.IR$Function$Binding;
-import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
-import org.enso.compiler.core.IR$Name$Self;
+import org.enso.compiler.core.ir.expression.Comment;
+import org.enso.compiler.core.ir.Function;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import org.junit.BeforeClass;
@@ -76,7 +76,7 @@ public class VectorArraySignatureTest {
     var vectorSrc = Files.readString(vectorAndArray[1]);
 
     var arrayIR = ensoCompiler.compile(arraySrc).preorder().filter((v) -> {
-      if (v instanceof IR$Module$Scope$Definition$SugaredType t) {
+      if (v instanceof Definition.SugaredType t) {
         if ("Array".equals(t.name().name())) {
           return true;
         }
@@ -84,7 +84,7 @@ public class VectorArraySignatureTest {
       return false;
     }).head();
     var vectorIR = ensoCompiler.compile(vectorSrc).preorder().filter((v) -> {
-      if (v instanceof IR$Module$Scope$Definition$SugaredType t) {
+      if (v instanceof Definition.SugaredType t) {
         if ("Vector".equals(t.name().name())) {
           return true;
         }
@@ -92,40 +92,40 @@ public class VectorArraySignatureTest {
       return false;
     }).head();
 
-    var documentation = new HashMap<IR$Function$Binding, IR$Comment$Documentation>();
-    var lastDoc = new IR$Comment$Documentation[1];
+    var documentation = new HashMap<Function.Binding, Comment.Documentation>();
+    var lastDoc = new Comment.Documentation[1];
     final Function1<IR, Object> filter = (v) -> {
-      if (v instanceof IR$Comment$Documentation d) {
+      if (v instanceof Comment.Documentation d) {
         lastDoc[0] = d;
       }
-      if (v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof IR$Name$Self) {
+      if (v instanceof Function.Binding b && b.arguments().head().name() instanceof Name.Self) {
         documentation.put(b, lastDoc[0]);
         lastDoc[0] = null;
       }
-      return v instanceof IR$Function$Binding b && b.arguments().head().name() instanceof IR$Name$Self;
+      return v instanceof Function.Binding b && b.arguments().head().name() instanceof Name.Self;
     };
     var arrayFns = arrayIR.preorder().filter(filter);
     var vectorFns = vectorIR.preorder().filter(filter);
-    var arrayNames = arrayFns.map((v) -> v instanceof IR$Function$Binding b ? b.name().name() : null);
-    var vectorNames = vectorFns.map((v) -> v instanceof IR$Function$Binding b ? b.name().name() : null);
+    var arrayNames = arrayFns.map((v) -> v instanceof Function.Binding b ? b.name().name() : null);
+    var vectorNames = vectorFns.map((v) -> v instanceof Function.Binding b ? b.name().name() : null);
 
-    var missingInArray = vectorFns.filter((v) -> v instanceof IR$Function$Binding b && !arrayNames.contains(b.name().name()));
-    var missingNamesInArray = missingInArray.map((v) -> v instanceof IR$Function$Binding b ? b.name().name() : null);
+    var missingInArray = vectorFns.filter((v) -> v instanceof Function.Binding b && !arrayNames.contains(b.name().name()));
+    var missingNamesInArray = missingInArray.map((v) -> v instanceof Function.Binding b ? b.name().name() : null);
 
-    var missingInVector = arrayFns.filter((v) -> v instanceof IR$Function$Binding b && !vectorNames.contains(b.name().name()));
-    var missingNamesInVector = missingInVector.map((v) -> v instanceof IR$Function$Binding b ? b.name().name() : null);
+    var missingInVector = arrayFns.filter((v) -> v instanceof Function.Binding b && !vectorNames.contains(b.name().name()));
+    var missingNamesInVector = missingInVector.map((v) -> v instanceof Function.Binding b ? b.name().name() : null);
 
     assertTrue("Nothing is missing in vector: " + missingNamesInVector, missingNamesInVector.isEmpty());
     assertTrue("Nothing is missing in array: " + missingNamesInArray, missingNamesInArray.isEmpty());
 
     vectorFns.foreach((v) -> {
-      if (v instanceof IR$Function$Binding b) {
+      if (v instanceof Function.Binding b) {
         var name = b.name().name();
         var d = documentation.get(b);
         if (!d.doc().contains("PRIVATE")) {
           assertNotNull("Documentation for " + name, d);
 
-          var head = arrayFns.filter((av) -> av instanceof IR$Function$Binding ab && ab.name().name().equals(b.name().name())).head();
+          var head = arrayFns.filter((av) -> av instanceof Function.Binding ab && ab.name().name().equals(b.name().name())).head();
           var ad = documentation.get(head);
           assertNotNull("No documentation for Array." + name, ad);
           var exp = d.doc()

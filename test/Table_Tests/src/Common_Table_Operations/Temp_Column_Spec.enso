@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
+    Test.group prefix+"Temp column" <|
+        Test.specify "Can generate a temp column" <|
+            t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
+            t1.make_temp_column_name . should_equal "temp"
+
+        Test.specify "Can generate a temp column without name conflicts" <|
+            t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["temp", [40, 20]]]
+            t1.make_temp_column_name . should_equal "temp 1"

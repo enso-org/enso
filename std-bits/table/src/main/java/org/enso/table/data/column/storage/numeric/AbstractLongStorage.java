@@ -10,9 +10,11 @@ import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
@@ -44,6 +46,17 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   }
 
   @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
+  }
+
+  @Override
   public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
@@ -51,8 +64,11 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    return NumericBuilder.createLongBuilder(capacity);
+    return NumericBuilder.createLongBuilder(capacity, getType());
   }
+
+  @Override
+  public abstract IntegerType getType();
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
@@ -67,7 +83,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in + arg;
+                try {
+                  return Math.addExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "+", arg);
+                  return null;
+                }
               }
             })
         .add(
@@ -81,7 +102,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in - arg;
+                try {
+                  return Math.subtractExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "-", arg);
+                  return null;
+                }
               }
             })
         .add(
@@ -95,7 +121,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public Long doLong(
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in * arg;
+                try {
+                  return Math.multiplyExact(in, arg);
+                } catch (ArithmeticException e) {
+                  problemBuilder.reportOverflow(IntegerType.INT_64, in, "*", arg);
+                  return null;
+                }
               }
             })
         .add(
@@ -156,6 +187,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                 return a;
               }
             })
+        .add(new LongRoundOp(Maps.ROUND))
         .add(
             new LongNumericOp(Storage.Maps.DIV, true) {
               @Override
@@ -241,7 +273,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                   MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof DoubleStorage) {
                   problemBuilder.reportFloatingPointEquality(-1);
-                } else if (!(arg instanceof LongStorage)) {
+                } else if (!(arg instanceof AbstractLongStorage)) {
                   boolean hasFloats = false;
                   Context context = Context.getCurrent();
                   for (int i = 0; i < storage.size(); i++) {
@@ -307,4 +339,11 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(new LongIsInOp());
     return ops;
   }
+
+  /**
+   * Return an instance of storage containing the same data but with a wider type.
+   *
+   * <p>Ideally it should avoid copying the data, if it's possible.
+   */
+  public abstract AbstractLongStorage widen(IntegerType widerType);
 }

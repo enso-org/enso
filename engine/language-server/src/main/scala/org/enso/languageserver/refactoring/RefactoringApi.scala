@@ -27,6 +27,20 @@ object RefactoringApi {
       }
   }
 
+  case object ProjectRenamed extends Method("refactoring/projectRenamed") {
+
+    case class Params(
+      oldNormalizedName: String,
+      newNormalizedName: String,
+      newName: String
+    )
+
+    implicit val hasParams: HasParams.Aux[this.type, ProjectRenamed.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectRenamed.Params
+      }
+  }
+
   case object RenameSymbol extends Method("refactoring/renameSymbol") {
 
     case class Params(
@@ -59,5 +73,8 @@ object RefactoringApi {
         9003,
         s"Refactoring not supported for expression [$expressionId]"
       )
+
+  case class ProjectRenameFailed(oldName: String, newName: String)
+      extends Error(9004, s"Project rename failed [$oldName, $newName]")
 
 }

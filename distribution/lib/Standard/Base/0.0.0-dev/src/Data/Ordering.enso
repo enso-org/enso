@@ -147,6 +147,7 @@ type Default_Comparator
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x
 
+## PRIVATE
 Comparable.from (_:Any) = Default_Comparator
 
 ## Types representing the ordering of values.
@@ -171,7 +172,8 @@ type Ordering
                 if x > y then Ordering.Greater else
                     Error.throw (Incomparable_Values.Error x y)
 
-    ## Converts the ordering to the signed notion of ordering based on integers.
+    ## GROUP Conversions
+       Converts the ordering to the signed notion of ordering based on integers.
 
        > Example
          Converting equal ordering to a signed number.
@@ -215,4 +217,5 @@ type Ordering_Comparator
     ## PRIVATE
     hash x = x.to_sign
 
+## PRIVATE
 Comparable.from (_:Ordering) = Ordering_Comparator

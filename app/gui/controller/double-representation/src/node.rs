@@ -458,7 +458,7 @@ impl NodeAst {
 
     /// AST of the node's expression. Typically no external user wants to access it directly. Use
     /// [`Self::expression`] instead.
-    fn whole_expression(&self) -> &Ast {
+    pub fn whole_expression(&self) -> &Ast {
         match self {
             NodeAst::Binding { infix, .. } => &infix.rarg,
             NodeAst::Expression { ast, .. } => ast,
