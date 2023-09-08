@@ -77,7 +77,8 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, name);
+    var msg = name == null ? "expression" : name;
+    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
 
@@ -102,7 +103,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   public static ReadArgumentCheckNode build(Name argumentName, Type expectedType) {
-    var n = argumentName.name();
+    var n = argumentName == null ? null : argumentName.name();
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
   }
 
