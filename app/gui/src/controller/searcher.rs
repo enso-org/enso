@@ -313,6 +313,11 @@ impl Searcher {
         self
     }
 
+    /// Dump the suggestion database to the console in JSON format.
+    pub fn dump_database_as_json(&self) {
+        console_log!("{}", self.database.dump_as_json());
+    }
+
     /// Abort editing and perform cleanup.
     pub fn abort_editing(&self) {
         self.clear_temporary_imports();

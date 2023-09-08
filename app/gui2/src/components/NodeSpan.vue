@@ -3,7 +3,7 @@ import { spanKindName, type Span } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
-import type { ExprId } from '../../shared/yjs-model'
+import type { ExprId } from 'shared/yjs-model'
 import { computed, onUpdated, ref, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (event: 'updateExprRect', expr: ExprId, rect: Rect): void
+  updateExprRect: [expr: ExprId, rect: Rect]
 }>()
 
 const spanClass = computed(() => spanKindName(props.span.kind))
@@ -29,6 +29,7 @@ const exprRect = shallowRef<Rect>()
 
 function updateRect() {
   let domNode = rootNode.value
+
   if (domNode == null) return
   const pos = new Vec2(domNode.offsetLeft, domNode.offsetTop)
   const size = nodeSize.value
@@ -60,8 +61,8 @@ watch(exprRect, (rect) => {
 
 <template>
   <span
-    :class="['Span', spanClass]"
     ref="rootNode"
+    :class="['Span', spanClass]"
     style="{ transform }"
     :data-span-id="props.span.id"
     :data-span-start="props.offset"

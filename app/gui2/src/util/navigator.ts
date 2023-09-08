@@ -1,4 +1,4 @@
-import { computed, nextTick, proxyRefs, ref, type Ref } from 'vue'
+import { computed, proxyRefs, ref, type Ref } from 'vue'
 import { PointerButtonMask, usePointer, useResizeObserver, useWindowEvent } from './events'
 import { Vec2 } from './vec2'
 import { Rect } from '@/stores/rect'
@@ -96,7 +96,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
           const s = Math.exp(-e.deltaY / 100)
           scale.value = Math.min(Math.max(0.5, scale.value * s), 10)
         } else {
-          let delta = new Vec2(e.deltaX, e.deltaY)
+          const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }
       },

@@ -194,8 +194,8 @@ useWindowEvent('keydown', (e) => {
 
 <template>
   <div
-    class="ComponentBrowser"
     v-if="shown"
+    class="ComponentBrowser"
     :style="{ transform, '--list-height': listContentHeightPx }"
   >
     <div class="panel components">

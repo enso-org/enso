@@ -133,7 +133,20 @@ Currently supported are
 
 The appenders are defined by the `logging-service.appenders`. Currently only a
 single appender can be selected at a time. The selection may also be done via an
-environmental variable `$ENSO_APPENDER_DEFAULT`.
+environmental variable but it depends on which component we are executing.
+
+- `project-manager` - project manager by default starts a centralized logging
+  server that collects logs (as defined in `logging-service.server` config key)
+  and the logs output can be overwritten by `ENSO_LOGSERVER_APPENDER` env
+  variable
+- `launcher` or `runner` - the default log output can be overwritten by defining
+  the `ENSO_APPENDER_DEFAULT` env variable
+
+For example, for the project manager to output to `console` one simply executes
+
+```
+ENSO_LOGSERVER_APPENDER=console ./project-manager
+```
 
 #### Format
 

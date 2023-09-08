@@ -198,6 +198,7 @@ impl AddAssign<usize> for Column {
 
 unit! {
     /// An offset in the text measured in number of code units in text in UTF-16 representation.
+    #[derive(serde::Serialize, serde::Deserialize)]
     Utf16CodeUnit::utf16_code_unit(usize)
 }
 
@@ -213,6 +214,7 @@ mod location {
     use super::*;
     #[doc = " A type representing 2d measurements."]
     #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+    #[derive(serde::Serialize, serde::Deserialize)]
     #[allow(missing_docs)]
     pub struct Location<Offset = Column, LineType = Line> {
         pub line:   LineType,

@@ -15,11 +15,6 @@ export function isSome<T>(value: Opt<T>): value is T {
   return value != null
 }
 
-export function isNone<T>(value: Opt<T>): value is null | undefined {
+export function isNone(value: Opt<any>): value is null | undefined {
   return value == null
 }
-
-/**
- * Helper type operator that provides the `T` type wrapped in `Opt<T>`.
- */
-export type UnwrapOpt<T> = T extends Opt<infer U> ? U : never

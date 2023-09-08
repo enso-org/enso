@@ -12,10 +12,10 @@
     "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "yjs-server": "PORT=1234 YPERSISTENCE=./dbDir node ./node_modules/y-websocket/bin/server.js"
+    "build-rust-ffi": "cd rust-ffi && wasm-pack build --release --target web",
+    "preinstall": "npm run build-rust-ffi"
   },
   "dependencies": {
-    "@types/ws": "^8.5.5",
     "@vueuse/core": "^10.4.1",
     "lib0": "^0.2.83",
     "pinia": "^2.1.6",
@@ -33,6 +33,7 @@
     "@tsconfig/node18": "^18.2.0",
     "@types/jsdom": "^21.1.1",
     "@types/node": "^18.17.5",
+    "@types/ws": "^8.5.5",
     "@vitejs/plugin-vue": "^4.3.1",
     "@vue/eslint-config-prettier": "^8.0.0",
     "@vue/eslint-config-typescript": "^11.0.3",

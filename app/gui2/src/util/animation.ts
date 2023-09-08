@@ -1,14 +1,5 @@
-import {
-  computed,
-  isRef,
-  onUnmounted,
-  proxyRefs,
-  ref,
-  watch,
-  type WatchSource,
-  type Ref,
-} from 'vue'
-import { evalWatchSource, watchSourceToRef } from './reactivity'
+import { onUnmounted, proxyRefs, ref, watch, type WatchSource } from 'vue'
+import { watchSourceToRef } from './reactivity'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []
 
