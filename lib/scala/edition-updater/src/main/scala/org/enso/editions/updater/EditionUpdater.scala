@@ -26,6 +26,23 @@ import scala.util.{Failure, Try}
 class EditionUpdater(cachePath: Path, sources: Seq[String]) {
   private lazy val logger = Logger[EditionUpdater]
 
+  /** Downloads requested edition from the [[sources]] to the [[cachePath]].
+    *
+    * If there are errors when processing one of the edition sources or
+    * downloading the editions, the errors are logged as warnings, but other
+    * sources proceed as normal.
+    */
+  def downloadEdition(name: String): Try[Unit] = Try {
+    for {
+      repositoryManifests        <- fetchManifests()
+      (repositoryRoot, manifest) <- repositoryManifests
+      edition                    <- manifest.editions
+      if edition.name == name
+    } {
+      downloadEdition(repositoryRoot, edition)
+    }
+  }
+
   /** Downloads edition lists from the [[sources]] and downloads any missing
     * editions to the [[cachePath]].
     *
@@ -35,23 +52,12 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
     */
   def updateEditions(): Try[Unit] = Try {
     for {
-      source <- sources
-      repositoryRoot <- Try { URIBuilder.fromUri(source) }
-        .recoverWith { error =>
-          logger.warn(s"Failed to parse the source URI [$source]: $error")
-          Failure(error)
-        }
-      manifest <- downloadEditionRepositoryManifest(repositoryRoot)
-        .recoverWith { error =>
-          logger.warn(s"Failed to fetch editions from [$source]: $error")
-          Failure(error)
-        }
-      edition <- manifest.editions
+      repositoryManifests        <- fetchManifests()
+      (repositoryRoot, manifest) <- repositoryManifests
+      edition                    <- manifest.editions
       if !isEditionAlreadyCached(edition)
     } {
-      downloadEdition(repositoryRoot, edition).getOrElse {
-        logger.warn(s"Failed to download edition [$edition] from [$source].")
-      }
+      downloadEdition(repositoryRoot, edition)
     }
   }
 
@@ -65,7 +71,7 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
       YamlHelper.parseString[Manifest](response.content).toTry.get
     }
 
-  private def downloadEdition(
+  private def tryDownloadEdition(
     repositoryRoot: URIBuilder,
     editionName: EditionName
   ): Try[Unit] = Try {
@@ -76,6 +82,33 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
     val request = HTTPRequestBuilder.fromURI(uri).GET
 
     HTTPDownload.download(request, destinationPath).force()
+  }
+
+  private def downloadEdition(
+    repositoryRoot: URIBuilder,
+    editionName: EditionName
+  ): Unit =
+    tryDownloadEdition(repositoryRoot, editionName).getOrElse {
+      logger.warn(
+        s"Failed to download edition [$editionName] from [${repositoryRoot.uri}]."
+      )
+    }
+
+  private def fetchManifests(): Try[Seq[(URIBuilder, Manifest)]] = Try {
+    for {
+      source <- sources
+      repositoryRoot <- Try { URIBuilder.fromUri(source) }.recoverWith {
+        error =>
+          logger.warn(s"Failed to parse the source URI [$source]: $error")
+          Failure(error)
+      }.toOption
+      manifest <- downloadEditionRepositoryManifest(
+        repositoryRoot
+      ).recoverWith { error =>
+        logger.warn(s"Failed to fetch editions from [$source]: $error")
+        Failure(error)
+      }.toOption
+    } yield (repositoryRoot, manifest)
   }
 
   private def isEditionAlreadyCached(editionName: EditionName): Boolean =
