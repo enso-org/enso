@@ -707,16 +707,9 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async createTag(body: backendModule.CreateTagRequestBody): Promise<backendModule.TagInfo> {
-        const response = await this.post<backendModule.TagInfo>(CREATE_TAG_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            tag_name: body.name,
-            tag_value: body.value,
-            object_type: body.objectType,
-            object_id: body.objectId,
-            /* eslint-enable @typescript-eslint/naming-convention */
-        })
+        const response = await this.post<backendModule.TagInfo>(CREATE_TAG_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not create create tag with name '${body.name}'.`)
+            return this.throw(`Could not create create tag with name '${body.tagName}'.`)
         } else {
             return await response.json()
         }

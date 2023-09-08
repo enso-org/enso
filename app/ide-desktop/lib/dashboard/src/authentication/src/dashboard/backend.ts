@@ -612,8 +612,8 @@ export interface CreateSecretRequestBody {
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
-    name: string
-    value: string
+    tagName: string
+    tagValue: string
     objectType: TagObjectType
     objectId: string
 }
