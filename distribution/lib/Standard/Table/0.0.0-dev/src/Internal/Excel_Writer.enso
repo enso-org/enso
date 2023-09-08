@@ -31,10 +31,23 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    Writes a Table to an Excel file.
 
    Arguments:
+   - file: The file to write to.
+   - table: The table to serialize.
+   - section: The part of the Excel workbook to write to.
+   - headers: Controls whether the table headers are written.
+   - match_columns: Controls how the columns are matched when appending to an
+     existing file.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - xls_format: If `true`, the file is written in the legacy XLS format.
+     Otherwise, the file is written in the modern XLSX format.
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
 write_file file table on_existing_file section headers match_columns on_problems xls_format=False =
     _ = [on_problems]
-    workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
+    ## If file does not exist or is empty then create a new workbook.
+    workbook = if file.exists.not || (file.size == 0) then ExcelWriter.createWorkbook xls_format else
         Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns

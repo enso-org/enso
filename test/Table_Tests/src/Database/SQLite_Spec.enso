@@ -130,7 +130,7 @@ sqlite_specific_spec prefix connection setup =
         row2 = ["abc", Nothing, Nothing, 1.3]
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
-            (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]).update_database_table t update_action=Update_Action.Insert
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
 
         Test.specify "should return Table information" <|
             i = t.info

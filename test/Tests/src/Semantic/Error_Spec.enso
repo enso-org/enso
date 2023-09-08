@@ -373,6 +373,12 @@ spec =
             r . should_fail_with Type_Error
             r.to_display_text.should_contain "Try to apply y argument."
 
+        Test.specify "printed non-defaulted argument" <|
+            r = Panic.recover Type_Error <| neg (my_defaulted_func 33)
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply y argument."
+            r.to_display_text.should_contain "x=33"
+
         Test.specify "report unapplied constructor nicely" <|
             r = Panic.recover Type_Error <| extract My_Type.Value
             r . should_fail_with Type_Error
@@ -382,6 +388,12 @@ spec =
             r = Panic.recover Type_Error <| extract My_Type.Default_Value
             r . should_fail_with Type_Error
             r.to_display_text.should_contain "Try to apply bar argument."
+
+        Test.specify "report non-defaulted constructor argument" <|
+            r = Panic.recover Type_Error <| extract (My_Type.Default_Value foo=33)
+            r . should_fail_with Type_Error
+            r.to_display_text.should_contain "Try to apply bar argument."
+            r.to_display_text.should_contain "foo=33"
 
         Test.specify "report partially applied constructor nicely" <|
             r = Panic.recover Type_Error <| extract (My_Type.Multi_Value 42)

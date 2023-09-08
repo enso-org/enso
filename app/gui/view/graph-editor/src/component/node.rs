@@ -69,7 +69,7 @@ pub const COMMENT_MARGIN: f32 = 10.0;
 
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-/// Size of the gap between the lower edge of the node and the top of the visualization.
+/// Distance between the origin of the node and the top of the visualization.
 const VISUALIZATION_OFFSET_Y: f32 = 25.0;
 const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, -VISUALIZATION_OFFSET_Y);
 
@@ -883,18 +883,7 @@ impl Node {
             model.input.set_node_colors <+ node_colors;
         }
 
-
-        // TODO: handle color change. Will likely require moving the node background and backdrop
-        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
-        // are displayed as separate shapes.
-        let colors = [
-            color::Lcha(0.4911, 0.3390, 0.72658, 1.0),
-            color::Lcha(0.4468, 0.3788, 0.96805, 1.0),
-            color::Lcha(0.4437, 0.1239, 0.70062, 1.0),
-        ];
-        let mut hasher = crate::DefaultHasher::new();
-        Rc::as_ptr(&model).hash(&mut hasher);
-        base_color_source.emit(colors[hasher.finish() as usize % colors.len()]);
+        base_color_source.emit(color::Lcha(0.4911, 0.3390, 0.72658, 1.0));
 
 
         // Init defaults.
@@ -947,12 +936,11 @@ fn bounding_box(
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
-    let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
+    let node_bbox = BoundingBox::from_bottom_left_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
         let visualization_pos = node_position + VISUALIZATION_OFFSET;
-        let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
-            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
+            BoundingBox::from_top_left_position_and_size(visualization_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
         node_bbox

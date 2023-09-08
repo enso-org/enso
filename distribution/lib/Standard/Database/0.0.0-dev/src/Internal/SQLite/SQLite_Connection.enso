@@ -223,6 +223,15 @@ type SQLite_Connection
         self.connection.drop_table table_name if_exists
 
     ## PRIVATE
+       Removes all rows from a table.
+
+       Arguments:
+       - table_name: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        self.connection.truncate_table table_name
+
+    ## PRIVATE
        Returns the base `Connection` instance.
 
        Used, so that all internal helper functions do not need to be replicated

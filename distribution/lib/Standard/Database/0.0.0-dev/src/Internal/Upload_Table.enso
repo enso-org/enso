@@ -291,7 +291,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table (source_table : In_Memory_Table | Database_Table) (target_table : In_Memory_Table | Database_Table) update_action key_columns error_on_missing_columns on_problems =
+common_update_table (source_table : In_Memory_Table | Database_Table) (target_table : Database_Table) update_action key_columns error_on_missing_columns on_problems =
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -301,7 +301,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
-                    Context.Output.with_enabled <|
+                    check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
                         tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
@@ -310,7 +310,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                                above fails, the whole transaction will be rolled back.
                             connection.drop_table tmp_table.name
                             if dry_run.not then resulting_table else
-                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_database_table` was performed - the target table has been returned unchanged."
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged."
                                 Warning.attach warning resulting_table
 
 ## PRIVATE
@@ -413,20 +413,11 @@ type Append_Helper
     ## PRIVATE
        Check if there are rows in source that match multiple rows in the target.
     check_multiple_target_rows_match self ~continuation =
-        matched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
-        agg = (self.key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
         ## This aggregation will only find duplicated in target, not in the source,
            because the source is already guaranteed to be unique - that was checked
            when uploading the temporary table with the key as its primary key.
-        duplicated_key_in_target = matched_rows.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
-        example =  duplicated_key_in_target.read max_rows=1
-        case example.row_count == 0 of
-            False ->
-                row = duplicated_key_in_target.first_row . to_vector
-                offending_key = row.drop (Index_Sub_Range.Last 1)
-                count = row.last
-                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
-            True -> continuation
+        check_multiple_rows_match self.target_table self.source_table self.key_columns <|
+            continuation
 
 ## PRIVATE
    This helper ensures that all arguments are valid.
@@ -468,6 +459,15 @@ default_key_columns (table : Database_Table | In_Memory_Table) =
         table.get_primary_key
 
 ## PRIVATE
+   A variant of `default_key_columns` that will raise an error if no key columns
+   were found.
+default_key_columns_required table =
+    key_columns = default_key_columns table
+    ok = key_columns.is_nothing.not && key_columns.not_empty
+    if ok then key_columns else
+        Error.throw (Illegal_Argument.Error "No primary key found to serve as a default value for `key_columns`. Please set the argument explicitly.")
+
+## PRIVATE
 dry_run_row_limit = 1000
 
 ## PRIVATE
@@ -485,3 +485,128 @@ check_transaction_ddl_support connection =
         metadata.supportsDataDefinitionAndDataManipulationTransactions
     if supports_ddl.not then
         Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")
+
+## PRIVATE
+common_delete_rows target_table key_values_to_delete key_columns allow_duplicate_matches =
+    check_delete_rows_arguments target_table key_values_to_delete key_columns <|
+        connection = target_table.connection
+        Panic.recover SQL_Error <| connection.jdbc_connection.run_within_transaction <|
+            dry_run = Context.Output.is_enabled.not
+            check_for_null_keys key_values_to_delete key_columns <| Context.Output.with_enabled <|
+                source = prepare_source_table_for_delete_matching key_values_to_delete connection key_columns dry_run
+                source_db_table = source.db_table
+                source_db_table.if_not_error <|
+                    check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
+                        affected_row_count = case dry_run of
+                            True ->
+                                # On dry run, we just compute the row count by joining.
+                                target_table.join source_db_table on=key_columns join_kind=Join_Kind.Inner . row_count
+                            False ->
+                                # On a real run, we get the row count from the DELETE statement return value.
+                                if source.tmp_table_name.is_nothing then
+                                    Panic.throw (Illegal_State.Error "Impossible. This is a bug in the Database library.")
+                                delete_statement = connection.dialect.generate_sql <|
+                                    Query.Delete_Matching_Rows target_table.name source.tmp_table_name key_columns
+                                connection.execute_update delete_statement
+
+                        ## We don't need to drop the table if update panics, because
+                           all of this happens within a transaction, so in case the
+                           above fails, the whole transaction will be rolled back.
+                        source.drop_temporary_table connection
+                        if dry_run.not then affected_row_count else
+                            suffix = source.dry_run_message_suffix
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
+                            Warning.attach warning affected_row_count
+
+## PRIVATE
+   Prepares the source table for the delete operation.
+
+   It selects only the key columns and ensures keys are distinct to avoid primary key clashes.
+   In dry-run mode, if the table is an SQL query, it is kept as is to avoid copying data.
+   In real mode, the table is copied into a temporary table to simplify the DELETE FROM query.
+   If the source table is in-memory, it is uploaded in either mode, but in dry-run mode only a sample of the rows is processed.
+prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table | In_Memory_Table) connection key_columns dry_run =
+    ## We select only the key columns and discard anything else.
+       We also call distinct to ensure that we will not have primary-key
+       duplicate issues when uploading the temporary table.
+    prepared_table = key_values_to_delete.select_columns key_columns . distinct
+    case dry_run of
+        True ->
+            case prepared_table of
+                _ : Database_Table ->
+                    Delete_Rows_Source.Value prepared_table Nothing
+                _ : In_Memory_Table ->
+                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
+                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+
+                    row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
+                    dry_run_message_suffix = case row_limit_exceeded of
+                        False -> ""
+                        True  -> " (Only the first "+dry_run_row_limit.to_text+" distinct rows out of "+prepared_table.row_count.to_text+" were used for the dry run. The count rows affected by the actual operation may be larger once it is run with Output context enabled.)"
+                    Delete_Rows_Source.Value uploaded_table tmp_table_name dry_run_message_suffix=dry_run_message_suffix
+
+        False ->
+            tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
+            copied_table = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
+            Delete_Rows_Source.Value copied_table tmp_table_name
+
+## PRIVATE
+type Delete_Rows_Source
+    ## PRIVATE
+    Value (db_table : Database_Table) (tmp_table_name : Nothing | Text) (dry_run_message_suffix : Text = "")
+
+    ## PRIVATE
+       Drops a temporarily created table, if there was one.
+    drop_temporary_table self connection =
+        if self.tmp_table_name.is_nothing.not then
+            connection.drop_table self.tmp_table_name
+
+
+## PRIVATE
+check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =
+    check_target_table_for_update target_table <|
+        if key_columns.is_empty then Error.throw (Illegal_Argument.Error "One or more key columns must be provided to correlate the rows to be deleted.") else
+            key_set = Set.from_vector key_columns
+            missing_target_key_columns = key_set . difference (Set.from_vector target_table.column_names)
+            if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
+                missing_source_key_columns = key_set . difference (Set.from_vector key_values_to_delete.column_names)
+                if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the key values to delete table") else
+                    continuation
+
+## PRIVATE
+check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches ~continuation =
+    if allow_duplicate_matches then continuation else
+        check_multiple_rows_match target_table tmp_table key_columns <|
+            continuation
+
+## PRIVATE
+   Checks if any rows identified by `key_columns` have more than one match between two tables.
+check_multiple_rows_match left_table right_table key_columns ~continuation =
+    joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
+    counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
+    duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
+    example = duplicates.read max_rows=1
+    case example.row_count == 0 of
+        True -> continuation
+        False ->
+            row = example.first_row . to_vector
+            offending_key = row.drop 1
+            count = row.first
+            Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+
+## PRIVATE
+check_for_null_keys table key_columns ~continuation =
+    keys = table.select_columns key_columns
+    is_any_key_blank = keys.columns.map (_.is_nothing) . reduce (||)
+    null_keys = table.filter is_any_key_blank Filter_Condition.Is_True
+    example = null_keys.read max_rows=1
+    case example.row_count == 0 of
+        True -> continuation
+        False ->
+            example_key = example.first_row.to_vector
+            Error.throw (Null_Values_In_Key_Columns.Error example_key)
+
+## PRIVATE
+check_for_null_keys_if_any_keys_set table key_columns ~continuation =
+    if key_columns.is_empty then continuation else
+        check_for_null_keys table key_columns continuation

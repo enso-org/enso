@@ -16,4 +16,7 @@ define_env_var! {
 
     /// Static token for admin requests on our Lambdas.
     ENSO_ADMIN_TOKEN, String;
+
+    /// License key for the AG Grid library.
+    ENSO_AG_GRID_LICENSE_KEY, String;
 }

@@ -3,7 +3,6 @@ import {
   onMounted,
   onUnmounted,
   proxyRefs,
-  reactive,
   ref,
   type Ref,
   shallowRef,
@@ -12,6 +11,26 @@ import {
   type WatchSource,
 } from 'vue'
 import { Vec2 } from './vec2'
+
+/**
+ * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * @param target element on which to register the event
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useElementEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (e: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    target.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    target.removeEventListener(event, handler, options)
+  })
+}
 
 /**
  * Add an event listener on window for the duration of component lifetime.

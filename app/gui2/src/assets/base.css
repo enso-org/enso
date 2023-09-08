@@ -39,10 +39,18 @@
   --color-widget-selected: rgba(255, 255, 255, 0.58);
 
   --color-port-connected: rgba(255, 255, 255, 0.15);
+
+  --color-frame-bg: rgba(255, 255, 255, 0.3);
+  
+  --color-dim: rgba(0, 0, 0, 0.25);
 }
 
-/* non-color variables for this project */
+/* non-color variables */
 :root {
+  --disabled-opacity: 40%;
+
+  /* A `border-radius` higher than all possible element sizes.
+   * A `border-radius` of 100% does not work because the element becomes an ellipse. */
   --radius-full: 9999px;
 
   --section-gap: 160px;
@@ -58,31 +66,25 @@
 
 body {
   min-height: 100vh;
+  /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
+  background: #e4d4be;
   color: var(--color-text);
   /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
   background: #e4d4be;
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  font-size: 15px;
+  transition: color 0.5s, background-color 0.5s;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 174.5%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
 }
 
 .button {
@@ -95,4 +97,8 @@ body {
 
 .hidden {
   display: none;
+}
+
+.button.disabled {
+  cursor: default;
 }

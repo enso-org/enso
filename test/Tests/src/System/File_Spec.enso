@@ -43,6 +43,20 @@ spec =
             non_existent_file.exists.should_be_false
             sample_file.exists.should_be_true
 
+        Test.specify "should get file size" <|
+            file_size = sample_file.size
+            ## Allows for having line endings replaced.
+            valid_size = file_size==403 || file_size==406
+            valid_size.should_be_true
+
+            result = non_existent_file.size
+            result.should_fail_with File_Error
+            result.catch.should_be_a File_Error.Not_Found
+
+            folder = enso_project.data.size
+            folder.should_fail_with File_Error
+            folder.catch.should_be_a File_Error.IO_Error
+
         Test.specify "should get file name" <|
             sample_file.name.should_equal "sample.txt"
 
