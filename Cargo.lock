@@ -2424,7 +2424,6 @@ dependencies = [
  "enso-logging",
  "enso-reflect",
  "enso-shapely",
- "enso-web",
  "enso-zst",
  "failure",
  "futures",

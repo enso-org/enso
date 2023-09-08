@@ -20,7 +20,6 @@ enso-logging = { path = "../logging" }
 enso-reflect = { path = "../reflect" }
 enso-shapely = { path = "../shapely" }
 enso-zst = { path = "../zst" }
-enso-web = { path = "../web" }
 anyhow = { workspace = true }
 assert_approx_eq = { workspace = true }
 backtrace = { workspace = true }

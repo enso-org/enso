@@ -5,31 +5,31 @@ import * as Y from 'yjs'
 import type { Opt } from './opt'
 
 export function useObserveYjs<T>(
-  textRef: Ref<Opt<Y.AbstractType<T>>>,
+  typeRef: Ref<Opt<Y.AbstractType<T>>>,
   observer: (event: T, transaction: Y.Transaction) => void,
 ) {
   watchEffect((onCleanup) => {
-    const text = textRef.value
-    if (text == null) return
+    const type = typeRef.value
+    if (type == null) return
 
-    text.observe(observer)
+    type.observe(observer)
     onCleanup(() => {
-      text.unobserve(observer)
+      type.unobserve(observer)
     })
   })
 }
 
 export function useObserveYjsDeep(
-  textRef: Ref<Opt<Y.AbstractType<any>>>,
+  typeRef: Ref<Opt<Y.AbstractType<any>>>,
   observer: (event: Y.YEvent<any>[], transaction: Y.Transaction) => void,
 ) {
   watchEffect((onCleanup) => {
-    const text = textRef.value
-    if (text == null) return
+    const type = typeRef.value
+    if (type == null) return
 
-    text.observeDeep(observer)
+    type.observeDeep(observer)
     onCleanup(() => {
-      text.unobserveDeep(observer)
+      type.unobserveDeep(observer)
     })
   })
 }
@@ -76,6 +76,5 @@ export function attachProvider(url: string, room: string, doc: Y.Doc, awareness:
       subdocProvider.dispose()
     })
   }
-  doc.on('subdocs', (e: SubdocsEvent) => {})
   return { provider, dispose: dispose }
 }

@@ -883,18 +883,7 @@ impl Node {
             model.input.set_node_colors <+ node_colors;
         }
 
-
-        // TODO: handle color change. Will likely require moving the node background and backdrop
-        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
-        // are displayed as separate shapes.
-        let colors = [
-            color::Lcha(0.4911, 0.3390, 0.72658, 1.0),
-            color::Lcha(0.4468, 0.3788, 0.96805, 1.0),
-            color::Lcha(0.4437, 0.1239, 0.70062, 1.0),
-        ];
-        let mut hasher = crate::DefaultHasher::new();
-        Rc::as_ptr(&model).hash(&mut hasher);
-        base_color_source.emit(colors[hasher.finish() as usize % colors.len()]);
+        base_color_source.emit(color::Lcha(0.4911, 0.3390, 0.72658, 1.0));
 
 
         // Init defaults.

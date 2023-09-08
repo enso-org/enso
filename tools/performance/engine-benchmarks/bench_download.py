@@ -65,6 +65,7 @@ from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
 import xml.etree.ElementTree as ET
+from urllib.parse import urlencode
 
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
@@ -300,12 +301,11 @@ def _read_json(json_file: str) -> Dict[Any, Any]:
 async def _invoke_gh_api(endpoint: str,
                    query_params: Dict[str, str] = {},
                    result_as_text: bool = True) -> Union[Dict[str, Any], bytes]:
-    query_str_list = [key + "=" + value for key, value in query_params.items()]
-    query_str = "&".join(query_str_list)
+    urlencode(query_params)
     cmd = [
         "gh",
         "api",
-        f"/repos/enso-org/enso{endpoint}" + ("" if len(query_str) == 0 else "?" + query_str)
+        f"/repos/enso-org/enso{endpoint}" + "?" + urlencode(query_params)
     ]
     logging.info(f"Starting subprocess `{' '.join(cmd)}`")
     proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
