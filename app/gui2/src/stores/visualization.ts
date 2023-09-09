@@ -3,8 +3,9 @@ import * as vue from 'vue'
 
 import { defineStore } from 'pinia'
 
+const moduleCache: Record<string, any> = { vue }
 // @ts-expect-error
-window.vue = vue
+window.__visualizationModules = moduleCache
 
 type VisualizationModule =
   typeof import('../../public/visualizations/VisualizationContainer.vue') & {
@@ -31,13 +32,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const types = Object.keys(paths)
   let worker: Worker | undefined
   let workerMessageId = 0
-  const workerCallbacks: Record<
-    string,
-    {
-      resolve: (result: string) => void
-      reject: () => void
-    }
-  > = {}
+  const workerCallbacks: Record<string, { resolve: (result: any) => void; reject: () => void }> = {}
 
   function register(name: string, inputType: string) {
     console.log(`registering visualization: name=${name}, inputType=${inputType}`)
@@ -48,9 +43,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
       worker = new Compiler()
       worker.addEventListener(
         'message',
-        (
+        async (
           event: MessageEvent<
-            { type: 'style'; code: string } | { type: 'script'; id: number; code: string }
+            | { type: 'style'; code: string }
+            | { type: 'raw-import'; path: string; value: unknown }
+            | { type: 'import'; path: string; dataUrl: string }
+            | { type: 'script'; id: number; path: string }
           >,
         ) => {
           switch (event.data.type) {
@@ -60,8 +58,18 @@ export const useVisualizationStore = defineStore('visualization', () => {
               document.head.appendChild(styleNode)
               break
             }
+            case 'raw-import': {
+              moduleCache[event.data.path] = event.data.value
+              break
+            }
+            case 'import': {
+              const module = import(event.data.dataUrl)
+              moduleCache[event.data.path] = module
+              moduleCache[event.data.path] = await module
+              break
+            }
             case 'script': {
-              workerCallbacks[event.data.id].resolve(event.data.code)
+              workerCallbacks[event.data.id].resolve(moduleCache[event.data.path])
               break
             }
           }
@@ -73,7 +81,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
     const id = workerMessageId
     workerMessageId += 1
-    const promise = new Promise<string>((resolve, reject) => {
+    const promise = new Promise<any>((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
     })
     worker.postMessage({ id, path })
@@ -84,10 +92,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   async function get(type: string) {
     let component: Visualization = cache[type]
     if (component == null) {
-      const script = await compile(paths[type])
-      const module = await import(
-        /* @vite-ignore */ `data:text/javascript,${encodeURIComponent(script)}`
-      )
+      const module = await compile(paths[type])
       // TODO[sb]: fallback to name based on path to visualization.
       register(module.name ?? type, module.inputType ?? 'Any')
       component = module.default

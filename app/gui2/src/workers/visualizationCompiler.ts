@@ -2,7 +2,6 @@ import { parse, compileScript, compileStyle } from 'vue/compiler-sfc'
 import { transform } from 'sucrase'
 import { parse as babelParse } from '@babel/parser'
 import MagicString from 'magic-string'
-import { first } from 'lib0/set.js'
 
 const ids = new Set<string>()
 function generateId() {
@@ -16,42 +15,35 @@ function generateId() {
   }
 }
 
-async function rewriteSVGImport(path: string, s: MagicString, stmt: any) {
-  const text = await (await fetch(path)).text()
-  s.overwrite(
-    stmt.start!,
-    stmt.end!,
-    `const ${stmt.specifiers[0].local.name} = "data:image/svg+xml,${encodeURIComponent(text)}";`,
-  )
+function addStyle(code: string) {
+  postMessage({ type: 'style', code })
+}
+function addRawImport(path: string, value: unknown) {
+  postMessage({ type: 'raw-import', path, value })
+}
+function addImport(path: string, dataUrl: string) {
+  postMessage({ type: 'import', path, dataUrl })
 }
 
-async function rewriteTSImport(
-  path: string,
-  s: MagicString,
-  stmt: any,
-  addStyle: (code: string) => void,
-) {
+async function importSvg(path: string) {
+  const text = await (await fetch(path)).text()
+  addRawImport(path, { default: `data:image/svg+xml,${encodeURIComponent(text)}` })
+}
+
+async function importTS(path: string) {
   const dir = path.replace(/[^/\\]+$/, '')
   const scriptTs = await (await fetch(path)).text()
   const text = transform(scriptTs, {
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  s.overwrite(
-    stmt.source.start!,
-    stmt.source.end!,
-    `"data:text/javascript,${encodeURIComponent(
-      await rewriteImports(text, dir, undefined, addStyle),
-    )}"`,
+  addImport(
+    path,
+    `data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir, undefined))}`,
   )
 }
 
-async function rewriteVueImport(
-  path: string,
-  s: MagicString,
-  stmt: any,
-  addStyle: (code: string) => void,
-) {
+async function importVue(path: string) {
   const dir = path.replace(/[^/\\]+$/, '')
   const raw = await (await fetch(path)).text()
   const filename = path.match(/[^/\\]+$/)?.[0]!
@@ -69,19 +61,10 @@ async function rewriteVueImport(
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  s.overwrite(
-    stmt.source.start!,
-    stmt.source.end!,
-    `"data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir, id, addStyle))}"`,
-  )
+  addImport(path, `data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir, id))}`)
 }
 
-async function rewriteImports(
-  code: string,
-  dir: string,
-  id: string | undefined,
-  addStyle: (code: string) => void,
-) {
+async function rewriteImports(code: string, dir: string, id: string | undefined) {
   const ast = babelParse(code, { sourceType: 'module' })
   const s = new MagicString(code)
   for (let i = 0; i < ast.program.body.length; ) {
@@ -89,25 +72,41 @@ async function rewriteImports(
     switch (stmt.type) {
       case 'ImportDeclaration': {
         let path = stmt.source.extra!.rawValue as string
-        const isRelative = path.startsWith('.')
+        const isRelative = /^[./]/.test(path)
         if (isRelative) {
           path = new URL(dir + path, location.href).toString()
         }
-        if (path === 'vue') {
+        if (
+          path == 'vue' ||
+          path.endsWith('.svg') ||
+          path.endsWith('.ts') ||
+          path.endsWith('.vue')
+        ) {
           const specifiers = stmt.specifiers.map((s: any) => {
-            if (s.imported.start === s.local.start) {
-              return s.imported.loc.identifierName
+            if (s.type === 'ImportDefaultSpecifier') {
+              return `default: ${s.local.name}`
             } else {
-              return `${s.imported.loc.identifierName}: ${s.local.loc.identifierName}`
+              if (s.imported.start === s.local.start) {
+                return s.imported.loc.identifierName
+              } else {
+                return `${s.imported.loc.identifierName}: ${s.local.loc.identifierName}`
+              }
             }
           })
-          s.overwrite(stmt.start!, stmt.end!, `const { ${specifiers.join(', ')} } = window.vue;`)
-        } else if (path.endsWith('.svg')) {
-          await rewriteSVGImport(path, s, stmt)
-        } else if (path.endsWith('.ts')) {
-          await rewriteTSImport(path, s, stmt, addStyle)
-        } else if (path.endsWith('.vue')) {
-          await rewriteVueImport(path, s, stmt, addStyle)
+          s.overwrite(
+            stmt.start!,
+            stmt.end!,
+            `const { ${specifiers.join(', ')} } = window.__visualizationModules[${JSON.stringify(
+              path,
+            )}];`,
+          )
+          if (path.endsWith('.svg')) {
+            await importSvg(path)
+          } else if (path.endsWith('.ts')) {
+            await importTS(path)
+          } else if (path.endsWith('.vue')) {
+            await importVue(path)
+          }
         }
         break
       }
@@ -144,16 +143,17 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  return await rewriteImports(scriptRaw, dir, id, addStyle)
+  addImport(
+    path,
+    `data:text/javascript,${encodeURIComponent(await rewriteImports(scriptRaw, dir, id))}`,
+  )
+  return path
 }
 
 onmessage = async (event: MessageEvent<{ id: number; path: string }>) => {
-  function addStyle(code: string) {
-    postMessage({ type: 'style', code })
-  }
   postMessage({
     type: 'script',
     id: event.data.id,
-    code: await compileVisualization(event.data.path, addStyle),
+    path: await compileVisualization(event.data.path, addStyle),
   })
 }
