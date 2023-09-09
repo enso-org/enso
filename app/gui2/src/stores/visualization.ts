@@ -1,3 +1,4 @@
+import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vue from 'vue'
 
@@ -17,17 +18,19 @@ type VisualizationModule =
 
 export type Visualization = VisualizationModule['default']
 
+const builtinVisualizationPaths: Record<string, string> = {
+  JSON: '/visualizations/JSONVisualization.vue',
+  Error: '/visualizations/ErrorVisualization.vue',
+  Warnings: '/visualizations/WarningsVisualization.vue',
+  Bubble: '/visualizations/BubbleVisualization.vue',
+  Image: '/visualizations/ImageBase64Visualization.vue',
+  'Geo Map': '/visualizations/GeoMapVisualization.vue',
+  Scatterplot: '/visualizations/ScatterplotVisualization.vue',
+}
+
 export const useVisualizationStore = defineStore('visualization', () => {
-  // FIXME: statically resolved imports will not work for user-defined components
-  const paths: Record<string, string> = {
-    JSON: '/visualizations/JSONVisualization.vue',
-    Error: '/visualizations/ErrorVisualization.vue',
-    Warnings: '/visualizations/WarningsVisualization.vue',
-    Bubble: '/visualizations/BubbleVisualization.vue',
-    Image: '/visualizations/ImageBase64Visualization.vue',
-    'Geo Map': '/visualizations/GeoMapVisualization.vue',
-    Scatterplot: '/visualizations/ScatterplotVisualization.vue',
-  } as any
+  // TODO: Figure out how to list visualizations defined by a project.
+  const paths = { ...builtinVisualizationPaths }
   let cache: Record<string, any> = {}
   const types = Object.keys(paths)
   let worker: Worker | undefined
@@ -69,14 +72,14 @@ export const useVisualizationStore = defineStore('visualization', () => {
               break
             }
             case 'script': {
-              workerCallbacks[event.data.id].resolve(moduleCache[event.data.path])
+              workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
               break
             }
           }
         },
       )
       worker.addEventListener('error', (event) => {
-        workerCallbacks[event.error.id].reject()
+        workerCallbacks[event.error.id]?.reject()
       })
     }
     const id = workerMessageId
@@ -92,9 +95,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
   async function get(type: string) {
     let component: Visualization = cache[type]
     if (component == null) {
-      const module = await compile(paths[type])
+      const path = paths[type]
+      if (path == null) {
+        return
+      }
+      const module = await compile(path)
       // TODO[sb]: fallback to name based on path to visualization.
-      register(module.name ?? type, module.inputType ?? 'Any')
+      register(module.name ?? fileName(path) ?? type, module.inputType ?? 'Any')
       component = module.default
       cache[type] = component
     }
