@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useDocumentEvent } from '../events'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps<{ types: string[] }>()
 const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 
 const rootNode = ref<HTMLElement>()
 
-useDocumentEvent('click', (event) => {
+function onClick(event: MouseEvent) {
   if (!(event.target instanceof HTMLElement) || rootNode.value?.contains(event.target)) {
     return
   }
   emit('hide')
+}
+
+onMounted(() => {
+  document.addEventListener('click', onClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClick)
 })
 </script>
 

@@ -17,21 +17,21 @@ const emit = defineEmits<{
   <div class="CircularMenu">
     <div class="background"></div>
     <button
-      class="icon-container no-auto-evaluate-button"
+      class="icon-container button no-auto-evaluate-button"
       :class="{ active: isAutoEvaluationDisabled }"
       @click="emit('update:isAutoEvaluationDisabled', !isAutoEvaluationDisabled)"
     >
       <SvgIcon name="no_auto_replay" />
     </button>
     <button
-      class="icon-container docs-button"
+      class="icon-container button docs-button"
       :class="{ active: isDocsVisible }"
       @click="emit('update:isDocsVisible', !isDocsVisible)"
     >
       <SvgIcon name="docs" />
     </button>
     <button
-      class="icon-container visualization-button"
+      class="icon-container button visualization-button"
       :class="{ active: isVisualizationVisible }"
       @click="emit('update:isVisualizationVisible', !isVisualizationVisible)"
     >

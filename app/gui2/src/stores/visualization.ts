@@ -1,27 +1,136 @@
+import * as vue from 'vue'
+import { parse, compileScript, compileStyle } from 'vue/compiler-sfc'
+import { transform } from 'sucrase'
+import { parse as babelParse } from '@babel/parser'
+import MagicString from 'magic-string'
+
 import { defineStore } from 'pinia'
 
-type VisualizationModule = typeof import('visualizations/VisualizationContainer.vue') & {
-  name?: string
-  inputType?: string
-  scripts?: string[]
-  styles?: string[]
-}
+// @ts-expect-error
+window.vue = vue
+
+type VisualizationModule =
+  typeof import('../../public/visualizations/VisualizationContainer.vue') & {
+    name?: string
+    inputType?: string
+    scripts?: string[]
+    styles?: string[]
+  }
 
 export type Visualization = VisualizationModule['default']
 
+const ids = new Set<string>()
+function generateId() {
+  for (;;) {
+    const id = Math.floor(Math.random() * 0xffffffff)
+      .toString(16)
+      .padStart(8, '0')
+    if (!ids.has(id)) {
+      return id
+    }
+  }
+}
+
+async function rewriteSVGImport(path: string, s: MagicString, stmt: any) {
+  const text = await (await fetch(path)).text()
+  s.overwrite(
+    stmt.start!,
+    stmt.end!,
+    `const ${stmt.specifiers[0].local.name} = "data:image/svg+xml,${encodeURIComponent(text)}";`,
+  )
+}
+
+async function rewriteTSImport(path: string, s: MagicString, stmt: any) {
+  const dir = path.replace(/[^/\\]+$/, '')
+  const scriptTs = await (await fetch(path)).text()
+  const text = transform(scriptTs, {
+    disableESTransforms: true,
+    transforms: ['typescript'],
+  }).code
+  s.overwrite(
+    stmt.source.start!,
+    stmt.source.end!,
+    `"data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir))}"`,
+  )
+}
+
+async function rewriteVueImport(path: string, s: MagicString, stmt: any) {
+  const dir = path.replace(/[^/\\]+$/, '')
+  const raw = await (await fetch(path)).text()
+  const filename = path.match(/[^/\\]+$/)?.[0]!
+  const parsed = parse(raw, { filename })
+  const id = generateId()
+  for (const style of parsed.descriptor.styles) {
+    const css = compileStyle({ filename, source: style.content, id }).code
+    const styleNode = document.createElement('style')
+    styleNode.innerHTML = css
+    document.head.appendChild(styleNode)
+  }
+  const scriptTs = compileScript(parsed.descriptor, {
+    id,
+    inlineTemplate: true,
+    sourceMap: false,
+  }).content
+  const text = transform(scriptTs, {
+    disableESTransforms: true,
+    transforms: ['typescript'],
+  }).code
+  s.overwrite(
+    stmt.source.start!,
+    stmt.source.end!,
+    `"data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir))}"`,
+  )
+}
+
+async function rewriteImports(code: string, dir: string) {
+  const ast = babelParse(code, { sourceType: 'module' })
+  const s = new MagicString(code)
+  for (let i = 0; i < ast.program.body.length; ) {
+    const stmt = ast.program.body[i]
+    switch (stmt.type) {
+      case 'ImportDeclaration': {
+        let path = stmt.source.extra!.rawValue as string
+        const isRelative = path.startsWith('.')
+        if (isRelative) {
+          path = new URL(dir + path, location.href).toString()
+        }
+        if (path === 'vue') {
+          const specifiers = stmt.specifiers.map((s: any) => {
+            if (s.imported.start === s.local.start) {
+              return s.imported.loc.identifierName
+            } else {
+              return `${s.imported.loc.identifierName}: ${s.local.loc.identifierName}`
+            }
+          })
+          s.overwrite(stmt.start!, stmt.end!, `const { ${specifiers.join(', ')} } = window.vue;`)
+        } else if (path.endsWith('.svg')) {
+          await rewriteSVGImport(path, s, stmt)
+        } else if (path.endsWith('.ts')) {
+          await rewriteTSImport(path, s, stmt)
+        } else if (path.endsWith('.vue')) {
+          await rewriteVueImport(path, s, stmt)
+        }
+        break
+      }
+    }
+    i += 1
+  }
+  return s.toString()
+}
+
 export const useVisualizationStore = defineStore('visualization', () => {
   // FIXME: statically resolved imports will not work for user-defined components
-  const getters: Record<string, () => Promise<VisualizationModule>> = {
-    JSON: () => import('visualizations/JSONVisualization.vue'),
-    Error: () => import('visualizations/ErrorVisualization.vue'),
-    Warnings: () => import('visualizations/WarningsVisualization.vue'),
-    Bubble: () => import('visualizations/BubbleVisualization.vue'),
-    Image: () => import('visualizations/ImageBase64Visualization.vue'),
-    'Geo Map': () => import('visualizations/GeoMapVisualization.vue'),
-    Scatterplot: () => import('visualizations/ScatterplotVisualization.vue'),
+  const paths: Record<string, string> = {
+    JSON: '/visualizations/JSONVisualization.vue',
+    Error: '/visualizations/ErrorVisualization.vue',
+    Warnings: '/visualizations/WarningsVisualization.vue',
+    Bubble: '/visualizations/BubbleVisualization.vue',
+    Image: '/visualizations/ImageBase64Visualization.vue',
+    'Geo Map': '/visualizations/GeoMapVisualization.vue',
+    Scatterplot: '/visualizations/ScatterplotVisualization.vue',
   } as any
   let cache: Record<string, any> = {}
-  const types = Object.keys(getters)
+  const types = Object.keys(paths)
 
   function register(name: string, inputType: string) {
     console.log(`registering visualization: name=${name}, inputType=${inputType}`)
@@ -31,7 +140,31 @@ export const useVisualizationStore = defineStore('visualization', () => {
   async function get(type: string) {
     let component: VisualizationModule['default'] = cache[type]
     if (component == null) {
-      const module = await getters[type]()
+      const path = paths[type]
+      const filename = path.match(/[^/\\]+$/)?.[0]!
+      const dir = path.replace(/[^/\\]+$/, '')
+      const text = await (await fetch(path)).text()
+      const id = generateId()
+      const parsed = parse(text, { filename })
+      for (const style of parsed.descriptor.styles) {
+        const css = compileStyle({ filename, source: style.content, id }).code
+        const styleNode = document.createElement('style')
+        styleNode.innerHTML = css
+        document.head.appendChild(styleNode)
+      }
+      const scriptTs = compileScript(parsed.descriptor, {
+        id,
+        inlineTemplate: true,
+        sourceMap: false,
+      }).content
+      const scriptRaw = transform(scriptTs, {
+        disableESTransforms: true,
+        transforms: ['typescript'],
+      }).code
+      const script = await rewriteImports(scriptRaw, dir)
+      const module = await import(
+        /* @vite-ignore */ `data:text/javascript,${encodeURIComponent(script)}`
+      )
       // TODO[sb]: fallback to name based on path to visualization.
       register(module.name ?? type, module.inputType ?? 'Any')
       component = module.default

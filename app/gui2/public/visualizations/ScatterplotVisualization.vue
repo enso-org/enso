@@ -89,12 +89,11 @@ import FindIcon from './icons/find.svg'
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
-import { useDocumentEvent, useDocumentEventConditional } from './events'
-import { getTextWidth } from './measurement'
+import { getTextWidth } from './measurement.ts'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   width: number | undefined
@@ -116,7 +115,6 @@ const POINT_LABEL_PADDING_X = 7
 const POINT_LABEL_PADDING_Y = 2
 const ANIMATION_DURATION = 400
 const VISIBLE_POINTS = 'visible'
-const BUTTONS_HEIGHT = 25
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 
@@ -487,10 +485,26 @@ function endBrushing() {
   removePointerEventsAttrsFromBrush()
 }
 
-useDocumentEvent('click', endBrushing)
-useDocumentEvent('auxclick', endBrushing)
-useDocumentEvent('contextmenu', endBrushing)
-useDocumentEvent('scroll', endBrushing)
+function onKeydown(event: KeyboardEvent) {
+  if (shortcuts.showAll(event)) {
+    fitAll()
+  }
+}
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  document.addEventListener('click', endBrushing)
+  document.addEventListener('auxclick', endBrushing)
+  document.addEventListener('contextmenu', endBrushing)
+  document.addEventListener('scroll', endBrushing)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
+  document.removeEventListener('click', endBrushing)
+  document.removeEventListener('auxclick', endBrushing)
+  document.removeEventListener('contextmenu', endBrushing)
+  document.removeEventListener('scroll', endBrushing)
+})
 
 /**
  * Zooms into the selected fragment of the plot.
@@ -518,13 +532,18 @@ function zoomToSelected() {
   zoomingHelper(zoom.transformedScale)
 }
 
-useDocumentEventConditional(
-  'keydown',
+watch(
   () => brushExtent.value != null,
-  (event) => {
-    if (shortcuts.zoomIn(event)) {
-      zoomToSelected()
-      endBrushing()
+  (conditionMet, _, onCleanup) => {
+    if (conditionMet) {
+      function handler(event: KeyboardEvent) {
+        if (shortcuts.zoomIn(event)) {
+          zoomToSelected()
+          endBrushing()
+        }
+      }
+      document.addEventListener('keydown', handler)
+      onCleanup(() => document.removeEventListener('keydown', handler))
     }
   },
 )
@@ -679,12 +698,6 @@ function updateAxes() {
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
 
-useDocumentEvent('keydown', (event) => {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-})
-
 function fitAll() {
   zoom.zoomElem.transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
 
@@ -787,27 +800,27 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 .Scatterplot {
   user-select: none;
   display: flex;
+}
 
-  > .selection {
-    rx: 4px;
-    stroke: transparent;
-  }
+.Scatterplot > .selection {
+  rx: 4px;
+  stroke: transparent;
+}
 
-  > button {
-    margin-left: 5px;
-    margin-bottom: 5px;
-    display: inline-block;
-    padding: 2px 10px;
-    outline: none;
-    background-color: transparent;
-    border: 1px solid var(--color-button-light);
-    color: var(--color-button-light);
-    border-radius: 14px;
-    font-size: 10px;
-    font-family: DejaVuSansMonoBook;
-    vertical-align: top;
-    transition: all 0.3s ease;
-  }
+.Scatterplot > button {
+  margin-left: 5px;
+  margin-bottom: 5px;
+  display: inline-block;
+  padding: 2px 10px;
+  outline: none;
+  background-color: transparent;
+  border: 1px solid var(--color-button-light);
+  color: var(--color-button-light);
+  border-radius: 14px;
+  font-size: 10px;
+  font-family: DejaVuSansMonoBook;
+  vertical-align: top;
+  transition: all 0.3s ease;
 }
 
 .fit-all-button {

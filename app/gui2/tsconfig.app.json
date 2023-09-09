@@ -1,13 +1,13 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "shared/**/*.vue", "visualizations/**/*", "visualizations/**/*.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "shared/**/*.vue", "public/**/*", "public/**/*.vue"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
     "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@viz/*": ["./visualizations/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

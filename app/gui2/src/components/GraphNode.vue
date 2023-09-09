@@ -265,7 +265,7 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
 
-const visualizationType = ref('Warnings')
+const visualizationType = ref('Scatterplot')
 const visualization = shallowRef<Visualization>()
 const visualizationTypes = computed(() =>
   visualizationStore.types.filter((type) => type !== visualizationType.value),

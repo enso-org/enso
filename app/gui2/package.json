@@ -16,10 +16,13 @@
     "preinstall": "npm run build-rust-ffi"
   },
   "dependencies": {
+    "@babel/parser": "^7.22.16",
     "@vueuse/core": "^10.4.1",
     "lib0": "^0.2.83",
+    "magic-string": "^0.30.3",
     "pinia": "^2.1.6",
     "postcss-nesting": "^12.0.1",
+    "sucrase": "^3.34.0",
     "vue": "^3.3.4",
     "ws": "^8.13.0",
     "y-protocols": "^1.0.5",

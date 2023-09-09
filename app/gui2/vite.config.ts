@@ -12,7 +12,6 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      visualizations: fileURLToPath(new URL('./visualizations', import.meta.url)),
     },
   },
   css: {
@@ -20,7 +19,6 @@ export default defineConfig({
       plugins: [postcssNesting],
     },
   },
-  assetsInclude: ['**/*.yaml'],
 })
 
 const roomNameRegex = /^[a-z0-9-]+$/i
