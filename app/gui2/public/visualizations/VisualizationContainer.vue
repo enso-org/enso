@@ -112,29 +112,29 @@ function onWheel(event: WheelEvent) {
   width: 100%;
   z-index: -1;
   border-radius: 16px;
+}
 
-  &.below-node {
-    padding-top: 20px;
-  }
+.Visualization.below-node {
+  padding-top: 20px;
+}
 
-  &.below-toolbar {
-    padding-top: 56px;
-  }
+.Visualization.below-toolbar {
+  padding-top: 56px;
+}
 
-  &.fullscreen {
-    z-index: var(--z-fullscreen);
-    position: fixed;
-    padding-top: 0;
-    border-radius: 0;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-  }
+.Visualization.fullscreen {
+  z-index: var(--z-fullscreen);
+  position: fixed;
+  padding-top: 0;
+  border-radius: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+}
 
-  &.fullscreen.below-toolbar {
-    padding-top: 38px;
-  }
+.Visualization.fullscreen.below-toolbar {
+  padding-top: 38px;
 }
 
 .content {
@@ -170,10 +170,10 @@ function onWheel(event: WheelEvent) {
     background: var(--color-app-bg);
     backdrop-filter: var(--blur-app-bg);
   }
+}
 
-  &:not(:first-child):not(:has(> :nth-child(2))) {
-    display: none;
-  }
+.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
+  display: none;
 }
 
 .invisible {
@@ -199,14 +199,14 @@ function onWheel(event: WheelEvent) {
   padding: 0;
   border: none;
   opacity: 30%;
+}
 
-  &.active {
-    cursor: pointer;
-    opacity: unset;
-  }
+.image-button.active {
+  cursor: pointer;
+  opacity: unset;
+}
 
-  > * {
-    vertical-align: top;
-  }
+.image-button > * {
+  vertical-align: top;
 }
 </style>

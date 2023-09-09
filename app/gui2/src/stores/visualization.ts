@@ -61,7 +61,7 @@ async function rewriteVueImport(path: string, s: MagicString, stmt: any) {
   const parsed = parse(raw, { filename })
   const id = generateId()
   for (const style of parsed.descriptor.styles) {
-    const css = compileStyle({ filename, source: style.content, id }).code
+    const css = compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code
     const styleNode = document.createElement('style')
     styleNode.innerHTML = css
     document.head.appendChild(styleNode)
@@ -70,6 +70,7 @@ async function rewriteVueImport(path: string, s: MagicString, stmt: any) {
     id,
     inlineTemplate: true,
     sourceMap: false,
+    templateOptions: { id, scoped: true },
   }).content
   const text = transform(scriptTs, {
     disableESTransforms: true,
@@ -147,7 +148,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
       const id = generateId()
       const parsed = parse(text, { filename })
       for (const style of parsed.descriptor.styles) {
-        const css = compileStyle({ filename, source: style.content, id }).code
+        const css = compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code
         const styleNode = document.createElement('style')
         styleNode.innerHTML = css
         document.head.appendChild(styleNode)
@@ -156,6 +157,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
         id,
         inlineTemplate: true,
         sourceMap: false,
+        templateOptions: { id, scoped: true },
       }).content
       const scriptRaw = transform(scriptTs, {
         disableESTransforms: true,
