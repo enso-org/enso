@@ -1,8 +1,5 @@
+import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vue from 'vue'
-import { parse, compileScript, compileStyle } from 'vue/compiler-sfc'
-import { transform } from 'sucrase'
-import { parse as babelParse } from '@babel/parser'
-import MagicString from 'magic-string'
 
 import { defineStore } from 'pinia'
 
@@ -19,106 +16,6 @@ type VisualizationModule =
 
 export type Visualization = VisualizationModule['default']
 
-const ids = new Set<string>()
-function generateId() {
-  for (;;) {
-    const id = Math.floor(Math.random() * 0xffffffff)
-      .toString(16)
-      .padStart(8, '0')
-    if (!ids.has(id)) {
-      return id
-    }
-  }
-}
-
-async function rewriteSVGImport(path: string, s: MagicString, stmt: any) {
-  const text = await (await fetch(path)).text()
-  s.overwrite(
-    stmt.start!,
-    stmt.end!,
-    `const ${stmt.specifiers[0].local.name} = "data:image/svg+xml,${encodeURIComponent(text)}";`,
-  )
-}
-
-async function rewriteTSImport(path: string, s: MagicString, stmt: any) {
-  const dir = path.replace(/[^/\\]+$/, '')
-  const scriptTs = await (await fetch(path)).text()
-  const text = transform(scriptTs, {
-    disableESTransforms: true,
-    transforms: ['typescript'],
-  }).code
-  s.overwrite(
-    stmt.source.start!,
-    stmt.source.end!,
-    `"data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir))}"`,
-  )
-}
-
-async function rewriteVueImport(path: string, s: MagicString, stmt: any) {
-  const dir = path.replace(/[^/\\]+$/, '')
-  const raw = await (await fetch(path)).text()
-  const filename = path.match(/[^/\\]+$/)?.[0]!
-  const parsed = parse(raw, { filename })
-  const id = generateId()
-  for (const style of parsed.descriptor.styles) {
-    const css = compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code
-    const styleNode = document.createElement('style')
-    styleNode.innerHTML = css
-    document.head.appendChild(styleNode)
-  }
-  const scriptTs = compileScript(parsed.descriptor, {
-    id,
-    inlineTemplate: true,
-    sourceMap: false,
-    templateOptions: { id, scoped: true },
-  }).content
-  const text = transform(scriptTs, {
-    disableESTransforms: true,
-    transforms: ['typescript'],
-  }).code
-  s.overwrite(
-    stmt.source.start!,
-    stmt.source.end!,
-    `"data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir))}"`,
-  )
-}
-
-async function rewriteImports(code: string, dir: string) {
-  const ast = babelParse(code, { sourceType: 'module' })
-  const s = new MagicString(code)
-  for (let i = 0; i < ast.program.body.length; ) {
-    const stmt = ast.program.body[i]
-    switch (stmt.type) {
-      case 'ImportDeclaration': {
-        let path = stmt.source.extra!.rawValue as string
-        const isRelative = path.startsWith('.')
-        if (isRelative) {
-          path = new URL(dir + path, location.href).toString()
-        }
-        if (path === 'vue') {
-          const specifiers = stmt.specifiers.map((s: any) => {
-            if (s.imported.start === s.local.start) {
-              return s.imported.loc.identifierName
-            } else {
-              return `${s.imported.loc.identifierName}: ${s.local.loc.identifierName}`
-            }
-          })
-          s.overwrite(stmt.start!, stmt.end!, `const { ${specifiers.join(', ')} } = window.vue;`)
-        } else if (path.endsWith('.svg')) {
-          await rewriteSVGImport(path, s, stmt)
-        } else if (path.endsWith('.ts')) {
-          await rewriteTSImport(path, s, stmt)
-        } else if (path.endsWith('.vue')) {
-          await rewriteVueImport(path, s, stmt)
-        }
-        break
-      }
-    }
-    i += 1
-  }
-  return s.toString()
-}
-
 export const useVisualizationStore = defineStore('visualization', () => {
   // FIXME: statically resolved imports will not work for user-defined components
   const paths: Record<string, string> = {
@@ -132,38 +29,62 @@ export const useVisualizationStore = defineStore('visualization', () => {
   } as any
   let cache: Record<string, any> = {}
   const types = Object.keys(paths)
+  let worker: Worker | undefined
+  let workerMessageId = 0
+  const workerCallbacks: Record<
+    string,
+    {
+      resolve: (result: string) => void
+      reject: () => void
+    }
+  > = {}
 
   function register(name: string, inputType: string) {
     console.log(`registering visualization: name=${name}, inputType=${inputType}`)
   }
 
+  async function compile(path: string) {
+    if (worker == null) {
+      worker = new Compiler()
+      worker.addEventListener(
+        'message',
+        (
+          event: MessageEvent<
+            { type: 'style'; code: string } | { type: 'script'; id: number; code: string }
+          >,
+        ) => {
+          switch (event.data.type) {
+            case 'style': {
+              const styleNode = document.createElement('style')
+              styleNode.innerHTML = event.data.code
+              document.head.appendChild(styleNode)
+              break
+            }
+            case 'script': {
+              workerCallbacks[event.data.id].resolve(event.data.code)
+              break
+            }
+          }
+        },
+      )
+      worker.addEventListener('error', (event) => {
+        workerCallbacks[event.error.id].reject()
+      })
+    }
+    const id = workerMessageId
+    workerMessageId += 1
+    const promise = new Promise<string>((resolve, reject) => {
+      workerCallbacks[id] = { resolve, reject }
+    })
+    worker.postMessage({ id, path })
+    return await promise
+  }
+
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
   async function get(type: string) {
-    let component: VisualizationModule['default'] = cache[type]
+    let component: Visualization = cache[type]
     if (component == null) {
-      const path = paths[type]
-      const filename = path.match(/[^/\\]+$/)?.[0]!
-      const dir = path.replace(/[^/\\]+$/, '')
-      const text = await (await fetch(path)).text()
-      const id = generateId()
-      const parsed = parse(text, { filename })
-      for (const style of parsed.descriptor.styles) {
-        const css = compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code
-        const styleNode = document.createElement('style')
-        styleNode.innerHTML = css
-        document.head.appendChild(styleNode)
-      }
-      const scriptTs = compileScript(parsed.descriptor, {
-        id,
-        inlineTemplate: true,
-        sourceMap: false,
-        templateOptions: { id, scoped: true },
-      }).content
-      const scriptRaw = transform(scriptTs, {
-        disableESTransforms: true,
-        transforms: ['typescript'],
-      }).code
-      const script = await rewriteImports(scriptRaw, dir)
+      const script = await compile(paths[type])
       const module = await import(
         /* @vite-ignore */ `data:text/javascript,${encodeURIComponent(script)}`
       )

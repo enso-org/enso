@@ -36,9 +36,9 @@ const isSelectorVisible = ref(false)
 
 function onWheel(event: WheelEvent) {
   if (
-    event.target instanceof HTMLElement &&
-    (event.target.scrollWidth > event.target.clientWidth ||
-      event.target.scrollHeight > event.target.clientHeight)
+    event.currentTarget instanceof Element &&
+    (event.currentTarget.scrollWidth > event.currentTarget.clientWidth ||
+      event.currentTarget.scrollHeight > event.currentTarget.clientHeight)
   ) {
     event.stopPropagation()
   }
