@@ -51,9 +51,9 @@ final class PatchedModuleValues {
     if (values == null) {
       var scope = module.getScope();
       values = new HashMap<>();
-      var methods = scope.getMethods();
+      var methods = scope.getAllMethods();
       var conversions = scope.getConversions();
-      updateFunctionsMap(null, methods.values(), values);
+      updateFunctionsMap(null, methods, values);
       updateFunctionsMap(null, conversions.values(), values);
     }
     values.putAll(collect);
@@ -81,7 +81,7 @@ final class PatchedModuleValues {
    */
   boolean simpleUpdate(SimpleUpdate update) {
     var scope = module.getScope();
-    var methods = scope.getMethods();
+    var methods = scope.getAllMethods();
     var conversions = scope.getConversions();
     var collect = new HashMap<Node, Predicate<Expression>>();
     if (values != null) {
@@ -91,7 +91,7 @@ final class PatchedModuleValues {
     }
     if (collect.isEmpty()) {
       // only search for new literals when none have been found
-      updateFunctionsMap(update, methods.values(), collect);
+      updateFunctionsMap(update, methods, collect);
       updateFunctionsMap(update, conversions.values(), collect);
       if (collect.isEmpty()) {
         return false;

@@ -877,8 +877,8 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
-              val fun = actualModule.getScope.getMethods
-                .get(actualModule.getScope.getAssociatedType)
+              val fun = actualModule.getScope
+                .getMethodsForType(actualModule.getScope.getAssociatedType)
                 .get(method.name)
               assert(
                 fun != null,

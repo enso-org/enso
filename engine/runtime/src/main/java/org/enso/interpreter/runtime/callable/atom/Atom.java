@@ -144,12 +144,12 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public EnsoObject getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
+    Map<String, Function> members = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
       allMembers.addAll(members.keySet());
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
+    members = constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     if (members != null) {
       allMembers.addAll(members.keySet());
     }
@@ -160,11 +160,11 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
+    Map<String, ?> members = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     if (members != null && members.containsKey(member)) {
       return true;
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
+    members = constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     return members != null && members.containsKey(member);
   }
 

@@ -244,7 +244,24 @@ class Compiler(
     shouldCompileDependencies: Boolean
   ): List[Module] = {
     initialize()
-    modules.foreach(m => parseModule(m))
+    modules.foreach(m =>
+      try {
+        parseModule(m)
+      } catch {
+        case e: Throwable =>
+          context.log(
+            Level.SEVERE,
+            "Encountered a critical failure while parsing module {0}: {1}",
+            m.getName,
+            e.getMessage
+          )
+          context.log(
+            Level.SEVERE,
+            "Contents of module: {0}",
+            m.getSource.getCharacters.toString
+          )
+      }
+    )
 
     var requiredModules = modules.flatMap { module =>
       val importedModules = runImportsAndExportsResolution(module, generateCode)

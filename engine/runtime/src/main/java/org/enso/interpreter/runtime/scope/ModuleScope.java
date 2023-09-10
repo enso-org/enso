@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -27,6 +28,12 @@ public final class ModuleScope implements EnsoObject {
   private Set<ModuleScope> imports;
   private Set<ModuleScope> exports;
 
+  private static final Type noTypeKey;
+
+  static {
+    noTypeKey = Type.noType();
+  }
+
   /**
    * Creates a new object of this class.
    *
@@ -35,7 +42,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope(Module module) {
     this.polyglotSymbols = new HashMap<>();
     this.types = new HashMap<>();
-    this.methods = new HashMap<>();
+    this.methods = new ConcurrentHashMap<>();
     this.conversions = new HashMap<>();
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
@@ -88,10 +95,12 @@ public final class ModuleScope implements EnsoObject {
    * @return a map containing all the defined methods by name
    */
   private Map<String, Function> ensureMethodMapFor(Type type) {
-    return methods.computeIfAbsent(type, k -> new HashMap<>());
+    Type tpeKey = type == null ? noTypeKey : type;
+    return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
   }
 
   private Map<String, Function> getMethodMapFor(Type type) {
+    Type tpeKey = type == null ? noTypeKey : type;
     Map<String, Function> result = methods.get(type);
     if (result == null) {
       return new HashMap<>();
@@ -262,9 +271,15 @@ public final class ModuleScope implements EnsoObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return the raw method map held by this module */
-  public Map<Type, Map<String, Function>> getMethods() {
-    return methods;
+  /** @return a map of methods for the given type */
+  public Map<String, Function> getMethodsForType(Type tpe) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    return methods.get(tpe);
+  }
+
+  /** @return methods mappings for all registered types */
+  public Collection<Map<String, Function>> getAllMethods() {
+    return methods.values();
   }
 
   /** @return the raw conversions map held by this module */
@@ -295,7 +310,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> requestedTypes = new HashMap<>(this.types);
-    Map<Type, Map<String, Function>> methods = new HashMap<>();
+    Map<Type, Map<String, Function>> methods = new ConcurrentHashMap<>();
     Map<Type, Map<Type, Function>> conversions = new HashMap<>();
     Set<ModuleScope> imports = new HashSet<>(this.imports);
     Set<ModuleScope> exports = new HashSet<>(this.exports);

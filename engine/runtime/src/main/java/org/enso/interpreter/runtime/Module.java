@@ -532,7 +532,7 @@ public final class Module implements EnsoObject {
       String name = arguments.getSecond();
 
       try {
-        return scope.getMethods().get(type).get(name);
+        return scope.getMethodsForType(type).get(name);
       } catch (NullPointerException npe) {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(
