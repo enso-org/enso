@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.Builder;
@@ -69,5 +70,30 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new BigIntegerBuilder(capacity);
+  }
+
+  private long cachedMaxPrecisionStored = -1;
+
+  public long getMaxPrecisionStored() {
+    if (cachedMaxPrecisionStored < 0) {
+      long maxPrecision = 0;
+      for (int i = 0; i < size; i++) {
+        BigInteger value = data[i];
+        if (value == null) {
+          continue;
+        }
+
+        BigDecimal asDecimal = new BigDecimal(value);
+        assert asDecimal.scale() == 0;
+        int precision = asDecimal.precision();
+        if (precision > maxPrecision) {
+          maxPrecision = precision;
+        }
+      }
+
+      cachedMaxPrecisionStored = maxPrecision;
+    }
+
+    return cachedMaxPrecisionStored;
   }
 }
