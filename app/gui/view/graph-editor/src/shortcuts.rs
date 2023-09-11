@@ -81,7 +81,7 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
     // === Copy-paste ===
     (Press, "!node_editing", "cmd c", "copy_selected_node"),
-    (Press, "!read_only", "cmd v", "paste_node"),
+    (Press, "!read_only & !node_editing", "cmd v", "paste_node"),
     // === Debug ===
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
     (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
