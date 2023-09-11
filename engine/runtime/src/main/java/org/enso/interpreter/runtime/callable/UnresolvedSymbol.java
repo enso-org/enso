@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -58,14 +59,12 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @param type the type for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
-  public Function resolveFor(Type type) {
-    Type current = type;
-    while (current != null) {
+  public Function resolveFor(Node node, Type type) {
+    for (var current : type.allTypes(EnsoContext.get(node))) {
       Function candidate = scope.lookupMethodDefinition(current, name);
       if (candidate != null) {
         return candidate;
       }
-      current = current.getSupertype();
     }
     return null;
   }
@@ -76,14 +75,15 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @param type the type for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
-  public Type resolveDeclaringType(Type type) {
-    Type current = type;
-    while (current != null) {
-      Function candidate = scope.lookupMethodDefinition(current, name);
-      if (candidate != null) {
-        return current;
+  public Type resolveDeclaringType(Node node, Type type) {
+    var ctx = EnsoContext.get(node);
+    if (type != null) {
+      for (var current : type.allTypes(ctx)) {
+        Function candidate = scope.lookupMethodDefinition(current, name);
+        if (candidate != null) {
+          return current;
+        }
       }
-      current = current.getSupertype();
     }
     return null;
   }

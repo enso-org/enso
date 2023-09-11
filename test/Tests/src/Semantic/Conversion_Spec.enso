@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Conversion
+import Standard.Base.Errors.Common.Type_Error
 
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
@@ -38,6 +39,13 @@ Not_Foo.from (_:Any) = Not_Foo.Value "ANY!!!"
 
 Foo.from (_:Quaffle) = Foo.Value "quaffle"
 Foo.from (_:Error) = Foo.Value "oops"
+
+type MultiNumber
+    Value v
+
+Integer.from (that:MultiNumber) = that.v * 19
+Number.from (that:MultiNumber) = that.v * 0.3
+Decimal.from (that:MultiNumber) = that.v * 0.7
 
 foreign js make_str x = """
    return "js string"
@@ -143,6 +151,57 @@ spec =
         Test.specify "Use Any.to in Conversion_Use module" <|
             Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        Test.specify "Requesting Text & Foo" <|
+            check a (n : Text & Foo) = case a of
+                0 -> n.foo
+                1 -> n.take (First 3)
+
+            check 0 "Ahoj" . should_equal 4
+            check 1 "Ahoj" . should_equal "Aho"
+
+            # Boolean can be converted to Foo, but is not Text
+            fail = Panic.recover Type_Error <| check 0 True
+            fail . should_fail_with Type_Error
+
+        Test.specify "Requesting Foo & Not_Foo & Boolean" <|
+            check a (n : Foo & Not_Foo & Boolean) = case a of
+                0 -> n.foo
+                1 -> n.not
+                2 -> n.notfoo
+
+            check 0 True . should_be_true
+            check 1 True . should_be_false
+            check 2 True . should_be_true
+
+            fail = Panic.recover Type_Error <| check 0 "not a boolean"
+            fail . should_fail_with Type_Error
+
+        Test.specify "Requesting Number & Integer & Decimal" <|
+            m = MultiNumber.Value 5
+
+            m.to Number . should_equal 1.5
+            m.to Integer . should_equal 95
+            m.to Decimal . should_equal 3.5
+
+            to_1 (v : Number & Integer & Decimal) = v
+            to_1 m . should_equal 1.5
+
+            to_2 (v : Integer & Decimal & Number) = v
+            to_2 m . should_equal 95
+
+            to_3 (v : Decimal & Number & Integer) = v
+            to_3 m . should_equal 3.5
+
+            to_4 (v : Integer & Number & Decimal) = v
+            to_4 m . should_equal 95
+
+            to_5 (v : Decimal & Integer & Number) = v
+            to_5 m . should_equal 3.5
+
+            to_6 (v : Number & Decimal & Integer) = v
+            to_6 m . should_equal 1.5
+
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix

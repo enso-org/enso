@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.google.common.base.Objects;
-import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
@@ -279,7 +278,7 @@ public abstract class HashCodeNode extends Node {
 
   @TruffleBoundary
   static Function findHashMethod(Type comparator) {
-    var fn = comparator.getDefinitionScope().getMethods().get(comparator).get("hash");
+    var fn = comparator.getDefinitionScope().getMethodForType(comparator, "hash");
     if (fn == null) {
       throw new AssertionError("No hash method for type " + comparator);
     }

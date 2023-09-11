@@ -525,20 +525,6 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case subtraction @ `type`.Set.Subtraction(left, right, _, _, _) =>
-        val subDep   = asStatic(subtraction)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(subDep))
-        info.dependents.updateAt(rightDep, Set(subDep))
-        info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
-
-        subtraction
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
-          .updateMetadata(this -->> info)
     }
   }
 
