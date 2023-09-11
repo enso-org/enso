@@ -292,6 +292,8 @@ parse_headers headers =
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
 ## PRIVATE
+
+   Build a BodyPublisher from the given form data.
 build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
