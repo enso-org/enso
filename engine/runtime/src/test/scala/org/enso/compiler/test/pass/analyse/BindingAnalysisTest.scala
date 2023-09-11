@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Cons,
@@ -36,14 +36,14 @@ class BindingAnalysisTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *
       * @param context the module context in which analysis takes place
       * @return [[ir]], with tail call analysis metadata attached
       */
-    def analyse(implicit context: ModuleContext): IR.Module = {
+    def analyse(implicit context: ModuleContext): Module = {
       BindingAnalysis.runModule(ir, context)
     }
   }

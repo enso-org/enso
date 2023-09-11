@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.execution
 
 import com.oracle.truffle.api.source.SourceSection
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.interpreter.runtime.Module
 import org.enso.syntax.text.Location
 import org.enso.text.editing.{model, IndexedSource}
@@ -58,7 +59,7 @@ object LocationResolver {
     */
   def getExpressionId(
     ir: IR,
-    location: IR.IdentifiedLocation
+    location: IdentifiedLocation
   ): Option[ExpressionId] =
     ir.preorder
       .find(_.location.contains(location))

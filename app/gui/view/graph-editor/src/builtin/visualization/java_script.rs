@@ -3,6 +3,8 @@
 // TODO remove once we have proper visualizations or replace with a nice d3 example.
 // These implementations are neither efficient nor pretty, but get the idea across.
 
+use crate::prelude::*;
+
 use crate::component::visualization;
 use crate::component::visualization::java_script::source::from_files;
 
@@ -14,11 +16,15 @@ use crate::component::visualization::java_script::source::from_files;
 
 /// Return a `JavaScript` Table visualization.
 pub fn table_visualization() -> visualization::java_script::FallibleDefinition {
-    let source = from_files!(
-        "java_script/helpers/loading.js",
-        "java_script/helpers/scrollable.js",
-        "java_script/table.js"
-    );
+    let mut source =
+        from_files!("java_script/helpers/loading.js", "java_script/helpers/scrollable.js");
+
+    let ag_grid_license_key = option_env!("AG_GRID_LICENSE_KEY");
+    let initializer = ag_grid_license_key.map_or_default(|ag_grid_license_key| {
+        format!(r#"const AG_GRID_LICENSE_KEY = '{ag_grid_license_key}'\n"#)
+    });
+    let content = format!("{initializer}\n{}", include_str!("java_script/table.js"));
+    source.add_file("java_script/table.js", &content);
 
     visualization::java_script::Definition::new_builtin(source)
 }

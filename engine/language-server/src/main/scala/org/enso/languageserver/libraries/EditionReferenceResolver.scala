@@ -10,7 +10,7 @@ import scala.util.Try
 
 /** Resolves [[EditionReference]] to a raw or resolved edition. */
 class EditionReferenceResolver(
-  projectRoot: File,
+  val projectRoot: File,
   editionProvider: EditionProvider,
   editionResolver: EditionResolver
 ) {

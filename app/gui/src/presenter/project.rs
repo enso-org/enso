@@ -473,7 +473,6 @@ impl Project {
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
 
-            eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
             eval view.current_shortcut ((shortcut) model.handled_shortcut_changed(shortcut));
         }
 

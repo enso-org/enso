@@ -108,6 +108,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
         env:
+          ENSO_AG_GRID_LICENSE_KEY: ${{ secrets.ENSO_AG_GRID_LICENSE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)

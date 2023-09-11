@@ -40,6 +40,7 @@ import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Take_Drop_Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -53,6 +54,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Data.Take_Drop_Helpers import Take_Drop
 from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
 
 polyglot java import java.sql.JDBCType
@@ -610,26 +612,64 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
+
+       > Example
+         Take first 10 rows of the table.
+
+             table.take (First 10)
+
+       > Example
+         Take rows from the top of the table as long as their values sum to 10.
+
+             table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        _ = range
-        msg = "`Table.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## GROUP Standard.Base.Selections
        Creates a new Table from the input with the specified range of rows
        removed.
 
-
        Arguments:
        - range: The selection of rows from the table to remove.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       ? Supported Range Types
+
+         Database backends support all range types except `While` and `Sample`
+
+         In-memory tables support all range types.
+
+       > Example
+         Drop first 10 rows of the table.
+
+             table.drop (First 10)
+
+       > Example
+         Drop rows from the top of the table as long as their values sum to 10.
+
+             table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        _ = range
-        msg = "`Table.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
+
+    ## PRIVATE
+       Filter out all rows.
+    remove_all_rows : Table
+    remove_all_rows self = self.filter_by_expression "0==1"
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
@@ -700,7 +740,8 @@ type Table
             rebuild_table columns =
                 self.updated_columns (columns.map .as_internal)
             renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-            renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+            updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+            updated_table.as_subquery
 
 
     ## UNSTABLE
@@ -855,6 +896,28 @@ type Table
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
+
+    ## PRIVATE
+       Create a unique temporary column name.
+    make_temp_column_name : Text
+    make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names
+
+    ## PRIVSATE
+       Run a table transformer with a temporary column added.
+    with_temporary_column :  Column -> (Text -> Table -> Table) -> Table
+    with_temporary_column self new_column:Column f:(Text -> Table -> Table) =
+        new_column_name = self.make_temp_column_name
+        with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
+        modified_table = f new_column_name with_new_column
+        modified_table.remove_columns new_column_name
+
+    ## PRIVATE
+       Filter a table on a boolean column. The column does not have to be part
+       of the table, but it must be derived from it and share a context.
+    filter_on_predicate_column : Column -> Table
+    filter_on_predicate_column self predicate_column =
+        self.with_temporary_column predicate_column name-> table->
+            table.filter name Filter_Condition.Is_True
 
     ## Returns the vector of columns contained in this table.
     columns : Vector Column
@@ -2066,6 +2129,12 @@ type Table
             Table.Value self.name self.connection new_columns new_ctx
         False ->
             Table.Value self.name self.connection internal_columns ctx
+
+    ## PRIVATE
+       Nests a table as a subquery, using `updated_context_and_columns`, which
+       causes its columns to be referenced as names rather than expressions.
+    as_subquery : Table
+    as_subquery self = self.updated_context_and_columns self.context self.internal_columns subquery=True
 
     ## PRIVATE
        Checks if this table is a 'trivial query'.

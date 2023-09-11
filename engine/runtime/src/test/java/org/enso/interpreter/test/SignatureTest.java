@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -9,6 +10,8 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
@@ -33,7 +36,7 @@ public class SignatureTest extends TestBase {
     final Source src = Source.newBuilder("enso", """
     neg : Xyz -> Abc
     neg a = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -51,7 +54,7 @@ public class SignatureTest extends TestBase {
     final URI uri = new URI("memory://neg.enso");
     final Source src = Source.newBuilder("enso", """
     neg (a : Xyz) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -72,7 +75,7 @@ public class SignatureTest extends TestBase {
 
     err msg = Error.throw msg
     neg (a : Integer) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -97,6 +100,149 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void lazyIntegerInConstructor() throws Exception {
+    final URI uri = new URI("memory://int_simple_complex.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
+    type Int
+        Simple v
+        Complex (~unwrap : Int)
+
+        value self = case self of
+            Int.Simple v -> v
+            Int.Complex unwrap -> unwrap.value
+
+        + self (that:Int) = Int.Simple self.value+that.value
+
+    simple v = Int.Simple v
+    complex x y = Int.Complex (x+y)
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var simple = module.invokeMember("eval_expression", "simple");
+    var complex = module.invokeMember("eval_expression", "complex");
+
+    var six = simple.execute(6);
+    var seven = simple.execute(7);
+    var some13 = complex.execute(six, seven);
+    var thirteen = some13.invokeMember("value");
+    assertNotNull("member found", thirteen);
+    assertEquals(13, thirteen.asInt());
+
+    var someHello = complex.execute("Hello", "World");
+    try {
+      var error = someHello.invokeMember("value");
+      fail("not expecting any value: " + error);
+    } catch (PolyglotException e) {
+      assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
+    }
+    try {
+      var secondError = someHello.invokeMember("value");
+      fail("not expecting any value again: " + secondError);
+    } catch (PolyglotException e) {
+      assertTypeError("`unwrap`", "Int", "Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void runtimeCheckOfLazyAscribedFunctionSignature() throws Exception {
+    final URI uri = new URI("memory://neg_lazy.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, IO
+
+    build (~zero : Integer) =
+      neg (~a : Integer) = zero - a
+      neg
+
+    make arr = build <|
+      arr.at 0
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var zeroValue = new Object[] { 0 };
+    var neg = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+
+    zeroValue[0] = "Wrong";
+    try {
+      var error = neg.execute(-5);
+      fail("Expecting an error: " + error);
+    } catch (PolyglotException ex) {
+      assertTypeError("`zero`", "Integer", "Text", ex.getMessage());
+    }
+
+    zeroValue[0] = 0;
+    var five = neg.execute(-5);
+    assertEquals("Five", 5, five.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+    zeroValue[0] = 5;
+    var fifteen = neg.execute(-10);
+    assertEquals("Five + Ten as the zeroValue[0] is always read again", 15, fifteen.asInt());
+
+    zeroValue[0] = 0;
+    var ten = neg.execute(-10);
+    assertEquals("Just ten as the zeroValue[0] is always read again", 10, ten.asInt());
+  }
+
+  @Test
+  public void runtimeCheckOfLazyAscribedConstructorSignature() throws Exception {
+    final URI uri = new URI("memory://neg_lazy_const.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, IO, Polyglot
+
+    type Lazy
+        Value (~zero : Integer)
+
+        neg self (~a : Integer) = self.zero - a
+
+    make arr = Lazy.Value <|
+      Polyglot.invoke arr "add" [ arr.length ]
+      arr.at 0
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var zeroValue = new ArrayList<Integer>();
+    zeroValue.add(0);
+    var lazy = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+    assertEquals("No read from zeroValue, still size 1", 1, zeroValue.size());
+
+    var five = lazy.invokeMember("neg", -5);
+    assertEquals("Five", 5, five.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
+
+    try {
+      var res = lazy.invokeMember("neg", "Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+    zeroValue.set(0, 5);
+    var fifteen = lazy.invokeMember("neg", -10);
+    assertEquals("Five + Ten as the zeroValue[0] is never read again", 10, fifteen.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
+
+    zeroValue.set(0, 0);
+    var ten = lazy.invokeMember("neg", -9);
+    assertEquals("Just nine as the zeroValue[0] is always read again", 9, ten.asInt());
+    assertEquals("One read from zeroValue, size 2", 2, zeroValue.size());
+  }
+
+  @Test
   public void runtimeCheckOfAscribedInstanceMethodSignature() throws Exception {
     final URI uri = new URI("memory://twice_instance.enso");
     final Source src = Source.newBuilder("enso", """
@@ -105,7 +251,7 @@ public class SignatureTest extends TestBase {
         Singleton
 
         twice self (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -131,7 +277,7 @@ public class SignatureTest extends TestBase {
     from Standard.Base import Integer
     type Neg
         twice (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -158,7 +304,7 @@ public class SignatureTest extends TestBase {
     call_twice x =
         twice (a : Integer) = a + a
         twice x
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -184,7 +330,7 @@ public class SignatureTest extends TestBase {
       Val (a : Xyz)
 
     neg = Neg.Val 10
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -204,7 +350,7 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some unwrap:a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -222,7 +368,7 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some (~unwrap : Integer)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -271,7 +417,7 @@ public class SignatureTest extends TestBase {
 
     # invokes V.mul with Integer parameter, not V!
     mix a:V b:Integer = a.mul b
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -299,7 +445,7 @@ public class SignatureTest extends TestBase {
         One (v:One)
         Either v:(Zero | One)
         Vec v:(Integer | Range | Vector (Integer | Range))
-    """, uri.getHost()).uri(uri).buildLiteral();
+    """,uri.getAuthority()).uri(uri).buildLiteral();
     return ctx.eval(src);
   }
 
@@ -368,7 +514,7 @@ public class SignatureTest extends TestBase {
     mix a =
       partial = V.Val 1 a
       create partial
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -402,7 +548,7 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix n = neg (fn 2 a=4 n)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -436,7 +582,7 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix a = neg (fn c=(2/0) b=(a/0))
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -455,6 +601,49 @@ public class SignatureTest extends TestBase {
       assertContains("c=suspended.mix<arg-c>", ex.getMessage());
       assertContains("[suspended:9:28-30]", ex.getMessage());
     }
+  }
+
+  @Test
+  public void andConversions() throws Exception {
+    final URI uri = new URI("memory://and_conv.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
+    type Plus
+        Impl value dict
+
+        + self (that:Plus) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.plus self.value that.value
+    type Mul
+        Impl value dict
+
+        * self (that:Mul) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.mul self.value that.value
+
+    compute (a : Plus & Mul) (b : Plus & Mul) =
+      add (x:Plus) (y:Plus) = x+y
+      p = add a b
+      m = a*b
+      add p m
+
+    type BooleanPlus
+        plus a:Boolean b:Boolean = a || b
+    Plus.from(that:Boolean) = Plus.Impl that BooleanPlus
+
+    type BooleanMul
+        mul a:Boolean b:Boolean = a && b
+    Mul.from(that:Boolean) = Mul.Impl that BooleanMul
+
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var compute = module.invokeMember("eval_expression", "compute");
+
+    assertTrue("true & true", compute.execute(true, true).asBoolean());
+    assertTrue("true & false", compute.execute(true, false).asBoolean());
+    assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
   private static void assertTypeError(String expArg, String expType, String realType, String msg) {

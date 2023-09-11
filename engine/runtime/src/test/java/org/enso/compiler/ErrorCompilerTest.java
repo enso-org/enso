@@ -1,16 +1,7 @@
 package org.enso.compiler;
 
-import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidUnderscore$;
-import org.enso.compiler.core.IR$Error$Syntax$Reason;
-import org.enso.compiler.core.IR$Error$Syntax$UnclosedTextLiteral$;
-import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
-import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
-import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
+import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.syntax.text.Location;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +17,7 @@ public class ErrorCompilerTest extends CompilerTest {
     foo = "unfinished literal...
     """);
 
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+    assertSingleSyntaxError(ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
   }
 
   @Test
@@ -36,7 +27,7 @@ public class ErrorCompilerTest extends CompilerTest {
       op._
     """);
 
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
   }
 
   @Test
@@ -46,7 +37,7 @@ public class ErrorCompilerTest extends CompilerTest {
       op._.something
     """);
 
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
   }
 
   @Test
@@ -54,7 +45,7 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
     foo = 'unfinished literal...
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+    assertSingleSyntaxError(ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
   }
 
   @Test
@@ -62,7 +53,7 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
     foo = "unpaired literal'
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+    assertSingleSyntaxError(ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
   }
 
   @Test
@@ -70,19 +61,19 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
     foo = 'unpaired literal"
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+    assertSingleSyntaxError(ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
   }
 
   @Test
   public void spaceRequired() throws Exception {
     var ir = parse("foo = if cond.x else.y");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 8);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 8);
   }
 
   @Test
   public void incompleteTypeDefinition() throws Exception {
     var ir = parse("type");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 4);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 4);
   }
 
   @Test
@@ -91,7 +82,7 @@ public class ErrorCompilerTest extends CompilerTest {
     foo = case x of
      4
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 18);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 18);
   }
 
   @Test
@@ -100,7 +91,7 @@ public class ErrorCompilerTest extends CompilerTest {
     foo = case x of
      4 ->
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 21);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 21);
   }
 
   @Test
@@ -109,7 +100,7 @@ public class ErrorCompilerTest extends CompilerTest {
     foo = case x of
      4->
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 20);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 20);
   }
 
   @Test
@@ -119,94 +110,94 @@ public class ErrorCompilerTest extends CompilerTest {
         case value of
         -1 ->"minus one"
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 32, 45);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 32, 45);
   }
 
   @Test
   public void malformedSequence1() throws Exception {
     var ir = parse("(1, )");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
   }
 
   @Test
   public void malformedSequence2() throws Exception {
     var ir = parse("foo = (1, )");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 7, 9);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 7, 9);
   }
 
   @Test
   public void unmatchedDemiliter1() throws Exception {
     var ir = parse("(");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
   }
 
   @Test
   public void unmatchedDemiliter2() throws Exception {
     var ir = parse(")");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
   }
 
   @Test
   public void unmatchedDemiliter3() throws Exception {
     var ir = parse("[");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
   }
 
   @Test
   public void unmatchedDemiliter4() throws Exception {
     var ir = parse("[");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
   }
 
   @Test
   public void unmatchedDemiliter5() throws Exception {
     var ir = parse("foo = (");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
   }
 
   @Test
   public void unmatchedDemiliter6() throws Exception {
     var ir = parse("foo = )");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
   }
 
   @Test
   public void unmatchedDemiliter7() throws Exception {
     var ir = parse("foo = [");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
   }
 
   @Test
   public void unmatchedDemiliter8() throws Exception {
     var ir = parse("foo = ]");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 7);
   }
 
   @Test
   public void unexpectedSpecialOperator() throws Exception {
     var ir = parse("foo = 1, 2");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 10);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 6, 10);
   }
 
   @Test
   public void malformedImport1() throws Exception {
     var ir = parse("import");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
   }
 
   @Test
   public void malformedImport2() throws Exception {
     var ir = parse("import as Foo");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
   }
 
 
-  private IR$Error$Syntax$InvalidImport invalidImport(String msg) {
-    return new IR$Error$Syntax$InvalidImport(msg);
+  private Syntax.InvalidImport invalidImport(String msg) {
+    return new Syntax.InvalidImport(msg);
   }
 
-  private IR$Error$Syntax$InvalidExport invalidExport(String msg) {
-    return new IR$Error$Syntax$InvalidExport(msg);
+  private Syntax.InvalidExport invalidExport(String msg) {
+    return new Syntax.InvalidExport(msg);
   }
 
   @Test
@@ -248,13 +239,13 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedImport9() throws Exception {
     var ir = parse("polyglot import Foo");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnrecognizedToken$.MODULE$, "Unrecognized token", 0, 19);
+    assertSingleSyntaxError(ir, Syntax.UnrecognizedToken$.MODULE$, "Unrecognized token", 0, 19);
   }
 
   @Test
   public void malformedImport10() throws Exception {
     var ir = parse("polyglot java import");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 20);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 20);
   }
 
   @Test
@@ -262,7 +253,7 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
     fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> | Nothing -> Problem_Behavior -> Table | Nothing
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);
   }
 
   @Test
@@ -292,13 +283,13 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedExport1() throws Exception {
     var ir = parse("export");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
   }
 
   @Test
   public void malformedExport2() throws Exception {
     var ir = parse("export as Foo");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
   }
 
   @Test
@@ -358,37 +349,37 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void invalidToken1() throws Exception {
     var ir = parse("`");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 1);
   }
 
   @Test
   public void invalidToken2() throws Exception {
     var ir = parse("splice_outside_text = `");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 22, 23);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 22, 23);
   }
 
   @Test
   public void illegalForeignBody1() throws Exception {
     var ir = parse("foreign 4");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 9);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 9);
   }
 
   @Test
   public void illegalForeignBody2() throws Exception {
     var ir = parse("foreign 4 * 4");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
   }
 
   @Test
   public void illegalForeignBody3() throws Exception {
     var ir = parse("foreign foo = \"4\"");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 17);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 17);
   }
 
   @Test
   public void illegalForeignBody4() throws Exception {
     var ir = parse("foreign js foo = 4");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 18);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 18);
   }
 
   @Test
@@ -396,7 +387,7 @@ public class ErrorCompilerTest extends CompilerTest {
     var ir = parse("""
     escape = 'wrong \\c sequence'
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidEscapeSequence$.MODULE$.apply("wrong  sequence"), "Invalid escape sequence wrong  sequence", 9, 28);
+    assertSingleSyntaxError(ir, new Syntax.InvalidEscapeSequence("wrong  sequence"), "Invalid escape sequence wrong  sequence", 9, 28);
   }
 
   @Test
@@ -409,7 +400,7 @@ public class ErrorCompilerTest extends CompilerTest {
         z = x. length
         IO.println z
     """);
-    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 60, 62);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 60, 62);
   }
 
   @Test
@@ -419,18 +410,18 @@ public class ErrorCompilerTest extends CompilerTest {
     #    meh
          42
     """);
-    var errors = ir.preorder().filter(IR$Error$Syntax.class::isInstance).map(IR$Error$Syntax.class::cast);
+    var errors = ir.preorder().filter(Syntax.class::isInstance).map(Syntax.class::cast);
     assertEquals("Two errors", 2, errors.size());
-    assertTrue(errors.head().reason() instanceof IR$Error$Syntax$UnsupportedSyntax);
+    assertTrue(errors.head().reason() instanceof Syntax.UnsupportedSyntax);
     assertEquals(errors.head().location().get().start(), 0);
     assertEquals(errors.head().location().get().length(), 6);
   }
 
   private void assertSingleSyntaxError(
-      IR.Module ir, IR$Error$Syntax$Reason type,
+      Module ir, Syntax.Reason type,
       String msg, int start, int end
   ) {
-    var errors = assertIR(ir, IR$Error$Syntax.class, 1);
+    var errors = assertIR(ir, Syntax.class, 1);
     assertEquals(type, errors.head().reason());
     if (msg != null) {
       assertEquals(msg, errors.head().message());
@@ -438,7 +429,7 @@ public class ErrorCompilerTest extends CompilerTest {
     assertEquals(new Location(start, end), errors.head().location().get().location());
   }
 
-  private List<IR$Error$Syntax> assertIR(IR.Module ir, Class<IR$Error$Syntax> type, int count) {
+  private List<Syntax> assertIR(Module ir, Class<Syntax> type, int count) {
     var errors = ir.preorder().filter(type::isInstance).map(type::cast);
     assertEquals("Expecting errors: " + errors, count, errors.size());
     return errors;

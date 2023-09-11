@@ -1,6 +1,12 @@
 package org.enso.runtimeversionmanager.releases.testing
 
-import java.nio.file.{Files, Path, StandardCopyOption}
+import java.nio.file.{
+  FileAlreadyExistsException,
+  Files,
+  NoSuchFileException,
+  Path,
+  StandardCopyOption
+}
 import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.{LockManager, LockType}
@@ -147,11 +153,16 @@ case class FakeAsset(
     }
 
     for (sourceToCopy <- pathsToCopy) {
-      Files.copy(
-        sourceToCopy,
-        innerRoot.resolve(sourceToCopy.getFileName),
-        StandardCopyOption.REPLACE_EXISTING
-      )
+      try {
+        Files.copy(
+          sourceToCopy,
+          innerRoot.resolve(sourceToCopy.getFileName),
+          StandardCopyOption.REPLACE_EXISTING
+        )
+      } catch {
+        case _: FileAlreadyExistsException =>
+        case _: NoSuchFileException        =>
+      }
     }
     TestArchivePackager.packArchive(source, destination)
   }

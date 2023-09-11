@@ -17,6 +17,11 @@ public abstract class ArrayLikeLengthNode extends Node {
     return ArrayLikeLengthNodeGen.create();
   }
 
+  @NeverDefault
+  public static ArrayLikeLengthNode getUncached() {
+    return ArrayLikeLengthNodeGen.getUncached();
+  }
+
   //
   // implementation
   //

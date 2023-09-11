@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try, Using}
 
 /** Manages the global configuration of the distribution. */
 class GlobalConfigurationManager(distributionManager: DistributionManager) {
-  private val logger = Logger[this.type]
+  private val logger = Logger[GlobalConfigurationManager]
 
   /** Location of the global configuration file. */
   def configLocation: Path =

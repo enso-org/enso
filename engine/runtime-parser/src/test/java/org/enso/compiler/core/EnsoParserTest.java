@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -23,7 +23,8 @@ public class EnsoParserTest {
 
   @AfterClass
   public static void closeEnsoParser() throws Exception {
-    ensoCompiler.close();
+    if (ensoCompiler != null)
+      ensoCompiler.close();
   }
 
   @Test
@@ -1268,18 +1269,18 @@ public class EnsoParserTest {
     assertIR(msg, old, now);
   }
 
-  private static IR.Module compile(String code) {
+  private static Module compile(String code) {
     return compile(ensoCompiler, code);
   }
 
-  public static IR.Module compile(EnsoParser c, String code) {
+  public static Module compile(EnsoParser c, String code) {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = c.compile(src.getCharacters());
     assertNotNull("IR was generated", ir);
     return ir;
   }
 
-  static void assertIR(String msg, IR.Module old, IR.Module now) throws IOException {
+  static void assertIR(String msg, Module old, Module now) throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);
@@ -1343,32 +1344,32 @@ public class EnsoParserTest {
     }
     if (lessDocs) {
       for (;;) {
-        final String pref = "IR.Comment.Documentation(";
+        final String pref = "Comment.Documentation(";
         int at = txt.indexOf(pref);
         if (at == -1) {
           break;
         }
         int to = txt.indexOf("location =", at + pref.length());
-        txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+        txt = txt.substring(0, at) + "Comment.Doc(" + txt.substring(to);
       }
       for (;;) {
-        final String pref = "IR.Case.Pattern.Doc(";
+        final String pref = "Case.Pattern.Doc(";
         int at = txt.indexOf(pref);
         if (at == -1) {
           break;
         }
         int to = txt.indexOf("location =", at + pref.length());
-        txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+        txt = txt.substring(0, at) + "Comment.CaseDoc(" + txt.substring(to);
       }
     }
     for (;;) {
-      final String pref = "IR.Error.Syntax(";
+      final String pref = "errors.Syntax(";
       int at = txt.indexOf(pref);
       if (at == -1) {
         break;
       }
       int to = txt.indexOf("reason =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
+      txt = txt.substring(0, at) + "errors.Syntax (" + txt.substring(to);
     }
     return txt;
   }
