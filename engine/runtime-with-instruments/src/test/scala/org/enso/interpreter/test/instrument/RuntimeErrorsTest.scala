@@ -380,10 +380,10 @@ class RuntimeErrorsTest
   }
 
   it should "return panic sentinel in type check" in {
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata = new Metadata
+    val metadata   = new Metadata
     val mainBodyId = metadata.addItem(73, 30)
 
     val code =
@@ -422,10 +422,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    val tmp = context.receiveNIgnorePendingExpressionUpdates(
+    context.receiveNIgnorePendingExpressionUpdates(
       5
-    ).toVector
-    tmp should contain theSameElementsAs Seq(
+    ) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
