@@ -399,6 +399,28 @@ public class SignatureTest extends TestBase {
     }
   }
 
+  /**
+   * The folowwing test should not end with Type_Error, but rather with Panic (Compilation error).
+   */
+  @Test
+  public void panicSentinelSupersedesTypeError() throws URISyntaxException {
+    URI uri = new URI("memory://panic_sentinel.enso");
+    var src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    my_func (x : Integer) = x + 1
+    main = my_func (Non_Existing_Func 23)
+    """, uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+    Value module = ctx.eval(src);
+    try {
+      module.invokeMember("eval_expression", "my_func (Non_Existing_Func 23)");
+      fail("Expecting Compile error");
+    } catch (PolyglotException e) {
+      assertContains("Compilation aborted", e.getMessage());
+    }
+  }
+
   @Test
   public void automaticConversionToAType() throws Exception {
     final URI uri = new URI("memory://convert.enso");
