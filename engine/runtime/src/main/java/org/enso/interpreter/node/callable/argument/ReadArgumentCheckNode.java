@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.graalvm.collections.Pair;
 
 import com.oracle.truffle.api.CompilerAsserts;
@@ -71,6 +72,11 @@ public abstract class ReadArgumentCheckNode extends Node {
       return fn.getPreAppliedArguments()[0] instanceof Function wrappedFn && wrappedFn.isThunk();
     }
     return false;
+  }
+
+  @Specialization
+  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
+    throw panicSentinel;
   }
 
   @Specialization(rewriteOn = InvalidAssumptionException.class)
