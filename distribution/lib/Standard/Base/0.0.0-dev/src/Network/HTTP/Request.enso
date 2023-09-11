@@ -1,8 +1,8 @@
 import project.Any.Any
+import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
@@ -231,7 +231,10 @@ type Request
 
              example_delete =
                 Request.delete (URI.parse "http://example.com") . with_form []
-    with_form : (Vector | Form) -> Request
+    with_form : (Vector | Map) -> Request
     with_form self parts =
-        new_body = Request_Body.Form (Form.new parts)
+        form_data = case parts of
+            _ : Vector -> Map.from_vector parts
+            _ : Map -> parts
+        new_body = Request_Body.Form_Data form_data
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
