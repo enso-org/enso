@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -23,7 +24,10 @@ public class SignatureTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = createDefaultContext();
+    ctx = defaultContextBuilder()
+        .out(OutputStream.nullOutputStream())
+        .err(OutputStream.nullOutputStream())
+        .build();
   }
 
   @AfterClass
