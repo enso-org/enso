@@ -807,7 +807,6 @@ class RuntimeServerTest
   }
 
   it should "send method pointer updates of builtin operators" in {
-    pending // should be fixed by #6959
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -819,7 +818,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x_1 = 3 + 4
+        |    x_1 = 3 ^ 4
         |    x_1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -862,7 +861,7 @@ class RuntimeServerTest
           Api.MethodPointer(
             "Standard.Base.Data.Numbers",
             "Standard.Base.Data.Numbers.Integer",
-            "+"
+            "^"
           )
         )
       ),
