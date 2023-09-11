@@ -68,7 +68,7 @@ export class NamedDocArray {
 
   delete(name: string): void {
     const relPos = this.nameToIndex.get(name)
-    if (relPos == null) return
+    if (relPos?.[0] == null) return
     const pos = y.createAbsolutePositionFromRelativePosition(relPos[0], this.array.doc!)
     if (pos == null) return
     this.array.delete(pos.index, 1)
@@ -182,7 +182,7 @@ class DistributedModule {
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length]
+    const range: [number, number] = [offset, offset + content.length]
     const newId = crypto.randomUUID() as ExprId
     this.doc.transact(() => {
       this.contents.insert(offset, content + '\n')
@@ -199,7 +199,7 @@ class DistributedModule {
   replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
     const exprRangeJson = this.idMap.get(id)
     if (exprRangeJson == null) return
-    const exprRange = [
+    const exprRange: [y.RelativePosition, y.RelativePosition] = [
       y.createRelativePositionFromJSON(exprRangeJson[0]),
       y.createRelativePositionFromJSON(exprRangeJson[1]),
     ]

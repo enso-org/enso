@@ -50,7 +50,9 @@ async function importVue(path: string) {
   const parsed = parse(raw, { filename })
   const id = generateId()
   for (const style of parsed.descriptor.styles) {
-    addStyle(compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code)
+    addStyle(
+      compileStyle({ filename, source: style.content, id, scoped: style.scoped ?? false }).code,
+    )
   }
   const scriptTs = compileScript(parsed.descriptor, {
     id,
@@ -132,7 +134,9 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
   const id = generateId()
   const parsed = parse(text, { filename })
   for (const style of parsed.descriptor.styles) {
-    addStyle(compileStyle({ filename, source: style.content, id, scoped: style.scoped }).code)
+    addStyle(
+      compileStyle({ filename, source: style.content, id, scoped: style.scoped ?? false }).code,
+    )
   }
   const scriptTs = compileScript(parsed.descriptor, {
     id,
