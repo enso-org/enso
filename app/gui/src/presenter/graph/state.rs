@@ -122,6 +122,7 @@ impl Nodes {
         let old_ast_to_remove = if let Some(old_view) = displayed.view_id {
             self.ast_node_by_view_id.remove(&old_view)
         } else {
+            self.nodes_without_view.remove_item(&ast_id);
             None
         };
         displayed.view_id = Some(view_id);
