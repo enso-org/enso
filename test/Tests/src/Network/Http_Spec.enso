@@ -22,6 +22,7 @@ type Bad_To_Json
     to_json self = JS_Object.from_pairs [Pair.new [] 0]
 
 spec =
+    # Set this to "https://httpbin.org" in your env to run this test
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
         "The POST tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
@@ -29,14 +30,6 @@ spec =
     Test.group "asdfasdf" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
-
-        Test.specify "Can perform a Text POST with explicit encoding" <|
-            response = HTTP.post url_post (Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le)
-            IO.println "LLL2"
-            IO.println response
-            response.at "data" . should_equal 'H\u0000e\u0000l\u0000l\u0000o\u0000 \u0000W\u0000o\u0000r\u0000l\u0000d\u0000!\u0000'
-            response.at "headers" . at "Content-Length" . should_equal "24"
-                response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -80,6 +73,10 @@ spec =
 
         Test.specify "unknown host" <|
             HTTP.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
+
+        Test.specify "Fails on a bad URL scheme" <|
+            HTTP.fetch "zxcv://bad.scheme" . should_fail_with Request_Error
+            HTTP.fetch "" . should_fail_with Request_Error
 
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
@@ -194,5 +191,9 @@ spec =
 
         Test.specify "unknown host" <|
             HTTP.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
+
+        Test.specify "Nonexistent file" <|
+            test_file = enso_project.data / "does_not_exist.txt"
+            HTTP.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
 main = Test_Suite.run_main spec
