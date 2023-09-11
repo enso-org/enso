@@ -217,6 +217,11 @@ spec =
                 dupl_tree = tree.deep_copy
                 Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
+        Test.specify "partially applied constructors aren't == " <|
+            f1 = CustomEqType.C2 10
+            f2 = CustomEqType.C2 10
+            f1==f2 . should_be_false
+
     Test.group "Polyglot Operator ==" <|
         Test.specify "should not try to compare members" <|
             x = IntHolder.new 5
