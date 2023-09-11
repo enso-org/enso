@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,
   Function,
+  Literal,
   Name
 }
 import org.enso.compiler.core.ir.expression.Application
@@ -90,7 +91,7 @@ class SectionsToBinOpTest extends CompilerTest {
       ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
-      val leftLam = ir.asInstanceOf[IR.Function.Lambda]
+      val leftLam = ir.asInstanceOf[Function.Lambda]
       leftLam.arguments.length shouldEqual 1
       val leftLamArgName =
         leftLam.arguments.head
