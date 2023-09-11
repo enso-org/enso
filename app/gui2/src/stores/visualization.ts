@@ -50,7 +50,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
           event: MessageEvent<
             | { type: 'style'; code: string }
             | { type: 'raw-import'; path: string; value: unknown }
-            | { type: 'import'; path: string; dataUrl: string }
+            | { type: 'url-import'; path: string; mimeType: string; value: string }
+            | { type: 'import'; path: string; code: string }
             | { type: 'script'; id: number; path: string }
           >,
         ) => {
@@ -65,8 +66,19 @@ export const useVisualizationStore = defineStore('visualization', () => {
               moduleCache[event.data.path] = event.data.value
               break
             }
+            case 'url-import': {
+              moduleCache[event.data.path] = {
+                default: URL.createObjectURL(
+                  new Blob([event.data.value], { type: event.data.mimeType }),
+                ),
+              }
+              break
+            }
             case 'import': {
-              const module = import(event.data.dataUrl)
+              const module = import(
+                /* @vite-ignore */
+                URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
+              )
               moduleCache[event.data.path] = module
               moduleCache[event.data.path] = await module
               break

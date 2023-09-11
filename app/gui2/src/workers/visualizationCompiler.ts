@@ -18,16 +18,19 @@ function generateId() {
 function addStyle(code: string) {
   postMessage({ type: 'style', code })
 }
-function addRawImport(path: string, value: unknown) {
-  postMessage({ type: 'raw-import', path, value })
+// function addRawImport(path: string, value: unknown) {
+//   postMessage({ type: 'raw-import', path, value })
+// }
+function addUrlImport(path: string, mimeType: string, value: string) {
+  postMessage({ type: 'url-import', path, mimeType, value })
 }
-function addImport(path: string, dataUrl: string) {
-  postMessage({ type: 'import', path, dataUrl })
+function addImport(path: string, code: string) {
+  postMessage({ type: 'import', path, code })
 }
 
 async function importSvg(path: string) {
   const text = await (await fetch(path)).text()
-  addRawImport(path, { default: `data:image/svg+xml,${encodeURIComponent(text)}` })
+  addUrlImport(path, 'image/svg+xml', text)
 }
 
 async function importTS(path: string) {
@@ -37,10 +40,7 @@ async function importTS(path: string) {
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  addImport(
-    path,
-    `data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir, undefined))}`,
-  )
+  addImport(path, await rewriteImports(text, dir, undefined))
 }
 
 async function importVue(path: string) {
@@ -63,7 +63,7 @@ async function importVue(path: string) {
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  addImport(path, `data:text/javascript,${encodeURIComponent(await rewriteImports(text, dir, id))}`)
+  addImport(path, await rewriteImports(text, dir, id))
 }
 
 async function rewriteImports(code: string, dir: string, id: string | undefined) {
@@ -98,9 +98,9 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
           s.overwrite(
             stmt.start!,
             stmt.end!,
-            `const { ${specifiers.join(', ')} } = window.__visualizationModules[${JSON.stringify(
-              path,
-            )}];`,
+            `const { ${specifiers.join(
+              ', ',
+            )} } = await window.__visualizationModules[${JSON.stringify(path)}];`,
           )
           if (path.endsWith('.svg')) {
             await importSvg(path)
@@ -147,10 +147,7 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
     disableESTransforms: true,
     transforms: ['typescript'],
   }).code
-  addImport(
-    path,
-    `data:text/javascript,${encodeURIComponent(await rewriteImports(scriptRaw, dir, id))}`,
-  )
+  addImport(path, await rewriteImports(scriptRaw, dir, id))
   return path
 }
 
