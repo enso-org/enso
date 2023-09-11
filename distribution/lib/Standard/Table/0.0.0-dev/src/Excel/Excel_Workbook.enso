@@ -29,7 +29,7 @@ type Excel_Workbook
         file_obj = File.new file . normalize
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
             file_obj.with_input_stream [File_Access.Read] stream->
-                Excel_Workbook.from_stream stream xls_format headers
+                Excel_Workbook.from_stream stream xls_format headers file_obj
 
     ## PRIVATE
        ADVANCED
@@ -39,15 +39,16 @@ type Excel_Workbook
        - stream: The stream to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - headers: Whether to use the first row as headers (default is to infer).
-    from_stream : Input_Stream -> Boolean -> Boolean | Infer -> Excel_Workbook
-    from_stream stream xls_format=False headers=Infer =
+       - file: Optional file reference.
+    from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
+    from_stream stream xls_format=False headers=Infer file=Nothing =
         stream.with_java_stream java_stream->
             workbook = ExcelReader.readWorkbook java_stream xls_format
-            Excel_Workbook.Value workbook Nothing xls_format headers
+            Excel_Workbook.Value workbook file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value workbook:Workbook file:File xls_format:Boolean headers:(Boolean|Infer)
+    Value workbook:Workbook (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -55,7 +56,7 @@ type Excel_Workbook
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self = self.file.path
+    database self = if self.file.is_nothing then "" else self.file.path
 
     ## Returns a new Connection with the specified database set as default.
 
