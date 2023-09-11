@@ -251,6 +251,7 @@ type HTTP
             HTTP.new.request request try_auto_parse_response
 
     ## PRIVATE
+
        Build an HTTP client.
     internal_http_client : HttpClient
     internal_http_client self =
