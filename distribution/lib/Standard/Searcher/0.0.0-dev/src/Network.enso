@@ -37,7 +37,7 @@
          example_post =
              body = Request_Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
-             HTTP.new.post "http://httpbin.org/post" body [header_binary]
+             HTTP.new.post "http://httpbin.org/post" body headers=[header_binary]
 
    > Example
      Parse URI text.
