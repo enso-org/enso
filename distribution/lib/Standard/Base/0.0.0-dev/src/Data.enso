@@ -155,6 +155,19 @@ list_directory directory name_filter=Nothing recursive=False =
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
+
+   > Example
+     Read from a URL.
+
+         import Standard.Base.Data
+         response = Data.fetch URL
+
+   > Example
+     Read from a URL and write the results to a file.
+
+         import Standard.Base.Data
+         file = enso_project.data / "spreadsheet.xls"
+         HTTP.fetch URL . to_file file
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch uri method headers try_auto_parse_response
@@ -172,6 +185,12 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
+
+   > Example
+     Write a text string to a file.
+
+         import Standard.Base.Data
+         response = HTTP.post url_post (Request_Body.Text "hello world")
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch_or_post uri body method headers try_auto_parse_response
