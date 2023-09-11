@@ -5,7 +5,7 @@ import NodeSpan from '@/components/NodeSpan.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useVisualizationStore, type Visualization } from '@/stores/visualization'
-import { usePointer, useResizeObserver } from '@/util/events'
+import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
@@ -26,7 +26,8 @@ const emit = defineEmits<{
 const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode)
+const expressionNode = ref<HTMLElement>()
+const nodeSize = useResizeObserver(expressionNode)
 const editableRoot = ref<HTMLElement>()
 
 watchEffect(() => {
@@ -270,11 +271,43 @@ const visualization = shallowRef<Visualization>()
 const visualizationTypes = computed(() =>
   visualizationStore.types.filter((type) => type !== visualizationType.value),
 )
+const visualizationWidth = ref<number | null>(null)
+const visualizationHeight = ref<number | null>(150)
+const isVisualizationFullscreen = ref(false)
 
 const queuedVisualizationData = computed<{}>(() =>
   visualizationStore.sampleData(visualizationType.value),
 )
 const visualizationData = ref<{}>({})
+
+function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
+  return (
+    !(event.target instanceof HTMLElement) ||
+    !rootNode.value?.contains(event.target) ||
+    event.target.isContentEditable ||
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  )
+}
+
+useDocumentEvent('keydown', (event) => {
+  console.log('what', event.target, rootNode.value)
+  if (isInputEvent(event)) {
+    return
+  }
+  if (event.key === ' ') {
+    if (event.shiftKey) {
+      if (isVisualizationVisible.value) {
+        isVisualizationFullscreen.value = !isVisualizationFullscreen.value
+      } else {
+        isVisualizationVisible.value = true
+        isVisualizationFullscreen.value = true
+      }
+    } else {
+      isVisualizationVisible.value = !isVisualizationVisible.value
+    }
+  }
+})
 
 watchEffect(async (onCleanup) => {
   let shouldSwitchVisualization = true
@@ -287,19 +320,17 @@ watchEffect(async (onCleanup) => {
     visualizationData.value = queuedVisualizationData.value
   }
 })
-
-const visualizationWidth = ref<number | null>(null)
-const visualizationHeight = ref<number | null>(150)
-const isVisualizationFullscreen = ref(false)
 </script>
 
 <template>
-  <div class="GraphNode" :style="{ transform }">
-    <div
-      class="binding"
-      @click="isVisualizationVisible = !isVisualizationVisible"
-      @pointerdown.stop
-    >
+  <div
+    ref="rootNode"
+    :tabindex="-1"
+    class="GraphNode"
+    :style="{ transform }"
+    @click.stop="!isInputEvent($event) && rootNode?.focus()"
+  >
+    <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
     <CircularMenu
@@ -328,7 +359,7 @@ const isVisualizationFullscreen = ref(false)
       @update:type="visualizationType = $event"
     />
     <div
-      ref="rootNode"
+      ref="expressionNode"
       class="node"
       :class="{ dragging: dragPointer.dragging }"
       v-on="dragPointer.events"
