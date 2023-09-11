@@ -249,7 +249,7 @@ export async function login(page: test.Page) {
 // === mockDate ===
 // ================
 
-/** A placeholder date for visual regresison testing. */
+/** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45 UTC'))
 
 /** Replace `Date` with a version that returns a fixed time. */

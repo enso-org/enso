@@ -3,11 +3,6 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "comments": {
-    "playwright": "If using a tiling window manager, ensure that the Playwright windows are",
-    "playwright (cont.)": "not tiled, otherwise the screenshots will be incorrect.",
-    "FIXME[sb]": "Add `npm run test-e2e` back to the 'test' script when actions are fixed?"
-  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",

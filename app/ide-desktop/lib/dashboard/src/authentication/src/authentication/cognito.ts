@@ -121,7 +121,7 @@ function isAmplifyError(error: unknown): error is AmplifyError {
 /** Convert the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
  * conversion is not possible.
  * @throws If the error is not an amplify error. */
-function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
+export function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
         return error
     } else {
@@ -391,7 +391,7 @@ export enum CurrentSessionErrorKind {
     noCurrentUser = 'NoCurrentUser',
 }
 
-const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
+export const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
     internalMessage: 'No current user',
     kind: CurrentSessionErrorKind.noCurrentUser,
 }
@@ -399,7 +399,7 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
 /** Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
+export function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
         return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
     } else {
@@ -471,7 +471,7 @@ export interface SignUpError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link SignUpError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
+export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
     if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {
             kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
@@ -516,7 +516,7 @@ export interface ConfirmSignUpError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ConfirmSignUpError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
+export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
     if (
         error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
         error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
@@ -553,7 +553,7 @@ export interface SignInWithPasswordError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link SignInWithPasswordError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
+export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
     switch (error.code) {
         case 'UserNotFoundException':
             return {
@@ -606,7 +606,7 @@ export interface ForgotPasswordError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
+export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
     if (error.code === FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.internalCode) {
         return {
             kind: FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.kind,
@@ -644,7 +644,7 @@ export interface ForgotPasswordSubmitError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordSubmitError}
  * if it is a known error, else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
+export function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
     if (isAuthError(error)) {
         return {
             kind: ForgotPasswordSubmitErrorKind.authError,

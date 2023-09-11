@@ -32,8 +32,9 @@ OPTS.plugins.push({
     name: 'inject-mock-modules',
     setup: build => {
         build.onResolve({ filter: /^\..+$/ }, async args => {
+            const importerIsMockFile = args.importer.includes('/lib/dashboard/mock/')
             const sourcePath = path.resolve(path.dirname(args.importer), args.path)
-            if (/[\\/]lib[\\/]dashboard[\\/]src[\\/]/.test(sourcePath)) {
+            if (!importerIsMockFile && /[\\/]lib[\\/]dashboard[\\/]src[\\/]/.test(sourcePath)) {
                 const mockPath = sourcePath
                     .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
                     .replace('\\lib\\dashboard\\src\\', '\\lib\\dashboard\\mock\\')
