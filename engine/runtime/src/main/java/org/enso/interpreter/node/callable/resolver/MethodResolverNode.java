@@ -51,6 +51,6 @@ public abstract class MethodResolverNode extends Node {
 
   @Specialization(replaces = "resolveCached")
   Function resolveUncached(Type self, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(self);
+    return symbol.resolveFor(this, self);
   }
 }
