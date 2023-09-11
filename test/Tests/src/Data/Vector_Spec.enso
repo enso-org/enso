@@ -760,7 +760,7 @@ type_spec name alter = Test.group name <|
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2] . distinct . should_equal [T.Value 1 2, T.Value 3 3]
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [T.Value 1 2, T.Value 3 3, Nothing]
         alter [Nothing, T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [Nothing, T.Value 1 2, T.Value 3 3]
-        alter [T.Value 1 2, Date.new hours=3] . distinct . should_equal [T.Value 1 2, Date.new hours=3]
+        alter [T.Value 1 2, Date.new year=1973] . distinct . should_equal [T.Value 1 2, Date.new year=1973]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
         alter [Pair.new 1 "a", Pair.new 2 "b", Pair.new 1 "c"] . distinct (on = _.first) . should_equal [Pair.new 1 "a", Pair.new 2 "b"]
