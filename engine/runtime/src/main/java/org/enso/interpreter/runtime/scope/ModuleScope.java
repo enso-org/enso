@@ -301,7 +301,7 @@ public final class ModuleScope implements EnsoObject {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
     Map<String, Function> allTypeMethods = methods.get(tpeKey);
     if (allTypeMethods != null) {
-      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpe, name, fun));
+      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
     }
   }
 
