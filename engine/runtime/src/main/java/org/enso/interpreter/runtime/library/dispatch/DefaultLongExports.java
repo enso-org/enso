@@ -17,6 +17,6 @@ public class DefaultLongExports {
   @ExportMessage
   static Type getType(
       Long receiver, @CachedLibrary("receiver") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getSmallInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 }

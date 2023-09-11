@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 import Standard.Table.Data.Type.Storage
+import Standard.Table.Internal.Java_Problems
 
 from Standard.Test import Bench
 
@@ -78,7 +79,9 @@ type Primitive_Enso_Callback_Test
         mapped = vector_proxy.map self.fn
         # No expected storage will use inferred builder.
         expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
-        Column.Value (Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type)
+        java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Error <|
+            Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type)
+        Column.Value java_column
 
     enso_map_with_builder_2_calls_unboxed self =
         n = self.int_column.length

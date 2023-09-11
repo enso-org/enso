@@ -1,6 +1,8 @@
 package org.enso.compiler.refactoring
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Name
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
@@ -23,7 +25,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
     private val Module = QualifiedName(List("Unnamed"), "Test")
 
-    def preprocessModule(name: QualifiedName): IR.Module = {
+    def preprocessModule(name: QualifiedName): Module = {
       val module = new runtime.Module(
         name,
         null,
@@ -33,17 +35,17 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
       module.getIr
     }
 
-    def preprocessModule: IR.Module =
+    def preprocessModule: Module =
       preprocessModule(Module)
 
   }
 
   private def findUsagesOfLiteral(
-    module: IR.Module,
+    module: Module,
     ir: IR
-  ): Option[Set[IR.Name.Literal]] = {
+  ): Option[Set[Name.Literal]] = {
     ir match {
-      case literal: IR.Name.Literal =>
+      case literal: Name.Literal =>
         IRUtils.findLocalUsages(module, literal)
       case _ =>
         fail(s"Trying to find literal usages of [${ir.getClass}]: [$ir]")
@@ -52,12 +54,11 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
   private def findUsagesOfStaticMethod(
     moduleName: QualifiedName,
-    module: IR.Module,
+    module: Module,
     ir: IR
-  ): Option[Set[IR.Name.Literal]] = {
+  ): Option[Set[Name.Literal]] = {
     ir match {
-      case methodRef: IR.Name.MethodReference
-          if methodRef.typePointer.isEmpty =>
+      case methodRef: Name.MethodReference if methodRef.typePointer.isEmpty =>
         IRUtils.findModuleMethodUsages(
           moduleName,
           module,
@@ -90,8 +91,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -115,8 +116,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 2
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -140,8 +141,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -168,8 +169,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -196,8 +197,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 2
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -224,8 +225,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 
@@ -255,8 +256,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
 
       usages.value.size shouldEqual 1
       usages.value.foreach {
-        case _: IR.Name.Literal => succeed
-        case ir                 => fail(s"Not a literal: $ir")
+        case _: Name.Literal => succeed
+        case ir              => fail(s"Not a literal: $ir")
       }
     }
 

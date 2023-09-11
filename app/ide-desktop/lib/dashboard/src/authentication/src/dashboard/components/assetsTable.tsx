@@ -307,6 +307,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         type: assetEventModule.AssetEventType.openProject,
                         id: projectToLoad.id,
                         shouldAutomaticallySwitchPage: true,
+                        runInBackground: false,
                     })
                 }
                 setNameOfProjectToImmediatelyOpen(null)
@@ -790,6 +791,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 type: assetEventModule.AssetEventType.openProject,
                 id: projectId,
                 shouldAutomaticallySwitchPage: true,
+                runInBackground: false,
             })
         },
         [/* should never change */ dispatchAssetEvent]
@@ -963,12 +965,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 )
                             }
                         } else {
+                            const deleteAction =
+                                backend.type === backendModule.BackendType.local
+                                    ? shortcuts.KeyboardAction.deleteAll
+                                    : shortcuts.KeyboardAction.moveAllToTrash
                             setModal(
                                 <ContextMenus key={uniqueString.uniqueString()} event={event}>
                                     {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
                                         <ContextMenu>
                                             <MenuEntry
-                                                action={shortcuts.KeyboardAction.moveAllToTrash}
+                                                action={deleteAction}
                                                 doAction={doDeleteAll}
                                             />
                                         </ContextMenu>

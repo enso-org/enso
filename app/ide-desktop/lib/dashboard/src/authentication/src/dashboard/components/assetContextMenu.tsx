@@ -128,6 +128,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                     type: assetEventModule.AssetEventType.openProject,
                                     id: asset.id,
                                     shouldAutomaticallySwitchPage: true,
+                                    runInBackground: false,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
+                    backend.type === backendModule.BackendType.remote && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.run}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.openProject,
+                                    id: asset.id,
+                                    shouldAutomaticallySwitchPage: false,
+                                    runInBackground: true,
                                 })
                             }}
                         />
@@ -224,7 +241,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
-                        action={shortcuts.KeyboardAction.moveToTrash}
+                        action={
+                            backend.type === backendModule.BackendType.local
+                                ? shortcuts.KeyboardAction.delete
+                                : shortcuts.KeyboardAction.moveToTrash
+                        }
                         doAction={() => {
                             if (backend.type === backendModule.BackendType.remote) {
                                 void doDelete()

@@ -1,7 +1,13 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.IdentifiedLocation
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Empty,
+  Expression,
+  IdentifiedLocation,
+  Name
+}
+import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.Location
@@ -21,18 +27,18 @@ class OperatorToFunctionTest extends CompilerTest {
     * @return an operator `name` and its corresponding function
     */
   def genOprAndFn(
-    name: IR.Name,
-    left: IR.Expression,
-    right: IR.Expression
-  ): (IR.Application.Operator.Binary, IR.Application.Prefix) = {
+    name: Name,
+    left: Expression,
+    right: Expression
+  ): (Operator.Binary, Application.Prefix) = {
     val loc = IdentifiedLocation(Location(1, 33))
 
-    val leftArg  = IR.CallArgument.Specified(None, left, left.location)
-    val rightArg = IR.CallArgument.Specified(None, right, right.location)
+    val leftArg  = CallArgument.Specified(None, left, left.location)
+    val rightArg = CallArgument.Specified(None, right, right.location)
 
     val binOp =
-      IR.Application.Operator.Binary(leftArg, name, rightArg, Some(loc))
-    val opFn = IR.Application.Prefix(
+      Operator.Binary(leftArg, name, rightArg, Some(loc))
+    val opFn = Application.Prefix(
       name,
       List(leftArg, rightArg),
       hasDefaultsSuspended = false,
@@ -46,15 +52,15 @@ class OperatorToFunctionTest extends CompilerTest {
 
   "Operators" should {
     val opName =
-      IR.Name.Literal("=:=", isMethod = true, None)
-    val left     = IR.Empty(None)
-    val right    = IR.Empty(None)
-    val rightArg = IR.CallArgument.Specified(None, IR.Empty(None), None)
+      Name.Literal("=:=", isMethod = true, None)
+    val left     = Empty(None)
+    val right    = Empty(None)
+    val rightArg = CallArgument.Specified(None, Empty(None), None)
 
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
-    val oprArg   = IR.CallArgument.Specified(None, operator, None)
-    val oprFnArg = IR.CallArgument.Specified(None, operatorFn, None)
+    val oprArg   = CallArgument.Specified(None, operator, None)
+    val oprFnArg = CallArgument.Specified(None, operatorFn, None)
 
     "be translated to functions" in {
       OperatorToFunction.runExpression(operator, ctx) shouldEqual operatorFn
@@ -69,8 +75,8 @@ class OperatorToFunctionTest extends CompilerTest {
 
     "be translated recursively" in {
       val recursiveIR =
-        IR.Application.Operator.Binary(oprArg, opName, rightArg, None)
-      val recursiveIRResult = IR.Application.Prefix(
+        Operator.Binary(oprArg, opName, rightArg, None)
+      val recursiveIRResult = Application.Prefix(
         opName,
         List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,

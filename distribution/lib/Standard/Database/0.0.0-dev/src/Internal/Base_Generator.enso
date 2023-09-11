@@ -457,6 +457,8 @@ generate_query dialect query = case query of
     Query.Drop_Table name if_exists ->
         maybe_if_exists = if if_exists then Builder.code "IF EXISTS " else Builder.empty
         Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
+    Query.Truncate_Table name ->
+        Builder.code "DELETE FROM " ++ dialect.wrap_identifier name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query
@@ -482,8 +484,19 @@ generate_query dialect query = case query of
         source = dialect.wrap_identifier source_table_name
         if key_columns.is_empty then
             Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
-        key_part = Builder.join ", " (key_columns.map dialect.wrap_identifier)
-        Builder.code "DELETE FROM " ++ target ++ " WHERE (" ++ key_part ++ ") NOT IN (SELECT " ++ key_part ++ " FROM " ++ source ++ ")"
+        conditions = Builder.join " AND " <| key_columns.map name->
+            id = dialect.wrap_identifier name
+            target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
+        Builder.code "DELETE FROM " ++ target ++ " WHERE NOT EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
+    Query.Delete_Matching_Rows target_table_name source_table_name key_columns ->
+        target = dialect.wrap_identifier target_table_name
+        source = dialect.wrap_identifier source_table_name
+        if key_columns.is_empty then
+            Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Matching_Rows` must have at least one key column. This is a bug in the Database library.")
+        conditions = Builder.join " AND " <| key_columns.map name->
+            id = dialect.wrap_identifier name
+            target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
+        Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE

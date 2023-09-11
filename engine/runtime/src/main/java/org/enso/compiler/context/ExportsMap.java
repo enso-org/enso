@@ -38,14 +38,9 @@ public final class ExportsMap {
             });
   }
 
-  public QualifiedName get(ExportedSymbol symbol) {
-    return exportsMap.get(symbol);
-  }
-
-  public QualifiedName get(Suggestion suggestion) {
+  public Option<QualifiedName> get(Suggestion suggestion) {
     return ExportedSymbol.fromSuggestion(suggestion)
-        .flatMap(symbol -> Option.apply(exportsMap.get(symbol)))
-        .getOrElse(() -> exportsMap.get(ExportedSymbol.suggestionModule(suggestion)));
+        .flatMap(symbol -> Option.apply(exportsMap.get(symbol)));
   }
 
   private static QualifiedName getShortest(QualifiedName name1, QualifiedName name2) {

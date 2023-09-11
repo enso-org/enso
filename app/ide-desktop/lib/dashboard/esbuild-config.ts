@@ -55,39 +55,19 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
-            /** An entry in the cache of already processed CSS files. */
-            interface CacheEntry {
-                contents: string
-                lastModified: number
-            }
-            const cachedOutput: Record<string, CacheEntry> = {}
-            let tailwindConfigLastModified = 0
-            let tailwindConfigWasModified = true
             const cssProcessor = postcss([
                 tailwindcss({
                     config: TAILWIND_CONFIG_PATH,
                 }),
                 tailwindcssNesting(),
             ])
-            build.onStart(async () => {
-                const tailwindConfigNewLastModified = (await fs.stat(TAILWIND_CONFIG_PATH)).mtimeMs
-                tailwindConfigWasModified =
-                    tailwindConfigLastModified !== tailwindConfigNewLastModified
-                tailwindConfigLastModified = tailwindConfigNewLastModified
-            })
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
-                const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
-                let output = cachedOutput[loadArgs.path]
-                if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
-                    console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const content = await fs.readFile(loadArgs.path, 'utf8')
-                    const result = await cssProcessor.process(content, { from: loadArgs.path })
-                    console.log(`Processed CSS file '${loadArgs.path}'.`)
-                    output = { contents: result.css, lastModified }
-                    cachedOutput[loadArgs.path] = output
-                }
+                console.log(`Processing CSS file '${loadArgs.path}'.`)
+                const content = await fs.readFile(loadArgs.path, 'utf8')
+                const result = await cssProcessor.process(content, { from: loadArgs.path })
+                console.log(`Processed CSS file '${loadArgs.path}'.`)
                 return {
-                    contents: output.contents,
+                    contents: result.content,
                     loader: 'css',
                     watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
                 }

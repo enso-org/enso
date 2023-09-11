@@ -23,6 +23,7 @@ import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
+import project.Common_Table_Operations.Temp_Column_Spec
 import project.Common_Table_Operations.Transpose_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -77,7 +78,6 @@ type Test_Selection
        - order_by_unicode_normalization_by_default: Specifies if the backend
          supports unicode normalization in its default ordering.
        - case_insensitive_ascii_only:
-       - take_drop: Specifies if the backend supports take/drop operations.
        - allows_mixed_type_comparisons: Specifies if mixed operations comparing
          mixed types are allowed by a given backend. Some backends will allow
          such comparisons, when mixed type storage is allowed or by coercing to
@@ -109,7 +109,7 @@ type Test_Selection
          columns.
        - supported_replace_params: Specifies the possible values of
          Replace_Params that a backend supports.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False different_size_integer_types=True supports_8bit_integer=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False different_size_integer_types=True supports_8bit_integer=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing
 
 spec setup =
     Core_Spec.spec setup
@@ -134,5 +134,6 @@ spec setup =
     Transpose_Spec.spec setup
     Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
+    Temp_Column_Spec.spec setup
 
 main = run_default_backend spec

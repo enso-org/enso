@@ -2,8 +2,9 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -26,7 +27,7 @@ class OverloadsResolutionTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class ResolveModule(ir: IR.Module) {
+  implicit class ResolveModule(ir: Module) {
 
     /** Runs section desugaring on [[ir]].
       *
@@ -34,7 +35,7 @@ class OverloadsResolutionTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all sections desugared
       */
-    def resolve(implicit moduleContext: ModuleContext): IR.Module = {
+    def resolve(implicit moduleContext: ModuleContext): Module = {
       OverloadsResolution.runModule(ir, moduleContext)
     }
   }
@@ -63,14 +64,14 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Method]
+      exactly(2, ir.bindings) shouldBe an[errors.Redefined.Method]
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.Method]
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Method]
-      val redef1 = ir.bindings(1).asInstanceOf[IR.Error.Redefined.Method]
-      val redef2 = ir.bindings(2).asInstanceOf[IR.Error.Redefined.Method]
+      ir.bindings(1) shouldBe an[errors.Redefined.Method]
+      ir.bindings(2) shouldBe an[errors.Redefined.Method]
+      val redef1 = ir.bindings(1).asInstanceOf[errors.Redefined.Method]
+      val redef2 = ir.bindings(2).asInstanceOf[errors.Redefined.Method]
 
       redef1.atomName.get.name shouldEqual atomName
       redef2.atomName.get.name shouldEqual atomName
@@ -90,8 +91,8 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe a[Method.Conversion]
-      ir.bindings(1) shouldBe a[Method.Conversion]
+      ir.bindings.head shouldBe a[definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[definition.Method.Conversion]
     }
 
     "raise an error if there are multiple definitions with the same source type" in {
@@ -102,9 +103,9 @@ class OverloadsResolutionTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings.head shouldBe a[Method.Conversion]
-      ir.bindings(1) shouldBe a[Method.Conversion]
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Conversion]
+      ir.bindings.head shouldBe a[definition.Method.Conversion]
+      ir.bindings(1) shouldBe a[definition.Method.Conversion]
+      ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
     }
   }
 
@@ -121,18 +122,18 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Type]
+      exactly(2, ir.bindings) shouldBe an[errors.Redefined.Type]
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.Type]
+      ir.bindings(1) shouldBe an[errors.Redefined.Type]
       ir.bindings(1)
-        .asInstanceOf[IR.Error.Redefined.Type]
+        .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Type]
+      ir.bindings(2) shouldBe an[errors.Redefined.Type]
       ir.bindings(2)
-        .asInstanceOf[IR.Error.Redefined.Type]
+        .asInstanceOf[errors.Redefined.Type]
         .typeName
         .name shouldEqual atomName
     }

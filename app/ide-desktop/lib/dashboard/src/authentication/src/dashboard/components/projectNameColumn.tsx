@@ -68,7 +68,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
             backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
-    const isOtherUserUsingProject = asset.projectState.opened_by !== organization?.email
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        asset.projectState.opened_by != null &&
+        asset.projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -129,6 +132,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             type: assetEventModule.AssetEventType.openProject,
                             id: createdProject.projectId,
                             shouldAutomaticallySwitchPage: true,
+                            runInBackground: false,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
@@ -223,16 +227,25 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 item.depth
             )}`}
             onClick={event => {
-                if (isRunning || rowState.isEditingName || isOtherUserUsingProject) {
-                    // The project should not be edited in these cases.
-                } else if (eventModule.isDoubleClick(event)) {
+                if (rowState.isEditingName || isOtherUserUsingProject) {
+                    // The project should neither be edited nor opened in these cases.
+                } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: true,
+                        runInBackground: false,
+                    })
+                } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: asset.id,
+                        shouldAutomaticallySwitchPage: false,
+                        runInBackground: true,
                     })
                 } else if (
+                    !isRunning &&
                     eventModule.isSingleClick(event) &&
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
