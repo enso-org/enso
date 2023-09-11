@@ -7,8 +7,6 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.IO
-import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Version.HTTP_Version
@@ -78,10 +76,6 @@ type HTTP
 
     request : Request -> Boolean -> Response ! Request_Error
     request self req try_auto_parse_response=False =
-        IO.println 'AAA start'
-        IO.println req
-        IO.println req.body
-
         check_output_context ~action =
             if Context.Output.is_enabled then action else
                 Error.throw (Forbidden_Operation.Error "HTTP POST/PUT/PATCH are forbidden as the Output context is disabled.")
@@ -133,27 +127,11 @@ type HTTP
                     http_request = builder.build
                     body_handler = HttpResponse.BodyHandlers . ofByteArray
 
-                    IO.println 'AAA http_request'
-                    IO.println http_request
-                    IO.println req.body
-                    IO.println body_publisher_and_headers
-                    IO.println body_publisher
-                    IO.println body_publisher.contentLength
-                    IO.println additional_headers
-
                     response = Response.Value (self.internal_http_client.send http_request body_handler)
 
-                    IO.println 'AAA response'
-                    IO.println response
-
-                    r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
                         if try_auto_parse_response.not then response else
                             response.decode if_unsupported=response . catch handler=(_->response)
-                    IO.println 'AAA parsed(?) response'
-                    IO.println try_auto_parse_response
-                    IO.println r
-                    IO.println <| Meta.get_simple_type_name r
-                    r
 
     ## PRIVATE
 
@@ -173,8 +151,6 @@ type HTTP
        Static helper for post-like methods
     post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
     post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-        IO.println "AAA post start"
-        IO.println body
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request try_auto_parse_response
