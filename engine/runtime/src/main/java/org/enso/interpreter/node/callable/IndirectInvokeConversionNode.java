@@ -62,10 +62,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     Function function =
         conversionResolverNode.expectNonNull(
-            that,
-            InvokeConversionNode.extractConstructor(this, self),
-            typesLib.getType(that),
-            conversion);
+            that, InvokeConversionNode.extractType(this, self), typesLib.getType(that), conversion);
     return indirectInvokeFunctionNode.execute(
         function,
         frame,
@@ -95,7 +92,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.execute(
-            InvokeConversionNode.extractConstructor(this, self),
+            InvokeConversionNode.extractType(this, self),
             EnsoContext.get(this).getBuiltins().dataflowError(),
             conversion);
     if (function != null) {
@@ -184,7 +181,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       Function function =
           conversionResolverNode.expectNonNull(
               txt,
-              InvokeConversionNode.extractConstructor(this, self),
+              InvokeConversionNode.extractType(this, self),
               EnsoContext.get(this).getBuiltins().text(),
               conversion);
       arguments[0] = txt;

@@ -20,6 +20,7 @@ use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
+use view::notification::logged as notification;
 
 
 // ==============
@@ -292,6 +293,16 @@ impl Model {
         Some((node_id, config))
     }
 
+    fn node_copied(&self, id: ViewNodeId) {
+        self.log_action(
+            || {
+                let ast_id = self.state.ast_node_id_of_view(id)?;
+                Some(self.controller.graph().copy_node(ast_id))
+            },
+            "copy node",
+        )
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
@@ -441,6 +452,14 @@ impl Model {
         if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
             error!("Error when creating node from dropped file: {err}");
         }
+    }
+
+    fn paste_node(&self, cursor_pos: Vector2) {
+        fn on_error(msg: String) {
+            error!("Error when pasting node. {}", msg);
+            notification::error(msg, &None);
+        }
+        self.controller.graph().paste_node(cursor_pos, on_error);
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
@@ -762,6 +781,7 @@ impl Graph {
 
             // === Changes from the View ===
 
+            eval view.node_copied((node_id) model.node_copied(*node_id));
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
@@ -776,8 +796,9 @@ impl Graph {
             eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
-            // === Dropping Files ===
+            // === Dropping Files and Pasting Node ===
 
+            eval view.request_paste_node((pos) model.paste_node(*pos));
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }

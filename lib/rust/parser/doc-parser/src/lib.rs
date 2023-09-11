@@ -56,7 +56,7 @@ pub struct TagWithDescription<'a, L> {
 }
 
 /// Indicator placed at the beginning of a documentation section, e.g. `PRIVATE`.
-#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[allow(missing_docs)]
 pub enum Tag {
     Added,
@@ -138,7 +138,7 @@ pub struct Marked<'a, L> {
 }
 
 /// Documentation section mark.
-#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
 #[allow(missing_docs)]
 pub enum Mark {
     Important,

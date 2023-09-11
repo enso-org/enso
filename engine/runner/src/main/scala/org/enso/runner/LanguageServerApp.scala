@@ -4,7 +4,7 @@ import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
 
 import java.util.concurrent.Semaphore
 
@@ -26,7 +26,7 @@ object LanguageServerApp {
     */
   def run(
     config: LanguageServerConfig,
-    logLevel: LogLevel,
+    logLevel: Level,
     deamonize: Boolean
   ): Unit = {
     val server = new LanguageServerComponent(config, logLevel)

@@ -20,9 +20,13 @@ const STATUS_SUCCESS_LAST = 299
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
 
+/** The number of milliseconds in one day. */
+const ONE_DAY_MS = 86_400_000
+
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = {
     forceCreate: false,
+    executeAsync: false,
 }
 
 // ============================
@@ -40,8 +44,6 @@ function responseIsSuccessful(response: Response) {
 
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
-/** The interval between requests checking whether the VM is ready. */
-const CHECK_RESOURCES_INTERVAL_MS = 1000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
@@ -50,10 +52,7 @@ export async function waitUntilProjectIsReady(
     abortController: AbortController = new AbortController()
 ) {
     let project = await backend.getProjectDetails(item.id, item.title)
-    if (
-        project.state.type !== backendModule.ProjectState.openInProgress &&
-        project.state.type !== backendModule.ProjectState.opened
-    ) {
+    if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
         await backend.openProject(item.id, null, item.title)
     }
     let nextCheckTimestamp = 0
@@ -67,20 +66,6 @@ export async function waitUntilProjectIsReady(
         })
         nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
         project = await backend.getProjectDetails(item.id, item.title)
-    }
-    nextCheckTimestamp = 0
-    while (!abortController.signal.aborted) {
-        try {
-            await new Promise<void>(resolve => {
-                const delayMs = nextCheckTimestamp - Number(new Date())
-                setTimeout(resolve, Math.max(0, delayMs))
-            })
-            nextCheckTimestamp = Number(new Date()) + CHECK_RESOURCES_INTERVAL_MS
-            await backend.checkResources(item.id, item.title)
-            break
-        } catch {
-            // Ignored.
-        }
     }
 }
 
@@ -212,9 +197,16 @@ interface ListVersionsResponseBody {
 // === RemoteBackend ===
 // =====================
 
+/** Information for a cached default version. */
+interface DefaultVersionInfo {
+    version: backendModule.VersionNumber
+    lastUpdatedEpochMs: number
+}
+
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backendModule.Backend {
     readonly type = backendModule.BackendType.remote
+    protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 
     /** Create a new instance of the {@link RemoteBackend} API client.
      *
@@ -262,7 +254,7 @@ export class RemoteBackend extends backendModule.Backend {
     async listUsers(): Promise<backendModule.SimpleUser[]> {
         const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to list users in the organization.`)
+            return this.throw(`Could not list users in the organization.`)
         } else {
             return (await response.json()).users
         }
@@ -274,7 +266,7 @@ export class RemoteBackend extends backendModule.Backend {
     ): Promise<backendModule.UserOrOrganization> {
         const response = await this.post<backendModule.UserOrOrganization>(CREATE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to create user.')
+            return this.throw('Could not create user.')
         } else {
             return await response.json()
         }
@@ -284,7 +276,7 @@ export class RemoteBackend extends backendModule.Backend {
     async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
         const response = await this.post(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to invite user '${body.userEmail}'.`)
+            return this.throw(`Could not invite user '${body.userEmail}'.`)
         } else {
             return
         }
@@ -297,7 +289,7 @@ export class RemoteBackend extends backendModule.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to set permissions.`)
+            return this.throw(`Could not set permissions.`)
         } else {
             return
         }
@@ -336,12 +328,12 @@ export class RemoteBackend extends backendModule.Backend {
                 return []
             } else if (query.parentId != null) {
                 return this.throw(
-                    `Unable to list directory ${
+                    `Could not list folder ${
                         title != null ? `'${title}'` : `with ID '${query.parentId}'`
                     }.`
                 )
             } else {
-                return this.throw('Unable to list root directory.')
+                return this.throw('Could not list root folder.')
             }
         } else {
             return (await response.json()).assets
@@ -355,18 +347,9 @@ export class RemoteBackend extends backendModule.Backend {
                             type: asset.id.match(/^(.+?)-/)?.[1],
                         } as backendModule.AnyAsset)
                 )
-                .map(asset =>
-                    asset.type === backendModule.AssetType.project &&
-                    asset.projectState.type === backendModule.ProjectState.opened
-                        ? {
-                              ...asset,
-                              projectState: { type: backendModule.ProjectState.openInProgress },
-                          }
-                        : asset
-                )
                 .map(asset => ({
                     ...asset,
-                    permissions: (asset.permissions ?? []).sort(
+                    permissions: [...(asset.permissions ?? [])].sort(
                         backendModule.compareUserPermissions
                     ),
                 }))
@@ -384,7 +367,7 @@ export class RemoteBackend extends backendModule.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create directory with name '${body.title}'.`)
+            return this.throw(`Could not create folder with name '${body.title}'.`)
         } else {
             return await response.json()
         }
@@ -404,7 +387,7 @@ export class RemoteBackend extends backendModule.Backend {
         )
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to update directory ${
+                `Could not update folder ${
                     title != null ? `'${title}'` : `with ID '${directoryId}'`
                 }.`
             )
@@ -420,7 +403,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.delete(deleteDirectoryPath(directoryId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete directory ${
+                `Could not delete folder ${
                     title != null ? `'${title}'` : `with ID '${directoryId}'`
                 }.`
             )
@@ -435,7 +418,7 @@ export class RemoteBackend extends backendModule.Backend {
     async listProjects(): Promise<backendModule.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to list projects.')
+            return this.throw('Could not list projects.')
         } else {
             return (await response.json()).projects.map(project => ({
                 ...project,
@@ -459,7 +442,7 @@ export class RemoteBackend extends backendModule.Backend {
     ): Promise<backendModule.CreatedProject> {
         const response = await this.post<backendModule.CreatedProject>(CREATE_PROJECT_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create project with name '${body.projectName}'.`)
+            return this.throw(`Could not create project with name '${body.projectName}'.`)
         } else {
             return await response.json()
         }
@@ -472,7 +455,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.post(closeProjectPath(projectId), {})
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to close project ${
+                `Could not close project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }.`
             )
@@ -491,36 +474,26 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<backendModule.ProjectRaw>(getProjectDetailsPath(projectId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to get details of project ${
+                `Could not get details of project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }.`
             )
         } else {
             const project = await response.json()
             const ideVersion =
-                project.ide_version ??
-                (
-                    await this.listVersions({
-                        versionType: backendModule.VersionType.ide,
-                        default: true,
-                    })
-                )[0]?.number
-            if (ideVersion == null) {
-                return this.throw('No IDE version found')
-            } else {
-                return {
-                    ...project,
-                    ideVersion,
-                    engineVersion: project.engine_version,
-                    jsonAddress:
-                        project.address != null
-                            ? backendModule.Address(`${project.address}json`)
-                            : null,
-                    binaryAddress:
-                        project.address != null
-                            ? backendModule.Address(`${project.address}binary`)
-                            : null,
-                }
+                project.ide_version ?? (await this.getDefaultVersion(backendModule.VersionType.ide))
+            return {
+                ...project,
+                ideVersion,
+                engineVersion: project.engine_version,
+                jsonAddress:
+                    project.address != null
+                        ? backendModule.Address(`${project.address}json`)
+                        : null,
+                binaryAddress:
+                    project.address != null
+                        ? backendModule.Address(`${project.address}binary`)
+                        : null,
             }
         }
     }
@@ -539,7 +512,7 @@ export class RemoteBackend extends backendModule.Backend {
         )
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+                `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
             )
         } else {
             return
@@ -560,7 +533,7 @@ export class RemoteBackend extends backendModule.Backend {
         )
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to update project ${
+                `Could not update project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }.`
             )
@@ -576,7 +549,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.delete(deleteProjectPath(projectId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete project ${
+                `Could not delete project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }.`
             )
@@ -595,7 +568,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<backendModule.ResourceUsage>(checkResourcesPath(projectId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to get resource usage for project ${
+                `Could not get resource usage for project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }.`
             )
@@ -610,7 +583,7 @@ export class RemoteBackend extends backendModule.Backend {
     async listFiles(): Promise<backendModule.File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to list files.')
+            return this.throw('Could not list files.')
         } else {
             return (await response.json()).files
         }
@@ -666,7 +639,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.delete(deleteFilePath(fileId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
+                `Could not delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
             )
         } else {
             return
@@ -681,7 +654,7 @@ export class RemoteBackend extends backendModule.Backend {
     ): Promise<backendModule.SecretAndInfo> {
         const response = await this.post<backendModule.SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create secret with name '${body.secretName}'.`)
+            return this.throw(`Could not create secret with name '${body.secretName}'.`)
         } else {
             return await response.json()
         }
@@ -697,7 +670,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<backendModule.Secret>(getSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+                `Could not get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
             )
         } else {
             return await response.json()
@@ -710,7 +683,7 @@ export class RemoteBackend extends backendModule.Backend {
     async listSecrets(): Promise<backendModule.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw('Unable to list secrets.')
+            return this.throw('Could not list secrets.')
         } else {
             return (await response.json()).secrets
         }
@@ -723,7 +696,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.delete(deleteSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+                `Could not delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
             )
         } else {
             return
@@ -743,7 +716,7 @@ export class RemoteBackend extends backendModule.Backend {
             /* eslint-enable @typescript-eslint/naming-convention */
         })
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to create create tag with name '${body.name}'.`)
+            return this.throw(`Could not create create tag with name '${body.name}'.`)
         } else {
             return await response.json()
         }
@@ -762,7 +735,7 @@ export class RemoteBackend extends backendModule.Backend {
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to list tags of type '${params.tagType}'.`)
+            return this.throw(`Could not list tags of type '${params.tagType}'.`)
         } else {
             return (await response.json()).tags
         }
@@ -774,7 +747,7 @@ export class RemoteBackend extends backendModule.Backend {
     async deleteTag(tagId: backendModule.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete tag with ID '${tagId}'.`)
+            return this.throw(`Could not delete tag with ID '${tagId}'.`)
         } else {
             return
         }
@@ -796,9 +769,35 @@ export class RemoteBackend extends backendModule.Backend {
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to list versions of type '${params.versionType}'.`)
+            return this.throw(`Could not list versions of type '${params.versionType}'.`)
         } else {
             return (await response.json()).versions
+        }
+    }
+
+    /** Get the default version given the type of version (IDE or backend). */
+    protected async getDefaultVersion(versionType: backendModule.VersionType) {
+        const cached = this.defaultVersions[versionType]
+        const nowEpochMs = Number(new Date())
+        if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {
+            return cached.version
+        } else {
+            const version = (
+                await this.listVersions({
+                    versionType,
+                    default: true,
+                })
+            )[0]?.number
+            if (version == null) {
+                throw new Error(`No default ${versionType} version found.`)
+            } else {
+                const info: DefaultVersionInfo = {
+                    version,
+                    lastUpdatedEpochMs: nowEpochMs,
+                }
+                this.defaultVersions[versionType] = info
+                return info.version
+            }
         }
     }
 

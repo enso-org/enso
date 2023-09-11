@@ -1,6 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+from Standard.Table import Value_Type, Auto
+from Standard.Table.Errors import Invalid_Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -39,13 +43,94 @@ spec setup =
                 Test.expect_panic_with (t.at "X" . map f) Illegal_State
 
             Test.specify "should forward warnings that are attached to results of function invocation" <|
-                t = table_builder [["X", [1, 2, 3]]]
+                t = table_builder [["X", [1, 2, 3, 4]]]
                 f x =
-                    if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (2*x + 1) else 2*x + 1
+                    if (x % 2) == 0 then Warning.attach (Illegal_State.Error "MY WARNING "+x.to_text) (2*x + 1) else 2*x + 1
                 c1 = t.at "X" . map f
-                w1 = Problems.expect_only_warning Illegal_State c1
-                w1.message . should_equal "MY WARNING"
-                c1.to_vector . should_equal [3, 5, 7]
+                warnings = Problems.get_attached_warnings c1
+                warnings.map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
+                c1.to_vector . should_equal [3, 5, 7, 9]
+
+            Test.specify "should respect the expected_value_type" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x = 2*x + 1
+                c2 = t.at "X" . map f expected_value_type=Value_Type.Float
+                c2.value_type . should_equal Value_Type.Float
+                c2.to_vector . should_equal [3.0, 5.0, 7.0]
+
+                c2_1 = t.at "X" . map f expected_value_type=Value_Type.Byte
+                c2_1.value_type . should_equal Value_Type.Byte
+                c2_1.to_vector . should_equal [3, 5, 7]
+
+                c2_2 = t.at "X" . map f expected_value_type=(Value_Type.Integer Bits.Bits_16)
+                c2_2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                c2_2.to_vector . should_equal [3, 5, 7]
+
+                c3 = t.at "X" . map f expected_value_type=Value_Type.Mixed
+                c3.value_type . should_equal Value_Type.Mixed
+                c3.to_vector . should_equal [3, 5, 7]
+
+                g x = "|" + x.to_text + "|"
+                c4 = t.at "X" . map g
+                c4.value_type . should_equal Value_Type.Char
+                c4.to_vector . should_equal ["|1|", "|2|", "|3|"]
+
+                c5 = t.at "X" . map g expected_value_type=(Value_Type.Char variable_length=False size=3)
+                c5.value_type . should_equal (Value_Type.Char variable_length=False size=3)
+                c5.to_vector . should_equal ["|1|", "|2|", "|3|"]
+
+                h x =
+                    if x == 2 then "A" else x+1
+                c6 = t.at "X" . map h expected_value_type=Value_Type.Mixed
+                c6.value_type . should_equal Value_Type.Mixed
+                c6.to_vector . should_equal [2, "A", 4]
+
+                c7 = t.at "X" . map h
+                c7.value_type . should_equal Value_Type.Mixed
+                c7.to_vector . should_equal [2, "A", 4]
+
+            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                c1 = t.at "X"
+
+                f x = 127^x
+                r1 = c1.map f expected_value_type=Value_Type.Byte
+                r1.should_fail_with Invalid_Value_Type
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 16129 of type Integer (16 bits)"
+
+                r2 = c1.map f expected_value_type=(Value_Type.Integer Bits.Bits_16)
+                r2.should_fail_with Invalid_Value_Type
+                r2.catch.to_display_text . should_contain "Expected type Integer (16 bits), but got a value 2048383 of type Integer (32 bits)"
+
+                g x = "|" + (x * 4).to_text + "|"
+                r3 = c1.map g expected_value_type=(Value_Type.Char variable_length=True size=3)
+                r3.should_fail_with Invalid_Value_Type
+                r3.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value |12| of type Char (fixed length, size=4)"
+
+                h x = "_"+x.to_text
+                r4 = c1.map h expected_value_type=(Value_Type.Char variable_length=False size=3)
+                r4.should_fail_with Invalid_Value_Type
+                r4.catch.to_display_text . should_contain "Expected type Char (fixed length, size=3), but got a value _1 of type Char (fixed length, size=2)"
+
+                i x = if x == 2 then "A" else x+1
+                r5 = c1.map i expected_value_type=Value_Type.Integer
+                r5.should_fail_with Invalid_Value_Type
+                r5.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value A of type Char (fixed length, size=1)"
+
+                j x = if x == 2 then Date.new 2022 08 23 else x+1
+                r6 = c1.map j expected_value_type=Value_Type.Integer
+                r6.should_fail_with Invalid_Value_Type
+                r6.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-08-23 of type Date"
+
+                k x = if x == 2 then Time_Of_Day.new 13 05 else (x+1).to_text
+                r7 = c1.map k expected_value_type=Value_Type.Char
+                r7.should_fail_with Invalid_Value_Type
+                r7.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=Nothing), but got a value 13:05:00 of type Time"
+
+                l x = if x == 2 then 42 else Date.new 2022 05 x
+                r8 = c1.map l expected_value_type=Value_Type.Date
+                r8.should_fail_with Invalid_Value_Type
+                r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16 bits)"
 
     Test.group prefix+"Column.zip" <|
         if setup.is_database then
@@ -80,3 +165,46 @@ spec setup =
                 w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
+            Test.specify "should respect the expected_value_type" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+
+                f x y = 10*x + y
+                c1 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Mixed
+                c1.value_type . should_equal Value_Type.Mixed
+                c1.to_vector . should_equal [14, 25, 36]
+
+                c2 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Float
+                c2.value_type . should_equal Value_Type.Float
+                c2.to_vector . should_equal [14.0, 25.0, 36.0]
+
+                c3 = (t.at "X") . zip (t.at "Y") f expected_value_type=Value_Type.Byte
+                c3.value_type . should_equal Value_Type.Byte
+                c3.to_vector . should_equal [14, 25, 36]
+
+                t2 = table_builder [["X", ["a", "b", "c"]], ["Y", [4, 5, 6]]]
+                f2 x y = x + y.to_text
+
+                c4 = (t2.at "X") . zip (t2.at "Y") f2 expected_value_type=(Value_Type.Char size=2 variable_length=False)
+                c4.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
+                c4.to_vector . should_equal ["a4", "b5", "c6"]
+
+            Test.specify "should fail with Invalid_Value_Type if some results do not match the expected_value_type" <|
+                t = table_builder [["X", [100, 110, 120]], ["Y", [1, 3, 1]]]
+
+                r1 = (t.at "X") . zip (t.at "Y") (*) expected_value_type=Value_Type.Byte
+                r1.should_fail_with Invalid_Value_Type
+                r1.catch.to_display_text . should_contain "Expected type Byte, but got a value 330 of type Integer (16 bits)"
+
+                f x y = x.to_text * y
+                r2 = (t.at "X") . zip (t.at "Y") f expected_value_type=(Value_Type.Char variable_length=True size=3)
+                r2.should_fail_with Invalid_Value_Type
+                r2.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=3), but got a value 110110110 of type Char (fixed length, size=9)"
+
+                g x y = if x == 110 then Date.new 2022 09 23 else x+y
+                r3 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Integer
+                r3.should_fail_with Invalid_Value_Type
+                r3.catch.to_display_text . should_contain "Expected type Integer (64 bits), but got a value 2022-09-23 of type Date"
+
+                r4 = (t.at "X") . zip (t.at "Y") g expected_value_type=Value_Type.Date
+                r4.should_fail_with Invalid_Value_Type
+                r4.catch.to_display_text . should_contain "Expected type Date, but got a value 101 of type Integer (16 bits)"

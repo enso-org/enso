@@ -2,8 +2,17 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.CallArgument
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Function,
+  Module,
+  Name
+}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
@@ -11,9 +20,9 @@ import org.enso.compiler.test.CompilerTest
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = IR.Error.Syntax(null, IR.Error.Syntax.UnrecognizedToken)
-    val plusOp = IR.Name.Literal("+", isMethod = true, None)
-    val plusApp = IR.Application.Prefix(
+    val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
+    val plusOp = Name.Literal("+", isMethod = true, None)
+    val plusApp = Application.Prefix(
       plusOp,
       List(
         CallArgument.Specified(None, error1, None)
@@ -21,11 +30,11 @@ class GatherDiagnosticsTest extends CompilerTest {
       hasDefaultsSuspended = false,
       None
     )
-    val lam = IR.Function.Lambda(
+    val lam = Function.Lambda(
       List(
-        IR.DefinitionArgument
+        DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", isMethod = false, None),
+            Name.Literal("bar", isMethod = false, None),
             None,
             None,
             suspended = false,
@@ -46,58 +55,58 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = IR.Error.Syntax(null, IR.Error.Syntax.UnexpectedExpression)
-      val error3 = IR.Error.Syntax(null, IR.Error.Syntax.AmbiguousExpression)
+      val error2 = errors.Syntax(null, errors.Syntax.UnexpectedExpression)
+      val error3 = errors.Syntax(null, errors.Syntax.AmbiguousExpression)
 
       val typeName =
-        IR.Name.Literal("Foo", isMethod = false, None)
+        Name.Literal("Foo", isMethod = false, None)
       val method1Name =
-        IR.Name.Literal("bar", isMethod = false, None)
+        Name.Literal("bar", isMethod = false, None)
       val method2Name =
-        IR.Name.Literal("baz", isMethod = false, None)
+        Name.Literal("baz", isMethod = false, None)
       val fooName =
-        IR.Name.Literal("foo", isMethod = false, None)
+        Name.Literal("foo", isMethod = false, None)
 
       val method1Ref =
-        IR.Name.MethodReference(
-          Some(IR.Name.Qualified(List(typeName), None)),
+        Name.MethodReference(
+          Some(Name.Qualified(List(typeName), None)),
           method1Name,
           None
         )
       val method2Ref =
-        IR.Name.MethodReference(
-          Some(IR.Name.Qualified(List(typeName), None)),
+        Name.MethodReference(
+          Some(Name.Qualified(List(typeName), None)),
           method2Name,
           None
         )
 
-      val module = IR.Module(
+      val module = Module(
         List(),
         List(),
         List(
-          IR.Module.Scope.Definition.Type(
+          Definition.Type(
             typeName,
             List(
-              IR.DefinitionArgument
+              DefinitionArgument
                 .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
             List(),
             None
           ),
-          IR.Module.Scope.Definition.Method
+          definition.Method
             .Explicit(method1Ref, lam, None),
-          IR.Module.Scope.Definition.Method
+          definition.Method
             .Explicit(method2Ref, error3, None)
         ),
         None
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())
-      val errors = result
+      val gatheredErrros = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
 
-      errors.toSet shouldEqual Set(error1, error2, error3)
+      gatheredErrros.toSet shouldEqual Set(error1, error2, error3)
     }
 
     "avoid duplication" in {

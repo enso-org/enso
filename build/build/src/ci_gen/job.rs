@@ -129,10 +129,11 @@ impl JobArchetype for IntegrationTest {
 pub struct BuildWasm;
 impl JobArchetype for BuildWasm {
     fn job(&self, os: OS) -> Job {
-        plain_job(
+        plain_job_customized(
             &os,
             "Build GUI (WASM)",
             " --upload-artifacts ${{ runner.os == 'Linux' }} wasm build",
+            |step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)],
         )
     }
 }

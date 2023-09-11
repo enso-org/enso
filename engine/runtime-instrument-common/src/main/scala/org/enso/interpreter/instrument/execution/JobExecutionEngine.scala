@@ -174,6 +174,14 @@ final class JobExecutionEngine(
     }
 
   /** @inheritdoc */
+  override def stopBackgroundJobs(): Boolean =
+    synchronized {
+      val result = isBackgroundJobsStarted
+      isBackgroundJobsStarted = false
+      result
+    }
+
+  /** @inheritdoc */
   override def stop(): Unit = {
     val allJobs = runningJobsRef.get()
     allJobs.foreach(_.future.cancel(true))

@@ -1,6 +1,6 @@
 package org.enso.compiler.context;
 
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.text.editing.model.TextEdit;
 
 /**
@@ -11,8 +11,8 @@ import org.enso.text.editing.model.TextEdit;
  * @param newIr the new literal
  */
 public record SimpleUpdate(
-  IR.Literal ir,
+  Literal ir,
   TextEdit edit,
-  IR.Literal newIr
+  Literal newIr
 ) {
 }

@@ -22,7 +22,7 @@ const INDENT_CLASSES = [
     'ml-54',
     'ml-60',
 ]
-const FALLBACK_INDENT_CLASS = 'w-40'
+const FALLBACK_INDENT_CLASS = 'w-60'
 
 /** Returns the appropriate Tailwind class for the given amount of nesting.. */
 export function indentClass(depth: number): string {

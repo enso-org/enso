@@ -25,8 +25,8 @@ import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.launcher.releases.LauncherRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
-import org.enso.logger.LoggerSyntax
 import org.enso.runtimeversionmanager.locking.Resources
+import org.slf4j.LoggerFactory
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -428,7 +428,9 @@ object LauncherUpgrader {
     upgradeRequiredError: UpgradeRequiredError,
     originalArguments: Array[String]
   ): Int = {
-    val logger = Logger[LauncherUpgrader].enter("auto-upgrade")
+    val logger = LoggerFactory.getLogger(
+      classOf[LauncherUpgrader]
+    )
     val globalCLIOptions = cachedCLIOptions.getOrElse(
       throw new IllegalStateException(
         "Upgrade requested but application was not initialized properly."

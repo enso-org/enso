@@ -5,7 +5,8 @@ import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   GatherDiagnostics
@@ -177,9 +178,9 @@ final class EnsureCompiledJob(
       )
       .diagnostics
     val diagnostics = pass.collect {
-      case warn: IR.Warning =>
+      case warn: Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
-      case error: IR.Error =>
+      case error: Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
@@ -196,7 +197,7 @@ final class EnsureCompiledJob(
   private def createDiagnostic(
     kind: Api.DiagnosticType,
     module: Module,
-    diagnostic: IR.Diagnostic
+    diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
     Api.ExecutionResult.Diagnostic(
       kind,
