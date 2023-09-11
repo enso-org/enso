@@ -35,7 +35,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const types = Object.keys(paths)
   let worker: Worker | undefined
   let workerMessageId = 0
-  const workerCallbacks: Record<string, { resolve: (result: any) => void; reject: () => void }> = {}
+  const workerCallbacks: Record<
+    string,
+    { resolve: (result: VisualizationModule) => void; reject: () => void }
+  > = {}
 
   function register(name: string, inputType: string) {
     console.log(`registering visualization: name=${name}, inputType=${inputType}`)
@@ -96,11 +99,45 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
     const id = workerMessageId
     workerMessageId += 1
-    const promise = new Promise<any>((resolve, reject) => {
+    const promise = new Promise<VisualizationModule>((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
     })
     worker.postMessage({ id, path })
     return await promise
+  }
+
+  const scriptsNode = document.head.appendChild(document.createElement('div'))
+  scriptsNode.classList.add('visualization-scripts')
+  const loadedScripts = new Set<string>()
+  function loadScripts(module: VisualizationModule) {
+    const promises: Promise<void>[] = []
+    if ('scripts' in module && module.scripts) {
+      if (!Array.isArray(module.scripts)) {
+        console.warn('Visualiation scripts should be an array:', module.scripts)
+      }
+      const scripts = Array.isArray(module.scripts) ? module.scripts : [module.scripts]
+      for (const url of scripts) {
+        if (typeof url !== 'string') {
+          console.warn('Visualization script should be a string, skipping URL:', url)
+        } else if (!loadedScripts.has(url)) {
+          loadedScripts.add(url)
+          const node = document.createElement('script')
+          node.src = url
+          promises.push(
+            new Promise<void>((resolve, reject) => {
+              node.addEventListener('load', () => {
+                resolve()
+              })
+              node.addEventListener('error', () => {
+                reject()
+              })
+            }),
+          )
+          scriptsNode.appendChild(node)
+        }
+      }
+    }
+    return Promise.allSettled(promises)
   }
 
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
@@ -114,6 +151,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
       const module = await compile(path)
       // TODO[sb]: fallback to name based on path to visualization.
       register(module.name ?? fileName(path) ?? type, module.inputType ?? 'Any')
+      await loadScripts(module)
       component = module.default
       cache[type] = component
     }

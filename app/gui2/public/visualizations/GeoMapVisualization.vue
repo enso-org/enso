@@ -1,6 +1,12 @@
 <script lang="ts">
 export const name = 'Geo Map'
 export const inputType = 'Standard.Table.Data.Table.Table'
+export const scripts = [
+  // mapbox-gl does not have an ESM release.
+  'https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
+  // The deck.gl scripting API is not available in the ESM module.
+  'https://cdn.jsdelivr.net/npm/deck.gl@8.9.27/dist.min.js',
+]
 
 /**
  * Provides a mapbox & deck.gl-based map visualization.
@@ -71,10 +77,11 @@ interface DataFrame {
   df_radius?: number[]
   df_label?: string[]
 }
-declare var deckGl: typeof import('@deck.gl/core/typed') & typeof import('@deck.gl/layers/typed')
+declare var deck: typeof import('deck.gl')
 </script>
 
 <script setup lang="ts">
+/// <reference types="@danmarshall/deckgl-typings" />
 import FindIcon from './icons/find.svg'
 import Path2Icon from './icons/path2.svg'
 import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
@@ -83,11 +90,6 @@ import GeoMapPinIcon from './icons/geo_map_pin.svg'
 import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watchEffect } from 'vue'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import deckGl from 'https://cdn.jsdelivr.net/npm/deck.gl@8.9.27/+esm'
-// import mapboxGl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm'
 
 const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
@@ -123,7 +125,7 @@ const DEFAULT_MAP_ZOOM = 11
 const ACCENT_COLOR: Color = [78, 165, 253]
 
 const dataPoints = ref<LocationWithPosition[]>([])
-const mapNode = ref<HTMLDivElement>()
+const mapNode = ref<HTMLElement>()
 const latitude = ref(0)
 const longitude = ref(0)
 const zoom = ref(0)
@@ -131,7 +133,7 @@ const mapStyle = ref(DEFAULT_MAP_STYLE)
 const pitch = ref(0)
 const controller = ref(true)
 const showingLabels = ref(true)
-const deckgl = ref<import('@deck.gl/core/typed').Deck>()
+const deckgl = ref<import('deck.gl').DeckGL>()
 
 const viewState = computed(() => ({
   longitude: longitude.value,
@@ -192,7 +194,9 @@ function updateState(data: Data) {
 
 function updateMap() {
   if (deckgl.value == null) {
-    initDeckGl()
+    if (mapNode.value != null) {
+      initDeckGl()
+    }
   } else {
     updateDeckGl()
   }
@@ -200,11 +204,14 @@ function updateMap() {
 
 function initDeckGl() {
   try {
-    deckgl.value = new deckGl.DeckGL({
-      parent: mapNode.value!,
-      // This suppresses excess property errors. These are valid properties, but they do not exist
-      // in the typings.
-      ...{ mapboxApiAccessToken: TOKEN, mapStyle: mapStyle.value },
+    deckgl.value = new deck.DeckGL({
+      // The `...{}` spread operator suppresses TypeScript's excess property errors.
+      // These are valid properties, but they do not exist in the typings.
+      ...{
+        container: mapNode.value!,
+        mapboxApiAccessToken: TOKEN,
+        mapStyle: mapStyle.value,
+      },
       initialViewState: viewState.value,
       controller: controller.value,
     })
@@ -232,6 +239,7 @@ function resetDeckGl() {
 function resetMapElement() {
   const map = mapNode.value
   if (map == null) {
+    console.warn('Geo Map visualization is missing its map container.')
     return
   }
   while (map.lastChild != null) {
@@ -242,6 +250,7 @@ function resetMapElement() {
 function updateDeckGl() {
   const deckgl_ = deckgl.value
   if (deckgl_ == null) {
+    console.warn('Geo Map could not update its deck.gl instance.')
     return
   }
   // @ts-expect-error This property is protected.
@@ -254,18 +263,22 @@ function updateDeckGl() {
 
 function updateLayers() {
   if (deckgl.value == null) {
+    console.warn(
+      'Geo Map visualization could not update its layers ' +
+        'due to its deck.gl instance being missing.',
+    )
     return
   }
-  deckgl.value.setProps({
+  ;(deckgl.value as any).setProps({
     layers: [
-      new deckGl.ScatterplotLayer<LocationWithPosition>({
+      new deck.ScatterplotLayer<LocationWithPosition>({
         data: dataPoints.value,
         getFillColor: (d) => d.color!,
         getRadius: (d) => d.radius!,
         pickable: showingLabels.value,
       }),
     ],
-    getTooltip: ({ object }) =>
+    getTooltip: ({ object }: { object: { label: string } }) =>
       object && {
         html: `<div>${object.label}</div>`,
         style: {
@@ -395,16 +408,17 @@ function pushPoints(newPoints: Location[]) {
       <button class="image-button"><img :src="GeoMapDistanceIcon" /></button>
       <button class="image-button"><img :src="GeoMapPinIcon" /></button>
     </template>
-    <div ref="mapNode"></div>
+    <div ref="mapNode" class="map" @wheel.stop></div>
   </VisualizationContainer>
 </template>
 
 <style scoped>
-@import url('https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css');
-</style>
+@import url('https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css');
 
-<style>
-.mapboxgl-map {
-  border-radius: 14px;
+.map {
+  height: 100%;
+  overflow: hidden;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
 }
 </style>
