@@ -40,6 +40,13 @@ Not_Foo.from (_:Any) = Not_Foo.Value "ANY!!!"
 Foo.from (_:Quaffle) = Foo.Value "quaffle"
 Foo.from (_:Error) = Foo.Value "oops"
 
+type MultiNumber
+    Value v
+
+Integer.from (that:MultiNumber) = that.v * 19
+Number.from (that:MultiNumber) = that.v * 0.3
+Decimal.from (that:MultiNumber) = that.v * 0.7
+
 foreign js make_str x = """
    return "js string"
 
@@ -169,6 +176,32 @@ spec =
 
             fail = Panic.recover Type_Error <| check 0 "not a boolean"
             fail . should_fail_with Type_Error
+
+        Test.specify "Requesting Number & Integer & Decimal" <|
+            m = MultiNumber.Value 5
+
+            m.to Number . should_equal 1.5
+            m.to Integer . should_equal 95
+            m.to Decimal . should_equal 3.5
+
+            to_1 (v : Number & Integer & Decimal) = v
+            to_1 m . should_equal 1.5
+
+            to_2 (v : Integer & Decimal & Number) = v
+            to_2 m . should_equal 95
+
+            to_3 (v : Decimal & Number & Integer) = v
+            to_3 m . should_equal 3.5
+
+            to_4 (v : Integer & Number & Decimal) = v
+            to_4 m . should_equal 95
+
+            to_5 (v : Decimal & Integer & Number) = v
+            to_5 m . should_equal 3.5
+
+            to_6 (v : Number & Decimal & Integer) = v
+            to_6 m . should_equal 1.5
+
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
