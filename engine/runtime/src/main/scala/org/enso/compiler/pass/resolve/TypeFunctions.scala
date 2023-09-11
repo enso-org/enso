@@ -96,8 +96,7 @@ case object TypeFunctions extends IRPass {
     `type`.Set.Subsumption.name,
     `type`.Set.Equality.name,
     `type`.Set.Union.name,
-    `type`.Set.Intersection.name,
-    `type`.Set.Subtraction.name
+    `type`.Set.Intersection.name
   )
 
   /** Performs resolution of typing functions in an arbitrary expression.
@@ -197,8 +196,6 @@ case object TypeFunctions extends IRPass {
           `type`.Set.Equality(leftArg, rightArg, location)
         case `type`.Set.Intersection.name =>
           `type`.Set.Intersection(leftArg, rightArg, location)
-        case `type`.Set.Subtraction.name =>
-          `type`.Set.Subtraction(leftArg, rightArg, location)
       }
     } else {
       Error.InvalidIR(originalIR)

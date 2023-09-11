@@ -567,6 +567,8 @@
 - [Added `take` and `drop` to database tables.][7615]
 - [Added ability to specify expected value type in `Column.from_vector`,
   `Column.map` and `Column.zip`.][7637]
+- [Added `delete_rows` method to Database Table, changed the
+  `update_database_table` API into `update_rows`.][7709]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -804,6 +806,7 @@
 [7704]: https://github.com/enso-org/enso/pull/7704
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
+[7709]: https://github.com/enso-org/enso/pull/7709
 
 #### Enso Compiler
 
@@ -942,6 +945,8 @@
 - [Use `numpy` & co. from Enso!][7678]
 - [Changed layout of local libraries directory, making it easier to reference
   projects next to each other][7634]
+- [Support runtime checks of intersection types][7769]
+- [Merge `Small_Integer` and `Big_Integer` types][7636]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1079,6 +1084,8 @@
 [7613]: https://github.com/enso-org/enso/pull/7613
 [7678]: https://github.com/enso-org/enso/pull/7678
 [7634]: https://github.com/enso-org/enso/pull/7634
+[7769]: https://github.com/enso-org/enso/pull/7769
+[7636]: https://github.com/enso-org/enso/pull/7636
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

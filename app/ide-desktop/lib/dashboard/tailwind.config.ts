@@ -35,6 +35,7 @@ export const theme = {
             cloud: '#0666be',
             share: '#64b526',
             inversed: '#ffffff',
+            green: '#3e8b29',
             delete: 'rgba(243, 24, 10, 0.87)',
             v3: '#252423',
             youtube: '#c62421',

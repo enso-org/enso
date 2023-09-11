@@ -131,6 +131,7 @@ export default function Dashboard(props: DashboardProps) {
                                 type: assetEventModule.AssetEventType.openProject,
                                 id: savedProjectStartupInfo.project.projectId,
                                 shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
+                                runInBackground: false,
                             },
                         ])
                     } else {

@@ -225,6 +225,13 @@ spec =
             Integer.parse "-101021010" 2 . should_fail_with Number_Parse_Error
             Integer.parse "123" 128 . should_fail_with Number_Parse_Error
 
+        Test.specify "should be able to invoke methods on Integer via static method call" <|
+            Integer.+ 1 2 . should_equal 3
+            Integer.+ 1 2.5 . should_equal 3.5
+            Test.expect_panic_with (Integer.+ 1.5 1) Type_Error
+            Test.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
+            Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
+
     Test.group "Decimals" <|
 
         Test.specify "should exist and expose basic arithmetic operations" <|
@@ -296,6 +303,10 @@ spec =
 
             1/0 . is_infinite . should_be_true
             -1/0 . is_infinite . should_be_true
+
+            hundred_factorial%0 . should_fail_with Arithmetic_Error
+            hundred_factorial%hundred_factorial . should_equal 0
+            10%hundred_factorial . should_equal 10
 
         Test.specify "should support less than operator" <|
             (1 < 2).should_be_true

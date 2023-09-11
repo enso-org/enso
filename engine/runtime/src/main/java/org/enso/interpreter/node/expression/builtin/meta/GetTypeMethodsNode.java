@@ -27,10 +27,10 @@ public abstract class GetTypeMethodsNode extends Node {
   @Specialization
   @CompilerDirectives.TruffleBoundary
   EnsoObject allMethods(Type type) {
-    var methods = type.getDefinitionScope().getMethods().get(type);
+    var methods = type.getDefinitionScope().getMethodNamesForType(type);
     return methods == null
         ? ArrayLikeHelpers.empty()
-        : ArrayLikeHelpers.wrapStrings(methods.keySet().toArray(new String[0]));
+        : ArrayLikeHelpers.wrapStrings(methods.toArray(new String[0]));
   }
 
   @Fallback

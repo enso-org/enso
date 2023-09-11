@@ -10,6 +10,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -35,7 +36,7 @@ public class SignatureTest extends TestBase {
     final Source src = Source.newBuilder("enso", """
     neg : Xyz -> Abc
     neg a = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -53,7 +54,7 @@ public class SignatureTest extends TestBase {
     final URI uri = new URI("memory://neg.enso");
     final Source src = Source.newBuilder("enso", """
     neg (a : Xyz) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -74,7 +75,7 @@ public class SignatureTest extends TestBase {
 
     err msg = Error.throw msg
     neg (a : Integer) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -116,7 +117,7 @@ public class SignatureTest extends TestBase {
 
     simple v = Int.Simple v
     complex x y = Int.Complex (x+y)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -159,7 +160,7 @@ public class SignatureTest extends TestBase {
 
     make arr = build <|
       arr.at 0
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -209,7 +210,7 @@ public class SignatureTest extends TestBase {
     make arr = Lazy.Value <|
       Polyglot.invoke arr "add" [ arr.length ]
       arr.at 0
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -250,7 +251,7 @@ public class SignatureTest extends TestBase {
         Singleton
 
         twice self (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -276,7 +277,7 @@ public class SignatureTest extends TestBase {
     from Standard.Base import Integer
     type Neg
         twice (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -303,7 +304,7 @@ public class SignatureTest extends TestBase {
     call_twice x =
         twice (a : Integer) = a + a
         twice x
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -329,7 +330,7 @@ public class SignatureTest extends TestBase {
       Val (a : Xyz)
 
     neg = Neg.Val 10
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -349,7 +350,7 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some unwrap:a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -367,7 +368,7 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some (~unwrap : Integer)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -416,7 +417,7 @@ public class SignatureTest extends TestBase {
 
     # invokes V.mul with Integer parameter, not V!
     mix a:V b:Integer = a.mul b
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -444,7 +445,7 @@ public class SignatureTest extends TestBase {
         One (v:One)
         Either v:(Zero | One)
         Vec v:(Integer | Range | Vector (Integer | Range))
-    """, uri.getHost()).uri(uri).buildLiteral();
+    """,uri.getAuthority()).uri(uri).buildLiteral();
     return ctx.eval(src);
   }
 
@@ -513,7 +514,7 @@ public class SignatureTest extends TestBase {
     mix a =
       partial = V.Val 1 a
       create partial
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -547,7 +548,7 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix n = neg (fn 2 a=4 n)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -581,7 +582,7 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix a = neg (fn c=(2/0) b=(a/0))
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -600,6 +601,49 @@ public class SignatureTest extends TestBase {
       assertContains("c=suspended.mix<arg-c>", ex.getMessage());
       assertContains("[suspended:9:28-30]", ex.getMessage());
     }
+  }
+
+  @Test
+  public void andConversions() throws Exception {
+    final URI uri = new URI("memory://and_conv.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
+    type Plus
+        Impl value dict
+
+        + self (that:Plus) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.plus self.value that.value
+    type Mul
+        Impl value dict
+
+        * self (that:Mul) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.mul self.value that.value
+
+    compute (a : Plus & Mul) (b : Plus & Mul) =
+      add (x:Plus) (y:Plus) = x+y
+      p = add a b
+      m = a*b
+      add p m
+
+    type BooleanPlus
+        plus a:Boolean b:Boolean = a || b
+    Plus.from(that:Boolean) = Plus.Impl that BooleanPlus
+
+    type BooleanMul
+        mul a:Boolean b:Boolean = a && b
+    Mul.from(that:Boolean) = Mul.Impl that BooleanMul
+
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var compute = module.invokeMember("eval_expression", "compute");
+
+    assertTrue("true & true", compute.execute(true, true).asBoolean());
+    assertTrue("true & false", compute.execute(true, false).asBoolean());
+    assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
   private static void assertTypeError(String expArg, String expType, String realType, String msg) {

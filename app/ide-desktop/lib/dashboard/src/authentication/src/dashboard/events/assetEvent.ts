@@ -86,6 +86,7 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
     id: backendModule.ProjectId
     shouldAutomaticallySwitchPage: boolean
+    runInBackground: boolean
 }
 
 /** A signal to close the specified project. */

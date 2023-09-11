@@ -50,6 +50,7 @@ const edgePath = computed(() => {
 .edge {
   stroke: tan;
 }
+
 .edge:hover {
   stroke: red;
 }
