@@ -433,13 +433,16 @@ function goToLastPage() {
 @import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css');
 
 .TableVisualization {
+  position: relative;
   height: 100%;
 }
 
 .TableVisualization .ag-theme-alpine {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
-  display: inline;
+  display: inline-block;
+  height: calc(100% - 20px);
+  width: 100%;
 }
 
 .table-visualization-status-bar {
