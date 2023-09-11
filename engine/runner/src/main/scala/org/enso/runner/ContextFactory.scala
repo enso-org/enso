@@ -1,12 +1,14 @@
 package org.enso.runner
 
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.logger.Converter
+import org.enso.logger.JulHandler
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
+import org.slf4j.event.Level
 
 import java.io.{File, InputStream, OutputStream}
 
@@ -36,7 +38,7 @@ class ContextFactory {
     in: InputStream,
     out: OutputStream,
     repl: Repl,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
     strictErrors: Boolean                  = false,
@@ -49,6 +51,7 @@ class ContextFactory {
     executionEnvironment.foreach { name =>
       options.put("enso.ExecutionEnvironment", name)
     }
+    val logLevelName = Converter.toJavaLevel(logLevel).getName
     val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
@@ -83,11 +86,9 @@ class ContextFactory {
       }
       .option(
         RuntimeOptions.LOG_LEVEL,
-        JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+        logLevelName
       )
-      .logHandler(
-        JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
-      )
+      .logHandler(JulHandler.get())
     val graalpy = new File(
       new File(
         new File(new File(new File(projectRoot), "polyglot"), "python"),

@@ -37,7 +37,6 @@ use enso_parser::prelude::*;
 // =============
 
 fn main() {
-    init_global();
     let args = std::env::args().skip(1);
     let mut parser = enso_parser::Parser::new();
     if args.is_empty() {

@@ -6,7 +6,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
-import Standard.Test.Shared.Round_Spec
 
 from Standard.Table import Value_Type
 from Standard.Table.Data.Type.Value_Type import Bits
@@ -16,6 +15,8 @@ from Standard.Database.Errors import all
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
+
+import enso_dev.Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 

@@ -5,6 +5,7 @@ import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Forbidden_Operation
+import project.Errors.Common.Type_Error
 import project.Function.Function
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -93,7 +94,9 @@ no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
    Converts a primitive stack trace element into the regular one.
 wrap_primitive_stack_trace_element el =
     loc = if Polyglot.has_source_location el then Source_Location.Value (Polyglot.get_source_location el) else Nothing
-    name = Polyglot.get_executable_name el
+    name = Panic.catch Type_Error (Polyglot.get_executable_name el) _->
+        # Workaround for a bug where some stack frames' root nodes do not have a name.
+        "<unknown node>"
     Stack_Trace_Element.Value name loc
 
 ## PRIVATE

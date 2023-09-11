@@ -56,14 +56,14 @@ print_report spec config builder =
                 Test_Result.Success -> Nothing
                 Test_Result.Failure msg details ->
                     escaped_message = escape_xml msg . replace '\n' '&#10;'
-                    builder.append ('\n            <error message="' + escaped_message + '">\n')
+                    builder.append ('\n            <failure message="' + escaped_message + '">\n')
                     if details.is_nothing.not then
                         ## We duplicate the message, because sometimes the
                            attribute is skipped if the node has any content.
                         builder.append (escape_xml msg)
                         builder.append '\n'
                         builder.append (escape_xml details)
-                    builder.append '</error>\n'
+                    builder.append '</failure>\n'
                 Test_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'

@@ -202,6 +202,18 @@ type Multiple_Target_Rows_Matched_For_Update
     to_display_text self =
         "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."
 
+type Null_Values_In_Key_Columns
+    ## PRIVATE
+       Indicates that the source table contained NULL values in key columns.
+       Rows containing NULL values as part of their key will not be correctly
+       correlated with target rows due to how NULL equality works in SQL.
+    Error (example_row : Vector Any)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The update operation encountered input rows that contained NULL values in key columns (for example, the row " + self.example_row.to_display_text + "). The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
+
 type Unsupported_Database_Encoding
     ## PRIVATE
        A warning indicating that the encoding inferred to be used by the

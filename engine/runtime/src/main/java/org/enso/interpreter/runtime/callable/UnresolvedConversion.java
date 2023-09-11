@@ -3,7 +3,8 @@ package org.enso.interpreter.runtime.callable;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -44,13 +45,12 @@ public final class UnresolvedConversion implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {
-    Type current = from;
-    while (current != null) {
-      Function candidate = scope.lookupConversionDefinition(current, into);
-      if (candidate != null) {
-        return candidate;
-      } else {
-        current = current.getSupertype();
+    if (from != null) {
+      for (var current : from.allTypes(ctx)) {
+        Function candidate = scope.lookupConversionDefinition(current, into);
+        if (candidate != null) {
+          return candidate;
+        }
       }
     }
     return scope.lookupConversionDefinition(ctx.getBuiltins().any(), into);

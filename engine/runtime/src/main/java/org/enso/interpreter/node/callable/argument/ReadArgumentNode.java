@@ -3,10 +3,8 @@ package org.enso.interpreter.node.callable.argument;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import java.util.List;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
 
 /**
  * Reads and evaluates the expression provided as a function argument. It handles the case where
@@ -19,30 +17,23 @@ public final class ReadArgumentNode extends ExpressionNode {
   @Child ReadArgumentCheckNode checkType;
   private final CountingConditionProfile defaultingProfile = CountingConditionProfile.create();
 
-  private ReadArgumentNode(
-      String name, int position, ExpressionNode defaultValue, Type[] expectedTypes) {
+  private ReadArgumentNode(int position, ExpressionNode defaultValue, ReadArgumentCheckNode check) {
     this.index = position;
     this.defaultValue = defaultValue;
-    var argName = name != null ? name : "Argument #" + (index + 1);
-    this.checkType = ReadArgumentCheckNode.build(argName, expectedTypes);
+    this.checkType = check;
   }
 
   /**
    * Creates an instance of this node.
    *
-   * @param name argument name
    * @param position the argument's position at the definition site
    * @param defaultValue the default value provided for that argument
-   * @param expectedTypes {@code null} or expected types to check input for
+   * @param check {@code null} or node to check type of input
    * @return a node representing the argument at position {@code idx}
    */
   public static ReadArgumentNode build(
-      String name, int position, ExpressionNode defaultValue, List<Type> expectedTypes) {
-    var arr =
-        expectedTypes == null || expectedTypes.isEmpty()
-            ? null
-            : expectedTypes.toArray(Type[]::new);
-    return new ReadArgumentNode(name, position, defaultValue, arr);
+      int position, ExpressionNode defaultValue, ReadArgumentCheckNode check) {
+    return new ReadArgumentNode(position, defaultValue, check);
   }
 
   ReadArgumentNode plainRead() {
@@ -78,7 +69,7 @@ public final class ReadArgumentNode extends ExpressionNode {
       }
     }
     if (checkType != null) {
-      v = checkType.executeCheckOrConversion(frame, v);
+      v = checkType.handleCheckOrConversion(frame, v);
     }
     return v;
   }
