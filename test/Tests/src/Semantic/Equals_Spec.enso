@@ -3,8 +3,10 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.math.BigInteger as JavaBig
 polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base_test_helpers.IntHolder
 
 type CustomEqType
     C1 f1
@@ -203,5 +205,15 @@ spec =
                 dupl_tree = tree.deep_copy
                 Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
+    Test.group "Polyglot Operator ==" <|
+        Test.specify "should not try to compare members" <|
+            x = IntHolder.new 5
+            y = IntHolder.new 5
+            x==y . should_be_false
+
+        Test.specify "should compare big integer" <|
+            x = JavaBig.new "54024430107564432"
+            y = JavaBig.new "54024430107564432"
+            x==y . should_be_true
 
 main = Test_Suite.run_main spec
