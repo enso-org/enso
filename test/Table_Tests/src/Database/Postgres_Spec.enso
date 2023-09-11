@@ -305,7 +305,7 @@ postgres_specific_spec connection db_name setup =
             t2.at "X" . to_vector . should_equal [10, x]
             t2.at "Y" . to_vector . should_equal [20, x+10]
 
-            m2 = t2.read
+            m2 = t2.remove_warnings.read
             m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
             # As noted above - once operations are performed, the scale=0 may be lost and the column will be approximated as a float.
             m2.at "Y" . value_type . should_equal Value_Type.Float
