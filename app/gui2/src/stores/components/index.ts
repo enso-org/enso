@@ -27,17 +27,16 @@ export const useComponentsStore = defineStore('components', () => {
   const suggestionDb = useSuggestionDbStore()
   const components: ComputedRef<Component[]> = computed(() => {
     const currentFiltering = filtering.value
-    console.log(currentFiltering)
     const components2: Component[] = Array.from(suggestionDb.entries.entries(), ([id, entry]) => {
       const match = currentFiltering.filter(entry)
       return {
-        suggestion_id: id,
-        icon: entry.icon_name ?? 'marketplace',
+        suggestionId: id,
+        icon: entry.iconName ?? 'marketplace',
         label: `${labelOfEntry(entry, currentFiltering)} (${match?.score})`,
         match,
-        group: entry.group_index,
+        group: entry.groupIndex,
       }
-    })
+    }) //.filter((comp) => comp.match)
     components2.sort((a, b) => compareMatches(a.match, b.match))
     return components2
   })

@@ -17,13 +17,13 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
       memberOf: entry.type ?? entry.module,
       selfType: entry.methodType == 'method' ? entry.type : undefined,
       isPrivate: entry.accessor === 'PUBLIC',
-      isUnstable: true,
+      isUnstable: false,
       name: entry.name,
       aliases: entry.aliases,
       arguments: [],
       returnType: entry.returnType,
       documentation: '',
-      icon_name: entry.icon,
+      iconName: entry.icon,
     })
   }
   const groups = ref<Array<Group>>([

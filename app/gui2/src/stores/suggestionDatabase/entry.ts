@@ -81,9 +81,9 @@ export interface SuggestionEntry {
   /// A scope where this suggestion is visible.
   scope?: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.
-  icon_name?: string
+  iconName?: string
   /// A name of a group this entry belongs to.
-  group_index?: number
+  groupIndex?: number
 }
 
 export function makeSimpleEntry(

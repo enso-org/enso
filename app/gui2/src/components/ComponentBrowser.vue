@@ -123,6 +123,30 @@ function navigateDown() {
   scrollToSelected()
 }
 
+function selectLastAfterRefresh() {
+  selected.value = 0
+  nextTick(() => {
+    scrollToSelected()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+    // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
+    // the template. We need to manually assign it.
+    if (scroller.value) {
+      scroller.value.scrollTop = animatedScrollPosition.value
+    }
+  })
+}
+
+const components: ComputedRef<Component[]> = componentStore.components
+watch(
+  components,
+  (_newComponents) => {
+    console.log(_newComponents)
+    selectLastAfterRefresh()
+  },
+  { deep: false },
+)
+
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
@@ -156,17 +180,7 @@ useWindowEvent('keydown', (e) => {
     case 'Enter':
       if (!shown.value && positionAtMouse()) {
         shown.value = true
-        selected.value = 0
-        nextTick(() => {
-          scrollToSelected()
-          animatedScrollPosition.skip()
-          animatedHighlightPosition.skip()
-          // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
-          // the template. We need to manually assign it.
-          if (scroller.value) {
-            scroller.value.scrollTop = animatedScrollPosition.value
-          }
-        })
+        selectLastAfterRefresh()
       } else {
         shown.value = false
       }
@@ -202,7 +216,7 @@ useWindowEvent('keydown', (e) => {
             <ToggleIcon icon="command_key3" />
             <ToggleIcon icon="unstable2" />
             <ToggleIcon icon="marketplace" />
-            <ToggleIcon icon="right_side_panel" v-model="docsVisible" class="first-on-right" />
+            <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
         <div class="components-content">
@@ -216,13 +230,13 @@ useWindowEvent('keydown', (e) => {
             <div class="list-variant" style="">
               <div
                 v-for="item in visibleComponents"
-                class="component"
-                @mousemove="selected = item.index"
                 :key="item.component.suggestion_id"
+                class="component"
                 :style="componentStyle(item.index)"
+                @mousemove="selected = item.index"
               >
                 <SvgIcon
-                  :variant="item.component.icon"
+                  :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
                 {{ item.component.label }}
@@ -231,14 +245,14 @@ useWindowEvent('keydown', (e) => {
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
               <div
                 v-for="item in visibleComponents"
-                class="component"
                 :key="item.component.suggestion_id"
+                class="component"
                 :style="{
                   backgroundColor: componentColor(item.component),
                   ...componentStyle(item.index),
                 }"
               >
-                <SvgIcon :variant="item.component.icon" />
+                <SvgIcon :name="item.component.icon" />
                 {{ item.component.label }}
               </div>
             </div>
@@ -321,6 +335,7 @@ useWindowEvent('keydown', (e) => {
   padding: 9px;
   display: flex;
   position: absolute;
+  line-height: 1;
 }
 .selected {
   color: white;

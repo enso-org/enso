@@ -1,8 +1,5 @@
-import {
-  SuggestionKind,
-  type QualifiedName,
-  type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { QualifiedName } from '@/util/qualifiedName'
 
 export interface Filter {
   pattern?: string
@@ -48,6 +45,7 @@ export class FilteringWithPattern {
     // Document somewhere this regexp.
     this.wordMatchRegex = new RegExp(
       '(?:^|_)(' + pattern.replaceAll('_', '[^_]*).*?_(') + '[^_]*).*',
+      'i',
     )
     if (pattern.length > 1) {
       this.initialsMatchRegex = new RegExp('(^|_)' + pattern.split('').join('.*_'), 'i')
@@ -63,13 +61,13 @@ export class FilteringWithPattern {
     const matchedWords = words.join('_')
     const nonexactMatchPenalty = this.pattern === matchedString ? 0 : 50
     const nonexactWordMatchPenalty = Math.floor(
-      ((matchedString.length - matchedWords.length) * 50) / matchedWords.length,
+      ((matchedWords.length - this.pattern.length) * 50) / matchedWords.length,
     )
     return matchType + nonexactMatchPenalty + nonexactWordMatchPenalty
   }
 
   private firstMatchingAlias(entry: SuggestionEntry) {
-    for (const alias in entry.aliases) {
+    for (const alias of entry.aliases) {
       const match = this.wordMatchRegex.exec(alias)
       if (match != null) return { alias, match }
     }
@@ -144,7 +142,7 @@ export class Filtering {
     this.selfType = selfType
     if (qualifiedNamePattern != null) {
       this.qualifiedNameRegex = new RegExp(
-        '(^|\\.)' + qualifiedNamePattern.replaceAll('.', '.*\\.'),
+        '(^|\\.)' + qualifiedNamePattern.replaceAll('.', '[^\\.]*\\.'),
         'i',
       )
     }
@@ -163,7 +161,24 @@ export class Filtering {
   private qualifiedNameMatches(entry: SuggestionEntry): boolean {
     if (this.qualifiedNameRegex == null) return true
     const entryQn = entry.memberOf ?? entry.definedIn
-    return this.qualifiedNameRegex.test(entryQn)
+    if (this.pattern != null) {
+      return this.qualifiedNameRegex.test(entryQn)
+    } else {
+      // TODO[ao] add explanation here
+      const match = this.qualifiedNameRegex.exec(entryQn)
+      if (match == null) return false
+      const remaining = entryQn.substring(match.index + match[0].length)
+      const remainingSegments = remaining.split('.')
+      switch (entry.kind) {
+        case SuggestionKind.Constructor:
+        case SuggestionKind.Method:
+          return remainingSegments.length <= 2
+        case SuggestionKind.Module:
+          return remainingSegments.length == 2
+        default:
+          return remainingSegments.length <= 1
+      }
+    }
   }
 
   isMainView() {
@@ -171,7 +186,7 @@ export class Filtering {
   }
 
   private mainViewFilter(entry: SuggestionEntry) {
-    const hasGroup = entry.group_index != null
+    const hasGroup = entry.groupIndex != null
     const isModule = entry.kind === SuggestionKind.Module
     const isTopElement = (entry.definedIn.match(/\./g)?.length ?? 0) <= 2
     if (hasGroup || (isModule && isTopElement)) {
@@ -184,7 +199,7 @@ export class Filtering {
   filter(entry: SuggestionEntry): MatchResult {
     if (!this.selfTypeMatches(entry)) return null
     else if (!this.qualifiedNameMatches(entry)) return null
-    else if (!this.showUnstable && !entry.isStable) return null
+    else if (!this.showUnstable && entry.isUnstable) return null
     else if (this.pattern) return this.pattern.tryMatch(entry)
     else if (this.isMainView()) return this.mainViewFilter(entry)
     else return { score: 0 }
