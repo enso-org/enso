@@ -16,6 +16,7 @@ import org.enso.interpreter.instrument.execution.{
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
@@ -34,7 +35,9 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
+import scala.util.Try
 
 /** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
@@ -488,7 +491,8 @@ object ProgramExecutionSupport {
             Array[Object](
               visualization.config,
               expressionId,
-              expressionValue.getClass
+              Try(TypeOfNode.getUncached.execute(expressionValue))
+                .getOrElse(expressionValue.getClass)
             )
           )
           ctx.executionService.callFunctionWithInstrument(
@@ -512,7 +516,8 @@ object ProgramExecutionSupport {
           Array[Object](
             visualization.config,
             expressionId,
-            expressionValue.getClass,
+            Try(TypeOfNode.getUncached.execute(expressionValue))
+              .getOrElse(expressionValue.getClass),
             error
           )
         )
