@@ -60,6 +60,7 @@ import org.enso.compiler.pass.resolve.{
 }
 import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
+import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
   CreateFunctionNode
@@ -271,8 +272,8 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
-            val arg            = argFactory.run(unprocessedArg, idx, runtimeTypes)
+            val checkNode      = checkRuntimeTypes(unprocessedArg)
+            val arg            = argFactory.run(unprocessedArg, idx, checkNode)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -283,10 +284,9 @@ class IrToTruffle(
             argDefs(idx) = arg
             val readArg =
               ReadArgumentNode.build(
-                arg.getName(),
                 idx,
                 arg.getDefaultValue.orElse(null),
-                runtimeTypes.asJava
+                checkNode
               )
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
             val argRead =
@@ -680,25 +680,43 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def checkRuntimeTypes(arg: DefinitionArgument): List[Type] = {
-    def extractAscribedType(t: Expression): List[Type] = t match {
-      case u: `type`.Set.Union   => u.operands.flatMap(extractAscribedType)
+  private def checkRuntimeTypes(
+    arg: DefinitionArgument
+  ): ReadArgumentCheckNode = {
+    def extractAscribedType(t: Expression): ReadArgumentCheckNode = t match {
+      case u: `type`.Set.Union =>
+        ReadArgumentCheckNode.oneOf(
+          arg.name,
+          u.operands.map(extractAscribedType).asJava
+        )
+      case i: `type`.Set.Intersection =>
+        ReadArgumentCheckNode.allOf(
+          arg.name,
+          extractAscribedType(i.left),
+          extractAscribedType(i.right)
+        )
       case p: Application.Prefix => extractAscribedType(p.function)
       case _: Tpe.Function =>
-        List(context.getTopScope().getBuiltins().function())
+        ReadArgumentCheckNode.build(
+          arg.name,
+          context.getTopScope().getBuiltins().function()
+        )
       case t => {
         t.getMetadata(TypeNames) match {
           case Some(
                 BindingsMap
                   .Resolution(BindingsMap.ResolvedType(mod, tpe))
               ) =>
-            List(mod.unsafeAsModule().getScope.getTypes.get(tpe.name))
-          case _ => List()
+            ReadArgumentCheckNode.build(
+              arg.name,
+              mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+            )
+          case _ => null
         }
       }
     }
 
-    arg.ascribedType.map(extractAscribedType).getOrElse(List())
+    arg.ascribedType.map(extractAscribedType).getOrElse(null)
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -1789,8 +1807,8 @@ class IrToTruffle(
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
-            val runtimeTypes = checkRuntimeTypes(unprocessedArg)
-            val arg          = argFactory.run(unprocessedArg, idx, runtimeTypes)
+            val checkNode = checkRuntimeTypes(unprocessedArg)
+            val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
@@ -1802,10 +1820,9 @@ class IrToTruffle(
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
               ReadArgumentNode.build(
-                arg.getName(),
                 idx,
                 arg.getDefaultValue.orElse(null),
-                runtimeTypes.asJava
+                checkNode
               )
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
@@ -2123,14 +2140,14 @@ class IrToTruffle(
       *
       * @param inputArg the argument to generate code for
       * @param position the position of `arg` at the function definition site
-      * @param types null or types to check the argument for
+      * @param checkNode null or node to check the argument type for
       * @return a truffle entity corresponding to the definition of `arg` for a
       *         given function
       */
     def run(
       inputArg: DefinitionArgument,
       position: Int,
-      types: List[Type]
+      types: ReadArgumentCheckNode
     ): ArgumentDefinition =
       inputArg match {
         case arg: DefinitionArgument.Specified =>
@@ -2167,7 +2184,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             position,
             arg.name.name,
-            if (types == null || types.length == 0) null else types.toArray,
+            types,
             defaultedValue,
             executionMode
           )
