@@ -112,6 +112,18 @@ foreign js js_true = """
 foreign js js_text_foo = """
     return 'foo'
 
+foreign js js_json a b = """
+    return JSON.parse(`
+    {
+        "a" : ${a},
+        "b" : ${b}
+    }`);
+
+foreign js js_map a b = """
+    var m = new Map()
+    m.set("a", a)
+    m.set("b", b);
+    return m
 
 spec =
     Test.group "Operator ==" <|
@@ -214,6 +226,20 @@ spec =
         Test.specify "should compare big integer" <|
             x = JavaBig.new "54024430107564432"
             y = JavaBig.new "54024430107564432"
+            x==y . should_be_true
+
+        Test.specify "JSON is found different" <|
+            x = js_json 10 5
+            y = js_json 10 5
+            x==y . should_be_false
+
+        Test.specify "Identical JSON is found equal" <|
+            x = js_json 10 5
+            x==x . should_be_true
+
+        Test.specify "JavaScript Map is found same" <|
+            x = js_map 10 5
+            y = js_map 10 5
             x==y . should_be_true
 
 main = Test_Suite.run_main spec
