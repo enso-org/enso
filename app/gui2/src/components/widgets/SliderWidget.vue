@@ -7,18 +7,12 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
 
 const sliderNode = ref<HTMLElement>()
 
-/** The flag in `event.buttons` representing the left mouse button. */
-const BUTTON_LEFT_FLAG = 1
-
-const dragPointer = usePointer((pos, _, eventType) => {
+const dragPointer = usePointer((position) => {
   if (sliderNode.value == null) {
     return
   }
-  if (eventType !== 'move') {
-    return
-  }
   const rect = sliderNode.value.getBoundingClientRect()
-  const fractionRaw = (pos.absolute.x - rect.left) / (rect.right - rect.left)
+  const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
   const fraction = Math.max(0, Math.min(1, fractionRaw))
   const newValue = props.min + Math.round(fraction * (props.max - props.min))
   emit('update:modelValue', newValue)
@@ -39,9 +33,9 @@ const inputValue = computed({
 </script>
 
 <template>
-  <div ref="sliderNode" class="Slider" @="dragPointer.events">
+  <div ref="sliderNode" class="Slider" v-on="dragPointer.events">
     <div class="fraction" :style="{ width: sliderWidth }"></div>
-    <input type="number" :size="1" class="value" v-model.number="inputValue" />
+    <input v-model.number="inputValue" type="number" :size="1" class="value" />
   </div>
 </template>
 
@@ -57,14 +51,14 @@ const inputValue = computed({
   width: 56px;
 }
 
-.Slider > .fraction {
+.fraction {
   position: absolute;
   height: 100%;
   left: 0;
   background: var(--color-widget);
 }
 
-.Slider > .value {
+.value {
   position: relative;
   display: inline-block;
   background: none;

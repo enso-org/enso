@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import SortAscendingIcon from '@/assets/icons/sort_ascending.svg'
-import SortDescendingIcon from '@/assets/icons/sort_descending.svg'
-import SortIcon from '@/assets/icons/sort.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
+
 import { computed, ref } from 'vue'
 
 enum SortDirection {
@@ -21,22 +20,23 @@ const sortedValuesAndIndices = computed(() => {
     index,
   ])
   switch (sortDirection.value) {
-    case SortDirection.none: {
-      return valuesAndIndices
-    }
     case SortDirection.ascending: {
       return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0))
     }
     case SortDirection.descending: {
       return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? -1 : a[0] < b[0] ? 1 : 0))
     }
+    case SortDirection.none:
+    default: {
+      return valuesAndIndices
+    }
   }
 })
 
 const ICON_LOOKUP: Record<SortDirection, string> = {
-  [SortDirection.none]: SortIcon,
-  [SortDirection.ascending]: SortAscendingIcon,
-  [SortDirection.descending]: SortDescendingIcon,
+  [SortDirection.none]: 'sort',
+  [SortDirection.ascending]: 'sort_ascending',
+  [SortDirection.descending]: 'sort_descending',
 }
 
 const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
@@ -60,8 +60,8 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
     </ul>
     <div class="sort button">
       <div class="sort-background" :style="{ background: color }"></div>
-      <img
-        :src="ICON_LOOKUP[sortDirection]"
+      <SvgIcon
+        :name="ICON_LOOKUP[sortDirection]"
         @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
       />
     </div>
