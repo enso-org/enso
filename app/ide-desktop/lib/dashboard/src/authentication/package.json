@@ -5,7 +5,8 @@
   "main": "./src/index.tsx",
   "exports": {
     ".": "./src/index.tsx",
-    "./src/platform": "./src/platform.ts"
+    "./src/platform": "./src/platform.ts",
+    "./tailwind.css": "./tailwind.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

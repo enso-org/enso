@@ -150,9 +150,7 @@ interface AuthenticationConfig {
     projectManagerUrl: string | null
     isInAuthenticationFlow: boolean
     shouldUseAuthentication: boolean
-    shouldUseNewDashboard: boolean
     initialProjectName: string | null
-    inputConfig: StringConfig | null
 }
 
 /** Contains the entrypoint into the IDE. */
@@ -275,14 +273,12 @@ class Main implements AppRunner {
                 url.searchParams.delete('startup.project')
                 history.replaceState(null, '', url.toString())
             }
-            if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
+            if (shouldUseAuthentication && isOpeningMainEntryPoint) {
                 this.runAuthentication({
                     isInAuthenticationFlow,
                     projectManagerUrl,
                     shouldUseAuthentication,
-                    shouldUseNewDashboard,
                     initialProjectName,
-                    inputConfig: inputConfig ?? null,
                 })
             } else {
                 void this.runApp(inputConfig ?? null, null)
@@ -292,6 +288,12 @@ class Main implements AppRunner {
 
     /** Begins the authentication UI flow. */
     runAuthentication(config: AuthenticationConfig) {
+        const ideElement = document.getElementById('root')
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -308,7 +310,7 @@ class Main implements AppRunner {
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             projectManagerUrl: config.projectManagerUrl,
             isAuthenticationDisabled: !config.shouldUseAuthentication,
-            shouldShowDashboard: config.shouldUseNewDashboard,
+            shouldShowDashboard: true,
             initialProjectName: config.initialProjectName,
             onAuthenticated: (accessToken: string | null) => {
                 if (config.isInAuthenticationFlow) {
@@ -317,17 +319,6 @@ class Main implements AppRunner {
                         // This is not used past this point, however it is set to the initial URL
                         // to make refreshing work as expected.
                         history.replaceState(null, '', initialUrl)
-                    }
-                }
-                if (!config.shouldUseNewDashboard) {
-                    document.getElementById('enso-dashboard')?.remove()
-                    const ideElement = document.getElementById('root')
-                    if (ideElement) {
-                        ideElement.style.top = ''
-                        ideElement.style.display = ''
-                    }
-                    if (this.app == null) {
-                        void this.runApp(config.inputConfig, accessToken)
                     }
                 }
             },

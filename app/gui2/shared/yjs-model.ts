@@ -1,6 +1,6 @@
-import * as y from 'yjs'
+import * as Y from 'yjs'
 import { setIfUndefined } from 'lib0/map'
-import { isSome, type Opt } from '@/util/opt'
+import { isSome } from '@/util/opt'
 
 export type Uuid = ReturnType<typeof crypto.randomUUID>
 declare const brandExprId: unique symbol
@@ -13,169 +13,91 @@ export interface NodeMetadata {
   vis?: string
 }
 
-const enum NamedDocKey {
+const enum ModKeys {
   NAME = 'name',
   DOC = 'doc',
 }
 
-interface NamedDoc {
-  name: y.Text
-  doc: y.Doc
-}
+type NamedDocMap = Y.Map<Y.Text | Y.Doc>
 
-type NamedDocMap = y.Map<y.Text | y.Doc>
-
-export class NamedDocArray {
-  array: y.Array<NamedDocMap>
-  nameToIndex: Map<string, y.RelativePosition[]>
-
-  constructor(doc: y.Doc, name: string) {
-    this.array = doc.getArray(name)
-    this.nameToIndex = new Map()
-    this.array.forEach(this.integrateAddedItem.bind(this))
-  }
-
-  private integrateAddedItem(item: NamedDocMap, index: number): void {
-    const name = item.get(NamedDocKey.NAME)?.toString()
-    if (name == null) return
-    const indices = setIfUndefined(this.nameToIndex, name, () => [] as y.RelativePosition[])
-    indices.push(y.createRelativePositionFromTypeIndex(this.array, index))
-  }
-
-  names(): string[] {
-    return this.array.map((item) => item.get(NamedDocKey.NAME)?.toString()).filter(isSome)
-  }
-
-  createNew(name: string): NamedDoc {
-    const map = new y.Map<y.Text | y.Doc>()
-    const yName = map.set(NamedDocKey.NAME, new y.Text(name))
-    const doc = map.set(NamedDocKey.DOC, new y.Doc())
-    this.array.push([map])
-    this.integrateAddedItem(map, this.array.length - 1)
-    return { name: yName, doc }
-  }
-
-  open(name: string): NamedDoc | undefined {
-    const index = this.names().indexOf(name)
-    if (index < 0) return
-    const item = this.array.get(index)
-    if (item == null) return
-    const yName = item.get(NamedDocKey.NAME)
-    const doc = item.get(NamedDocKey.DOC)
-    if (!(yName instanceof y.Text && doc instanceof y.Doc)) return
-    return { name: yName, doc }
-  }
-
-  delete(name: string): void {
-    const relPos = this.nameToIndex.get(name)
-    if (relPos == null) return
-    const pos = y.createAbsolutePositionFromRelativePosition(relPos[0], this.array.doc!)
-    if (pos == null) return
-    this.array.delete(pos.index, 1)
-    this.nameToIndex.delete(name)
-  }
-
-  dispose(): void {}
-}
-
-export class DistributedModel {
-  doc: y.Doc
-  projects: NamedDocArray
-
-  constructor(doc: y.Doc) {
-    this.doc = doc
-    this.projects = new NamedDocArray(this.doc, 'projects')
-  }
-
-  projectNames(): string[] {
-    return this.projects.names()
-  }
-
-  async openProject(name: string): Promise<Opt<DistributedProject>> {
-    await this.doc.whenLoaded
-    const pair = this.projects.open(name)
-    if (pair == null) return null
-    return await DistributedProject.load(pair)
-  }
-
-  async createNewProject(name: string): Promise<DistributedProject> {
-    await this.doc.whenLoaded
-    const pair = this.projects.createNew(name)
-    return await DistributedProject.load(pair)
-  }
-
-  async openOrCreateProject(name: string): Promise<DistributedProject> {
-    return (await this.openProject(name)) ?? (await this.createNewProject(name))
-  }
-
-  deleteProject(name: string): void {
-    this.projects.delete(name)
-  }
-
-  dispose(): void {
-    this.projects.dispose()
-  }
-}
+interface ProjectUpdate {}
 
 export class DistributedProject {
-  doc: y.Doc
-  name: y.Text
-  modules: NamedDocArray
+  doc: Y.Doc
+  name: Y.Text
+  modules: Y.Array<NamedDocMap>
 
-  static async load(pair: NamedDoc) {
-    const project = new DistributedProject(pair)
-    project.doc.load()
-    await project.doc.whenLoaded
-    return project
-  }
-
-  private constructor(pair: NamedDoc) {
-    this.doc = pair.doc
-    this.name = pair.name
-    this.modules = new NamedDocArray(this.doc, 'modules')
+  constructor(doc: Y.Doc) {
+    this.doc = doc
+    this.name = this.doc.getText('name')
+    this.modules = this.doc.getArray('modules')
   }
 
   moduleNames(): string[] {
-    return this.modules.names()
+    return this.modules.map((map) => map.get(ModKeys.NAME)?.toString() ?? '')
   }
 
-  async openModule(name: string): Promise<DistributedModule | null> {
-    const pair = this.modules.open(name)
-    if (pair == null) return null
-    return await DistributedModule.load(pair)
+  observe(callback: (update: ProjectUpdate) => void) {
+    return this.doc.on('update', callback)
+  }
+
+  async findModuleByName(name: string): Promise<number | null> {
+    await this.doc.whenLoaded
+    const index = this.moduleNames().indexOf(name)
+    return index < 0 ? null : index
+  }
+
+  async openModule(index: number): Promise<DistributedModule | null> {
+    const map = this.modules.get(index)
+    const name = map.get(ModKeys.NAME)
+    const doc = map.get(ModKeys.DOC)
+    if (name instanceof Y.Text && doc instanceof Y.Doc) {
+      return await DistributedModule.load(doc, name)
+    }
+    return null
   }
 
   async createNewModule(name: string): Promise<DistributedModule> {
-    const pair = this.modules.createNew(name)
-    return await DistributedModule.load(pair)
+    const map = new Y.Map<Y.Text | Y.Doc>()
+    const doc = map.set(ModKeys.DOC, new Y.Doc())
+    const text = map.set(ModKeys.NAME, new Y.Text(name))
+    this.modules.push([map])
+    return await DistributedModule.load(doc, text)
   }
 
   async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
+    const index = await this.findModuleByName(name)
+    if (index != null) {
+      return (await this.openModule(index)) ?? (await this.createNewModule(name))
+    } else {
+      return await this.createNewModule(name)
+    }
   }
 
-  deleteModule(name: string): void {
-    this.modules.delete(name)
+  deleteModule(index: number): void {
+    this.modules.delete(index)
   }
 }
 
 class DistributedModule {
-  name: y.Text
-  doc: y.Doc
-  contents: y.Text
-  idMap: y.Map<[any, any]>
-  metadata: y.Map<NodeMetadata>
+  doc: Y.Doc
+  name: Y.Text
+  contents: Y.Text
+  idMap: Y.Map<[any, any]>
+  metadata: Y.Map<NodeMetadata>
 
-  static async load(pair: NamedDoc) {
-    const module = new DistributedModule(pair)
+  static async load(doc: Y.Doc, name: Y.Text) {
+    const module = new DistributedModule(doc, name)
     module.doc.load()
+    console.log('Waiting for module to load')
     await module.doc.whenLoaded
+    console.log('Module loaded')
     return module
   }
 
-  private constructor(pair: NamedDoc) {
-    this.name = pair.name
-    this.doc = pair.doc
+  private constructor(doc: Y.Doc, name: Y.Text) {
+    this.doc = doc
+    this.name = name
     this.contents = this.doc.getText('contents')
     this.idMap = this.doc.getMap('idMap')
     this.metadata = this.doc.getMap('metadata')
@@ -186,10 +108,10 @@ class DistributedModule {
     const newId = crypto.randomUUID() as ExprId
     this.doc.transact(() => {
       this.contents.insert(offset, content + '\n')
-      const start = y.createRelativePositionFromTypeIndex(this.contents, range[0])
-      const end = y.createRelativePositionFromTypeIndex(this.contents, range[1])
-      const startJson = y.relativePositionToJSON(start)
-      const endJson = y.relativePositionToJSON(end)
+      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
+      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
+      const startJson = Y.relativePositionToJSON(start)
+      const endJson = Y.relativePositionToJSON(end)
       this.idMap.set(newId, [startJson, endJson])
       this.metadata.set(newId, meta)
     })
@@ -200,11 +122,11 @@ class DistributedModule {
     const exprRangeJson = this.idMap.get(id)
     if (exprRangeJson == null) return
     const exprRange = [
-      y.createRelativePositionFromJSON(exprRangeJson[0]),
-      y.createRelativePositionFromJSON(exprRangeJson[1]),
+      Y.createRelativePositionFromJSON(exprRangeJson[0]),
+      Y.createRelativePositionFromJSON(exprRangeJson[1]),
     ]
-    const exprStart = y.createAbsolutePositionFromRelativePosition(exprRange[0], this.doc)?.index
-    const exprEnd = y.createAbsolutePositionFromRelativePosition(exprRange[1], this.doc)?.index
+    const exprStart = Y.createAbsolutePositionFromRelativePosition(exprRange[0], this.doc)?.index
+    const exprEnd = Y.createAbsolutePositionFromRelativePosition(exprRange[1], this.doc)?.index
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
@@ -235,8 +157,8 @@ class DistributedModule {
 }
 
 export interface RelativeRange {
-  start: y.RelativePosition
-  end: y.RelativePosition
+  start: Y.RelativePosition
+  end: Y.RelativePosition
 }
 
 /**
@@ -245,14 +167,14 @@ export interface RelativeRange {
  * the relative ranges to absolute ranges, but it is not modified.
  */
 export class IdMap {
-  private contents: y.Text
-  private doc: y.Doc
-  private yMap: y.Map<[any, any]>
+  private contents: Y.Text
+  private doc: Y.Doc
+  private yMap: Y.Map<[any, any]>
   private rangeToExpr: Map<string, ExprId>
   private accessed: Set<ExprId>
   private finished: boolean
 
-  constructor(yMap: y.Map<[any, any]>, contents: y.Text) {
+  constructor(yMap: Y.Map<[any, any]>, contents: Y.Text) {
     if (yMap.doc == null) {
       throw new Error('IdMap must be associated with a document')
     }
@@ -277,10 +199,10 @@ export class IdMap {
   }
 
   private modelToIndices(range: [any, any]): [number, number] | null {
-    const relStart = y.createRelativePositionFromJSON(range[0])
-    const relEnd = y.createRelativePositionFromJSON(range[1])
-    const start = y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
-    const end = y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
+    const relStart = Y.createRelativePositionFromJSON(range[0])
+    const relEnd = Y.createRelativePositionFromJSON(range[1])
+    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
+    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
     if (start == null || end == null) return null
     return [start.index, end.index]
   }
@@ -335,10 +257,10 @@ export class IdMap {
         // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
         const range = key.split(':').map((x) => parseInt(x, 10)) as [number, number]
-        const start = y.createRelativePositionFromTypeIndex(this.contents, range[0])
-        const end = y.createRelativePositionFromTypeIndex(this.contents, range[1])
-        const startJson = y.relativePositionToJSON(start)
-        const endJson = y.relativePositionToJSON(end)
+        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
+        const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
+        const startJson = Y.relativePositionToJSON(start)
+        const endJson = Y.relativePositionToJSON(end)
         this.yMap.set(expr, [startJson, endJson])
       })
     })

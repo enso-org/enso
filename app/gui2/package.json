@@ -1,7 +1,12 @@
 {
-  "name": "enso-ide",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "name": "enso-gui2",
   "private": true,
+  "type": "module",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check build-only",
@@ -17,6 +22,7 @@
   },
   "dependencies": {
     "@vueuse/core": "^10.4.1",
+    "enso-authentication": "^1.0.0",
     "lib0": "^0.2.83",
     "pinia": "^2.1.6",
     "postcss-nesting": "^12.0.1",
@@ -39,13 +45,16 @@
     "@vue/eslint-config-typescript": "^11.0.3",
     "@vue/test-utils": "^2.4.1",
     "@vue/tsconfig": "^0.4.0",
+    "esbuild": "^0.19.2",
     "eslint": "^8.46.0",
     "eslint-plugin-vue": "^9.16.1",
+    "jayson": "^4.1.0",
     "jsdom": "^22.1.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.0.0",
     "typescript": "~5.1.6",
     "vite": "^4.4.9",
+    "vite-plugin-inspect": "^0.7.38",
     "vitest": "^0.34.2",
     "vue-tsc": "^1.8.8"
   }

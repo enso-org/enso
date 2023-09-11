@@ -1,10 +1,16 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
-  "include": ["vite.config.*", "vitest.config.*", "playwright.config.*"],
+  "include": ["vite.config.*", "vitest.config.*", "playwright.config.*", "server/**/*"],
   "compilerOptions": {
     "composite": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node"]
-  }
+    "types": ["node"],
+  },
+  "references": [
+    {
+      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
+    },
+  ]
 }
+ 

@@ -7,6 +7,7 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as permissions from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
 
@@ -67,14 +68,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
     const managesThisAsset =
         backend.type === backendModule.BackendType.local ||
-        self?.permission === backendModule.PermissionAction.own ||
-        self?.permission === backendModule.PermissionAction.admin
+        self?.permission === permissions.PermissionAction.own ||
+        self?.permission === permissions.PermissionAction.admin
     const isRunningProject =
         asset.type === backendModule.AssetType.project &&
         backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
     const canExecute =
         backend.type === backendModule.BackendType.local ||
-        (self?.permission != null && backendModule.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
+        (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
     const isOtherUserUsingProject =
         backend.type !== backendModule.BackendType.local &&
         backendModule.assetIsProject(asset) &&

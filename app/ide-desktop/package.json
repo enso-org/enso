@@ -1,4 +1,5 @@
 {
+  "name": "enso-ide-desktop",
   "version": "1.0.0",
   "type": "module",
   "author": {
@@ -13,19 +14,7 @@
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   },
-  "name": "root",
   "private": true,
-  "workspaces": [
-    "lib/assets",
-    "lib/client",
-    "lib/common",
-    "lib/content",
-    "lib/content-config",
-    "lib/dashboard",
-    "lib/dashboard/src/authentication",
-    "lib/esbuild-plugin-copy-directories",
-    "lib/icons"
-  ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.55.0",
     "@typescript-eslint/parser": "^5.55.0",

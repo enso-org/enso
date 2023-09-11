@@ -10,7 +10,7 @@ import * as permissionsModule from '../permissions'
 
 /** Props for a {@link PermissionDisplay}. */
 export interface PermissionDisplayProps extends React.PropsWithChildren {
-    action: backend.PermissionAction
+    action: permissionsModule.PermissionAction
     className?: string
     onClick?: React.MouseEventHandler<HTMLDivElement>
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>

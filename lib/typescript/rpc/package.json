@@ -1,0 +1,5 @@
+{
+  "name": "enso-rpc",
+  "type": "module",
+  "private": true
+}

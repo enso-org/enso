@@ -10,7 +10,7 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
-import { reactive, ref, watchEffect } from 'vue'
+import { reactive, ref } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -19,10 +19,6 @@ const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
-
-watchEffect(() => {
-  console.log(`execution mode changed to '${mode.value}'.`)
-})
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -55,9 +51,7 @@ useWindowEvent('keypress', (e) => {
 
   switch (e.key) {
     case 'n': {
-      const n = graphStore.createNode(pos)
-      if (n == null) return
-      graphStore.setNodeContent(n, 'hello "world"! 123 + x')
+      graphStore.createNode(pos, 'hello "world"! 123 + x')
       break
     }
   }

@@ -3,6 +3,7 @@
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "shared/**/*"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
+    "resolvePackageJsonExports": false,
     "composite": true,
     "baseUrl": ".",
     "paths": {

@@ -121,6 +121,8 @@ export default function Editor(props: EditorProps) {
                                       dataUrl: binaryAddress,
                                   }
                                 : {
+                                      rpcUrl: jsonAddress,
+                                      dataUrl: binaryAddress,
                                       projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                                   }
                         const originalUrl = window.location.href

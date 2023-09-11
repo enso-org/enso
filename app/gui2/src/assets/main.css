@@ -9,4 +9,5 @@ body {
   flex-direction: column;
   flex: 1;
   font-weight: normal;
+  cursor: default;
 }

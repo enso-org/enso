@@ -1,6 +1,7 @@
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { defineStore } from 'pinia'
-import { map, set } from 'lib0'
+import * as map from 'lib0/map'
+import * as set from 'lib0/set'
 import { Vec2 } from '@/util/vec2'
 import { assertNever, assert } from '@/util/assert'
 import { useProjectStore } from './project'
@@ -19,7 +20,6 @@ import { parseEnso } from '@/util/ffi'
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
-  proj.setProjectName('test')
   proj.setObservedFileName('Main.enso')
 
   const text = computed(() => proj.module?.contents)
@@ -47,6 +47,7 @@ export const useGraphStore = defineStore('graph', () => {
     let newContent = ''
     let oldIdx = 0
     let newIdx = 0
+    console.log(delta)
     for (const op of delta) {
       if (op.retain) {
         newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
@@ -249,7 +250,7 @@ export const useGraphStore = defineStore('graph', () => {
     return edges
   })
 
-  function createNode(position: Vec2): Opt<ExprId> {
+  function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
     const { contents } = mod
@@ -259,7 +260,7 @@ export const useGraphStore = defineStore('graph', () => {
       y: position.y,
     }
     const ident = generateUniqueIdent()
-    const content = `${ident} = x`
+    const content = `${ident} = ${expression}`
     return mod.insertNewNode(contents.length, content, meta)
   }
 
