@@ -157,13 +157,13 @@ list_directory directory name_filter=Nothing recursive=False =
      an Enso native object.
 
    > Example
-     Read from a URL.
+     Read from an HTTP endpoint.
 
          import Standard.Base.Data
          response = Data.fetch URL
 
    > Example
-     Read from a URL and write the results to a file.
+     Read from an HTTP endpoint and write the results to a file.
 
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
@@ -187,10 +187,60 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
      an Enso native object.
 
    > Example
-     Write a text string to a file.
+     Write a text string to an HTTP endpoint.
 
          import Standard.Base.Data
          response = HTTP.post url_post (Request_Body.Text "hello world")
+
+   > Example
+     Write JSON to an HTTP endpoint.
+
+         import Standard.Base.Data
+         json = Json.parse '{"a": "asdf", "b": 123}'
+         response = HTTP.post url_post json
+
+   > Example
+     Write an Enso object to an HTTP endpoint.
+
+         import Standard.Base.Data
+         response = HTTP.post url_post (My_Type.Value 12)
+
+   > Example
+     Write a text string to an HTTP endpoint, with a specific text encoding.
+
+         import Standard.Base.Data
+         body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
+         response = HTTP.post url_post body
+
+   > Example
+     Write a text string to an HTTP endpoint, with a specific content type.
+
+         import Standard.Base.Data
+         body = Request_Body.Text 'a,b,c\n' content_type="text/csv"
+         response = HTTP.post url_post body
+
+   > Example
+     Write the contents of a file to an HTTP endpoint.
+
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.png"
+         response = HTTP.post url_post (Request_Body.Binary test_file)
+
+   > Example
+     Write a multipart form to an HTTP endpoint.
+
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.png"
+         form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+         response = HTTP.post url_post (Request_Body.Form_Data form_data)
+
+   > Example
+     Write a URL-encoded form to an HTTP endpoint.
+
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.txt"
+         form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
+         response = HTTP.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch_or_post uri body method headers try_auto_parse_response
