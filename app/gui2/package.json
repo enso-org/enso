@@ -46,6 +46,8 @@
     "@vue/eslint-config-typescript": "^11.0.3",
     "@vue/test-utils": "^2.4.1",
     "@vue/tsconfig": "^0.4.0",
+    "ag-grid-community": "^30.1.0",
+    "ag-grid-enterprise": "^30.1.0",
     "eslint": "^8.46.0",
     "eslint-plugin-vue": "^9.16.1",
     "jsdom": "^22.1.0",

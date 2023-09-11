@@ -111,9 +111,9 @@ let shortcuts = {
 }
 
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
-const POINT_LABEL_PADDING_X = 7
-const POINT_LABEL_PADDING_Y = 2
-const ANIMATION_DURATION = 400
+const POINT_LABEL_PADDING_X_PX = 7
+const POINT_LABEL_PADDING_Y_PX = 2
+const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
@@ -396,8 +396,8 @@ function addPanAndZoom() {
     if (data.value.points.labels === VISIBLE_POINTS) {
       d3.select(scatterplot)
         .selectAll<SVGTextElement, Point>('text')
-        .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X)
-        .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y)
+        .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+        .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
     }
   }
 
@@ -563,17 +563,17 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
   }
   d3.select(xAxisNode.value)
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(ANIMATION_DURATION_MS)
     .call(d3.axisBottom(scaleAndAxis.xScale).ticks(xTicks.value))
   d3.select(yAxisNode.value)
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(ANIMATION_DURATION_MS)
     .call(d3.axisLeft(scaleAndAxis.yScale).ticks(yTicks.value))
 
   d3.select(pointsNode.value)
     .selectAll<SVGPathElement, Point>('path')
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(ANIMATION_DURATION_MS)
     .attr(
       'transform',
       (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
@@ -583,9 +583,9 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
     d3.select(pointsNode.value)
       .selectAll<SVGTextElement, Point>('text')
       .transition()
-      .duration(ANIMATION_DURATION)
-      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
-      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
+      .duration(ANIMATION_DURATION_MS)
+      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 }
 
@@ -625,8 +625,8 @@ function redrawPoints() {
       .enter()
       .append('text')
       .text((d) => d.label ?? '')
-      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
-      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
+      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
       .attr('class', 'label')
       .attr('fill', 'black')
   }

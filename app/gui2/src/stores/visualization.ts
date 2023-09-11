@@ -20,6 +20,7 @@ export type Visualization = VisualizationModule['default']
 
 const builtinVisualizationPaths: Record<string, string> = {
   JSON: '/visualizations/JSONVisualization.vue',
+  Table: '/visualizations/TableVisualization.vue',
   Error: '/visualizations/ErrorVisualization.vue',
   Warnings: '/visualizations/WarningsVisualization.vue',
   Bubble: '/visualizations/BubbleVisualization.vue',
@@ -232,6 +233,18 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
               ],
             },
           ],
+        }
+      }
+      case 'Table': {
+        return {
+          type: 'Matrix',
+          // eslint-disable-next-line camelcase
+          column_count: 5,
+          // eslint-disable-next-line camelcase
+          all_rows_count: 10,
+          json: Array.from({ length: 10 }, (_, i) =>
+            Array.from({ length: 5 }, (_, j) => `${i},${j}`),
+          ),
         }
       }
       default: {

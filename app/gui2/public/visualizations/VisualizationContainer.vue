@@ -141,6 +141,10 @@ function onWheel(event: WheelEvent) {
   overflow: visible;
 }
 
+.VisualizationContainer.fullscreen .content {
+  height: 100%;
+}
+
 .toolbars {
   user-select: none;
   position: absolute;
