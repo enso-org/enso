@@ -286,6 +286,10 @@ postgres_specific_spec connection db_name setup =
 
             t1 = m1.select_into_database_table connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
             t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            v1x = t1.at "X" . to_vector
+            v1x.should_equal [10, x]
+            v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Integer
+
 
             t2 = t1.set "[X] + 10" "Y"
             t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)

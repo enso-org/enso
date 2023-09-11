@@ -137,4 +137,9 @@ public class NumericConverter {
   public static boolean isBigInteger(Value v) {
     return v.fitsInBigInteger() && !v.fitsInLong();
   }
+
+  /** A workaround for <a href="https://github.com/enso-org/enso/issues/7790">#7790</a> */
+  public static BigDecimal bigIntegerAsBigDecimal(BigInteger x) {
+    return new BigDecimal(x);
+  }
 }
