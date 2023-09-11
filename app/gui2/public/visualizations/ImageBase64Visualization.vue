@@ -24,14 +24,14 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 
 <template>
   <VisualizationContainer :="<any>$attrs" :below-node="true">
-    <div class="Image">
+    <div class="ImageVisualization">
       <img :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`" />
     </div>
   </VisualizationContainer>
 </template>
 
 <style scoped>
-.Image {
+.ImageVisualization {
   > img {
     width: 100%;
   }

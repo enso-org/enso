@@ -38,25 +38,27 @@ onUnmounted(() => {
 
 <style scoped>
 .VisualizationSelector {
+  /* Required for it to show above Mapbox's information button. */
+  z-index: 2;
   user-select: none;
   position: absolute;
   border-radius: 16px;
   top: 100%;
   margin-top: 12px;
   left: -12px;
+}
 
-  > * {
-    position: relative;
-  }
+.VisualizationSelector > * {
+  position: relative;
+}
 
-  > .background {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 16px;
-    background: var(--color-app-bg);
-    backdrop-filter: var(--blur-app-bg);
-  }
+.VisualizationSelector > .background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: var(--color-app-bg);
+  backdrop-filter: var(--blur-app-bg);
 }
 
 ul {

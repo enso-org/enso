@@ -22,14 +22,14 @@ onMounted(() => {
 
 <template>
   <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
-    <div class="JSON" v-text="data"></div>
+    <div class="JSONVisualization" v-text="data"></div>
   </VisualizationContainer>
 </template>
 
 <style scoped>
 @import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
 
-.JSON {
+.JSONVisualization {
   font-family: DejaVuSansMonoBook, monospace;
   white-space: pre;
   padding: 8px;

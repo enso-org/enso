@@ -41,7 +41,7 @@ const data = computed<Data>(() =>
 <template>
   <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
     <div
-      class="Error"
+      class="ErrorVisualization"
       :class="data.kind != null ? CLASSES[data.kind] : ''"
       v-text="data.message"
     ></div>
@@ -49,7 +49,7 @@ const data = computed<Data>(() =>
 </template>
 
 <style scoped>
-.Error {
+.ErrorVisualization {
   white-space: pre;
   padding: 8px;
 }

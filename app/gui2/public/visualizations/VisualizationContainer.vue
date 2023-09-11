@@ -48,7 +48,7 @@ function onWheel(event: WheelEvent) {
 <template>
   <Teleport to="body" :disabled="!fullscreen">
     <div
-      class="Visualization"
+      class="VisualizationContainer"
       :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
       :style="{
         '--color-visualization-bg': background,
@@ -105,7 +105,7 @@ function onWheel(event: WheelEvent) {
 </template>
 
 <style scoped>
-.Visualization {
+.VisualizationContainer {
   background: var(--color-visualization-bg);
   position: absolute;
   top: 50%;
@@ -114,15 +114,15 @@ function onWheel(event: WheelEvent) {
   border-radius: 16px;
 }
 
-.Visualization.below-node {
+.VisualizationContainer.below-node {
   padding-top: 20px;
 }
 
-.Visualization.below-toolbar {
+.VisualizationContainer.below-toolbar {
   padding-top: 56px;
 }
 
-.Visualization.fullscreen {
+.VisualizationContainer.fullscreen {
   z-index: var(--z-fullscreen);
   position: fixed;
   padding-top: 0;
@@ -133,12 +133,12 @@ function onWheel(event: WheelEvent) {
   height: 100vh;
 }
 
-.Visualization.fullscreen.below-toolbar {
+.VisualizationContainer.fullscreen.below-toolbar {
   padding-top: 38px;
 }
 
 .content {
-  overflow: auto;
+  overflow: visible;
 }
 
 .toolbars {
@@ -149,7 +149,7 @@ function onWheel(event: WheelEvent) {
   top: 20px;
 }
 
-.Visualization.fullscreen .toolbars {
+.VisualizationContainer.fullscreen .toolbars {
   top: 4px;
 }
 
@@ -190,7 +190,7 @@ function onWheel(event: WheelEvent) {
 </style>
 
 <style>
-.Visualization > .toolbars > .toolbar > * {
+.VisualizationContainer > .toolbars > .toolbar > * {
   position: relative;
 }
 

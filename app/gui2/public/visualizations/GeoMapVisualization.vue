@@ -290,6 +290,8 @@ function updateLayers() {
           margin: LABEL_MARGIN,
           color: LABEL_COLOR,
           border: '1px solid ' + LABEL_OUTLINE,
+          // This is required for it to show above Mapbox's information button.
+          zIndex: 2,
         },
       },
   })
@@ -408,16 +410,20 @@ function pushPoints(newPoints: Location[]) {
       <button class="image-button"><img :src="GeoMapDistanceIcon" /></button>
       <button class="image-button"><img :src="GeoMapPinIcon" /></button>
     </template>
-    <div ref="mapNode" class="map" @wheel.stop></div>
+    <div ref="mapNode" class="GeoMapVisualization" @wheel.stop></div>
   </VisualizationContainer>
 </template>
 
 <style scoped>
 @import url('https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css');
 
-.map {
+.GeoMapVisualization {
   height: 100%;
-  overflow: hidden;
+}
+</style>
+
+<style>
+.GeoMapVisualization > .mapboxgl-map {
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
 }

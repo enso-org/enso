@@ -24,7 +24,7 @@ const data = computed<Data>(() =>
 
 <template>
   <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
-    <svg class="Bubble">
+    <svg class="BubbleVisualization">
       <circle
         v-for="([x, y, r], index) in data"
         :key="index"
@@ -37,5 +37,3 @@ const data = computed<Data>(() =>
     </svg>
   </VisualizationContainer>
 </template>
-
-<style scoped></style>

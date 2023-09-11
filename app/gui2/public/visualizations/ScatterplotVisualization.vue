@@ -751,7 +751,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
-    <div ref="containerNode" class="Scatterplot">
+    <div ref="containerNode" class="ScatterplotVisualization">
       <svg :width="width" :height="height">
         <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
@@ -797,17 +797,17 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   --color-selection-fill-dark: #efefef;
 }
 
-.Scatterplot {
+.ScatterplotVisualization {
   user-select: none;
   display: flex;
 }
 
-.Scatterplot > .selection {
+.ScatterplotVisualization > .selection {
   rx: 4px;
   stroke: transparent;
 }
 
-.Scatterplot > button {
+.ScatterplotVisualization > button {
   margin-left: 5px;
   margin-bottom: 5px;
   display: inline-block;

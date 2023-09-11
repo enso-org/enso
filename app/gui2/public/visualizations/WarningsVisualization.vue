@@ -28,7 +28,7 @@ const data = computed<Data>(() =>
 
 <template>
   <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
-    <div class="Warnings">
+    <div class="WarningsVisualization">
       <ul>
         <li v-if="data.length === 0">There are no warnings.</li>
         <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
@@ -38,7 +38,7 @@ const data = computed<Data>(() =>
 </template>
 
 <style scoped>
-.Warnings {
+.WarningsVisualization {
   padding: 8px;
 }
 
