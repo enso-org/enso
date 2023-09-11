@@ -14,6 +14,8 @@ polyglot java import java.lang.Short as Java_Short
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long as Java_Long
 
+polyglot java import org.enso.table_test_helpers.PolyglotHelpers
+
 main = Test_Suite.run_main spec
 
 spec =
@@ -219,6 +221,17 @@ spec =
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100] value_type=Value_Type.Integer
             c1.should_fail_with Invalid_Value_Type
             c1.catch.to_display_text . should_contain "Decimal"
+
+        Test.specify "allows to construct a column from big integers coming from Java" <|
+            big_integer_but_small = PolyglotHelpers.createSmallBigIntegerComingFromJava
+            t1 = Table.new [["X", [big_integer_but_small]]]
+            t1.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t1.at "X" . to_vector . should_equal [big_integer_but_small]
+
+            big_big_integer = PolyglotHelpers.createBigBigIntegerComingFromJava
+            t2 = Table.new [["X", [big_big_integer]]]
+            t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t2.at "X" . to_vector . should_equal [big_big_integer]
 
         Test.specify "will create a Mixed column if other types are present" <|
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, "abc"]
