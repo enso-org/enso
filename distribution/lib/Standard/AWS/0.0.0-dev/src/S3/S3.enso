@@ -101,9 +101,7 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
         inner_response = response.response
         mime_type = inner_response.contentType
         s3_uri = "s3://" + bucket + "/" + key
-        format = Auto_Detect.get_web_parser mime_type s3_uri
-        response_body = Response_Body.Value
-        if format.is_nothing then _ else _
+        Response_Body.Raw_Stream response mime_type (URI.new s3_uri)
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.
