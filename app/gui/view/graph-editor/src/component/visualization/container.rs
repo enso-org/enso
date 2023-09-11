@@ -788,7 +788,9 @@ impl Container {
         let scene_clicked = scene.on_event::<mouse::Down>();
         frp::extend! { network
             selected_by_click <- viz_clicked.map(f_!(model.activate()));
-            deselected_by_click <- scene_clicked.map(f!([model](event) model.deactivated_by_click(event)));
+            is_fullscreen <- output.view_state.map(|s| s.is_fullscreen());
+            deselect_click <- scene_clicked.gate_not(&is_fullscreen);
+            deselected_by_click <- deselect_click.map(f!([model](event) model.deactivated_by_click(event)));
             selected <- selected_by_click.on_true();
             deselected <- deselected_by_click.on_true();
             is_selected <- bool(&deselected, &selected).on_change();
