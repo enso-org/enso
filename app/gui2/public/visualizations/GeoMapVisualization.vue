@@ -29,7 +29,7 @@ export const inputType = 'Standard.Table.Data.Table.Table'
  * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
  */
 
-type Data = RegularData | DataFrame
+type Data = RegularData | Layer | DataFrame
 
 interface RegularData {
   latitude?: number
@@ -52,6 +52,13 @@ type Color = [red: number, green: number, blue: number]
 interface Location {
   latitude: number
   longitude: number
+  color?: Color | undefined
+  radius?: number | undefined
+  label?: string | undefined
+}
+
+interface LocationWithPosition {
+  position: [longitude: number, latitude: number]
   color?: Color
   radius?: number
   label?: string
@@ -64,9 +71,7 @@ interface DataFrame {
   df_radius?: number[]
   df_label?: string[]
 }
-
-/// <reference types="@danmarshall/deckgl-typings" />
-declare var deckGl: typeof import('deck.gl')
+declare var deckGl: typeof import('@deck.gl/core/typed') & typeof import('@deck.gl/layers/typed')
 </script>
 
 <script setup lang="ts">
@@ -88,11 +93,6 @@ const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
   'update:processor': [module: string, method: string]
 }>()
-
-interface Point {
-  x: number
-  y: number
-}
 
 const data = computed<Data>(() =>
   typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
@@ -122,8 +122,8 @@ const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/light-v9'
 const DEFAULT_MAP_ZOOM = 11
 const ACCENT_COLOR: Color = [78, 165, 253]
 
-const dataPoints = ref<Location[]>([])
-const mapNode = ref<HTMLElement>()
+const dataPoints = ref<LocationWithPosition[]>([])
+const mapNode = ref<HTMLDivElement>()
 const latitude = ref(0)
 const longitude = ref(0)
 const zoom = ref(0)
@@ -131,7 +131,14 @@ const mapStyle = ref(DEFAULT_MAP_STYLE)
 const pitch = ref(0)
 const controller = ref(true)
 const showingLabels = ref(true)
-const deckgl = ref<import('deck.gl').DeckGL | null>()
+const deckgl = ref<import('@deck.gl/core/typed').Deck>()
+
+const viewState = computed(() => ({
+  longitude: longitude.value,
+  latitude: latitude.value,
+  zoom: zoom.value,
+  pitch: pitch.value,
+}))
 
 watchEffect(() => {
   if (updateState(data.value)) {
@@ -154,7 +161,7 @@ function updateState(data: Data) {
   // to keep the old state and do a proper update.
   resetState()
 
-  extractDataPoints(data, dataPoints.value)
+  extractDataPoints(data)
   // eslint-disable-next-line no-self-assign
   dataPoints.value = dataPoints.value
   if (dataPoints.value.length === 0) {
@@ -170,7 +177,7 @@ function updateState(data: Data) {
   pitch.value = 0
   controller.value = true
   showingLabels.value = true
-  if (!('df_latitude' in data)) {
+  if (!('df_latitude' in data) && !('data' in data)) {
     latitude.value = data.latitude ?? center.latitude
     longitude.value = data.longitude ?? center.longitude
     // TODO: Compute zoom somehow from span of latitudes and longitudes.
@@ -191,22 +198,14 @@ function updateMap() {
   }
 }
 
-function makeScatterLayer() {
-  return new deckGl.ScatterplotLayer<Location>({
-    data: dataPoints.value,
-    getFillColor: (d) => d.color!,
-    getRadius: (d) => d.radius!,
-    pickable: showingLabels.value,
-  })
-}
-
 function initDeckGl() {
   try {
     deckgl.value = new deckGl.DeckGL({
-      container: mapId,
-      mapboxApiAccessToken: TOKEN,
-      mapStyle: mapStyle.value,
-      initialViewState: viewState(),
+      parent: mapNode.value!,
+      // This suppresses excess property errors. These are valid properties, but they do not exist
+      // in the typings.
+      ...{ mapboxApiAccessToken: TOKEN, mapStyle: mapStyle.value },
+      initialViewState: viewState.value,
       controller: controller.value,
     })
   } catch (error) {
@@ -241,11 +240,16 @@ function resetMapElement() {
 }
 
 function updateDeckGl() {
-  if (deckgl.value != null) {
-    deckgl.value.viewState = viewState()
-    deckgl.value.mapStyle = mapStyle.value
-    deckgl.value.controller = controller.value
+  const deckgl_ = deckgl.value
+  if (deckgl_ == null) {
+    return
   }
+  // @ts-expect-error This property is protected.
+  deckgl_.viewState = viewState.value
+  // @ts-expect-error
+  deckgl_.mapStyle = mapStyle.value
+  // @ts-expect-error
+  deckgl_.controller = controller.value
 }
 
 function updateLayers() {
@@ -253,7 +257,14 @@ function updateLayers() {
     return
   }
   deckgl.value.setProps({
-    layers: [makeScatterLayer()],
+    layers: [
+      new deckGl.ScatterplotLayer<LocationWithPosition>({
+        data: dataPoints.value,
+        getFillColor: (d) => d.color!,
+        getRadius: (d) => d.radius!,
+        pickable: showingLabels.value,
+      }),
+    ],
     getTooltip: ({ object }) =>
       object && {
         html: `<div>${object.label}</div>`,
@@ -298,10 +309,10 @@ function centerPoint() {
 /**
  * Extract the visualization data from a full configuration object.
  */
-function extractVisualizationDataFromFullConfig(parsedData: Location[]) {
-  if (parsedData.type === SCATTERPLOT_LAYER && parsedData.data.length) {
+function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer) {
+  if ('type' in parsedData && parsedData.type === SCATTERPLOT_LAYER && parsedData.data.length) {
     pushPoints(parsedData.data)
-  } else if (parsedData.layers != null) {
+  } else if ('layers' in parsedData) {
     parsedData.layers.forEach((layer) => {
       if (layer.type === SCATTERPLOT_LAYER) {
         let dataPoints = layer.data ?? []
@@ -319,17 +330,16 @@ function extractVisualizationDataFromFullConfig(parsedData: Location[]) {
  * Extract the visualization data from a dataframe.
  */
 function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
-  const points = dataPoints.value
+  const newPoints: Location[] = []
   for (let i = 0; i < parsedData.df_latitude.length; i += 1) {
-    const latitude = parsedData.df_longitude[i]
-    const longitude = parsedData.df_longitude[i]
+    const latitude = parsedData.df_longitude[i]!
+    const longitude = parsedData.df_longitude[i]!
     const label = parsedData.df_label?.[i]
     const color = parsedData.df_color?.[i]
     const radius = parsedData.df_radius?.[i]
-    points.push({ latitude, longitude, label, color, radius })
+    newPoints.push({ latitude, longitude, label, color, radius })
   }
-  // eslint-disable-next-line no-self-assign
-  dataPoints.value = dataPoints.value
+  pushPoints(newPoints)
 }
 
 /**
@@ -340,7 +350,7 @@ function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
  * @param preparedDataPoints - List holding data points to push the GeoPoints into.
  * @param ACCENT_COLOR        - accent color of IDE if element doesn't specify one.
  */
-function extractDataPoints(parsedData: Location[] | DataFrame) {
+function extractDataPoints(parsedData: Data) {
   if ('df_latitude' in parsedData && 'df_longitude' in parsedData) {
     extractVisualizationDataFromDataFrame(parsedData)
   } else {
@@ -355,7 +365,7 @@ function extractDataPoints(parsedData: Location[] | DataFrame) {
  * Expects the `dataPoints` to be a list of objects that have a `longitude` and `latitude` and
  * optionally `radius`, `color` and `label`.
  */
-function pushPoints(newPoints) {
+function pushPoints(newPoints: Location[]) {
   const points = dataPoints.value
   for (const point of newPoints) {
     if (
@@ -364,7 +374,7 @@ function pushPoints(newPoints) {
       typeof point.latitude === 'number' &&
       !Number.isNaN(point.latitude)
     ) {
-      let position = [point.longitude, point.latitude]
+      let position: [number, number] = [point.longitude, point.latitude]
       let radius =
         typeof point.radius === 'number' && !Number.isNaN(point.radius)
           ? point.radius
