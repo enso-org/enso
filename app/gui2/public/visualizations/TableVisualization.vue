@@ -66,11 +66,12 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 // eslint-disable-next-line no-redeclare
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
 
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import VisualizationContainer from './VisualizationContainer.vue'
 
 const props = defineProps<{
   width: number | undefined
+  fullscreen: boolean
   data: Data | string
 }>()
 const emit = defineEmits<{
@@ -87,6 +88,8 @@ const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
 const agGridOptions = ref({
+  headerHeight: 20,
+  rowHeight: 20,
   rowData: [],
   columnDefs: [],
   defaultColDef: {
@@ -126,6 +129,13 @@ onMounted(() => {
 
   new agGrid.Grid(tableNode.value!, agGridOptions.value)
 })
+
+watch(
+  () => [props.width, props.fullscreen],
+  () => {
+    agGridOptions.value.columnApi.autoSizeAllColumns()
+  },
+)
 
 function setRowLimitAndPage(newRowLimit: number, newPage: number) {
   if (newRowLimit !== rowLimit.value || newPage !== page.value) {
@@ -381,7 +391,12 @@ function goToLastPage() {
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :width="props.width">
+  <VisualizationContainer
+    :="<any>$attrs"
+    :fullscreen="props.fullscreen"
+    :width="props.width"
+    :below-toolbar="true"
+  >
     <div ref="rootNode" class="TableVisualization">
       <div class="table-visualization-status-bar">
         <button :disabled="isFirstPage" @click="goToFirstPage">«</button>
