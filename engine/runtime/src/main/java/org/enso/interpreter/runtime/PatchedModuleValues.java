@@ -4,11 +4,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
@@ -54,7 +50,7 @@ final class PatchedModuleValues {
       var methods = scope.getAllMethods();
       var conversions = scope.getConversions();
       updateFunctionsMap(null, methods, values);
-      updateFunctionsMap(null, conversions.values(), values);
+      updateFunctionsMap(null, conversions, values);
     }
     values.putAll(collect);
     if (delta == 0) {
@@ -92,7 +88,7 @@ final class PatchedModuleValues {
     if (collect.isEmpty()) {
       // only search for new literals when none have been found
       updateFunctionsMap(update, methods, collect);
-      updateFunctionsMap(update, conversions.values(), collect);
+      updateFunctionsMap(update, conversions, collect);
       if (collect.isEmpty()) {
         return false;
       }
@@ -114,11 +110,9 @@ final class PatchedModuleValues {
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Predicate<Expression>> nodeValues) {
-    for (Map<?, Function> map : values) {
-      for (Function f : map.values()) {
-        updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
-      }
+  private static void updateFunctionsMap(SimpleUpdate edit, List<Function> values, Map<Node, Predicate<Expression>> nodeValues) {
+    for (Function f : values) {
+      updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
     }
   }
 

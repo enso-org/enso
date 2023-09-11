@@ -98,10 +98,7 @@ public final class Type implements EnsoObject {
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
       // check.
       CompilerAsserts.neverPartOfCompilation();
-      Map<String, Function> methods = this.definitionScope.getMethodsForType(this);
-      if (methods != null) {
-        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-      }
+      this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {
         generateQualifiedAccessor();

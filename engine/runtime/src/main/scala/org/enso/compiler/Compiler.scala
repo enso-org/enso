@@ -251,13 +251,13 @@ class Compiler(
         case e: Throwable =>
           context.log(
             Level.SEVERE,
-            "Encountered a critical failure while parsing module {0}: {1}",
-            m.getName,
-            e.getMessage
+            "Encountered a critical failure while parsing module",
+            e
           )
           context.log(
             Level.SEVERE,
-            "Contents of module: {0}",
+            "Contents of module {0}: {0}",
+            m.getPath,
             m.getSource.getCharacters.toString
           )
       }

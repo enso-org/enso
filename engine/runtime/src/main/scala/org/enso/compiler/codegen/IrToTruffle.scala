@@ -878,8 +878,10 @@ class IrToTruffle(
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
               val fun = actualModule.getScope
-                .getMethodsForType(actualModule.getScope.getAssociatedType)
-                .get(method.name)
+                .getMethodForType(
+                  actualModule.getScope.getAssociatedType,
+                  method.name
+                )
               assert(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
@@ -1236,8 +1238,7 @@ class IrToTruffle(
                   val polyglotSymbol = mod
                     .unsafeAsModule()
                     .getScope
-                    .getPolyglotSymbols
-                    .get(symbol.name)
+                    .getPolyglotSymbol(symbol.name)
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
@@ -1257,8 +1258,7 @@ class IrToTruffle(
                   val polyClass = mod
                     .unsafeAsModule()
                     .getScope
-                    .getPolyglotSymbols
-                    .get(typ.symbol.name)
+                    .getPolyglotSymbol(typ.symbol.name)
 
                   val polyValueOrError =
                     if (polyClass == null)
@@ -1398,8 +1398,7 @@ class IrToTruffle(
                 mod
                   .unsafeAsModule()
                   .getScope
-                  .getPolyglotSymbols
-                  .get(symbol.name)
+                  .getPolyglotSymbol(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
                   DefinitionArgument.Specified(
@@ -1642,16 +1641,14 @@ class IrToTruffle(
             module
               .unsafeAsModule()
               .getScope
-              .getPolyglotSymbols
-              .get(symbol.name)
+              .getPolyglotSymbol(symbol.name)
           )
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
           ConstantObjectNode.build(
             symbol.module
               .unsafeAsModule()
               .getScope
-              .getPolyglotSymbols
-              .get(name)
+              .getPolyglotSymbol(name)
           )
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(

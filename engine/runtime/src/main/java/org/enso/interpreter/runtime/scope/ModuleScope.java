@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -43,7 +44,7 @@ public final class ModuleScope implements EnsoObject {
     this.polyglotSymbols = new HashMap<>();
     this.types = new HashMap<>();
     this.methods = new ConcurrentHashMap<>();
-    this.conversions = new HashMap<>();
+    this.conversions = new ConcurrentHashMap<>();
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
@@ -271,25 +272,54 @@ public final class ModuleScope implements EnsoObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return a map of methods for the given type */
-  public Map<String, Function> getMethodsForType(Type tpe) {
+  /** @return a method for the given type */
+  public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    return methods.get(tpe);
+    Map<String, Function> allTpeMethods = methods.get(tpeKey);
+    return allTpeMethods == null ? null : allTpeMethods.get(name);
   }
 
-  /** @return methods mappings for all registered types */
-  public Collection<Map<String, Function>> getAllMethods() {
-    return methods.values();
+  /**
+   * Returns the names of methods for the given type.
+   *
+   * @param tpe the type in the scope
+   * @return names of methods
+   */
+  public Set<String> getMethodNamesForType(Type tpe) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    Map<String, Function> allTpeMethods = methods.get(tpeKey);
+    return allTpeMethods == null ? null : allTpeMethods.keySet();
   }
 
-  /** @return the raw conversions map held by this module */
-  public Map<Type, Map<Type, Function>> getConversions() {
-    return conversions;
+  /**
+   * Registers all methods of a type in the provided scope.
+   *
+   * @param tpe the methods of which type should be registered
+   * @param scope target scope where methods should be registered to
+   */
+  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    Map<String, Function> allTypeMethods = methods.get(tpeKey);
+    if (allTypeMethods != null) {
+      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpe, name, fun));
+    }
   }
 
-  /** @return the polyglot symbols imported into this scope. */
-  public Map<String, Object> getPolyglotSymbols() {
-    return polyglotSymbols;
+  /** @return methods for all registered types */
+  public List<Function> getAllMethods() {
+    return methods.values().stream().flatMap(e -> e.values().stream()).collect(Collectors.toList());
+  }
+
+  /** @return the raw conversions held by this module */
+  public List<Function> getConversions() {
+    return conversions.values().stream()
+        .flatMap(e -> e.values().stream())
+        .collect(Collectors.toList());
+  }
+
+  /** @return the polyglot symbol imported into this scope. */
+  public Object getPolyglotSymbol(String symbolName) {
+    return polyglotSymbols.get(symbolName);
   }
 
   public void reset() {
@@ -311,7 +341,7 @@ public final class ModuleScope implements EnsoObject {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> requestedTypes = new HashMap<>(this.types);
     Map<Type, Map<String, Function>> methods = new ConcurrentHashMap<>();
-    Map<Type, Map<Type, Function>> conversions = new HashMap<>();
+    Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
     Set<ModuleScope> imports = new HashSet<>(this.imports);
     Set<ModuleScope> exports = new HashSet<>(this.exports);
     this.types
