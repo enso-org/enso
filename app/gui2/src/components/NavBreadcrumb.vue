@@ -10,7 +10,7 @@ const emit = defineEmits<{ click: [] }>()
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
+  height: 24px;
   padding-top: 1px;
   padding-bottom: 1px;
 }
