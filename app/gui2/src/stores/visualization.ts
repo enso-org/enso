@@ -27,6 +27,7 @@ const builtinVisualizationPaths: Record<string, string> = {
   Image: '/visualizations/ImageBase64Visualization.vue',
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
+  'SQL Query': '/visualizations/SQLVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -245,6 +246,18 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
           json: Array.from({ length: 10 }, (_, i) =>
             Array.from({ length: 5 }, (_, j) => `${i},${j}`),
           ),
+        }
+      }
+      case 'SQL Query': {
+        return {
+          dialect: 'sql',
+          code: `SELECT * FROM \`foo\` WHERE \`a\` = ? AND b LIKE ?;`,
+          interpolations: [
+            // eslint-disable-next-line camelcase
+            { enso_type: 'Data.Numbers.Number', value: '123' },
+            // eslint-disable-next-line camelcase
+            { enso_type: 'Builtins.Main.Text', value: "a'bcd" },
+          ],
         }
       }
       default: {

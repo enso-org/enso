@@ -18,9 +18,10 @@ enum ErrorKind {
 import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted } from 'vue'
+
 const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string]
+  'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 onMounted(() => {

@@ -1,8 +1,17 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "shared/**/*", "shared/**/*.vue", "public/**/*", "public/**/*.vue"],
+  "include": [
+    "env.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "shared/**/*",
+    "shared/**/*.vue",
+    "public/**/*",
+    "public/**/*.vue"
+  ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "composite": true,
     "baseUrl": ".",
     "allowImportingTsExtensions": true,

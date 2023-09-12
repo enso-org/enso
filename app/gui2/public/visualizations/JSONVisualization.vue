@@ -30,7 +30,7 @@ onMounted(() => {
 @import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
 
 .JSONVisualization {
-  font-family: DejaVuSansMonoBook, monospace;
+  font-family: 'DejaVu Sans Mono', monospace;
   white-space: pre;
   padding: 8px;
 }

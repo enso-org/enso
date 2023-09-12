@@ -53,6 +53,7 @@
     "jsdom": "^22.1.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.0.0",
+    "sql-formatter": "^13.0.0",
     "typescript": "~5.1.6",
     "vite": "^4.4.9",
     "vitest": "^0.34.2",
