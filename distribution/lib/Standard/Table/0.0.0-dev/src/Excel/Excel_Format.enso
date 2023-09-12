@@ -87,8 +87,17 @@ type Excel_Format
        Implements the `Data.parse` for this `File_Format`
     read_stream : Input_Stream -> Any
     read_stream self stream:Input_Stream =
-        if self.xls_format == Infer then Error.throw (Illegal_Argument.Error "Cannot infer xls_format from a stream.") else
-            workbook = Excel_Workbook.from_stream stream self.xls_format self.headers
+        xls_format = if self.xls_format == Infer then False else self.xls_format
+
+        bad_format _ =
+            message = case self.xls_format of
+                Infer -> "Cannot infer xls_format from a stream (tried xlsx)."
+                True -> "Stream was not in the expected format (xls)."
+                False -> "Stream was not in the expected format (xlsx)."
+            Error.throw (Illegal_Argument.Error message)
+
+        Excel_Reader.handle_bad_format_with_handler bad_format <|
+            workbook = Excel_Workbook.from_stream stream xls_format self.headers
             workbook.read_section self.section
 
     ## PRIVATE
