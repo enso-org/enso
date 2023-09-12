@@ -291,7 +291,6 @@ function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
 }
 
 useDocumentEvent('keydown', (event) => {
-  console.log('what', event.target, rootNode.value)
   if (isInputEvent(event)) {
     return
   }
@@ -320,6 +319,8 @@ watchEffect(async (onCleanup) => {
     visualizationData.value = queuedVisualizationData.value
   }
 })
+
+const nodeWidth = computed(() => expressionNode.value?.getBoundingClientRect().width ?? 0)
 </script>
 
 <template>
@@ -345,6 +346,7 @@ watchEffect(async (onCleanup) => {
       v-model:width="visualizationWidth"
       v-model:height="visualizationHeight"
       v-model:fullscreen="isVisualizationFullscreen"
+      :node-width="nodeWidth"
       :types="visualizationTypes"
       :data="visualizationData"
       :is-circular-menu-visible="isCircularMenuVisible"

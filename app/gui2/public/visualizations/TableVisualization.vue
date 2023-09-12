@@ -139,10 +139,26 @@ onMounted(() => {
   new agGrid.Grid(tableNode.value!, agGridOptions.value)
 })
 
+const SIZE_UPDATE_INTERVAL_MS = 500
+let nextSizeUpdateEpochMs: number | undefined
+let isSizeUpdateQueued = false
 watch(
-  () => [props.width, props.fullscreen],
+  () => [data.value, props.width, props.fullscreen],
   () => {
-    updateTableSize(undefined)
+    if (nextSizeUpdateEpochMs == null) {
+      updateTableSize(undefined)
+      nextSizeUpdateEpochMs = Number(new Date()) + SIZE_UPDATE_INTERVAL_MS
+    } else if (!isSizeUpdateQueued && Number(new Date()) < nextSizeUpdateEpochMs) {
+      isSizeUpdateQueued = true
+      setTimeout(
+        () => {
+          updateTableSize(undefined)
+          isSizeUpdateQueued = false
+          nextSizeUpdateEpochMs = Number(new Date()) + SIZE_UPDATE_INTERVAL_MS
+        },
+        nextSizeUpdateEpochMs - Number(new Date()),
+      )
+    }
   },
 )
 
@@ -350,7 +366,6 @@ watchEffect(() => {
   options.defaultColDef.sortable = !isTruncated.value
   options.api.setColumnDefs(columnDefs)
   options.api.setRowData(rowData)
-  updateTableSize(props.width)
 })
 
 function updateTableSize(clientWidth: number | undefined) {

@@ -6,6 +6,8 @@ import CompassIcon from './icons/compass.svg'
 
 import VisualizationSelector from './Visualization/VisualizationSelector.vue'
 
+import { usePointer, PointerButtonMask } from './events.ts'
+
 import { ref } from 'vue'
 
 // FIXME: resizers to change `width` and `height`
@@ -20,6 +22,7 @@ const props = defineProps<{
   types: string[]
   background?: string
   isCircularMenuVisible: boolean
+  nodeWidth: number
   width: number | null
   height: number | null
   fullscreen: boolean
@@ -45,18 +48,56 @@ function onWheel(event: WheelEvent) {
     event.stopPropagation()
   }
 }
+
+const rootNode = ref<HTMLElement>()
+const contentNode = ref<HTMLElement>()
+
+const resizeRight = usePointer((pos, _, type) => {
+  if (type !== 'move' || pos.delta.x === 0) {
+    return
+  }
+  const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
+  emit('update:width', Math.max(props.nodeWidth, width))
+}, PointerButtonMask.Main)
+
+const resizeBottom = usePointer((pos, _, type) => {
+  if (type !== 'move' || pos.delta.y === 0) {
+    return
+  }
+  const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
+  emit('update:height', Math.max(0, height))
+}, PointerButtonMask.Main)
+
+const resizeBottomRight = usePointer((pos, _, type) => {
+  if (type !== 'move') {
+    return
+  }
+  if (pos.delta.x !== 0) {
+    const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
+    emit('update:width', Math.max(props.nodeWidth, width))
+  }
+  if (pos.delta.y !== 0) {
+    const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
+    emit('update:height', Math.max(0, height))
+  }
+}, PointerButtonMask.Main)
 </script>
 
 <template>
   <Teleport to="body" :disabled="!fullscreen">
     <div
+      ref="rootNode"
       class="VisualizationContainer"
       :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
       :style="{
         '--color-visualization-bg': background,
       }"
     >
+      <div class="resizer-right" v-on="resizeRight.events"></div>
+      <div class="resizer-bottom" v-on="resizeBottom.events"></div>
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.events"></div>
       <div
+        ref="contentNode"
         class="content scrollable"
         :class="{ overflow }"
         :style="{
@@ -71,7 +112,9 @@ function onWheel(event: WheelEvent) {
         <div v-if="!isCircularMenuVisible || fullscreen"></div>
         <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
           <div class="background"></div>
-          <button class="image-button active" @click="emit('hide')"><img :src="EyeIcon" /></button>
+          <button class="image-button active" @click="emit('hide')">
+            <img :src="EyeIcon" />
+          </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
@@ -111,18 +154,18 @@ function onWheel(event: WheelEvent) {
 .VisualizationContainer {
   background: var(--color-visualization-bg);
   position: absolute;
-  top: 50%;
-  width: 100%;
+  min-width: 100%;
+  width: min-content;
   z-index: -1;
   border-radius: var(--radius-default);
 }
 
 .VisualizationContainer.below-node {
-  padding-top: 20px;
+  padding-top: 36px;
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: 56px;
+  padding-top: 72px;
 }
 
 .VisualizationContainer.fullscreen {
@@ -157,7 +200,7 @@ function onWheel(event: WheelEvent) {
   position: absolute;
   display: flex;
   gap: 4px;
-  top: 20px;
+  top: 36px;
 }
 
 .VisualizationContainer.fullscreen .toolbars {
@@ -185,6 +228,31 @@ function onWheel(event: WheelEvent) {
 
 .toolbar:not(:first-child):not(:has(> :nth-child(2))) {
   display: none;
+}
+
+.resizer-right {
+  position: absolute;
+  cursor: ew-resize;
+  left: 100%;
+  width: 12px;
+  height: 100%;
+}
+
+.resizer-bottom {
+  position: absolute;
+  cursor: ns-resize;
+  top: 100%;
+  width: 100%;
+  height: 12px;
+}
+
+.resizer-bottom-right {
+  position: absolute;
+  cursor: nwse-resize;
+  left: calc(100% - 8px);
+  top: calc(100% - 8px);
+  width: 16px;
+  height: 16px;
 }
 
 .invisible {
