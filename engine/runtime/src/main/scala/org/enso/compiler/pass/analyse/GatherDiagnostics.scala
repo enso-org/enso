@@ -6,7 +6,8 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,
   Expression,
-  Module
+  Module,
+  Name
 }
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -81,7 +82,16 @@ case object GatherDiagnostics extends IRPass {
             })
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ x.diagnostics.toList
-      case x => x.diagnostics.toList
+      case x: Name.Literal =>
+        val typeSignatureDiagnostics =
+          x.getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ x.diagnostics.toList
+      case x =>
+        x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))

@@ -50,6 +50,24 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void wrongExpressionSignature() throws Exception {
+    final URI uri = new URI("memory://neg.enso");
+    final Source src = Source.newBuilder("enso", """
+    neg a = 0 - a:Xyz
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember("eval_expression", "neg").execute(-1);
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
   public void wrongAscribedTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
     final Source src = Source.newBuilder("enso", """
