@@ -1014,15 +1014,18 @@ class IrToTruffle(
       }
       runtimeExpression.setTailStatus(getTailStatus(ir))
 
-      val types = ir.getMetadata(TypeSignatures)
-      if (types.isDefined) {
-        val checkNode = extractAscribedType(null, types.get.signature);
-        if (checkNode != null) {
-          runtimeExpression =
-            ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
-        }
+      ir match {
+        case _: Expression.Binding =>
+        case _ =>
+          val types = ir.getMetadata(TypeSignatures)
+          if (types.isDefined) {
+            val checkNode = extractAscribedType(null, types.get.signature);
+            if (checkNode != null) {
+              runtimeExpression =
+                ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
+            }
+          }
       }
-
       runtimeExpression
     }
 
