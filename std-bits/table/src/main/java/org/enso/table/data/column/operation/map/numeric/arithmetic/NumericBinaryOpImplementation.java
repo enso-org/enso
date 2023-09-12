@@ -24,7 +24,7 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
  */
 public abstract class NumericBinaryOpImplementation<T extends Number, I extends Storage<? super T>> extends BinaryMapOperation<T, I> implements NumericBinaryOpDefinition {
 
-  // Regardless of input type, our integer operations return 64-bit integers.
+  // The type to use for small integer results (regardless of the input bit size).
   public static final IntegerType INTEGER_RESULT_TYPE = IntegerType.INT_64;
 
   public NumericBinaryOpImplementation(String name) {
