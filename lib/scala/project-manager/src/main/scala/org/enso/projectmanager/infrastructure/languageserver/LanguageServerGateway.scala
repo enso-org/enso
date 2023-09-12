@@ -54,7 +54,7 @@ trait LanguageServerGateway[F[+_, +_]] {
     * @param projectId a project id
     * @return true if project is open
     */
-  def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
+  def isRunning(projectId: UUID): F[CheckTimeout.type, (Boolean, Boolean)]
 
   /** Request a language server to rename project.
     *

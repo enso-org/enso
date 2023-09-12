@@ -141,7 +141,7 @@ class JsonConnectionController(
   }
 
   override def receive: Receive = {
-    case JsonRpcServer.WebConnect(webActor) =>
+    case JsonRpcServer.WebConnect(webActor, _) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
@@ -180,7 +180,7 @@ class JsonConnectionController(
     case Request(_, id, _) =>
       sender() ! ResponseError(Some(id), SessionNotInitialisedError)
 
-    case MessageHandler.Disconnected =>
+    case MessageHandler.Disconnected(_) =>
       context.stop(self)
   }
 
@@ -304,7 +304,7 @@ class JsonConnectionController(
     case Request(InitProtocolConnection, id, _) =>
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
-    case MessageHandler.Disconnected =>
+    case MessageHandler.Disconnected(_) =>
       logger.info("Json session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
