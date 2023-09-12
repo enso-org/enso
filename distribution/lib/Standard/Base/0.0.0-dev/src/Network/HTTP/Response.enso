@@ -69,7 +69,7 @@ type Response
     ## Get the response content length in bytes.
     content_length : Integer | Nothing
     content_length self =
-        content_length_optional = self.internal_http_response.headers.firstValue "Content-Legnth"
+        content_length_optional = self.internal_http_response.headers.firstValue "Content-Length"
         if content_length_optional.isPresent.not then Nothing else
             length_text = content_length_optional.get
             Integer.parse length_text

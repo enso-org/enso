@@ -7,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.IO
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -93,15 +94,16 @@ type Response_Body
 
                             ## Write contents to temporary file
                             Context.Output.with_enabled <|
-                                file.with_output_stream output_stream->
+                                file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] output_stream->
                                     output_stream.with_java_stream java_output_stream->
                                         java_output_stream.write first_block
                                         body_java_stream.transferTo java_output_stream
                                         java_output_stream.flush
                                         Nothing
+                                    output_stream.close
 
                             ## Have a file with the correct set up
-                            resource = Managed_Resource.new file delete_file
+                            resource = Managed_Resource.register file delete_file
                             Response_Body.Temporary_File resource self.content_type self.uri
         _ -> self
 
