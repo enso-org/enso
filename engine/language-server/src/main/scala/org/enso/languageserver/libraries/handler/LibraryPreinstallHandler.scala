@@ -168,15 +168,15 @@ class LibraryPreinstallHandler(
         case Left(error) =>
           val errorMessage = error match {
             case InternalError(throwable) =>
-              FileSystemError(s"Internal error: ${throwable.getMessage}")
+              FileSystemError(s"Internal error: ${throwable.toString}")
             case DependencyGatheringError(throwable) =>
-              DependencyDiscoveryError(throwable.getMessage)
+              DependencyDiscoveryError(throwable.toString)
             case InstallerError(Error.NotResolved(_)) =>
               LibraryNotResolved(libraryName)
             case InstallerError(Error.RequestedLocalLibraryDoesNotExist) =>
               LocalLibraryNotFound(libraryName)
             case InstallerError(Error.DownloadFailed(version, reason)) =>
-              LibraryDownloadError(libraryName, version, reason.getMessage)
+              LibraryDownloadError(libraryName, version, reason.toString)
           }
           replyTo ! ResponseError(
             Some(requestId),
@@ -216,7 +216,8 @@ class LibraryPreinstallHandler(
         progressReporter     = notificationReporter,
         languageHome         = config.installerConfig.languageHome,
         edition              = edition,
-        preferLocalLibraries = preferLocalLibraries
+        preferLocalLibraries = preferLocalLibraries,
+        projectRoot          = Some(editionReferenceResolver.projectRoot.toPath)
       )
       dependencyResolver = new DependencyResolver(
         localLibraryProvider     = config.localLibraryProvider,

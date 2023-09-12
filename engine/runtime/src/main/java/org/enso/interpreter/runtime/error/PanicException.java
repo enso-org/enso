@@ -82,7 +82,7 @@ public final class PanicException extends AbstractTruffleException {
     InteropLibrary library = InteropLibrary.getUncached();
     try {
       msg = library.asString(library.getExceptionMessage(this));
-    } catch (UnsupportedMessageException e) {
+    } catch (AssertionError | UnsupportedMessageException e) {
       msg = TypeToDisplayTextNodeGen.getUncached().execute(payload);
     }
     cacheMessage = msg;

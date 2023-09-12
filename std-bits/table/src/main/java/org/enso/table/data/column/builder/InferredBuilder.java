@@ -1,11 +1,13 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -99,16 +101,18 @@ public class InferredBuilder extends Builder {
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
-    } else if (NumericConverter.isCoercibleToDouble(o)) {
+    } else if (NumericConverter.isDecimalLike(o)) {
       currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
+    } else if (o instanceof String) {
+      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
+    } else if (o instanceof BigInteger) {
+      currentBuilder = new BigIntegerBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
       currentBuilder = new DateTimeBuilder(initialCapacity);
-    } else if (o instanceof String) {
-      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }
@@ -134,7 +138,8 @@ public class InferredBuilder extends Builder {
           // not apply only if a specific type is requested (so not in inferred builder).
           new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
-          new RetypeInfo(Byte.class, IntegerType.INT_64));
+          new RetypeInfo(Byte.class, IntegerType.INT_64),
+          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {

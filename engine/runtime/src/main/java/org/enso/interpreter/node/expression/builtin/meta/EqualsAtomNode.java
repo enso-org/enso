@@ -137,7 +137,7 @@ public abstract class EqualsAtomNode extends Node {
 
   @TruffleBoundary
   static Function findCompareMethod(Type comparator) {
-    var fn = comparator.getDefinitionScope().getMethods().get(comparator).get("compare");
+    var fn = comparator.getDefinitionScope().getMethodForType(comparator, "compare");
     if (fn == null) {
       throw new AssertionError("No compare function for " + comparator);
     }

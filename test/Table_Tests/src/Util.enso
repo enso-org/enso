@@ -1,6 +1,9 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Column
+import Standard.Database.Data.Table.Table as Database_Table
+import Standard.Database.Data.Column.Column as Database_Column
+import Standard.Table.Data.Table.Table as In_Memory_Table
+import Standard.Table.Data.Column.Column as In_Memory_Column
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -8,11 +11,11 @@ import Standard.Test.Test_Result.Test_Result
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-Table.should_equal : Any -> Integer -> Test_Result
-Table.should_equal self expected frames_to_skip=0 =
+In_Memory_Table.should_equal : Any -> Integer -> Test_Result
+In_Memory_Table.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     case expected of
-        _ : Table ->
+        _ : In_Memory_Table ->
             tables_equal t0 t1 =
                 same_headers = (t0.columns.map .name) == (t1.columns.map .name)
                 same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
@@ -23,17 +26,29 @@ Table.should_equal self expected frames_to_skip=0 =
                 Test.fail msg
         _ -> Test.fail "Got a Table, but expected a "+expected.to_display_text+' (at '+loc+').'
 
-Column.should_equal : Any -> Integer -> Test_Result
-Column.should_equal self expected frames_to_skip=0 =
+In_Memory_Column.should_equal : Any -> Integer -> Test_Result
+In_Memory_Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     case expected of
-        _ : Column ->
+        _ : In_Memory_Column ->
             if self.name != expected.name then
                 Test.fail "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
             if self.length != expected.length then
                 Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+" (at "+loc+")."
             self.to_vector.should_equal expected.to_vector
         _ -> Test.fail "Got a Column, but expected a "+expected.to_display_text+' (at '+loc+').'
+
+Database_Table.should_equal : Database_Table -> Integer -> Test_Result
+Database_Table.should_equal self expected frames_to_skip=0 =
+    t0 = self.read
+    t1 = expected.read
+    t0 . should_equal t1 frames_to_skip
+
+Database_Column.should_equal : Database_Column -> Integer -> Test_Result
+Database_Column.should_equal self expected frames_to_skip=0 =
+    t0 = self.read
+    t1 = expected.read
+    t0 . should_equal t1 frames_to_skip
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
     case newline_at_end of

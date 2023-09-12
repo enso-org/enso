@@ -603,6 +603,7 @@ export interface ProjectUpdateRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
     forceCreate: boolean
+    executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */

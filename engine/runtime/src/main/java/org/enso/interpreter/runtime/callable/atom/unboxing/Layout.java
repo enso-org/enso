@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Type;
 
 /**
  * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
@@ -301,20 +300,22 @@ public class Layout {
   private static final class SetterTypeCheckFactory
       implements NodeFactory<UnboxingAtom.FieldSetterNode> {
     private final String argName;
-    private final Type[] type;
+    private final ReadArgumentCheckNode typeCheck;
     private final NodeFactory<UnboxingAtom.FieldSetterNode> delegate;
 
     private SetterTypeCheckFactory(
-        ArgumentDefinition arg, Type[] type, NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
+        ArgumentDefinition arg,
+        ReadArgumentCheckNode typeCheck,
+        NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
       assert factory != null;
       this.argName = arg.getName();
-      this.type = type;
+      this.typeCheck = typeCheck;
       this.delegate = factory;
     }
 
     @Override
     public UnboxingAtom.FieldSetterNode createNode(Object... arguments) {
-      var checkNode = ReadArgumentCheckNode.build(argName, type);
+      var checkNode = (ReadArgumentCheckNode) typeCheck.copy();
       var setterNode = delegate.createNode(arguments);
       return checkNode == null ? setterNode : new CheckFieldSetterNode(setterNode, checkNode);
     }
@@ -352,7 +353,7 @@ public class Layout {
 
     @Override
     public void execute(Atom atom, Object value) {
-      var valueOrConvertedValue = checkNode.executeCheckOrConversion(null, value);
+      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value);
       setterNode.execute(atom, valueOrConvertedValue);
     }
   }

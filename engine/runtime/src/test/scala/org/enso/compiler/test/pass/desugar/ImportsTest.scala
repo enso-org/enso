@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -30,7 +30,7 @@ class ImportsTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *

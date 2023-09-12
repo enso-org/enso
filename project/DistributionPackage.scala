@@ -606,9 +606,17 @@ object DistributionPackage {
       val archive = downloadGraal(log, os, architecture)
 
       if (os.hasSupportForSulong) {
-        val packageDir        = archive.getParentFile
-        val archiveRootDir    = list(archive).head.getTopDirectory.getName
-        val extractedGraalDir = packageDir / archiveRootDir
+        log.info("Building GraalVM distribution2")
+        val packageDir         = archive.getParentFile
+        val archiveRootDir     = list(archive).head.getTopDirectory.getName
+        val extractedGraalDir0 = packageDir / archiveRootDir
+        val graalRuntimeDir =
+          s"graalvm-ce-java${graalJavaVersion}-${graalVersion}"
+        val extractedGraalDir = packageDir / graalRuntimeDir
+
+        if (extractedGraalDir0.exists()) {
+          IO.delete(extractedGraalDir0)
+        }
         if (extractedGraalDir.exists()) {
           IO.delete(extractedGraalDir)
         }
@@ -616,12 +624,17 @@ object DistributionPackage {
         log.info(s"Extracting $archive to $packageDir")
         extract(archive, packageDir)
 
+        if (extractedGraalDir0 != extractedGraalDir) {
+          log.info(s"Standardizing GraalVM directory name")
+          IO.move(extractedGraalDir0, extractedGraalDir)
+        }
+
         log.info("Installing components")
         gu(log, os, extractedGraalDir, "install", "python")
 
         log.info(s"Re-creating $archive")
         IO.delete(archive)
-        makeArchive(packageDir, archiveRootDir, archive)
+        makeArchive(packageDir, graalRuntimeDir, archive)
 
         log.info(s"Cleaning up $extractedGraalDir")
         IO.delete(extractedGraalDir)

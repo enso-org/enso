@@ -9,9 +9,8 @@ import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
 
@@ -26,9 +25,9 @@ import java.util.logging.Level;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
-    private final Module module;
+    private final org.enso.interpreter.runtime.Module module;
 
-    public ModuleCache(Module module) {
+    public ModuleCache(org.enso.interpreter.runtime.Module module) {
       super(Level.FINEST, module.getName().toString(), true, false);
       this.module = module;
       this.entryName = module.getName().item();
@@ -48,14 +47,14 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
         try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
-          if (stream.readObject() instanceof IR.Module ir) {
+          if (stream.readObject() instanceof Module ir) {
               try {
                   return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
               } catch (IOException ioe) {
                   throw new ClassNotFoundException(ioe.getMessage());
               }
           } else {
-              throw new ClassNotFoundException("Expected IR.Module, got " + data.getClass());
+              throw new ClassNotFoundException("Expected Module, got " + data.getClass());
           }
         }
     }
@@ -178,16 +177,16 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     // CachedModule is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
     static class CachedModule {
-        private final IR.Module _moduleIR;
+        private final Module _moduleIR;
         private final CompilationStage _compilationStage;
         private final Source _source;
-        public CachedModule(IR.Module moduleIR, CompilationStage compilationStage, Source source) {
+        public CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {
             this._moduleIR = moduleIR;
             this._compilationStage = compilationStage;
             this._source = source;
         }
 
-        IR.Module moduleIR() {
+        Module moduleIR() {
             return _moduleIR;
         }
         CompilationStage compilationStage() {

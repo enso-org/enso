@@ -17,20 +17,32 @@ reconcile_types current new = case current of
         Value_Type.Byte    -> Value_Type.Integer size
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Decimal _ _ -> new
         _                  -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
             Value_Type.Float (max_size size new_size)
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Integer _ -> Value_Type.Float
-        Value_Type.Byte      -> Value_Type.Float
-        _                    -> Value_Type.Mixed
+        Value_Type.Integer _   -> Value_Type.Float
+        Value_Type.Byte        -> Value_Type.Float
+        Value_Type.Decimal _ _ -> Value_Type.Float
+        _                      -> Value_Type.Mixed
     Value_Type.Byte -> case new of
         Value_Type.Byte    -> Value_Type.Byte
         Value_Type.Integer size ->
             Value_Type.Integer size
         Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Decimal _ _ -> new
         _                  -> Value_Type.Mixed
+    Value_Type.Decimal precision scale -> case new of
+        Value_Type.Decimal new_precision new_scale ->
+            if (precision == new_precision) && (scale == new_scale) then new else
+                # TODO at some point we may want a more clever merging of precision and scale, for now we don't use them too much anyway so we just default to Nothing if they do not agree
+                Value_Type.Decimal
+        Value_Type.Integer _ -> Value_Type.Decimal precision scale
+        Value_Type.Byte      -> Value_Type.Decimal precision scale
+        Value_Type.Float _   -> Value_Type.Float
+        _                    -> Value_Type.Mixed
     Value_Type.Boolean -> case new of
         Value_Type.Boolean -> Value_Type.Boolean
         _                  -> Value_Type.Mixed
@@ -87,12 +99,12 @@ find_common_type types strict =
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
 find_argument_type : Any -> Value_Type | Nothing
-find_argument_type value = if Nothing == value then Nothing else
+find_argument_type value infer_precise_type=True = if Nothing == value then Nothing else
     case is_column value of
         False -> Enso_Types.most_specific_value_type value use_smallest=True
         True ->
             col_type = value.value_type
-            if col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
+            if infer_precise_type && col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
 
 ## PRIVATE
 type Addition_Kind
@@ -183,7 +195,8 @@ raise_unexpected_type expected_type argument =
 ## PRIVATE
 find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
 find_common_type_for_arguments arguments =
-    types = arguments.map find_argument_type . filter Filter_Condition.Not_Nothing
+    # Here we do not want to infer the more precise type for a Mixed column, because we want it to stay Mixed.
+    types = arguments.map (find_argument_type infer_precise_type=False) . filter Filter_Condition.Not_Nothing
     case types.is_empty of
         True -> Nothing
         False -> case find_common_type types strict=True of

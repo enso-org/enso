@@ -1,10 +1,9 @@
 package org.enso.projectmanager.boot
 
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
 
 import java.io.File
 import java.nio.file.Path
-
 import scala.concurrent.duration.FiniteDuration
 
 object configuration {
@@ -18,7 +17,7 @@ object configuration {
     *  @param profilingTime the time limiting the profiling duration
     */
   case class MainProcessConfig(
-    logLevel: LogLevel,
+    logLevel: Level,
     profilingEventsLogPath: Option[Path],
     profilingPath: Option[Path],
     profilingTime: Option[FiniteDuration]

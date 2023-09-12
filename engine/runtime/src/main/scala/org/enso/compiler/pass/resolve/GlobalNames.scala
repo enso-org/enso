@@ -2,7 +2,18 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Type
+}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
@@ -11,6 +22,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule
 }
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
@@ -50,9 +62,9 @@ case object GlobalNames extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val scopeMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis on the module"
@@ -77,9 +89,9 @@ case object GlobalNames extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val scopeMap = inlineContext.bindingsAnalysis()
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
@@ -92,20 +104,20 @@ case object GlobalNames extends IRPass {
   /** @inheritdoc */
 
   private def processModuleDefinition(
-    definition: IR.Module.Scope.Definition,
+    moduleDefinition: Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply
-  ): IR.Module.Scope.Definition = {
-    definition match {
-      case asc: IR.Type.Ascription => asc
-      case method: IR.Module.Scope.Definition.Method =>
+  ): Definition = {
+    moduleDefinition match {
+      case asc: Type.Ascription => asc
+      case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
           processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
-      case tp: IR.Module.Scope.Definition.Type =>
+      case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
             _.mapExpressions(
@@ -128,24 +140,24 @@ case object GlobalNames extends IRPass {
   }
 
   private def processExpression(
-    ir: IR.Expression,
+    ir: Expression,
     bindings: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions {
-      case selfTp: IR.Name.SelfType =>
+      case selfTp: Name.SelfType =>
         selfTypeResolution
           .map(res => selfTp.updateMetadata(this -->> res))
           .getOrElse(
-            IR.Error.Resolution(
+            errors.Resolution(
               selfTp,
-              IR.Error.Resolution.ResolverError(ResolutionNotFound)
+              errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
-      case lit: IR.Name.Literal =>
+      case lit: Name.Literal =>
         if (params.exists(p => p.name.name == lit.name)) {
           lit
         } else {
@@ -161,9 +173,9 @@ case object GlobalNames extends IRPass {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    IR.Error.Resolution(
+                    errors.Resolution(
                       lit,
-                      IR.Error.Resolution.ResolverError(error)
+                      errors.Resolution.ResolverError(error)
                     )
                   case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
                     if (isInsideApplication) {
@@ -182,9 +194,9 @@ case object GlobalNames extends IRPass {
                         name     = method.name,
                         location = None
                       )
-                      val app = IR.Application.Prefix(
+                      val app = Application.Prefix(
                         fun,
-                        List(IR.CallArgument.Specified(None, self, None)),
+                        List(CallArgument.Specified(None, self, None)),
                         hasDefaultsSuspended = false,
                         lit.location
                       )
@@ -207,9 +219,9 @@ case object GlobalNames extends IRPass {
               }
           }
         }
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         app.function match {
-          case lit: IR.Name.Literal =>
+          case lit: Name.Literal =>
             if (!lit.isMethod)
               resolveReferantApplication(
                 app,
@@ -244,13 +256,13 @@ case object GlobalNames extends IRPass {
   }
 
   private def resolveReferantApplication(
-    app: IR.Application.Prefix,
-    fun: IR.Name.Literal,
+    app: Application.Prefix,
+    fun: Name.Literal,
     bindingsMap: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
-  ): IR.Expression = {
+  ): Expression = {
     val processedFun = processExpression(
       app.function,
       bindingsMap,
@@ -279,7 +291,7 @@ case object GlobalNames extends IRPass {
               BindingsMap.ResolvedModule(mod)
             )
           )
-        val selfArg = IR.CallArgument.Specified(None, self, None)
+        val selfArg = CallArgument.Specified(None, self, None)
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>
@@ -288,12 +300,12 @@ case object GlobalNames extends IRPass {
   }
 
   private def resolveLocalApplication(
-    app: IR.Application.Prefix,
+    app: Application.Prefix,
     bindings: BindingsMap,
-    params: List[IR.DefinitionArgument],
+    params: List[DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
-  ): IR.Expression = {
+  ): Expression = {
     val processedFun =
       processExpression(
         app.function,
@@ -341,11 +353,11 @@ case object GlobalNames extends IRPass {
   }
 
   private def buildConsApplication(
-    originalApp: IR.Application.Prefix,
+    originalApp: Application.Prefix,
     calledCons: BindingsMap.Cons,
-    newFun: IR.Expression,
-    newArgs: List[IR.CallArgument]
-  ): IR.Expression = {
+    newFun: Expression,
+    newArgs: List[CallArgument]
+  ): Expression = {
     if (
       newArgs.isEmpty && (!originalApp.hasDefaultsSuspended || calledCons.arity == 0)
     ) {
@@ -358,7 +370,7 @@ case object GlobalNames extends IRPass {
   private def buildSymbolFor(
     cons: BindingsMap.ResolvedConstructor,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     freshNameSupply
       .newName()
       .updateMetadata(this -->> BindingsMap.Resolution(cons))
@@ -366,7 +378,7 @@ case object GlobalNames extends IRPass {
 
   private def resolveQualName(
     thisResolution: BindingsMap.Resolution,
-    consName: IR.Name.Literal
+    consName: Name.Literal
   ): Option[BindingsMap.ResolvedName] =
     thisResolution.target match {
       case BindingsMap.ResolvedModule(module) =>
@@ -385,7 +397,7 @@ case object GlobalNames extends IRPass {
       case _ => None
     }
 
-  private def findThisPosition(args: List[IR.CallArgument]): Option[Int] = {
+  private def findThisPosition(args: List[CallArgument]): Option[Int] = {
     val ix = args.indexWhere(arg =>
       arg.name.exists(
         _.name == Constants.Names.SELF_ARGUMENT
@@ -394,14 +406,14 @@ case object GlobalNames extends IRPass {
     if (ix == -1) None else Some(ix)
   }
 
-  private def asGlobalVar(ir: IR): Option[IR.Name.Literal] =
+  private def asGlobalVar(ir: IR): Option[Name.Literal] =
     ir match {
-      case name: IR.Name.Literal =>
+      case name: Name.Literal =>
         if (isLocalVar(name)) None else Some(name)
       case _ => None
     }
 
-  private def isLocalVar(name: IR.Name.Literal): Boolean = {
+  private def isLocalVar(name: Name.Literal): Boolean = {
     val aliasInfo = name
       .unsafeGetMetadata(
         AliasAnalysis,

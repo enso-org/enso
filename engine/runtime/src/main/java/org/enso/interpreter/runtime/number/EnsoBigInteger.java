@@ -131,7 +131,7 @@ public final class EnsoBigInteger implements EnsoObject {
 
   @ExportMessage
   Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 
   @ExportMessage
@@ -146,7 +146,7 @@ public final class EnsoBigInteger implements EnsoObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 
   @Override

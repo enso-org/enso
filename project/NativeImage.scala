@@ -36,7 +36,8 @@ object NativeImage {
     "zio",
     "enumeratum",
     "akka",
-    "nl"
+    "nl",
+    "ch.qos.logback"
   )
 
   /** Creates a task that builds a native image for the current project.

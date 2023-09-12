@@ -5,15 +5,16 @@ import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 
+import java.math.BigInteger;
 import java.util.BitSet;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
@@ -34,6 +35,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       return convertDoubleStorage(doubleStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemBuilder);
+    } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
+      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -65,6 +68,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           builder.appendLongUnchecked(converted);
         } else {
           problemBuilder.reportNumberOutOfRange(x);
+          builder.appendNulls(1);
+        }
+      } else if (o instanceof BigInteger bigInteger) {
+        if (targetType.fits(bigInteger)) {
+          builder.appendLongUnchecked(bigInteger.longValue());
+        } else {
+          problemBuilder.reportNumberOutOfRange(bigInteger);
           builder.appendNulls(1);
         }
       } else {
@@ -106,7 +116,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         if (targetType.fits(value)) {
           long converted = (long) value;
           builder.appendLong(converted);
@@ -150,6 +160,28 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
       return new LongStorage(data, n, isMissing, targetType);
     }
+  }
+
+  private Storage<Long> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
+    int n = storage.size();
+    long[] data = new long[n];
+    BitSet isMissing = new BitSet();
+    for (int i = 0; i < n; i++) {
+      BigInteger value = storage.getItemBoxed(i);
+      if (value == null) {
+        isMissing.set(i);
+      } else if (targetType.fits(value)) {
+        data[i] = value.longValue();
+      } else {
+        isMissing.set(i);
+        problemBuilder.reportNumberOutOfRange(value);
+      }
+
+      context.safepoint();
+    }
+
+    return new LongStorage(data, n, isMissing, targetType);
   }
 
   public static long booleanAsLong(boolean value) {

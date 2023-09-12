@@ -67,6 +67,13 @@ spec setup =
                 c.value_type.is_text . should_be_true
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
+            # TODO what to test here?
+            Test.specify "should allow to cast an integer column to a decimal type" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                c = t.at "X" . cast Value_Type.Decimal
+                c.value_type.is_decimal . should_be_true
+                c.to_vector . should_equal [1, 2, 3]
+
         if setup.test_selection.fixed_length_text_columns then
             Test.specify "should allow to cast a text column to fixed-length"  <|
                 t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
@@ -447,9 +454,6 @@ spec setup =
                 t = table_builder [["X", [1, 2, 3]]]
 
                 # currently unsupported
-                r1 = t.cast "X" Value_Type.Decimal
-                r1.should_fail_with Illegal_Argument
-
                 r2 = t.cast "X" Value_Type.Binary
                 r2.should_fail_with Illegal_Argument
 

@@ -45,9 +45,15 @@ impl BoundingBox {
         BoundingBox { top, bottom, left, right }
     }
 
-    /// Constructor.
-    pub fn from_position_and_size(position: Vector2, size: Vector2) -> Self {
+    /// Construct from a bottom-left corner and a size.
+    pub fn from_bottom_left_position_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position, position + size)
+    }
+
+    /// Construct from a top-left corner and a size.
+    pub fn from_top_left_position_and_size(position: Vector2, size: Vector2) -> Self {
+        let bottom_right = Vector2(position.x + size.x, position.y - size.y);
+        Self::from_corners(position, bottom_right)
     }
 
     /// Construct from a bottom-left corner and a size. If either component of the size is negative,

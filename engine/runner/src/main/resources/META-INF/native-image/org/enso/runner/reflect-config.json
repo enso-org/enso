@@ -215,5 +215,41 @@
   {
     "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.DateConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.LevelConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.LineSeparatorConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.NopThrowableInformationConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.LoggerConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.classic.pattern.MessageConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.core.rolling.helper.DateTokenConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"ch.qos.logback.core.rolling.helper.IntegerTokenConverter",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
   }
 ]

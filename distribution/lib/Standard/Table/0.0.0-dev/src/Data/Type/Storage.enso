@@ -10,6 +10,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
+polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 polyglot java import org.enso.table.data.column.storage.type.DateType
@@ -37,6 +38,7 @@ to_value_type storage_type = case storage_type of
     _ : DateType -> Value_Type.Date
     _ : DateTimeType -> Value_Type.Date_Time with_timezone=True
     _ : TimeOfDayType -> Value_Type.Time
+    _ : BigIntegerType -> Value_Type.Decimal scale=0
     _ : AnyObjectType -> Value_Type.Mixed
 
 ## PRIVATE
@@ -58,6 +60,7 @@ closest_storage_type value_type = case value_type of
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
+    Value_Type.Decimal _ _ -> BigIntegerType.INSTANCE
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 

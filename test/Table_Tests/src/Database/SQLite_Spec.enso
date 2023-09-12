@@ -130,7 +130,7 @@ sqlite_specific_spec prefix connection setup =
         row2 = ["abc", Nothing, Nothing, 1.3]
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
-            (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]).update_database_table t update_action=Update_Action.Insert
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]) update_action=Update_Action.Insert
 
         Test.specify "should return Table information" <|
             i = t.info
@@ -235,7 +235,7 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the

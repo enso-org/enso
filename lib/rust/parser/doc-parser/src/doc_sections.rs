@@ -64,7 +64,7 @@ pub type HtmlString = String;
 
 /// A description of a single argument in the documentation. The name is delimited from the
 /// description using a colon.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, serde::Serialize)]
 pub struct Argument {
     /// Name of the argument.
     pub name:        String,
@@ -87,7 +87,7 @@ impl Argument {
 }
 
 /// A single section of the documentation.
-#[derive(Hash, Debug, Clone, PartialEq, Eq)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[allow(missing_docs)]
 pub enum DocSection {
     /// The documentation tag.
