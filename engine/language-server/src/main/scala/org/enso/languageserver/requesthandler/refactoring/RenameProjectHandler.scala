@@ -60,6 +60,7 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
           _,
           Api.ProjectRenamed(oldNormalizedName, newNormalizedName, newName)
         ) =>
+      replyTo ! ResponseResult(RenameProject, id, Unused)
       context.system.eventStream.publish(
         RefactoringProtocol.ProjectRenamedNotification(
           oldNormalizedName,
@@ -67,7 +68,6 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
           newName
         )
       )
-      replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
