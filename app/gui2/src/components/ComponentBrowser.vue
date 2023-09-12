@@ -77,7 +77,7 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
-  return suggestionDbStore.groups[component.group]?.color ?? '#006b8a'
+  return suggestionDbStore.groups[component.group ?? -1]?.color ?? '#006b8a'
 }
 
 // === Highlight ===
@@ -136,16 +136,6 @@ function selectLastAfterRefresh() {
     }
   })
 }
-
-const components: ComputedRef<Component[]> = componentStore.components
-watch(
-  components,
-  (_newComponents) => {
-    console.log(_newComponents)
-    selectLastAfterRefresh()
-  },
-  { deep: false },
-)
 
 // === Scrolling ===
 
@@ -230,7 +220,7 @@ useWindowEvent('keydown', (e) => {
             <div class="list-variant" style="">
               <div
                 v-for="item in visibleComponents"
-                :key="item.component.suggestion_id"
+                :key="item.component.suggestionId"
                 class="component"
                 :style="componentStyle(item.index)"
                 @mousemove="selected = item.index"
@@ -245,7 +235,7 @@ useWindowEvent('keydown', (e) => {
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
               <div
                 v-for="item in visibleComponents"
-                :key="item.component.suggestion_id"
+                :key="item.component.suggestionId"
                 class="component"
                 :style="{
                   backgroundColor: componentColor(item.component),

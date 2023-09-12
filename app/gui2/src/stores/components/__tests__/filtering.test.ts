@@ -10,7 +10,6 @@ import {
   makeStaticMethod,
   makeType,
 } from '@/stores/suggestionDatabase/entry'
-import { labelOfEntry } from '..'
 import { Filtering } from '../filtering'
 
 test.each([

@@ -6,12 +6,12 @@ export type UUID = string
 
 // The kind of a suggestion.
 export enum SuggestionKind {
-  Module,
-  Type,
-  Constructor,
-  Method,
-  Function,
-  Local,
+  Module = 'Module',
+  Type = 'Type',
+  Constructor = 'Constructor',
+  Method = 'Method',
+  Function = 'Function',
+  Local = 'Local',
 }
 
 // The argument of a constructor, method or function suggestion.

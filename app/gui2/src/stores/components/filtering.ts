@@ -25,16 +25,6 @@ export type MatchResult = {
   score: number
 } | null
 
-export function compareMatches(a: MatchResult, b: MatchResult) {
-  if (a != null && b != null) {
-    return a.score - b.score
-  } else if (a == null && b == null) {
-    return 0
-  } else {
-    return a == null ? 1 : -1
-  }
-}
-
 export class FilteringWithPattern {
   pattern: string
   wordMatchRegex: RegExp
@@ -42,7 +32,7 @@ export class FilteringWithPattern {
 
   constructor(pattern: string) {
     this.pattern = pattern
-    // Document somewhere this regexp.
+    // Todo[ao]: Document somewhere this regexp.
     this.wordMatchRegex = new RegExp(
       '(?:^|_)(' + pattern.replaceAll('_', '[^_]*).*?_(') + '[^_]*).*',
       'i',

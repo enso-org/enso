@@ -1,16 +1,21 @@
 import { computed, ref, type ComputedRef } from 'vue'
 import { defineStore } from 'pinia'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type SuggestionId,
+} from '@/stores/suggestionDatabase/entry'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type Filter, Filtering, type MatchResult, compareMatches } from './filtering'
+import { type Filter, Filtering, type MatchResult } from './filtering'
 import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
+import { compareOpt } from '@/util/compare'
 
 export interface Component {
-  suggestion_id: number
+  suggestionId: number
   icon: string
   label: string
   match: MatchResult
-  group: number
+  group?: number
 }
 
 export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
@@ -21,14 +26,40 @@ export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
   else return entry.name
 }
 
+export interface MatchedSuggestion {
+  id: SuggestionId
+  entry: SuggestionEntry
+  match: MatchResult
+}
+
+export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): number {
+  const matchCompare = compareOpt(a.match?.score, b.match?.score, 1)
+  if (matchCompare !== 0) return matchCompare
+  const groupCompare = compareOpt(a.entry.groupIndex, b.entry.groupIndex, 1)
+  if (groupCompare !== 0) return groupCompare
+  const kindCompare =
+    +(a.entry.kind === SuggestionKind.Module) - +(b.entry.kind === SuggestionKind.Module)
+  if (kindCompare !== 0) return kindCompare
+  const moduleCompare = a.entry.definedIn.localeCompare(b.entry.definedIn)
+  if (moduleCompare !== 0) return moduleCompare
+  return a.id - b.id
+}
+
 export const useComponentsStore = defineStore('components', () => {
   const filter = ref<Filter>({})
   const filtering = computed(() => new Filtering(filter.value))
   const suggestionDb = useSuggestionDbStore()
   const components: ComputedRef<Component[]> = computed(() => {
     const currentFiltering = filtering.value
-    const components2: Component[] = Array.from(suggestionDb.entries.entries(), ([id, entry]) => {
-      const match = currentFiltering.filter(entry)
+    const matched: MatchedSuggestion[] = Array.from(
+      suggestionDb.entries.entries(),
+      ([id, entry]) => {
+        const match = currentFiltering.filter(entry)
+        return { id, entry, match }
+      },
+    ).filter((entry) => entry.match)
+    matched.sort(compareSuggestions)
+    return Array.from(matched, ({ id, entry, match }) => {
       return {
         suggestionId: id,
         icon: entry.iconName ?? 'marketplace',
@@ -36,9 +67,7 @@ export const useComponentsStore = defineStore('components', () => {
         match,
         group: entry.groupIndex,
       }
-    }) //.filter((comp) => comp.match)
-    components2.sort((a, b) => compareMatches(a.match, b.match))
-    return components2
+    })
   })
 
   return { components, filter }
