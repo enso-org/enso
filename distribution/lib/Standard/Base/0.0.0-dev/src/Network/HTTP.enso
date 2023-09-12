@@ -172,7 +172,7 @@ type HTTP
     request self req try_auto_parse_response=False =
         check_output_context ~action =
             if Context.Output.is_enabled then action else
-                Error.throw (Forbidden_Operation.Error "HTTP POST/PUT/PATCH are forbidden as the Output context is disabled.")
+                Error.throw (Forbidden_Operation.Error "HTTP calls are forbidden as the Output context is disabled.")
         handle_request_error =
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
@@ -325,7 +325,7 @@ post_methods = [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch]
 check_method : Vector HTTP_Method -> Any -> Any ! Illegal_Argument
 check_method allowed_methods method ~action =
     if allowed_methods.contains method then action else
-        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
+        Error.throw (Request_Error.Error "Unsupported method" ("Unsupported method " + method.to_display_text))
 
 ## PRIVATE
    An error when sending an HTTP request.
