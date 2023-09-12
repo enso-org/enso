@@ -204,6 +204,9 @@ spec =
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100]
             Problems.assume_no_problems c1
             c1.value_type . should_be_a (Value_Type.Decimal ...)
+            c1.to_vector . should_equal [Java_Long.MAX_VALUE, 2^70, 100]
+            c1.to_vector.each e-> e.should_be_a Integer
+            c1.to_vector.map .to_text . should_equal [Java_Long.MAX_VALUE.to_text, (2^70).to_text, "100"]
 
             c2 = c1.cast (Value_Type.Integer Bits.Bits_64)
             c2.to_vector . should_equal [Java_Long.MAX_VALUE, Nothing, 100]
@@ -231,7 +234,10 @@ spec =
             big_big_integer = PolyglotHelpers.createBigBigIntegerComingFromJava
             t2 = Table.new [["X", [big_big_integer]]]
             t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
-            t2.at "X" . to_vector . should_equal [big_big_integer]
+            v2 = t2.at "X" . to_vector
+            v2.should_equal [big_big_integer]
+            v2.at 0 . should_be_a Integer
+            v2.at 0 . to_text . should_equal big_big_integer.to_text
 
         Test.specify "will create a Mixed column if other types are present" <|
             c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, "abc"]
