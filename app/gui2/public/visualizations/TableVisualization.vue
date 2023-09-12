@@ -52,16 +52,17 @@ interface UnknownTable {
   indices: unknown[][] | undefined
 }
 
-interface ColumnDefinition {
-  field: string
-  cellStyle?: object
-}
-
 declare module 'ag-grid-enterprise' {
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColDef<TData, TValue> {
     manuallySized: boolean
+  }
+
+  // These type parameters are defined on the original interface.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface AbstractColDef<TData, TValue> {
+    field: string
   }
 }
 
@@ -74,7 +75,9 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 // eslint-disable-next-line no-redeclare
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
 
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import type { GridOptions, ColDef, ColumnResizedEvent } from 'ag-grid-community'
+
+import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 import VisualizationContainer from './VisualizationContainer.vue'
 
 const props = defineProps<{
@@ -95,7 +98,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const agGridOptions = ref({
+const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 20,
   rowHeight: 20,
   rowData: [],
@@ -106,16 +109,13 @@ const agGridOptions = ref({
     filter: true,
     resizable: true,
     minWidth: 25,
-    headerValueGetter: (params) => (params.colDef as any).field,
+    headerValueGetter: (params) => params.colDef.field,
     cellRenderer: cellRenderer,
     manuallySized: false,
   },
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
-  // UNSAFE. These fields are added by AG Grid.
-  api: undefined as any,
-  columnApi: undefined as any,
-} satisfies import('ag-grid-enterprise').GridOptions)
+})
 
 const data = computed<Data>(() =>
   typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
@@ -222,11 +222,11 @@ function isMatrix(data: object): data is LegacyMatrix {
   return json.every((d) => d.length === firstLen)
 }
 
-function toField(name: string) {
-  return { field: name }
+function toField(name: string): ColDef {
+  return { field: name, manuallySized: false }
 }
 
-function indexField() {
+function indexField(): ColDef {
   return toField(INDEX_FIELD_NAME)
 }
 
@@ -261,7 +261,7 @@ watchEffect(() => {
     return
   }
 
-  let columnDefs: ColumnDefinition[] = []
+  let columnDefs: ColDef[] = []
   let rowData: object[] = []
 
   if ('error' in data_) {
@@ -269,11 +269,12 @@ watchEffect(() => {
       {
         field: 'Error',
         cellStyle: { 'white-space': 'normal' },
+        manuallySized: false,
       },
     ])
     options.api.setRowData([{ Error: data_.error }])
   } else if (data_.type === 'Matrix') {
-    let defs: ColumnDefinition[] = [indexField()]
+    let defs: ColDef[] = [indexField()]
     for (let i = 0; i < data_.column_count; i++) {
       defs.push(toField(i.toString()))
     }
@@ -281,7 +282,7 @@ watchEffect(() => {
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    let defs: ColumnDefinition[] = [indexField()]
+    let defs: ColDef[] = [indexField()]
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
@@ -355,10 +356,12 @@ watchEffect(() => {
 function updateTableSize(clientWidth: number | undefined) {
   clientWidth ??= tableNode.value?.getBoundingClientRect().width ?? 0
   const columnApi = agGridOptions.value.columnApi
+  if (columnApi == null) {
+    console.warn('AG Grid column API does not exist.')
+    return
+  }
   // Resize columns to fit the table width unless the user manually resized them.
-  const cols = columnApi
-    .getAllGridColumns()
-    .filter((c: import('ag-grid-community').Column) => !c.getColDef().manuallySized)
+  const cols = columnApi.getAllGridColumns().filter((c) => !c.getColDef().manuallySized)
 
   // Compute the maximum width of a column: the client width minus a small margin.
   const maxWidth = clientWidth - SIDE_MARGIN
@@ -366,12 +369,12 @@ function updateTableSize(clientWidth: number | undefined) {
   // Resize based on the data and then shrink any columns that are too wide.
   columnApi.autoSizeColumns(cols, true)
   const bigCols = cols
-    .filter((c: any) => c.getActualWidth() > maxWidth)
-    .map((c: unknown) => ({ key: c, newWidth: maxWidth }))
+    .filter((c) => c.getActualWidth() > maxWidth)
+    .map((c) => ({ key: c, newWidth: maxWidth, manuallySized: false }))
   columnApi.setColumnWidths(bigCols)
 }
 
-function lockColumnSize(e: import('ag-grid-community').ColumnResizedEvent) {
+function lockColumnSize(e: ColumnResizedEvent) {
   // Check if the resize is finished, and it's not from the API (which is triggered by us).
   if (!e.finished || e.source === 'api') {
     return
