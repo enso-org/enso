@@ -8,7 +8,6 @@ public class PolyglotHelpers {
     return BigInteger.TWO.pow(70);
   }
 
-
   /* Creates a big integer that could fit in a long. */
   public static BigInteger createSmallBigIntegerComingFromJava() {
     return BigInteger.TEN;
