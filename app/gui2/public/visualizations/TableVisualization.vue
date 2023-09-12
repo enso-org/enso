@@ -74,11 +74,12 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
-
 import type { GridOptions, ColDef, ColumnResizedEvent } from 'ag-grid-community'
 
-import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 import VisualizationContainer from './VisualizationContainer.vue'
+
+import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
+import { useThrottleFn } from '@vueuse/core'
 
 const props = defineProps<{
   width: number | undefined
@@ -139,26 +140,11 @@ onMounted(() => {
   new agGrid.Grid(tableNode.value!, agGridOptions.value)
 })
 
-const SIZE_UPDATE_INTERVAL_MS = 500
-let nextSizeUpdateEpochMs: number | undefined
-let isSizeUpdateQueued = false
+const throttledUpdateTableSize = useThrottleFn(updateTableSize, 500)
 watch(
   () => [data.value, props.width, props.fullscreen],
   () => {
-    if (nextSizeUpdateEpochMs == null) {
-      updateTableSize(undefined)
-      nextSizeUpdateEpochMs = Number(new Date()) + SIZE_UPDATE_INTERVAL_MS
-    } else if (!isSizeUpdateQueued && Number(new Date()) < nextSizeUpdateEpochMs) {
-      isSizeUpdateQueued = true
-      setTimeout(
-        () => {
-          updateTableSize(undefined)
-          isSizeUpdateQueued = false
-          nextSizeUpdateEpochMs = Number(new Date()) + SIZE_UPDATE_INTERVAL_MS
-        },
-        nextSizeUpdateEpochMs - Number(new Date()),
-      )
-    }
+    throttledUpdateTableSize(undefined)
   },
 )
 

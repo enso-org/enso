@@ -3,9 +3,6 @@
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 
-// eslint-disable-next-line no-redeclare
-declare var d3: typeof import('d3')
-
 /**
  * A d3.js Scatterplot visualization.
  *
@@ -78,6 +75,9 @@ interface Color {
   green: number
   blue: number
 }
+
+// eslint-disable-next-line no-redeclare
+declare const d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
@@ -88,12 +88,13 @@ import FindIcon from './icons/find.svg'
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+import type * as d3Types from 'd3'
 
 import { getTextWidth } from './measurement.ts'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   width: number | undefined
@@ -104,8 +105,8 @@ const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
-// TODO[sb]: Consider switching to a global keyboard shortcut handler.
-let shortcuts = {
+// TODO [sb]: Consider switching to a global keyboard shortcut handler.
+const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
   showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
 }
@@ -118,7 +119,7 @@ const VISIBLE_POINTS = 'visible'
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 
-const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
+const SHAPE_TO_SYMBOL: Record<string, d3Types.SymbolType> = {
   cross: d3.symbolCross,
   diamond: d3.symbolDiamond,
   square: d3.symbolSquare,
@@ -126,7 +127,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<Scale, d3.ScaleContinuousNumeric<number, number, never>> = {
+const SCALE_TO_D3_SCALE: Record<Scale, d3Types.ScaleContinuousNumeric<number, number, never>> = {
   [Scale.linear]: d3.scaleLinear(),
   [Scale.logarithmic]: d3.scaleLog(),
 }
@@ -180,9 +181,12 @@ const pointsNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
+const d3Points = ref<d3Types.Selection<SVGPathElement, Point, SVGGElement, unknown>>()
+const d3Labels = ref<d3Types.Selection<SVGTextElement, Point, SVGGElement, unknown>>()
 const bounds = ref<[number, number, number, number] | null>(null)
 const brushExtent = ref<Extent | null>(null)
 const limit = ref(DEFAULT_LIMIT)
+const focus = ref<Focus>()
 
 const margin = computed(() => {
   const xLabel = data.value.axis.x.label
@@ -203,13 +207,13 @@ const width = computed(
 const height = computed(
   () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
 )
-const xTicks = computed(() => height.value / 40)
-const yTicks = computed(() => width.value / 20)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
+const xTicks = computed(() => boxWidth.value / 40)
+const yTicks = computed(() => boxHeight.value / 20)
 
 function updatePreprocessor() {
-  let args = []
+  const args = []
   if (bounds.value != null) {
     args.push('[' + bounds.value.join(',') + ']')
   } else {
@@ -226,6 +230,10 @@ function updatePreprocessor() {
 
 onMounted(() => {
   updatePreprocessor()
+})
+
+watchEffect(() => {
+  focus.value = data.value.focus
 })
 
 /**
@@ -260,9 +268,10 @@ onMounted(() => {
 })
 
 watch(
-  () => [props.width, props.height],
+  () => [data.value, props.width, props.height],
   () => {
     scaleAndAxis = updateAxes()
+    zoom = addPanAndZoom()
     redrawPoints()
     addBrushing()
   },
@@ -490,6 +499,7 @@ function onKeydown(event: KeyboardEvent) {
     fitAll()
   }
 }
+
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   document.addEventListener('click', endBrushing)
@@ -513,6 +523,7 @@ onUnmounted(() => {
  * Section "Brushing for zooming".
  */
 function zoomToSelected() {
+  focus.value = undefined
   if (brushExtent.value == null) {
     return
   }
@@ -589,37 +600,40 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
   }
 }
 
-/**
- * Create a plot object and populate it with the given data.
- */
-function redrawPoints() {
+const SIZE_SCALE_MULTIPLER = 100
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
+  ACCENT_COLOR.blue * 255
+},0.8)`
+
+watchEffect(() => {
   if (pointsNode.value == null) {
-    throw new Error('Could not find the HTML element for the scatterplot.')
+    // Not yet mounted.
+    return
   }
   const points = pointsNode.value
   const symbol = d3.symbol()
-  const sizeScaleMultiplier = 100
 
-  const color = ACCENT_COLOR
-  const fillColor = `rgba(${color.red * 255},${color.green * 255},${color.blue * 255},0.8)`
-
-  d3.select(points)
+  d3Points.value?.remove()
+  d3Points.value = d3
+    .select(points)
     .selectAll('dataPoint')
     .data(data.value.data)
     .enter()
     .append('path')
     .attr(
       'd',
-      symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * sizeScaleMultiplier),
+      symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
     )
     .attr(
       'transform',
       (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
     )
-    .style('fill', (d) => d.color ?? fillColor)
+    .style('fill', (d) => d.color ?? FILL_COLOR)
 
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3.select(points)
+    d3Labels.value?.remove()
+    d3Labels.value = d3
+      .select(points)
       .selectAll('dataPoint')
       .data(data.value.data)
       .enter()
@@ -629,6 +643,26 @@ function redrawPoints() {
       .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
       .attr('class', 'label')
       .attr('fill', 'black')
+  }
+})
+
+/**
+ * Create a plot object and populate it with the given data.
+ */
+function redrawPoints() {
+  if (pointsNode.value == null) {
+    throw new Error('Could not find the HTML element for the scatterplot.')
+  }
+
+  d3Points.value?.attr(
+    'transform',
+    (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
+  )
+
+  if (data.value.points.labels === VISIBLE_POINTS) {
+    d3Labels.value
+      ?.attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 }
 
@@ -669,13 +703,13 @@ const domains = computed(() => {
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
 
-  const focus = data.value.focus
-  if (focus != null) {
-    if (focus.x != null && focus.y != null && focus.zoom != null) {
-      let newPaddingX = extremesAndDeltas.value.dx * (1 / (2 * focus.zoom))
-      let newPaddingY = extremesAndDeltas.value.dy * (1 / (2 * focus.zoom))
-      domainX = [focus.x - newPaddingX, focus.x + newPaddingX]
-      domainY = [focus.y - newPaddingY, focus.y + newPaddingY]
+  const focus_ = focus.value
+  if (focus_ != null) {
+    if (focus_.x != null && focus_.y != null && focus_.zoom != null) {
+      let newPaddingX = extremesAndDeltas.value.dx * (1 / (2 * focus_.zoom))
+      let newPaddingY = extremesAndDeltas.value.dy * (1 / (2 * focus_.zoom))
+      domainX = [focus_.x - newPaddingX, focus_.x + newPaddingX]
+      domainY = [focus_.y - newPaddingY, focus_.y + newPaddingY]
     }
   }
   return { x: domainX, y: domainY }
@@ -691,21 +725,22 @@ function updateAxes() {
   if (yAxisNode.value == null) {
     throw new Error('Could not find the HTML element for the y axis.')
   }
-  let xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
-  let xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
-  let yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])
-  let yAxis = d3.select(yAxisNode.value).call(d3.axisLeft(yScale).ticks(yTicks.value))
+  const xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
+  const xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
+  const yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])
+  const yAxis = d3.select(yAxisNode.value).call(d3.axisLeft(yScale).ticks(yTicks.value))
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
 
 function fitAll() {
+  focus.value = undefined
   zoom.zoomElem.transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
 
-  let domainX = [
+  const domainX = [
     extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
     extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
   ]
-  let domainY = [
+  const domainY = [
     extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
@@ -790,13 +825,6 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 <style scoped>
 @import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
 
-:root {
-  --color-stroke-dark: rgba(255, 255, 255, 0.7);
-  --color-button-light: #333;
-  --color-button-dark-hover: rgba(255, 255, 255, 0.5);
-  --color-selection-fill-dark: #efefef;
-}
-
 .ScatterplotVisualization {
   user-select: none;
   display: flex;
@@ -807,43 +835,12 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   stroke: transparent;
 }
 
-.ScatterplotVisualization > button {
-  margin-left: 5px;
-  margin-bottom: 5px;
-  display: inline-block;
-  padding: 2px 10px;
-  outline: none;
-  background-color: transparent;
-  border: 1px solid var(--color-button-light);
-  color: var(--color-button-light);
-  border-radius: 14px;
-  font-size: 10px;
-  font-family: DejaVuSansMonoBook;
-  vertical-align: top;
-  transition: all 0.3s ease;
-}
-
-.fit-all-button {
-  width: 80px;
-  height: 20px;
-}
-
-.zoom-to-selected-button {
-  width: 120px;
-  height: 20px;
-}
-
 .label {
-  font-family: DejaVuSansMonoBook;
+  font-family: 'DejaVu Sans Mono', monospace;
   font-size: 10px;
 }
 
 .label-y {
   transform: rotate(-90deg);
-}
-
-button:hover {
-  background-color: var(--color-button-light);
-  color: var(--color-selection-fill-dark);
 }
 </style>

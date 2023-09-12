@@ -1,10 +1,11 @@
 import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vue from 'vue'
+import * as vueUseCore from '@vueuse/core'
 
 import { defineStore } from 'pinia'
 
-const moduleCache: Record<string, any> = { vue }
+const moduleCache: Record<string, any> = { vue, '@vueuse/core': vueUseCore }
 // @ts-expect-error
 window.__visualizationModules = moduleCache
 
@@ -28,6 +29,7 @@ const builtinVisualizationPaths: Record<string, string> = {
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
   'SQL Query': '/visualizations/SQLVisualization.vue',
+  Heatmap: '/visualizations/HeatmapVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -235,6 +237,13 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
             },
           ],
         }
+      }
+      case 'Heatmap': {
+        return [
+          ['a', 'b', 'c', 'd', 'a'],
+          [1, 2, 3, 2, 3],
+          [50, 25, 40, 20, 10],
+        ]
       }
       case 'Table': {
         return {

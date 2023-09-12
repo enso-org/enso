@@ -80,6 +80,7 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         }
         if (
           path == 'vue' ||
+          path == '@vueuse/core' ||
           path.endsWith('.svg') ||
           path.endsWith('.ts') ||
           path.endsWith('.vue')
