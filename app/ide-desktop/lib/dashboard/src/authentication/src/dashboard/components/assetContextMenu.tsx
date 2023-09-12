@@ -16,6 +16,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import * as assetsTable from './assetsTable'
+import * as categorySwitcher from './categorySwitcher'
 import * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
@@ -49,7 +50,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { filterBy, dispatchAssetEvent, dispatchAssetListEvent },
+            state: { category, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
@@ -94,7 +95,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         },
         [/* should never change */ setItem]
     )
-    return filterBy === backendModule.FilterBy.trashed ? (
+    return category === categorySwitcher.Category.trash ? (
         !ownsThisAsset ? null : (
             <ContextMenus hidden={hidden} key={asset.id} event={event}>
                 <ContextMenu hidden={hidden}>

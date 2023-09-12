@@ -7,7 +7,6 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as backend from '../backend'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 
@@ -61,20 +60,61 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // === CategorySwitcher ===
 // ========================
 
+/** The categories available in the category switcher. */
+export enum Category {
+    recent = 'Recent',
+    drafts = 'Drafts',
+    home = 'Home',
+    root = 'Root',
+    trash = 'Trash',
+}
+
+const CATEGORIES: Category[] = [
+    Category.recent,
+    Category.drafts,
+    Category.home,
+    Category.root,
+    Category.trash,
+]
+
+const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
+    [Category.recent]: false,
+    [Category.drafts]: true,
+    [Category.home]: false,
+    [Category.root]: true,
+    [Category.trash]: false,
+}
+
+const CATEGORY_ICONS: Record<Category, string> = {
+    [Category.recent]: RecentIcon,
+    [Category.drafts]: TempIcon,
+    [Category.home]: Home2Icon,
+    [Category.root]: RootIcon,
+    [Category.trash]: Trash2Icon,
+}
+
+const CATEGORY_CLASS_NAMES: Record<Category, string> = {
+    [Category.recent]: '-ml-0.5',
+    [Category.drafts]: '-ml-0.5',
+    [Category.home]: '',
+    [Category.root]: '',
+    [Category.trash]: '',
+} as const
+
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-    filterBy: backend.FilterBy
-    setFilterBy: (filterBy: backend.FilterBy) => void
+    category: Category
+    setCategory: (category: Category) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-    const { filterBy, setFilterBy } = props
+    const { category, setCategory } = props
     const { localStorage } = localStorageProvider.useLocalStorage()
 
     React.useEffect(() => {
-        localStorage.set(localStorageModule.LocalStorageKey.driveCategory, filterBy)
-    }, [filterBy, /* should never change */ localStorage])
+        localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)
+    }, [category, /* should never change */ localStorage])
 
     return (
         <div className="flex flex-col items-start w-30">
@@ -83,53 +123,20 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     Category
                 </span>
             </div>
-            <CategorySwitcherItem
-                active={filterBy === backend.FilterBy.recent}
-                disabled={filterBy === backend.FilterBy.recent}
-                image={RecentIcon}
-                name="Recent"
-                iconClassName="-ml-0.5"
-                onClick={() => {
-                    setFilterBy(backend.FilterBy.recent)
-                }}
-            />
-            <CategorySwitcherItem
-                disabled
-                image={TempIcon}
-                name="Drafts"
-                error="Not implemented yet."
-                iconClassName="-ml-0.5"
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
-            <CategorySwitcherItem
-                active={filterBy === backend.FilterBy.active}
-                disabled={filterBy === backend.FilterBy.active}
-                image={Home2Icon}
-                name="Home"
-                onClick={() => {
-                    setFilterBy(backend.FilterBy.active)
-                }}
-            />
-            <CategorySwitcherItem
-                disabled
-                image={RootIcon}
-                name="Root"
-                error="Not implemented yet."
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
-            <CategorySwitcherItem
-                active={filterBy === backend.FilterBy.trashed}
-                disabled={filterBy === backend.FilterBy.trashed}
-                image={Trash2Icon}
-                name="Trash"
-                onClick={() => {
-                    setFilterBy(backend.FilterBy.trashed)
-                }}
-            />
+            {CATEGORIES.map(currentCategory => (
+                <CategorySwitcherItem
+                    key={currentCategory}
+                    active={category === currentCategory}
+                    disabled={category === currentCategory}
+                    image={CATEGORY_ICONS[currentCategory]}
+                    error={IS_NOT_YET_IMPLEMENTED[currentCategory] ? 'Not implemented yet.' : null}
+                    name={currentCategory}
+                    iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
+                    onClick={() => {
+                        setCategory(currentCategory)
+                    }}
+                />
+            ))}
         </div>
     )
 }

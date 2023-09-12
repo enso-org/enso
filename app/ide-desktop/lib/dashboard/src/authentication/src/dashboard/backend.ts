@@ -633,6 +633,7 @@ export interface CreateTagRequestBody {
 export interface ListDirectoryRequestParams {
     parentId: string | null
     filterBy: FilterBy | null
+    recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload file" endpoint. */

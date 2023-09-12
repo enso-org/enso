@@ -5,6 +5,7 @@ import * as array from './array'
 import * as backend from './backend'
 import * as column from './column'
 
+import * as categorySwitcher from './components/categorySwitcher'
 import * as pageSwitcher from './components/pageSwitcher'
 
 // ====================
@@ -28,7 +29,7 @@ interface LocalStorageData {
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
     [LocalStorageKey.isTemplatesListOpen]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
-    [LocalStorageKey.driveCategory]: backend.FilterBy
+    [LocalStorageKey.driveCategory]: categorySwitcher.Category
 }
 
 /** Whether each {@link LocalStorageKey} is user specific.
@@ -108,6 +109,15 @@ export class LocalStorage {
                         backendType: savedInfo.backendType,
                         accessToken: savedInfo.accessToken,
                     }
+                }
+            }
+            if (LocalStorageKey.driveCategory in savedValues) {
+                const categories = Object.values(categorySwitcher.Category)
+                if (
+                    array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
+                ) {
+                    this.values[LocalStorageKey.driveCategory] =
+                        savedValues[LocalStorageKey.driveCategory]
                 }
             }
             if (

@@ -14,8 +14,8 @@ import * as localStorageProvider from '../../providers/localStorage'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
+import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
-import CategorySwitcher from './categorySwitcher'
 import DriveBar from './driveBar'
 
 // =============
@@ -76,10 +76,10 @@ export default function Drive(props: DriveProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-    const [filterBy, setFilterBy] = React.useState(
+    const [category, setCategory] = React.useState(
         () =>
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
-            backendModule.FilterBy.active
+            categorySwitcher.Category.home
     )
 
     React.useEffect(() => {
@@ -172,7 +172,7 @@ export default function Drive(props: DriveProps) {
                         : 'Local Drive'}
                 </h1>
                 <DriveBar
-                    filterBy={filterBy}
+                    category={category}
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
@@ -182,12 +182,12 @@ export default function Drive(props: DriveProps) {
             <div className="flex flex-1 gap-3 overflow-hidden">
                 {backend.type === backendModule.BackendType.remote && (
                     <div className="flex flex-col gap-4 py-1">
-                        <CategorySwitcher filterBy={filterBy} setFilterBy={setFilterBy} />
+                        <CategorySwitcher category={category} setCategory={setCategory} />
                     </div>
                 )}
                 <AssetsTable
                     query={query}
-                    filterBy={filterBy}
+                    category={category}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}

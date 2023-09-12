@@ -314,6 +314,8 @@ export class RemoteBackend extends backendModule.Backend {
                     ...(query.parentId != null ? { parent_id: query.parentId } : {}),
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    ...(query.recentProjects ? { recent_projects: String(true) } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {

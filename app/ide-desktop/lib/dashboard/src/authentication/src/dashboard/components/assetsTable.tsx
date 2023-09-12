@@ -25,6 +25,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as categorySwitcher from './categorySwitcher'
 import AssetRow from './assetRow'
 import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -107,6 +108,18 @@ function insertAssetTreeNodeChildren(
     }
 }
 
+// =============================
+// === Category to filter by ===
+// =============================
+
+const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.FilterBy | null> = {
+    [categorySwitcher.Category.recent]: null,
+    [categorySwitcher.Category.drafts]: null,
+    [categorySwitcher.Category.home]: backendModule.FilterBy.active,
+    [categorySwitcher.Category.root]: null,
+    [categorySwitcher.Category.trash]: backendModule.FilterBy.trashed,
+}
+
 // ===================
 // === AssetsTable ===
 // ===================
@@ -114,7 +127,7 @@ function insertAssetTreeNodeChildren(
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     numberOfSelectedItems: number
-    filterBy: backendModule.FilterBy
+    category: categorySwitcher.Category
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -154,7 +167,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
     query: string
-    filterBy: backendModule.FilterBy
+    category: categorySwitcher.Category
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
@@ -180,7 +193,7 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
-        filterBy,
+        category,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -230,11 +243,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
     }, [query])
     const displayItems = React.useMemo(() => {
-        if (
-            sortColumn == null ||
-            sortDirection == null ||
-            filterBy === backendModule.FilterBy.recent
-        ) {
+        if (sortColumn == null || sortDirection == null) {
             return assetTreeNode.assetTreePreorderTraversal(assetTree)
         } else {
             const sortDescendingMultiplier = -1
@@ -266,7 +275,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 Array.from(tree).sort(compare)
             )
         }
-    }, [assetTree, filterBy, sortColumn, sortDirection])
+    }, [assetTree, sortColumn, sortDirection])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
@@ -276,7 +285,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setIsLoading(true)
-    }, [backend, filterBy])
+    }, [backend, category])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -358,7 +367,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                 case backendModule.BackendType.local: {
                     if (!isListingLocalDirectoryAndWillFail) {
                         const newAssets = await backend.listDirectory(
-                            { parentId: null, filterBy },
+                            {
+                                parentId: null,
+                                filterBy: CATEGORY_TO_FILTER_BY[category],
+                                recentProjects: category === categorySwitcher.Category.recent,
+                            },
                             null
                         )
                         if (!signal.aborted) {
@@ -374,7 +387,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                         !isListingRemoteDirectoryWhileOffline
                     ) {
                         const newAssets = await backend.listDirectory(
-                            { parentId: null, filterBy },
+                            {
+                                parentId: null,
+                                filterBy: CATEGORY_TO_FILTER_BY[category],
+                                recentProjects: category === categorySwitcher.Category.recent,
+                            },
                             null
                         )
                         if (!signal.aborted) {
@@ -388,7 +405,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [filterBy, accessToken, organization, backend]
+        [category, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -481,7 +498,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     const abortController = new AbortController()
                     directoryListAbortControllersRef.current.set(directoryId, abortController)
                     const childAssets = await backend.listDirectory(
-                        { parentId: directoryId, filterBy },
+                        {
+                            parentId: directoryId,
+                            filterBy: CATEGORY_TO_FILTER_BY[category],
+                            recentProjects: category === categorySwitcher.Category.recent,
+                        },
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
@@ -543,7 +564,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [filterBy, nodeMap, backend]
+        [category, nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(
@@ -813,7 +834,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             numberOfSelectedItems: selectedKeys.size,
-            filterBy,
+            category,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -828,7 +849,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }),
         [
             selectedKeys.size,
-            filterBy,
+            category,
             sortColumn,
             sortDirection,
             assetEvents,
@@ -889,7 +910,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
                     placeholder={
-                        filterBy === backendModule.FilterBy.trashed
+                        category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
                             : PLACEHOLDER
                     }
@@ -949,7 +970,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 ids: innerSelectedKeys,
                             })
                         }
-                        if (filterBy === backendModule.FilterBy.trashed) {
+                        if (category === categorySwitcher.Category.trash) {
                             if (innerSelectedKeys.size !== 0) {
                                 setModal(
                                     <ContextMenus key={uniqueString.uniqueString()} event={event}>
