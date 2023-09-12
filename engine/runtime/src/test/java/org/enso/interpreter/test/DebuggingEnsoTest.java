@@ -1,20 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
-import com.oracle.truffle.api.debug.DebugException;
-import com.oracle.truffle.api.debug.DebugScope;
-import com.oracle.truffle.api.debug.DebugStackFrame;
-import com.oracle.truffle.api.debug.DebugValue;
-import com.oracle.truffle.api.debug.Debugger;
-import com.oracle.truffle.api.debug.DebuggerSession;
-import com.oracle.truffle.api.debug.SuspendedCallback;
-import com.oracle.truffle.api.debug.SuspendedEvent;
-import com.oracle.truffle.api.nodes.LanguageInfo;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
@@ -29,6 +14,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -39,8 +25,23 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.oracle.truffle.api.debug.DebugException;
+import com.oracle.truffle.api.debug.DebugScope;
+import com.oracle.truffle.api.debug.DebugStackFrame;
+import com.oracle.truffle.api.debug.DebugValue;
+import com.oracle.truffle.api.debug.Debugger;
+import com.oracle.truffle.api.debug.DebuggerSession;
+import com.oracle.truffle.api.debug.SuspendedCallback;
+import com.oracle.truffle.api.debug.SuspendedEvent;
+import com.oracle.truffle.api.nodes.LanguageInfo;
 
 public class DebuggingEnsoTest {
   private Context context;
@@ -118,8 +119,8 @@ public class DebuggingEnsoTest {
   @Test
   public void recursiveFactorialCall() {
     final Value facFn = createEnsoMethod("""
-    from Standard.Base.Data.Ordering import all
-    
+    from Standard.Base import all
+
     fac : Number -> Number
     fac n =
         facacc : Number -> Number -> Number
@@ -156,7 +157,7 @@ public class DebuggingEnsoTest {
         bar arg_bar =
             loc_bar = arg_bar + 1
             loc_bar
-            
+
         foo x =
             loc_foo = 1
             bar loc_foo
@@ -195,7 +196,7 @@ public class DebuggingEnsoTest {
      Value fooFunc = createEnsoMethod("""
         polyglot java import java.nio.file.Path
         polyglot java import java.util.ArrayList
-        
+
         foo x =
             path = Path.of 'blaaaaa'
             list = ArrayList.new
@@ -231,7 +232,7 @@ public class DebuggingEnsoTest {
   public void testHostValueAsAtomField() {
     Value fooFunc = createEnsoMethod("""
         from Standard.Base import Vector
-        
+
         foo x =
             vec_builder = Vector.new_builder
             end = 42
@@ -256,7 +257,7 @@ public class DebuggingEnsoTest {
   public void testEvaluateExpression() {
     Value fooFunc = createEnsoMethod("""
         polyglot java import java.nio.file.Path
-        
+
         foo x =
             a = 10
             b = 20
@@ -323,7 +324,7 @@ public class DebuggingEnsoTest {
     Value fooFunc = createEnsoMethod("""
         bar =
             loc_bar = 42
-        
+
         foo x =
             a = 10  # Will get modified to 1
             b = 20  # Will get modified to 2
@@ -480,10 +481,10 @@ public class DebuggingEnsoTest {
   public void testSteppingOverUseStdLib() {
     Source src = createEnsoSource("""
         from Standard.Base import Vector
-        
+
         bar vec num_elems =
             vec.slice 0 num_elems
-        
+
         foo x =
             vec_builder = Vector.new_builder
             vec_builder.append 1

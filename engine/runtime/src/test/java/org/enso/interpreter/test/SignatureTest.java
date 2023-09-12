@@ -657,10 +657,9 @@ public class SignatureTest extends TestBase {
           self.dict.mul self.value that.value
 
     compute (a : Plus & Mul) (b : Plus & Mul) =
-      add (x:Plus) (y:Plus) = x+y
-      p = add a b
+      p = a+b
       m = a*b
-      add p m
+      p:Plus + m:Plus
 
     type BooleanPlus
         plus a:Boolean b:Boolean = a || b
