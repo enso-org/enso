@@ -85,8 +85,8 @@ long_fetcher bits =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
-biginteger_fetcher : Column_Fetcher
-biginteger_fetcher =
+big_integer_fetcher : Column_Fetcher
+big_integer_fetcher =
     fetch_value rs i =
         big_decimal = rs.getBigDecimal i
         if rs.wasNull then Nothing else
@@ -162,7 +162,7 @@ default_fetcher_for_value_type value_type =
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
-                True  -> biginteger_fetcher
+                True  -> big_integer_fetcher
                 # If we cannot guarantee that the column is integer, we will fall back to Float values, since there is no BigDecimal implementation yet.
                 # TODO I think we should add a warning somewhere
                 False -> double_fetcher
