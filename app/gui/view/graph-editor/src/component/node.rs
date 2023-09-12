@@ -785,6 +785,8 @@ impl Node {
         frp::extend! { network
             output_hover <- model.output.on_port_hover.map(|s| s.is_on());
             visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
+            is_preview <- visualization.view_state.map(|s| s.is_preview());
+            visualization_hover <- visualization_hover.gate(&is_preview);
             hovered_for_preview <- output_hover || visualization_hover;
             // The debounce is needed for a case where user moves mouse cursor from output port to
             // visualization preview. Moving out of the port make `output_hover` emit `false`,
