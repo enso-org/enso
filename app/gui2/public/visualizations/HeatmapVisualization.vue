@@ -27,6 +27,13 @@ interface HeatmapUpdate {
   data: object[] | undefined
 }
 
+interface DataPoint {
+  index: number
+  group: number
+  variable: number
+  value: number
+}
+
 // eslint-disable-next-line no-redeclare
 declare var d3: typeof import('d3')
 </script>
@@ -53,7 +60,7 @@ const emit = defineEmits<{
 }>()
 
 const containerNode = ref<HTMLElement>()
-const svgNode = ref<SVGElement>()
+const pointsNode = ref<SVGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 
@@ -125,19 +132,18 @@ const dataPoints = computed(() => {
   return Array.from<unknown, DataPoint>({ length: groups.length }, (_, i) => ({
     index: i,
     group: groups[i]!,
-    variable: variables[i],
+    variable: variables[i]!,
     value: values[i]!,
   }))
 })
 
 const d3Points = computed(() => {
-  if (xAxisNode.value == null || yAxisNode.value == null || svgNode.value == null) {
+  if (xAxisNode.value == null || yAxisNode.value == null || pointsNode.value == null) {
     // Not mounted yet.
     return
   }
   const dataPoints_ = dataPoints.value
 
-  console.log('what', dataPoints_, d3.max(dataPoints_, (d) => d.value) ?? 0)
   // Build color scale
   let fill = d3
     .scaleSequential()
@@ -145,7 +151,7 @@ const d3Points = computed(() => {
     .domain([0, d3.max(dataPoints_, (d) => d.value) ?? 1])
 
   return d3
-    .select<SVGElement, DataPoint>(svgNode.value)
+    .select<SVGElement, DataPoint>(pointsNode.value)
     .selectAll()
     .data(dataPoints.value, (d) => d?.group + ':' + d?.variable)
     .enter()
@@ -158,6 +164,11 @@ const d3Points = computed(() => {
     .style('opacity', 0.8)
 })
 
+const groups = computed(() => Array.from(new Set(Array.from(dataPoints.value, (p) => p.group))))
+const variables = computed(() =>
+  Array.from(new Set(Array.from(dataPoints.value, (p) => p.variable))),
+)
+
 /**
  * Initialise the heatmap with the current data and settings.
  */
@@ -168,7 +179,7 @@ function updateHeatmap() {
   if (yAxisNode.value == null) {
     throw new Error('Could not find the HTML element for the y axis.')
   }
-  if (svgNode.value == null) {
+  if (pointsNode.value == null) {
     throw new Error('Could not find the HTML element for the heatmap.')
   }
   const dataPoints_ = dataPoints.value
@@ -180,14 +191,11 @@ function updateHeatmap() {
     .domain(dataPoints_.map((d) => d.group))
     .padding(0.05)
   const xMod = Math.max(1, Math.round(dataPoints_.length / (boxWidth.value / 40)))
+  const lastGroupIndex = groups.value.length - 1
   let xAxis = d3
     .axisBottom(x)
     .tickSize(0)
-    .tickValues(
-      dataPoints_
-        .filter((_, i) => i % xMod === 0 || i === dataPoints_.length - 1)
-        .map((d) => d.group),
-    )
+    .tickValues(groups.value.filter((_, i) => i % xMod === 0 || i === lastGroupIndex))
   d3.select(xAxisNode.value).call(xAxis)
 
   // Build Y scales and axis:
@@ -197,14 +205,11 @@ function updateHeatmap() {
     .domain(dataPoints_.map((d) => d.variable ?? 0))
     .padding(0.05)
   const yMod = Math.max(1, Math.round(dataPoints_.length / (boxHeight.value / 40)))
+  const lastVariableIndex = variables.value.length - 1
   let yAxis = d3
     .axisLeft(y)
     .tickSize(0)
-    .tickValues(
-      dataPoints_
-        .filter((_, i) => i % yMod === 0 || i === dataPoints_.length - 1)
-        .map((d) => d.variable ?? 0),
-    )
+    .tickValues(variables.value.filter((_, i) => i % yMod === 0 || i === lastVariableIndex))
   d3.select(yAxisNode.value).call(yAxis)
 
   d3Points.value
@@ -212,13 +217,6 @@ function updateHeatmap() {
     .attr('y', (d) => y(d.variable ?? 0)!)
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
-}
-
-interface DataPoint {
-  index: number
-  group: number
-  variable: number | undefined
-  value: number
 }
 </script>
 
@@ -231,9 +229,10 @@ interface DataPoint {
   >
     <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
-        <g ref="svgNode" :transform="`translate(${margin.left},${margin.top})`">
+        <g :transform="`translate(${margin.left},${margin.top})`">
           <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="label label-y"></g>
+          <g ref="pointsNode"></g>
         </g>
       </svg>
     </div>

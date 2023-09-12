@@ -240,7 +240,7 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
       }
       case 'Heatmap': {
         return [
-          ['a', 'b', 'c', 'd', 'a'],
+          ['a', 'thing', 'c', 'd', 'a'],
           [1, 2, 3, 2, 3],
           [50, 25, 40, 20, 10],
         ]
