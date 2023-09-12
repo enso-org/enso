@@ -208,7 +208,7 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
-            response = Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch headers=[Header.content_type "application/diff"]
+            response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "application/diff"

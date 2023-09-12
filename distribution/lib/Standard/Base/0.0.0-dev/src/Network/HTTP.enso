@@ -190,18 +190,15 @@ type HTTP
             # Generate body publisher, possibly generating additional headers
             body_publisher_and_headers = case req.body of
                 Request_Body.Text text encoding content_type ->
-                    header = Header.content_type content_type
-                    builder.header header.name header.value
-                    Pair.new (body_publishers.ofString text encoding.to_java_charset) [Header.new "Content-Encoding" encoding.character_set]
+                    headers = [Header.content_type content_type, Header.new "Content-Encoding" encoding.character_set]
+                    Pair.new (body_publishers.ofString text encoding.to_java_charset) headers
                 Request_Body.Json x ->
-                    builder.header Header.application_json.name Header.application_json.value
                     json = x.to_json
                     json.if_not_error <|
-                        Pair.new (body_publishers.ofString json) []
+                        Pair.new (body_publishers.ofString json) [Header.application_json]
                 Request_Body.Binary file ->
-                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
                     path = Path.of file.path
-                    Pair.new (body_publishers.ofFile path) []
+                    Pair.new (body_publishers.ofFile path) [Header.application_octet_stream]
                 Request_Body.Form_Data form_data url_encoded ->
                     build_form_body_publisher form_data url_encoded
                 Request_Body.Empty ->
