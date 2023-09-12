@@ -91,6 +91,10 @@ spec =
                 Data.fetch url_get method=HTTP_Method.Head try_auto_parse_response=False . code . code . should_equal 200
                 Data.fetch url_get method=HTTP_Method.Options try_auto_parse_response=False . code . code . should_equal 200
 
+        Test.specify "Unsupported method" <|
+            err = Data.fetch url_get method=HTTP_Method.Post
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Post")
+
         Test.specify "unknown host" <|
             Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
 
@@ -225,8 +229,8 @@ spec =
                 Data.post url_delete Request_Body.Empty method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
 
         Test.specify "Unsupported method" <|
-            url_get = base_url_with_slash + "get"
-            Data.post url_get (Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
+            err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Get")
 
         Test.specify "unknown host" <|
             Data.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
