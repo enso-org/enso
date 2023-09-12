@@ -8,18 +8,11 @@ import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
 
-from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 polyglot java import java.lang.System as Java_System
-
-run_with_and_without_output ~action =
-    Context.Output.with_enabled <|
-        Test.with_clue "(normal mode - Output context enabled) " <|
-            action
-    Context.Output.with_disabled <|
-        Test.with_clue "(dry run - Output context disabled) " <|
-            action
 
 type Test_Type
     Aaa (s:Text)
