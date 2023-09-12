@@ -185,7 +185,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
    - uri: The URI to fetch.
    - body: The data to write. See `Supported Body Types` below.
    - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
-     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `POST`.
+     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
