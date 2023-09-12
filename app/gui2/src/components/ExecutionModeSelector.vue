@@ -59,9 +59,8 @@ useDocumentEvent('click', onDocumentClick)
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
+  padding: 1px 0px;
 }
 
 .ExecutionModeSelector {
@@ -72,10 +71,12 @@ span {
 .execution-mode-button {
   display: flex;
   align-items: center;
+  height: 24px;
   border-radius: var(--radius-full);
   background: #64b526;
 
   > .execution-mode {
+    font-weight: 600;
     padding: 0 8px;
   }
 
