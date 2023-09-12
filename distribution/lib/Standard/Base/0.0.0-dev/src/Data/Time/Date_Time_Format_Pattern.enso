@@ -1,0 +1,81 @@
+type Date_Time_Format_Pattern
+    ## A simple date-time format pattern.
+
+       Every letter in the pattern is interpreted as a pattern character as
+       described in the table below. Any character that is not a letter in the
+       pattern is treated as a literal character. If a sequence of letters needs
+       to be put in as a literal, it can be escaped using single quotes. Use two
+       single quotes in a row to represent a single quote in the result.
+
+       Pattern characters are interpreted case insensitively, with the exception
+       of `M/m' and 'H/h'.
+
+       Pattern characters:
+       - y: Year. The number of pattern letters determines the minimum number of
+         digits. If only two digits are supplied, TODO how do we interpret '90?
+       - M: Month of year. The number of pattern letters determines the format.
+         Single letter will accept any number (1-12), two letters will require
+         zero padding (01-12), three letters will use the short name, and four
+         letters will use the full name. The names that are expected depend on
+         the locale set when parsing a date.
+       - d: Day of month. If two digits are supplied, zero padding is used.
+       - E: Day of week. It will use a short name if repeated 3 or less times
+         and a full name otherwise. Providing just a day of week is usually not
+         enough to uniquely identify a date, but it can be used as a sanity
+         check together with other fields.
+       - H: 24h hour of day (0-23).
+       - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+         between am and pm. TODO possible to have both 0 and 12??
+       - m: Minute of hour.
+       - s: Second of minute.
+       - f: Fractional part of the second. The number of pattern letters
+         determines the number of digits. If one letter is used, any number of
+         digits will be accepted.
+       - a: AM/PM marker. Case insensitive.
+       - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+         -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+       - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
+
+       Some parts, like fractions of a second may not be required. The square
+       brackets `[]` can be used to surround such optional sections.
+
+       > Example
+         Date_Time.parse "yyyy-MM-dd'T'HH:mm:ss.fZ" "2021-10-12T12:34:56.789+0200" == (Date_Time.new 2021 10 12 12 34 56 milliseconds=789 (Time_Zone.new hours=2))
+         Date.parse "EEE, d MMM yyyy" "Tue, 12 Oct 2021" == (Date.new 2021 10 12)
+         Date.parse "EEEE, dd MMMM ''98" "Thursday, 1 October '98" == (Date.new 1998 10 01)
+         Date_Time.parse "d/M/Y h:mm a" "12/10/2021 5:34 PM" == (Date_Time.new 2021 10 12 17 34 00)
+    Simple pattern:Text
+
+    ## A pattern for formats related to the ISO 8601 leap week calendar.
+
+       The ISO 8601 leap week calendar is a variation of the ISO 8601 calendar
+       that defines a leap week as the week that contains the 29th of February.
+       This calendar is used by some European and Middle Eastern countries.
+
+       The pattern is a sequence of letters and symbols that are interpreted as
+       follows:
+       - Y: The week based year.
+       - W: Week of year.
+       - d: Numeric day of week (1-7).
+       - E: Named day of week. It will use a short name if repeated 3 or less
+         times and a full name otherwise.
+
+       The same as in the `Simple` pattern, the single quotes can be used to
+       escape letter literals and square brackets can be used to indicate
+       optional sections.
+
+       > Example
+         Date.parse (ISO_Week_Date "YYYY-'W'WW-d" "1976-W53-6") == (Date.new 1977 01 01)
+         Date.parse (ISO_Week_Date "YYYY-'W'WW, eee" "1978-W01, Mon") == (Date.new 1978 01 02)
+    ISO_Week_Date pattern:Text
+
+    ## ADVANCED
+       A pattern built using the Java pattern syntax.
+
+       This relies on the Java `DateTimeFormatter.ofPattern` method to build the
+       date time format. See the Java documentation for explanation of the
+       pattern format: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
+    Java pattern:Text
+
+## PRIVATE
+Date_Time_Format_Pattern.from (that:Text) = Date_Time_Format_Pattern.Simple that
