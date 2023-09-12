@@ -6,7 +6,7 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
+from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.Column.Column
 import Standard.Database.Data.SQL_Type.SQL_Type
@@ -278,6 +278,66 @@ postgres_specific_spec connection db_name setup =
             d.to_vector.should_equal ["xyz", "b", "def"]
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
+
+        Test.specify "should be able to round-trip a BigInteger column" <|
+            x = 2^70
+            m1 = Table.new [["X", [10, x]]]
+            m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+            t1 = m1.select_into_database_table connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
+            t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t1.at "X" . value_type . scale . should_equal 0
+            # If we want to enforce the scale, Postgres requires us to enforce a precision too, so we use the biggest one we can:
+            t1.at "X" . value_type . precision . should_equal 1000
+            w1 = Problems.expect_only_warning Inexact_Type_Coercion t1
+            w1.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
+            w1.actual_type . should_equal (Value_Type.Decimal precision=1000 scale=0)
+
+            v1x = t1.at "X" . to_vector
+            v1x.should_equal [10, x]
+            v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Integer
+
+            t2 = t1.set "[X] + 10" "Y"
+            t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
+            # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.
+            t2.at "Y" . value_type . scale . should_equal Nothing
+            t2.at "X" . to_vector . should_equal [10, x]
+            t2.at "Y" . to_vector . should_equal [20, x+10]
+
+            m2 = t2.remove_warnings.read
+            m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            # As noted above - once operations are performed, the scale=0 may be lost and the column will be approximated as a float.
+            m2.at "Y" . value_type . should_equal Value_Type.Float
+            m2.at "X" . to_vector . should_equal [10, x]
+            m2.at "Y" . to_vector . should_equal [20, x+10]
+            w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
+            w2.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+            w2.actual_type . should_equal Value_Type.Float
+
+            # This has more than 1000 digits.
+            super_large = 11^2000
+            m3 = Table.new [["X", [super_large]]]
+            m3.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t3 = m3.select_into_database_table connection (Name_Generator.random_name "BigInteger2") primary_key=[] temporary=True
+            t3 . at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            # If we exceed the 1000 digits precision, we cannot enforce neither scale nor precision anymore.
+            t3 . at "X" . value_type . precision . should_equal Nothing
+            t3 . at "X" . value_type . scale . should_equal Nothing
+            # Works but only relying on imprecise float equality:
+            t3 . at "X" . to_vector . should_equal [super_large]
+            w3 = Problems.expect_only_warning Inexact_Type_Coercion t3
+            w3.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
+            w3.actual_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+
+            m4 = t3.remove_warnings.read
+            # Because we no longer have a set scale, we cannot get a BigInteger column back - we'd need BigDecimal, but that is not fully supported yet in Enso - so we get the closest approximation - the imprecise Float.
+            m4 . at "X" . value_type . should_equal Value_Type.Float
+            m4 . at "X" . to_vector . should_equal [super_large]
+            w4 = Problems.expect_only_warning Inexact_Type_Coercion m4
+            w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+            w4.actual_type . should_equal Value_Type.Float
+
 
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
