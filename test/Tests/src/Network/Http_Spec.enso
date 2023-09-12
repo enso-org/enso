@@ -25,7 +25,7 @@ spec =
     # Set this to "https://httpbin.org" in your env to run this test
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
-        "The POST tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -104,7 +104,7 @@ spec =
             response.at "headers" . at "Content-Length" . should_equal "50"
             response.at "headers" . at "Content-Type" . should_equal "application/json"
 
-        Test.specify "Can perform am object JSON POST" <|
+        Test.specify "Can perform an object JSON POST" <|
             response = HTTP.post url_post (Test_Type.Bbb 12)
             response.at "data" . should_equal '{"type":"Test_Type","constructor":"Bbb","i":12}'
             response.at "headers" . at "Content-Length" . should_equal "47"

@@ -8,6 +8,7 @@ import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
+import project.IO
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Version.HTTP_Version
@@ -81,7 +82,7 @@ type HTTP
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
        - try_auto_parse_response: If true, attempt to auto-parse the result
-         body
+         body.
 
        > Example
          Send a Get request with headers.

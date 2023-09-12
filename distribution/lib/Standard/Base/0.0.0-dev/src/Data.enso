@@ -151,7 +151,10 @@ list_directory directory name_filter=Nothing recursive=False =
 
    Arguments:
    - uri: The URI to fetch.
-   - method: The HTTP method to use. Defaults to `GET`.
+   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
+     Defaults to `HTTP_Method.Get`.
+
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
@@ -167,7 +170,7 @@ list_directory directory name_filter=Nothing recursive=False =
 
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
-         HTTP.fetch URL . to_file file
+         Data.fetch URL . to_file file
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch uri method headers try_auto_parse_response
@@ -180,51 +183,68 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
 
    Arguments:
    - uri: The URI to fetch.
-   - body: The data to write.
-   - method: The HTTP method to use. Defaults to `GET`.
+   - body: The data to write. See `Supported Body Types` below.
+   - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
+     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `POST`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
+
+   ! Supported Body Types
+
+     - Request_Body.Text: Sends a text string, with optional encoding and content
+       type.
+     - Request_Body.Json: Sends an Enso object, after converting it to JSON.
+     - Request_Body.Binary: Sends a file.
+     - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
+       must be `Text`, and the values must be `Text` or `File`.
+     - Request_Body.Empty: Sends an empty body.
+
+     Additionally, the following types are allowed as the `body` parameter:
+
+     - Text: shorthand for `Request_Body.Text`.
+     - File: shorthand for `Request_Body.Binary`.
+     - Any Enso object: shorthand for `Request_Body.Json`.
 
    > Example
      Write a text string to an HTTP endpoint.
 
          import Standard.Base.Data
-         response = HTTP.post url_post (Request_Body.Text "hello world")
+         response = Data.post url_post (Request_Body.Text "hello world")
 
    > Example
      Write JSON to an HTTP endpoint.
 
          import Standard.Base.Data
          json = Json.parse '{"a": "asdf", "b": 123}'
-         response = HTTP.post url_post json
+         response = Data.post url_post json
 
    > Example
      Write an Enso object to an HTTP endpoint.
 
          import Standard.Base.Data
-         response = HTTP.post url_post (My_Type.Value 12)
+         response = Data.post url_post (My_Type.Value 12)
 
    > Example
      Write a text string to an HTTP endpoint, with a specific text encoding.
 
          import Standard.Base.Data
          body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
-         response = HTTP.post url_post body
+         response = Data.post url_post body
 
    > Example
      Write a text string to an HTTP endpoint, with a specific content type.
 
          import Standard.Base.Data
          body = Request_Body.Text 'a,b,c\n' content_type="text/csv"
-         response = HTTP.post url_post body
+         response = Data.post url_post body
 
    > Example
      Write the contents of a file to an HTTP endpoint.
 
          import Standard.Base.Data
          test_file = enso_project.data / "sample.png"
-         response = HTTP.post url_post (Request_Body.Binary test_file)
+         response = Data.post url_post (Request_Body.Binary test_file)
 
    > Example
      Write a multipart form to an HTTP endpoint.
@@ -232,7 +252,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
          import Standard.Base.Data
          test_file = enso_project.data / "sample.png"
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
-         response = HTTP.post url_post (Request_Body.Form_Data form_data)
+         response = Data.post url_post (Request_Body.Form_Data form_data)
 
    > Example
      Write a URL-encoded form to an HTTP endpoint.
@@ -240,7 +260,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
          import Standard.Base.Data
          test_file = enso_project.data / "sample.txt"
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
-         response = HTTP.post url_post (Request_Body.Form_Data form_data url_encoded=True)
+         response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch_or_post uri body method headers try_auto_parse_response
