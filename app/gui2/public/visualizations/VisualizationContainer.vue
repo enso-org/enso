@@ -10,6 +10,8 @@ import { ref } from 'vue'
 
 // FIXME: resizers to change `width` and `height`
 const props = defineProps<{
+  /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
+  overflow?: boolean
   /** If true, the visualization should display below the node background. */
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
@@ -56,6 +58,7 @@ function onWheel(event: WheelEvent) {
     >
       <div
         class="content scrollable"
+        :class="{ overflow }"
         :style="{
           width: fullscreen ? undefined : `${width}px`,
           height: fullscreen ? undefined : `${height}px`,
@@ -111,7 +114,7 @@ function onWheel(event: WheelEvent) {
   top: 50%;
   width: 100%;
   z-index: -1;
-  border-radius: 16px;
+  border-radius: var(--radius-default);
 }
 
 .VisualizationContainer.below-node {
@@ -138,6 +141,10 @@ function onWheel(event: WheelEvent) {
 }
 
 .content {
+  overflow: auto;
+}
+
+.content.overflow {
   overflow: visible;
 }
 

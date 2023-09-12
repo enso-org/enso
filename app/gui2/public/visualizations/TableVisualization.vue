@@ -57,6 +57,14 @@ interface ColumnDefinition {
   cellStyle?: object
 }
 
+declare module 'ag-grid-enterprise' {
+  // These type parameters are defined on the original interface.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColDef<TData, TValue> {
+    manuallySized: boolean
+  }
+}
+
 declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 
@@ -100,6 +108,7 @@ const agGridOptions = ref({
     minWidth: 25,
     headerValueGetter: (params) => (params.colDef as any).field,
     cellRenderer: cellRenderer,
+    manuallySized: false,
   },
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
@@ -133,7 +142,7 @@ onMounted(() => {
 watch(
   () => [props.width, props.fullscreen],
   () => {
-    agGridOptions.value.columnApi.autoSizeAllColumns()
+    updateTableSize(undefined)
   },
 )
 
@@ -347,7 +356,9 @@ function updateTableSize(clientWidth: number | undefined) {
   clientWidth ??= tableNode.value?.getBoundingClientRect().width ?? 0
   const columnApi = agGridOptions.value.columnApi
   // Resize columns to fit the table width unless the user manually resized them.
-  const cols = columnApi.getAllGridColumns().filter((c: any) => !c.colDef.manuallySized)
+  const cols = columnApi
+    .getAllGridColumns()
+    .filter((c: import('ag-grid-community').Column) => !c.getColDef().manuallySized)
 
   // Compute the maximum width of a column: the client width minus a small margin.
   const maxWidth = clientWidth - SIDE_MARGIN
@@ -369,7 +380,7 @@ function lockColumnSize(e: import('ag-grid-community').ColumnResizedEvent) {
   // If the user manually resized a column, we don't want to auto-size it on a resize.
   const manuallySized = e.source !== 'autosizeColumns'
   for (const column of e.columns ?? []) {
-    ;(column as any).colDef.manuallySized = manuallySized
+    column.getColDef().manuallySized = manuallySized
   }
 }
 
@@ -397,7 +408,7 @@ function goToLastPage() {
     :width="props.width"
     :below-toolbar="true"
   >
-    <div ref="rootNode" class="TableVisualization">
+    <div ref="rootNode" class="TableVisualization" @wheel.stop>
       <div class="table-visualization-status-bar">
         <button :disabled="isFirstPage" @click="goToFirstPage">«</button>
         <button :disabled="isFirstPage" @click="goToPreviousPage">&lsaquo;</button>
@@ -422,7 +433,6 @@ function goToLastPage() {
         <button :disabled="isLastPage" @click="goToNextPage">&rsaquo;</button>
         <button :disabled="isLastPage" @click="goToLastPage">»</button>
       </div>
-      <div class="table-visualization-grid"></div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
   </VisualizationContainer>
@@ -433,16 +443,16 @@ function goToLastPage() {
 @import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css');
 
 .TableVisualization {
+  display: flex;
+  flex-flow: column;
   position: relative;
   height: 100%;
 }
 
-.TableVisualization .ag-theme-alpine {
+.ag-theme-alpine {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
-  display: inline-block;
-  height: calc(100% - 20px);
-  width: 100%;
+  flex-grow: 1;
 }
 
 .table-visualization-status-bar {
@@ -460,10 +470,11 @@ function goToLastPage() {
   margin: 0 2px;
   display: none;
 }
+</style>
 
-.table-visualization-grid {
-  position: absolute;
-  height: calc(100% - 20px);
-  width: 100%;
+<style>
+.TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
+  border-bottom-left-radius: var(--radius-default);
+  border-bottom-right-radius: var(--radius-default);
 }
 </style>
