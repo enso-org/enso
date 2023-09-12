@@ -8,6 +8,7 @@ import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
+import project.IO
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Version.HTTP_Version
@@ -224,9 +225,17 @@ type HTTP
 
                 response = Response.Value (self.internal_http_client.send http_request body_handler)
 
-                if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                IO.println 'AAA'
+                IO.println try_auto_parse_response
+                IO.println req
+                IO.println response
+                IO.println response.decode_as_json
+
+                r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
                     if try_auto_parse_response.not then response else
                         response.decode if_unsupported=response . catch handler=(_->response)
+                IO.println response
+                r
 
     ## PRIVATE
 

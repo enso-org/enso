@@ -172,7 +172,7 @@ list_directory directory name_filter=Nothing recursive=False =
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . to_file file
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     HTTP.fetch uri method headers try_auto_parse_response
 
 ## ALIAS upload, http post
@@ -263,7 +263,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector 
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    HTTP.fetch_or_post uri body method headers try_auto_parse_response
+    HTTP.post uri body method headers try_auto_parse_response
 
 ## ALIAS download, http get
    GROUP Input
