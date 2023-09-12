@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Pair.Pair
+import project.Data.Set.Set
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
@@ -170,9 +171,10 @@ type HTTP
                  res.body
     request : Request -> Boolean -> Response ! Request_Error
     request self req try_auto_parse_response=False =
+        # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
-            if Context.Output.is_enabled then action else
-                Error.throw (Forbidden_Operation.Error "HTTP calls are forbidden as the Output context is disabled.")
+            if fetch_methods.contains req.method || Context.Output.is_enabled then action else
+                Error.throw (Forbidden_Operation.Error ("Method " + req.method.to_text + " requests are forbidden as the Output context is disabled."))
         handle_request_error =
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
@@ -234,7 +236,9 @@ type HTTP
                 r = if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
                     if try_auto_parse_response.not then response else
                         response.decode if_unsupported=response . catch handler=(_->response)
-                IO.println response
+                IO.println 'AAA2'
+                IO.println r
+                IO.println response.code
                 r
 
     ## PRIVATE
@@ -244,11 +248,7 @@ type HTTP
     fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            response = HTTP.new.request request try_auto_parse_response
-            response.if_not_error <|
-                case response of
-                    _ : Response -> response.body
-                    _ -> response
+            HTTP.new.request request try_auto_parse_response
 
     ## PRIVATE
 
@@ -322,15 +322,15 @@ build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Bool
         Pair.new body_builder.build [Header.multipart_form_data boundary]
 
 ## PRIVATE
-fetch_methods : Vector HTTP_Method
-fetch_methods = [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Delete, HTTP_Method.Options]
+fetch_methods : Set HTTP_Method
+fetch_methods = Set.from_vector [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options]
 
 ## PRIVATE
-post_methods : Vector HTTP_Method
-post_methods = [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch]
+post_methods : Set HTTP_Method
+post_methods = Set.from_vector [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete]
 
 ## PRIVATE
-check_method : Vector HTTP_Method -> Any -> Any ! Illegal_Argument
+check_method : Set HTTP_Method -> Any -> Any ! Illegal_Argument
 check_method allowed_methods method ~action =
     if allowed_methods.contains method then action else
         Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))

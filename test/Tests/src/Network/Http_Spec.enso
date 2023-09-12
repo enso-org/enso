@@ -13,6 +13,14 @@ import Standard.Test.Extensions
 
 polyglot java import java.lang.System as Java_System
 
+run_with_and_without_output ~action =
+    Context.Output.with_enabled <|
+        Test.with_clue "(normal mode - Output context enabled) " <|
+            action
+    Context.Output.with_disabled <|
+        Test.with_clue "(dry run - Output context disabled) " <|
+            action
+
 type Test_Type
     Aaa (s:Text)
     Bbb (i:Integer)
@@ -26,6 +34,10 @@ spec =
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+
+    Test.group "asdfasdf" <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -50,22 +62,41 @@ spec =
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_get = base_url_with_slash + "get"
 
-        Test.specify "Can perform a Get with a JSON response" <|
+        Test.specify "Can perform a GET with a JSON response" <|
             response = Data.fetch url_get
             response.at "headers" . at "Content-Length" . should_equal "0"
 
-        Test.specify "Can perform a Get with a file response" <|
+        Test.specify "Can perform a GET with a file response" <|
             f = enso_project.data / "spreadsheet.xls"
             f.delete_if_exists
             url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
-            Data.fetch url . to_file f
+            Data.fetch url . body . to_file f
             f.size . should_equal 7168
             f.delete
             f.exists.should_be_false
 
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
-            response.bytes.length . should_equal 272
+            response.code.code . should_equal 200
+            response.body.bytes.length . should_equal 272
+
+        Test.specify "Can perform a HEAD" <|
+            # httpbin.org does not provide a HEAD endpoint, so we use GET
+            response = Data.fetch url_get method=HTTP_Method.Head #try_auto_parse_response=False
+            response.code.code . should_equal 200
+            response.body.bytes.length . should_equal 0
+
+        Test.specify "Can perform an OPTIONS" <|
+            # httpbin.org does not provide an OPTIONS endpoint, so we use GET
+            response = Data.fetch url_get method=HTTP_Method.Options
+            response.code.code . should_equal 200
+            response.body.bytes.length . should_equal 0
+
+        Test.specify "Can still perform request when output context is disabled" <|
+            run_with_and_without_output <|
+                Data.fetch url_get try_auto_parse_response=False . code . code . should_equal 200
+                Data.fetch url_get method=HTTP_Method.Head try_auto_parse_response=False . code . code . should_equal 200
+                Data.fetch url_get method=HTTP_Method.Options try_auto_parse_response=False . code . code . should_equal 200
 
         Test.specify "unknown host" <|
             Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
@@ -77,6 +108,9 @@ spec =
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
+        url_put = base_url_with_slash + "put"
+        url_patch = base_url_with_slash + "patch"
+        url_delete = base_url_with_slash + "delete"
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
@@ -174,23 +208,28 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
             response.at "headers" . at "Custom" . should_equal "asdf"
 
-        Test.specify "Cannot POST when output context is disabled" <|
-            Context.Output.with_disabled <|
-                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
-
         Test.specify "Can perform a Request_Body.Text PUT" <|
-            url_put = base_url_with_slash + "put"
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
-            url_patch = base_url_with_slash + "patch"
             response = Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch headers=[Header.content_type "application/diff"]
             response.at "data" . should_equal "hello world"
             response.at "headers" . at "Content-Length" . should_equal "11"
             response.at "headers" . at "Content-Type" . should_equal "application/diff"
+
+        Test.specify "Can perform a DELETE" <|
+            response = Data.post url_delete Request_Body.Empty method=HTTP_Method.Delete #try_auto_parse_response=False
+            response.at "headers" . at "Content-Length" . should_equal "0"
+
+        Test.specify "Cannot perform request when output context is disabled" <|
+            Context.Output.with_disabled <|
+                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+                Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
+                Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
+                Data.post url_delete Request_Body.Empty method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
 
         Test.specify "Unsupported method" <|
             url_get = base_url_with_slash + "get"
