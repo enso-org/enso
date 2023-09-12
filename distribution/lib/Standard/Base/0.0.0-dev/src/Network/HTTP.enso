@@ -324,7 +324,7 @@ post_methods = [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch]
 check_method : Vector HTTP_Method -> Any -> Any ! Illegal_Argument
 check_method allowed_methods method ~action =
     if allowed_methods.contains method then action else
-        Error.throw (Request_Error.Error "Unsupported method" ("Unsupported method " + method.to_display_text))
+        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
 
 ## PRIVATE
    An error when sending an HTTP request.

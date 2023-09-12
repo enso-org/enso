@@ -194,7 +194,7 @@ spec =
 
         Test.specify "Unsupported method" <|
             url_get = base_url_with_slash + "get"
-            HTTP.post url_get (Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Request_Error
+            HTTP.post url_get (Request_Body.Text "hello world") method=HTTP_Method.Get . should_fail_with Illegal_Argument
 
         Test.specify "unknown host" <|
             HTTP.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
