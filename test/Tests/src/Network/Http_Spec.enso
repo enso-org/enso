@@ -218,7 +218,7 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "application/diff"
 
         Test.specify "Can perform a DELETE" <|
-            response = Data.post url_delete Request_Body.Empty method=HTTP_Method.Delete #try_auto_parse_response=False
+            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
             response.at "headers" . at "Content-Length" . should_equal "0"
 
         Test.specify "Cannot perform request when output context is disabled" <|
@@ -226,7 +226,7 @@ spec =
                 Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
                 Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
                 Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
-                Data.post url_delete Request_Body.Empty method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
+                Data.post url_delete method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
 
         Test.specify "Unsupported method" <|
             err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get

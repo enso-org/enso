@@ -254,7 +254,7 @@ type HTTP
 
        Static helper for post-like methods
     post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-    post (uri:(URI | Text)) (body:Request_Body) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request try_auto_parse_response
