@@ -177,20 +177,23 @@ type HTTP
         handle_request_error =
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
-        Panic.recover Any <| handle_request_error <| check_output_context <|
+        resolved_req = req.resolve_content_type
+        resolved_req.if_not_error <| Panic.recover Any <| handle_request_error <| check_output_context <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
 
             # set uri
-            uri = case req.uri of
-                _ : Text -> req.uri.to_uri
-                _ : URI -> req.uri
+            uri = case resolved_req.uri of
+                _ : Text -> resolved_req.uri.to_uri
+                _ : URI -> resolved_req.uri
             builder.uri uri.internal_uri
 
             # Generate body publisher, possibly generating additional headers
-            body_publisher_and_headers = case req.body of
-                Request_Body.Text text encoding content_type ->
-                    headers = [Header.content_type content_type, Header.new "Content-Encoding" encoding.character_set]
+            body_publisher_and_headers = case resolved_req.body of
+                Request_Body.Text text encoding _ ->
+                    ## We ignore the content_type field of the request body,
+                       since any value it had was moved to the headers list in resolve_content_type
+                    headers = [Header.new "Content-Encoding" encoding.character_set]
                     Pair.new (body_publishers.ofString text encoding.to_java_charset) headers
                 Request_Body.Json x ->
                     json = x.to_json
@@ -204,7 +207,7 @@ type HTTP
                 Request_Body.Empty ->
                     Pair.new (body_publishers.noBody) []
                 _ ->
-                    Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + req.body.to_display_text + "; this is a bug in the Data library"))
+                    Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + resolved_req.body.to_display_text + "; this is a bug in the Data library"))
 
             # Send request
             body_publisher_and_headers.if_not_error <|
@@ -212,10 +215,10 @@ type HTTP
                 additional_headers = body_publisher_and_headers.second
 
                 # set method and body
-                builder.method req.method.to_http_method_name body_publisher
+                builder.method resolved_req.method.to_http_method_name body_publisher
 
                 # set headers
-                all_headers = req.headers + additional_headers
+                all_headers = resolved_req.headers + additional_headers
                 all_headers.map h-> builder.header h.name h.value
 
                 http_request = builder.build

@@ -190,6 +190,13 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
 
+   ! Specifying Content Types
+
+     If the `body` parameter specifies an explicit content type, then it is an
+     error to also specify additional `Content-Type` headers in the `headers`
+     parameter. (It is not an error to specify multiple `Content-Type` values in
+     `headers`, however.)
+
    ! Supported Body Types
 
      - Request_Body.Text: Sends a text string, with optional encoding and content

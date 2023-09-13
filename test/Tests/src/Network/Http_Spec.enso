@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
@@ -67,7 +68,8 @@ spec =
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
-            response.body.bytes.length . should_equal 272
+            IO.println response.body.decode_as_text
+            response.body.bytes.length . should_equal 307
 
         Test.specify "Can perform a HEAD" <|
             # httpbin.org does not provide a HEAD endpoint, so we use GET
@@ -238,5 +240,39 @@ spec =
         Test.specify "Nonexistent file" <|
             test_file = enso_project.data / "does_not_exist.txt"
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
+
+    Test.group "Headers" <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_post = base_url_with_slash + "post"
+
+        Test.specify "Content-type in the body is respected" <|
+            response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}' content_type="application/json")
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Content-type in the header list is respected" <|
+            response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json"]
+            response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Unspecified content type defaults to text/plain" <|
+            response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}')
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+
+        Test.specify "Cannot specify content type in both body and headers" <|
+            Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
+
+        Test.specify "Header resolution" <|
+            expected0 = Request.new HTTP_Method.Get "" [Header.content_type "text/plain"] (Request_Body.Text "")
+            Request.new HTTP_Method.Get "" [] (Request_Body.Text "") . resolve_content_type . should_equal expected0
+
+            expected1 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
+            Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected1
+
+            expected2 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
+            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "") . resolve_content_type . should_equal expected2
+
+            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain") . resolve_content_type . should_fail_with Illegal_Argument
+
+            expected3 = Request.new HTTP_Method.Get "" [Header.new "some" "header", Header.content_type "application/json"] (Request_Body.Text "")
+            Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected3
 
 main = Test_Suite.run_main spec

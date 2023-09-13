@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 
@@ -12,7 +13,7 @@ type Request_Body
 
        Arguments:
        - text: The plain text in the request body.
-    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_type:Text="text/plain")
+    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_type:(Text|Nothing)=Nothing)
 
     ## Request body with an object to be sent as JSON.
 
