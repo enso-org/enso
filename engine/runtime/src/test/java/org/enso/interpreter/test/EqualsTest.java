@@ -219,6 +219,20 @@ public class EqualsTest extends TestBase {
       this.value = value;
     }
 
+    WrappedPrimitive(String value) {
+      this.value = value;
+    }
+
+    @ExportMessage
+    boolean isString() {
+      return value instanceof String;
+    }
+
+    @ExportMessage
+    String asString() {
+      return (String) value;
+    }
+
     @ExportMessage
     boolean isNumber() {
       return value instanceof Number;
@@ -362,6 +376,20 @@ public class EqualsTest extends TestBase {
           assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean.asDirect()));
           assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean));
           assertTrue(equalsNode.execute(foreignBoolean, ensoBoolean));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleString() {
+    var ensoText = unwrapValue(context, createValue(context, "'Hello'", ""));
+    var foreignString = new WrappedPrimitive("Hello");
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoText, foreignString.asDirect()));
+          assertTrue(equalsNode.execute(ensoText, foreignString));
+          assertTrue(equalsNode.execute(foreignString, ensoText));
           return null;
         });
   }

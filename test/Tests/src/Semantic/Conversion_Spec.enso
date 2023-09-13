@@ -63,8 +63,7 @@ type Fool
     to_text : Text
     to_text self = "{FOOL " + self.fool.to_text + "}"
 
-Fool.from (that : Integer) = Fool.Value that
-Fool.from (that : Boolean) = Fool.Value that
+Fool.from (that : Any) = Fool.Value that
 
 spec =
     Test.group "Conversion" <|
@@ -249,6 +248,23 @@ spec =
                 Panic.recover Any (x:Integer).to_text . should_fail_with Type_Error
 
             do_boolean True
+
+        Test.specify "Requesting Text & Fool" <|
+            do_text (x : Text & Fool) =
+                x.fool . should_equal "Hello"
+                x==x . should_be_true
+                (x:Text)=="Hello" . should_be_true
+                (x:Fool)=="Hello" . should_be_false
+                x=="Hello" . should_be_true
+                "Hello"==(x:Text) . should_be_true
+                "Hello"==(x:Fool) . should_be_false
+                "Hello"==x . should_be_true
+                x.to_text . should_equal "Hello"
+                (x:Fool).to_text . should_equal "{FOOL Hello}"
+                (x:Text).to_text . should_equal "Hello"
+                Panic.recover Any (x:Boolean).to_text . should_fail_with Type_Error
+
+            do_text "Hello"
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
