@@ -7,7 +7,11 @@ import {
   makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/entry'
-import { compareSuggestions, labelOfEntry, type MatchedSuggestion } from '@/stores/components'
+import {
+  compareSuggestions,
+  labelOfEntry,
+  type MatchedSuggestion,
+} from '@/components/ComponentBrowser/component'
 import { Filtering } from '../filtering'
 import shuffleSeed from 'shuffle-seed'
 
@@ -93,7 +97,6 @@ test('Suggestions are ordered properly', () => {
   const expectedOrdering = Array.from(sortedEntries, (entry) => entry.id)
   for (let i = 100; i < 120; i++) {
     const entries = shuffleSeed.shuffle(sortedEntries, i)
-    console.log(Array.from(entries, (entry) => entry.id))
     entries.sort(compareSuggestions)
     const result = Array.from(entries, (entry) => entry.id)
     expect(result).toStrictEqual(expectedOrdering)

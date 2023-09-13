@@ -53,7 +53,6 @@ const currentFiltering = computed(() => {
 const suggestionDbStore = useSuggestionDbStore()
 
 const components = computed(() => {
-  console.log(currentFiltering)
   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
 })
 

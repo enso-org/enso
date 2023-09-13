@@ -73,6 +73,9 @@ test.each([
   makeModuleMethod('local.Project.Module', 'foo', 'Any'),
   makeModuleMethod('local.Project.Module.Submodule', 'foo_in_submodule', 'Any'),
   makeModuleMethod('local.Project.Module.Submodule.Nested', 'foo_nested', 'Any'),
+  makeType('local.Project.Module.Submodule.Nested', 'Foo_Type'),
+  makeCon('local.Project.Module.Submodule.Nested.Foo_Type', 'Foo_Con'),
+  makeStaticMethod('local.Project.Module.Submodule.Nested.Foo_Type', 'foo_method', 'Any'),
   makeModule('local.Project.Module.Foo_Direct_Submodule'),
   makeModule('local.Project.Module.Submodule.Foo_Nested'),
   makeModuleMethod('another.Project.Local.Project.Module', 'foo_with_matching_suffix', 'Any'),
@@ -106,6 +109,33 @@ test.each([
     expect(filtering.filter(entry)).toBeNull()
   },
 )
+
+test.each([
+  makeStaticMethod('local.Project.Module.Type', 'foo_method', 'Any'),
+  makeCon('local.Project.Module.Type', 'Foo_Con'),
+  {
+    ...makeStaticMethod('local.Project.Module.Type', 'foo_extension', 'Any'),
+    definedIn: 'local.Project.Another_Module',
+  },
+])('$name entry is in the local.Project.Module.Type content', (entry) => {
+  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
+  const filteringWithPattern = new Filtering({
+    pattern: 'foo',
+    qualifiedNamePattern: 'local.Project.Module.Type',
+  })
+  expect(filtering.filter(entry)).not.toBeNull()
+  expect(filteringWithPattern.filter(entry)).not.toBeNull()
+})
+
+test.each([
+  makeType('local.Project.Module', 'Type'),
+  makeModuleMethod('local.Project.Module', 'module_method', 'Any'),
+  makeStaticMethod('local.Project.Module.Another_Type', 'another_type_method', 'Any'),
+  makeStaticMethod('local.Project.Another_Module.Type', 'another_module_type_method', 'Any'),
+])('$name entry is not in the local.Project.Module.Type content', (entry) => {
+  const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
+  expect(filtering.filter(entry)).toBeNull()
+})
 
 test('An Instance method is shown when self type matches', () => {
   const entry = makeMethod('Standard.Base.Data.Vector.Vector', 'get', 'Any')

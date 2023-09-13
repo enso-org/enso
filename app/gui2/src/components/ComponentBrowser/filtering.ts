@@ -1,5 +1,5 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 
 export interface Filter {
   pattern?: string
@@ -25,7 +25,7 @@ export type MatchResult = {
   score: number
 } | null
 
-export class FilteringWithPattern {
+class FilteringWithPattern {
   pattern: string
   wordMatchRegex: RegExp
   initialsMatchRegex?: RegExp
@@ -117,10 +117,30 @@ export class FilteringWithPattern {
   }
 }
 
+class FilteringQualifiedName {
+  pattern: string
+  memberRegex: RegExp
+  memberOfAnyDescendantRegex: RegExp
+
+  constructor(pattern: string) {
+    this.pattern = pattern
+    const segmentsMatch = '(^|\\.)' + pattern.replaceAll('.', '[^\\.]*\\.')
+    this.memberRegex = new RegExp(segmentsMatch + '[^\\.]*$', 'i')
+    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch, 'i')
+  }
+
+  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): boolean {
+    const entryOwner =
+      entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
+    const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
+    return regex.test(entryOwner) || (entry.memberOf != null && regex.test(entry.memberOf))
+  }
+}
+
 export class Filtering {
   pattern?: FilteringWithPattern
   selfType?: QualifiedName
-  qualifiedNameRegex?: RegExp
+  qualifiedName?: FilteringQualifiedName
   showUnstable: boolean = false
   showLocal: boolean = false
 
@@ -131,10 +151,7 @@ export class Filtering {
     }
     this.selfType = selfType
     if (qualifiedNamePattern != null && qualifiedNamePattern !== '') {
-      this.qualifiedNameRegex = new RegExp(
-        '(^|\\.)' + qualifiedNamePattern.replaceAll('.', '[^\\.]*\\.'),
-        'i',
-      )
+      this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
     }
     this.showUnstable = showUnstable ?? false
     this.showLocal = showLocal ?? false
@@ -149,30 +166,14 @@ export class Filtering {
   }
 
   private qualifiedNameMatches(entry: SuggestionEntry): boolean {
-    if (this.qualifiedNameRegex == null) return true
-    const entryQn = entry.memberOf ?? entry.definedIn
-    if (this.pattern != null) {
-      return this.qualifiedNameRegex.test(entryQn)
-    } else {
-      // TODO[ao] add explanation here
-      const match = this.qualifiedNameRegex.exec(entryQn)
-      if (match == null) return false
-      const remaining = entryQn.substring(match.index + match[0].length)
-      const remainingSegments = remaining.split('.').shift() ?? []
-      switch (entry.kind) {
-        case SuggestionKind.Constructor:
-        case SuggestionKind.Method:
-          return remainingSegments.length <= 1
-        case SuggestionKind.Module:
-          return remainingSegments.length == 1
-        default:
-          return remainingSegments.length <= 0
-      }
-    }
+    if (this.qualifiedName == null) return true
+    return this.qualifiedName.matches(entry, this.pattern != null)
   }
 
   isMainView() {
-    return this.pattern == null && this.selfType == null && this.qualifiedNameRegex == null
+    return (
+      this.pattern == null && this.selfType == null && this.qualifiedName == null && !this.showLocal
+    )
   }
 
   private mainViewFilter(entry: SuggestionEntry) {
