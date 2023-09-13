@@ -64,6 +64,7 @@ type Fool
     to_text self = "{FOOL " + self.fool.to_text + "}"
 
 Fool.from (that : Integer) = Fool.Value that
+Fool.from (that : Boolean) = Fool.Value that
 
 spec =
     Test.group "Conversion" <|
@@ -213,7 +214,7 @@ spec =
             to_6 m . should_equal 1.5
 
         Test.specify "Requesting Integer & Fool" <|
-            do_stuff (x : Integer & Fool) =
+            do_number (x : Integer & Fool) =
                 x.foo . should_equal "foo called"
                 x.fool . should_equal 42
                 x==x . should_be_true
@@ -230,7 +231,24 @@ spec =
                 (x:Fool).to_text . should_equal "{FOOL 42}"
                 (x:Integer).to_text . should_equal "42"
 
-            do_stuff 42
+            do_number 42
+
+        Test.specify "Requesting Boolean & Fool" <|
+            do_boolean (x : Boolean & Fool) =
+                x.fool . should_equal True
+                x==x . should_be_true
+                (x:Boolean) . should_be_true
+                (x:Fool)==True . should_be_false
+                x==True . should_be_true
+                True==(x:Boolean) . should_be_true
+                True==(x:Fool) . should_be_false
+                True==x . should_be_true
+                x.to_text . should_equal "{FOOL True}"
+                (x:Fool).to_text . should_equal "{FOOL True}"
+                (x:Boolean).to_text . should_equal "True"
+                Panic.recover Any (x:Integer).to_text . should_fail_with Type_Error
+
+            do_boolean True
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix

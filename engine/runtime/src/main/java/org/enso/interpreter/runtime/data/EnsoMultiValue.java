@@ -59,6 +59,27 @@ public final class EnsoMultiValue implements EnsoObject {
   }
 
   @ExportMessage
+  boolean isBoolean(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isBoolean(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean asBoolean(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isBoolean(values[i])) {
+        return iop.asBoolean(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
   boolean isNumber(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     for (var i = 0; i < values.length; i++) {
       if (iop.isNumber(values[i])) {
