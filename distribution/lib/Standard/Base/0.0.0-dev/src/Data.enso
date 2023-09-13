@@ -209,9 +209,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 
      Additionally, the following types are allowed as the `body` parameter:
 
-     - Text: shorthand for `Request_Body.Text`.
-     - File: shorthand for `Request_Body.Binary`.
-     - Any Enso object: shorthand for `Request_Body.Json`.
+     - Text: shorthand for `Request_Body.Text that_text`.
+     - File: shorthand for `Request_Body.Binary that_file`.
+     - Any other Enso object: shorthand for `Request_Body.Json that_object`.
 
    > Example
      Write a text string to an HTTP endpoint.
