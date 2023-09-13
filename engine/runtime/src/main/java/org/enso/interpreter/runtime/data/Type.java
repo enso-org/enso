@@ -68,6 +68,10 @@ public final class Type implements EnsoObject {
     return result;
   }
 
+  public static Type noType() {
+    return new Type("null", null, null, null, false);
+  }
+
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
     var function =
@@ -94,10 +98,7 @@ public final class Type implements EnsoObject {
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
       // check.
       CompilerAsserts.neverPartOfCompilation();
-      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
-      if (methods != null) {
-        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-      }
+      this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {
         generateQualifiedAccessor();

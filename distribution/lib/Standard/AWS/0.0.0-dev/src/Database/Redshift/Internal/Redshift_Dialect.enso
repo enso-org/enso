@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-from Standard.Table import Aggregate_Column
-from Standard.Table import Value_Type
+from Standard.Table import Aggregate_Column, Value_Type
 
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Data.Column.Column
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL.Builder
 import Standard.Database.Data.SQL_Statement.SQL_Statement
@@ -168,3 +168,10 @@ type Redshift_Dialect
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
+
+    ## PRIVATE
+    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column self column =
+        ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again
+           See: https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html#r_Numeric_types201-decimal-or-numeric-type
+        column.value_type

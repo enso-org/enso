@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.WithAggregatedProblems;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
@@ -26,6 +27,7 @@ public abstract class Builder {
       };
       case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType);
       case TextType textType -> new StringBuilder(size, textType);
+      case BigIntegerType x -> new BigIntegerBuilder(size);
       case null -> new InferredBuilder(size);
     };
     assert builder.getType().equals(type);
@@ -87,5 +89,9 @@ public abstract class Builder {
   /** @return any problems that occurred when building the Storage. */
   public AggregatedProblems getProblems() {
     return AggregatedProblems.of();
+  }
+
+  public WithAggregatedProblems<Storage<?>> sealWithProblems() {
+    return new WithAggregatedProblems<>(seal(), getProblems());
   }
 }

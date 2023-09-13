@@ -1,6 +1,9 @@
 package org.enso.base.polyglot;
 
+import org.graalvm.polyglot.Value;
+
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * The numeric converter deals with conversions of Java numeric types to the two main types
@@ -25,6 +28,7 @@ public class NumericConverter {
       case Double x -> x;
       case BigDecimal x -> x.doubleValue();
       case Float x -> x.doubleValue();
+      case BigInteger x -> x.doubleValue();
       default -> (double) coerceToLong(o);
     };
   }
@@ -46,9 +50,18 @@ public class NumericConverter {
     };
   }
 
+  public static BigInteger coerceToBigInteger(Object o) {
+    if (o instanceof BigInteger bigInteger) {
+      return bigInteger;
+    } else {
+      long longValue = coerceToLong(o);
+      return BigInteger.valueOf(longValue);
+    }
+  }
+
   /** Returns true if the object is any supported number. */
   public static boolean isCoercibleToDouble(Object o) {
-    return isDecimalLike(o)|| isCoercibleToLong(o);
+    return isDecimalLike(o)|| isCoercibleToLong(o) || o instanceof BigInteger;
   }
 
   public static boolean isDecimalLike(Object o) {
@@ -66,6 +79,10 @@ public class NumericConverter {
     return o instanceof Long || o instanceof Integer || o instanceof Short || o instanceof Byte;
   }
 
+  public static boolean isCoercibleToBigInteger(Object o) {
+    return o instanceof BigInteger || isCoercibleToLong(o);
+  }
+
   /**
    * Tries converting the value to a Double.
    *
@@ -75,6 +92,7 @@ public class NumericConverter {
     return switch (o) {
       case Double x -> x;
       case BigDecimal x -> x.doubleValue();
+      case BigInteger x -> x.doubleValue();
       case Float x -> x.doubleValue();
       case Long x -> x.doubleValue();
       case Integer x -> x.doubleValue();
@@ -105,7 +123,23 @@ public class NumericConverter {
           yield null;
         }
       }
+      case BigInteger x -> {
+        try {
+          yield x.longValueExact();
+        } catch (ArithmeticException e) {
+          yield null;
+        }
+      }
       case null, default -> null;
     };
+  }
+
+  public static boolean isBigInteger(Value v) {
+    return v.fitsInBigInteger() && !v.fitsInLong();
+  }
+
+  /** A workaround for <a href="https://github.com/enso-org/enso/issues/7790">#7790</a> */
+  public static BigDecimal bigIntegerAsBigDecimal(BigInteger x) {
+    return new BigDecimal(x);
   }
 }

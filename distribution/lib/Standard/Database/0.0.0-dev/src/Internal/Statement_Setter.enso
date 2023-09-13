@@ -1,9 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types as Java_Types
 
+polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.database.JDBCUtils
 
 type Statement_Setter
@@ -31,7 +33,11 @@ type Statement_Setter
 fill_hole_default stmt i value = case value of
     Nothing       -> stmt.setNull i Java_Types.NULL
     _ : Boolean   -> stmt.setBoolean i value
-    _ : Integer   -> stmt.setLong i value
+    _ : Integer   -> case NumericConverter.isBigInteger value of
+        True  ->
+            big_decimal = NumericConverter.bigIntegerAsBigDecimal value
+            stmt.setBigDecimal i big_decimal
+        False -> stmt.setLong i value
     _ : Decimal   -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
