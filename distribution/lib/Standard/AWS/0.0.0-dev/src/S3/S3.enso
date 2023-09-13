@@ -19,8 +19,7 @@ polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## GROUP Standard.Base.Input
-   Gets the list of the S3 bucket names.
+## Gets the list of the S3 bucket names.
 
    Arguments:
    - credentials: AWS credentials. If not provided, the default credentials will
@@ -94,6 +93,13 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_er
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Map.from_vector pairs
 
+## Gets an object from an S3 bucket.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
 get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
 get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
     client = make_client credentials

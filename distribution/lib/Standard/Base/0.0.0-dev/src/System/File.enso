@@ -122,14 +122,14 @@ type File
        Creates a new output stream for this file and runs the specified action
        on it.
 
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+
        Arguments:
        - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
        - action: A function that operates on the output stream and returns some
          value. The value is returned from this method.
-
-       The created stream is automatically closed when `action` returns (even
-       if it returns exceptionally).
 
        > Example
          Perform an action on an output stream with the file open for writing.
@@ -286,8 +286,7 @@ type File
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
-        file = File.new self
-        bytes = file.read_bytes
+        bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
