@@ -657,10 +657,10 @@ type Float
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Float.round_decimal_builtin self decimal_places use_bankers
+            Float.round_float_builtin self decimal_places use_bankers
 
     ## PRIVATE
-    round_decimal_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
+    round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
 
     ## GROUP Operators
        Compute the negation of this.

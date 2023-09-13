@@ -59,7 +59,7 @@ public class TypePatternBenchmarks {
         match_any = v -> case v of
             n : Any -> n + 1
 
-        match_dec = v -> case v of
+        match_float = v -> case v of
             n : Float -> n + 1
         """;
     var benchmarkName = SrcUtil.findName(params);
@@ -72,7 +72,7 @@ public class TypePatternBenchmarks {
     this.vec = getMethod.apply("gen_vec").execute(length, 1.1);
     switch (SrcUtil.findName(params)) {
       case "matchOverAny" -> this.patternMatch = getMethod.apply("match_any");
-      case "matchOverFloat" -> this.patternMatch = getMethod.apply("match_dec");
+      case "matchOverFloat" -> this.patternMatch = getMethod.apply("match_float");
       default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
