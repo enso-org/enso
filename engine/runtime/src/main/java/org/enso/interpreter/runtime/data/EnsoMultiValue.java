@@ -9,6 +9,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.math.BigInteger;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
@@ -92,9 +96,9 @@ public final class EnsoMultiValue implements EnsoObject {
   @ExportMessage
   String asString(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
       throws UnsupportedMessageException {
-    for (var i = 0; i < values.length; i++) {
-      if (iop.isString(values[i])) {
-        return iop.asString(values[i]);
+    for (Object value : values) {
+      if (iop.isString(value)) {
+        return iop.asString(value);
       }
     }
     throw UnsupportedMessageException.create();
@@ -252,6 +256,90 @@ public final class EnsoMultiValue implements EnsoObject {
     for (var i = 0; i < values.length; i++) {
       if (iop.fitsInBigInteger(values[i])) {
         return iop.asBigInteger(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean isTime(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isTime(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  LocalTime asTime(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isTime(values[i])) {
+        return iop.asTime(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean isDate(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isDate(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  LocalDate asDate(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isDate(values[i])) {
+        return iop.asDate(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean isTimeZone(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isTimeZone(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  ZoneId asTimeZone(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isTimeZone(values[i])) {
+        return iop.asTimeZone(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean isDuration(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isDuration(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  Duration asDuration(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isDuration(values[i])) {
+        return iop.asDuration(values[i]);
       }
     }
     throw UnsupportedMessageException.create();

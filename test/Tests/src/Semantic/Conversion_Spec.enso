@@ -266,6 +266,70 @@ spec =
 
             do_text "Hello"
 
+        Test.specify "Requesting Time_Of_Day & Fool" <|
+            now = Time_Of_Day.now
+
+            do_time (x : Time_Of_Day & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Time_Of_Day)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Time_Of_Day) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        Test.specify "Requesting Date & Fool" <|
+            now = Date.today
+
+            do_date (x : Date & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_date now
+
+        Test.specify "Requesting Date_Time & Fool" <|
+            now = Date_Time.now
+
+            do_time (x : Date_Time & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date_Time)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date_Time) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        Test.specify "Requesting Duration & Fool" <|
+            now = Duration.new hours=5
+
+            do_duration (x : Duration & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Duration)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Duration) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_duration now
+
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 
