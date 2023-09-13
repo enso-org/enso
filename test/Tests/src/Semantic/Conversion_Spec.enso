@@ -226,6 +226,7 @@ spec =
                 100+(x:Integer) . should_equal 142
                 (x:Integer)+100 . should_equal 142
                 x+100 . should_equal 142
+                100+x . should_equal 142
                 x.to_text . should_equal "{FOOL 42}"
                 (x:Fool).to_text . should_equal "{FOOL 42}"
                 (x:Integer).to_text . should_equal "42"
