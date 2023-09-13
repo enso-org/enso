@@ -9,7 +9,9 @@ type Date_Time_Format_Pattern
        described in the table below. Any character that is not a letter in the
        pattern is treated as a literal character. If a sequence of letters needs
        to be put in as a literal, it can be escaped using single quotes. Use two
-       single quotes in a row to represent a single quote in the result.
+       single quotes in a row to represent a single quote in the result. As
+       explained below, curly braces can have special meaning (see 'yy'); to
+       enter a literal curly brace, put it inside a quoted literal.
 
        Pattern characters are interpreted case insensitively, with the exception
        of `M/m' and 'H/h'.
@@ -133,3 +135,8 @@ type Date_Time_Format_Pattern
 
 ## PRIVATE
 Date_Time_Format_Pattern.from (that:Text) = Date_Time_Format_Pattern.Simple that
+
+type Date_Time_Format_Parse_Error
+    ## PRIVATE
+       Indicates an error during parsing of a `Date_Time_Format_Pattern`.
+    Error message
