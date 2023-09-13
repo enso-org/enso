@@ -975,4 +975,37 @@
     <g id="workflow_play" fill="none">
         <path d="M4.48489 3.22329L11.5226 7.12542C12.2094 7.50621 12.2094 8.49376 11.5226 8.87455L4.48488 12.7767C3.81837 13.1462 2.99998 12.6642 2.99998 11.9021L2.99998 4.09786C2.99998 3.33575 3.81837 2.85374 4.48489 3.22329Z" fill="currentColor" />
     </g>
+    <g id="underscore" fill="none">
+        <svg width="20" height="4" viewBox="0 0 20 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="20" height="4" rx="2" fill="white" fill-opacity="0.33" />
+        </svg>
+    </g>
+    <g id="sort" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.32">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+            </g>
+        </svg>
+    </g>
+    <g id="sort_ascending" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.8">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                <g opacity="0.4">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+                </g>
+            </g>
+        </svg>
+    </g>
+    <g id="sort_descending" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.8">
+                <g opacity="0.4">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                </g>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+            </g>
+        </svg>
+    </g>
 </svg>
