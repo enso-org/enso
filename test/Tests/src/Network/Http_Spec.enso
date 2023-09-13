@@ -223,7 +223,7 @@ spec =
             response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
             response.at "headers" . at "Content-Length" . should_equal "0"
 
-        Test.specify "Cannot perform request when output context is disabled" <|
+        Test.specify "Cannot perform POST/PATCH/PUT/DELETE when output context is disabled" <|
             Context.Output.with_disabled <|
                 Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
                 Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
