@@ -3,6 +3,12 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -111,6 +117,9 @@ public class EqualsTest extends TestBase {
         () -> {
           Object uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
           Object cachedRes = equalsNode.execute(firstVal, secondVal);
+          if (uncachedRes != cachedRes) {
+            Thread.dumpStack();
+          }
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached variant",
               uncachedRes,
@@ -186,6 +195,173 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           assertTrue(equalsNode.execute(ensoVector, javaVector));
+          return null;
+        });
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class WrappedPrimitive implements TruffleObject {
+    private final Object value;
+
+    WrappedPrimitive(long value) {
+      this.value = value;
+    }
+
+    WrappedPrimitive(boolean value) {
+      this.value = value;
+    }
+
+    WrappedPrimitive(double value) {
+      this.value = value;
+    }
+
+    WrappedPrimitive(BigInteger value) {
+      this.value = value;
+    }
+
+    @ExportMessage
+    boolean isNumber() {
+      return value instanceof Number;
+    }
+
+    @ExportMessage
+    boolean isBoolean() {
+      return value instanceof Boolean;
+    }
+
+    @ExportMessage
+    boolean asBoolean() {
+      return (Boolean) value;
+    }
+
+    @ExportMessage
+    boolean fitsInByte() {
+      return false;
+    }
+
+    @ExportMessage
+    boolean fitsInShort() {
+      return false;
+    }
+
+    @ExportMessage
+    boolean fitsInInt() {
+      return false;
+    }
+
+    @ExportMessage
+    boolean fitsInLong() {
+      return value instanceof Long;
+    }
+
+    @ExportMessage
+    boolean fitsInFloat() {
+      return false;
+    }
+
+    @ExportMessage
+    boolean fitsInDouble() {
+      return value instanceof Double;
+    }
+
+    @ExportMessage
+    byte asByte() throws UnsupportedMessageException {
+      throw UnsupportedMessageException.create();
+    }
+
+    @ExportMessage
+    short asShort() throws UnsupportedMessageException {
+      throw UnsupportedMessageException.create();
+    }
+
+    @ExportMessage
+    int asInt() throws UnsupportedMessageException {
+      throw UnsupportedMessageException.create();
+    }
+
+    @ExportMessage
+    long asLong() throws UnsupportedMessageException {
+      return (Long) value;
+    }
+
+    @ExportMessage
+    float asFloat() throws UnsupportedMessageException {
+      throw UnsupportedMessageException.create();
+    }
+
+    @ExportMessage
+    double asDouble() throws UnsupportedMessageException {
+      return (Double) value;
+    }
+
+    @ExportMessage
+    boolean fitsInBigInteger() {
+      return value instanceof BigInteger;
+    }
+
+    @ExportMessage
+    BigInteger asBigInteger() throws UnsupportedMessageException {
+      return (BigInteger) value;
+    }
+
+    Object asDirect() {
+      return value;
+    }
+  }
+
+  @Test
+  public void testTruffleNumberLong() {
+    var ensoNumber = unwrapValue(context, createValue(context, "1", ""));
+    var foreignNumber = new WrappedPrimitive(1);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberDouble() {
+    var ensoNumber = unwrapValue(context, createValue(context, "1.0", ""));
+    var foreignNumber = new WrappedPrimitive(1.0);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberBigInt() {
+    var value = new BigInteger("43207431473298432194374819743291479009431478329");
+    var ensoNumber = unwrapValue(context, createValue(context, value.toString(), ""));
+    var foreignNumber = new WrappedPrimitive(value);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleBoolean() {
+    var ensoBoolean =
+        unwrapValue(context, createValue(context, "True", "from Standard.Base import True"));
+    var foreignBoolean = new WrappedPrimitive(true);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean.asDirect()));
+          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean));
+          assertTrue(equalsNode.execute(foreignBoolean, ensoBoolean));
           return null;
         });
   }
