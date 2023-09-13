@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useResizeObserver, useWindowEvent } from '@/util/events'
+import { useResizeObserver } from '@/util/events'
 import { type Component, makeComponentList } from '@/components/ComponentBrowser/component'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
@@ -14,32 +14,35 @@ import { Filtering } from '@/components/ComponentBrowser/filtering'
 const ITEM_SIZE = 32
 
 const props = defineProps<{
+  position: Vec2
   navigator: ReturnType<typeof useNavigator>
 }>()
 
-// === Position ===
+const emit = defineEmits<{
+  (e: 'finished'): void
+}>()
 
-const shown = ref(false)
-const scenePosition = ref(Vec2.Zero())
+onMounted(() => {
+  if (inputField.value != null) {
+    inputField.value.focus({ preventScroll: true })
+    selectLastAfterRefresh()
+  }
+})
+
+// === Position ===
 
 const transform = computed(() => {
   const nav = props.navigator
-  const pos = scenePosition.value
+  const pos = props.position
   return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
     1 / nav.scale
   }) translateY(-100%)`
 })
 
-function positionAtMouse(): boolean {
-  const nav = props.navigator
-  const mousePos = nav.sceneMousePos
-  if (mousePos == null) return false
-  scenePosition.value = mousePos
-  return true
-}
-
 // === Input and Filtering ===
 
+const cbRoot = ref<HTMLElement>()
+const inputField = ref<HTMLElement>()
 const inputText = ref('')
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
@@ -49,6 +52,20 @@ const currentFiltering = computed(() => {
 })
 
 watch(currentFiltering, selectLastAfterRefresh)
+
+function handleDefocus(e: FocusEvent) {
+  const stillInside =
+    cbRoot.value != null &&
+    e.relatedTarget instanceof Node &&
+    cbRoot.value.contains(e.relatedTarget)
+  if (stillInside) {
+    if (inputField.value != null) {
+      inputField.value.focus({ preventScroll: true })
+    }
+  } else {
+    emit('finished')
+  }
+}
 
 // === Components List and Positions ===
 
@@ -176,15 +193,11 @@ const docsVisible = ref(true)
 
 // === Key Events Handler ===
 
-useWindowEvent('keydown', (e) => {
+function handleKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter':
-      if (!shown.value && positionAtMouse()) {
-        shown.value = true
-        selectLastAfterRefresh()
-      } else {
-        shown.value = false
-      }
+      e.stopPropagation()
+      emit('finished')
       break
     case 'ArrowUp':
       e.preventDefault()
@@ -199,14 +212,17 @@ useWindowEvent('keydown', (e) => {
       selected.value = null
       break
   }
-})
+}
 </script>
 
 <template>
   <div
-    v-if="shown"
+    ref="cbRoot"
     class="ComponentBrowser"
     :style="{ transform, '--list-height': listContentHeightPx }"
+    tabindex="-1"
+    @focusout="handleDefocus"
+    @keydown="handleKeydown"
   >
     <div class="panels">
       <div class="panel components">
@@ -224,7 +240,7 @@ useWindowEvent('keydown', (e) => {
             ref="scroller"
             class="list"
             :scrollTop.prop="animatedScrollPosition.value"
-            @wheel.stop
+            @wheel.stop.passive
             @scroll="updateScroll"
           >
             <div class="list-variant" style="">
@@ -261,7 +277,7 @@ useWindowEvent('keydown', (e) => {
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="CBInput"><input v-model="inputText" /></div>
+    <div class="CBInput"><input ref="inputField" v-model="inputText" /></div>
   </div>
 </template>
 
@@ -386,5 +402,16 @@ useWindowEvent('keydown', (e) => {
   background-color: #eaeaea;
   height: 40px;
   padding: 12px;
+  display: flex;
+  flex-direction: row;
+
+  & input {
+    border: none;
+    outline: none;
+    min-width: 0;
+    flex-grow: 1;
+    background: none;
+    font: inherit;
+  }
 }
 </style>
