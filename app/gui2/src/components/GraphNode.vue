@@ -340,7 +340,14 @@ watch(
 </script>
 
 <template>
-  <div ref="rootNode" :tabindex="-1" class="GraphNode" :style="{ transform }" @blur="onBlur">
+  <div
+    ref="rootNode"
+    :tabindex="-1"
+    class="GraphNode"
+    :style="{ transform }"
+    @focus="isCircularMenuVisible = true"
+    @blur="onBlur"
+  >
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
@@ -384,6 +391,8 @@ watch(
         contenteditable
         spellcheck="false"
         @beforeinput="editContent"
+        @focus="isCircularMenuVisible = true"
+        @blur="onBlur"
         @pointerdown.stop
       >
         <NodeSpan
