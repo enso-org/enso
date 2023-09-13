@@ -9,6 +9,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.Optional;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -100,7 +101,7 @@ public abstract class EnsoProjectNode extends Node {
       }
       cachedProjectDescr = cachedProjectDescrRef.get();
     }
-    assert cachedProjectDescr != null;
+    Objects.requireNonNull(cachedProjectDescr);
     return cachedProjectDescr;
   }
 
