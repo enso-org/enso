@@ -38,6 +38,8 @@ type Date_Time_Format_Pattern
          The weekday names depend on the selected locale.
          Both day of week and day of month may be included in a single pattern -
          in such case the day of week is used as a sanity check.
+       - Q: Quarter of year. Rarely useful in parsing as it is not sufficient to
+         construct a date without a month, but it can be used for formatting.
 
        Time pattern characters:
        - H: 24h hour of day (0-23).
@@ -94,7 +96,7 @@ type Date_Time_Format_Pattern
          - In case the year is parsed in two digit mode (`YY`), the default
            range is 1950-2049, but this can be changed by including the end year
            in braces e.g. `yy{2099}`
-       - W: Week of year.
+       - w: Week of year.
        - d: Day of week.
          - d: Numeric day of week (1-7). 1 is Monday.
          - dd: Numeric day of week with zero padding (01-07).
