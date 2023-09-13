@@ -1123,4 +1123,37 @@
                 fill="black" fill-opacity="0.6" />
         </svg>
     </g>
+    <g id="underscore" fill="none">
+        <svg width="20" height="4" viewBox="0 0 20 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="20" height="4" rx="2" fill="white" fill-opacity="0.33" />
+        </svg>
+    </g>
+    <g id="sort" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.32">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+            </g>
+        </svg>
+    </g>
+    <g id="sort_ascending" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.8">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                <g opacity="0.4">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+                </g>
+            </g>
+        </svg>
+    </g>
+    <g id="sort_descending" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.8">
+                <g opacity="0.4">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827" />
+                </g>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827" />
+            </g>
+        </svg>
+    </g>
 </svg>

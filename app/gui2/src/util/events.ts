@@ -89,7 +89,7 @@ export function useWindowEventConditional<K extends keyof WindowEventMap>(
 }
 
 /**
- * Add an event listener on documetn for the duration of condition being true.
+ * Add an event listener on document for the duration of condition being true.
  * @param condition the condition that determines if event is bound
  * @param event name of event to register
  * @param handler event handler

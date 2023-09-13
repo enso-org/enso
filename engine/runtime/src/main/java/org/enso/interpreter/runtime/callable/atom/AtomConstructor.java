@@ -96,7 +96,7 @@ public final class AtomConstructor implements EnsoObject {
   public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
-      reads[i] = ReadArgumentNode.build(args[i].getName(), i, null, null);
+      reads[i] = ReadArgumentNode.build(i, null, null);
     }
     return initializeFields(
         language, null, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);

@@ -3,9 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
-import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Value_Type
+from Standard.Table import Value_Type, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
@@ -268,6 +267,10 @@ type SQLite_Dialect
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+
+    ## PRIVATE
+    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column self column = column.value_type
 
 ## PRIVATE
 make_internal_generator_dialect =

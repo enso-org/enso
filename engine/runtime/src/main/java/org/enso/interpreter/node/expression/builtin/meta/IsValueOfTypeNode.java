@@ -56,15 +56,12 @@ public abstract class IsValueOfTypeNode extends Node {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);
-      Type superTpe = tpe.getSupertype();
-
-      while (tpe != superTpe && superTpe != null) {
+      var ctx = EnsoContext.get(typeOfNode);
+      for (var superTpe : tpe.allTypes(ctx)) {
         boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
         if (testSuperTpe) {
           return true;
         }
-        tpe = superTpe;
-        superTpe = superTpe.getSupertype();
       }
     }
     return false;
@@ -108,15 +105,13 @@ public abstract class IsValueOfTypeNode extends Node {
 
     @ExplodeLoop
     private boolean checkParentTypes(Type actual, Type expected) {
-      for (; ; ) {
-        if (actual == null) {
-          return false;
-        }
-        if (actual == expected) {
+      var ctx = EnsoContext.get(this);
+      for (var tpe : actual.allTypes(ctx)) {
+        if (tpe == expected) {
           return true;
         }
-        actual = actual.getSupertype();
       }
+      return false;
     }
 
     @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})

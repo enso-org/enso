@@ -28,7 +28,7 @@ const visualizationStore = useVisualizationStore()
 const rootNode = ref<HTMLElement>()
 const expressionNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(expressionNode)
-const editableRoot = ref<HTMLElement>()
+const editableRootNode = ref<HTMLElement>()
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -163,7 +163,7 @@ interface SavedSelections {
 let selectionToRecover: SavedSelections | null = null
 
 function saveSelections() {
-  const root = editableRoot.value
+  const root = editableRootNode.value
   const selection = window.getSelection()
   if (root == null || selection == null || !selection.containsNode(root, true)) return
   const ranges: ContentRange[] = Array.from({ length: selection.rangeCount }, (_, i) =>
@@ -192,7 +192,7 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  const root = editableRoot.value
+  const root = editableRootNode.value
 
   function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
     if (offset == null) return null
@@ -221,7 +221,7 @@ onUpdated(() => {
     return null
   }
 
-  if (selectionToRecover != null && editableRoot.value != null) {
+  if (selectionToRecover != null && editableRootNode.value != null) {
     const saved = selectionToRecover
     selectionToRecover = null
     const selection = window.getSelection()
@@ -377,7 +377,7 @@ watch(
     >
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
       <div
-        ref="editableRoot"
+        ref="editableRootNode"
         class="editable"
         contenteditable
         spellcheck="false"
@@ -433,6 +433,8 @@ watch(
 
 .container {
   position: relative;
+  display: flex;
+  gap: 4px;
 }
 
 .icon {

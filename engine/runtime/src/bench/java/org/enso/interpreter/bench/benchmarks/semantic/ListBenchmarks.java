@@ -104,17 +104,17 @@ public class ListBenchmarks {
       sum_any list (acc:Any) =
           case list of
               Nil -> acc
-              Cons x xs -> @Tail_Call sum xs acc+x
+              Cons x xs -> @Tail_Call sum_any xs acc+x
 
       sum_int list (acc:Integer) =
           case list of
               Nil -> acc
-              Cons x xs -> @Tail_Call sum xs acc+x
+              Cons x xs -> @Tail_Call sum_int xs acc+x
 
       sum_multi list (acc:Text|Decimal|Integer|Any) =
           case list of
               Nil -> acc
-              Cons x xs -> @Tail_Call sum xs acc+x
+              Cons x xs -> @Tail_Call sum_multi xs acc+x
 
       generator n =
           go x v l = if x > n then l else
