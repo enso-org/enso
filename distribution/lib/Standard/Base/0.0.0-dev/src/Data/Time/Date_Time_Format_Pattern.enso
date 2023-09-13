@@ -10,7 +10,7 @@ type Date_Time_Format_Pattern
        Pattern characters are interpreted case insensitively, with the exception
        of `M/m' and 'H/h'.
 
-       Pattern characters:
+       Date pattern characters:
        - y: Year. The number of pattern letters determines the minimum number of
          digits.
          - y: The year using any number of digits.
@@ -21,14 +21,17 @@ type Date_Time_Format_Pattern
          - MM: Month number with zero padding required (01-12).
          - MMM: Short name of the month (Jan-Dec).
          - MMMM: Full name of the month (January-December).
-         The names that are expected depend on the locale.
+         The month names depend on the selected locale.
        - d: Day. The number of pattern letters determines the format:
          - d: Any number (1-31).
          - dd: Day number with zero padding required (01-31).
          - ddd: Short name of the day of week (Mon-Sun).
          - dddd: Full name of the day of week (Monday-Sunday).
+         The weekday names depend on the selected locale.
          Both day of week and day of month may be included in a single pattern -
          in such case the day of week is used as a sanity check.
+
+       Time pattern characters:
        - H: 24h hour of day (0-23).
        - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
          between am and pm. TODO possible to have both 0 and 12??
@@ -38,6 +41,8 @@ type Date_Time_Format_Pattern
          determines the number of digits. If one letter is used, any number of
          digits will be accepted.
        - a: AM/PM marker. Case insensitive.
+
+       Time zone pattern characters:
        - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
          -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
        - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
@@ -46,10 +51,22 @@ type Date_Time_Format_Pattern
        brackets `[]` can be used to surround such optional sections.
 
        > Example
-         Date_Time.parse "yyyy-MM-dd'T'HH:mm:ss.fZ" "2021-10-12T12:34:56.789+0200" == (Date_Time.new 2021 10 12 12 34 56 milliseconds=789 (Time_Zone.new hours=2))
-         Date.parse "ddd, d MMM yyyy" "Tue, 12 Oct 2021" == (Date.new 2021 10 12)
-         Date.parse "dddd, dd MMMM ''98" "Thursday, 1 October '98" == (Date.new 1998 10 01)
-         Date_Time.parse "d/M/Y h:mm a" "12/10/2021 5:34 PM" == (Date_Time.new 2021 10 12 17 34 00)
+         Parsing date/time values
+
+             Date_Time.parse "yyyy-MM-dd'T'HH:mm:ss.fZ" "2021-10-12T12:34:56.789+0200" == (Date_Time.new 2021 10 12 12 34 56 milliseconds=789 (Time_Zone.new hours=2))
+             Date.parse "ddd, d MMM yyyy" "Tue, 12 Oct 2021" == (Date.new 2021 10 12)
+             Date.parse "dddd, dd MMMM ''98" "Thursday, 1 October '98" == (Date.new 1998 10 01)
+             Date_Time.parse "d/M/Y h:mm a" "12/10/2021 5:34 PM" == (Date_Time.new 2021 10 12 17 34 00)
+
+       > Example
+         Omitting the day will yield the first day of the month.
+
+             Date.parse "yyyy-MM" "2021-10" == (Date.new 2021 10 01)
+
+       > Example
+         Omitting the year will yield the current year.
+
+             Date.parse "MM-dd" "10-12" == (Date.new (Date.today.year) 10 12)
     Simple pattern:Text
 
     ## A pattern for formats related to the ISO 8601 leap week calendar.
@@ -62,17 +79,32 @@ type Date_Time_Format_Pattern
        follows:
        - Y: The week based year.
        - W: Week of year.
-       - d: Numeric day of week (1-7).
-       - E: Named day of week. It will use a short name if repeated 3 or less
-         times and a full name otherwise.
+       - d: Day of week.
+         - d: Numeric day of week (1-7). 1 is Monday.
+         - dd: Numeric day of week with zero padding (01-07).
+         - ddd: Short name of the day of week (Mon-Sun).
+         - dddd: Full name of the day of week (Monday-Sunday).
+         The weekday names depend on the selected locale.
+
+       Moreover, all time and timezone pattern characters like in `Simple` case
+       are supported too - in case you need to parse a date time value with the
+       date part in ISO week date format.
 
        The same as in the `Simple` pattern, the single quotes can be used to
        escape letter literals and square brackets can be used to indicate
        optional sections.
 
        > Example
-         Date.parse (ISO_Week_Date "YYYY-'W'WW-d" "1976-W53-6") == (Date.new 1977 01 01)
-         Date.parse (ISO_Week_Date "YYYY-'W'WW, eee" "1978-W01, Mon") == (Date.new 1978 01 02)
+         Parsing a date in the ISO week date format
+
+             Date.parse (ISO_Week_Date "YYYY-'W'WW-d" "1976-W53-6") == (Date.new 1977 01 01)
+             Date.parse (ISO_Week_Date "YYYY-'W'WW, eee" "1978-W01, Mon") == (Date.new 1978 01 02)
+             Date_Time.parse (ISO_Week_Date "YYYY-'W'WW-d HH:mm:ss" "1978-W01-4 12:34:56") == (Date_Time.new 1978 01 05 12 34 56)
+
+       > Example
+         Omitting the day of the week will result in the first day of that week.
+
+             Date.parse (ISO_Week_Date "YYYY-'W'WW" "1978-W01") == (Date.new 1978 01 02)
     ISO_Week_Date pattern:Text
 
     ## ADVANCED
