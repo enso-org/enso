@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
+import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 
 import project.AWS_Credential.AWS_Credential
@@ -8,6 +9,7 @@ import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Internal.Auth
 
+polyglot java import java.io.IOException
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
@@ -96,12 +98,14 @@ get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
 get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
     client = make_client credentials
     request = GetObjectRequest.builder.bucket bucket . key key . build
-    Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key)) <|
-        response = client.getObject request
-        inner_response = response.response
-        mime_type = inner_response.contentType
-        s3_uri = "s3://" + bucket + "/" + key
-        Response_Body.Raw_Stream response mime_type (URI.new s3_uri)
+    Panic.catch NoSuchBucketException handler=(_->Error.throw (S3_Bucket_Not_Found.Error bucket)) <|
+        Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key)) <|
+            response = client.getObject request
+            inner_response = response.response
+            mime_type = inner_response.contentType
+            s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+            input_stream = Input_Stream.new response (handle_io_errors s3_uri)
+            Response_Body.Raw_Stream input_stream mime_type s3_uri
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.
@@ -125,3 +129,10 @@ make_client : (AWS_Credential | Nothing) -> S3Client
 make_client credentials:(AWS_Credential | Nothing) =
     provider = Auth.create_provider credentials
     S3Client.builder.credentialsProvider provider . build
+
+
+## PRIVATE
+   Utility method for running an action with Java exceptions mapping.
+handle_io_errors uri:URI ~action =
+    Panic.catch IOException action caught_panic->
+        S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text

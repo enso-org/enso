@@ -19,11 +19,11 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
 import project.System.File_Format.Plain_Text_Format
-import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
@@ -31,8 +31,8 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import format_types
 
-polyglot java import java.io.InputStream
 polyglot java import java.io.ByteArrayInputStream
+polyglot java import java.io.InputStream
 
 ## PRIVATE
    How large a response body can be before it is written to a temporary file.
@@ -87,7 +87,7 @@ type Response_Body
                 body_stream.with_java_stream body_java_stream->
                     first_block = body_java_stream.readNBytes maximum_body_in_memory
                     case first_block.length < maximum_body_in_memory of
-                        True -> Response_Body.Byte_Array first_block self.content_type self.uri
+                        True -> Response_Body.Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
                         False ->
                             ## Use the domain name as a prefix?
                             file = File.create_temporary_file

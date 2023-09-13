@@ -1,8 +1,8 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
-import project.Errors.Encoding_Error.Encoding_Error
 import project.Data.Vector.Vector
+import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
