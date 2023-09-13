@@ -38,8 +38,9 @@ type Date_Time_Format_Pattern
          The weekday names depend on the selected locale.
          Both day of week and day of month may be included in a single pattern -
          in such case the day of week is used as a sanity check.
-       - Q: Quarter of year. Rarely useful in parsing as it is not sufficient to
-         construct a date without a month, but it can be used for formatting.
+       - Q: Quarter of year.
+            If only year and quarter are provided in the pattern, when parsing a
+            date, the result will be the first day of that quarter.
 
        Time pattern characters:
        - H: 24h hour of day (0-23).
