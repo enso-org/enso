@@ -445,18 +445,6 @@ function addPanAndZoom() {
   return { zoomElem, zoom, transformedScale }
 }
 
-/** Removing `pointer-events` handling from brush element, as we want it to be inherited. D3 inserts
- * `pointer-events: all` in the brush element and some of its children on brush creation and after brushing ends.
- * There is no documentation on that topic as far as we are aware, so this was observed and tested manually. */
-function removePointerEventsAttrsFromBrush() {
-  if (brushNode.value != null) {
-    brushNode.value.removeAttribute('pointer-events')
-    for (const child of brushNode.value.children) {
-      child.removeAttribute('pointer-events')
-    }
-  }
-}
-
 const brush = computed(() =>
   d3
     .brush()
@@ -482,7 +470,6 @@ function addBrushing() {
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
   d3.select(brushNode.value).call(brush.value)
-  removePointerEventsAttrsFromBrush()
 }
 
 /**
@@ -494,7 +481,6 @@ function endBrushing() {
   }
   brushExtent.value = null
   d3.select(brushNode.value).call(brush.value.move, null)
-  removePointerEventsAttrsFromBrush()
 }
 
 function onKeydown(event: KeyboardEvent) {
