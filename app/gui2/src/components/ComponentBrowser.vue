@@ -48,6 +48,8 @@ const currentFiltering = computed(() => {
   return new Filtering({ pattern, qualifiedNamePattern, ...filterFlags.value })
 })
 
+watch(inputText, selectLastAfterRefresh)
+
 // === Components List and Positions ===
 
 const suggestionDbStore = useSuggestionDbStore()
