@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -82,12 +83,17 @@ public final class EnsoMultiValue implements EnsoObject {
    */
   public final Pair<Function, Type> resolveSymbol(
       MethodResolverNode node, UnresolvedSymbol symbol) {
+    var ctx = EnsoContext.get(node);
+    Pair<Function, Type> foundAnyMethod = null;
     for (Type t : types) {
-      var fn = node.execute(t, symbol);
-      if (fn != null) {
-        return Pair.create(fn, t);
+      var fnAndType = node.execute(t, symbol);
+      if (fnAndType != null) {
+        if (fnAndType.getRight() != ctx.getBuiltins().any()) {
+          return Pair.create(fnAndType.getLeft(), t);
+        }
+        foundAnyMethod = fnAndType;
       }
     }
-    return null;
+    return foundAnyMethod;
   }
 }

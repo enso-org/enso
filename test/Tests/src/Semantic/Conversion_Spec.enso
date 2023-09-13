@@ -55,6 +55,16 @@ foreign js call_function fn arg_1 = """
 
 Number.foo self = "foo called"
 
+from Standard.Base import all
+
+type Fool
+    Value fool
+
+    to_text : Text
+    to_text self = "{FOOL " + self.fool.to_text + "}"
+
+Fool.from (that : Integer) = Fool.Value that
+
 spec =
     Test.group "Conversion" <|
         Test.specify "should be able to convert atoms" <|
@@ -202,6 +212,19 @@ spec =
             to_6 (v : Number & Decimal & Integer) = v
             to_6 m . should_equal 1.5
 
+        Test.specify "Requesting Integer & Fool" <|
+            do_stuff (x : Integer & Fool) =
+                x.foo . should_equal "foo called"
+                x.fool . should_equal 42
+                x==x . should_be_true
+                (x:Integer)==42 . should_be_true
+                42==(x.to Integer) . should_be_true
+                100+(x:Integer) . should_equal 142
+                x.to_text . should_equal "{FOOL 42}"
+                (x:Fool).to_text . should_equal "{FOOL 42}"
+                (x:Integer).to_text . should_equal "42"
+
+            do_stuff 42
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix

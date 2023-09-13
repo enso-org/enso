@@ -108,6 +108,8 @@ public class DebuggingEnsoTest {
   }
 
   private Value createEnsoMethod(String source, String methodName) {
+    Value m = context.eval(createEnsoSource("from Standard.Base import all\n\n" + methodName + " = 10"));
+    m.invokeMember(Module.EVAL_EXPRESSION, methodName);
     Value module = context.eval(createEnsoSource(source));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
