@@ -184,6 +184,10 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   height: 100vh;
 }
 
+.VisualizationContainer.fullscreen.below-node {
+  padding-top: 0;
+}
+
 .VisualizationContainer.fullscreen.below-toolbar {
   padding-top: 38px;
 }
@@ -251,6 +255,22 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   left: 100%;
   width: 12px;
   height: 100%;
+}
+
+.VisualizationContainer.below-node > .resizer-right {
+  height: calc(100% - 36px);
+}
+
+.VisualizationContainer.below-toolbar > .resizer-right {
+  height: calc(100% - 72px);
+}
+
+.VisualizationContainer.fullscreen.below-node > .resizer-right {
+  height: 100%;
+}
+
+.VisualizationContainer.fullscreen.below-toolbar > .resizer-right {
+  height: calc(100% - 38px);
 }
 
 .resizer-bottom {

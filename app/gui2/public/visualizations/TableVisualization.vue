@@ -466,7 +466,6 @@ function goToLastPage() {
   white-space: nowrap;
   padding: 0 5px;
   overflow: hidden;
-  border-radius: 16px 16px 0 0;
 }
 
 .table-visualization-status-bar > button {
@@ -478,7 +477,6 @@ function goToLastPage() {
 
 <style>
 .TableVisualization > .ag-theme-alpine > .ag-root-wrapper.ag-layout-normal {
-  border-bottom-left-radius: var(--radius-default);
-  border-bottom-right-radius: var(--radius-default);
+  border-radius: 0 0 var(--radius-default) var(--radius-default);
 }
 </style>

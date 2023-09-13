@@ -26,8 +26,7 @@ const emit = defineEmits<{
 const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
-const expressionNode = ref<HTMLElement>()
-const nodeSize = useResizeObserver(expressionNode)
+const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
 
 watchEffect(() => {
@@ -373,7 +372,6 @@ watch(
       @update:type="visualizationType = $event"
     />
     <div
-      ref="expressionNode"
       class="node"
       :class="{ dragging: dragPointer.dragging }"
       v-on="dragPointer.events"
