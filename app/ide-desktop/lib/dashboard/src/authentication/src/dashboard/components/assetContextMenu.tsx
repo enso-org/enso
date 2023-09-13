@@ -66,7 +66,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
-    const ownsThisAsset = self?.permission === backendModule.PermissionAction.own
+    const ownsThisAsset =
+        backend.type === backendModule.BackendType.local ||
+        self?.permission === backendModule.PermissionAction.own
     const managesThisAsset =
         backend.type === backendModule.BackendType.local ||
         ownsThisAsset ||
