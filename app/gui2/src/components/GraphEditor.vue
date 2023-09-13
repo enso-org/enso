@@ -3,6 +3,7 @@ import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
 
 import { useGraphStore } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
@@ -110,6 +111,7 @@ function moveNode(id: ExprId, delta: Vec2) {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
+    <CodeEditor />
   </div>
 </template>
 
