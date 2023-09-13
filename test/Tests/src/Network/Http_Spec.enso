@@ -248,9 +248,13 @@ spec =
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}' content_type="application/json")
             response.at "headers" . at "Content-Type" . should_equal "application/json"
 
-        Test.specify "Content-type in the header list is respected" <|
+        Test.specify "Content type in the header list is respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json"]
             response.at "headers" . at "Content-Type" . should_equal "application/json"
+
+        Test.specify "Multiple content types in the header list are respected" <|
+            response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
 
         Test.specify "Unspecified content type defaults to text/plain" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}')
@@ -273,5 +277,8 @@ spec =
 
             expected3 = Request.new HTTP_Method.Get "" [Header.new "some" "header", Header.content_type "application/json"] (Request_Body.Text "")
             Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected3
+
+            expected4 = Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")
+            Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "") . resolve_content_type . should_equal expected4
 
 main = Test_Suite.run_main spec
