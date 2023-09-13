@@ -7,6 +7,7 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Filtering, type MatchResult } from './filtering'
 import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
 import { compareOpt } from '@/util/compare'
+import { isSome } from '@/util/opt'
 
 export interface Component {
   suggestionId: number
@@ -31,7 +32,7 @@ export interface MatchedSuggestion {
 }
 
 export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): number {
-  const matchCompare = compareOpt(a.match?.score, b.match?.score, 1)
+  const matchCompare = a.match.score - b.match.score
   if (matchCompare !== 0) return matchCompare
   const groupCompare = compareOpt(a.entry.groupIndex, b.entry.groupIndex, 1)
   if (groupCompare !== 0) return groupCompare
@@ -44,9 +45,15 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
 }
 
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
-  const matched: MatchedSuggestion[] = Array.from(db.entries(), ([id, entry]) => {
-    return { id, entry, match: filtering.filter(entry) }
-  }).filter((entry) => entry.match)
+  function* matchSuggestions() {
+    for (const [id, entry] of db.entries()) {
+      const match = filtering.filter(entry)
+      if (isSome(match)) {
+        yield { id, entry, match }
+      }
+    }
+  }
+  const matched: MatchedSuggestion[] = Array.from(matchSuggestions())
   matched.sort(compareSuggestions)
   return Array.from(matched, ({ id, entry, match }) => {
     return {

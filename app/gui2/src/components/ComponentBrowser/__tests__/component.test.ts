@@ -88,15 +88,11 @@ test('Suggestions are ordered properly', () => {
       entry: makeModule('local.Project.Z.Module'),
       match: { score: 50 },
     },
-    {
-      id: 1,
-      entry: { ...makeModuleMethod('local.Project.A', 'a', 'Any'), groupIndex: 0 },
-      match: null,
-    },
   ]
   const expectedOrdering = Array.from(sortedEntries, (entry) => entry.id)
   for (let i = 100; i < 120; i++) {
     const entries = shuffleSeed.shuffle(sortedEntries, i)
+
     entries.sort(compareSuggestions)
     const result = Array.from(entries, (entry) => entry.id)
     expect(result).toStrictEqual(expectedOrdering)

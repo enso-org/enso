@@ -132,6 +132,8 @@ function navigateDown() {
 
 function selectLastAfterRefresh() {
   selected.value = 0
+  // We need to wait for render and refreshing the scroller content size to properly set the scroll
+  // position.
   nextTick(() => {
     scrollToSelected()
     animatedScrollPosition.skip()

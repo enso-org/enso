@@ -1,4 +1,5 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { Opt } from '@/util/opt'
 import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 
 export interface Filter {
@@ -23,7 +24,7 @@ export enum MatchTypeScore {
 export type MatchResult = {
   matchedAlias?: string
   score: number
-} | null
+}
 
 class FilteringWithPattern {
   pattern: string
@@ -64,7 +65,7 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(entry: SuggestionEntry): MatchResult {
+  tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
     if (nameWordsMatch?.index === 0) {
       return {
@@ -187,7 +188,7 @@ export class Filtering {
     }
   }
 
-  filter(entry: SuggestionEntry): MatchResult {
+  filter(entry: SuggestionEntry): Opt<MatchResult> {
     if (entry.isPrivate) return null
     else if (!this.selfTypeMatches(entry)) return null
     else if (!this.qualifiedNameMatches(entry)) return null
