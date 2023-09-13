@@ -249,6 +249,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }
                         doAction={() => {
                             if (backend.type === backendModule.BackendType.remote) {
+                                unsetModal()
                                 void doDelete()
                             } else {
                                 setModal(

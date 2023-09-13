@@ -211,7 +211,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const logger = loggerProvider.useLogger()
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
@@ -942,6 +942,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // eslint-disable-next-line no-restricted-syntax
                         const doDeleteAll = () => {
                             if (backend.type === backendModule.BackendType.remote) {
+                                unsetModal()
                                 dispatchAssetEvent({
                                     type: assetEventModule.AssetEventType.deleteMultiple,
                                     ids: innerSelectedKeys,
@@ -965,6 +966,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const doRestoreAll = () => {
+                            unsetModal()
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.restoreMultiple,
                                 ids: innerSelectedKeys,
