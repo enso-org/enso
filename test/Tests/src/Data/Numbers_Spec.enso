@@ -447,13 +447,13 @@ spec =
         Test.specify "should allow calculating the floor value" <|
             1.2314.floor . should_equal 1
             1.floor . should_equal 1
-            almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three.to_decimal
+            almost_max_long_times_three_decimal.floor.to_float . should_equal almost_max_long_times_three.to_float
             almost_max_long_times_three.floor . should_equal almost_max_long_times_three
 
         Test.specify "should allow calculating the ceil value" <|
             1.2314.ceil . should_equal 2
             1.ceil . should_equal 1
-            almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
+            almost_max_long_times_three_decimal.ceil.to_float . should_equal almost_max_long_times_three_plus_1.to_float
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
 
         Test.specify "should expose a NaN value" <|

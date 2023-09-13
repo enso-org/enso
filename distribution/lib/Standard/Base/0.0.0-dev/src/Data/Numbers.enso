@@ -119,7 +119,7 @@ type Number
 
              1.asin
     asin : Float
-    asin self = Math.asin self.to_decimal
+    asin self = Math.asin self.to_float
 
     ## ALIAS inverse cosine
        GROUP Trigonometry
@@ -133,7 +133,7 @@ type Number
 
              1.acos
     acos : Float
-    acos self = Math.acos self.to_decimal
+    acos self = Math.acos self.to_float
 
     ## ALIAS inverse tangent
        GROUP Trigonometry
@@ -147,7 +147,7 @@ type Number
 
              1.atan
     atan : Float
-    atan self = Math.atan self.to_decimal
+    atan self = Math.atan self.to_float
 
     ## GROUP Trigonometry
        Computes the argument (angle) in the conversion from cartesian
@@ -163,7 +163,7 @@ type Number
 
              1.atan_2 2
     atan_2 : Number -> Float
-    atan_2 self y = Math.atan2 self.to_decimal y.to_decimal
+    atan_2 self y = Math.atan2 self.to_float y.to_float
 
     ## ALIAS sine
        GROUP Trigonometry
@@ -175,7 +175,7 @@ type Number
 
              2.sin
     sin : Float
-    sin self = Math.sin self.to_decimal
+    sin self = Math.sin self.to_float
 
     ## ALIAS cosine
        GROUP Trigonometry
@@ -187,7 +187,7 @@ type Number
 
              2.cos
     cos : Float
-    cos self = Math.cos self.to_decimal
+    cos self = Math.cos self.to_float
 
     ## ALIAS tangent
        GROUP Trigonometry
@@ -199,7 +199,7 @@ type Number
 
              2.tan
     tan : Float
-    tan self = Math.tan self.to_decimal
+    tan self = Math.tan self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic sine function.
@@ -209,7 +209,7 @@ type Number
 
              1.sinh
     sinh : Float
-    sinh self = Math.sinh self.to_decimal
+    sinh self = Math.sinh self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic cosine function.
@@ -219,7 +219,7 @@ type Number
 
              1.cosh
     cosh : Float
-    cosh self = Math.cosh self.to_decimal
+    cosh self = Math.cosh self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic tangent function.
@@ -229,7 +229,7 @@ type Number
 
              1.tanh
     tanh : Float
-    tanh self = Math.tanh self.to_decimal
+    tanh self = Math.tanh self.to_float
 
     ## ALIAS exponential
        GROUP Math
@@ -242,7 +242,7 @@ type Number
 
              4.exp
     exp : Float
-    exp self = Math.exp self.to_decimal
+    exp self = Math.exp self.to_float
 
     ## ALIAS natural logarithm
        GROUP Math
@@ -254,7 +254,7 @@ type Number
 
              2.ln
     ln : Float
-    ln self = Math.log self.to_decimal
+    ln self = Math.log self.to_float
 
     ## ALIAS square root
        GROUP Math
@@ -266,7 +266,7 @@ type Number
 
              8.sqrt
     sqrt : Float
-    sqrt self = Math.sqrt self.to_decimal
+    sqrt self = Math.sqrt self.to_float
 
     ## ALIAS logarithm
        GROUP Math
@@ -393,16 +393,16 @@ type Number
             if self < 0 then -1 else 0
 
 
-## Float is the type of decimal numbers in Enso.
+## Float is the type of float numbers in Enso.
 
    ? Representation
-     Enso's decimal numbers are represented as IEEE754 double-precision
+     Enso's float numbers are represented as IEEE754 double-precision
      floating point numbers.
 @Builtin_Type
 type Float
     ## ALIAS add, plus
        GROUP Operators
-       Adds a decimal and an arbitrary number.
+       Adds a float and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
@@ -433,7 +433,7 @@ type Float
 
     ## ALIAS multiply, product, times
        GROUP Operators
-       Multiply a decimal by an arbitrary number.
+       Multiply a float by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
@@ -450,7 +450,7 @@ type Float
 
     ## ALIAS divide
        GROUP Operators
-       Divides a decimal by an arbitrary number.
+       Divides a float by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
@@ -583,7 +583,7 @@ type Float
     ceil self = @Builtin_Method "Float.ceil"
 
     ## GROUP Rounding
-       Computes the nearest integer below this decimal.
+       Computes the nearest integer below this float.
 
        This method provides a means of converting a Float to an Integer.
 
@@ -672,30 +672,30 @@ type Float
     negate : Float
     negate self = @Builtin_Method "Float.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
-       This is a no-op on decimals, but is provided for completeness of the Enso
+       This is a no-op on floats, but is provided for completeness of the Enso
        Number API.
 
        > Example
-         Convert 5.0 to a decimal to get 5.0.
+         Convert 5.0 to a float to get 5.0.
 
-             5.0.to_decimal
-    to_decimal : Float
-    to_decimal self = @Builtin_Method "Float.to_decimal"
+             5.0.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Float.to_float"
 
     ## ALIAS from text
        GROUP Conversions
 
-       Parses a textual representation of a decimal into a decimal number, returning
-       a `Number_Parse_Error` if the text does not represent a valid decimal.
+       Parses a textual representation of a float into a float number, returning
+       a `Number_Parse_Error` if the text does not represent a valid float.
 
        Arguments:
-       - text: The text to parse into a decimal.
+       - text: The text to parse into a float.
        - locale: The locale that specifies the format to use when parsing
 
        > Example
-         Parse the text "7.6" into a decimal number.
+         Parse the text "7.6" into a float number.
 
              Float.parse "7.6"
     parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
@@ -1002,14 +1002,14 @@ type Integer
     negate : Integer
     negate self = @Builtin_Method "Integer.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
        > Example
-         Convert 5 to a decimal to get 5.0.
+         Convert 5 to a float to get 5.0.
 
-             5.to_decimal
-    to_decimal : Float
-    to_decimal self = @Builtin_Method "Integer.to_decimal"
+             5.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Integer.to_float"
 
     ## GROUP Bitwise
        Computes the bitwise and (conjunction) operation between this and
