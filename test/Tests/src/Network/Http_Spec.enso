@@ -20,7 +20,7 @@ type Test_Type
 
 type Bad_To_Json
     Aaa (s:Text)
-    to_json self = JS_Object.from_pairs [Pair.new [] 0]
+    to_json self = Error.throw (Illegal_Argument.Error "test")
 
 spec =
     # Set this to "https://httpbin.org" in your env to run this test
