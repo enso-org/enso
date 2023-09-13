@@ -180,7 +180,7 @@ spec prefix round_fun =
             round_fun -1.22222222222235 13 use_bankers=True . should_equal -1.2222222222224
             round_fun -1.222222222222235 14 use_bankers=True . should_equal -1.22222222222224
 
-        Test.specify "Decimal places out of range" <|
+        Test.specify "Float places out of range" <|
             round_fun 3.1 16 . should_fail_with Illegal_Argument
             round_fun 3.1 -16 . should_fail_with Illegal_Argument
 

@@ -8,14 +8,12 @@ import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.graalvm.polyglot.Context;
 
 import java.math.BigInteger;
-import java.util.BitSet;
 
 public class ToFloatStorageConverter implements StorageConverter<Double> {
   public ToFloatStorageConverter(FloatType targetType) {
@@ -52,7 +50,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
         builder.appendLong(x);
-      } else if (NumericConverter.isDecimalLike(o)) {
+      } else if (NumericConverter.isFloatLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
       } else if (o instanceof BigInteger bigInteger) {

@@ -1058,7 +1058,7 @@ spec setup =
     expect_null_or_nan value =
         matches = case value of
             Nothing -> True
-            _ : Decimal -> Double.isNaN value
+            _ : Float -> Double.isNaN value
             _       -> False
         if matches.not then
             loc = Meta.get_source_location 2

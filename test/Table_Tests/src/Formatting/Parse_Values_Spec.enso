@@ -201,7 +201,7 @@ spec =
             t5 = t.parse columns="ints" type=Value_Type.Float
             t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
             # `ints` are requested to be parsed as decimals.
-            t5.at "ints" . to_vector . first . should_be_a Decimal
+            t5.at "ints" . to_vector . first . should_be_a Float
 
             t6 = t.parse columns=["floats", "text+ints"] type=Auto
             # `floats` are auto-detected as decimals.

@@ -11,7 +11,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Decimal", name = "+", description = "Addition of numbers.")
+@BuiltinMethod(type = "Float", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends FloatNode {
   abstract double execute(double self, Object that);
 

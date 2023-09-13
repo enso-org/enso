@@ -101,7 +101,7 @@ public class InferredBuilder extends Builder {
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
-    } else if (NumericConverter.isDecimalLike(o)) {
+    } else if (NumericConverter.isFloatLike(o)) {
       currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);

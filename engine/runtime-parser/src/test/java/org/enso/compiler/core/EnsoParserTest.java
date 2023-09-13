@@ -143,7 +143,7 @@ public class EnsoParserTest {
     import Standard.Base.Any.Any
     import project.IO
     import Standard.Base as Enso_List
-    from Standard.Base import all hiding Number, Boolean, Decimal, Any
+    from Standard.Base import all hiding Number, Boolean, Float, Any
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
@@ -862,7 +862,7 @@ public class EnsoParserTest {
   public void testVectorVectorSimple() throws Exception {
     parseTest("""
     type Vector
-        build : Matrix Any Decimal
+        build : Matrix Any Float
     """);
   }
 
@@ -870,7 +870,7 @@ public class EnsoParserTest {
   public void testVectorVectorAny() throws Exception {
     parseTest("""
     type Vector
-        build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Decimal
+        build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Float
     """);
   }
 

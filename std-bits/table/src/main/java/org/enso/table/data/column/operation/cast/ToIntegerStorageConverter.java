@@ -61,7 +61,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           problemBuilder.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
-      } else if (NumericConverter.isDecimalLike(o)) {
+      } else if (NumericConverter.isFloatLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         if (targetType.fits(x)) {
           long converted = (long) x;

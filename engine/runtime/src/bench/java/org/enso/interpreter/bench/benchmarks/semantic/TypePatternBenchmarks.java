@@ -37,7 +37,7 @@ public class TypePatternBenchmarks {
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
     var code ="""
-        from Standard.Base import Integer, Vector, Any, Decimal
+        from Standard.Base import Integer, Vector, Any, Float
 
         avg arr =
             sum acc i = if i == arr.length then acc else
@@ -60,7 +60,7 @@ public class TypePatternBenchmarks {
             n : Any -> n + 1
 
         match_dec = v -> case v of
-            n : Decimal -> n + 1
+            n : Float -> n + 1
         """;
     var benchmarkName = SrcUtil.findName(params);
     var src = SrcUtil.source(benchmarkName, code);
@@ -72,7 +72,7 @@ public class TypePatternBenchmarks {
     this.vec = getMethod.apply("gen_vec").execute(length, 1.1);
     switch (SrcUtil.findName(params)) {
       case "matchOverAny" -> this.patternMatch = getMethod.apply("match_any");
-      case "matchOverDecimal" -> this.patternMatch = getMethod.apply("match_dec");
+      case "matchOverFloat" -> this.patternMatch = getMethod.apply("match_dec");
       default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
@@ -88,7 +88,7 @@ public class TypePatternBenchmarks {
   }
 
   @Benchmark
-  public void matchOverDecimal(Blackhole matter) {
+  public void matchOverFloat(Blackhole matter) {
     performBenchmark(matter);
   }
 

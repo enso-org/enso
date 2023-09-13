@@ -297,7 +297,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         if (NumericConverter.isCoercibleToDouble(x) && NumericConverter.isCoercibleToDouble(y)) {
 
           // If any of the values is decimal like, then decimal type is used for comparison.
-          if (NumericConverter.isDecimalLike(x) || NumericConverter.isDecimalLike(y)) {
+          if (NumericConverter.isFloatLike(x) || NumericConverter.isFloatLike(y)) {
             double a = NumericConverter.coerceToDouble(x);
             double b = NumericConverter.coerceToDouble(y);
             r = doDouble(a, b);
