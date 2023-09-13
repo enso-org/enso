@@ -216,3 +216,20 @@ test('Matching pattern with underscores', () => {
     expect(matchResults[i]?.score).toBeGreaterThan(matchResults[i - 1]?.score ?? Infinity)
   }
 })
+
+test('Unstable filtering', () => {
+  const stableEntry = makeStaticMethod('local.Project.Type', 'stable', 'Any')
+  const unstableEntry = {
+    ...makeStaticMethod('local.Project.Type', 'unstable', 'Any'),
+    isUnstable: true,
+  }
+  const stableFiltering = new Filtering({ qualifiedNamePattern: 'local.Project.Type' })
+  expect(stableFiltering.filter(stableEntry)).not.toBeNull()
+  expect(stableFiltering.filter(unstableEntry)).toBeNull()
+  const unstableFiltering = new Filtering({
+    qualifiedNamePattern: 'local.Project.Type',
+    showUnstable: true,
+  })
+  expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
+  expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
+})

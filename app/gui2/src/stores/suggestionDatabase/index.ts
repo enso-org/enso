@@ -23,7 +23,7 @@ function fromJsonProtocol(data: any, groups: Group[]): SuggestionEntry {
     memberOf: data.kind === SuggestionKind.Constructor ? data.return_type : data.self_type,
     selfType: !data.is_static ? data.self_type : null,
     isPrivate: isSome(tagValue('Private')),
-    isUnstable: isSome(tagValue('Unstable')),
+    isUnstable: isSome(tagValue('Unstable')) || isSome(tagValue('Advanced')),
     name: data.name.content,
     aliases: Array.from(tagValue('Alias')?.split(',') ?? [], (alias) => alias.trim()),
     arguments: data.arguments,

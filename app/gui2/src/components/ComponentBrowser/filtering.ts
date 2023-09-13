@@ -188,7 +188,8 @@ export class Filtering {
   }
 
   filter(entry: SuggestionEntry): MatchResult {
-    if (!this.selfTypeMatches(entry)) return null
+    if (entry.isPrivate) return null
+    else if (!this.selfTypeMatches(entry)) return null
     else if (!this.qualifiedNameMatches(entry)) return null
     else if (!this.showUnstable && entry.isUnstable) return null
     else if (this.pattern) return this.pattern.tryMatch(entry)

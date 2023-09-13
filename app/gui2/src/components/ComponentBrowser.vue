@@ -48,7 +48,7 @@ const currentFiltering = computed(() => {
   return new Filtering({ pattern, qualifiedNamePattern, ...filterFlags.value })
 })
 
-watch(inputText, selectLastAfterRefresh)
+watch(currentFiltering, selectLastAfterRefresh)
 
 // === Components List and Positions ===
 
@@ -193,7 +193,6 @@ useWindowEvent('keydown', (e) => {
       navigateDown()
       break
     case 'Escape':
-      console.log('ESC')
       e.preventDefault()
       selected.value = null
       break
