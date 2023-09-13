@@ -57,6 +57,7 @@ test.each([
     'another_module_with_same_name_method',
     'Any',
   ),
+  makeModuleMethod('local.Project.Module.Submodule', 'submodules_method', 'Any'),
   makeModule('local.Project.Module'),
   makeModule('local.Project.Module.Submodule.Nested'),
   makeType('local.Project', 'In_Parent_Module'),

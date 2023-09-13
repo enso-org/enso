@@ -1,12 +1,10 @@
-import { computed, ref, type ComputedRef } from 'vue'
-import { defineStore } from 'pinia'
 import {
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type Filter, Filtering, type MatchResult } from './filtering'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { Filtering, type MatchResult } from './filtering'
 import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
 import { compareOpt } from '@/util/compare'
 
@@ -45,30 +43,18 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   return a.id - b.id
 }
 
-export const useComponentsStore = defineStore('components', () => {
-  const filter = ref<Filter>({})
-  const filtering = computed(() => new Filtering(filter.value))
-  const suggestionDb = useSuggestionDbStore()
-  const components: ComputedRef<Component[]> = computed(() => {
-    const currentFiltering = filtering.value
-    const matched: MatchedSuggestion[] = Array.from(
-      suggestionDb.entries.entries(),
-      ([id, entry]) => {
-        const match = currentFiltering.filter(entry)
-        return { id, entry, match }
-      },
-    ).filter((entry) => entry.match)
-    matched.sort(compareSuggestions)
-    return Array.from(matched, ({ id, entry, match }) => {
-      return {
-        suggestionId: id,
-        icon: entry.iconName ?? 'marketplace',
-        label: `${labelOfEntry(entry, currentFiltering)} (${match?.score})`,
-        match,
-        group: entry.groupIndex,
-      }
-    })
+export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
+  const matched: MatchedSuggestion[] = Array.from(db.entries(), ([id, entry]) => {
+    return { id, entry, match: filtering.filter(entry) }
+  }).filter((entry) => entry.match)
+  matched.sort(compareSuggestions)
+  return Array.from(matched, ({ id, entry, match }) => {
+    return {
+      suggestionId: id,
+      icon: entry.iconName ?? 'marketplace',
+      label: `${labelOfEntry(entry, filtering)} (${match?.score})`,
+      match,
+      group: entry.groupIndex,
+    }
   })
-
-  return { components, filter }
-})
+}

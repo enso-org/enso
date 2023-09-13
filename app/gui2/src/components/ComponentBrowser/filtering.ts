@@ -130,7 +130,7 @@ export class Filtering {
       this.pattern = new FilteringWithPattern(pattern)
     }
     this.selfType = selfType
-    if (qualifiedNamePattern != null) {
+    if (qualifiedNamePattern != null && qualifiedNamePattern !== '') {
       this.qualifiedNameRegex = new RegExp(
         '(^|\\.)' + qualifiedNamePattern.replaceAll('.', '[^\\.]*\\.'),
         'i',
@@ -158,15 +158,15 @@ export class Filtering {
       const match = this.qualifiedNameRegex.exec(entryQn)
       if (match == null) return false
       const remaining = entryQn.substring(match.index + match[0].length)
-      const remainingSegments = remaining.split('.')
+      const remainingSegments = remaining.split('.').shift() ?? []
       switch (entry.kind) {
         case SuggestionKind.Constructor:
         case SuggestionKind.Method:
-          return remainingSegments.length <= 2
-        case SuggestionKind.Module:
-          return remainingSegments.length == 2
-        default:
           return remainingSegments.length <= 1
+        case SuggestionKind.Module:
+          return remainingSegments.length == 1
+        default:
+          return remainingSegments.length <= 0
       }
     }
   }

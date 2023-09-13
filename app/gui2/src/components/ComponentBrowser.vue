@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useResizeObserver, useWindowEvent } from '@/util/events'
-import { useComponentsStore } from '@/stores/components'
-import type { Component } from '@/stores/components'
+import { type Component, makeComponentList } from '@/components/ComponentBrowser/component'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, ref, watch } from 'vue'
@@ -9,6 +8,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { qnSplit } from '@/util/qualifiedName'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
 
 const ITEM_SIZE = 32
 
@@ -37,10 +38,24 @@ function positionAtMouse(): boolean {
   return true
 }
 
+// === Input and Filtering ===
+
+const inputText = ref('')
+const filterFlags = ref({ showUnstable: false, showLocal: false })
+
+const currentFiltering = computed(() => {
+  let [qualifiedNamePattern, pattern] = qnSplit(inputText.value)
+  return new Filtering({ pattern, qualifiedNamePattern, ...filterFlags.value })
+})
+
 // === Components List and Positions ===
 
-const componentStore = useComponentsStore()
 const suggestionDbStore = useSuggestionDbStore()
+
+const components = computed(() => {
+  console.log(currentFiltering)
+  return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
+})
 
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
@@ -50,26 +65,17 @@ const visibleComponents = computed(() => {
     0,
     componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
   )
-  return componentStore.components
-    .slice(bottommostVisible, topmostVisible + 1)
-    .map((component, i) => {
-      return { component, index: i + bottommostVisible }
-    })
-  // const firstVisible = componentAtY(scrollPosition)
-  // const lastVisible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
-  // return componentStore.components.slice(firstVisible, lastVisible + 1).map((component, i) => {
-  //   return { component, index: i + firstVisible }
-  // })
+  return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
+    return { component, index: i + bottommostVisible }
+  })
 })
 
 function componentPos(index: number) {
   return listContentHeight.value - (index + 1) * ITEM_SIZE
-  // return index * ITEM_SIZE
 }
 
 function componentAtY(pos: number) {
   return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
-  // return Math.floor(pos / ITEM_SIZE)
 }
 
 function componentStyle(index: number) {
@@ -108,7 +114,7 @@ const highlightClipPath = computed(() => {
 })
 
 function navigateUp() {
-  if (selected.value != null && selected.value < componentStore.components.length - 1) {
+  if (selected.value != null && selected.value < components.value.length - 1) {
     selected.value += 1
   }
   scrollToSelected()
@@ -116,7 +122,7 @@ function navigateUp() {
 
 function navigateDown() {
   if (selected.value == null) {
-    selected.value = componentStore.components.length - 1
+    selected.value = components.value.length - 1
   } else if (selected.value > 0) {
     selected.value -= 1
   }
@@ -144,12 +150,14 @@ const scrollerSize = useResizeObserver(scroller)
 const scrollPosition = ref(0)
 const animatedScrollPosition = useApproach(scrollPosition)
 
-const listContentHeight = computed(() => componentStore.components.length * ITEM_SIZE)
+const listContentHeight = computed(() =>
+  Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
+)
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
 function scrollToSelected() {
   if (selectedPosition.value == null) return
-  scrollPosition.value = selectedPosition.value - scrollerSize.value.y + ITEM_SIZE
+  scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
 }
 
 function updateScroll() {
@@ -202,9 +210,9 @@ useWindowEvent('keydown', (e) => {
       <div class="panel components">
         <div class="top-bar">
           <div class="top-bar-inner">
-            <ToggleIcon icon="local_scope2" />
+            <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
             <ToggleIcon icon="command_key3" />
-            <ToggleIcon icon="unstable2" />
+            <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
             <ToggleIcon icon="marketplace" />
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
@@ -251,7 +259,7 @@ useWindowEvent('keydown', (e) => {
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="CBInput"><input v-model="componentStore.filter.pattern" /></div>
+    <div class="CBInput"><input v-model="inputText" /></div>
   </div>
 </template>
 

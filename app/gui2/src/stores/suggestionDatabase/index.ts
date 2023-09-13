@@ -5,6 +5,9 @@ import mockDb from './db-formatted.json'
 import { isSome } from '@/util/opt'
 import { findIndexOpt } from '@/util/array'
 
+export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
+export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
+
 export interface Group {
   color: string
   name: string
@@ -33,7 +36,7 @@ function fromJsonProtocol(data: any, groups: Group[]): SuggestionEntry {
 }
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = reactive(new Map<SuggestionId, SuggestionEntry>())
+  const entries = reactive(new SuggestionDb())
   const groups = ref<Array<Group>>([
     { color: '#4D9A29', name: 'Input' },
     { color: '#B37923', name: 'Web' },
