@@ -91,6 +91,10 @@ spec =
             err = Data.fetch url_get method=HTTP_Method.Post
             err.catch.should_equal (Illegal_Argument.Error "Unsupported method Post")
 
+        Test.specify "Cannot DELETE through fetch" <|
+            err = Data.fetch url_get method=HTTP_Method.Delete
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Delete")
+
         Test.specify "unknown host" <|
             Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
 
