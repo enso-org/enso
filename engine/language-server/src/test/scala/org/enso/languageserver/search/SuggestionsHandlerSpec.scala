@@ -13,6 +13,7 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
+import org.enso.logger.LoggerSetup
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
@@ -26,7 +27,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.nio.file.Files
 import java.util.UUID
-
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -43,6 +43,7 @@ class SuggestionsHandlerSpec
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
+  LoggerSetup.get().setup()
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
