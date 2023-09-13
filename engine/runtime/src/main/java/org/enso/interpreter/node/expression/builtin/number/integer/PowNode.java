@@ -3,15 +3,12 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-
+import com.oracle.truffle.api.nodes.Node.Child;
 import java.math.BigInteger;
-
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-
-import com.oracle.truffle.api.nodes.Node.Child;
 
 @BuiltinMethod(type = "Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends IntegerNode {

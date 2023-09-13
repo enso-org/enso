@@ -1,14 +1,13 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 abstract class IntegerNode extends Node {
   IntegerNode() {}

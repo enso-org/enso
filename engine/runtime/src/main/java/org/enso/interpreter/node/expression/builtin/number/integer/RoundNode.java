@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
-import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
