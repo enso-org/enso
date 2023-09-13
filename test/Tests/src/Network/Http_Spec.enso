@@ -68,7 +68,6 @@ spec =
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
-            IO.println response.body.decode_as_text
             response.body.bytes.length . should_equal 307
 
         Test.specify "Can perform a HEAD" <|

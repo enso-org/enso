@@ -254,7 +254,7 @@ type Request
        content type, if any, to the headers list.
     resolve_content_type : Request
     resolve_content_type self =
-        is_content_type_header header = header.name.equals_ignore_case "Content-Type"
+        is_content_type_header header = header.name.equals_ignore_case Header.content_type_header_name
 
         body_content_type = case self.body of
             Request_Body.Text _ _ content_type -> content_type
@@ -264,7 +264,7 @@ type Request
         case body_content_type.is_nothing of
             True -> case header_content_types.is_empty of
                 True ->
-                    self.with_header "Content-Type" "text/plain"
+                    self.with_header Header.content_type_header_name "text/plain"
                 False ->
                     self
             False -> case header_content_types.is_empty of
