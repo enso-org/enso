@@ -7,7 +7,7 @@ const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 const rootNode = ref<HTMLElement>()
 
 function onClick(event: MouseEvent) {
-  if (!(event.target instanceof HTMLElement) || rootNode.value?.contains(event.target)) {
+  if (event.target instanceof Node && rootNode.value?.contains(event.target)) {
     return
   }
   emit('hide')

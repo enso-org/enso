@@ -324,13 +324,7 @@ const nodeWidth = computed(() => expressionNode.value?.getBoundingClientRect().w
 </script>
 
 <template>
-  <div
-    ref="rootNode"
-    :tabindex="-1"
-    class="GraphNode"
-    :style="{ transform }"
-    @click.stop="!isInputEvent($event) && rootNode?.focus()"
-  >
+  <div ref="rootNode" :tabindex="-1" class="GraphNode" :style="{ transform }">
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
@@ -365,6 +359,7 @@ const nodeWidth = computed(() => expressionNode.value?.getBoundingClientRect().w
       class="node"
       :class="{ dragging: dragPointer.dragging }"
       v-on="dragPointer.events"
+      @click.stop="!isInputEvent($event) && rootNode?.focus()"
     >
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
       <div
