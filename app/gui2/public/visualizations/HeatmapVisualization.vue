@@ -51,6 +51,7 @@ import VisualizationContainer from './VisualizationContainer.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
+  nodeWidth: number
   width: number | undefined
   height: number | undefined
   data: Data | string
@@ -85,21 +86,21 @@ onMounted(() => {
   updateHeatmap()
 })
 
-watch(
-  () => [data_.value, props.width, props.height],
-  () => {
-    updateHeatmap()
-  },
-)
-
 const width = computed(
-  () => props.width ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+  () => props.width ?? props.nodeWidth ?? containerNode.value?.getBoundingClientRect().width ?? 100,
 )
 const height = computed(
   () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
 )
 const boxWidth = computed(() => Math.max(0, width.value - margin.left - margin.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.top - margin.bottom))
+
+watch(
+  () => [data_.value, width.value, height.value],
+  () => {
+    updateHeatmap()
+  },
+)
 
 const margin = { top: 20, right: 20, bottom: 20, left: 25 }
 
@@ -224,6 +225,7 @@ function updateHeatmap() {
   <VisualizationContainer
     :="<any>$attrs"
     :below-toolbar="true"
+    :node-width="props.nodeWidth"
     :width="props.width"
     :height="props.height"
   >

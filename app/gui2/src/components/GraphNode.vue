@@ -320,7 +320,23 @@ watchEffect(async (onCleanup) => {
   }
 })
 
-const nodeWidth = computed(() => expressionNode.value?.getBoundingClientRect().width ?? 0)
+function onExpressionClick(event: Event) {
+  if (isInputEvent(event)) {
+    return
+  }
+  rootNode.value?.focus()
+  isCircularMenuVisible.value = true
+}
+
+watch(
+  () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
+  () => {
+    rootNode.value?.focus()
+    isCircularMenuVisible.value = true
+  },
+)
+
+const nodeWidth = computed(() => nodeSize.value.x)
 </script>
 
 <template>
@@ -359,7 +375,7 @@ const nodeWidth = computed(() => expressionNode.value?.getBoundingClientRect().w
       class="node"
       :class="{ dragging: dragPointer.dragging }"
       v-on="dragPointer.events"
-      @click.stop="!isInputEvent($event) && rootNode?.focus()"
+      @click.stop="onExpressionClick"
     >
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
       <div

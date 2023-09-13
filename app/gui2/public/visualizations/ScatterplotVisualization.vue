@@ -97,6 +97,7 @@ import VisualizationContainer from './VisualizationContainer.vue'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
+  nodeWidth: number
   width: number | undefined
   height: number | undefined
   data: Data | string
@@ -202,7 +203,7 @@ const margin = computed(() => {
   }
 })
 const width = computed(
-  () => props.width ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+  () => props.width ?? props.nodeWidth ?? containerNode.value?.getBoundingClientRect().width ?? 100,
 )
 const height = computed(
   () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
@@ -236,6 +237,26 @@ watchEffect(() => {
   focus.value = data.value.focus
 })
 
+let scaleAndAxis = {} as ReturnType<typeof updateAxes>
+let zoom = {} as ReturnType<typeof addPanAndZoom>
+
+onMounted(() => {
+  scaleAndAxis = updateAxes()
+  zoom = addPanAndZoom()
+  redrawPoints()
+  addBrushing()
+})
+
+watch(
+  () => [data.value, width.value, height.value],
+  () => {
+    scaleAndAxis = updateAxes()
+    zoom = addPanAndZoom()
+    redrawPoints()
+    addBrushing()
+  },
+)
+
 /**
  * Helper function calculating extreme values and paddings to make sure data will fit nicely.
  *
@@ -256,26 +277,6 @@ const extremesAndDeltas = computed(() => {
   const paddingY = 0.1 * dy
   return { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy }
 })
-
-let scaleAndAxis = {} as ReturnType<typeof updateAxes>
-let zoom = {} as ReturnType<typeof addPanAndZoom>
-
-onMounted(() => {
-  scaleAndAxis = updateAxes()
-  zoom = addPanAndZoom()
-  redrawPoints()
-  addBrushing()
-})
-
-watch(
-  () => [data.value, props.width, props.height],
-  () => {
-    scaleAndAxis = updateAxes()
-    zoom = addPanAndZoom()
-    redrawPoints()
-    addBrushing()
-  },
-)
 
 /**
  * Adds panning and zooming functionality to the visualization.
@@ -775,6 +776,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   <VisualizationContainer
     :="<any>$attrs"
     :below-toolbar="true"
+    :node-width="props.nodeWidth"
     :width="props.width"
     :height="props.height"
   >
