@@ -2,9 +2,13 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
@@ -17,6 +21,7 @@ import org.graalvm.collections.Pair;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 public final class EnsoMultiValue implements EnsoObject {
+
   @CompilationFinal(dimensions = 1)
   private final Type[] types;
 
@@ -51,6 +56,163 @@ public final class EnsoMultiValue implements EnsoObject {
   @ExportMessage
   String toDisplayString(boolean ignore) {
     return toString();
+  }
+
+  @ExportMessage
+  boolean isNumber(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.isNumber(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInByte(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInByte(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInShort(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInShort(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInInt(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInShort(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInLong(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInLong(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInFloat(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInFloat(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean fitsInDouble(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInDouble(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  byte asByte(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInByte(values[i])) {
+        return iop.asByte(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  short asShort(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInShort(values[i])) {
+        return iop.asShort(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  int asInt(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInInt(values[i])) {
+        return iop.asInt(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  long asLong(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInLong(values[i])) {
+        return iop.asLong(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  float asFloat(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInFloat(values[i])) {
+        return iop.asFloat(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  double asDouble(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInDouble(values[i])) {
+        return iop.asDouble(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  boolean fitsInBigInteger(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInBigInteger(values[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  BigInteger asBigInteger(@Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    for (var i = 0; i < values.length; i++) {
+      if (iop.fitsInBigInteger(values[i])) {
+        return iop.asBigInteger(values[i]);
+      }
+    }
+    throw UnsupportedMessageException.create();
   }
 
   @TruffleBoundary

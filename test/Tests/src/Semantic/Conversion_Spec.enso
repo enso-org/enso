@@ -218,8 +218,14 @@ spec =
                 x.fool . should_equal 42
                 x==x . should_be_true
                 (x:Integer)==42 . should_be_true
+                (x:Fool)==42 . should_be_false
+                x==42 . should_be_true
                 42==(x.to Integer) . should_be_true
+                42==(x.to Fool) . should_be_false
+                42==x . should_be_true
                 100+(x:Integer) . should_equal 142
+                (x:Integer)+100 . should_equal 142
+                x+100 . should_equal 142
                 x.to_text . should_equal "{FOOL 42}"
                 (x:Fool).to_text . should_equal "{FOOL 42}"
                 (x:Integer).to_text . should_equal "42"
