@@ -345,6 +345,7 @@ watch(
     :tabindex="-1"
     class="GraphNode"
     :style="{ transform }"
+    :class="{ dragging: dragPointer.dragging }"
     @focus="isCircularMenuVisible = true"
     @blur="onBlur"
   >
@@ -378,12 +379,7 @@ watch(
       "
       @update:type="visualizationType = $event"
     />
-    <div
-      class="node"
-      :class="{ dragging: dragPointer.dragging }"
-      v-on="dragPointer.events"
-      @click.stop="onExpressionClick"
-    >
+    <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
       <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
       <div
         ref="editableRootNode"
@@ -455,8 +451,8 @@ watch(
   height: unset;
 }
 
-.Node.dragging,
-.Node.dragging .icon {
+.GraphNode.dragging,
+.GraphNode.dragging .icon {
   cursor: grabbing;
 }
 
