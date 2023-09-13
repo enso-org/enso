@@ -2,13 +2,13 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.Node.Child;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "/", description = "Division of numbers.")
-public abstract class DivideNode extends Node {
+public abstract class DivideNode extends IntegerNode {
   abstract double execute(Object self, Object that);
 
   static DivideNode build() {
@@ -47,6 +47,6 @@ public abstract class DivideNode extends Node {
 
   @Fallback
   double doOther(Object self, Object that) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw throwTypeErrorIfNotInt(self, that);
   }
 }

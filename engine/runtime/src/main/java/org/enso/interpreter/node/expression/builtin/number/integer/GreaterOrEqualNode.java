@@ -2,7 +2,7 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.Node.Child;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = ">=", description = "Comparison of numbers.")
-public abstract class GreaterOrEqualNode extends Node {
+public abstract class GreaterOrEqualNode extends IntegerNode {
 
   abstract Object execute(Object self, Object that);
 

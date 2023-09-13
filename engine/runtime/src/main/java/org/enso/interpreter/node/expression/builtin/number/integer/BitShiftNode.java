@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ImportStatic(BigIntegerOps.class)
 @BuiltinMethod(type = "Integer", name = "bit_shift", description = "Bitwise shift.")
-public abstract class BitShiftNode extends Node {
+public abstract class BitShiftNode extends IntegerNode {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
   private final CountingConditionProfile canShiftLeftInLongProfile =
       CountingConditionProfile.create();
@@ -126,7 +126,7 @@ public abstract class BitShiftNode extends Node {
 
   @Fallback
   Object doOther(Object self, Object that) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw throwTypeErrorIfNotInt(self, that);
   }
 
   boolean hasFreeBitsLeftShift(long number, long shift) {

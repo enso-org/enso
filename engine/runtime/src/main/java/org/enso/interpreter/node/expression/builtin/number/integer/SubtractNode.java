@@ -2,14 +2,16 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
+import com.oracle.truffle.api.nodes.Node.Child;
+
 @BuiltinMethod(type = "Integer", name = "-", description = "Subtraction of numbers.")
-public abstract class SubtractNode extends Node {
+public abstract class SubtractNode extends IntegerNode {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   abstract Object execute(Object self, Object that);
@@ -55,6 +57,6 @@ public abstract class SubtractNode extends Node {
 
   @Fallback
   Object doOther(Object self, Object that) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw throwTypeErrorIfNotInt(self, that);
   }
 }

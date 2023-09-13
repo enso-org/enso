@@ -2,12 +2,12 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.Node.Child;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "ceil", description = "Small integer ceiling.")
-public abstract class CeilNode extends Node {
+public abstract class CeilNode extends IntegerNode {
   abstract Object execute(Object self);
 
   public static CeilNode build() {
@@ -26,6 +26,6 @@ public abstract class CeilNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw throwTypeErrorIfNotInt(self, this);
   }
 }
