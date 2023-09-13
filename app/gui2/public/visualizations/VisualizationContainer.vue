@@ -89,7 +89,12 @@ const resizeBottomRight = usePointer((pos, _, type) => {
     <div
       ref="rootNode"
       class="VisualizationContainer"
-      :class="{ fullscreen: fullscreen, 'below-node': belowNode, 'below-toolbar': belowToolbar }"
+      :class="{
+        fullscreen: fullscreen,
+        'circular-menu-visible': isCircularMenuVisible,
+        'below-node': belowNode,
+        'below-toolbar': belowToolbar,
+      }"
       :style="{
         '--color-visualization-bg': background,
       }"
@@ -110,7 +115,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         <slot></slot>
       </div>
       <div class="toolbars">
-        <div v-if="!isCircularMenuVisible || fullscreen"></div>
         <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
           <div class="background"></div>
           <button class="image-button active" @click="emit('hide')">
@@ -182,6 +186,16 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 .VisualizationContainer.fullscreen.below-toolbar {
   padding-top: 38px;
+}
+
+.toolbars {
+  transition-duration: 100ms;
+  transition-property: padding-left;
+}
+
+.VisualizationContainer.fullscreen .toolbars,
+.VisualizationContainer:not(.circular-menu-visible) .toolbars {
+  padding-left: 4px;
 }
 
 .content {

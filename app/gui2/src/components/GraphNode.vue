@@ -259,9 +259,7 @@ function handleClick(e: PointerEvent) {
   }
 }
 
-// FIXME: this should default to `false`
-const isCircularMenuVisible = ref(true)
-
+const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
@@ -320,6 +318,12 @@ watchEffect(async (onCleanup) => {
   }
 })
 
+function onBlur(event: FocusEvent) {
+  if (!(event.relatedTarget instanceof Node) || !rootNode.value?.contains(event.relatedTarget)) {
+    isCircularMenuVisible.value = false
+  }
+}
+
 function onExpressionClick(event: Event) {
   if (isInputEvent(event)) {
     return
@@ -332,13 +336,12 @@ watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
     rootNode.value?.focus()
-    isCircularMenuVisible.value = true
   },
 )
 </script>
 
 <template>
-  <div ref="rootNode" :tabindex="-1" class="GraphNode" :style="{ transform }">
+  <div ref="rootNode" :tabindex="-1" class="GraphNode" :style="{ transform }" @blur="onBlur">
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
@@ -358,6 +361,7 @@ watch(
       :types="visualizationTypes"
       :data="visualizationData"
       :is-circular-menu-visible="isCircularMenuVisible"
+      @hide="isVisualizationVisible = false"
       @update:preprocessor="
         (module, method, ...args) =>
           console.log(
