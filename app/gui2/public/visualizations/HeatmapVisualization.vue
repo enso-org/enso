@@ -48,10 +48,12 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
+import type { Vec2 } from './builtins.ts'
+
 import { computed, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
-  nodeWidth: number
+  nodeSize: Vec2
   width: number | undefined
   height: number | undefined
   data: Data | string
@@ -87,7 +89,8 @@ onMounted(() => {
 })
 
 const width = computed(
-  () => props.width ?? props.nodeWidth ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+  () =>
+    props.width ?? props.nodeSize.x ?? containerNode.value?.getBoundingClientRect().width ?? 100,
 )
 const height = computed(
   () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
@@ -225,7 +228,7 @@ function updateHeatmap() {
   <VisualizationContainer
     :="<any>$attrs"
     :below-toolbar="true"
-    :node-width="props.nodeWidth"
+    :node-size="props.nodeSize"
     :width="props.width"
     :height="props.height"
   >

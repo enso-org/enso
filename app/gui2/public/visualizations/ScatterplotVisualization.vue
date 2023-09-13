@@ -91,13 +91,14 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 import type * as d3Types from 'd3'
 
 import { getTextWidth } from './measurement.ts'
+import type { Vec2 } from './builtins.ts'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
-  nodeWidth: number
+  nodeSize: Vec2
   width: number | undefined
   height: number | undefined
   data: Data | string
@@ -203,7 +204,8 @@ const margin = computed(() => {
   }
 })
 const width = computed(
-  () => props.width ?? props.nodeWidth ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+  () =>
+    props.width ?? props.nodeSize.x ?? containerNode.value?.getBoundingClientRect().width ?? 100,
 )
 const height = computed(
   () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
@@ -776,7 +778,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
   <VisualizationContainer
     :="<any>$attrs"
     :below-toolbar="true"
-    :node-width="props.nodeWidth"
+    :node-size="props.nodeSize"
     :width="props.width"
     :height="props.height"
   >

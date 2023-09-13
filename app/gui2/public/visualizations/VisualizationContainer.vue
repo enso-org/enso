@@ -7,6 +7,7 @@ import CompassIcon from './icons/compass.svg'
 import VisualizationSelector from './Visualization/VisualizationSelector.vue'
 
 import { usePointer, PointerButtonMask } from './events.ts'
+import type { Vec2 } from './builtins.ts'
 
 import { ref } from 'vue'
 
@@ -22,7 +23,7 @@ const props = defineProps<{
   types: string[]
   background?: string
   isCircularMenuVisible: boolean
-  nodeWidth: number
+  nodeSize: Vec2
   width: number | null
   height: number | null
   fullscreen: boolean
@@ -57,7 +58,7 @@ const resizeRight = usePointer((pos, _, type) => {
     return
   }
   const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  emit('update:width', Math.max(props.nodeWidth, width))
+  emit('update:width', Math.max(props.nodeSize.x, width))
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -74,7 +75,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
   if (pos.delta.x !== 0) {
     const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    emit('update:width', Math.max(props.nodeWidth, width))
+    emit('update:width', Math.max(props.nodeSize.x, width))
   }
   if (pos.delta.y !== 0) {
     const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
@@ -101,7 +102,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow }"
         :style="{
-          width: fullscreen ? undefined : `${width ?? nodeWidth}px`,
+          width: fullscreen ? undefined : `${width ?? nodeSize.x}px`,
           height: fullscreen ? undefined : `${height}px`,
         }"
         @wheel.passive="onWheel"

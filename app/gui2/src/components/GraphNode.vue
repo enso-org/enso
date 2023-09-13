@@ -335,8 +335,6 @@ watch(
     isCircularMenuVisible.value = true
   },
 )
-
-const nodeWidth = computed(() => nodeSize.value.x)
 </script>
 
 <template>
@@ -356,7 +354,7 @@ const nodeWidth = computed(() => nodeSize.value.x)
       v-model:width="visualizationWidth"
       v-model:height="visualizationHeight"
       v-model:fullscreen="isVisualizationFullscreen"
-      :node-width="nodeWidth"
+      :node-size="nodeSize"
       :types="visualizationTypes"
       :data="visualizationData"
       :is-circular-menu-visible="isCircularMenuVisible"
