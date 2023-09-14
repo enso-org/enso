@@ -59,7 +59,7 @@ create_table_implementation connection table_name structure primary_key temporar
    Does not check if the table already exists - so if it does, it may fail with
    `SQL_Error`. The caller should perform the check for better error handling.
 internal_create_table_structure connection table_name structure primary_key temporary on_problems =
-    aligned_structure = align_structure structure
+    aligned_structure = align_structure connection structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
     validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
@@ -217,21 +217,26 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
 
 ## PRIVATE
 align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
-align_structure table_or_columns = case table_or_columns of
-    vector : Vector -> if vector.is_empty then Error.throw (Illegal_Argument.Error "A table with no columns cannot be created. The `structure` must consist of at list one column description.") else
+align_structure connection table_or_columns = case table_or_columns of
+    vector : Vector         -> align_vector_structure vector
+    table : Database_Table  -> structure_from_existing_table connection table
+    table : In_Memory_Table -> structure_from_existing_table connection table
+
+## PRIVATE
+align_vector_structure vector =
+    if vector.is_empty then Error.throw (Illegal_Argument.Error "A table with no columns cannot be created. The `structure` must consist of at list one column description.") else
         vector.map def-> case def of
             _ : Column_Description -> def
             _ : Function ->
                 Error.throw (Illegal_Argument.Error "The structure should be a vector of Column_Description. Maybe some arguments of Column_Description are missing?")
             _ ->
                 Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
-    table : Database_Table  -> structure_from_existing_table table
-    table : In_Memory_Table -> structure_from_existing_table table
 
 ## PRIVATE
-structure_from_existing_table table =
+structure_from_existing_table connection table =
     table.columns.map column->
-        Column_Description.Value column.name column.value_type
+        value_type = connection.dialect.value_type_for_upload_of_existing_column column
+        Column_Description.Value column.name value_type
 
 ## PRIVATE
    Verifies that the provided structure is valid, and runs the provided action
@@ -255,9 +260,10 @@ validate_structure column_naming_helper structure ~action =
    Returns the name of the first column in the provided table structure.
    It also verifies that the structure is correct.
    Used to provide the default value for `primary_key` in `create_table`.
-first_column_name_in_structure structure =
-    aligned = align_structure structure
-    aligned.first.name
+first_column_name_in_structure structure = case structure of
+    vector : Vector -> align_vector_structure vector . first . name
+    table : Database_Table  -> table.column_names.first
+    table : In_Memory_Table -> table.column_names.first
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the

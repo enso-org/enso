@@ -92,7 +92,7 @@ spec =
 
             Array.is_a Array . should_be_false
             [].to_array.is_a Array . should_be_true
-            [].to_array.is_a Decimal . should_be_false
+            [].to_array.is_a Float . should_be_false
             [1,2,3].is_a Vector . should_be_true
             [1,2,3].is_a Array . should_be_false
 
@@ -102,16 +102,16 @@ spec =
             True.is_a Integer . should_be_false
 
             "".is_a Text . should_be_true
-            "".is_a Decimal . should_be_false
+            "".is_a Float . should_be_false
 
             1.is_a Array . should_be_false
             1.is_a Integer . should_be_true
             1.is_a Number . should_be_true
-            1.is_a Decimal . should_be_false
+            1.is_a Float . should_be_false
             1.is_a Date . should_be_false
 
             1.0.is_a Number . should_be_true
-            1.0.is_a Decimal . should_be_true
+            1.0.is_a Float . should_be_true
             1.0.is_a Integer . should_be_false
             1.0.is_a Text . should_be_false
 
@@ -164,15 +164,15 @@ spec =
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
             n_1 . should_equal_type Integer
-            n_1 . should_not_equal_type Decimal
+            n_1 . should_not_equal_type Float
 
             n_2 = Meta.type_of 2.81
-            n_2 . should_equal_type Decimal
+            n_2 . should_equal_type Float
             n_2 . should_not_equal_type Integer
 
             n_3 = Meta.type_of (JLong.MAX_VALUE * 2)
             n_3 . should_equal_type Integer
-            n_3 . should_not_equal_type Decimal
+            n_3 . should_not_equal_type Float
 
             v_tpe = Meta.type_of [1,2,3]
             v_tpe . should_equal_type Vector
@@ -258,10 +258,10 @@ spec =
             methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
 
         Test.specify "methods of Integer" <|
-            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_decimal', 'truncate']
+            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_float', 'truncate']
 
         Test.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'to_decimal', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'to_float', 'truncate']
 
         Test.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"

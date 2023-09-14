@@ -60,7 +60,7 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    from_vector name items value_type=Auto =
+    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
@@ -208,7 +208,7 @@ type Column
     == self other =
         new_name = naming_helper.binary_operation_name "==" self other
         fallback problem_builder a b =
-            if (a.is_a Decimal) || (b.is_a Decimal) then
+            if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
         run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
@@ -858,7 +858,7 @@ type Column
          rounding to the nearest positive integer power of 10.
 
        > Example
-         Round a column of `Decimal` values`.
+         Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
@@ -876,7 +876,7 @@ type Column
        values to `Date`.
 
        > Example
-         Truncate a column of `Decimal` values.
+         Truncate a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate == (Column.from_vector "foo" [1, 2, 3])
 
@@ -909,7 +909,7 @@ type Column
        Returns a column of `Integer`.
 
        > Example
-         Take the ceiling of a column of `Decimal` values.
+         Take the ceiling of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
@@ -928,7 +928,7 @@ type Column
        Returns a column of `Integer`.
 
        > Example
-         Take the floor of a column of `Decimal` values.
+         Take the floor of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
@@ -1027,7 +1027,7 @@ type Column
     internal_is_nan self =
         new_name = naming_helper.function_name "is_nan" [self]
         fallback x = case x of
-            _ : Decimal -> x.is_nan
+            _ : Float   -> x.is_nan
             Nothing     -> Nothing
             _           -> False
         run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
@@ -1040,7 +1040,7 @@ type Column
     is_infinite self = Value_Type.expect_numeric self <|
         new_name = naming_helper.function_name "is_infinite" [self]
         fallback x = case x of
-            _ : Decimal -> x.is_infinite
+            _ : Float   -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
         run_vectorized_unary_op self Java_Storage.Maps.IS_INFINITE new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
@@ -1118,12 +1118,12 @@ type Column
         common_type.if_not_error <|
             storage = self.java_column.getStorage
             storage_type = Storage.from_value_type_strict common_type
-            new_st = case default of
+            new_st = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <| case default of
                 Column.Value java_col ->
                     other_storage = java_col.getStorage
                     storage.fillMissingFrom other_storage storage_type
                 _ ->
-                    storage.fillMissing default
+                    storage.fillMissing default storage_type
             col = Java_Column.new self.name new_st
             Column.Value col
 
@@ -1768,7 +1768,7 @@ type Column
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
-            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name value_type
+            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name target_storage_type
             new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder.to_java
             problems = cast_problem_builder.get_problems
             on_problems.attach_problems_before problems <|
@@ -1937,7 +1937,7 @@ type Column
 
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self index =
+    at self (index : Integer) =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
             storage = self.java_column.getStorage
@@ -2204,9 +2204,10 @@ type Column
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Text|Nothing -> Boolean -> Column
 run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False =
     effective_operands = Vector.unify_vector_or_element operands
+    all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing <|
-        naming_helper.function_name name [column]+effective_operands
-    common_type = Value_Type_Helpers.find_common_type_for_arguments effective_operands
+        naming_helper.function_name name all_operands
+    common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
         problem_builder = MapOperationProblemBuilder.new effective_new_name
         storage_type = resolve_storage_type common_type

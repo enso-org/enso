@@ -1725,7 +1725,7 @@ make_equality_check_with_floating_point_handling column other op =
         other_column : Column ->
             if other_column.value_type.is_floating_point then
                 problem_builder.reportFloatingPointEquality -1
-        _ : Decimal ->
+        _ : Float ->
             problem_builder.reportFloatingPointEquality -1
         _ -> Nothing
     result = column.make_binary_op op other

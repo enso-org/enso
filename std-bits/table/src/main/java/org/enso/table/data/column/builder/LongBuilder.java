@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -46,12 +47,14 @@ public abstract class LongBuilder extends NumericBuilder {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return Objects.equals(type, FloatType.FLOAT_64);
+    return Objects.equals(type, FloatType.FLOAT_64) || Objects.equals(type, BigIntegerType.INSTANCE);
   }
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    if (Objects.equals(type, FloatType.FLOAT_64)) {
+    if (Objects.equals(type, BigIntegerType.INSTANCE)) {
+      return BigIntegerBuilder.retypeFromLongBuilder(this);
+    } else if (Objects.equals(type, FloatType.FLOAT_64)) {
       return DoubleBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();

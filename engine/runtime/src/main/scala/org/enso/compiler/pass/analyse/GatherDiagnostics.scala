@@ -81,7 +81,16 @@ case object GatherDiagnostics extends IRPass {
             })
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ x.diagnostics.toList
-      case x => x.diagnostics.toList
+      case x: Expression =>
+        val typeSignatureDiagnostics =
+          x.getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ x.diagnostics.toList
+      case x =>
+        x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))

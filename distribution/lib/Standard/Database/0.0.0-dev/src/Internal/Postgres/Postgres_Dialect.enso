@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Value_Type
@@ -251,6 +252,29 @@ type Postgres_Dialect
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+
+
+    ## PRIVATE
+    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column self column = case column of
+        # Return the type as-is for database columns.
+        _ : Column -> column.value_type
+        _ : Materialized_Column ->
+            base_type = column.value_type
+            case base_type of
+                Value_Type.Decimal precision scale ->
+                    # We cannot have a specified scale and no precision, so special handling is needed for this:
+                    case precision.is_nothing && scale.is_nothing.not of
+                        True ->
+                            needed_precision = column.java_column.getStorage.getMaxPrecisionStored
+                            new_type = case needed_precision <= 1000 of
+                                # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
+                                True -> Value_Type.Decimal 1000 scale
+                                # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
+                                False -> Value_Type.Decimal Nothing Nothing
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type) new_type
+                        False -> base_type
+                _ -> base_type
 
 ## PRIVATE
 make_internal_generator_dialect =

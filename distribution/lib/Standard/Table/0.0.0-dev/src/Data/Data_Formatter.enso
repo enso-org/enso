@@ -209,7 +209,7 @@ type Data_Formatter
     ## PRIVATE
     make_datatype_parser self datatype = case datatype of
         Integer     -> self.make_integer_parser
-        Decimal     -> self.make_decimal_parser
+        Float     -> self.make_decimal_parser
         Boolean     -> self.make_boolean_parser
         Date        -> self.make_date_parser
         Date_Time   -> self.make_date_time_parser

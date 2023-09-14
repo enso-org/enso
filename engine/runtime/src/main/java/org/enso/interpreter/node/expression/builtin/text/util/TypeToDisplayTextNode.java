@@ -44,7 +44,7 @@ public abstract class TypeToDisplayTextNode extends Node {
     } else if (TypesGen.isEnsoBigInteger(value)) {
       return "Integer";
     } else if (TypesGen.isDouble(value)) {
-      return value + " (Decimal)";
+      return value + " (Float)";
     } else if (TypesGen.isBoolean(value)) {
       return (TypesGen.asBoolean(value) ? "True" : "False");
     } else if (TypesGen.isText(value)) {
