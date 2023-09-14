@@ -358,10 +358,15 @@ pub(crate) mod tests {
         assert_eq!(groups, expected);
     }
 
+    fn make_filter(pattern: &str) -> Filter {
+        let module_name = Rc::new(QualifiedName::from_text("local.Project").unwrap());
+        Filter { pattern: pattern.into(), context: None, module_name }
+    }
+
     #[test]
     fn filtering() {
         let db = mock_suggestion_database! {
-            local.New_Project_1 {
+            local.Project {
                 fn main() -> Standard.Base.Any;
             }
             test.Test {
@@ -380,15 +385,9 @@ pub(crate) mod tests {
         builder.add_components_from_db(db.keys());
         let mut list = builder.build();
 
-        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
-        let make_filter = |pat: &str| Filter {
-            pattern:     pat.into(),
-            context:     None,
-            module_name: module_name.clone_ref(),
-        };
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
         list.update_filtering(make_filter("main"));
-        check_displayed_components(&list, vec!["New_Project_1.main"]);
+        check_displayed_components(&list, vec!["Project.main"]);
         list.update_filtering(make_filter("fo"));
         check_displayed_components(&list, vec!["TopModule1.foo"]);
         list.update_filtering(make_filter("ba"));
@@ -397,10 +396,11 @@ pub(crate) mod tests {
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
     }
 
+    // Check that the order of results before and after filtering is the same.
     #[test]
     fn preserve_unfiltered_order_of_results() {
         let db = mock_suggestion_database! {
-            local.New_Project_1 {
+            local.Project {
                 fn main() -> Standard.Base.Any;
                 type Json {
                     #[in_group("Data")]
@@ -421,23 +421,16 @@ pub(crate) mod tests {
             }
         };
 
-        let mut builder = Builder::new(&db, &[ComponentGroup {
-            name:       GroupQualifiedName::new(
-                project::QualifiedName::from_text("local.New_Project_1").unwrap(),
-                "Data",
-            ),
+        let project_name = project::QualifiedName::from_text("local.Project").unwrap();
+        let component_groups = &[ComponentGroup {
+            name:       GroupQualifiedName::new(project_name, "Data"),
             color:      None,
             components: default(),
-        }]);
+        }];
+        let mut builder = Builder::new(&db, component_groups);
         builder.add_components_from_db(db.keys());
         let mut list = builder.build();
 
-        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
-        let make_filter = |pat: &str| Filter {
-            pattern:     pat.into(),
-            context:     None,
-            module_name: module_name.clone_ref(),
-        };
         check_displayed_components(&list, vec![
             "Json.parse",
             "Date.parse",
@@ -468,12 +461,6 @@ pub(crate) mod tests {
         builder.add_components_from_db(db.keys());
         let mut list = builder.build();
 
-        let module_name = Rc::new(QualifiedName::from_text("local.Project").unwrap());
-        let make_filter = |pat: &str| Filter {
-            pattern:     pat.into(),
-            context:     None,
-            module_name: module_name.clone_ref(),
-        };
         list.update_filtering(make_filter("join by joining"));
         check_displayed_components(&list, vec!["Join by Joining (Table.join)"]);
         let components = list.displayed().iter().cloned().collect_vec();
