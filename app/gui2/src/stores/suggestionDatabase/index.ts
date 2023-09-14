@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { SuggestionKind, type SuggestionEntry, type SuggestionId } from './entry'
-import mockDb from './db-formatted.json'
 import { isSome } from '@/util/opt'
 import { findIndexOpt } from '@/util/array'
 
@@ -35,6 +34,17 @@ function fromJsonProtocol(data: any, groups: Group[]): SuggestionEntry {
   }
 }
 
+export function initializeMockDb() {
+  fetch('https://capricornus.pl/~adam/db-formatted.json')
+    .then((resp) => resp.json())
+    .then((mockDb) => {
+      const db = useSuggestionDbStore()
+      for (const [id, entry] of Object.entries(mockDb)) {
+        db.entries.set(+id, fromJsonProtocol(entry, db.groups))
+      }
+    })
+}
+
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
   const groups = ref<Array<Group>>([
@@ -46,9 +56,6 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
     { color: '#9735B9', name: 'Transform' },
     { color: '#4D9A29', name: 'Output' },
   ])
-  for (const [id, entry] of Object.entries(mockDb)) {
-    entries.set(+id, fromJsonProtocol(entry, groups.value))
-  }
 
   return { entries, groups }
 })

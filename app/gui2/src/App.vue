@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { initializeMockDb } from './stores/suggestionDatabase'
 import ProjectView from './views/ProjectView.vue'
+
+onMounted(initializeMockDb)
 </script>
 
 <template>
