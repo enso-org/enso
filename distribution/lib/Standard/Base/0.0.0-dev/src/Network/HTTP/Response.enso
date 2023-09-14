@@ -68,6 +68,7 @@ type Response
 
     ## Get the response content length in bytes.
        This method uses the `Content-Length` header, and does not read the body.
+       If the header is not present will return Nothing.
     content_length : Integer | Nothing
     content_length self =
         content_length_optional = self.internal_http_response.headers.firstValue "Content-Length"
