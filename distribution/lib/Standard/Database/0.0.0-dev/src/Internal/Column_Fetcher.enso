@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Value_Type.Bits
@@ -84,6 +85,18 @@ long_fetcher bits =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+big_integer_fetcher : Column_Fetcher
+big_integer_fetcher =
+    fetch_value rs i =
+        big_decimal = rs.getBigDecimal i
+        if rs.wasNull then Nothing else
+            big_decimal.toBigIntegerExact
+    make_builder initial_size =
+        java_builder = Java_Exports.make_biginteger_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
 text_fetcher : Value_Type -> Column_Fetcher
 text_fetcher value_type =
     fetch_value rs i =
@@ -145,6 +158,14 @@ default_fetcher_for_value_type value_type =
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
         Value_Type.Date_Time _ -> date_time_fetcher
+        # If we can determine that scale = 0
+        Value_Type.Decimal _ scale ->
+            is_guaranteed_integer = scale.is_nothing.not && scale <= 0
+            case is_guaranteed_integer of
+                True  -> big_integer_fetcher
+                # If we cannot guarantee that the column is integer, we will fall back to Float values, since there is no BigDecimal implementation yet.
+                # TODO I think we should add a warning somewhere
+                False -> double_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE

@@ -2027,7 +2027,15 @@ type Table
             False ->
                 sql = preprocessed.to_sql
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                self.connection.read_statement sql column_type_suggestions
+                materialized_table = self.connection.read_statement sql column_type_suggestions
+
+                expected_types = self.columns.map .value_type
+                actual_types = materialized_table.columns.map .value_type
+                expected_types.zip actual_types . fold materialized_table acc-> types_pair->
+                    expected_type = types_pair.first
+                    actual_type = types_pair.second
+                    if expected_type == actual_type then acc else
+                        Warning.attach (Inexact_Type_Coercion.Warning expected_type actual_type) acc
 
     ## PRIVATE
        Creates a query corresponding to this table.

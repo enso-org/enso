@@ -40,7 +40,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
-                    double item = storage.getItem(i);
+                    double item = storage.getItemAsDouble(i);
                     boolean special = Double.isNaN(item) || Double.isInfinite(item);
                     if (!special) {
                         out[i] = (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers);
@@ -62,7 +62,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
-                    double item = storage.getItem(i);
+                    double item = storage.getItemAsDouble(i);
                     boolean special = Double.isNaN(item) || Double.isInfinite(item);
                     if (!special) {
                         doubleBuilder.appendDouble(Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));

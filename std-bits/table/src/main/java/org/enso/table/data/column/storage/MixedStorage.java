@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -48,6 +49,26 @@ public final class MixedStorage extends ObjectStorage {
     return new MixedStorage(data, size);
   }
 
+  private boolean isNumeric(StorageType type) {
+    return type instanceof IntegerType
+        || type instanceof FloatType
+        || type instanceof BigIntegerType;
+  }
+
+  private StorageType commonNumericType(StorageType a, StorageType b) {
+    assert isNumeric(a);
+    assert isNumeric(b);
+    if (a instanceof FloatType || b instanceof FloatType) {
+      return FloatType.FLOAT_64;
+    } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
+      return BigIntegerType.INSTANCE;
+    } else {
+      assert a instanceof IntegerType;
+      assert b instanceof IntegerType;
+      return IntegerType.INT_64;
+    }
+  }
+
   @Override
   public StorageType inferPreciseType() {
     if (inferredType == null) {
@@ -63,11 +84,9 @@ public final class MixedStorage extends ObjectStorage {
         var itemType = StorageType.forBoxedItem(item);
         if (currentType == null) {
           currentType = itemType;
-        } else if (currentType != itemType) {
-          // Allow mixed integer and float types in a column, returning a float.
-          if ((itemType instanceof IntegerType && currentType instanceof FloatType)
-              || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
-            currentType = FloatType.FLOAT_64;
+        } else if (!currentType.equals(itemType)) {
+          if (isNumeric(currentType) && isNumeric(itemType)) {
+            currentType = commonNumericType(currentType, itemType);
           } else {
             currentType = AnyObjectType.INSTANCE;
           }

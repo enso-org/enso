@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const editableRoot = ref<HTMLElement>()
+const editableRootNode = ref<HTMLElement>()
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -157,7 +157,7 @@ interface SavedSelections {
 let selectionToRecover: SavedSelections | null = null
 
 function saveSelections() {
-  const root = editableRoot.value
+  const root = editableRootNode.value
   const selection = window.getSelection()
   if (root == null || selection == null || !selection.containsNode(root, true)) return
   const ranges: ContentRange[] = Array.from({ length: selection.rangeCount }, (_, i) =>
@@ -186,9 +186,9 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  if (selectionToRecover != null && editableRoot.value != null) {
+  if (selectionToRecover != null && editableRootNode.value != null) {
     const saved = selectionToRecover
-    const root = editableRoot.value
+    const root = editableRootNode.value
     selectionToRecover = null
     const selection = window.getSelection()
     if (selection == null) return
@@ -264,7 +264,7 @@ function handleClick(e: PointerEvent) {
     <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
     <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
     <div
-      ref="editableRoot"
+      ref="editableRootNode"
       class="editable"
       contenteditable
       spellcheck="false"
@@ -308,6 +308,8 @@ function handleClick(e: PointerEvent) {
 
 .editable {
   outline: none;
+  display: flex;
+  gap: 4px;
 }
 
 .icon {
