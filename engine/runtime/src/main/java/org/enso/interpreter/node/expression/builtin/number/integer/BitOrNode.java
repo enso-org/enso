@@ -1,16 +1,17 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_or", description = "Bitwise or.")
-public abstract class BitOrNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
+public abstract class BitOrNode extends IntegerNode {
 
   abstract Object execute(Object self, Object that);
 
@@ -38,8 +39,17 @@ public abstract class BitOrNode extends Node {
     return toEnsoNumberNode.execute(BigIntegerOps.bitOr(self.getValue(), that.getValue()));
   }
 
+  @Specialization(guards = "isForeignNumber(iop, that)")
+  Object doInterop(
+      Object self,
+      TruffleObject that,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached BitOrNode delegate) {
+    return super.doInterop(self, that, iop, delegate);
+  }
+
   @Fallback
   Object doOther(Object self, Object that) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, that, this);
+    throw throwTypeErrorIfNotInt(self, that);
   }
 }

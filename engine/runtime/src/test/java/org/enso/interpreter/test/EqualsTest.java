@@ -3,6 +3,13 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -10,9 +17,11 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
+import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -186,6 +195,93 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           assertTrue(equalsNode.execute(ensoVector, javaVector));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberLong() {
+    var ensoNumber = unwrapValue(context, createValue(context, "1", ""));
+    var foreignNumber = new WrappedPrimitive(1);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberDouble() {
+    var ensoNumber = unwrapValue(context, createValue(context, "1.0", ""));
+    var foreignNumber = new WrappedPrimitive(1.0);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberBigInt() {
+    var value = new BigInteger("43207431473298432194374819743291479009431478329");
+    var ensoNumber = unwrapValue(context, createValue(context, value.toString(), ""));
+    var foreignNumber = new WrappedPrimitive(value);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleBoolean() {
+    var ensoBoolean =
+        unwrapValue(context, createValue(context, "True", "from Standard.Base import True"));
+    var foreignBoolean = new WrappedPrimitive(true);
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean.asDirect()));
+          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean));
+          assertTrue(equalsNode.execute(foreignBoolean, ensoBoolean));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleString() {
+    var ensoText = unwrapValue(context, createValue(context, "'Hello'", ""));
+    var foreignString = new WrappedPrimitive("Hello");
+    executeInContext(
+        context,
+        () -> {
+          assertTrue(equalsNode.execute(ensoText, foreignString.asDirect()));
+          assertTrue(equalsNode.execute(ensoText, foreignString));
+          assertTrue(equalsNode.execute(foreignString, ensoText));
+          return null;
+        });
+  }
+
+  @Test
+  public void testTruffleNumberPlus() {
+    var plus100 = context.eval("enso", """
+    plus100 x = 100+x
+    """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plus100");
+    assertTrue("plus100 can be executed", plus100.canExecute());
+    var foreignNumber = context.asValue(new WrappedPrimitive(42));
+    var hundred42 = unwrapValue(context, plus100.execute(foreignNumber));
+    executeInContext(context,
+        () -> {
+          assertTrue(equalsNode.execute(142L, hundred42));
+          assertTrue(equalsNode.execute(hundred42, 142L));
           return null;
         });
   }

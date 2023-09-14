@@ -55,6 +55,16 @@ foreign js call_function fn arg_1 = """
 
 Number.foo self = "foo called"
 
+from Standard.Base import all
+
+type Fool
+    Value fool
+
+    to_text : Text
+    to_text self = "{FOOL " + self.fool.to_text + "}"
+
+Fool.from (that : Any) = Fool.Value that
+
 spec =
     Test.group "Conversion" <|
         Test.specify "should be able to convert atoms" <|
@@ -202,6 +212,145 @@ spec =
             to_6 (v : Number & Decimal & Integer) = v
             to_6 m . should_equal 1.5
 
+        Test.specify "Requesting Integer & Fool" <|
+            do_number (x : Integer & Fool) =
+                x.foo . should_equal "foo called"
+                x.fool . should_equal 42
+                x==x . should_be_true
+                (x:Integer)==42 . should_be_true
+                (x:Fool)==42 . should_be_false
+                x==42 . should_be_true
+                42==(x.to Integer) . should_be_true
+                42==(x.to Fool) . should_be_false
+                42==x . should_be_true
+                100+(x:Integer) . should_equal 142
+                (x:Integer)+100 . should_equal 142
+                x+100 . should_equal 142
+                100+x . should_equal 142
+                x.to_text . should_equal "{FOOL 42}"
+                (x:Fool).to_text . should_equal "{FOOL 42}"
+                (x:Integer).to_text . should_equal "42"
+
+            do_number 42
+
+        Test.specify "Requesting Decimal & Fool" <|
+            do_number (x : Decimal & Fool) =
+                x.foo . should_equal "foo called"
+                x.fool . should_equal 42.3
+                x==x . should_be_true
+                (x:Decimal)==42.3 . should_be_true
+                (x:Fool)==42.3 . should_be_false
+                x==42.3 . should_be_true
+                42.3==(x.to Decimal) . should_be_true
+                42.3==(x.to Fool) . should_be_false
+                42.3==x . should_be_true
+                100+(x:Decimal) . should_equal 142.3
+                (x:Decimal)+100 . should_equal 142.3
+                x+100 . should_equal 142.3
+                100+x . should_equal 142.3
+                x.to_text . should_equal "{FOOL 42.3}"
+                (x:Fool).to_text . should_equal "{FOOL 42.3}"
+                (x:Decimal).to_text . should_equal "42.3"
+
+            do_number 42.3
+
+        Test.specify "Requesting Boolean & Fool" <|
+            do_boolean (x : Boolean & Fool) =
+                x.fool . should_equal True
+                x==x . should_be_true
+                (x:Boolean) . should_be_true
+                (x:Fool)==True . should_be_false
+                x==True . should_be_true
+                True==(x:Boolean) . should_be_true
+                True==(x:Fool) . should_be_false
+                True==x . should_be_true
+                x.to_text . should_equal "{FOOL True}"
+                (x:Fool).to_text . should_equal "{FOOL True}"
+                (x:Boolean).to_text . should_equal "True"
+                Panic.recover Any (x:Integer).to_text . should_fail_with Type_Error
+
+            do_boolean True
+
+        Test.specify "Requesting Text & Fool" <|
+            do_text (x : Text & Fool) =
+                x.fool . should_equal "Hello"
+                x==x . should_be_true
+                (x:Text)=="Hello" . should_be_true
+                (x:Fool)=="Hello" . should_be_false
+                x=="Hello" . should_be_true
+                "Hello"==(x:Text) . should_be_true
+                "Hello"==(x:Fool) . should_be_false
+                "Hello"==x . should_be_true
+                x.to_text . should_equal "Hello"
+                (x:Fool).to_text . should_equal "{FOOL Hello}"
+                (x:Text).to_text . should_equal "Hello"
+                Panic.recover Any (x:Boolean).to_text . should_fail_with Type_Error
+
+            do_text "Hello"
+
+        Test.specify "Requesting Time_Of_Day & Fool" <|
+            now = Time_Of_Day.now
+
+            do_time (x : Time_Of_Day & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Time_Of_Day)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Time_Of_Day) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        Test.specify "Requesting Date & Fool" <|
+            now = Date.today
+
+            do_date (x : Date & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_date now
+
+        Test.specify "Requesting Date_Time & Fool" <|
+            now = Date_Time.now
+
+            do_time (x : Date_Time & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date_Time)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date_Time) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        Test.specify "Requesting Duration & Fool" <|
+            now = Duration.new hours=5
+
+            do_duration (x : Duration & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Duration)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Duration) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_duration now
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix

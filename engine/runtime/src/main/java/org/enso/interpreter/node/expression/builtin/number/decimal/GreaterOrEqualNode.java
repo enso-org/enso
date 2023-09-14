@@ -1,16 +1,18 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = ">=", description = "Comparison of numbers.")
-public abstract class GreaterOrEqualNode extends Node {
+public abstract class GreaterOrEqualNode extends FloatNode {
 
   abstract Object execute(double self, Object that);
 
@@ -45,14 +47,18 @@ public abstract class GreaterOrEqualNode extends Node {
     }
   }
 
+  @Specialization(guards = "isForeignNumber(iop, that)")
+  Object doInterop(
+      double self,
+      TruffleObject that,
+      @CachedLibrary(limit = INTEROP_LIMIT) InteropLibrary iop,
+      @Cached ToEnsoNumberNode toEnsoNumberNode,
+      @Cached GreaterOrEqualNode delegate) {
+    return delegate.execute(self, handleInterop(true, self, that, iop, toEnsoNumberNode));
+  }
+
   @Fallback
   Object doOther(double self, Object that) {
     return incomparableError(self, that);
-  }
-
-  private DataflowError incomparableError(Object self, Object that) {
-    var builtins = EnsoContext.get(this).getBuiltins();
-    var incomparableErr = builtins.error().makeIncomparableValues(self, that);
-    return DataflowError.withoutTrace(incomparableErr, this);
   }
 }

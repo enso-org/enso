@@ -947,6 +947,7 @@
   projects next to each other][7634]
 - [Support runtime checks of intersection types][7769]
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
+- [Inline type ascriptions][7796]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1086,6 +1087,7 @@
 [7634]: https://github.com/enso-org/enso/pull/7634
 [7769]: https://github.com/enso-org/enso/pull/7769
 [7636]: https://github.com/enso-org/enso/pull/7636
+[7796]: https://github.com/enso-org/enso/pull/7796
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
