@@ -72,7 +72,7 @@ public class TypePatternBenchmarks {
     this.vec = getMethod.apply("gen_vec").execute(length, 1.1);
     switch (SrcUtil.findName(params)) {
       case "matchOverAny" -> this.patternMatch = getMethod.apply("match_any");
-      case "matchOverFloat" -> this.patternMatch = getMethod.apply("match_float");
+      case "matchOverDecimal" -> this.patternMatch = getMethod.apply("match_float");
       default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
@@ -87,8 +87,11 @@ public class TypePatternBenchmarks {
     performBenchmark(matter);
   }
 
+  /**
+   * Benchmark that matches over a Float. The old (decimal) name is kept to keep the history of results consistent.
+   */
   @Benchmark
-  public void matchOverFloat(Blackhole matter) {
+  public void matchOverDecimal(Blackhole matter) {
     performBenchmark(matter);
   }
 
