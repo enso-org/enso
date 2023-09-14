@@ -53,7 +53,7 @@ type Postgres_Details
 
     ## PRIVATE
        Provides the properties for the connection.
-    jdbc_properties : Vector Pair
+    jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing ->
