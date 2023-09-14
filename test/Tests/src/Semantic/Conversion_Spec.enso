@@ -233,24 +233,24 @@ spec =
 
             do_number 42
 
-        Test.specify "Requesting Decimal & Fool" <|
-            do_number (x : Decimal & Fool) =
+        Test.specify "Requesting Float & Fool" <|
+            do_number (x : Float & Fool) =
                 x.foo . should_equal "foo called"
                 x.fool . should_equal 42.3
                 x==x . should_be_true
-                (x:Decimal)==42.3 . should_be_true
+                (x:Float)==42.3 . should_be_true
                 (x:Fool)==42.3 . should_be_false
                 x==42.3 . should_be_true
-                42.3==(x.to Decimal) . should_be_true
+                42.3==(x.to Float) . should_be_true
                 42.3==(x.to Fool) . should_be_false
                 42.3==x . should_be_true
-                100+(x:Decimal) . should_equal 142.3
-                (x:Decimal)+100 . should_equal 142.3
+                100+(x:Float) . should_equal 142.3
+                (x:Float)+100 . should_equal 142.3
                 x+100 . should_equal 142.3
                 100+x . should_equal 142.3
                 x.to_text . should_equal "{FOOL 42.3}"
                 (x:Fool).to_text . should_equal "{FOOL 42.3}"
-                (x:Decimal).to_text . should_equal "42.3"
+                (x:Float).to_text . should_equal "42.3"
 
             do_number 42.3
 
