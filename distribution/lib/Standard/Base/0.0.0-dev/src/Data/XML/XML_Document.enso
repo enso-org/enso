@@ -1,0 +1,71 @@
+type XML_Document
+    ## Static methods
+    from_file : Text -> XML_Document ! XML_Parse_Error
+    from_string : Text -> XML_Document ! XML_Parse_Error
+    ## Object methods
+    get_root : XML -> XML_Element
+
+type XML_Format
+    # Implements the File_Format interface, using XML_Document.from_file
+
+type XML_Element
+    ## Object methods
+
+    ## Gets the tag of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo>hello</foo>' . at 0 . tag
+           # => "foo"
+    tag : Text
+
+    ## Gets a list of the attribute names of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
+           # => ["bar"]
+    attributes : Map Text Text
+
+    ## Gets an attribute of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attribute "bar"
+           # => "one"
+    attribute : Text -> Text
+
+    ## Gets the children of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . children
+           # => [XML_Document.from_string "<baz>hello</baz>"]
+    children : Vector XML_Element
+
+    ## Gets the number children of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . num_children
+           # => 1
+    num_children : Integer
+
+    ## Gets a child of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
+           # => XML_Document.from_string "<baz>hello</baz>"
+    at : Text | Integer -> XML_Element
+
+    ## Gets the non-markup contents of the element.
+
+       Example:
+           XML_Document.from_string '<foo>hello</foo>' . at 0 . tag
+           # => "hello"
+    text : Text
+
+    ## Gets elements matching a given tag name
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . get_elements_by_tag_name "baz"
+           # => [XML_Document.from_string "<baz>hello</baz>"]
+    get_elements_by_tag_name : Text -> Vector XML_Element
+
+Table.from_objects
+    # Add case for XML_Document
