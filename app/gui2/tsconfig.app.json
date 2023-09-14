@@ -11,6 +11,5 @@
     "types": [
       "vitest/importMeta"
     ],
-    "lib": ["ES2021", "DOM", "DOM.Iterable"]
   }
 }

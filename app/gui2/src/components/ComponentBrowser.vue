@@ -12,6 +12,7 @@ import { qnSplit } from '@/util/qualifiedName'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 
 const ITEM_SIZE = 32
+const TOP_BAR_HEIGHT = 32
 
 const props = defineProps<{
   position: Vec2
@@ -170,7 +171,9 @@ const scrollPosition = ref(0)
 const animatedScrollPosition = useApproach(scrollPosition)
 
 const listContentHeight = computed(() =>
-  Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
+  // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
+  // by top bar.
+  Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
 )
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
@@ -327,8 +330,9 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 .list {
+  top: 20px;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 20px);
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;

@@ -59,7 +59,7 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     return {
       suggestionId: id,
       icon: entry.iconName ?? 'marketplace',
-      label: `${labelOfEntry(entry, filtering)} (${match?.score})`,
+      label: labelOfEntry(entry, filtering),
       match,
       group: entry.groupIndex,
     }

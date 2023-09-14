@@ -35,7 +35,7 @@ class FilteringWithPattern {
     // word is put to regex group - this is used to compute score (details in matchedWordsScore
     // method). See `Filtering` docs for full algorithm description.
     this.wordMatchRegex = new RegExp(
-      '(?:^|_)(' + pattern.replaceAll('_', '[^_]*).*?_(') + '[^_]*).*',
+      '(?:^|_)(' + pattern.replace(/_/g, '[^_]*).*?_(') + '[^_]*).*',
       'i',
     )
     if (pattern.length > 1 && pattern.indexOf('_') < 0) {
@@ -129,7 +129,7 @@ class FilteringQualifiedName {
     this.pattern = pattern
     // Starting at some segment, each segment should start with the respective
     // pattern's segment. See `Filtering` docs for full algorithm description.
-    const segmentsMatch = '(^|\\.)' + pattern.replaceAll('.', '[^\\.]*\\.')
+    const segmentsMatch = '(^|\\.)' + pattern.replace(/\./g, '[^\\.]*\\.')
     // The direct members must have no more segments in their path.
     this.memberRegex = new RegExp(segmentsMatch + '[^\\.]*$', 'i')
     this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch, 'i')
