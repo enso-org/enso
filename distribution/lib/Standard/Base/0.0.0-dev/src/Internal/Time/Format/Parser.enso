@@ -181,7 +181,10 @@ type Parser
                 # Lowercase form is reserved for months - handled elsewhere.
                 "M" -> Nothing
             "s" -> Time_Patterns.Second (Numeric_Representation.Value count)
-            "f" -> Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
+            "f" ->
+                if count > 9 then
+                    Panic.throw (Date_Time_Format_Parse_Error.Error "It is meaningless to have more than 9 digits in the fractional-of-second pattern, because at most nanosecond precision of seconds is currently supported.")
+                Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
             "a" -> Time_Patterns.AmPm
             "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
             "z" -> Time_Zone_Patterns.Time_Zone_Offset

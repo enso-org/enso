@@ -15,6 +15,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalUnit;
@@ -314,5 +315,15 @@ public class Time_Utils {
    */
   public static ZonedDateTime unit_datetime_add(TemporalUnit unit, ZonedDateTime datetime, long amount) {
     return datetime.plus(amount, unit);
+  }
+
+  /**
+   * This helper method is needed, because calling `appendValueReduced` directly from Enso fails to convert an EnsoDate
+   * to a LocalDate due to polyglot unable to handle the polymorphism of the method.
+   */
+  public static void appendTwoDigitYear(DateTimeFormatterBuilder builder, ChronoField yearField, int maxYear) {
+    int minYear = maxYear - 99;
+    LocalDate baseDate = LocalDate.of(minYear, 1, 1);
+    builder.appendValueReduced(yearField, 2, 2, baseDate);
   }
 }

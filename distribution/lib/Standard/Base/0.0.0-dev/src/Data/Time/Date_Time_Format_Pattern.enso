@@ -1,4 +1,9 @@
+import project.Data.Locale.Locale
 import project.Data.Text.Text
+
+import project.Internal.Time.Format.Tokenizer.Tokenizer
+import project.Internal.Time.Format.Parser
+import project.Internal.Time.Format.As_Java_Formatter_Interpreter
 
 polyglot java import java.time.format.DateTimeFormatter
 
@@ -83,7 +88,7 @@ type Date_Time_Format_Pattern
          Parsing a two-digit year with a custom base year.
 
              Date.parse "dd MMMM ''yy{2099}" "1 November '95" == (Date.new 2095 11 01)
-    Simple pattern:Text
+    Simple pattern:Text locale:Locale=Locale.default
 
     ## A pattern for formats related to the ISO 8601 leap week calendar.
 
@@ -124,7 +129,7 @@ type Date_Time_Format_Pattern
          Omitting the day of the week will result in the first day of that week.
 
              Date.parse (ISO_Week_Date "YYYY-'W'WW" "1978-W01") == (Date.new 1978 01 02)
-    ISO_Week_Date pattern:Text
+    ISO_Week_Date pattern:Text locale:Locale=Locale.default
 
     ## ADVANCED
        A pattern built using the Java pattern syntax or a Java DateTimeFormatter
@@ -135,6 +140,16 @@ type Date_Time_Format_Pattern
        explanation of the pattern format:
        https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
     Java (pattern : Text | DateTimeFormatter)
+
+    build_java_formatter : DateTimeFormatter
+    build_java_formatter self = case self of
+        Date_Time_Format_Pattern.Simple pattern locale ->
+            Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern |> As_Java_Formatter_Interpreter.interpret locale
+        Date_Time_Format_Pattern.ISO_Week_Date pattern locale ->
+            Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern |> As_Java_Formatter_Interpreter.interpret locale
+        Date_Time_Format_Pattern.Java pattern -> case pattern of
+            _ : Text -> DateTimeFormatter.ofPattern pattern
+            formatter : DateTimeFormatter -> formatter
 
 ## PRIVATE
 Date_Time_Format_Pattern.from (that:Text) = Date_Time_Format_Pattern.Simple that
