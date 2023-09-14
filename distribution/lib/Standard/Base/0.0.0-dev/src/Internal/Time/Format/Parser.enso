@@ -1,10 +1,12 @@
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number_Parse_Error
+import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Parse_Error
 import project.Data.Vector.Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
@@ -55,28 +57,67 @@ type Parser_Mode
     Simple
     ISO_Week_Year
 
-type Parser
-    Instance (tokens : Vector (Format_Token | Nothing)) (position : Ref Integer)
+    pattern_format_name self = case self of
+        Parser_Mode.Simple -> "Simple"
+        Parser_Mode.ISO_Week_Year -> "ISO_Week_Date"
 
-    parse self =
-        case self.consume_token of
-            Format_Token.Literal text ->
-                self.result_builder.append (Common_Nodes.Literal text)
-            Format_Token.Curly_Section inner_text ->
-                Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. Currently, the curly braces are only used to parametrize the two-digit year with the max year, e.g. `yy{2049}`. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
-            Format_Token.Pattern character count ->
-                case mode of
-                    Parser_Mode.Simple -> self.parse_simple_date_pattern character count
-                    Parser_Mode.ISO_Week_Year -> self.parse_iso_week_year_pattern character count
+type Parser
+    Instance (tokens : Vector (Format_Token | Nothing)) (position : Ref Integer) (mode : Parser_Mode)
+
+    new tokens mode =
+        Parser.Instance tokens=tokens+[Nothing] position=(Ref.new 0) mode=mode
+
+    run self = Panic.recover Date_Time_Format_Parse_Error <|
+        result_builder = Vector.new_builder
+        go _ = case self.consume_token of
+            Nothing -> Nothing
+            Format_Token.Optional_Section_Start ->
+                inner_nodes = self.run_optional
+                result_builder.append (Common_Nodes.Optional_Section inner_nodes)
+                @Tail_Call go Nothing
+            other_token ->
+                parsed_node = self.parse_common_token other_token
+                result_builder.append parsed_node
+                @Tail_Call go Nothing
+        go Nothing
+        result_builder.to_vector
+
+    run_optional self =
+        result_builder = Vector.new_builder
+        go _ = case self.consume_token of
+            Nothing -> Panic.throw (Illegal_State.Error "Unterminated optional section. This should have been caught by the tokenizer.")
+            Format_Token.Optional_Section_End -> Nothing
+            other_token ->
+                parsed_node = self.parse_common_token other_token
+                result_builder.append parsed_node
+                @Tail_Call go Nothing
+        go Nothing
+        result_builder.to_vector
+
+    parse_common_token self token = case token of
+        Format_Token.Literal text ->
+            Common_Nodes.Literal text
+        Format_Token.Curly_Section inner_text ->
+            Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. Currently, the curly braces are only used to parametrize the two-digit year with the max year, e.g. `yy{2049}`. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
+        Format_Token.Pattern character count ->
+            date_pattern = case self.mode of
+                Parser_Mode.Simple -> self.parse_simple_date_pattern character count
+                Parser_Mode.ISO_Week_Year -> self.parse_iso_week_year_pattern character count
+            any_pattern = date_pattern.if_nothing <|
+                self.parse_time_or_timezone_pattern character count
+            any_pattern.if_nothing <|
+                Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not recognized as any known pattern for the "+self.mode.pattern_format_name+" format.")
+            any_pattern
+        _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
 
     consume_token self =
-        current_position = self.position.get position
-        self.position.put position+1
-        tokens.at current_position
+        current_position = self.position.get
+        self.position.put current_position+1
+        self.tokens.at current_position
 
     consume_curly_parameter_if_exists self =
-        current_position = self.position.get position
-        case tokens.at current_position of
+        current_position = self.position.get
+        case self.tokens.at current_position of
             Format_Token.Curly_Section inner_text ->
                 self.position.put current_position+1
                 inner_text
@@ -90,7 +131,7 @@ type Parser
                 Nothing -> default_max_year
                 parameter_text ->
                     Integer.parse parameter_text . catch Number_Parse_Error _->
-                        Panic.throw (Date_Time_Format_Parse_Error.Error "The curly braces setting the maximum year for `yy` must be an integer, but got: "+parameter_text)
+                        Panic.throw (Date_Time_Format_Parse_Error.Error "The curly braces setting the maximum year for `yy` must be an integer, but got: {"+parameter_text+"}.")
             Two_Digit_Year_Representation.Value max_year=max_year
         _ ->
             Numeric_Representation.Value count
@@ -101,7 +142,13 @@ type Parser
             "y" -> Standard_Date_Patterns.Year (self.resolve_year_representation count)
             "q" -> Standard_Date_Patterns.Quarter (Numeric_Representation.Value count)
             "m" -> case character of
-                "M" -> Standard_Date_Patterns.Month (Numeric_Representation.Value count)
+                "M" ->
+                    representation = case count of
+                        1 -> Numeric_Representation.Value 1
+                        2 -> Numeric_Representation.Value 2
+                        3 -> Text_Representation.Short_Form
+                        _ -> Text_Representation.Long_Form
+                    Standard_Date_Patterns.Month representation
                 # Lowercase form is reserved for minutes - handled elsewhere.
                 "m" -> Nothing
             "d" -> case count of
@@ -123,7 +170,7 @@ type Parser
                 _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
             _ -> Nothing
 
-    parse_time_or_timezone_pattern character count =
+    parse_time_or_timezone_pattern self character count =
         lowercase = character.to_case Case.Lower
         case lowercase of
             "h" -> case character of
@@ -141,3 +188,9 @@ type Parser
             _ -> Nothing
 
 default_max_year = 2049
+
+parse_simple_date_pattern tokens =
+    Parser.new tokens mode=Parser_Mode.Simple . run
+
+parse_iso_week_year_pattern tokens =
+    Parser.new tokens mode=Parser_Mode.ISO_Week_Year . run
