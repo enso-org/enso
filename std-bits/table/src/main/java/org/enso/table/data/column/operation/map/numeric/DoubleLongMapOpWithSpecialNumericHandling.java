@@ -24,7 +24,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
 
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
-        double item = storage.getItem(i);
+        double item = storage.getItemAsDouble(i);
         boolean special = Double.isNaN(item) || Double.isInfinite(item);
         if (!special) {
           out[i] = doOperation(item);

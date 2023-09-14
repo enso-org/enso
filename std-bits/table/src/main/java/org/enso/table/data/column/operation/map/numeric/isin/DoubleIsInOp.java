@@ -1,4 +1,4 @@
-package org.enso.table.data.column.operation.map.numeric;
+package org.enso.table.data.column.operation.map.numeric.isin;
 
 import java.util.HashSet;
 import java.util.List;

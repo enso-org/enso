@@ -88,6 +88,26 @@ export function useWindowEventConditional<K extends keyof WindowEventMap>(
   })
 }
 
+/**
+ * Add an event listener on document for the duration of condition being true.
+ * @param condition the condition that determines if event is bound
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  watch(condition, (conditionMet, _, onCleanup) => {
+    if (conditionMet) {
+      document.addEventListener(event, handler, options)
+      onCleanup(() => document.removeEventListener(event, handler, options))
+    }
+  })
+}
+
 // const hasWindow = typeof window !== 'undefined'
 // const platform = hasWindow ? window.navigator?.platform ?? '' : ''
 // const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)

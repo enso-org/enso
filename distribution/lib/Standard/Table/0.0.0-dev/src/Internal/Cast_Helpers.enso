@@ -8,6 +8,7 @@ import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemBuilder
+polyglot java import org.enso.table.data.column.storage.type.StorageType
 
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
@@ -48,7 +49,6 @@ type Cast_Problem_Builder
         Java_Problems.parse_aggregated_problems self.to_java.getAggregatedProblems
 
 ## PRIVATE
-new_java_problem_builder : Text -> Value_Type -> Cast_Problem_Builder
-new_java_problem_builder column_name target_type =
-    storage_type = Storage.from_value_type_strict target_type
-    Cast_Problem_Builder.Value (CastProblemBuilder.new column_name storage_type)
+new_java_problem_builder : Text -> StorageType -> Cast_Problem_Builder
+new_java_problem_builder column_name target_storage_type =
+    Cast_Problem_Builder.Value (CastProblemBuilder.new column_name target_storage_type)
