@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { useResizeObserver, useWindowEvent } from '@/util/events'
-import { useComponentsStore } from '@/stores/components'
+import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Component } from '@/stores/components'
+import { useComponentsStore } from '@/stores/components'
+import { useApproach } from '@/util/animation'
+import { useResizeObserver, useWindowEvent } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, ref, watch } from 'vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
-import { useApproach } from '@/util/animation'
 
 const ITEM_SIZE = 32
 

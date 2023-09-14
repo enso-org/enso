@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = { version = "0.2.84", features = [] }
 enso-parser = { path = "../../../lib/rust/parser" }
 serde_json = "1.0"
+console_error_panic_hook = { version = "0.1.6" }
 
 [workspace]
 

@@ -54,7 +54,7 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
 /** Return a toastify option object that renders an error message. */
 // eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
-    return { render: ({ data }) => f(getMessageOrToString(data)) }
+    return { render: ({ data }: { data: unknown }) => f(getMessageOrToString(data)) }
 }
 
 // ============================
@@ -76,7 +76,7 @@ export class UnreachableCaseError extends Error {
 }
 
 /** A function that throws an {@link UnreachableCaseError} so that it can be used
- * in an expresison.
+ * in an expression.
  * @throws {UnreachableCaseError} Always. */
 export function unreachable(value: never): never {
     throw new UnreachableCaseError(value)

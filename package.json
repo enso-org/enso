@@ -12,7 +12,6 @@
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
     "app/ide-desktop/lib/dashboard/src/authentication",
-    "app/gui2",
-    "lib/typescript/rpc"
+    "app/gui2"
   ]
 }

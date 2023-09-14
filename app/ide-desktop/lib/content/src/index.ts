@@ -256,8 +256,6 @@ class Main implements AppRunner {
         }
         if (parseOk) {
             const shouldUseAuthentication = configOptions.options.authentication.value
-            const shouldUseNewDashboard =
-                configOptions.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
                 configOptions.groups.startup.options.entry.value ===
                 configOptions.groups.startup.options.entry.default
@@ -312,7 +310,7 @@ class Main implements AppRunner {
             isAuthenticationDisabled: !config.shouldUseAuthentication,
             shouldShowDashboard: true,
             initialProjectName: config.initialProjectName,
-            onAuthenticated: (accessToken: string | null) => {
+            onAuthenticated: () => {
                 if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {

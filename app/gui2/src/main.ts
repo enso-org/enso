@@ -5,10 +5,13 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 
 import './assets/main.css'
 
-import { createApp, type App } from 'vue'
-import { createPinia } from 'pinia'
-import AppRoot from './App.vue'
 import { isMac } from 'lib0/environment'
+import { decodeQueryParams } from 'lib0/url'
+import { createPinia } from 'pinia'
+import { createApp, type App } from 'vue'
+import AppRoot from './App.vue'
+
+const params = decodeQueryParams(location.href)
 
 // Temporary hardcode
 const config = {
@@ -16,6 +19,7 @@ const config = {
   supportsDeepLinks: isMac,
   shouldUseAuthentication: false,
   projectManagerUrl: PROJECT_MANAGER_URL,
+  initialProjectName: params.project ?? null,
 }
 
 let app: App | null = null
@@ -68,7 +72,7 @@ function main() {
     projectManagerUrl: config.projectManagerUrl,
     isAuthenticationDisabled: !config.shouldUseAuthentication,
     shouldShowDashboard: true,
-    initialProjectName: null,
+    initialProjectName: config.initialProjectName,
     onAuthenticated() {
       if (isInAuthenticationFlow) {
         const initialUrl = localStorage.getItem(INITIAL_URL_KEY)

@@ -1,8 +1,8 @@
+import * as decoding from 'lib0/decoding'
+import * as encoding from 'lib0/encoding'
 import * as Y from 'yjs'
-import { setIfUndefined } from 'lib0/map'
-import { isSome } from '@/util/opt'
 
-export type Uuid = ReturnType<typeof crypto.randomUUID>
+export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
@@ -13,91 +13,86 @@ export interface NodeMetadata {
   vis?: string
 }
 
-const enum ModKeys {
-  NAME = 'name',
-  DOC = 'doc',
-}
-
-type NamedDocMap = Y.Map<Y.Text | Y.Doc>
-
-interface ProjectUpdate {}
-
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
-  modules: Y.Array<NamedDocMap>
+  modules: Y.Map<Y.Doc>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
-    this.modules = this.doc.getArray('modules')
+    this.modules = this.doc.getMap('modules')
   }
 
   moduleNames(): string[] {
-    return this.modules.map((map) => map.get(ModKeys.NAME)?.toString() ?? '')
+    return Array.from(this.modules.keys())
   }
 
-  observe(callback: (update: ProjectUpdate) => void) {
-    return this.doc.on('update', callback)
-  }
+  // observe(callback: (update: ProjectUpdate) => void) {
+  //   return this.doc.on('update', callback)
+  // }
 
-  async findModuleByName(name: string): Promise<number | null> {
-    await this.doc.whenLoaded
-    const index = this.moduleNames().indexOf(name)
-    return index < 0 ? null : index
-  }
-
-  async openModule(index: number): Promise<DistributedModule | null> {
-    const map = this.modules.get(index)
-    const name = map.get(ModKeys.NAME)
-    const doc = map.get(ModKeys.DOC)
-    if (name instanceof Y.Text && doc instanceof Y.Doc) {
-      return await DistributedModule.load(doc, name)
+  findModuleByDocId(id: string): string | null {
+    for (const [name, doc] of this.modules.entries()) {
+      if (doc.guid === id) return name
     }
     return null
   }
 
+  // async findModuleByName(name: string): Promise<number | null> {
+  //   await this.doc.whenLoaded
+  //   const index = this.moduleNames().indexOf(name)
+  //   return index < 0 ? null : index
+  // }
+
+  async openModule(name: string): Promise<DistributedModule | null> {
+    const doc = this.modules.get(name)
+    if (doc == null) return null
+    return await DistributedModule.load(doc)
+  }
+
+  openUnloadedModule(name: string): DistributedModule | null {
+    const doc = this.modules.get(name)
+    if (doc == null) return null
+    return new DistributedModule(doc)
+  }
+
+  createUnloadedModule(name: string, doc: Y.Doc): DistributedModule {
+    this.modules.set(name, doc)
+    return new DistributedModule(doc)
+  }
+
   async createNewModule(name: string): Promise<DistributedModule> {
-    const map = new Y.Map<Y.Text | Y.Doc>()
-    const doc = map.set(ModKeys.DOC, new Y.Doc())
-    const text = map.set(ModKeys.NAME, new Y.Text(name))
-    this.modules.push([map])
-    return await DistributedModule.load(doc, text)
+    return this.createUnloadedModule(name, new Y.Doc())
   }
 
   async openOrCreateModule(name: string): Promise<DistributedModule> {
-    const index = await this.findModuleByName(name)
-    if (index != null) {
-      return (await this.openModule(index)) ?? (await this.createNewModule(name))
-    } else {
-      return await this.createNewModule(name)
-    }
+    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
-  deleteModule(index: number): void {
-    this.modules.delete(index)
+  deleteModule(name: string): void {
+    this.modules.delete(name)
+  }
+
+  dispose(): void {
+    this.doc.destroy()
   }
 }
 
-class DistributedModule {
+export class DistributedModule {
   doc: Y.Doc
-  name: Y.Text
   contents: Y.Text
-  idMap: Y.Map<[any, any]>
+  idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
 
-  static async load(doc: Y.Doc, name: Y.Text) {
-    const module = new DistributedModule(doc, name)
-    module.doc.load()
-    console.log('Waiting for module to load')
-    await module.doc.whenLoaded
-    console.log('Module loaded')
-    return module
+  static async load(doc: Y.Doc) {
+    doc.load()
+    await doc.whenLoaded
+    return new DistributedModule(doc)
   }
 
-  private constructor(doc: Y.Doc, name: Y.Text) {
+  constructor(doc: Y.Doc) {
     this.doc = doc
-    this.name = name
     this.contents = this.doc.getText('contents')
     this.idMap = this.doc.getMap('idMap')
     this.metadata = this.doc.getMap('metadata')
@@ -110,23 +105,18 @@ class DistributedModule {
       this.contents.insert(offset, content + '\n')
       const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
       const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-      const startJson = Y.relativePositionToJSON(start)
-      const endJson = Y.relativePositionToJSON(end)
-      this.idMap.set(newId, [startJson, endJson])
+      this.idMap.set(newId, encodeRange([start, end]))
       this.metadata.set(newId, meta)
     })
     return newId
   }
 
   replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const exprRangeJson = this.idMap.get(id)
-    if (exprRangeJson == null) return
-    const exprRange = [
-      Y.createRelativePositionFromJSON(exprRangeJson[0]),
-      Y.createRelativePositionFromJSON(exprRangeJson[1]),
-    ]
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(exprRange[0], this.doc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(exprRange[1], this.doc)?.index
+    const rangeBuffer = this.idMap.get(id)
+    if (rangeBuffer == null) return
+    const [relStart, relEnd] = decodeRange(rangeBuffer)
+    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)?.index
+    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)?.index
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
@@ -156,10 +146,7 @@ class DistributedModule {
   }
 }
 
-export interface RelativeRange {
-  start: Y.RelativePosition
-  end: Y.RelativePosition
-}
+export type RelativeRange = [Y.RelativePosition, Y.RelativePosition]
 
 /**
  * Accessor for the ID map stored in shared yjs map as relative ranges. Synchronizes the ranges
@@ -169,12 +156,12 @@ export interface RelativeRange {
 export class IdMap {
   private contents: Y.Text
   private doc: Y.Doc
-  private yMap: Y.Map<[any, any]>
+  private yMap: Y.Map<Uint8Array>
   private rangeToExpr: Map<string, ExprId>
   private accessed: Set<ExprId>
   private finished: boolean
 
-  constructor(yMap: Y.Map<[any, any]>, contents: Y.Text) {
+  constructor(yMap: Y.Map<Uint8Array>, contents: Y.Text) {
     if (yMap.doc == null) {
       throw new Error('IdMap must be associated with a document')
     }
@@ -184,9 +171,9 @@ export class IdMap {
     this.rangeToExpr = new Map()
     this.accessed = new Set()
 
-    yMap.forEach((range, expr) => {
-      if (!isUuid(expr)) return
-      const indices = this.modelToIndices(range)
+    yMap.forEach((rangeBuffer, expr) => {
+      if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
+      const indices = this.modelToIndices(rangeBuffer)
       if (indices == null) return
       this.rangeToExpr.set(IdMap.keyForRange(indices), expr as ExprId)
     })
@@ -195,16 +182,29 @@ export class IdMap {
   }
 
   private static keyForRange(range: [number, number]): string {
-    return `${range[0]}:${range[1]}`
+    return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
-  private modelToIndices(range: [any, any]): [number, number] | null {
-    const relStart = Y.createRelativePositionFromJSON(range[0])
-    const relEnd = Y.createRelativePositionFromJSON(range[1])
+  private static rangeForKey(key: string): [number, number] {
+    return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+  }
+
+  private modelToIndices(rangeBuffer: Uint8Array): [number, number] | null {
+    const [relStart, relEnd] = decodeRange(rangeBuffer)
     const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
     const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
     if (start == null || end == null) return null
     return [start.index, end.index]
+  }
+
+  insertKnownId(range: [number, number], id: ExprId) {
+    if (this.finished) {
+      throw new Error('IdMap already finished')
+    }
+
+    const key = IdMap.keyForRange(range)
+    this.rangeToExpr.set(key, id)
+    this.accessed.add(id)
   }
 
   getOrInsertUniqueId(range: [number, number]): ExprId {
@@ -229,6 +229,14 @@ export class IdMap {
     return this.accessed
   }
 
+  toRawRanges(): Record<string, [number, number]> {
+    const ranges: Record<string, [number, number]> = {}
+    for (const [key, expr] of this.rangeToExpr.entries()) {
+      ranges[expr] = IdMap.rangeForKey(key)
+    }
+    return ranges
+  }
+
   /**
    * Finish accessing or modifying ID map. Synchronizes the accessed keys back to the shared map,
    * removes keys that were present previously, but were not accessed.
@@ -244,7 +252,7 @@ export class IdMap {
     const doc = this.doc
 
     doc.transact(() => {
-      this.yMap.forEach((currentRange, expr) => {
+      this.yMap.forEach((_, expr) => {
         // Expressions that were accessed and present in the map are guaranteed to match. There is
         // no mechanism for modifying them, so we don't need to check for equality. We only need to
         // delete the expressions ones that are not used anymore.
@@ -256,15 +264,34 @@ export class IdMap {
       this.rangeToExpr.forEach((expr, key) => {
         // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
-        const range = key.split(':').map((x) => parseInt(x, 10)) as [number, number]
+        const range = IdMap.rangeForKey(key)
         const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
         const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-        const startJson = Y.relativePositionToJSON(start)
-        const endJson = Y.relativePositionToJSON(end)
-        this.yMap.set(expr, [startJson, endJson])
+        const encoded = encodeRange([start, end])
+        this.yMap.set(expr, encoded)
       })
     })
   }
+}
+
+function encodeRange(range: RelativeRange): Uint8Array {
+  const encoder = encoding.createEncoder()
+  const start = Y.encodeRelativePosition(range[0])
+  const end = Y.encodeRelativePosition(range[1])
+  encoding.writeUint8(encoder, start.length)
+  encoding.writeUint8Array(encoder, start)
+  encoding.writeUint8(encoder, end.length)
+  encoding.writeUint8Array(encoder, end)
+  return encoding.toUint8Array(encoder)
+}
+
+function decodeRange(buffer: Uint8Array): RelativeRange {
+  const decoder = decoding.createDecoder(buffer)
+  const startLen = decoding.readUint8(decoder)
+  const start = decoding.readUint8Array(decoder, startLen)
+  const endLen = decoding.readUint8(decoder)
+  const end = decoding.readUint8Array(decoder, endLen)
+  return [Y.decodeRelativePosition(start), Y.decodeRelativePosition(end)]
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/

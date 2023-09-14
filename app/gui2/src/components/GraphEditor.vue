@@ -9,7 +9,7 @@ import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from 'shared/yjs-model'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { reactive, ref } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']

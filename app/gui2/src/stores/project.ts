@@ -1,12 +1,14 @@
-import { ref, watchEffect } from 'vue'
-import { defineStore } from 'pinia'
-import * as Y from 'yjs'
-import { attachProvider } from '@/util/crdt'
-import { DistributedProject } from 'shared/yjs-model'
-import { computedAsync } from '@vueuse/core'
-import { Awareness } from 'y-protocols/awareness'
-import { modKey, useWindowEvent } from '@/util/events'
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { attachProvider } from '@/util/crdt'
+import { modKey, useWindowEvent } from '@/util/events'
+import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import { computedAsync } from '@vueuse/core'
+import { defineStore } from 'pinia'
+import { LanguageServer } from 'shared/languageServer'
+import { DistributedProject } from 'shared/yjsModel'
+import { ref, watchEffect } from 'vue'
+import { Awareness } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 
 interface LsUrls {
   rpcUrl: string
@@ -47,6 +49,12 @@ export const useProjectStore = defineStore('project', () => {
 
   const lsUrls = resolveLsUrl(config.value)
 
+  const rpcTransport = new WebSocketTransport(lsUrls.rpcUrl)
+  const rpcRequestManager = new RequestManager([rpcTransport])
+  const rpcClient = new Client(rpcRequestManager)
+  const lsRpcConnection = new LanguageServer(rpcClient)
+  const lsDataConnection = new LanguageServer(dataClient)
+
   const undoManager = new Y.UndoManager([], { doc })
 
   useWindowEvent('keydown', (e) => {
@@ -62,33 +70,47 @@ export const useProjectStore = defineStore('project', () => {
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
-    // const socketUrl = location.origin.replace(/^http/, 'ws') + '/project'
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(socketUrl.href, 'root', { ls: lsUrls.rpcUrl }, doc, awareness)
+    const provider = attachProvider(socketUrl.href, 'index', { ls: lsUrls.rpcUrl }, doc, awareness)
     onCleanup(() => {
       provider.dispose()
     })
   })
 
-  // const model = new DistributedModel(doc)
   const projectModel = new DistributedProject(doc)
+  const moduleDocGuid = ref<string>()
+
+  function currentDocGuid() {
+    const name = observedFileName.value
+    if (name == null) return
+    return projectModel.modules.get(name)?.guid
+  }
+  function tryReadDocGuid() {
+    const guid = currentDocGuid()
+    if (guid === moduleDocGuid.value) return
+    moduleDocGuid.value = guid
+  }
+
+  projectModel.modules.observe((_) => tryReadDocGuid())
+  watchEffect(tryReadDocGuid)
 
   const module = computedAsync(async () => {
-    const moduleName = observedFileName.value
-    if (moduleName == null) return
-    console.log('module name', moduleName)
-    return await projectModel.openOrCreateModule(moduleName)
+    const guid = moduleDocGuid.value
+    if (guid == null) return null
+    const moduleName = projectModel.findModuleByDocId(guid)
+    if (moduleName == null) return null
+    return await projectModel.openModule(moduleName)
   })
 
   watchEffect((onCleanup) => {
     const mod = module.value
     if (mod == null) return
-    const undoable: typeof undoManager.scope = [mod.contents, mod.name, mod.idMap]
-    undoManager.scope.push(...undoable)
+    const scope: typeof undoManager.scope = [mod.contents, mod.idMap]
+    undoManager.scope.push(...scope)
     onCleanup(() => {
-      undoManager.scope = undoManager.scope.filter((s) => !undoable.includes(s))
+      undoManager.scope = undoManager.scope.filter((s) => !scope.includes(s))
     })
   })
 
