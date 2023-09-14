@@ -126,7 +126,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should only allow : with_output_stream if Output is enabled" <|
+        Test.specify "should only allow with_output_stream if Output is enabled" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
 
