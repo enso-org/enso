@@ -1,13 +1,10 @@
 package org.enso.interpreter.instrument;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
+
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -20,6 +17,11 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
+
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
+import com.oracle.truffle.api.nodes.RootNode;
 
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
@@ -54,7 +56,7 @@ public interface IdExecutionService {
       Consumer<Exception> onExceptionalCallback);
 
   /** A class for notifications about functions being called in the course of execution. */
-  class ExpressionCall {
+  final class ExpressionCall {
     private final UUID expressionId;
     private final FunctionCallInstrumentationNode.FunctionCall call;
 
@@ -81,7 +83,7 @@ public interface IdExecutionService {
   }
 
   /** A class for notifications about identified expressions' values being computed. */
-  class ExpressionValue {
+  final class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
     private final String type;

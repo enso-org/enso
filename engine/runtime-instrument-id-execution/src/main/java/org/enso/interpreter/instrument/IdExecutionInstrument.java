@@ -66,98 +66,32 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
   /** Factory for creating new id event nodes **/
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
+    private static final class Callbacks {
+      private final UUID nextExecutionItem;
+      private final RuntimeCache cache;
+      private final MethodCallsCache methodCallsCache;
+      private final UpdatesSynchronizationState syncState;
+      private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+      private final Consumer<ExpressionValue> onCachedCallback;
+      private final Consumer<ExpressionValue> onComputedCallback;
+      private final Consumer<ExpressionCall> functionCallCallback;
 
-    private final CallTarget entryCallTarget;
-    private final Consumer<ExpressionCall> functionCallCallback;
-    private final Consumer<ExpressionValue> onComputedCallback;
-    private final Consumer<ExpressionValue> onCachedCallback;
-    private final Consumer<Exception> onExceptionalCallback;
-    private final RuntimeCache cache;
-    private final MethodCallsCache methodCallsCache;
-    private final UpdatesSynchronizationState syncState;
-    private final UUID nextExecutionItem;
-    private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
-    private final Timer timer;
-
-    /**
-     * Creates a new event node factory.
-     *
-     * @param entryCallTarget the call target being observed.
-     * @param cache the precomputed expression values.
-     * @param methodCallsCache the storage tracking the executed method calls.
-     * @param syncState the synchronization state of runtime updates.
-     * @param nextExecutionItem the next item scheduled for execution.
-     * @param functionCallCallback the consumer of function call events.
-     * @param onComputedCallback the consumer of the computed value events.
-     * @param onCachedCallback the consumer of the cached value events.
-     * @param onExceptionalCallback the consumer of the exceptional events.
-     * @param timer the timer for timing execution
-     */
-    IdEventNodeFactory(
-      CallTarget entryCallTarget,
-      RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
-      UpdatesSynchronizationState syncState,
-      UUID nextExecutionItem, // The expression ID
-      Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExpressionValue> onComputedCallback,
-      Consumer<ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback,
-      Timer timer
-    ) {
-      this.entryCallTarget = entryCallTarget;
-      this.cache = cache;
-      this.methodCallsCache = methodCallsCache;
-      this.syncState = syncState;
-      this.nextExecutionItem = nextExecutionItem;
-      this.functionCallCallback = functionCallCallback;
-      this.onComputedCallback = onComputedCallback;
-      this.onCachedCallback = onCachedCallback;
-      this.onExceptionalCallback = onExceptionalCallback;
-      this.timer = timer;
-    }
-
-    @Override
-    public ExecutionEventNode create(EventContext context) {
-      return new IdExecutionEventNode(context);
-    }
-
-    /**
-     * The execution event node class used by this instrument.
-     */
-    private class IdExecutionEventNode extends ExecutionEventNode {
-
-      private final EventContext context;
-      private long nanoTimeElapsed = 0;
-      private @Child
-      TypeOfNode typeOfNode = TypeOfNode.build();
-
-      /**
-       * Creates a new event node.
-       *
-       * @param context location where the node is being inserted
-       */
-      IdExecutionEventNode(EventContext context) {
-        this.context = context;
+      Callbacks(
+        UUID nextExecutionItem,
+        RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
+        Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
+        Consumer<ExpressionCall> functionCallCallback
+      ) {
+        this.nextExecutionItem = nextExecutionItem;
+        this.cache = cache;
+        this.methodCallsCache = methodCallsCache;
+        this.syncState = syncState;
+        this.onCachedCallback = onCachedCallback;
+        this.onComputedCallback = onComputedCallback;
+        this.functionCallCallback = functionCallCallback;
       }
 
-      @Override
-      public Object onUnwind(VirtualFrame frame, Object info) {
-        return info;
-      }
-
-      @Override
-      public void onEnter(VirtualFrame frame) {
-        if (!isTopFrame(entryCallTarget)) {
-          return;
-        }
-        onEnterImpl();
-      }
-
-      @CompilerDirectives.TruffleBoundary
-      private void onEnterImpl() {
-        UUID nodeId = getNodeId(context.getInstrumentedNode());
-
+      Object findCachedResult(UUID nodeId) {
         // Add a flag to say it was cached.
         // An array of `ProfilingInfo` in the value update.
         Object result = cache.get(nodeId);
@@ -176,52 +110,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             true
           );
           onCachedCallback.accept(value);
-          throw context.createUnwind(result);
+          return result;
         }
-
-        nanoTimeElapsed = timer.getTime();
+        return null;
       }
 
-      /**
-       * Triggered when a node (either a function call sentry or an identified
-       * expression) finishes execution.
-       *
-       * @param frame the current execution frame.
-       * @param result the result of executing the node this method was
-       * triggered for.
-       */
-      @Override
-      public void onReturnValue(VirtualFrame frame, Object result) {
-        nanoTimeElapsed = timer.getTime() - nanoTimeElapsed;
-        if (!isTopFrame(entryCallTarget)) {
-          return;
-        }
-        Node node = context.getInstrumentedNode();
-
-        if (node instanceof FunctionCallInstrumentationNode
-                && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
-          UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-          onFunctionReturn(nodeId, functionCall, context);
-        } else if (node instanceof ExpressionNode) {
-          onExpressionReturn(result, node, context);
-        }
-      }
-
-      @Override
-      public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
-        if (exception instanceof TailCallException) {
-          onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-        } else if (exception instanceof PanicException panicException) {
-          onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-        } else if (exception instanceof AbstractTruffleException) {
-          onReturnValue(frame, exception);
-        }
-      }
-
-      private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
-        boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
-        UUID nodeId = ((ExpressionNode) node).getId();
-
+      void updateCachedResult(Object result, UUID nodeId, boolean isPanic, long nanoTimeElapsed) {
         String resultType = typeOf(result);
         String cachedType = cache.getType(nodeId);
         FunctionCallInfo call = functionCallInfoById(nodeId);
@@ -248,23 +142,20 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           // program execution is complete. If we clear the call from the cache instead, it will mess
           // up the `typeChanged` field of the expression update.
           methodCallsCache.setExecuted(nodeId);
-          throw context.createUnwind(result);
         }
       }
 
-      private String typeOf(Object value) {
-        String resultType;
-        if (value instanceof UnresolvedSymbol) {
-          resultType = Constants.UNRESOLVED_SYMBOL;
-        } else {
-          Object typeResult = typeOfNode.execute(value);
-          if (typeResult instanceof Type t) {
-            resultType = t.getQualifiedName().toString();
-          } else {
-            resultType = null;
-          }
+      @CompilerDirectives.TruffleBoundary
+      Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
+        calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
+        functionCallCallback.accept(new ExpressionCall(nodeId, result));
+        // Return cached value after capturing the enterable function call in `functionCallCallback`
+        Object cachedResult = cache.get(nodeId);
+        if (cachedResult != null) {
+          return cachedResult;
         }
-        return resultType;
+        methodCallsCache.setExecuted(nodeId);
+        return null;
       }
 
       @CompilerDirectives.TruffleBoundary
@@ -277,16 +168,157 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         return calls.get(nodeId);
       }
 
-      @CompilerDirectives.TruffleBoundary
-      private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
-        functionCallCallback.accept(new ExpressionCall(nodeId, result));
-        // Return cached value after capturing the enterable function call in `functionCallCallback`
-        Object cachedResult = cache.get(nodeId);
-        if (cachedResult != null) {
-          throw context.createUnwind(cachedResult);
+
+      private String typeOf(Object value) {
+        String resultType;
+        if (value instanceof UnresolvedSymbol) {
+          resultType = Constants.UNRESOLVED_SYMBOL;
+        } else {
+          var typeOfNode = TypeOfNode.getUncached();
+          Object typeResult = typeOfNode.execute(value);
+          if (typeResult instanceof Type t) {
+            resultType = t.getQualifiedName().toString();
+          } else {
+            resultType = null;
+          }
         }
-        methodCallsCache.setExecuted(nodeId);
+        return resultType;
+      }
+    }
+
+    private final CallTarget entryCallTarget;
+    private final Consumer<Exception> onExceptionalCallback;
+    private final Callbacks callbacks;
+    private final Timer timer;
+
+    /**
+     * Creates a new event node factory.
+     *
+     * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
+     * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
+     * @param syncState the synchronization state of runtime updates.
+     * @param nextExecutionItem the next item scheduled for execution.
+     * @param functionCallCallback the consumer of function call events.
+     * @param onComputedCallback the consumer of the computed value events.
+     * @param onCachedCallback the consumer of the cached value events.
+     * @param onExceptionalCallback the consumer of the exceptional events.
+     * @param timer the timer for timing execution
+     */
+    IdEventNodeFactory(
+      CallTarget entryCallTarget,
+      RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
+      UUID nextExecutionItem, // The expression ID
+      Consumer<ExpressionCall> functionCallCallback,
+      Consumer<ExpressionValue> onComputedCallback,
+      Consumer<ExpressionValue> onCachedCallback,
+      Consumer<Exception> onExceptionalCallback,
+      Timer timer
+    ) {
+      this.entryCallTarget = entryCallTarget;
+      this.callbacks = new Callbacks(
+        nextExecutionItem,
+        cache, methodCallsCache, syncState,
+        onCachedCallback, onComputedCallback, functionCallCallback
+      );
+      this.onExceptionalCallback = onExceptionalCallback;
+      this.timer = timer;
+    }
+
+    @Override
+    public ExecutionEventNode create(EventContext context) {
+      return new IdExecutionEventNode(context);
+    }
+
+    /**
+     * The execution event node class used by this instrument.
+     */
+    private class IdExecutionEventNode extends ExecutionEventNode {
+
+      private final EventContext context;
+      private long nanoTimeElapsed = 0;
+
+      /**
+       * Creates a new event node.
+       *
+       * @param context location where the node is being inserted
+       */
+      IdExecutionEventNode(EventContext context) {
+        this.context = context;
+      }
+
+      @Override
+      public Object onUnwind(VirtualFrame frame, Object info) {
+        return info;
+      }
+
+      @Override
+      public void onEnter(VirtualFrame frame) {
+        if (!isTopFrame(entryCallTarget)) {
+          return;
+        }
+        onEnterImpl();
+      }
+
+      @CompilerDirectives.TruffleBoundary
+      private void onEnterImpl() {
+        UUID nodeId = getNodeId(context.getInstrumentedNode());
+        var result = callbacks.findCachedResult(nodeId);
+        if (result != null) {
+          throw context.createUnwind(result);
+        }
+        nanoTimeElapsed = timer.getTime();
+      }
+
+      /**
+       * Triggered when a node (either a function call sentry or an identified
+       * expression) finishes execution.
+       *
+       * @param frame the current execution frame.
+       * @param result the result of executing the node this method was
+       * triggered for.
+       */
+      @Override
+      public void onReturnValue(VirtualFrame frame, Object result) {
+        nanoTimeElapsed = timer.getTime() - nanoTimeElapsed;
+        if (!isTopFrame(entryCallTarget)) {
+          return;
+        }
+        Node node = context.getInstrumentedNode();
+
+        if (node instanceof FunctionCallInstrumentationNode
+                && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
+          UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
+          var cachedResult = callbacks.onFunctionReturn(nodeId, functionCall, context);
+          if (cachedResult != null) {
+            throw context.createUnwind(cachedResult);
+          }
+        } else if (node instanceof ExpressionNode) {
+          onExpressionReturn(result, node, context, nanoTimeElapsed);
+        }
+      }
+
+      @Override
+      public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
+        if (exception instanceof TailCallException) {
+          onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
+        } else if (exception instanceof PanicException panicException) {
+          onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        } else if (exception instanceof AbstractTruffleException) {
+          onReturnValue(frame, exception);
+        }
+      }
+
+      private void onExpressionReturn(Object result, Node node, EventContext context, long length) throws ThreadDeath {
+        boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
+        UUID nodeId = ((ExpressionNode) node).getId();
+
+        callbacks.updateCachedResult(result, nodeId, isPanic, length);
+        if (isPanic) {
+          throw context.createUnwind(result);
+        }
       }
 
       @CompilerDirectives.TruffleBoundary
