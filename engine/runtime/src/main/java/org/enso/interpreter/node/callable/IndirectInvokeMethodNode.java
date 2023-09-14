@@ -99,7 +99,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
     Function function =
-        methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
+        methodResolverNode.executeResolution(
+            EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (profile.profile(function == null)) {
       return self;
     } else {

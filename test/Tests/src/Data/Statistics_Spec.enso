@@ -51,7 +51,7 @@ spec =
     vector_compare values expected =
         values.each_with_index i->v->
             case v of
-                _ : Decimal -> v.should_equal (expected.at i) epsilon=double_error
+                _ : Float -> v.should_equal (expected.at i) epsilon=double_error
                 _ -> v.should_equal (expected.at i)
 
     Test.group "Statistics" <|
@@ -259,7 +259,7 @@ spec =
             [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values
 
     Test.group "Rank Data" <|
-        Test.specify "can rank a Decimal data series" <|
+        Test.specify "can rank a Float data series" <|
             values = [409.892906, 0.839952, 796.468572, 126.931298, -405.265005, -476.675817, 441.651325, 796.468572, 78.50094, 340.163324, 234.861926, 409.892906, 226.467105, 234.861926, 126.931298, 637.870512, -71.008044, -386.399663, -126.534337, -476.675817, 78.50094, -386.399663, 409.892906, 868.54485, 669.113037, 669.113037, 0.839952, 407.162613, -476.675817, 126.931298]
             Statistic.rank_data values . should_equal [9, 21.5, 2.5, 17, 27, 29, 7, 2.5, 19.5, 12, 13.5, 9, 15, 13.5, 17, 6, 23, 25.5, 24, 29, 19.5, 25.5, 9, 1, 4.5, 4.5, 21.5, 11, 29, 17]
             Statistic.rank_data values Rank_Method.Minimum . should_equal [8, 21, 2, 16, 27, 28, 7, 2, 19, 12, 13, 8, 15, 13, 16, 6, 23, 25, 24, 28, 19, 25, 8, 1, 4, 4, 21, 11, 28, 16]

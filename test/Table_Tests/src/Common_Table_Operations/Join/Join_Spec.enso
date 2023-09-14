@@ -137,7 +137,7 @@ spec setup =
                 r2 . at "Z" . to_vector . should_equal [3, 3]
 
         # This may need a test_selection toggle in the future, depending on how well databases like coercing decimals and integers.
-        Test.specify "should correctly handle Enso Decimal-Integer equality" <|
+        Test.specify "should correctly handle Enso Float-Integer equality" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [10, 20]]]
             t2 = table_builder [["X", [2.0, 2.1, 0.0]], ["Z", [1, 2, 3]]]
 
@@ -333,7 +333,7 @@ spec setup =
             t1.join t2 on=(Join_Condition.Between "Y" "W" "Z") . should_fail_with Invalid_Value_Type
             t1.join t2 on=(Join_Condition.Between "Y" "Z" "W") . should_fail_with Invalid_Value_Type
 
-        Test.specify "should warn when joining on equality of Decimal columns" <|
+        Test.specify "should warn when joining on equality of Float columns" <|
             t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
 

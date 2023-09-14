@@ -45,9 +45,14 @@ case object TypeNames extends IRPass {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
-      val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
+      val typeParams = d match {
+        case t: Definition.Type => t.params.map(_.name)
+        case _                  => Nil
+      }
+      val mapped =
+        d.mapExpressions(resolveExpression(typeParams, bindingsMap, _))
       doResolveType(
-        Nil,
+        typeParams,
         bindingsMap,
         mapped match {
           case typ: Definition.Type =>
@@ -64,6 +69,7 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveExpression(
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
     ir: Expression
   ): Expression = {
@@ -71,11 +77,11 @@ case object TypeNames extends IRPass {
       val processedIr = ir match {
         case fn: Function.Lambda =>
           fn.copy(arguments =
-            fn.arguments.map(doResolveType(Nil, bindingsMap, _))
+            fn.arguments.map(doResolveType(typeParams, bindingsMap, _))
           )
         case x => x
       }
-      doResolveType(Nil, bindingsMap, processedIr.mapExpressions(go))
+      doResolveType(typeParams, bindingsMap, processedIr.mapExpressions(go))
     }
     go(ir)
   }

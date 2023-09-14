@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.Name;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -53,6 +54,13 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   ReadArgumentCheckNode(String name) {
     this.name = name;
+  }
+
+  /**
+   *
+   */
+  public static ExpressionNode wrap(ExpressionNode original, ReadArgumentCheckNode check) {
+    return new TypeCheckExpressionNode(original, check);
   }
 
   /** Executes check or conversion of the value.abstract
@@ -289,16 +297,28 @@ public abstract class ReadArgumentCheckNode extends Node {
     ApplicationNode findConversionNode(Type from) {
       var convAndType = findConversion(from);
 
-      if (convAndType != null && NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
-        CompilerAsserts.neverPartOfCompilation();
-        var convNode = LiteralNode.build(convAndType.getLeft());
-        var intoNode = LiteralNode.build(convAndType.getRight());
-        var valueNode = ran.plainRead();
-        var args = new CallArgument[]{
-          new CallArgument(null, intoNode),
-          new CallArgument(null, valueNode)
-        };
-        return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+      if (convAndType != null) {
+        if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
+          CompilerAsserts.neverPartOfCompilation();
+          var convNode = LiteralNode.build(convAndType.getLeft());
+          var intoNode = LiteralNode.build(convAndType.getRight());
+          var valueNode = ran.plainRead();
+          var args = new CallArgument[]{
+            new CallArgument(null, intoNode),
+            new CallArgument(null, valueNode)
+          };
+          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+        } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class) instanceof TypeCheckExpressionNode tcen) {
+          CompilerAsserts.neverPartOfCompilation();
+          var convNode = LiteralNode.build(convAndType.getLeft());
+          var intoNode = LiteralNode.build(convAndType.getRight());
+          var valueNode = tcen.original;
+          var args = new CallArgument[]{
+            new CallArgument(null, intoNode),
+            new CallArgument(null, valueNode)
+          };
+          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+        }
       }
       return null;
     }
@@ -378,4 +398,29 @@ public abstract class ReadArgumentCheckNode extends Node {
       return result;
     }
   }
+
+  private static final class TypeCheckExpressionNode extends ExpressionNode {
+    @Child
+    private ExpressionNode original;
+    @Child
+    private ReadArgumentCheckNode check;
+
+    TypeCheckExpressionNode(ExpressionNode original, ReadArgumentCheckNode check) {
+      this.check = check;
+      this.original = original;
+    }
+
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+      var value = original.executeGeneric(frame);
+      var result = check.handleCheckOrConversion(frame, value);
+      return result;
+    }
+
+    @Override
+    public boolean isInstrumentable() {
+      return false;
+    }
+  }
+
 }
