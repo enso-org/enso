@@ -60,7 +60,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
 
     private final CallTarget entryCallTarget;
-    private final IdExecutionCallbacks callbacks;
+    private final Callbacks callbacks;
     private final Timer timer;
 
     /**
@@ -72,7 +72,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      */
     IdEventNodeFactory(
       CallTarget entryCallTarget,
-      IdExecutionCallbacks callbacks,
+      Callbacks callbacks,
       Timer timer
     ) {
       this.entryCallTarget = entryCallTarget;
@@ -144,7 +144,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (node instanceof FunctionCallInstrumentationNode
                 && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
           UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-          var cachedResult = callbacks.onFunctionReturn(nodeId, functionCall, context);
+          var cachedResult = callbacks.onFunctionReturn(nodeId, functionCall);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
@@ -164,11 +164,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void onExpressionReturn(Object result, Node node, EventContext context, long length) throws ThreadDeath {
+      private void onExpressionReturn(Object result, Node node, EventContext context, long howLong) throws ThreadDeath {
         boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
         UUID nodeId = ((ExpressionNode) node).getId();
 
-        callbacks.updateCachedResult(result, nodeId, isPanic, length);
+        callbacks.updateCachedResult(nodeId, result, isPanic, howLong);
         if (isPanic) {
           throw context.createUnwind(result);
         }

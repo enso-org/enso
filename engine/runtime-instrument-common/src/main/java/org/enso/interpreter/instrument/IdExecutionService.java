@@ -26,6 +26,43 @@ import com.oracle.truffle.api.nodes.RootNode;
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
 
+  public interface Callbacks {
+    /** Finds out previously computed result for given id. If
+     * a result is returned, then the execution of given node is skipped
+     * and the value is returned back.
+     *
+     * @param nodeId identification of the node to be computed
+     * @return {@code null} should the execution of the node be performed;
+     *   any other value to skip the execution and return the value as a
+     *   result.
+     */
+    Object findCachedResult(UUID nodeId);
+
+    /** Notifies when an execution of a node is over.
+     * @param nodeId identification of the node to be computed
+     * @param result the just computed result
+     * @param isPanic was the result a panic?
+     * @param nanoElapsedTime how long it took to compute the result?
+     */
+    void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime);
+
+    /**
+     *
+     * @param nodeId identification of the node to be computed
+     * @param result info about function call
+     * @return {@code null} should the execution of the node be performed;
+     *   any other value to skip the execution and return the value as a
+     *   result.
+     */
+    Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result);
+
+    /** Notification on an exception.
+     * @param e the reported exception
+     */
+    void onExceptionalCallback(Exception e);
+  }
+
+
   /**
    * Attach a new event node factory to observe identified nodes within given function.
    *

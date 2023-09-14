@@ -17,9 +17,8 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.Constants;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.instrumentation.EventContext;
 
-final class IdExecutionCallbacks {
+final class IdExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final UUID nextExecutionItem;
   private final RuntimeCache cache;
@@ -58,7 +57,8 @@ final class IdExecutionCallbacks {
     this.onExceptionalCallback = onExceptionalCallback;
   }
 
-  Object findCachedResult(UUID nodeId) {
+  @CompilerDirectives.TruffleBoundary
+  public final Object findCachedResult(UUID nodeId) {
     // Add a flag to say it was cached.
     // An array of `ProfilingInfo` in the value update.
     Object result = cache.get(nodeId);
@@ -82,7 +82,8 @@ final class IdExecutionCallbacks {
     return null;
   }
 
-  void updateCachedResult(Object result, UUID nodeId, boolean isPanic, long nanoTimeElapsed) {
+  @CompilerDirectives.TruffleBoundary
+  public final void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoTimeElapsed) {
     String resultType = typeOf(result);
     String cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
@@ -113,7 +114,7 @@ final class IdExecutionCallbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
+  public final Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result) {
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
     functionCallCallback.accept(new ExpressionCall(nodeId, result));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
@@ -125,7 +126,8 @@ final class IdExecutionCallbacks {
     return null;
   }
 
-  void onExceptionalCallback(Exception e) {
+  @CompilerDirectives.TruffleBoundary
+  public final void onExceptionalCallback(Exception e) {
     onExceptionalCallback.accept(e);
   }
 
