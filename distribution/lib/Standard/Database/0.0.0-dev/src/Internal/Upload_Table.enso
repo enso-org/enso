@@ -216,7 +216,7 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
 
 ## PRIVATE
-align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
+align_structure : Connection | Any -> Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector         -> align_vector_structure vector
     table : Database_Table  -> structure_from_existing_table connection table

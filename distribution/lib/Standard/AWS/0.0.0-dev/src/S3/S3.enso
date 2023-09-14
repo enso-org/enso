@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
-import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.More_Records_Available
@@ -120,8 +120,9 @@ parse_uri uri =
     if uri.starts_with "s3://" . not then Nothing else
         no_prefix = uri.drop 5
         index_of = no_prefix.index_of "/"
-        if index_of.is_nothing then Pair.new no_prefix "" else
-            Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
+        if index_of == 0 then Nothing else
+            if index_of.is_nothing then Pair.new no_prefix "" else
+                Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
 
 ## PRIVATE
 handle_s3_errors : Function -> Any ! S3_Error

@@ -9,8 +9,8 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
-polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
+polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 polyglot java import org.enso.table.data.column.storage.type.DateType

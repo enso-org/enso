@@ -179,7 +179,7 @@ type Response_Body
 
              example_to_file =
                 Examples.get_geo_data.to_file Examples.scratch_file
-    to_file : File | Text -> File
+    to_file : File | Text -> Existing_File_Behavior -> File
     to_file self file on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
             f = File.new file

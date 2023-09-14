@@ -30,7 +30,7 @@ type S3_File
 
     ## Checks if the folder or file exists
     exists : Boolean
-    exists self = self.if_valid_uri bucket->prefix->
+    exists self = self.if_valid_uri bucket->prefix-> if bucket == "" then True else
         if prefix == "" then S3.head bucket "" self.credentials . is_error . not else
             pair = S3.read_bucket bucket prefix self.credentials max_count=1
             pair.second.length > 0
