@@ -2,9 +2,7 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.profiles.BranchProfile;
-
 import java.math.BigInteger;
-
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.EnsoContext;

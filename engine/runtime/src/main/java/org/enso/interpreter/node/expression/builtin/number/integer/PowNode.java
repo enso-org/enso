@@ -1,18 +1,21 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node.Child;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends IntegerNode {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
+
   private @Child MultiplyNode multiplyNode = MultiplyNode.build();
 
   abstract Object execute(Object self, Object that);
@@ -84,6 +87,15 @@ public abstract class PowNode extends IntegerNode {
   @CompilerDirectives.TruffleBoundary
   private static EnsoBigInteger toBigInteger(long self) {
     return new EnsoBigInteger(BigInteger.valueOf(self));
+  }
+
+  @Specialization(guards = "isForeignNumber(iop, that)")
+  Object doInterop(
+      Object self,
+      TruffleObject that,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached PowNode delegate) {
+    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback

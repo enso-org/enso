@@ -6,11 +6,12 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node.Child;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -18,7 +19,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @ImportStatic(BigIntegerOps.class)
 @BuiltinMethod(type = "Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends IntegerNode {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
+
   private final CountingConditionProfile canShiftLeftInLongProfile =
       CountingConditionProfile.create();
   private final CountingConditionProfile positiveFitsInInt = CountingConditionProfile.create();
@@ -122,6 +123,15 @@ public abstract class BitShiftNode extends IntegerNode {
       return DataflowError.withoutTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
+  }
+
+  @Specialization(guards = "isForeignNumber(iop, that)")
+  Object doInterop(
+      Object self,
+      TruffleObject that,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached BitShiftNode delegate) {
+    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback
