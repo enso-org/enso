@@ -14,6 +14,7 @@ pub mod shader;
 /// Common types.
 pub mod types {
     pub use super::context::Context;
+    pub use super::context::ContextHandler;
     pub use super::context::ContextLostHandler;
     pub use super::data::types::*;
     pub use super::shader::types::*;

@@ -308,6 +308,9 @@
   centered and the delay before showing them was extended.
 - [Accurate GPU performance measurements have been implemented][6595]. It is
   possible now to track both the time spent on both the CPU and the GPU sides.
+- [Support recovery from GL context loss][7662]. This allows the application to
+  continue after an interruption to rendering, such as hibernation or movement
+  of the application window to a display rendered by a different GPU.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -323,6 +326,7 @@
 [6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
+[7662]: https://github.com/enso-org/enso/pull/7662
 
 #### Enso Standard Library
 
