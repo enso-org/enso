@@ -3,7 +3,9 @@ import { attachProvider } from '@/util/crdt'
 import { modKey, useWindowEvent } from '@/util/events'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import { WebsocketClient } from 'lib0/websocket'
 import { defineStore } from 'pinia'
+import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import { DistributedProject } from 'shared/yjsModel'
 import { markRaw, ref, watchEffect } from 'vue'
@@ -53,6 +55,8 @@ export const useProjectStore = defineStore('project', () => {
   const rpcRequestManager = new RequestManager([rpcTransport])
   const rpcClient = new Client(rpcRequestManager)
   const lsRpcConnection = new LanguageServer(rpcClient)
+  const dataClient = new WebsocketClient(lsUrls.dataUrl)
+  const dataConnection = new DataServer(dataClient)
 
   const undoManager = new Y.UndoManager([], { doc })
 
@@ -120,5 +124,6 @@ export const useProjectStore = defineStore('project', () => {
     module,
     undoManager,
     lsRpcConnection: markRaw(lsRpcConnection),
+    dataConnection: markRaw(dataConnection),
   }
 })

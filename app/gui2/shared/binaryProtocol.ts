@@ -219,7 +219,7 @@ interface IGeneratedObject {
   pack(builder: Builder): Offset
 }
 
-type Table = {
+export type Table = {
   bb: ByteBuffer
   bbPos: number
 }
@@ -268,11 +268,7 @@ export class Builder {
     this._forceDefaults = forceDefaults
   }
 
-  dataBuffer(): ByteBuffer {
-    return this.bb
-  }
-
-  asUint8Array(): ArrayBuffer {
+  toArrayBuffer(): ArrayBuffer {
     return this.bb.view.buffer.slice(this.bb.position, this.bb.position + this.offset())
   }
 
@@ -520,10 +516,7 @@ export class Builder {
     return vtableloc
   }
 
-  /**
-   * Finalize a buffer, poiting to the given `root_table`.
-   */
-  finish(rootTable: Offset, fileIdentifier?: string, shouldIncludeSizePrefix?: boolean): void {
+  finish(rootTable: Offset, fileIdentifier?: string, shouldIncludeSizePrefix?: boolean): Builder {
     const sizePrefix = shouldIncludeSizePrefix ? SIZE_PREFIX_LENGTH : 0
     if (fileIdentifier) {
       this.prep(this.minAlignment, SIZEOF_INT + FILE_IDENTIFIER_LENGTH + sizePrefix)
@@ -540,10 +533,12 @@ export class Builder {
       this.addInt32(this.bb.view.byteLength - this.space)
     }
     this.bb.position = this.space
+    return this
   }
 
-  finishSizePrefixed(this: Builder, rootTable: Offset, fileIdentifier?: string): void {
+  finishSizePrefixed(this: Builder, rootTable: Offset, fileIdentifier?: string): Builder {
     this.finish(rootTable, fileIdentifier, true)
+    return this
   }
 
   requiredField(table: Offset, field: number): void {
@@ -585,7 +580,7 @@ export class Builder {
     return offset
   }
 
-  createString(s: string | Uint8Array | null | undefined): Offset {
+  createString(s: string | Uint8Array | ArrayBuffer | null | undefined): Offset {
     if (s === null || s === undefined) {
       return 0
     }
@@ -593,6 +588,8 @@ export class Builder {
     let utf8: string | Uint8Array | number[]
     if (s instanceof Uint8Array) {
       utf8 = s
+    } else if (s instanceof ArrayBuffer) {
+      utf8 = new Uint8Array(s)
     } else {
       utf8 = TEXT_ENCODER.encode(s)
     }
@@ -644,7 +641,7 @@ export class Builder {
   }
 }
 
-class ByteBuffer {
+export class ByteBuffer {
   position = 0
   view: DataView
 
@@ -1040,6 +1037,16 @@ export class ReadOutOfBoundsError implements Table {
   }
 }
 
+export class None implements Table {
+  bb!: ByteBuffer
+  bbPos: number = 0
+  init(i: number, bb: ByteBuffer): Success {
+    this.bbPos = i
+    this.bb = bb
+    return this
+  }
+}
+
 export class Success implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
@@ -1111,14 +1118,6 @@ export class InitSessionCommand implements Table {
     const offset = builder.endObject()
     builder.requiredField(offset, 4) // identifier
     return offset
-  }
-
-  static finishInitSessionCommandBuffer(builder: Builder, offset: Offset) {
-    builder.finish(offset)
-  }
-
-  static finishSizePrefixedInitSessionCommandBuffer(builder: Builder, offset: Offset) {
-    builder.finish(offset, undefined, true)
   }
 
   static createInitSessionCommand(builder: Builder, identifierOffset: Offset): Offset {
