@@ -1,0 +1,143 @@
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number_Parse_Error
+import project.Data.Text.Text
+import project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Parse_Error
+import project.Data.Vector.Builder as Vector_Builder
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Ref.Ref
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+import project.Internal.Time.Format.Tokenizer.Format_Token
+
+type Text_Representation
+    Short_Form
+    Long_Form
+
+type Numeric_Representation
+    Value digits:Integer
+
+type Two_Digit_Year_Representation
+    Value max_year:Integer
+
+type Common_Nodes
+    Literal text:Text
+    Optional_Section inner_nodes:Vector
+
+type Standard_Date_Patterns
+    Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+    Quarter (representation : Numeric_Representation)
+    Month (representation : Numeric_Representation | Text_Representation)
+    Day_Of_Month (representation : Numeric_Representation)
+    Day_Of_Week (representation : Text_Representation)
+
+type ISO_Week_Year_Patterns
+    Week_Based_Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+    Week_Of_Year (representation : Numeric_Representation)
+    Day_Of_Week (representation : Numeric_Representation | Text_Representation)
+
+type Time_Patterns
+    Hour (representation : Numeric_Representation) is_24h:Boolean
+    AmPm
+    Minute (representation : Numeric_Representation)
+    Second (representation : Numeric_Representation)
+    Fraction_Of_Second (representation : Numeric_Representation)
+
+type Time_Zone_Patterns
+    Time_Zone_Name
+    Time_Zone_ID
+    Time_Zone_Offset
+
+type Parser_Mode
+    Simple
+    ISO_Week_Year
+
+type Parser
+    Instance (tokens : Vector (Format_Token | Nothing)) (position : Ref Integer)
+
+    parse self =
+        case self.consume_token of
+            Format_Token.Literal text ->
+                self.result_builder.append (Common_Nodes.Literal text)
+            Format_Token.Curly_Section inner_text ->
+                Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. Currently, the curly braces are only used to parametrize the two-digit year with the max year, e.g. `yy{2049}`. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
+            Format_Token.Pattern character count ->
+                case mode of
+                    Parser_Mode.Simple -> self.parse_simple_date_pattern character count
+                    Parser_Mode.ISO_Week_Year -> self.parse_iso_week_year_pattern character count
+
+    consume_token self =
+        current_position = self.position.get position
+        self.position.put position+1
+        tokens.at current_position
+
+    consume_curly_parameter_if_exists self =
+        current_position = self.position.get position
+        case tokens.at current_position of
+            Format_Token.Curly_Section inner_text ->
+                self.position.put current_position+1
+                inner_text
+            _ ->
+                # If no Curly_Section is set, do not advance the pointer and return Nothing.
+                Nothing
+
+    resolve_year_representation self count = case count of
+        2 ->
+            max_year = case self.consume_curly_parameter_if_exists of
+                Nothing -> default_max_year
+                parameter_text ->
+                    Integer.parse parameter_text . catch Number_Parse_Error _->
+                        Panic.throw (Date_Time_Format_Parse_Error.Error "The curly braces setting the maximum year for `yy` must be an integer, but got: "+parameter_text)
+            Two_Digit_Year_Representation.Value max_year=max_year
+        _ ->
+            Numeric_Representation.Value count
+
+    parse_simple_date_pattern self character count =
+        lowercase = character.to_case Case.Lower
+        case lowercase of
+            "y" -> Standard_Date_Patterns.Year (self.resolve_year_representation count)
+            "q" -> Standard_Date_Patterns.Quarter (Numeric_Representation.Value count)
+            "m" -> case character of
+                "M" -> Standard_Date_Patterns.Month (Numeric_Representation.Value count)
+                # Lowercase form is reserved for minutes - handled elsewhere.
+                "m" -> Nothing
+            "d" -> case count of
+                1 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 1)
+                2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
+                3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            _ -> Nothing
+
+    parse_iso_week_year_pattern self character count =
+        lowercase = character.to_case Case.Lower
+        case lowercase of
+            "y" -> ISO_Week_Year_Patterns.Week_Based_Year (self.resolve_year_representation count)
+            "w" -> ISO_Week_Year_Patterns.Week_Of_Year (Numeric_Representation.Value count)
+            "d" -> case count of
+                1 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 1)
+                2 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 2)
+                3 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            _ -> Nothing
+
+    parse_time_or_timezone_pattern character count =
+        lowercase = character.to_case Case.Lower
+        case lowercase of
+            "h" -> case character of
+                "H" -> Time_Patterns.Hour (Numeric_Representation.Value count) is_24h=True
+                "h" -> Time_Patterns.Hour (Numeric_Representation.Value count) is_24h=False
+            "m" -> case character of
+                "m" -> Time_Patterns.Minute (Numeric_Representation.Value count)
+                # Lowercase form is reserved for months - handled elsewhere.
+                "M" -> Nothing
+            "s" -> Time_Patterns.Second (Numeric_Representation.Value count)
+            "f" -> Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
+            "a" -> Time_Patterns.AmPm
+            "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
+            "z" -> Time_Zone_Patterns.Time_Zone_Offset
+            _ -> Nothing
+
+default_max_year = 2049

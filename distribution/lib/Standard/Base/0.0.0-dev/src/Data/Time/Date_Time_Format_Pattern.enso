@@ -96,7 +96,7 @@ type Date_Time_Format_Pattern
        - Y: The week based year.
          - In case the year is parsed in two digit mode (`YY`), the default
            range is 1950-2049, but this can be changed by including the end year
-           in braces e.g. `yy{2099}`
+           in braces e.g. `YY{2099}`
        - w: Week of year.
        - d: Day of week.
          - d: Numeric day of week (1-7). 1 is Monday.
