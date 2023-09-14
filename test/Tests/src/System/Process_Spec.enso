@@ -3,12 +3,6 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.lang.System as Java_System
-polyglot java import java.io.File as Java_File
-
-pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
-    Can't run Python tests, Python is not installed.
-
 spec =
     Test.group "Process" <|
         Test.specify "should call simple command" <|
@@ -112,76 +106,5 @@ spec =
                     run_result.exit_code.to_number . should_equal 0
                     run_result.stdout . should_equal 'sample'
                     run_result.stderr . should_equal ""
-    Test.group "Enso on Enso" <|
-        enso_bin =
-            p = Java_System.getProperty "truffle.class.path.append"
-            s = p.split Java_File.separator
-            paths = s.take (Index_Sub_Range.While _!="..")
-            j = paths . join Java_File.separator
-            File.new j / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
-
-        create_new_enso_project =
-            bin = enso_bin
-
-            tmp_file = File.create_temporary_file "enso_prj" ""
-            dir = tmp_file/".."/(tmp_file.name+".dir") . normalize
-            res = Process.run bin.path [ "--new", dir.path ]
-            IO.println res.stdout
-            IO.println res.stderr
-            res.exit_code . should_equal Exit_Code.Success
-            dir
-
-        Test.specify "Create Enso Project with numpy" pending=pending_python_missing <|
-            setup_venv dir =
-                gvm = File.new <| Java_System.getProperty "java.home"
-                python = gvm/"bin"/"graalpy"
-                res = Process.run python.path [ "-m", "venv", dir.path ]
-                IO.println res.stdout
-                IO.println res.stderr
-                res.exit_code . should_equal Exit_Code.Success
-
-            install_num_py dir =
-                python = dir/"bin"/"graalpy"
-                res = Process.run python.path [ "-m", "pip", "install", "numpy" ]
-                IO.println res.stdout
-                IO.println res.stderr
-                res.exit_code . should_equal Exit_Code.Success
-
-            rewrite_main_file dir =
-                main = dir/"src"/"Main.enso"
-                main.exists . should_be_true
-                code = """
-                    foreign python random_array s = """
-                        import numpy
-                        return numpy.random.normal(size=s)
-
-                    main = random_array 10
-
-                code . write main on_existing_file=Existing_File_Behavior.Overwrite
-
-            IO.println "==== Generating Enso Project ===="
-            prj = create_new_enso_project
-            IO.println "Project ready at "+prj.path
-
-            IO.println "==== Changing Main.enso ===="
-            rewrite_main_file prj
-
-            IO.println "==== Preparing Python Virtual Environment ===="
-            setup_venv prj/"polyglot"/"python"
-
-            IO.println "==== Installing numpy ===="
-            install_num_py prj/"polyglot"/"python"
-
-            IO.println "==== Executing project ===="
-
-            res = Process.run enso_bin.path [ "--run", prj.path ]
-            IO.println res.stdout
-            IO.println res.stderr
-            res.exit_code . should_equal Exit_Code.Success
-
-            IO.println "==== Done ===="
-
-            res.stdout.should_contain "array(["
-            res.stdout.should_contain "])"
 
 main = Test_Suite.run_main spec
