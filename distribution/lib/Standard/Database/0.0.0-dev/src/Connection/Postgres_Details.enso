@@ -81,7 +81,7 @@ type Postgres_Details
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
    connection.
-ssl_mode_to_jdbc_properties : SSL_Mode -> Vector Pair
+ssl_mode_to_jdbc_properties : SSL_Mode -> Vector (Pair Text Text)
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     SSL_Mode.Disable -> []
     SSL_Mode.Prefer -> [Pair.new 'sslmode' 'prefer']
