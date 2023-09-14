@@ -723,7 +723,7 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
-          SearchProtocol.GetSuggestionsDatabaseResult(1, Seq())
+          SearchProtocol.GetSuggestionsDatabaseResult(0, Seq())
         )
     }
 
