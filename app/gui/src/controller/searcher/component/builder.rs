@@ -200,6 +200,9 @@ impl<'a> Builder<'a> {
             .displayed_by_default
             .sort_by(|lhs, rhs| ComponentOrderingKey::of(lhs).cmp(&ComponentOrderingKey::of(rhs)));
         self.built_list
+            .components
+            .sort_by(|lhs, rhs| ComponentOrderingKey::of(lhs).cmp(&ComponentOrderingKey::of(rhs)));
+        self.built_list
     }
 }
 
