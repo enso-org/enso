@@ -90,9 +90,8 @@ public class SerdeCompilerTest {
       mockHandler.assertNoFailureMessage();
       assertEquals(result.compiledModules().exists(m -> m == module), true);
 
-      var methods = module.getScope().getMethods();
-      var methodsOfMain = methods.values().iterator().next();
-      var main = methodsOfMain.values().iterator().next();
+      var methods = module.getScope().getAllMethods();
+      var main = methods.get(0);
 
       assertEquals("Main.main", main.getName());
       var mainValue = ctx.asValue(main);

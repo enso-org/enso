@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
-from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure
+from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -13,6 +13,8 @@ polyglot java import java.lang.Byte as Java_Byte
 polyglot java import java.lang.Short as Java_Short
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long as Java_Long
+
+polyglot java import org.enso.table_test_helpers.PolyglotHelpers
 
 main = Test_Suite.run_main spec
 
@@ -138,6 +140,28 @@ spec =
         test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
         test_no_overflow (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
 
+        Test.specify "if we cast to Decimal first, then the operations will not overflow" <|
+            t0 = Table.new [["X", [0, 1, Java_Long.MAX_VALUE, 0]], ["U", [1, 1, 1, 1]]]
+            t1 = t0.cast "X" (Value_Type.Decimal scale=0)
+            x = t1.at "X"
+            u = t1.at "U"
+
+            c1 = x + 1
+            Problems.assume_no_problems c1
+            c1.to_vector . should_equal [1, 2, Java_Long.MAX_VALUE+1, 1]
+
+            c2 = x + u
+            Problems.assume_no_problems c2
+            c2.to_vector . should_equal [1, 2, Java_Long.MAX_VALUE+1, 1]
+
+            c3 = u - x - x
+            Problems.assume_no_problems c3
+            c3.to_vector . should_equal [1, -1, 1 - 2*Java_Long.MAX_VALUE, 1]
+
+            c4 = x * x
+            Problems.assume_no_problems c4
+            c4.to_vector . should_equal [0, 1, Java_Long.MAX_VALUE*Java_Long.MAX_VALUE, 0]
+
         Test.specify "mixed operations" <|
             t = Table.new [["X", [Java_Short.MAX_VALUE]], ["Y", [1]]]
             x = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
@@ -170,3 +194,259 @@ spec =
             Problems.assume_no_problems c5
 
             (x%2).value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+    Test.group "[In-Memory] Handling of Big Integer values" <|
+        Test.specify "will create a BigInteger column if some values do not fit in long" <|
+            c0 = Column.from_vector "X" [Java_Long.MAX_VALUE, 0, 1]
+            Problems.assume_no_problems c0
+            c0.value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100]
+            Problems.assume_no_problems c1
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
+            c1.to_vector . should_equal [Java_Long.MAX_VALUE, 2^70, 100]
+            c1.to_vector.each e-> e.should_be_a Integer
+            c1.to_vector.map .to_text . should_equal [Java_Long.MAX_VALUE.to_text, (2^70).to_text, "100"]
+
+            c2 = c1.cast (Value_Type.Integer Bits.Bits_64)
+            c2.to_vector . should_equal [Java_Long.MAX_VALUE, Nothing, 100]
+            Problems.expect_only_warning Conversion_Failure c2
+
+            t0 = Table.new [["X", [Java_Long.MAX_VALUE, 0, 1]]]
+            Problems.assume_no_problems t0
+            t0.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            t1 = Table.new [["X", [Java_Long.MAX_VALUE, 2^70, 100]]]
+            Problems.assume_no_problems t1
+            t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+        Test.specify "should fail if a big integer is provided for an Integer 64-bit column" <|
+            c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, 100] value_type=Value_Type.Integer
+            c1.should_fail_with Invalid_Value_Type
+            c1.catch.to_display_text . should_contain "Decimal"
+
+        Test.specify "allows to construct a column from big integers coming from Java" <|
+            big_integer_but_small = PolyglotHelpers.createSmallBigIntegerComingFromJava
+            t1 = Table.new [["X", [big_integer_but_small]]]
+            t1.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t1.at "X" . to_vector . should_equal [big_integer_but_small]
+
+            big_big_integer = PolyglotHelpers.createBigBigIntegerComingFromJava
+            t2 = Table.new [["X", [big_big_integer]]]
+            t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            v2 = t2.at "X" . to_vector
+            v2.should_equal [big_big_integer]
+            v2.at 0 . should_be_a Integer
+            v2.at 0 . to_text . should_equal big_big_integer.to_text
+
+        Test.specify "will create a Mixed column if other types are present" <|
+            c1 = Column.from_vector "X" [Java_Long.MAX_VALUE, 2^70, "abc"]
+            Problems.assume_no_problems c1
+            c1.value_type . should_equal Value_Type.Mixed
+
+        Test.specify "should allow to create a Float column from a big integer, but warn about Loss_Of_Integer_Precision if relevant" <|
+            # 2^70 is not exactly representable as a Float.
+            (2^70 + 0.0).truncate . should_not_equal (2^70)
+
+            c1 = Column.from_vector "X" [1, 2^70, 1.5]
+            Problems.expect_only_warning Loss_Of_Integer_Precision c1
+            c1.value_type . should_equal Value_Type.Float
+
+            # A number around ~2^100 that _can_ be exactly represented as float.
+            x = (2^100 + 0.0).truncate
+            c2 = Column.from_vector "X" [x, 1.5]
+            # So there is no warning, as no real precision loss here.
+            Problems.assume_no_problems c2
+            c2.value_type . should_equal Value_Type.Float
+            # This will be an inexact equality, based on float rounding.
+            c2.to_vector . should_equal [x, 1.5]
+
+            c3 = Column.from_vector "X" [2^70, 1]
+            Problems.assume_no_problems c3
+            c3.value_type . should_be_a (Value_Type.Decimal ...)
+            c4 = c3.remove_warnings.cast Value_Type.Float
+            c4.to_vector . should_equal [2^70, 1]
+            Problems.expect_only_warning Loss_Of_Integer_Precision c4
+
+        Test.specify "should use Decimal type if a mapping operation yields a numeric column with big integers" <|
+            c = Column.from_vector "X" [1, 2, 3]
+
+            f1 x = if x == 2 then 2^70 else x
+            c1 = c.map f1
+            c1.to_vector . should_equal [1, 2^70, 3]
+            Problems.assume_no_problems c1
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
+
+            f2 x = case x of
+                2 -> 2^100
+                3 -> "foobar"
+                _ -> x
+            c2 = c.map f2
+            c2.to_vector . should_equal [1, 2^100, "foobar"]
+            # But no warning if the operation yields other types of values as well.
+            Problems.assume_no_problems c2
+            c2.value_type . should_equal Value_Type.Mixed
+
+        Test.specify "allows arithmetic on Decimal columns" <|
+            t = Table.new [["X", [10^30, 2^70, Nothing, 3]], ["Y", [10^20, 2, 3, 4]]]
+            x = t.at "X"
+            y = t.at "Y"
+            x.value_type . should_be_a (Value_Type.Decimal ...)
+            y.value_type . should_be_a (Value_Type.Decimal ...)
+
+            r1 = x + y
+            r1.value_type . should_be_a (Value_Type.Decimal ...)
+            r1.to_vector . should_equal [10^30 + 10^20, 2^70 + 2, Nothing, 3 + 4]
+
+            (x - y) . to_vector . should_equal [10^30 - 10^20, 2^70 - 2, Nothing, 3 - 4]
+            (x * y) . to_vector . should_equal [10^50, 2^71, Nothing, 3 * 4]
+            r2 = x % y
+            r2.value_type . should_be_a (Value_Type.Decimal ...)
+            r2.to_vector . should_equal [0, 0, Nothing, 3]
+
+            r3 = x / y
+            r3.value_type . should_equal Value_Type.Float
+            r3.to_vector . should_equal [10^10, 2^69, Nothing, 3 / 4]
+
+            r4 = x ^ y
+            r4.value_type . should_equal Value_Type.Float
+            r4.to_vector . should_equal [(10^30)^(10^20), (2^70)^2, Nothing, 3^4]
+
+            (x.min y).to_vector . should_equal [10^20, 2, 3, 3]
+            (x.max y).to_vector . should_equal [10^30, 2^70, 3, 4]
+
+            r5 = x.fill_nothing y
+            r5.value_type . should_be_a (Value_Type.Decimal ...)
+            r5.to_vector . should_equal [10^30, 2^70, 3, 3]
+
+            x.is_nothing . to_vector . should_equal [False, False, True, False]
+            x.is_nan . to_vector . should_equal [False, False, Nothing, False]
+            x.is_infinite . to_vector . should_equal [False, False, Nothing, False]
+            x.is_in [3, 2^70] . to_vector . should_equal [False, True, False, True]
+
+        Test.specify "allows arithmetic on Decimal columns and other numeric columns" <|
+            t = Table.new [["X", [10^30, 2^70, Nothing, 3]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.5, 3.5, 4.5]]]
+            x = t.at "X"
+            y = t.at "Y"
+            z = t.at "Z"
+            x.value_type . should_be_a (Value_Type.Decimal ...)
+            y.value_type . should_equal Value_Type.Integer
+            z.value_type . should_equal Value_Type.Float
+
+            c1 = x + y
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
+            c1.to_vector . should_equal [10^30 + 1, 2^70 + 2, Nothing, 3 + 4]
+
+            c2 = x - z
+            c2.value_type . should_equal Value_Type.Float
+            c2.to_vector . should_equal [10^30 - 1.5, 2^70 - 2.5, Nothing, 3 - 4.5]
+
+            (x * y) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
+            (x % y) . to_vector . should_equal [0, 0, Nothing, 3]
+            (x % z) . to_vector . should_equal [1.0, 1.5, Nothing, 3.0]
+            (x / y) . to_vector . should_equal [10^30, 2^69, Nothing, 0.75]
+            (x ^ y) . to_vector . should_equal [10^30, 2^140, Nothing, 3^4]
+            (x == y) . to_vector . should_equal [False, False, Nothing, False]
+            (x < y) . to_vector . should_equal [False, False, Nothing, True]
+            (x >= y) . to_vector . should_equal [True, True, Nothing, False]
+            (x != z) . to_vector . should_equal [True, True, Nothing, True]
+            (x > z) . to_vector . should_equal [True, True, Nothing, False]
+            (x <= z) . to_vector . should_equal [False, False, Nothing, True]
+            (x.min y) . to_vector . should_equal [1, 2, 3, 3]
+            (x.max y) . to_vector . should_equal [10^30, 2^70, 3, 4]
+            (x.min z) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
+            (x.max [y, z]) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+
+            (y * x) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
+            (y % x) . to_vector . should_equal [1, 2, Nothing, 1]
+            (z / x) . to_vector . should_equal [1.5 / 10^30, 2.5 / 2^70, Nothing, 4.5 / 3]
+            (z ^ x) . to_vector . should_equal [1.5^(10^30), 2.5^(2^70), Nothing, (4.5)^3]
+            (z == x) . to_vector . should_equal [False, False, Nothing, False]
+            (z < x) . to_vector . should_equal [True, True, Nothing, False]
+            (z >= x) . to_vector . should_equal [False, False, Nothing, True]
+            (y != x) . to_vector . should_equal [True, True, Nothing, True]
+            (y > x) . to_vector . should_equal [False, False, Nothing, True]
+            (y <= x) . to_vector . should_equal [True, True, Nothing, False]
+            (y.min x) . to_vector . should_equal [1, 2, 3, 3]
+            (y.max x) . to_vector . should_equal [10^30, 2^70, 3, 4]
+            (z.min x) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
+            (z.max x) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+
+            x.fill_nothing y . to_vector . should_equal [10^30, 2^70, 3, 3]
+            x.fill_nothing z . to_vector . should_equal [10^30, 2^70, 3.5, 3]
+            y.fill_nothing x . to_vector . should_equal [1, 2, 3, 4]
+            y2 = (y < 2).iif Nothing y
+            y2.to_vector . should_equal [Nothing, 2, 3, 4]
+            y2.fill_nothing x . to_vector . should_equal [10^30, 2, 3, 4]
+            ((z < 2).iif Nothing z).fill_nothing x . to_vector . should_equal [10^30, 2.5, 3.5, 4.5]
+
+            r3 = x.fill_nothing 1.5
+            r3.value_type . should_equal Value_Type.Float
+            # 2^70 is not exactly representable as a Float.
+            (2^70 + 0.0).truncate . should_not_equal (2^70)
+            Problems.expect_only_warning Loss_Of_Integer_Precision r3
+            r3.to_vector . should_equal [10^30, 2^70, 1.5, 3]
+
+            r4 = x.fill_nothing 23
+            r4.value_type . should_be_a (Value_Type.Decimal ...)
+            r4.to_vector . should_equal [10^30, 2^70, 23, 3]
+
+        Test.specify "returns a Decimal column if the scalar argument is a big integer" <|
+            c = Column.from_vector "X" [1, 2, Nothing, 3]
+            c.value_type.should_equal Value_Type.Integer
+            x = 2^70
+
+            r1 = c + x
+            r1.value_type . should_be_a (Value_Type.Decimal ...)
+            r1.to_vector . should_equal [1 + x, 2 + x, Nothing, 3 + x]
+
+            (c - x) . to_vector . should_equal [1 - x, 2 - x, Nothing, 3 - x]
+            (c * x) . to_vector . should_equal [1 * x, 2 * x, Nothing, 3 * x]
+            r2 = c % x
+            r2.value_type . should_be_a (Value_Type.Decimal ...)
+            r2.to_vector . should_equal [1, 2, Nothing, 3]
+
+            r3 = (c == x)
+            r3.value_type . should_equal Value_Type.Boolean
+            r3.to_vector . should_equal [False, False, Nothing, False]
+
+            (c < x) . to_vector . should_equal [True, True, Nothing, True]
+            (c >= x) . to_vector . should_equal [False, False, Nothing, False]
+
+            r4 = c / x
+            r4.value_type . should_equal Value_Type.Float
+            r4.to_vector . should_equal [1 / x, 2 / x, Nothing, 3 / x]
+
+            r5 = c ^ x
+            r5.value_type . should_equal Value_Type.Float
+            r5.to_vector . should_equal [1 ^ x, 2 ^ x, Nothing, 3 ^ x]
+
+            r6 = c.min x
+            r6.value_type . should_be_a (Value_Type.Decimal ...)
+            r6.to_vector . should_equal [1, 2, x, 3]
+            c.max x . to_vector . should_equal [x, x, x, x]
+
+            r7 = c.fill_nothing x
+            r7.value_type . should_be_a (Value_Type.Decimal ...)
+            r7.to_vector . should_equal [1, 2, x, 3]
+
+        Test.specify "should work fine with typing edge cases" <|
+            c1 = Column.from_vector "X" [2^70, 100, Nothing, 200]
+            c1.value_type . should_be_a (Value_Type.Decimal ...)
+
+            r2 = c1.fill_nothing "NA"
+            r2.should_fail_with No_Common_Type
+
+            c2 = c1.cast Value_Type.Mixed . fill_nothing "NA"
+            c2.value_type . should_equal Value_Type.Mixed
+            c2.to_vector . should_equal [2^70, 100, "NA", 200]
+
+            c3 = (c2 == "NA").iif 0 c2
+            c3.to_vector . should_equal [2^70, 100, 0, 200]
+            # Still a mixed value type due to combining of input types: Integer+Mixed->Mixed
+            c3.value_type . should_equal Value_Type.Mixed
+
+            # But the precise type should be inferred:
+            c3.inferred_precise_value_type . should_be_a (Value_Type.Decimal ...)
+            # And so arithmetic should work:
+            (c3 + 100) . to_vector . should_equal [2^70 + 100, 200, 100, 300]

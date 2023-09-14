@@ -314,7 +314,7 @@ public class ExcelWriter {
     if (storage.isNa(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      cell.setCellValue(doubleStorage.getItem(j));
+      cell.setCellValue(doubleStorage.getItemAsDouble(j));
     } else if (storage instanceof AbstractLongStorage longStorage) {
       cell.setCellValue(longStorage.getItem(j));
     } else if (storage instanceof BoolStorage boolStorage) {

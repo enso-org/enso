@@ -46,7 +46,7 @@ public abstract class GetAnnotationNode extends BaseNode {
     if (targetTypeResult instanceof Type targetType) {
       Function methodFunction;
       if (method instanceof UnresolvedSymbol symbol) {
-        methodFunction = symbol.resolveFor(targetType);
+        methodFunction = symbol.resolveFor(this, targetType);
       } else {
         CompilerDirectives.transferToInterpreter();
         var ctx = EnsoContext.get(this);
