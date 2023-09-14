@@ -19,7 +19,7 @@ type S3_File
         output.if_valid_uri _->_->output
 
     ## PRIVATE
-    Value uri:Text auth:(AWS_Credential | Nothing)
+    Value uri:Text credentials:(AWS_Credential | Nothing)
 
     ## PRIVATE
     if_valid_uri : (Text -> Text -> Any) -> Any ! Syntax_Error
@@ -37,7 +37,8 @@ type S3_File
 
     ## Checks if this is a folder
     is_directory : Boolean
-    is_directory self = self.if_valid_uri _->prefix->prefix.ends_with "/"
+    is_directory self =
+        self.if_valid_uri _->prefix-> prefix=="" || prefix.ends_with "/"
 
     ## GROUP Metadata
        Gets the size of a file in bytes.
@@ -105,7 +106,7 @@ type S3_File
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         _ = on_problems
         case format of
-            Auto_Detect ->
+            Auto_Detect -> if self.is_directory then format.read self on_problems else
                 self.if_valid_uri bucket->key->
                     response = S3.get_object bucket key self.credentials
                     response.decode Auto_Detect
@@ -140,7 +141,7 @@ type S3_File
     / : Text -> S3_File
     / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
         self.if_valid_uri bucket->prefix->
-            if subpath.startsWith "/" then S3_File.Value ("s3://"+bucket+subpath) self.auth else
+            if subpath.startsWith "/" then S3_File.Value ("s3://"+bucket+subpath) self.credentials else
                 parts = subpath.split "/"
                 loop current remaining = if remaining.length == 0 then current else
                     new_current = case remaining.first of
@@ -151,7 +152,7 @@ type S3_File
                         x -> new_current + "/" + x
                     @Tail_Call loop new_current (remaining.drop 1)
                 path = loop prefix parts
-                S3_File.Value ("s3://"+bucket+path) self.auth
+                S3_File.Value ("s3://"+bucket+path) self.credentials
 
     ## GROUP Calculations
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
@@ -182,7 +183,6 @@ type S3_File
             extension = name.drop (Index_Sub_Range.First last_dot.start)
             if extension == "." then "" else extension
 
-
     ## GROUP Input
        Lists files contained in the directory denoted by this file.
 
@@ -194,45 +194,19 @@ type S3_File
          only the immediate children of the listed directory are considered.
 
        The `name_filter` can contain the following special characters:
-       - `"?"` - which matches a single filename character (so it will not match
-         a `"/"`).
-       - `"*"` - which matches any number of characters, but again does not
-         cross directories.
-       - `"**"` - which matches any number of characters and can cross
-         directories.
-       - `"\"` - can be used to escape the characters with special meaning; to
-         get a single backslash, you need to specify it twice; you also need to
-         keep in mind that the interpolating string literal also uses `"\"` as
-         an escape sequence, so you need to type `'\\\\'` to get a single
-         backslash for the glob pattern, unless you use the raw strings, where
-         you only need to escape once: `"\\"`.
-       - Brackets can be used to match exactly one character from some set of
-         characters. For example `"[xy]"` matches `"x"` or `"y"`. Character
-         ranges can also be specified: `"[a-z]"` matches any character from
-         `"a"` to `"z"`. An exclamation mark can be used to negate the match,
-         i.e. `"[!xz]"` will match any characters except for `"x"` and `"z"`.
-         Moreover the ranges and single characters can be used together, so for
-         example `"[a-cxy]"` will match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`.
-         Within the brackets, the special characters `"*"`, `"?"` and `"\"`
-         stand for themselves instead of their special meanings.
-       - Braces allow to specify multiple patterns (separated with a comma), one
-         of which must be matched. For example: `"{abc,x*}"` will match either
-         the name `"abc"` or any name starting with `"x"`. The groups cannot be
-         nested.
 
        If `recursive` is set to True and a `name_filter` does not contain `**`,
        it will be automatically prefixed with `**/` to allow matching files in
        subdirectories.
-
-       > Example
-         List all files with ".md" or ".txt" extension in the example directory
-         and any of its subdirectories.
-
-             import Standard.Examples
-
-             example_list_md_files =
-                 Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
-    list : Text -> Boolean -> Vector File
+    list : Text -> Boolean -> Vector S3_File
     list self name_filter:Text="" recursive:Boolean=False =
-        if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
-            Unimplemented.throw "S3 listing is not currently implemented."
+        check_name_filter action = if name_filter != "" then Unimplemented.throw "S3 listing with name filter is not currently implemented." else action
+        check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
+        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else action
+
+        check_directory <| check_recursion <| check_name_filter <| self.if_valid_uri bucket->prefix->
+            if bucket == "" then S3.list_buckets self.credentials . map b-> S3_File.Value ("s3://"+b) self.credentials else
+                pair = S3.read_bucket bucket prefix self.credentials
+                sub_folders = pair.first . map key-> S3_File.Value ("s3://"+bucket+"/"+key) self.credentials
+                files = pair.second . map key-> S3_File.Value ("s3://"+bucket+"/"+key) self.credentials
+                sub_folders + files

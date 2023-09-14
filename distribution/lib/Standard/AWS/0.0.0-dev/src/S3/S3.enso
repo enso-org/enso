@@ -136,7 +136,6 @@ make_client credentials:(AWS_Credential | Nothing) =
     provider = Auth.create_provider credentials
     S3Client.builder.credentialsProvider provider . build
 
-
 ## PRIVATE
    Utility method for running an action with Java exceptions mapping.
 handle_io_errors uri:URI ~action =

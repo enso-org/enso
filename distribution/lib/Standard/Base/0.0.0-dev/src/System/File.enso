@@ -12,7 +12,9 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Forbidden_Operation
+import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Metadata.Display
@@ -39,6 +41,11 @@ polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
+polyglot java import org.enso.base.file_system.FileSystemSPI
+
+## PRIVATE
+file_types : Vector
+file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
 
 ## Represents a file or folder on the filesystem.
 @Builtin_Type
@@ -59,11 +66,19 @@ type File
              import Standard.Examples
 
              example_new = File.new Examples.csv_path
-    new : (Text | File) -> File
-    new (path : Text | File) =
-      case path of
-        _ : Text -> get_file path
+    new : (Text | File) -> Any
+    new path = case path of
+        _ : Text -> if path.contains "://" . not then get_file path else
+            protocol = path.split "://" . first
+            file_system = FileSystemSPI.get_type protocol False
+            if file_system.is_nothing then Error.throw (Illegal_Argument.Error "Unsupported protocol "+protocol) else
+                file_system.new path
         _ : File -> path
+        _ ->
+            ## Check to see if a valid "File" type.
+            if (file_types.Any file_type-> path.is_a file_type) then path else
+                Error.throw (Type_Error.Error File path "path")
+
 
     ## Creates a temporary file which will be deleted when Enso exits.
     create_temporary_file : Text -> Text -> File
