@@ -3,6 +3,13 @@
   "compilerOptions": {
     "baseUrl": "./src",
     "esModuleInterop": true
-  }, 
-  "include": [".", "../types", "../content", "../../utils.ts", "../../build.json"],
+  },
+  "include": [
+    ".",
+    "../types",
+    "../content",
+    "../../utils.ts",
+    "../../build.json",
+    "../dashboard/esbuild-config.ts"
+  ],
 }

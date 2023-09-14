@@ -3,6 +3,7 @@
   "include": ["../types", ".", "../../utils.ts"],
   "compilerOptions": {
     "composite": true,
-    "noEmit": false
+    "noEmit": false,
+    "outDir": "../../../../node_modules/.cache/tsc",
   }
 }

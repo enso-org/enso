@@ -5,9 +5,15 @@
   "compilerOptions": {
     "resolvePackageJsonExports": false,
     "composite": true,
+    "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
+    },
+  ]
 }

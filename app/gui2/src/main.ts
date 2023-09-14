@@ -1,4 +1,3 @@
-import * as dashboard from 'enso-authentication'
 import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
@@ -43,6 +42,8 @@ function stopApp() {
 }
 
 const appRunner = { runApp, stopApp }
+
+const dashboard = await import('enso-authentication')
 
 /** The entrypoint into the IDE. */
 function main() {

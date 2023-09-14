@@ -14,6 +14,7 @@ import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
+import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
@@ -93,19 +94,22 @@ export function bundlerOptions(args: Arguments) {
         outdir: outputPath,
         outbase: 'src',
         loader: {
-            // The CSS file needs to import a single SVG as a data URL.
-            // For `bundle.ts` and `watch.ts`, `index.js` also includes various SVG icons
-            // which need to be bundled.
-            // The `dataurl` loader replaces the import with the file, as a data URL. Using the
-            // `file` loader, which copies the file and replaces the import with the path,
-            // is an option, however this loader avoids adding extra files to the bundle.
             /* eslint-disable @typescript-eslint/naming-convention */
-            '.svg': 'dataurl',
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.png': 'file',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [
+            // The CSS file needs to import a single SVG as a data URL.
+            // For `bundle.ts` and `watch.ts`, `index.js` also includes various SVG icons
+            // which need to be bundled.
+            // Depending on file size, choose between `dataurl` and `file` loaders.
+            // The `dataurl` loader replaces the import with the file, as a data URL. Using the
+            // `file` loader, which copies the file and replaces the import with the path.
+            /* eslint-disable @typescript-eslint/naming-convention */
+            esbuildPluginInlineImage({
+                extensions: ['svg'],
+            }) as esbuild.Plugin,
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
             // This is not strictly needed because the cloud frontend does not use

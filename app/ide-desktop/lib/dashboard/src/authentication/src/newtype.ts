@@ -4,13 +4,10 @@
 // === Newtype ===
 // ===============
 
-/** A private unique branding symbol used in newtype definitions. */
-declare const $type: unique symbol
-
 /** An interface specifying the variant of a newtype. */
 interface NewtypeVariant<TypeName extends string> {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    [$type]: TypeName
+    _$type: TypeName
 }
 
 /** Used to create a "branded type",
@@ -30,15 +27,14 @@ export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
 /** Extracts the original type out of a {@link Newtype}.
  * Its only use is in {@link asNewtype}. */
-type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U &
-    NewtypeVariant<T[typeof $type]>
+type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
     ? U
-    : NotNewtype & Omit<T, typeof $type>
+    : NotNewtype & Omit<T, '_$type'>
 
 /** An interface that matches a type if and only if it is not a newtype. */
 export interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    [$type]?: never
+    _$type?: never
 }
 
 /** Converts a value that is not a newtype, to a value that is a newtype.
@@ -46,7 +42,7 @@ export interface NotNewtype {
  * is only used for one type, avoiding the de-optimization caused by polymorphic functions. */
 export function newtypeConstructor<T extends Newtype<unknown, string>>() {
     // This cast is unsafe.
-    // `T` has an extra property `[$type]` which is used purely for typechecking
+    // `T` has an extra property `_$type` which is used purely for typechecking
     // and does not exist at runtime.
     //
     // The property name is specifically chosen to trigger eslint's `naming-convention` lint,

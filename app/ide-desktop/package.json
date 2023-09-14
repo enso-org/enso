@@ -33,6 +33,7 @@
     "lint": "npm install && npm run test && npm run typecheck && npx eslint ."
   },
   "dependencies": {
+    "esbuild-plugin-inline-image": "^0.0.9",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0"
   }

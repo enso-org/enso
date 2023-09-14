@@ -6,7 +6,7 @@ import { computedAsync } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import { DistributedProject } from 'shared/yjsModel'
-import { ref, watchEffect } from 'vue'
+import { markRaw, ref, watchEffect } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -53,7 +53,6 @@ export const useProjectStore = defineStore('project', () => {
   const rpcRequestManager = new RequestManager([rpcTransport])
   const rpcClient = new Client(rpcRequestManager)
   const lsRpcConnection = new LanguageServer(rpcClient)
-  const lsDataConnection = new LanguageServer(dataClient)
 
   const undoManager = new Y.UndoManager([], { doc })
 
@@ -120,5 +119,6 @@ export const useProjectStore = defineStore('project', () => {
     },
     module,
     undoManager,
+    lsRpcConnection: markRaw(lsRpcConnection),
   }
 })

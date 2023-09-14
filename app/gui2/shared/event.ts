@@ -3,7 +3,7 @@ import * as map from 'lib0/map'
 import * as set from 'lib0/set'
 
 type EventMap = { [name: PropertyKey]: any[] }
-export type EventHandler<Args extends any[]> = (...args: Args) => void
+export type EventHandler<Args extends any[] = any[]> = (...args: Args) => void
 
 export class Emitter<Events extends EventMap = EventMap> {
   private _observers: Map<PropertyKey, Set<EventHandler<any[]>>>
@@ -43,5 +43,19 @@ export class Emitter<Events extends EventMap = EventMap> {
 
   destroy() {
     this._observers = map.create()
+  }
+}
+
+// Partial compatibility with node 'events' module, for the purposes of @open-rpc/client-js.
+// See vite.config.ts for details.
+export class EventEmitter extends Emitter<EventMap> {
+  addListener(name: string, f: EventHandler) {
+    this.on(name, f)
+  }
+  removeListener(name: string, f: EventHandler) {
+    this.off(name, f)
+  }
+  removeAllListeners() {
+    this.destroy()
   }
 }
