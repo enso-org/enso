@@ -349,16 +349,6 @@ impl Model {
         });
     }
 
-    fn show_dashboard(&self) {
-        match enso_web::Event::new("show-dashboard") {
-            Ok(event) =>
-                if let Err(error) = enso_web::document.dispatch_event(&event) {
-                    error!("Failed to dispatch event to show the dashboard. {error:?}");
-                },
-            Err(error) => error!("Failed to create event to show the dashboard. {error:?}"),
-        }
-    }
-
     /// Register a [`Scene`] callback that shows the progress spinner while the WebGL Context is
     /// being restored; return the handle.
     fn init_context_monitor(view: view::project::View) -> ensogl::display::world::ContextHandler {
