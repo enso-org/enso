@@ -85,7 +85,7 @@ public class BinaryOpFloatTest extends TestBase {
 
       var r1 = execute(fn, n1, n2);
 
-      var wrap2 = n2; //ctx.asValue(new WrappedPrimitive(n2));
+      var wrap2 = ctx.asValue(new WrappedPrimitive(n2));
       var r2 = execute(fn, n1, wrap2);
 
       assertSameResult(r1, r2);
