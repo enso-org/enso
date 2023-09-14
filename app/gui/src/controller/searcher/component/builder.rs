@@ -29,15 +29,15 @@ use enso_suggestion_database::SuggestionDatabase;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum InGroupComponentOrderingKey<'a> {
-    FromDatabase { module: QualifiedNameRef<'a>, index: suggestion_database::entry::Id },
+    FromDatabase { module: QualifiedNameRef<'a>, label: &'a str },
     Virtual { name: &'a str },
 }
 
 impl<'a> InGroupComponentOrderingKey<'a> {
     fn of(component: &'a Component) -> Self {
         match &component.suggestion {
-            component::Suggestion::FromDatabase { entry, id } =>
-                Self::FromDatabase { module: entry.defined_in.as_ref(), index: *id },
+            component::Suggestion::FromDatabase { entry, .. } =>
+                Self::FromDatabase { module: entry.defined_in.as_ref(), label: &component.label },
             component::Suggestion::Virtual { snippet } => Self::Virtual { name: &snippet.name },
         }
     }
@@ -445,8 +445,8 @@ mod tests {
         let list = builder.build();
 
         check_displayed_components(&list, vec![
-            "TopModule1.fun2",
             "TopModule1.fun1",
+            "TopModule1.fun2",
             "TopModule2.fun0",
             "SubModule2.fun5",
             "test.Test.TopModule1",
@@ -476,8 +476,8 @@ mod tests {
         let list = builder.build();
 
         check_displayed_components(&list, vec![
-            "TopModule1.fun2",
             "TopModule1.fun1",
+            "TopModule1.fun2",
             "SubModule1",
             "SubModule2",
         ]);
@@ -568,8 +568,8 @@ mod tests {
         case(
             "First Group",
             vec![
-                "TopModule1.fun2",
                 "TopModule1.fun1",
+                "TopModule1.fun2",
                 "TopModule2.fun0",
                 "test1",
                 "test2",
@@ -587,8 +587,8 @@ mod tests {
         case(
             "Another Group",
             vec![
-                "TopModule1.fun2",
                 "TopModule1.fun1",
+                "TopModule1.fun2",
                 "TopModule2.fun0",
                 "SubModule2.fun5",
                 "test1",

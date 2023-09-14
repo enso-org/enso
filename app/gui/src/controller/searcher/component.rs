@@ -432,17 +432,17 @@ pub(crate) mod tests {
         let mut list = builder.build();
 
         check_displayed_components(&list, vec![
-            "Json.parse",
             "Date.parse",
-            "Time.parse",
             "DateTime.parse",
+            "Json.parse",
+            "Time.parse",
         ]);
         list.update_filtering(make_filter("parse"));
         check_displayed_components(&list, vec![
-            "Json.parse",
             "Date.parse",
-            "Time.parse",
             "DateTime.parse",
+            "Json.parse",
+            "Time.parse",
         ]);
     }
 
