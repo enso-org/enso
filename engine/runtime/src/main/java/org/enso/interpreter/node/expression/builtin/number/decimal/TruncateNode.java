@@ -9,7 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-    type = "Decimal",
+    type = "Float",
     name = "truncate_builtin",
     description = "Truncate a floating-point number to an integer by dropping the fractional part.")
 public class TruncateNode extends FloatNode {

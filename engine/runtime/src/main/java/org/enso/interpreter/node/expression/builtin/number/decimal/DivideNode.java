@@ -11,7 +11,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Decimal", name = "/", description = "Division of numbers.")
+@BuiltinMethod(type = "Float", name = "/", description = "Division of numbers.")
 public abstract class DivideNode extends FloatNode {
   abstract double execute(double self, Object that);
 

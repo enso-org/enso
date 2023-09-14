@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -33,19 +33,19 @@ type Random_Number_Generator
 
     ## GROUP Random
        Gets the next random Boolean.
-    boolean : Decimal
+    boolean : Float
     boolean self =
         self.java_random.nextBoolean
 
     ## GROUP Random
-       Gets the next random Decimal between 0 and 1.
-    decimal : Decimal
-    decimal self =
+       Gets the next random Float between 0 and 1.
+    float : Float
+    float self =
         self.java_random.nextDouble
 
     ## GROUP Random
-       Gets the next random Decimal from a normal distribution with mean 0 and std-dev 1.
-    gaussian : Decimal
+       Gets the next random Float from a normal distribution with mean 0 and std-dev 1.
+    gaussian : Float
     gaussian self =
         self.java_random.nextGaussian
 

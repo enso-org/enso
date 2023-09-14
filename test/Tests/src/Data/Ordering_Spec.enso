@@ -122,7 +122,7 @@ spec =
             Ordering.Greater.and_then Ordering.Equal . should_equal Ordering.Greater
             Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
 
-        Test.specify "should handle partial ordering of Decimal type" <|
+        Test.specify "should handle partial ordering of Float type" <|
             Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values
             Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values
             Ordering.compare 42.5 67.9 . should_equal Ordering.Less

@@ -93,8 +93,8 @@ type Faker
         minimum + (self.generator.nextInt (maximum - minimum))
 
     ## GROUP Standard.Base.Random
-       Create a random Decimal value
-    decimal : Decimal -> Decimal -> Decimal
+       Create a random Float value
+    decimal : Float -> Float -> Float
     decimal self  minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
@@ -110,6 +110,6 @@ type Faker
 
     ## GROUP Standard.Base.Random
        Randomly converts some values to Nothing
-    make_some_nothing : Any -> Decimal -> Any
+    make_some_nothing : Any -> Float -> Any
     make_some_nothing self value (chance=0.1) =
         if self.generator.nextDouble <= chance then Nothing else value

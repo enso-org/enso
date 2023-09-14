@@ -11,7 +11,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Decimal", name = "-", description = "Subtraction of numbers.")
+@BuiltinMethod(type = "Float", name = "-", description = "Subtraction of numbers.")
 public abstract class SubtractNode extends FloatNode {
   abstract double execute(double self, Object that);
 

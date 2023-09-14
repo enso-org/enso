@@ -208,7 +208,7 @@ type Column
     == self other =
         new_name = naming_helper.binary_operation_name "==" self other
         fallback problem_builder a b =
-            if (a.is_a Decimal) || (b.is_a Decimal) then
+            if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
         run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
@@ -858,7 +858,7 @@ type Column
          rounding to the nearest positive integer power of 10.
 
        > Example
-         Round a column of `Decimal` values`.
+         Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
@@ -876,7 +876,7 @@ type Column
        values to `Date`.
 
        > Example
-         Truncate a column of `Decimal` values.
+         Truncate a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate == (Column.from_vector "foo" [1, 2, 3])
 
@@ -909,7 +909,7 @@ type Column
        Returns a column of `Integer`.
 
        > Example
-         Take the ceiling of a column of `Decimal` values.
+         Take the ceiling of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
@@ -928,7 +928,7 @@ type Column
        Returns a column of `Integer`.
 
        > Example
-         Take the floor of a column of `Decimal` values.
+         Take the floor of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
@@ -1027,7 +1027,7 @@ type Column
     internal_is_nan self =
         new_name = naming_helper.function_name "is_nan" [self]
         fallback x = case x of
-            _ : Decimal -> x.is_nan
+            _ : Float   -> x.is_nan
             Nothing     -> Nothing
             _           -> False
         run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
@@ -1040,7 +1040,7 @@ type Column
     is_infinite self = Value_Type.expect_numeric self <|
         new_name = naming_helper.function_name "is_infinite" [self]
         fallback x = case x of
-            _ : Decimal -> x.is_infinite
+            _ : Float   -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
         run_vectorized_unary_op self Java_Storage.Maps.IS_INFINITE new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
