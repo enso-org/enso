@@ -76,7 +76,7 @@ public class LoggingServiceConfig implements BaseConfig {
         loggers,
         getStringOpt(logLevelKey, root),
         appendersMap,
-        root.getString(defaultAppenderKey),
+        root.hasPath(defaultAppenderKey) ? root.getString(defaultAppenderKey) : "console",
         logToFile,
         server);
   }

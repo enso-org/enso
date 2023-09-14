@@ -202,7 +202,11 @@ public final class LogbackSetup extends LoggerSetup {
         org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
         final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         try {
-            encoder.setPattern(appenderConfig.getPattern());
+            if (appenderConfig != null) {
+                encoder.setPattern(appenderConfig.getPattern());
+            } else {
+                encoder.setPattern(Appender.defaultPattern);
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             encoder.setPattern(Appender.defaultPattern);

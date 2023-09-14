@@ -3,6 +3,7 @@ package org.enso.interpreter.test
 import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
+import org.enso.logger.LoggerSetup
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint,
@@ -114,6 +115,7 @@ class InterpreterContext(
     .getAbsolutePath
   val edition = "0.0.0-dev"
 
+  LoggerSetup.get().setup()
   val ctx = contextModifiers(
     Context
       .newBuilder(LanguageInfo.ID)

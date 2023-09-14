@@ -4,6 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
@@ -18,6 +19,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.ConsoleHandler
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -33,6 +37,7 @@ class RuntimeErrorsTest
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
+    LoggerSetup.get().setup()
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -69,6 +74,11 @@ class RuntimeErrorsTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+        .logHandler(new ConsoleHandler())
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.SEVERE.getName
+        )
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -108,7 +118,7 @@ class RuntimeErrorsTest
 
   override protected def afterEach(): Unit = {
     context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
   }
 
   it should "return panic sentinels in method body" in {

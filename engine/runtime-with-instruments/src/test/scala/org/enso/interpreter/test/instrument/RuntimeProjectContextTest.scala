@@ -1,5 +1,6 @@
 package org.enso.interpreter.test.instrument
 
+import org.enso.logger.LoggerSetup
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.matchers.should.Matchers
@@ -12,6 +13,7 @@ class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
     "report an exception if ran in context of a project " +
     "which cannot be loaded" in {
       val thrown = intercept[PolyglotException] {
+        LoggerSetup.get().setup()
         val context = Context
           .newBuilder(LanguageInfo.ID)
           .allowExperimentalOptions(true)

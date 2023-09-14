@@ -1411,6 +1411,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service` % Test)
+  .dependsOn(`logging-service-logback` % Test)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -1483,7 +1485,6 @@ lazy val `runtime-with-instruments` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1543,7 +1544,6 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsNoAssertSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1598,7 +1598,6 @@ lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     frgaalJavaCompilerSetting,
-    truffleDslSuppressWarnsSetting,
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
