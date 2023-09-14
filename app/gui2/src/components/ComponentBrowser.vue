@@ -147,19 +147,18 @@ function navigateDown() {
   scrollToSelected()
 }
 
+/**
+ * Select the last element after updating component list.
+ *
+ * As the list changes the scroller's content, we need to wait a frame so the scroller
+ * recalculates its height and setting scrollTop will work properly.
+ */
 function selectLastAfterRefresh() {
   selected.value = 0
-  // We need to wait for render and refreshing the scroller content size to properly set the scroll
-  // position.
   nextTick(() => {
     scrollToSelected()
     animatedScrollPosition.skip()
     animatedHighlightPosition.skip()
-    // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
-    // the template. We need to manually assign it.
-    if (scroller.value) {
-      scroller.value.scrollTop = animatedScrollPosition.value
-    }
   })
 }
 

@@ -45,8 +45,8 @@ test.each([
   ),
 ])('$name entry is in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
-  expect(filtering.filter(entry)).not.toBeNull()
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
+  expect(filtering.filter(entry)).not.toBeNull()
   expect(substringFiltering.filter(entry)).not.toBeNull()
 })
 
@@ -64,8 +64,8 @@ test.each([
   makeType('local.Project.Module.Submodule', 'In_Submodule'),
 ])('$name entry is not in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
-  expect(filtering.filter(entry)).toBeNull()
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
+  expect(filtering.filter(entry)).toBeNull()
   expect(substringFiltering.filter(entry)).toBeNull()
 })
 

@@ -10,7 +10,7 @@ import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
 
 export interface Component {
-  suggestionId: number
+  suggestionId: SuggestionId
   icon: string
   label: string
   match: MatchResult
