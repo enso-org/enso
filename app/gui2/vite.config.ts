@@ -35,7 +35,7 @@ export default defineConfig({
     },
   },
   build: {
-    // dashboard bundle quite big
+    // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
   },
 })
