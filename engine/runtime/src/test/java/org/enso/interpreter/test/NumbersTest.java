@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import org.enso.polyglot.MethodNames;
@@ -9,22 +10,31 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.FromDataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
+import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(Theories.class)
+@RunWith(Parameterized.class)
 public class NumbersTest extends TestBase {
-
-  @DataPoints("operation")
-  public static final String[] OPERATION = {
+  private static final String[] OPERATIONS = {
     " +", " -", " ^", " *", " %", " <=", " <", " >=", " >", " /",
     ".div", ".bit_xor", ".bit_shift", ".bit_shift_r", ".bit_or", ".bit_and"
   };
-  private static Context ctx;
 
+  @Parameterized.Parameters(name="({1}){0} ({2})")
+  public static Object[][] parameters() {
+    var r = new Random();
+    var ops = Arrays.asList(OPERATIONS).stream().map(
+      (op) -> new Object[] { op, r.nextLong(), switch (op) {
+        case " ^" -> r.nextLong(10);
+        case " *" -> r.nextLong(Integer.MAX_VALUE);
+        default -> r.nextLong();
+      }}
+    ).toArray(Object[][]::new);
+    return ops;
+  }
+
+  private static Context ctx;
   @BeforeClass
   public static void initContext() {
     ctx = createDefaultContext();
@@ -35,19 +45,25 @@ public class NumbersTest extends TestBase {
     ctx.close();
   }
 
-  @Theory
-  public void verifyOperationOnForeignObject(
-          @FromDataPoints("operation") String operation
-  ) {
+
+  private final String operation;
+  private final long n1;
+  private final long n2;
+
+  public NumbersTest(String operation, long n1, long n2) {
+    this.operation = operation;
+    this.n1 = n1;
+    this.n2 = n2;
+  }
+
+  @Test
+  public void verifyOperationOnForeignObject() {
     executeInContext(ctx, () -> {
       var code = """
         fn a b = a{op} b
         """.replace("{op}", operation);
       var fn = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-      var r = new Random();
-      var n1 = r.nextInt();
-      var n2 = r.nextInt();
       System.out.println(n1 + operation + " " + n2);
 
       var r1 = fn.execute(n1, n2);
