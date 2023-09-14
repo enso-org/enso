@@ -1,28 +1,20 @@
 package org.enso.interpreter.instrument;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.enso.interpreter.instrument.profiling.ExecutionTime;
-import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
-import org.enso.interpreter.runtime.type.Constants;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -66,164 +58,25 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
   /** Factory for creating new id event nodes **/
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
-    private static final class Callbacks {
-      private final UUID nextExecutionItem;
-      private final RuntimeCache cache;
-      private final MethodCallsCache methodCallsCache;
-      private final UpdatesSynchronizationState syncState;
-      private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
-      private final Consumer<ExpressionValue> onCachedCallback;
-      private final Consumer<ExpressionValue> onComputedCallback;
-      private final Consumer<ExpressionCall> functionCallCallback;
-
-      Callbacks(
-        UUID nextExecutionItem,
-        RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
-        Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
-        Consumer<ExpressionCall> functionCallCallback
-      ) {
-        this.nextExecutionItem = nextExecutionItem;
-        this.cache = cache;
-        this.methodCallsCache = methodCallsCache;
-        this.syncState = syncState;
-        this.onCachedCallback = onCachedCallback;
-        this.onComputedCallback = onComputedCallback;
-        this.functionCallCallback = functionCallCallback;
-      }
-
-      Object findCachedResult(UUID nodeId) {
-        // Add a flag to say it was cached.
-        // An array of `ProfilingInfo` in the value update.
-        Object result = cache.get(nodeId);
-        // When executing the call stack we need to capture the FunctionCall of the next (top) stack
-        // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
-        // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
-        if (result != null && !nodeId.equals(nextExecutionItem)) {
-          var value = new ExpressionValue(
-            nodeId,
-            result,
-            cache.getType(nodeId),
-            typeOf(result),
-            calls.get(nodeId),
-            cache.getCall(nodeId),
-            new ProfilingInfo[]{ExecutionTime.empty()},
-            true
-          );
-          onCachedCallback.accept(value);
-          return result;
-        }
-        return null;
-      }
-
-      void updateCachedResult(Object result, UUID nodeId, boolean isPanic, long nanoTimeElapsed) {
-        String resultType = typeOf(result);
-        String cachedType = cache.getType(nodeId);
-        FunctionCallInfo call = functionCallInfoById(nodeId);
-        FunctionCallInfo cachedCall = cache.getCall(nodeId);
-        ProfilingInfo[] profilingInfo = new ProfilingInfo[]{new ExecutionTime(nanoTimeElapsed)};
-
-        ExpressionValue expressionValue
-                = new ExpressionValue(nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
-        syncState.setExpressionUnsync(nodeId);
-        syncState.setVisualizationUnsync(nodeId);
-
-        // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
-        // like imports, and the invalidation mechanism can not always track those changes and
-        // appropriately invalidate all dependent expressions.
-        if (!isPanic) {
-          cache.offer(nodeId, result);
-          cache.putCall(nodeId, call);
-        }
-        cache.putType(nodeId, resultType);
-
-        passExpressionValueToCallback(expressionValue);
-        if (isPanic) {
-          // We mark the node as executed so that it is not reported as not executed call after the
-          // program execution is complete. If we clear the call from the cache instead, it will mess
-          // up the `typeChanged` field of the expression update.
-          methodCallsCache.setExecuted(nodeId);
-        }
-      }
-
-      @CompilerDirectives.TruffleBoundary
-      Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
-        functionCallCallback.accept(new ExpressionCall(nodeId, result));
-        // Return cached value after capturing the enterable function call in `functionCallCallback`
-        Object cachedResult = cache.get(nodeId);
-        if (cachedResult != null) {
-          return cachedResult;
-        }
-        methodCallsCache.setExecuted(nodeId);
-        return null;
-      }
-
-      @CompilerDirectives.TruffleBoundary
-      private void passExpressionValueToCallback(ExpressionValue expressionValue) {
-        onComputedCallback.accept(expressionValue);
-      }
-
-      @CompilerDirectives.TruffleBoundary
-      private FunctionCallInfo functionCallInfoById(UUID nodeId) {
-        return calls.get(nodeId);
-      }
-
-
-      private String typeOf(Object value) {
-        String resultType;
-        if (value instanceof UnresolvedSymbol) {
-          resultType = Constants.UNRESOLVED_SYMBOL;
-        } else {
-          var typeOfNode = TypeOfNode.getUncached();
-          Object typeResult = typeOfNode.execute(value);
-          if (typeResult instanceof Type t) {
-            resultType = t.getQualifiedName().toString();
-          } else {
-            resultType = null;
-          }
-        }
-        return resultType;
-      }
-    }
 
     private final CallTarget entryCallTarget;
-    private final Consumer<Exception> onExceptionalCallback;
-    private final Callbacks callbacks;
+    private final IdExecutionCallbacks callbacks;
     private final Timer timer;
 
     /**
      * Creates a new event node factory.
      *
      * @param entryCallTarget the call target being observed.
-     * @param cache the precomputed expression values.
-     * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
-     * @param syncState the synchronization state of runtime updates.
-     * @param nextExecutionItem the next item scheduled for execution.
-     * @param functionCallCallback the consumer of function call events.
-     * @param onComputedCallback the consumer of the computed value events.
-     * @param onCachedCallback the consumer of the cached value events.
-     * @param onExceptionalCallback the consumer of the exceptional events.
+     * @param callbacks communication with users
      * @param timer the timer for timing execution
      */
     IdEventNodeFactory(
       CallTarget entryCallTarget,
-      RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
-      UpdatesSynchronizationState syncState,
-      UUID nextExecutionItem, // The expression ID
-      Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExpressionValue> onComputedCallback,
-      Consumer<ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback,
+      IdExecutionCallbacks callbacks,
       Timer timer
     ) {
       this.entryCallTarget = entryCallTarget;
-      this.callbacks = new Callbacks(
-        nextExecutionItem,
-        cache, methodCallsCache, syncState,
-        onCachedCallback, onComputedCallback, functionCallCallback
-      );
-      this.onExceptionalCallback = onExceptionalCallback;
+      this.callbacks = callbacks;
       this.timer = timer;
     }
 
@@ -333,7 +186,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {
-          onExceptionalCallback.accept(e);
+          callbacks.onExceptionalCallback(e);
         }
       }
 
@@ -396,17 +249,17 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-    Module module,
-    CallTarget entryCallTarget,
-    RuntimeCache cache,
-    MethodCallsCache methodCallsCache,
-    UpdatesSynchronizationState syncState,
-    Timer timer,
-    UUID nextExecutionItem,
-    Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
-    Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-    Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-    Consumer<Exception> onExceptionalCallback
+          Module module,
+          CallTarget entryCallTarget,
+          RuntimeCache cache,
+          MethodCallsCache methodCallsCache,
+          UpdatesSynchronizationState syncState,
+          Timer timer,
+          UUID nextExecutionItem,
+          Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
+          Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+          Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
+          Consumer<Exception> onExceptionalCallback
   ) {
     var builder = SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
@@ -421,18 +274,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
     var filter = builder.build();
 
-    var factory = new IdEventNodeFactory(
-            entryCallTarget,
-            cache,
-            methodCallsCache,
-            syncState,
+    var callbacks = new IdExecutionCallbacks(
             nextExecutionItem,
-            functionCallCallback,
-            onComputedCallback,
-            onCachedCallback,
-            onExceptionalCallback,
-            timer
+            cache, methodCallsCache, syncState,
+            onCachedCallback, onComputedCallback, functionCallCallback, onExceptionalCallback
     );
+    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, timer);
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }
 }
