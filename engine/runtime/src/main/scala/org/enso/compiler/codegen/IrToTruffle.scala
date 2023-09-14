@@ -1018,8 +1018,8 @@ class IrToTruffle(
         case _: Expression.Binding =>
         case _ =>
           val types = ir.getMetadata(TypeSignatures)
-          if (types.isDefined) {
-            val checkNode = extractAscribedType(null, types.get.signature);
+          types.foreach { tpe =>
+            val checkNode = extractAscribedType(null, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
                 ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
