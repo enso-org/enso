@@ -2,16 +2,12 @@ package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "-", description = "Subtraction of numbers.")
-public abstract class SubtractNode extends Node {
+public abstract class SubtractNode extends FloatNode {
   abstract double execute(double self, Object that);
 
   static SubtractNode build() {
@@ -35,8 +31,6 @@ public abstract class SubtractNode extends Node {
 
   @Fallback
   double doOther(double self, Object that) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    var number = builtins.number().getNumber();
-    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
+    return handleOther(self, that);
   }
 }

@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -11,7 +10,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "*", description = "Multiplication of numbers.")
-public abstract class MultiplyNode extends Node {
+public abstract class MultiplyNode extends FloatNode {
   abstract double execute(double self, Object that);
 
   static MultiplyNode build() {
