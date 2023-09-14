@@ -353,9 +353,10 @@ public abstract class InvokeMethodNode extends BaseNode {
           e);
     }
 
-    Type typeOfSymbol = symbol.resolveDeclaringType(this, types.getType(selfWithoutWarnings));
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    if (typeOfSymbol == builtins.any()) {
+    var selfType = types.getType(selfWithoutWarnings);
+    var fnAndType = symbol.resolveFor(this, selfType);
+    var builtins = EnsoContext.get(this).getBuiltins();
+    if (fnAndType != null && fnAndType.getRight() == builtins.any()) {
       return symbol
           .getScope()
           .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());

@@ -62,28 +62,11 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @return the resolved function definition and type it was resolved in, or null if not found
    */
   public Pair<Function, Type> resolveFor(Node node, Type type) {
-    for (var current : type.allTypes(EnsoContext.get(node))) {
-      Function candidate = scope.lookupMethodDefinition(current, name);
-      if (candidate != null) {
-        return Pair.create(candidate, current);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Resolves the type where the symbol is declared.
-   *
-   * @param type the type for which this symbol should be resolved
-   * @return the resolved function definition, or null if not found
-   */
-  public Type resolveDeclaringType(Node node, Type type) {
-    var ctx = EnsoContext.get(node);
     if (type != null) {
-      for (var current : type.allTypes(ctx)) {
+      for (var current : type.allTypes(EnsoContext.get(node))) {
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
-          return current;
+          return Pair.create(candidate, current);
         }
       }
     }
