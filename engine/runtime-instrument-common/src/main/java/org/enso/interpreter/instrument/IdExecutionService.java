@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
@@ -46,7 +45,7 @@ public interface IdExecutionService {
      */
     void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime);
 
-    /**
+    /** Notification when a returned value is a function.
      *
      * @param nodeId identification of the node to be computed
      * @param result info about function call
@@ -68,29 +67,16 @@ public interface IdExecutionService {
    *
    * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
+   * @param callbacks the interface to receive notifications
    * @param timer the execution timer.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param functionCallCallback the consumer of function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    * @return a reference to the attached event node factory.
    */
   EventBinding<ExecutionEventNodeFactory> bind(
       Module module,
       CallTarget entryCallTarget,
-      RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
-      UpdatesSynchronizationState syncState,
-      Timer timer,
-      UUID nextExecutionItem,
-      Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExpressionValue> onComputedCallback,
-      Consumer<ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback);
+      Callbacks callbacks,
+      Timer timer
+  );
 
   /** A class for notifications about functions being called in the course of execution. */
   final class ExpressionCall {

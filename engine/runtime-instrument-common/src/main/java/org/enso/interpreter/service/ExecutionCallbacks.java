@@ -1,13 +1,17 @@
-package org.enso.interpreter.instrument;
+package org.enso.interpreter.service;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.IdExecutionService.ExpressionCall;
 import org.enso.interpreter.instrument.IdExecutionService.ExpressionValue;
 import org.enso.interpreter.instrument.IdExecutionService.FunctionCallInfo;
+import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -18,7 +22,7 @@ import org.enso.interpreter.runtime.type.Constants;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
-final class IdExecutionCallbacks implements IdExecutionService.Callbacks {
+final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final UUID nextExecutionItem;
   private final RuntimeCache cache;
@@ -41,7 +45,7 @@ final class IdExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param onCachedCallback the consumer of the cached value events.
    * @param onExceptionalCallback the consumer of the exceptional events.
    */
-  IdExecutionCallbacks(
+  ExecutionCallbacks(
           UUID nextExecutionItem,
           RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
           Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
@@ -127,6 +131,7 @@ final class IdExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
+  @Override
   public final void onExceptionalCallback(Exception e) {
     onExceptionalCallback.accept(e);
   }

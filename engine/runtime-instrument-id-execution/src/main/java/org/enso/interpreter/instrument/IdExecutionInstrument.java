@@ -236,30 +236,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    *
    * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
+   * @param callbacks the precomputed expression values.
    * @param timer the execution timer.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param functionCallCallback the consumer of function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    * @return a reference to the attached event node factory.
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-          Module module,
-          CallTarget entryCallTarget,
-          RuntimeCache cache,
-          MethodCallsCache methodCallsCache,
-          UpdatesSynchronizationState syncState,
-          Timer timer,
-          UUID nextExecutionItem,
-          Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
-          Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-          Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-          Consumer<Exception> onExceptionalCallback
+    Module module,
+    CallTarget entryCallTarget,
+    Callbacks callbacks,
+    Timer timer
   ) {
     var builder = SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
@@ -273,12 +259,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();
-
-    var callbacks = new IdExecutionCallbacks(
-            nextExecutionItem,
-            cache, methodCallsCache, syncState,
-            onCachedCallback, onComputedCallback, functionCallCallback, onExceptionalCallback
-    );
     var factory = new IdEventNodeFactory(entryCallTarget, callbacks, timer);
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }

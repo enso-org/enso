@@ -162,21 +162,17 @@ public final class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+    var callbacks = new ExecutionCallbacks(
+      nextExecutionItem, cache, methodCallsCache, syncState,
+      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+    );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(
-                    module,
-                    call.getFunction().getCallTarget(),
-                    cache,
-                    methodCallsCache,
-                    syncState,
-                    this.timer,
-                    nextExecutionItem,
-                    funCallCallback,
-                    onComputedCallback,
-                    onCachedCallback,
-                    onExceptionalCallback));
+        idExecutionInstrument.map(service -> service.bind(
+          module,
+          call.getFunction().getCallTarget(),
+          callbacks,
+          this.timer
+        ));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -309,21 +305,17 @@ public final class ExecutionService {
     Consumer<Exception> onExceptionalCallback =
         (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
+    var callbacks = new ExecutionCallbacks(
+      nextExecutionItem, cache, methodCallsCache, syncState,
+      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+    );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(
-                    module,
-                    entryCallTarget,
-                    cache,
-                    methodCallsCache,
-                    syncState,
-                    this.timer,
-                    nextExecutionItem,
-                    funCallCallback,
-                    onComputedCallback,
-                    onCachedCallback,
-                    onExceptionalCallback));
+        idExecutionInstrument.map(service -> service.bind(
+          module,
+          entryCallTarget,
+          callbacks,
+          this.timer
+        ));
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(function, arguments);
