@@ -340,6 +340,9 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
+    use crate::model::execution_context::ComponentGroup;
+    use crate::model::execution_context::GroupQualifiedName;
+    use double_representation::name::project;
     use double_representation::name::QualifiedName;
     use enso_suggestion_database::doc_section;
     use enso_suggestion_database::mock_suggestion_database;
@@ -392,6 +395,62 @@ pub(crate) mod tests {
         check_displayed_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
         list.update_filtering(make_filter(""));
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
+    }
+
+    #[test]
+    fn preserve_unfiltered_order_of_results() {
+        let db = mock_suggestion_database! {
+            local.New_Project_1 {
+                fn main() -> Standard.Base.Any;
+                type Json {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type Date {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type Time {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type DateTime {
+                    #[in_group("Data")]
+                    parse();
+                }
+            }
+        };
+
+        let mut builder = Builder::new(&db, &[ComponentGroup {
+            name:       GroupQualifiedName::new(
+                project::QualifiedName::from_text("local.New_Project_1").unwrap(),
+                "Data",
+            ),
+            color:      None,
+            components: default(),
+        }]);
+        builder.add_components_from_db(db.keys());
+        let mut list = builder.build();
+
+        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
+        let make_filter = |pat: &str| Filter {
+            pattern:     pat.into(),
+            context:     None,
+            module_name: module_name.clone_ref(),
+        };
+        check_displayed_components(&list, vec![
+            "Json.parse",
+            "Date.parse",
+            "Time.parse",
+            "DateTime.parse",
+        ]);
+        list.update_filtering(make_filter("parse"));
+        check_displayed_components(&list, vec![
+            "Json.parse",
+            "Date.parse",
+            "Time.parse",
+            "DateTime.parse",
+        ]);
     }
 
     #[test]
