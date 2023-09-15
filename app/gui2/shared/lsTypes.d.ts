@@ -246,27 +246,31 @@ type Messages = {
 }
 
 export type Notifications = {
-  'file/event': [{ path: Path; kind: FileEventKind }]
-  'text/autoSave': [{ path: Path }]
-  'text/didChange': [{ edits: FileEdit[] }]
-  'text/fileModifiedOnDisk': [{ path: Path }]
-  'executionContext/expressionUpdates': [{ contextId: ContextId; updates: ExpressionUpdate[] }]
-  'executionContext/executionFailed': [{ contextId: ContextId; message: string }]
-  'executionContext/executionComplete': [{ contextId: ContextId }]
-  'executionContext/executionStatus': [{ contextId: ContextId; diagnostics: Diagnostic[] }]
-  'search/suggestionsDatabaseUpdate': [{}]
-  'file/rootAdded': [{}]
-  'file/rootRemoved': [{}]
-  'executionContext/visualizationEvaluationFailed': [
-    {
-      contextId: ContextId
-      visualizationId: Uuid
-      expressionId: ExpressionId
-      message: string
-      diagnostic?: Diagnostic
-    },
-  ]
-  'refactoring/projectRenamed': [{}]
+  'file/event': (param: { path: Path; kind: FileEventKind }) => void
+  'text/autoSave': (param: { path: Path }) => void
+  'text/didChange': (param: { edits: FileEdit[] }) => void
+  'text/fileModifiedOnDisk': (param: { path: Path }) => void
+  'executionContext/expressionUpdates': (param: {
+    contextId: ContextId
+    updates: ExpressionUpdate[]
+  }) => void
+  'executionContext/executionFailed': (param: { contextId: ContextId; message: string }) => void
+  'executionContext/executionComplete': (param: { contextId: ContextId }) => void
+  'executionContext/executionStatus': (param: {
+    contextId: ContextId
+    diagnostics: Diagnostic[]
+  }) => void
+  'search/suggestionsDatabaseUpdate': (param: {}) => void
+  'file/rootAdded': (param: {}) => void
+  'file/rootRemoved': (param: {}) => void
+  'executionContext/visualizationEvaluationFailed': (param: {
+    contextId: ContextId
+    visualizationId: Uuid
+    expressionId: ExpressionId
+    message: string
+    diagnostic?: Diagnostic
+  }) => void
+  'refactoring/projectRenamed': (param: {}) => void
 }
 
 export type ExecutionEnvironment = 'Design' | 'Live'

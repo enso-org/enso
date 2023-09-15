@@ -1,9 +1,9 @@
 import { Client } from '@open-rpc/client-js'
 
 import * as map from 'lib0/map'
+import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
 import { SHA3 } from 'sha3'
-import { Emitter } from './event'
 import type {
   Checksum,
   ContextId,
@@ -20,7 +20,7 @@ import type {
 import type { Uuid } from './yjsModel'
 
 /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
-export class LanguageServer extends Emitter<Notifications> {
+export class LanguageServer extends ObservableV2<Notifications> {
   client: Client
   handlers: Map<string, Set<(...params: any[]) => void>>
 

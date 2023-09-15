@@ -9,8 +9,8 @@ import * as Y from 'yjs'
 
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
+import { ObservableV2 } from 'lib0/observable'
 import { WebSocket } from 'ws'
-import { Emitter } from '../shared/event'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -111,7 +111,9 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   })
 }
 
-class YjsConnection extends Emitter<{ close: [] }> {
+type Events = { close: () => void }
+
+class YjsConnection extends ObservableV2<Events> {
   ws: WebSocket
   wsDoc: WSSharedDoc
   constructor(ws: WebSocket, wsDoc: WSSharedDoc) {
