@@ -23,7 +23,7 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-node="true">
+  <VisualizationContainer :below-node="true">
     <div class="ImageVisualization">
       <img :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`" />
     </div>

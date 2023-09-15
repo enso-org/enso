@@ -33,7 +33,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs">
+  <VisualizationContainer>
     <!-- <content here> -->
   </VisualizationContainer>
 </template>

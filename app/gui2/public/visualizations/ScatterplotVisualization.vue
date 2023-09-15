@@ -90,21 +90,18 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 import type * as d3Types from 'd3'
 
 import { getTextWidth } from './measurement.ts'
-import type { Vec2 } from './builtins.ts'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
-const props = defineProps<{
-  nodeSize: Vec2
-  width: number | undefined
-  height: number | undefined
-  data: Data | string
-}>()
+const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+
+const config = useVisualizationConfig()
 
 // TODO [sb]: Consider switching to a global keyboard shortcut handler.
 const shortcuts = {
@@ -204,10 +201,14 @@ const margin = computed(() => {
 })
 const width = computed(
   () =>
-    props.width ?? props.nodeSize.x ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+    config.value.width ??
+    config.value.nodeSize.x ??
+    containerNode.value?.getBoundingClientRect().width ??
+    100,
 )
 const height = computed(
-  () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
+  () =>
+    config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
 )
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
@@ -760,13 +761,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
 </script>
 
 <template>
-  <VisualizationContainer
-    :="<any>$attrs"
-    :below-toolbar="true"
-    :node-size="props.nodeSize"
-    :width="props.width"
-    :height="props.height"
-  >
+  <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
         <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />

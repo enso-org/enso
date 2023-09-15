@@ -23,7 +23,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <svg class="BubbleVisualization">
       <circle
         v-for="([x, y, r], index) in data"

@@ -1,28 +1,33 @@
 import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vue from 'vue'
+import { type DefineComponent } from 'vue'
 import * as vueUseCore from '@vueuse/core'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
 
 import { defineStore } from 'pinia'
+
+// FIXME: add histogram visualization
 
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
   'builtins/VisualizationContainer.vue': { default: VisualizationContainer },
+  'builtins/useVisualizationConfig.ts': useVisualizationConfig,
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.
 window.__visualizationModules = moduleCache
 
-type VisualizationModule = typeof import('@/components/VisualizationContainer.vue') & {
+export type Visualization = DefineComponent<{ data: {} | string }>
+type VisualizationModule = {
+  default: Visualization
   name?: string
   inputType?: string
   scripts?: string[]
   styles?: string[]
 }
-
-export type Visualization = VisualizationModule['default']
 
 const builtinVisualizationPaths: Record<string, string> = {
   JSON: '/visualizations/JSONVisualization.vue',

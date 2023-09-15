@@ -40,7 +40,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <div
       class="ErrorVisualization"
       :class="data.kind != null ? CLASSES[data.kind] : ''"

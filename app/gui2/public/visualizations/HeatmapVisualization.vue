@@ -47,20 +47,16 @@ declare var d3: typeof import('d3')
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-
-import type { Vec2 } from './builtins.ts'
+import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch } from 'vue'
 
-const props = defineProps<{
-  nodeSize: Vec2
-  width: number | undefined
-  height: number | undefined
-  data: Data | string
-}>()
+const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+
+const config = useVisualizationConfig()
 
 const containerNode = ref<HTMLElement>()
 const pointsNode = ref<SVGElement>()
@@ -90,10 +86,14 @@ onMounted(() => {
 
 const width = computed(
   () =>
-    props.width ?? props.nodeSize.x ?? containerNode.value?.getBoundingClientRect().width ?? 100,
+    config.value.width ??
+    config.value.nodeSize.x ??
+    containerNode.value?.getBoundingClientRect().width ??
+    100,
 )
 const height = computed(
-  () => props.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
+  () =>
+    config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
 )
 const boxWidth = computed(() => Math.max(0, width.value - margin.left - margin.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.top - margin.bottom))
@@ -225,13 +225,7 @@ function updateHeatmap() {
 </script>
 
 <template>
-  <VisualizationContainer
-    :="<any>$attrs"
-    :below-toolbar="true"
-    :node-size="props.nodeSize"
-    :width="props.width"
-    :height="props.height"
-  >
+  <VisualizationContainer :below-toolbar="true">
     <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${margin.left},${margin.top})`">

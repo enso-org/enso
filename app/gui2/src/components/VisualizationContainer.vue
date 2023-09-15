@@ -3,9 +3,9 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 
 import { usePointer, PointerButtonMask } from '@/util/events'
-import type { Vec2 } from '@/util/vec2'
 
 import { ref } from 'vue'
+import { useVisualizationConfig } from '../providers/visualizationConfig'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -14,24 +14,9 @@ const props = defineProps<{
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
-  /** Possible visualization types that can be switched to. */
-  types: string[]
-  background?: string
-  isCircularMenuVisible: boolean
-  nodeSize: Vec2
-  width: number | null
-  height: number | null
-  fullscreen: boolean
-  data?: {} | string
 }>()
-const emit = defineEmits<{
-  hide: []
-  'update:type': [type: string]
-  'update:width': [width: number]
-  'update:height': [height: number]
-  'update:fullscreen': [fullscreen: boolean]
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
+
+const config = useVisualizationConfig()
 
 const isSelectorVisible = ref(false)
 
@@ -53,7 +38,7 @@ const resizeRight = usePointer((pos, _, type) => {
     return
   }
   const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  emit('update:width', Math.max(props.nodeSize.x, width))
+  config.value.width = Math.max(config.value.nodeSize.x, width)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -61,7 +46,7 @@ const resizeBottom = usePointer((pos, _, type) => {
     return
   }
   const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-  emit('update:height', Math.max(0, height))
+  config.value.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
 const resizeBottomRight = usePointer((pos, _, type) => {
@@ -70,28 +55,28 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
   if (pos.delta.x !== 0) {
     const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    emit('update:width', Math.max(props.nodeSize.x, width))
+    config.value.width = Math.max(config.value.nodeSize.x, width)
   }
   if (pos.delta.y !== 0) {
     const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-    emit('update:height', Math.max(0, height))
+    config.value.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
 </script>
 
 <template>
-  <Teleport to="body" :disabled="!fullscreen">
+  <Teleport to="body" :disabled="!config.fullscreen">
     <div
       ref="rootNode"
       class="VisualizationContainer"
       :class="{
-        fullscreen: fullscreen,
-        'circular-menu-visible': isCircularMenuVisible,
+        fullscreen: config.fullscreen,
+        'circular-menu-visible': config.isCircularMenuVisible,
         'below-node': belowNode,
         'below-toolbar': belowToolbar,
       }"
       :style="{
-        '--color-visualization-bg': background,
+        '--color-visualization-bg': config.background,
       }"
     >
       <div class="resizer-right" v-on="resizeRight.events"></div>
@@ -102,24 +87,30 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow }"
         :style="{
-          width: fullscreen ? undefined : `${width ?? nodeSize.x}px`,
-          height: fullscreen ? undefined : `${height}px`,
+          width: config.fullscreen ? undefined : `${config.width ?? config.nodeSize.x}px`,
+          height: config.fullscreen ? undefined : `${config.height}px`,
         }"
         @wheel.passive="onWheel"
       >
         <slot></slot>
       </div>
       <div class="toolbars">
-        <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
+        <div
+          :class="{
+            toolbar: true,
+            invisible: config.isCircularMenuVisible,
+            hidden: config.fullscreen,
+          }"
+        >
           <div class="background"></div>
-          <button class="image-button active" @click="emit('hide')">
+          <button class="image-button active" @click="config.hide()">
             <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="image-button active" @click="emit('update:fullscreen', !fullscreen)">
-            <SvgIcon class="icon" :name="fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
+          <button class="image-button active" @click="config.fullscreen = !config.fullscreen">
+            <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
@@ -130,12 +121,12 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"
-              :types="types"
+              :types="config.types"
               @hide="isSelectorVisible = false"
               @update:type="
                 (type) => {
                   isSelectorVisible = false
-                  emit('update:type', type)
+                  config.updateType(type)
                 }
               "
             />

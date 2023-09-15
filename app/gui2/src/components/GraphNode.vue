@@ -10,6 +10,10 @@ import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
 
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import {
+  provideVisualizationConfig,
+  type VisualizationConfig,
+} from '../providers/visualizationConfig'
 
 const props = defineProps<{
   node: Node
@@ -265,12 +269,6 @@ const isVisualizationVisible = ref(false)
 
 const visualizationType = ref('Scatterplot')
 const visualization = shallowRef<Visualization>()
-const visualizationTypes = computed(() =>
-  visualizationStore.types.filter((type) => type !== visualizationType.value),
-)
-const visualizationWidth = ref<number | null>(null)
-const visualizationHeight = ref<number | null>(150)
-const isVisualizationFullscreen = ref(false)
 
 const queuedVisualizationData = computed<{}>(() =>
   visualizationStore.sampleData(visualizationType.value),
@@ -287,6 +285,24 @@ function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
   )
 }
 
+const visualizationConfig = ref<VisualizationConfig>({
+  fullscreen: false,
+  types: visualizationStore.types,
+  width: null,
+  height: 150, // FIXME:
+  hide() {
+    isVisualizationVisible.value = false
+  },
+  updateType(type) {
+    visualizationType.value = type
+  },
+  isCircularMenuVisible: isCircularMenuVisible.value,
+  get nodeSize() {
+    return nodeSize.value
+  },
+})
+provideVisualizationConfig(visualizationConfig)
+
 useDocumentEvent('keydown', (event) => {
   if (isInputEvent(event)) {
     return
@@ -294,10 +310,10 @@ useDocumentEvent('keydown', (event) => {
   if (event.key === ' ') {
     if (event.shiftKey) {
       if (isVisualizationVisible.value) {
-        isVisualizationFullscreen.value = !isVisualizationFullscreen.value
+        visualizationConfig.value.fullscreen = !visualizationConfig.value.fullscreen
       } else {
         isVisualizationVisible.value = true
-        isVisualizationFullscreen.value = true
+        visualizationConfig.value.fullscreen = true
       }
     } else {
       isVisualizationVisible.value = !isVisualizationVisible.value
@@ -337,6 +353,14 @@ watch(
     rootNode.value?.focus()
   },
 )
+
+function updatePreprocessor(module: string, method: string, ...args: string[]) {
+  console.log(
+    `preprocessor changed. node id: ${
+      props.node.rootSpan.id
+    } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
+  )
+}
 </script>
 
 <template>
@@ -361,22 +385,8 @@ watch(
     <component
       :is="visualization"
       v-if="isVisualizationVisible && visualization"
-      v-model:width="visualizationWidth"
-      v-model:height="visualizationHeight"
-      v-model:fullscreen="isVisualizationFullscreen"
-      :node-size="nodeSize"
-      :types="visualizationTypes"
       :data="visualizationData"
-      :is-circular-menu-visible="isCircularMenuVisible"
-      @hide="isVisualizationVisible = false"
-      @update:preprocessor="
-        (module, method, ...args) =>
-          console.log(
-            `preprocessor changed. node id: ${
-              node.rootSpan.id
-            } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
-          )
-      "
+      @update:preprocessor="updatePreprocessor"
       @update:type="visualizationType = $event"
     />
     <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">

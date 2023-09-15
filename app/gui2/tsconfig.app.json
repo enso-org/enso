@@ -20,7 +20,8 @@
     "exactOptionalPropertyTypes": true,
     "paths": {
       "@/*": ["./src/*"],
-      "builtins/VisualizationContainer.vue": ["./src/components/VisualizationContainer.vue"]
+      "builtins/VisualizationContainer.vue": ["./src/components/VisualizationContainer.vue"],
+      "builtins/useVisualizationConfig.ts": ["./src/providers/useVisualizationConfig.ts"]
     }
   }
 }

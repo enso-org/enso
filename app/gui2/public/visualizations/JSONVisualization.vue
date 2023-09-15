@@ -21,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <div class="JSONVisualization" v-text="data"></div>
   </VisualizationContainer>
 </template>

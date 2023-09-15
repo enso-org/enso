@@ -27,7 +27,7 @@ const data = computed<Data>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <div class="WarningsVisualization">
       <ul>
         <li v-if="data.length === 0">There are no warnings.</li>

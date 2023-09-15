@@ -77,18 +77,17 @@ import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/
 import type { GridOptions, ColDef, ColumnResizedEvent } from 'ag-grid-community'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 import { useThrottleFn } from '@vueuse/core'
 
-const props = defineProps<{
-  width: number | undefined
-  fullscreen: boolean
-  data: Data | string
-}>()
+const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+
+const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
 const SIDE_MARGIN = 20
@@ -142,7 +141,7 @@ onMounted(() => {
 
 const throttledUpdateTableSize = useThrottleFn(updateTableSize, 500)
 watch(
-  () => [data.value, props.width, props.fullscreen],
+  () => [data.value, config.value.width, config.value.fullscreen],
   () => {
     throttledUpdateTableSize(undefined)
   },
@@ -406,12 +405,7 @@ function goToLastPage() {
 </script>
 
 <template>
-  <VisualizationContainer
-    :="<any>$attrs"
-    :fullscreen="props.fullscreen"
-    :width="props.width"
-    :below-toolbar="true"
-  >
+  <VisualizationContainer :below-toolbar="true">
     <div ref="rootNode" class="TableVisualization" @wheel.stop>
       <div class="table-visualization-status-bar">
         <button :disabled="isFirstPage" @click="goToFirstPage">«</button>

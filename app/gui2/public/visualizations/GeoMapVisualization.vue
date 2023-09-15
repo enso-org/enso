@@ -403,7 +403,7 @@ function pushPoints(newPoints: Location[]) {
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :overflow="true">
+  <VisualizationContainer :overflow="true">
     <template #toolbar>
       <button class="image-button"><img :src="FindIcon" /></button>
       <button class="image-button"><img :src="Path2Icon" /></button>
