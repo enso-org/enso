@@ -278,12 +278,14 @@ export type ExecutionEnvironment = 'Design' | 'Live'
 export type StackItem = ExplicitCall | LocalCall
 
 export interface ExplicitCall {
+  type: 'ExplicitCall'
   methodPointer: MethodPointer
-  thisArgumentExpression?: string
+  thisArgumentExpression: string | null
   positionalArgumentsExpressions: string[]
 }
 
 export interface LocalCall {
+  type: 'LocalCall'
   expressionId: ExpressionId
 }
 

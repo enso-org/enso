@@ -13,7 +13,7 @@ import {
   type IdMap,
   type NodeMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
 

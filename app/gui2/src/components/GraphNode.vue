@@ -32,7 +32,8 @@ import {
 
 const props = defineProps<{
   node: Node
-  executionContextId: ContextId | undefined
+  mainModule: string
+  executionContextId: ContextId
   languageServer: Raw<LanguageServer>
   dataServer: Raw<DataServer>
 }>()
@@ -299,28 +300,27 @@ function handleClick(e: PointerEvent) {
 }
 
 function updatePreprocessor(module: string, method: string, ...args: string[]) {
-  if (props.executionContextId) {
-    visualizationConfiguration.value = {
-      executionContextId: props.executionContextId,
-      visualizationModule: module,
-      expression: { module, definedOnType: module, name: method },
-      ...(args.length !== 0 ? { positionalArgumentsExpressions: args } : {}),
-    }
+  visualizationConfiguration.value = {
+    executionContextId: props.executionContextId,
+    visualizationModule: props.mainModule,
+    expression: { module, definedOnType: module, name: method },
+    ...(args.length !== 0 ? { positionalArgumentsExpressions: args } : {}),
   }
 }
 
-watchEffect(() => {
-  if (isVisualizationVisible.value && props.executionContextId) {
-    // TODO: should the old vis be detached?
-    props.languageServer.attachVisualization(
-      visualizationId.value,
-      props.node.rootSpan.id,
-      visualizationConfiguration.value ?? {
-        executionContextId: props.executionContextId,
-        ...DEFAULT_VISUALIZATION_CONFIGURATION,
-      },
-    )
+watch(isVisualizationVisible, async (visible) => {
+  if (!visible) {
+    return
   }
+  // TODO: should the old vis be detached?
+  await props.languageServer.attachVisualization(
+    visualizationId.value,
+    props.node.rootSpan.id,
+    visualizationConfiguration.value ?? {
+      executionContextId: props.executionContextId,
+      ...DEFAULT_VISUALIZATION_CONFIGURATION,
+    },
+  )
 })
 
 watchEffect(() => {
@@ -475,6 +475,7 @@ watch(
 
 <style scoped>
 .GraphNode {
+  color: red;
   position: absolute;
 }
 

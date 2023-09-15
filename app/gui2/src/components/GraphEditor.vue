@@ -11,9 +11,10 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
-import type { ContextId } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
-import { reactive, ref, watchEffect } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+
+const MAIN_DEFINITION_NAME = 'main'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -23,12 +24,23 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const executionContextId = ref<ContextId>()
+const executionContextId = ref(random.uuidv4() as Uuid)
 const clientId = ref(random.uuidv4() as Uuid)
+const mainModule = `${projectStore.namespace}.${projectStore.name}.Main`
 
-watchEffect(async () => {
+onMounted(async () => {
   await projectStore.lsRpcConnection.initProtocolConnection(clientId.value)
-  executionContextId.value = (await projectStore.lsRpcConnection.createExecutionContext()).contextId
+  await projectStore.lsRpcConnection.createExecutionContext(executionContextId.value)
+  await projectStore.lsRpcConnection.pushExecutionContextItem(executionContextId.value, {
+    type: 'ExplicitCall',
+    methodPointer: {
+      module: mainModule,
+      definedOnType: mainModule,
+      name: MAIN_DEFINITION_NAME,
+    },
+    thisArgumentExpression: null,
+    positionalArgumentsExpressions: [],
+  })
 })
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
@@ -97,6 +109,7 @@ function moveNode(id: ExprId, delta: Vec2) {
         v-for="[id, node] in graphStore.nodes"
         :key="id"
         :node="node"
+        :main-module="mainModule"
         :execution-context-id="executionContextId"
         :language-server="projectStore.lsRpcConnection"
         :data-server="projectStore.dataConnection"

@@ -17,6 +17,29 @@ interface LsUrls {
   dataUrl: string
 }
 
+/** Endpoint used by default by a locally run Project Manager. */
+const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
+/** Default project name used by IDE on startup. */
+const DEFAULT_PROJECT_NAME = 'Unnamed'
+/** The default namespace used when opening a project. */
+const DEFAULT_PROJECT_NAMESPACE = 'local'
+/** Visualization folder where IDE can look for user-defined visualizations per project. */
+const VISUALIZATION_DIRECTORY = 'visualization'
+/** How many times IDE will try attaching visualization when there is a timeout error.
+ *
+ * Timeout error suggests that there might be nothing wrong with the request, just that the backend
+ * is currently too busy to reply or that there is some connectivity hiccup. Thus, it makes sense
+ * to give it a few more tries. */
+const ATTACHING_TIMEOUT_RETRIES = 50
+
+function resolveProjectName(config: GuiConfig): string {
+  const projectName = config.startup?.project
+  if (projectName == null) {
+    throw new Error('Missing project name')
+  }
+  return projectName
+}
+
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
@@ -49,6 +72,7 @@ export const useProjectStore = defineStore('project', () => {
   const projectId = config.value.startup?.project
   if (projectId == null) throw new Error('Missing project ID')
 
+  const name = resolveProjectName(config.value)
   const lsUrls = resolveLsUrl(config.value)
 
   const rpcTransport = new WebSocketTransport(lsUrls.rpcUrl)
@@ -122,6 +146,8 @@ export const useProjectStore = defineStore('project', () => {
       observedFileName.value = name
     },
     module,
+    namespace: DEFAULT_PROJECT_NAMESPACE,
+    name,
     undoManager,
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
