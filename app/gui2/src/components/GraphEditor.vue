@@ -11,7 +11,7 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
-import {onMounted, reactive, ref, watchEffect} from 'vue'
+import { onMounted, reactive, ref, watchEffect } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -28,7 +28,6 @@ watchEffect(() => {
 watchEffect(() => {
   console.log(`code changed to '${graphStore.proj.module?.contents}'.`)
 })
-
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -80,10 +79,9 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
-
 // === Code Editor ===
 
-const codeEditor = ref<InstanceType<typeof CodeEditor> | null>(null);
+const codeEditor = ref<InstanceType<typeof CodeEditor> | null>(null)
 
 /// Process code updates from the CodeEditor component.
 function codeUpdate(code: string) {
@@ -98,7 +96,6 @@ onMounted(() => {
     codeEditor.value!.content = code
   })
 })
-
 </script>
 
 <template>

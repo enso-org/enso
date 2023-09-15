@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import {useWindowEvent} from "@/util/events";
+import { useWindowEvent } from '@/util/events'
 
 const emit = defineEmits<{
   codeUpdate: [code: string]
@@ -13,11 +13,12 @@ watchEffect(() => {
   emit('codeUpdate', content.value)
 })
 
-const textArea = ref<InstanceType<typeof HTMLTextAreaElement> | null>(null);
+const textArea = ref<InstanceType<typeof HTMLTextAreaElement> | null>(null)
 
-useWindowEvent('keydown', e => {
+useWindowEvent('keydown', (e) => {
   const graphEditorInFocus = document.activeElement === document.body
-  const codeEditorInFocus = document.activeElement === document.querySelector('.CodeEditor > textarea')
+  const codeEditorInFocus =
+    document.activeElement === document.querySelector('.CodeEditor > textarea')
   const validFocus = graphEditorInFocus || codeEditorInFocus
   const targetKeyPressed = e.key == `\``
   if (validFocus && targetKeyPressed) {
@@ -26,13 +27,16 @@ useWindowEvent('keydown', e => {
   }
 })
 
-watchEffect(() => {
-  if (shown.value) {
-    textArea.value?.focus()
-  } else {
-    textArea.value?.blur()
-  }
-}, {flush: 'post'})
+watchEffect(
+  () => {
+    if (shown.value) {
+      textArea.value?.focus()
+    } else {
+      textArea.value?.blur()
+    }
+  },
+  { flush: 'post' },
+)
 </script>
 
 <template>
@@ -49,7 +53,7 @@ watchEffect(() => {
 }
 
 .CodeEditor > textarea {
-  background-color: rgba(1.0,1.0,1.0,0.1);
+  background-color: rgba(1, 1, 1, 0.1);
   border: none;
   resize: none;
   width: 500px;
