@@ -39,7 +39,16 @@ public class Time_Utils {
    * @return DateTimeFormatter
    */
   public static DateTimeFormatter make_formatter(String format, Locale locale) {
-    return Core_Date_Utils.make_formatter(format, locale);
+    var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
+    return switch (format) {
+      case "ENSO_ZONED_DATE_TIME" -> Core_Date_Utils.defaultZonedDateTimeFormatter();
+      case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
+      case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+      case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+      case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
+      case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
+      default -> DateTimeFormatter.ofPattern(format, usedLocale);
+    };
   }
 
   /**
@@ -53,7 +62,7 @@ public class Time_Utils {
   public static DateTimeFormatter make_output_formatter(String format, Locale locale) {
     return format.equals("ENSO_ZONED_DATE_TIME")
         ? Time_Utils.default_output_date_time_formatter()
-        : Core_Date_Utils.make_formatter(format, locale);
+        : make_formatter(format, locale);
   }
 
   /**
