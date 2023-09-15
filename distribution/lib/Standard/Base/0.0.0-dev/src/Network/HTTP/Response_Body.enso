@@ -127,7 +127,7 @@ type Response_Body
                 if content_type_format.is_nothing then if_unsupported else self.decode content_type_format
             _ ->
                 type_obj = Meta.type_of format
-                if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. Must be saved to a file first.") else
+                if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
                     self.with_stream format.read_stream
 
     ## ALIAS bytes

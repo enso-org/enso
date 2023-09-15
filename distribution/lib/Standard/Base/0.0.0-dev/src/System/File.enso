@@ -76,7 +76,7 @@ type File
         _ : File -> path
         _ ->
             ## Check to see if a valid "File" type.
-            if (file_types.Any file_type-> path.is_a file_type) then path else
+            if (file_types.any file_type-> path.is_a file_type) then path else
                 Error.throw (Type_Error.Error File path "path")
 
 

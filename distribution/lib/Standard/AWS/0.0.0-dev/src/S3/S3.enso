@@ -70,7 +70,7 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
 
     iterator request 0 [] [] True
 
-## Gets the metadata of a bucket or object
+## Gets the metadata of a bucket or object.
 
    Arguments:
    - bucket: the name of the bucket.
@@ -93,7 +93,9 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_er
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Map.from_vector pairs
 
-## Gets an object from an S3 bucket.
+## ADVANCED
+   Gets an object from an S3 bucket.
+   Returns a raw stream which can be read once.
 
    Arguments:
    - bucket: the name of the bucket.
