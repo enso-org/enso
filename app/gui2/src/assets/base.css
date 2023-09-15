@@ -108,6 +108,10 @@ body {
  * is set so that it resembles macOS default scrollbar.
  */
 
+.scrollable {
+  scrollbar-color: rgba(190 190 190 / 50%) transparent;
+}
+
 .scrollable::-webkit-scrollbar {
   -webkit-appearance: none;
 }
