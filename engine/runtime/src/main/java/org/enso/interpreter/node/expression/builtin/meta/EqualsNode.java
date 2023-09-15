@@ -141,7 +141,7 @@ public abstract class EqualsNode extends Node {
   @Specialization
   @TruffleBoundary
   boolean equalsDoubleBigInt(double self, EnsoBigInteger other) {
-    return self == other.asDouble();
+    return self == other.getValue().doubleValue();
   }
 
   @Specialization(guards="interop.fitsInDouble(other)")
@@ -170,7 +170,7 @@ public abstract class EqualsNode extends Node {
   @Specialization
   @TruffleBoundary
   boolean equalsBitIntDouble(EnsoBigInteger self, double other) {
-    return self.asDouble() == other;
+    return self.getValue().doubleValue() == other;
   }
 
   @Specialization

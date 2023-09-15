@@ -52,8 +52,9 @@ public abstract class AddNode extends IntegerNode {
   }
 
   @Specialization
+  @TruffleBoundary
   double doBigIntDouble(EnsoBigInteger self, double that) {
-    return self.asDouble() + that;
+    return self.getValue().doubleValue() + that;
   }
 
   @Specialization(guards = "isForeignNumber(iop, that)")
