@@ -38,6 +38,7 @@ public class Time_Utils {
    * @param locale locale needed for custom formats
    * @return DateTimeFormatter
    */
+  @Deprecated
   public static DateTimeFormatter make_formatter(String format, Locale locale) {
     var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
     return switch (format) {
