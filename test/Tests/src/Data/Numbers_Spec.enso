@@ -579,6 +579,7 @@ spec =
                     bd2 = BigDecimal.new h
                     bd1.to_text . should_equal bd2.to_text
                     bd1 . should_equal bd2
+                    bd1.toBigIntegerExact . should_equal h
 
         to_java_bigint n = BigInteger.new n.to_text
         java_bigint_mul a b =
