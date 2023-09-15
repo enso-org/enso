@@ -6,10 +6,14 @@ import { SHA3 } from 'sha3'
 import { Emitter } from './event'
 import type {
   Checksum,
+  ContextId,
+  ExecutionEnvironment,
+  ExpressionId,
   FileEdit,
   Notifications,
   Path,
   RegisterOptions,
+  StackItem,
   VisualizationConfiguration,
   response,
 } from './lsTypes'
@@ -47,7 +51,7 @@ export class LanguageServer extends Emitter<Notifications> {
     }
   }
 
-  private request(method: string, params: object): Promise<any> {
+  private request<T>(method: string, params: object): Promise<T> {
     return this.client.request({ method, params })
   }
 
@@ -83,9 +87,67 @@ export class LanguageServer extends Emitter<Notifications> {
     return this.request('file/list', { path })
   }
 
+  createExecutionContext(contextId?: ContextId): Promise<response.ExecutionContext> {
+    return this.request('executionContext/create', { contextId })
+  }
+
+  destroyExecutionContext(contextId: ContextId): Promise<void> {
+    return this.request('executionContext/destroy', { contextId })
+  }
+
+  forkExecutionContext(contextId: ContextId): Promise<response.ExecutionContext> {
+    return this.request('executionContext/fork', { contextId })
+  }
+
+  pushExecutionContext(contextId: ContextId, stackItem: StackItem): Promise<void> {
+    return this.request('executionContext/push', { contextId, stackItem })
+  }
+
+  popExecutionContext(contextId: ContextId): Promise<void> {
+    return this.request('executionContext/pop', { contextId })
+  }
+
+  recomputeExecutionContext(
+    contextId: ContextId,
+    invalidatedExpressions?: 'all' | string[],
+    executionEnvironment?: ExecutionEnvironment,
+  ): Promise<void> {
+    return this.request('executionContext/recompute', {
+      contextId,
+      invalidatedExpressions,
+      executionEnvironment,
+    })
+  }
+
+  interruptExecutionContext(contextId: ContextId): Promise<void> {
+    return this.request('executionContext/interrupt', { contextId })
+  }
+
+  setExecutionEnvironment(
+    contextId: ContextId,
+    executionEnvironment?: ExecutionEnvironment,
+  ): Promise<void> {
+    return this.request('executionContext/setExecutionEnvironment', {
+      contextId,
+      executionEnvironment,
+    })
+  }
+
+  executeExpression(
+    visualizationId: Uuid,
+    expressionId: ExpressionId,
+    visualizationConfig: VisualizationConfiguration,
+  ): Promise<void> {
+    return this.request('executionContext/interrupt', {
+      visualizationId,
+      expressionId,
+      visualizationConfig,
+    })
+  }
+
   attachVisualization(
-    visualizationId: string,
-    expressionId: string,
+    visualizationId: Uuid,
+    expressionId: ExpressionId,
     visualizationConfig: VisualizationConfiguration,
   ): Promise<void> {
     return this.request('executionContext/attachVisualization', {
@@ -96,9 +158,9 @@ export class LanguageServer extends Emitter<Notifications> {
   }
 
   detachVisualization(
-    visualizationId: string,
-    expressionId: string,
-    executionContextId: string,
+    visualizationId: Uuid,
+    expressionId: ExpressionId,
+    executionContextId: ContextId,
   ): Promise<void> {
     return this.request('executionContext/detachVisualization', {
       visualizationId,
@@ -108,7 +170,7 @@ export class LanguageServer extends Emitter<Notifications> {
   }
 
   modifyVisualization(
-    visualizationId: string,
+    visualizationId: Uuid,
     visualizationConfig: VisualizationConfiguration,
   ): Promise<void> {
     return this.request('executionContext/modifyVisualization', {
@@ -123,7 +185,5 @@ export class LanguageServer extends Emitter<Notifications> {
 }
 
 export function computeTextChecksum(text: string): Checksum {
-  const hash = new SHA3(224)
-  hash.update(text)
-  return hash.digest('hex') as Checksum
+  return new SHA3(224).update(text).digest('hex') as Checksum
 }

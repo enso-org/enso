@@ -257,7 +257,7 @@ interface VisualizationContext {}
 
 export interface VisualizationConfiguration {
   /** An execution context of the visualization. */
-  executionContextId: UUID
+  executionContextId: Uuid
   /** A qualified name of the module to be used to evaluate the arguments for the visualization
    * expression. */
   visualizationModule: string
@@ -298,6 +298,20 @@ export type Notifications = {
   'refactoring/projectRenamed': [{}]
 }
 
+export type ExecutionEnvironment = 'Design' | 'Live'
+
+export type StackItem = ExplicitCall | LocalCall
+
+export interface ExplicitCall {
+  methodPointer: MethodPointer
+  thisArgumentExpression?: String
+  positionalArgumentsExpressions: String[]
+}
+
+export interface LocalCall {
+  expressionId: ExpressionId
+}
+
 export namespace response {
   export interface OpenTextFile {
     writeCapability: CapabilityRegistration | null
@@ -311,6 +325,12 @@ export namespace response {
 
   export interface FileList {
     paths: FileSystemObject[]
+  }
+
+  export interface ExecutionContext {
+    contextId: ContextId
+    canModify: CapabilityRegistration
+    receivesUpdates: CapabilityRegistration
   }
 
   export interface VisualizationUpdate {

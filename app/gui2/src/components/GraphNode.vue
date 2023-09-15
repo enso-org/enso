@@ -3,12 +3,14 @@ import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { usePointer,useResizeObserver } from '@/util/events'
+import { usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
+import * as random from 'lib0/random'
+import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
-import type { ContentRange,ExprId } from 'shared/yjsModel'
-import { computed,onUpdated,reactive,ref,watch,watchEffect,type Raw } from 'vue'
-import type { DataServer } from '../../shared/dataServer'
+import type { VisualizationConfiguration } from 'shared/lsTypes'
+import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
+import { computed, onUpdated, reactive, ref, watch, watchEffect, type Raw } from 'vue'
 
 const props = defineProps<{
   node: Node
@@ -27,6 +29,8 @@ const emit = defineEmits<{
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
+const visualizationId = ref(random.uuidv4() as Uuid)
+const visualizationConfiguration = ref<VisualizationConfiguration>()
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -255,6 +259,37 @@ function handleClick(e: PointerEvent) {
     e.stopPropagation()
   }
 }
+
+const isVisualizationVisible = ref(false)
+
+watchEffect(() => {
+  if (isVisualizationVisible.value) {
+    if (visualizationConfiguration.value != null) {
+      props.languageServer.attachVisualization(
+        visualizationId.value,
+        props.node.rootSpan.id,
+        visualizationConfiguration.value,
+      )
+    }
+  } else {
+    if (visualizationConfiguration.value != null) {
+      props.languageServer.detachVisualization(
+        visualizationId.value,
+        props.node.rootSpan.id,
+        visualizationConfiguration.value.executionContextId,
+      )
+    }
+  }
+})
+
+watchEffect(() => {
+  if (isVisualizationVisible.value && visualizationConfiguration.value != null) {
+    props.languageServer.modifyVisualization(
+      visualizationId.value,
+      visualizationConfiguration.value,
+    )
+  }
+})
 </script>
 
 <template>

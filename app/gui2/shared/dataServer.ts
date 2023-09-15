@@ -1,3 +1,4 @@
+import { Observable } from 'lib0/observable.js'
 import * as random from 'lib0/random'
 import type { WebsocketClient } from 'lib0/websocket'
 import type { MessageEvent } from 'ws'
@@ -49,12 +50,13 @@ const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.CHECKSUM_BYTES_REPLY]: ChecksumBytesReply,
 } satisfies Record<OutboundPayload, new () => Table>
 
-export class DataServer {
+export class DataServer extends Observable<string> {
   uuid
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
   constructor(public websocket: WebsocketClient) {
+    super()
     this.uuid = random.uuidv4()
     websocket.on('message', (message: MessageEvent) => {
       if (!(message.data instanceof ArrayBuffer)) {
