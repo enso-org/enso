@@ -15,38 +15,34 @@ type S3_File
     ## PUBLIC
     new : Text -> AWS_Credential | Nothing -> S3_File
     new uri="s3://" credentials=Nothing =
-        output = S3_File.Value uri credentials
-        output.if_valid_uri _->_->output
-
-    ## PRIVATE
-    Value uri:Text credentials:(AWS_Credential | Nothing)
-
-    ## PRIVATE
-    if_valid_uri : (Text -> Text -> Any) -> Any ! Syntax_Error
-    if_valid_uri self action =
-        parts = S3.parse_uri self.uri
+        parts = S3.parse_uri uri
         if parts.is_nothing then Error.throw (Syntax_Error.Error "Invalid S3 URI.") else
-            action parts.first parts.second
+            S3_File.Value parts.first parts.second credentials
+
+    ## PRIVATE
+    Value bucket:Text prefix:Text credentials:(AWS_Credential | Nothing)
+
+    ## Gets the URI of this file
+    uri : Text
+    uri self = "s3://" + (if self.bucket=="" then "" else (self.bucket+"/"+self.prefix))
 
     ## Checks if the folder or file exists
     exists : Boolean
-    exists self = self.if_valid_uri bucket->prefix-> if bucket == "" then True else
-        if prefix == "" then S3.head bucket "" self.credentials . is_error . not else
-            pair = S3.read_bucket bucket prefix self.credentials max_count=1
+    exists self = if self.bucket == "" then True else
+        if self.prefix == "" then S3.head self.bucket "" self.credentials . is_error . not else
+            pair = S3.read_bucket self.bucket self.prefix self.credentials max_count=1
             pair.second.length > 0
 
     ## Checks if this is a folder
     is_directory : Boolean
-    is_directory self =
-        self.if_valid_uri _->prefix-> prefix=="" || prefix.ends_with "/"
+    is_directory self = self.prefix=="" || self.prefix.ends_with "/"
 
     ## GROUP Metadata
        Gets the size of a file in bytes.
     size : Integer
     size self =
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            self.if_valid_uri bucket->prefix->
-                head = S3.head bucket prefix self.credentials
+            head = S3.head self.bucket self.prefix self.credentials
 
     ## PRIVATE
        ADVANCED
@@ -82,9 +78,8 @@ type S3_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
         if (open_options !=  [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
-            self.if_valid_uri bucket->key->
-                response_body = S3.get_object bucket key self.credentials
-                response_body.with_stream action
+            response_body = S3.get_object self.bucket self.prefix self.credentials
+            response_body.with_stream action
 
 
     ## ALIAS load, open
@@ -107,9 +102,8 @@ type S3_File
         _ = on_problems
         case format of
             Auto_Detect -> if self.is_directory then format.read self on_problems else
-                self.if_valid_uri bucket->key->
-                    response = S3.get_object bucket key self.credentials
-                    response.decode Auto_Detect
+                response = S3.get_object self.bucket self.prefix self.credentials
+                response.decode Auto_Detect
             _ -> self.with_input_stream [File_Access.Read] format.read_stream
 
     ## ALIAS load bytes, open bytes
@@ -140,19 +134,21 @@ type S3_File
        - subpath: The path to join to the path of `self`.
     / : Text -> S3_File
     / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
-        self.if_valid_uri bucket->prefix->
-            if subpath.startsWith "/" then S3_File.Value ("s3://"+bucket+subpath) self.credentials else
-                parts = subpath.split "/"
-                loop current remaining = if remaining.length == 0 then current else
-                    new_current = case remaining.first of
-                        ".." ->
-                            last_index = current.lastIndexOf "/"
-                            if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
-                        "." -> current
-                        x -> new_current + "/" + x
-                    @Tail_Call loop new_current (remaining.drop 1)
-                path = loop prefix parts
-                S3_File.Value ("s3://"+bucket+path) self.credentials
+        trimmed = if subpath.starts_with "/" then subpath.drop (First 1) else subpath
+        parts = trimmed.split "/"
+
+        loop current remaining = if remaining.length == 0 then current else
+            new_current = case remaining.first of
+                ".." ->
+                    last_index = current.lastIndexOf "/"
+                    if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
+                "." -> current
+                x -> new_current + "/" + x
+            @Tail_Call loop new_current (remaining.drop 1)
+
+        initial = if subpath.starts_with "/" then "" else self.prefix
+        path = loop initial parts
+        S3_File.Value self.bucket path self.credentials
 
     ## GROUP Calculations
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
@@ -161,17 +157,16 @@ type S3_File
        - subpaths: The path segment or segments to join to the path of `self`.
     join : (Text | Vector) -> S3_File
     join self subpaths = case subpaths of
-        _ : Vector -> (subpaths.fold self c->p-> c / p) . normalize
+        _ : Vector -> (subpaths.fold self c->p-> c / p)
         _ -> self.join [subpaths]
 
     ## GROUP Metadata
        Returns the name of this file.
     name : Text
-    name self = self.if_valid_uri bucket->prefix->
-        if prefix == "" then bucket else
-            trimmed = if prefix.ends_with "/" then prefix.drop (Last 1) else prefix
-            last_index = trimmed.lastIndexOf "/"
-            if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
+    name self = if self.prefix == "" then self.bucket else
+        trimmed = if self.prefix.ends_with "/" then self.prefix.drop (Last 1) else self.prefix
+        last_index = trimmed.lastIndexOf "/"
+        if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
 
     ## GROUP Metadata
        Returns the extension of the file.
@@ -204,9 +199,9 @@ type S3_File
         check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
         check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else action
 
-        check_directory <| check_recursion <| check_name_filter <| self.if_valid_uri bucket->prefix->
-            if bucket == "" then S3.list_buckets self.credentials . map b-> S3_File.Value ("s3://"+b) self.credentials else
-                pair = S3.read_bucket bucket prefix self.credentials
-                sub_folders = pair.first . map key-> S3_File.Value ("s3://"+bucket+"/"+key) self.credentials
-                files = pair.second . map key-> S3_File.Value ("s3://"+bucket+"/"+key) self.credentials
+        check_directory <| check_recursion <| check_name_filter <|
+            if self.bucket == "" then S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
+                pair = S3.read_bucket self.bucket self.prefix self.credentials
+                sub_folders = pair.first . map key-> S3_File.Value self.bucket key self.credentials
+                files = pair.second . map key-> S3_File.Value self.bucket key self.credentials
                 sub_folders + files

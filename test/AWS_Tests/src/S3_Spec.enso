@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+from Standard.AWS import S3
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    Test.group "S3.parse_uri" <|
+        Test.specify "parse bucket only uris" <|
+            S3.parse_uri "s3://" . should_equal (Pair.new "" "")
+            S3.parse_uri "s3://asda" . should_equal (Pair.new "asda" "")
+            S3.parse_uri "s3://banana/" . should_equal (Pair.new "banana" "")
+
+        Test.specify "parse full paths uris" <|
+            S3.parse_uri "s3://banana/apple" . should_equal (Pair.new "banana" "apple")
+            S3.parse_uri "s3://banana/apple/orange" . should_equal (Pair.new "banana" "apple/orange")
+
+        Test.specify "reject invalid urils" <|
+            S3.parse_uri "asda" . should_equal Nothing
+            S3.parse_uri "s3:///" . should_equal Nothing
+            S3.parse_uri "s3:///apple/orange" . should_equal Nothing
+
+main = Test_Suite.run_main spec

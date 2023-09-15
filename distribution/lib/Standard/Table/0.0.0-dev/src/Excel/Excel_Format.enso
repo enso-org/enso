@@ -66,7 +66,6 @@ type Excel_Format
     for_web : Text -> URI -> Excel_Format | Nothing
     for_web content_type uri =
         _ = [uri]
-        ## Currently not loading Excel files automatically as these need to be loaded as a connection.
         parts = content_type.split ";" . map .trim
         case parts.first of
             "application/vnd.ms-excel" -> Excel_Format.Excel xls_format=True

@@ -96,7 +96,7 @@ type Excel_Workbook
     ## GROUP Standard.Base.Metadata
        Gets the names of all the sheets.
     sheet_names : Vector Text
-    sheet_names self = ExcelReader.readSheetNames self.workbook
+    sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
 
     ## GROUP Standard.Base.Metadata
        Gets the number of named ranges.
@@ -106,7 +106,7 @@ type Excel_Workbook
     ## GROUP Standard.Base.Metadata
        Gets the names of all the named ranges.
     named_ranges : Vector Text
-    named_ranges self = ExcelReader.readRangeNames self.workbook
+    named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
 
     ## Gets a list of the table types.
     table_types : Vector Text
