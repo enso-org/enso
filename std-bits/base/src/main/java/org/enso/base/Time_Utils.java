@@ -153,10 +153,6 @@ public class Time_Utils {
     return formatter.format(localTime);
   }
 
-  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
-    return make_output_formatter(format.toString(), locale).format(localTime);
-  }
-
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
     return switch (op) {
       case PLUS -> date.plus(period);
