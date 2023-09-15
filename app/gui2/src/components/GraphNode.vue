@@ -6,11 +6,22 @@ import { Rect } from '@/stores/rect'
 import { usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
-import type { DataServer } from 'shared/dataServer'
+import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
+import { uuidFromBits, type DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import type { VisualizationConfiguration } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, watch, watchEffect, type Raw } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  onUpdated,
+  reactive,
+  ref,
+  watch,
+  watchEffect,
+  type Raw,
+} from 'vue'
 
 const props = defineProps<{
   node: Node
@@ -31,6 +42,7 @@ const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
 const visualizationId = ref(random.uuidv4() as Uuid)
 const visualizationConfiguration = ref<VisualizationConfiguration>()
+const visualizationData = ref<unknown>()
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -289,6 +301,29 @@ watchEffect(() => {
       visualizationConfiguration.value,
     )
   }
+})
+
+function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
+  const encodedVisualizationId = vizUpdate.visualizationContext()?.visualizationId()
+  if (encodedVisualizationId == null) {
+    return
+  }
+  const eventVisualizationId = uuidFromBits(
+    encodedVisualizationId.leastSigBits(),
+    encodedVisualizationId.mostSigBits(),
+  )
+  if (eventVisualizationId !== visualizationId.value) {
+    return
+  }
+  visualizationData.value = vizUpdate.dataString()
+}
+
+onMounted(() => {
+  props.dataServer.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
+})
+
+onUnmounted(() => {
+  props.dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
 })
 </script>
 

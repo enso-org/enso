@@ -1256,6 +1256,11 @@ export class VisualizationUpdate implements Table {
       : null
   }
 
+  dataString(): string | null {
+    const buffer = this.dataArray()
+    return buffer != null ? TEXT_DECODER.decode(buffer) : null
+  }
+
   static startVisualizationUpdate(builder: Builder) {
     builder.startObject(2)
   }

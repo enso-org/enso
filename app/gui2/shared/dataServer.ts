@@ -1,4 +1,4 @@
-import { Observable } from 'lib0/observable.js'
+import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import type { WebsocketClient } from 'lib0/websocket'
 import type { MessageEvent } from 'ws'
@@ -28,13 +28,13 @@ import {
   WriteFileCommand,
 } from './binaryProtocol'
 
-function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
+export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
   const bits = (mostSigBits << 64n) | leastSigBits
   const string = bits.toString(16).padStart(32, '0')
   return string.replace(/(........)(....)(....)(....)(............)/, '$1-$2-$3-$4-$5')
 }
 
-function uuidToBits(uuid: string): [leastSigBits: bigint, mostSigBits: bigint] {
+export function uuidToBits(uuid: string): [leastSigBits: bigint, mostSigBits: bigint] {
   const bits = BigInt('0x' + uuid.replace(/-/g, ''))
   return [bits & 0xffff_ffff_ffff_ffffn, bits >> 64n]
 }
@@ -50,7 +50,13 @@ const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.CHECKSUM_BYTES_REPLY]: ChecksumBytesReply,
 } satisfies Record<OutboundPayload, new () => Table>
 
-export class DataServer extends Observable<string> {
+export type DataServerEvents = {
+  [K in keyof typeof PAYLOAD_CONSTRUCTOR]: (
+    arg: InstanceType<(typeof PAYLOAD_CONSTRUCTOR)[K]>,
+  ) => void
+}
+
+export class DataServer extends ObservableV2<DataServerEvents> {
   uuid
   resolveCallbacks = new Map<string, (data: any) => void>()
 
