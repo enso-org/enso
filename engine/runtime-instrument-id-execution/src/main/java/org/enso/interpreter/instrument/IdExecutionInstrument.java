@@ -216,14 +216,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         return result == null;
       }
 
-      private UUID getNodeId(Node node) {
-        if (node instanceof ExpressionNode) {
-          return ((ExpressionNode) node).getId();
-        }
-        if (node instanceof FunctionCallInstrumentationNode) {
-          return ((FunctionCallInstrumentationNode) node).getId();
-        }
-        return null;
+      private static UUID getNodeId(Node node) {
+        return switch (node) {
+          case ExpressionNode n -> n.getId();
+          case FunctionCallInstrumentationNode n -> n.getId();
+          case null -> null;
+          default -> null;
+        };
       }
     }
   }
