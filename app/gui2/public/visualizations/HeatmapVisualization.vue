@@ -46,7 +46,7 @@ declare var d3: typeof import('d3')
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import type { Vec2 } from './builtins.ts'
 

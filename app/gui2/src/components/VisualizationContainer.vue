@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import FullscreenIcon from './icons/fullscreen.svg'
-import ExitFullscreenIcon from './icons/exit_fullscreen.svg'
-import EyeIcon from './icons/eye.svg'
-import CompassIcon from './icons/compass.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
+import VisualizationSelector from '@/components/VisualizationSelector.vue'
 
-import VisualizationSelector from './Visualization/VisualizationSelector.vue'
-
-import { usePointer, PointerButtonMask } from './events.ts'
-import type { Vec2 } from './builtins.ts'
+import { usePointer, PointerButtonMask } from '@/util/events'
+import type { Vec2 } from '@/util/vec2'
 
 import { ref } from 'vue'
 
-// FIXME: resizers to change `width` and `height`
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
   overflow?: boolean
@@ -118,20 +113,20 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
           <div class="background"></div>
           <button class="image-button active" @click="emit('hide')">
-            <img :src="EyeIcon" />
+            <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
           <button class="image-button active" @click="emit('update:fullscreen', !fullscreen)">
-            <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+            <SvgIcon class="icon" :name="fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
               @click.stop="isSelectorVisible = !isSelectorVisible"
             >
-              <img class="icon" :src="CompassIcon" />
+              <SvgIcon class="icon" name="compass" />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"

@@ -63,7 +63,7 @@ const emit = defineEmits<{
   opacity: 30%;
 }
 
-.toggled-on {
+.toggledOn {
   opacity: unset;
 }
 

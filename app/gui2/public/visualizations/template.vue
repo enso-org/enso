@@ -7,7 +7,7 @@ export const inputType = '<allowed input type(s) here>'
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 // Optional
 // @ts-expect-error
 import dependency from 'http://<js dependency here>'

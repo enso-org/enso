@@ -76,7 +76,7 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
 import type { GridOptions, ColDef, ColumnResizedEvent } from 'ag-grid-community'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 import { useThrottleFn } from '@vueuse/core'

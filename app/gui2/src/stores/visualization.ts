@@ -2,21 +2,25 @@ import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vue from 'vue'
 import * as vueUseCore from '@vueuse/core'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 import { defineStore } from 'pinia'
 
-const moduleCache: Record<string, any> = { vue, '@vueuse/core': vueUseCore }
+const moduleCache: Record<string, any> = {
+  vue,
+  '@vueuse/core': vueUseCore,
+  'builtins/VisualizationContainer.vue': { default: VisualizationContainer },
+}
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.
 window.__visualizationModules = moduleCache
 
-type VisualizationModule =
-  typeof import('../../public/visualizations/VisualizationContainer.vue') & {
-    name?: string
-    inputType?: string
-    scripts?: string[]
-    styles?: string[]
-  }
+type VisualizationModule = typeof import('@/components/VisualizationContainer.vue') & {
+  name?: string
+  inputType?: string
+  scripts?: string[]
+  styles?: string[]
+}
 
 export type Visualization = VisualizationModule['default']
 
@@ -52,6 +56,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   async function compile(path: string) {
     if (worker == null) {
       worker = new Compiler()
+      worker.postMessage({ type: 'register-builtin-modules', modules: Object.keys(moduleCache) })
       worker.addEventListener(
         'message',
         async (
@@ -60,7 +65,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
             | { type: 'raw-import'; path: string; value: unknown }
             | { type: 'url-import'; path: string; mimeType: string; value: string }
             | { type: 'import'; path: string; code: string }
-            | { type: 'script'; id: number; path: string }
+            | { type: 'compilation-result'; id: number; path: string }
           >,
         ) => {
           switch (event.data.type) {
@@ -91,7 +96,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
               moduleCache[event.data.path] = await module
               break
             }
-            case 'script': {
+            case 'compilation-result': {
               workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
               break
             }
@@ -107,7 +112,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const promise = new Promise<VisualizationModule>((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
     })
-    worker.postMessage({ id, path })
+    worker.postMessage({ type: 'compile', id, path })
     return await promise
   }
 

@@ -36,7 +36,7 @@ declare const sqlFormatter: typeof import('sql-formatter')
 // eslint-disable-next-line no-redeclare
 import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
 
 import { computed, onMounted } from 'vue'

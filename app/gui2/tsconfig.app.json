@@ -19,7 +19,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "builtins/VisualizationContainer.vue": ["./src/components/VisualizationContainer.vue"]
     }
   }
 }

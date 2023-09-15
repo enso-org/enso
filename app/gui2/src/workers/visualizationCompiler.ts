@@ -3,6 +3,7 @@ import { transform } from 'sucrase'
 import { parse as babelParse } from '@babel/parser'
 import MagicString from 'magic-string'
 
+let builtinModules = new Set<string>()
 const ids = new Set<string>()
 function generateId() {
   for (;;) {
@@ -73,16 +74,14 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
     switch (stmt.type) {
       case 'ImportDeclaration': {
         let path = stmt.source.extra!.rawValue as string
+        const isBuiltin = builtinModules.has(path)
         const isRelative = /^[./]/.test(path)
         if (isRelative) {
           path = new URL(dir + path, location.href).toString()
         }
         if (
-          path == 'vue' ||
-          path == '@vueuse/core' ||
-          path.endsWith('.svg') ||
-          path.endsWith('.ts') ||
-          path.endsWith('.vue')
+          isBuiltin ||
+          (isRelative && (path.endsWith('.svg') || path.endsWith('.ts') || path.endsWith('.vue')))
         ) {
           const specifiers = stmt.specifiers.map((s: any) => {
             if (s.type === 'ImportDefaultSpecifier') {
@@ -102,7 +101,9 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
               ', ',
             )} } = await window.__visualizationModules[${JSON.stringify(path)}];`,
           )
-          if (path.endsWith('.svg')) {
+          if (isBuiltin) {
+            // No further action is needed.
+          } else if (path.endsWith('.svg')) {
             await importSvg(path)
           } else if (path.endsWith('.ts')) {
             await importTS(path)
@@ -150,10 +151,25 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
   return path
 }
 
-onmessage = async (event: MessageEvent<{ id: number; path: string }>) => {
-  postMessage({
-    type: 'script',
-    id: event.data.id,
-    path: await compileVisualization(event.data.path, addStyle),
-  })
+onmessage = async (
+  event: MessageEvent<
+    | { type: 'register-builtin-modules'; modules: string[] }
+    | { type: 'compile'; id: number; path: string }
+  >,
+) => {
+  console.log('what!', event.data)
+  switch (event.data.type) {
+    case 'register-builtin-modules': {
+      builtinModules = new Set(event.data.modules)
+      break
+    }
+    case 'compile': {
+      postMessage({
+        type: 'compilation-result',
+        id: event.data.id,
+        path: await compileVisualization(event.data.path, addStyle),
+      })
+      break
+    }
+  }
 }

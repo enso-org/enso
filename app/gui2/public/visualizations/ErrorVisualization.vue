@@ -15,7 +15,7 @@ enum ErrorKind {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted } from 'vue'
 

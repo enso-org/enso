@@ -87,7 +87,7 @@ import Path2Icon from './icons/path2.svg'
 import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
 import GeoMapPinIcon from './icons/geo_map_pin.svg'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watchEffect } from 'vue'
 

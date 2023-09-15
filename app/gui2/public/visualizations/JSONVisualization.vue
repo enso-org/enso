@@ -4,7 +4,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { onMounted } from 'vue'
 

@@ -92,7 +92,7 @@ import type * as d3Types from 'd3'
 import { getTextWidth } from './measurement.ts'
 import type { Vec2 } from './builtins.ts'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
