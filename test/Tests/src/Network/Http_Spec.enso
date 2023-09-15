@@ -53,8 +53,12 @@ spec =
         url_get = base_url_with_slash + "get"
 
         Test.specify "Can perform a GET with a JSON response" <|
+            IO.println "AAAAA start Can perform a GET with a JSON response"
             response = Data.fetch url_get
+            IO.println "AAAAA response type"
+            IO.println (Meta.get_simple_type_name response)
             response.at "headers" . at "Content-Length" . should_equal "0"
+            IO.println "AAAAA end Can perform a GET with a JSON response"
 
         Test.specify "Can perform a GET with a file response" <|
             f = enso_project.data / "spreadsheet.xls"
