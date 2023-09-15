@@ -255,6 +255,18 @@ type FileSystemObject =
 
 interface VisualizationContext {}
 
+export interface VisualizationConfiguration {
+  /** An execution context of the visualization. */
+  executionContextId: UUID
+  /** A qualified name of the module to be used to evaluate the arguments for the visualization
+   * expression. */
+  visualizationModule: string
+  /** An expression that creates a visualization. */
+  expression: string | MethodPointer
+  /** A list of arguments to pass to the visualization expression. */
+  positionalArgumentsExpressions?: string[]
+}
+
 type Messages = {
   'file/event': { path: Path; kind: FileEventKind }
   'text/autoSave': { path: Path }

@@ -3,13 +3,17 @@ import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { usePointer, useResizeObserver } from '@/util/events'
+import { usePointer,useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import type { LanguageServer } from 'shared/languageServer'
+import type { ContentRange,ExprId } from 'shared/yjsModel'
+import { computed,onUpdated,reactive,ref,watch,watchEffect,type Raw } from 'vue'
+import type { DataServer } from '../../shared/dataServer'
 
 const props = defineProps<{
   node: Node
+  languageServer: Raw<LanguageServer>
+  dataServer: Raw<DataServer>
 }>()
 
 const emit = defineEmits<{

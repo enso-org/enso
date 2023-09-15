@@ -1,6 +1,6 @@
 import { assert, assertNever } from '@/util/assert'
 import { useObserveYjs } from '@/util/crdt'
-import { parseEnso } from '@/util/ffi'
+import { Ast, parseEnso } from '@/util/ffi'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'
@@ -73,10 +73,8 @@ export const useGraphStore = defineStore('graph', () => {
     if (value != null) updateState()
   })
 
-  const _parsed = ref([] as Statement[])
-  const _parsedEnso = ref<any>()
-
-  watchEffect(() => {})
+  const _parsed = ref<Statement[]>([])
+  const _parsedEnso = ref<Ast.Tree>()
 
   function updateState(affectedRanges?: ContentRange[]) {
     const module = proj.module

@@ -4,7 +4,15 @@ import * as map from 'lib0/map'
 import * as set from 'lib0/set'
 import { SHA3 } from 'sha3'
 import { Emitter } from './event'
-import type { Checksum, FileEdit, Notifications, Path, RegisterOptions, response } from './lsTypes'
+import type {
+  Checksum,
+  FileEdit,
+  Notifications,
+  Path,
+  RegisterOptions,
+  VisualizationConfiguration,
+  response,
+} from './lsTypes'
 import type { Uuid } from './yjsModel'
 
 export class LanguageServer extends Emitter<Notifications> {
@@ -73,6 +81,40 @@ export class LanguageServer extends Emitter<Notifications> {
 
   listFiles(path: Path): Promise<response.FileList> {
     return this.request('file/list', { path })
+  }
+
+  attachVisualization(
+    visualizationId: string,
+    expressionId: string,
+    visualizationConfig: VisualizationConfiguration,
+  ): Promise<void> {
+    return this.request('executionContext/attachVisualization', {
+      visualizationId,
+      expressionId,
+      visualizationConfig,
+    })
+  }
+
+  detachVisualization(
+    visualizationId: string,
+    expressionId: string,
+    executionContextId: string,
+  ): Promise<void> {
+    return this.request('executionContext/detachVisualization', {
+      visualizationId,
+      expressionId,
+      executionContextId,
+    })
+  }
+
+  modifyVisualization(
+    visualizationId: string,
+    visualizationConfig: VisualizationConfiguration,
+  ): Promise<void> {
+    return this.request('executionContext/modifyVisualization', {
+      visualizationId,
+      visualizationConfig,
+    })
   }
 
   dispose() {

@@ -5,6 +5,7 @@ import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
 import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
@@ -19,6 +20,7 @@ const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
+const projectStore = useProjectStore()
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -86,6 +88,8 @@ function moveNode(id: ExprId, delta: Vec2) {
         v-for="[id, node] in graphStore.nodes"
         :key="id"
         :node="node"
+        :language-server="projectStore.lsRpcConnection"
+        :data-server="projectStore.dataConnection"
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
