@@ -151,9 +151,6 @@ type Date_Time_Format_Pattern
             _ : Text -> DateTimeFormatter.ofPattern pattern
             formatter : DateTimeFormatter -> formatter
 
-## PRIVATE
-Date_Time_Format_Pattern.from (that:Text) = Date_Time_Format_Pattern.Simple that
-
 type Date_Time_Format_Parse_Error
     ## PRIVATE
        Indicates an error during parsing of a `Date_Time_Format_Pattern`.
