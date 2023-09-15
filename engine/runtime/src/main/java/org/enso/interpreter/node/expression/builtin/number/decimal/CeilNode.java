@@ -9,9 +9,9 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-    type = "Decimal",
+    type = "Float",
     name = "ceil",
-    description = "Decimal ceiling, converting to a small or big integer depending on size.")
+    description = "Float ceiling, converting to an integer.")
 public class CeilNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 

@@ -24,14 +24,15 @@ use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
+use crate::display::uniform::UniformScope;
 use crate::display::world;
 use crate::frp::io::keyboard as frp_keyboard;
 use crate::system;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
-use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader;
 use crate::system::gpu::Context;
+use crate::system::gpu::ContextHandler;
 use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
@@ -40,6 +41,7 @@ use enso_frp as frp;
 use enso_shapely::shared;
 use std::any::TypeId;
 use web::HtmlElement;
+
 
 
 // ==============
@@ -168,7 +170,7 @@ impl Mouse {
         scene_frp: &Frp,
         scene_object: &display::object::Instance,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
-        variables: &UniformScope,
+        variables: &mut UniformScope,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let background = PointerTarget_DEPRECATED::new();
@@ -600,7 +602,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &UniformScope) -> Self {
+    pub fn new(scope: &mut UniformScope) -> Self {
         let pixel_ratio = scope.add_or_panic("pixel_ratio", 1.0);
         Self { pixel_ratio }
     }
@@ -637,17 +639,17 @@ impl Dirty {
 ///
 /// Please note that the composer can be empty if the context was either not provided yet or it was
 /// lost.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
     dom:          Rc<Dom>,
-    variables:    UniformScope,
-    pub pipeline: Rc<CloneCell<render::Pipeline>>,
-    pub composer: Rc<RefCell<Option<render::Composer>>>,
+    variables:    Rc<RefCell<UniformScope>>,
+    pub pipeline: CloneCell<render::Pipeline>,
+    pub composer: RefCell<Option<render::Composer>>,
 }
 
 impl Renderer {
-    fn new(dom: &Rc<Dom>, variables: &UniformScope) -> Self {
+    fn new(dom: &Rc<Dom>, variables: &Rc<RefCell<UniformScope>>) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
@@ -674,7 +676,7 @@ impl Renderer {
 
             let (width, height, pixel_ratio) = self.view_size();
             let pipeline = self.pipeline.get();
-            render::Composer::new(&pipeline, context, &self.variables, width, height, pixel_ratio)
+            render::Composer::new(pipeline, context, &self.variables, width, height, pixel_ratio)
         });
         *self.composer.borrow_mut() = composer;
     }
@@ -688,7 +690,7 @@ impl Renderer {
     /// Reload the composer pipeline.
     fn update_composer_pipeline(&self) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
-            composer.set_pipeline(&self.pipeline.get());
+            composer.set_pipeline(self.pipeline.get());
         }
     }
 
@@ -942,13 +944,13 @@ impl Frp {
 // === Extension ===
 // =================
 
-pub trait Extension: 'static + CloneRef {
+pub trait Extension: 'static + CloneRef + Any {
     fn init(scene: &Scene) -> Self;
 }
 
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Extensions {
-    map: Rc<RefCell<HashMap<TypeId, Box<dyn Any>>>>,
+    map: RefCell<HashMap<TypeId, Box<dyn Any>>>,
 }
 
 impl Extensions {
@@ -981,12 +983,13 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Debug, display::Object)]
+#[derive(Derivative, display::Object)]
+#[derivative(Debug)]
 pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
-    pub variables: UniformScope,
+    pub variables: Rc<RefCell<UniformScope>>,
     pub mouse: Mouse,
     /// Keyboard that bypasses event propagation and receives all key events. Typically, this is
     /// appropriate for monitoring the state of modifier keys (which have a logical state
@@ -1006,10 +1009,12 @@ pub struct SceneData {
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
     pub shader_compiler: shader::compiler::Controller,
-    initial_shader_compilation: Rc<Cell<TaskState>>,
+    initial_shader_compilation: Cell<TaskState>,
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
-    disable_context_menu: Rc<EventListenerHandle>,
+    disable_context_menu: EventListenerHandle,
+    #[derivative(Debug = "ignore")]
+    on_set_context: RefCell<Vec<Weak<dyn Fn(Option<&Context>)>>>,
 }
 
 impl SceneData {
@@ -1027,12 +1032,18 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let uniforms = Uniforms::new(&variables);
+        let uniforms = Uniforms::new(&mut variables.borrow_mut());
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
-        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
+        let mouse = Mouse::new(
+            &frp,
+            &display_object,
+            &dom.root,
+            &mut variables.borrow_mut(),
+            &display_mode,
+        );
+        let disable_context_menu = web::ignore_context_menu(&dom.root);
         let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;
         let extensions = Extensions::default();
@@ -1056,6 +1067,7 @@ impl SceneData {
         let pointer_position_changed = default();
         let shader_compiler = default();
         let initial_shader_compilation = default();
+        let on_set_context = default();
         Self {
             display_object,
             display_mode,
@@ -1078,6 +1090,7 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
+            on_set_context,
         }
         .init()
     }
@@ -1239,6 +1252,15 @@ impl SceneData {
             default()
         }
     }
+
+    /// Register the given function to be called when the GL context is changed. The callback will
+    /// be unregistered when the returned handle is dropped.
+    #[must_use]
+    pub fn on_set_context<F: 'static + Fn(Option<&Context>)>(&self, f: F) -> ContextHandler {
+        let handle = Rc::new(f);
+        self.on_set_context.borrow_mut().push(handle.downgrade());
+        ContextHandler::new(handle)
+    }
 }
 
 
@@ -1357,7 +1379,7 @@ impl Scene {
     pub async fn next_shader_compiler_idle(&self) {
         if let Some(context) = &*self.context.borrow() {
             // Ensure the callback will be run if the queue is already idle.
-            context.shader_compiler.submit_probe_job();
+            context.shader_compiler().submit_probe_job();
         } else {
             return;
         };
@@ -1392,10 +1414,20 @@ impl system::gpu::context::Display for Rc<SceneData> {
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
+        if context.is_none() {
+            self.initial_shader_compilation.set(TaskState::Unstarted);
+        }
         world::with_context(|t| t.set_context(context));
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
+        self.on_set_context.borrow_mut().retain(|handle| match handle.upgrade() {
+            Some(listener) => {
+                listener(context);
+                true
+            }
+            None => false,
+        })
     }
 }
 

@@ -30,6 +30,14 @@ use view::notification::logged as notification;
 /// We don't know how long the project opening will take, but we still want to show a fake progress
 /// indicator for the user. This constant represents a progress percentage that will be displayed.
 const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
+/// When the GL context is not available, show the spinner in its farthest-from-completion state.
+/// This condition will not usually be observed for more than a moment, as the GL context should not
+/// be persistently lost while the window is visible.
+const LOST_CONTEXT_SPINNER_PROGRESS: f32 = 0.0;
+/// When the GL context has been restored and the application is preparing to resume drawing, show
+/// the spinner near completion. Context restoration is much faster than initial loading; the only
+/// time-consuming operation required is shader recompilation.
+const RESTORING_CONTEXT_SPINNER_PROGRESS: f32 = 0.9;
 
 
 
@@ -52,6 +60,8 @@ struct Model {
     available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
     execution_failed_notification: notification::Notification,
+    /// Handle of a function that shows the loading spinner until a lost context is restored.
+    _context_monitor: ensogl::display::world::ContextHandler,
 }
 
 impl Model {
@@ -83,6 +93,7 @@ impl Model {
             },
         };
         let execution_failed_notification = notification::Notification::new(options);
+        let context_monitor = Self::init_context_monitor(view.clone_ref());
         Model {
             controller,
             module_model,
@@ -95,6 +106,7 @@ impl Model {
             available_projects,
             shortcut_transaction,
             execution_failed_notification,
+            _context_monitor: context_monitor,
         }
     }
 
@@ -311,7 +323,7 @@ impl Model {
             }
             app.hide_progress_indicator();
             view.show_graph_editor();
-        })
+        });
     }
 
     fn execution_environment_changed(
@@ -335,6 +347,26 @@ impl Model {
                 error!("Error starting clean live execution: {err}");
             }
         });
+    }
+
+    /// Register a [`Scene`] callback that shows the progress spinner while the WebGL Context is
+    /// being restored; return the handle.
+    fn init_context_monitor(view: view::project::View) -> ensogl::display::world::ContextHandler {
+        scene().on_set_context(move |context| {
+            if context.is_none() {
+                view.hide_graph_editor();
+                js::app_or_panic().show_progress_indicator(LOST_CONTEXT_SPINNER_PROGRESS);
+            } else {
+                let view = view.clone_ref();
+                executor::global::spawn(async move {
+                    js::app_or_panic().show_progress_indicator(RESTORING_CONTEXT_SPINNER_PROGRESS);
+                    let scene = scene();
+                    scene.prepare_to_render().await;
+                    view.show_graph_editor();
+                    js::app_or_panic().hide_progress_indicator();
+                });
+            }
+        })
     }
 }
 

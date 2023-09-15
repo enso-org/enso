@@ -1,20 +1,5 @@
 package org.enso.interpreter.instrument;
 
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
-import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -35,9 +20,22 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 
-/**
- * An instrument for getting values from AST-identified expressions.
- */
+import java.util.UUID;
+
+import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
+
+/** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
     id = IdExecutionService.INSTRUMENT_ID,
     services = IdExecutionService.class)
@@ -56,7 +54,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     this.env = env;
   }
 
-  /** Factory for creating new id event nodes **/
+  /** Factory for creating new id event nodes. */
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
 
     private final CallTarget entryCallTarget;

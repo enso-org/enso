@@ -362,17 +362,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         }
         """)
 
-      // get suggestions database
-      client.send(json.getSuggestionsDatabase(3))
-      client.expectJson(json"""
-        { "jsonrpc" : "2.0",
-          "id" : 3,
-          "result" : {
-            "entries" : [],
-            "currentVersion" : 5
-          }
-        }""")
-
       // update items
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(

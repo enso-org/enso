@@ -38,7 +38,7 @@ fill_hole_default stmt i value = case value of
             big_decimal = NumericConverter.bigIntegerAsBigDecimal value
             stmt.setBigDecimal i big_decimal
         False -> stmt.setLong i value
-    _ : Decimal   -> stmt.setDouble i value
+    _ : Float   -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
     ## Time_Of_Day and Date sometimes work ok, but sometimes are passed as

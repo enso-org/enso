@@ -11,7 +11,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Decimal", name = "<=", description = "Comparison of numbers.")
+@BuiltinMethod(type = "Float", name = "<=", description = "Comparison of numbers.")
 public abstract class LessOrEqualNode extends FloatNode {
 
   abstract Object execute(double self, Object that);

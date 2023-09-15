@@ -1,6 +1,6 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparable
@@ -281,7 +281,7 @@ calculate_correlation_statistics x_data y_data =
 
 ## PRIVATE
    Given two series, get a compute the Spearman Rank correlation
-calculate_spearman_rank : Vector -> Vector -> Decimal
+calculate_spearman_rank : Vector -> Vector -> Float
 calculate_spearman_rank x_data y_data =
     wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data y_data
 

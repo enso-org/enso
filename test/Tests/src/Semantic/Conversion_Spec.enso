@@ -45,7 +45,7 @@ type MultiNumber
 
 Integer.from (that:MultiNumber) = that.v * 19
 Number.from (that:MultiNumber) = that.v * 0.3
-Decimal.from (that:MultiNumber) = that.v * 0.7
+Float.from (that:MultiNumber) = that.v * 0.7
 
 foreign js make_str x = """
    return "js string"
@@ -187,29 +187,29 @@ spec =
             fail = Panic.recover Type_Error <| check 0 "not a boolean"
             fail . should_fail_with Type_Error
 
-        Test.specify "Requesting Number & Integer & Decimal" <|
+        Test.specify "Requesting Number & Integer & Float" <|
             m = MultiNumber.Value 5
 
             m.to Number . should_equal 1.5
             m.to Integer . should_equal 95
-            m.to Decimal . should_equal 3.5
+            m.to Float . should_equal 3.5
 
-            to_1 (v : Number & Integer & Decimal) = v
+            to_1 (v : Number & Integer & Float) = v
             to_1 m . should_equal 1.5
 
-            to_2 (v : Integer & Decimal & Number) = v
+            to_2 (v : Integer & Float & Number) = v
             to_2 m . should_equal 95
 
-            to_3 (v : Decimal & Number & Integer) = v
+            to_3 (v : Float & Number & Integer) = v
             to_3 m . should_equal 3.5
 
-            to_4 (v : Integer & Number & Decimal) = v
+            to_4 (v : Integer & Number & Float) = v
             to_4 m . should_equal 95
 
-            to_5 (v : Decimal & Integer & Number) = v
+            to_5 (v : Float & Integer & Number) = v
             to_5 m . should_equal 3.5
 
-            to_6 (v : Number & Decimal & Integer) = v
+            to_6 (v : Number & Float & Integer) = v
             to_6 m . should_equal 1.5
 
         Test.specify "Requesting Integer & Fool" <|
@@ -233,24 +233,24 @@ spec =
 
             do_number 42
 
-        Test.specify "Requesting Decimal & Fool" <|
-            do_number (x : Decimal & Fool) =
+        Test.specify "Requesting Float & Fool" <|
+            do_number (x : Float & Fool) =
                 x.foo . should_equal "foo called"
                 x.fool . should_equal 42.3
                 x==x . should_be_true
-                (x:Decimal)==42.3 . should_be_true
+                (x:Float)==42.3 . should_be_true
                 (x:Fool)==42.3 . should_be_false
                 x==42.3 . should_be_true
-                42.3==(x.to Decimal) . should_be_true
+                42.3==(x.to Float) . should_be_true
                 42.3==(x.to Fool) . should_be_false
                 42.3==x . should_be_true
-                100+(x:Decimal) . should_equal 142.3
-                (x:Decimal)+100 . should_equal 142.3
+                100+(x:Float) . should_equal 142.3
+                (x:Float)+100 . should_equal 142.3
                 x+100 . should_equal 142.3
                 100+x . should_equal 142.3
                 x.to_text . should_equal "{FOOL 42.3}"
                 (x:Fool).to_text . should_equal "{FOOL 42.3}"
-                (x:Decimal).to_text . should_equal "42.3"
+                (x:Float).to_text . should_equal "42.3"
 
             do_number 42.3
 

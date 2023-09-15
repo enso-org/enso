@@ -107,14 +107,15 @@ impl InitializedProfiler {
             let available_enum = WebGl2RenderingContext::QUERY_RESULT_AVAILABLE;
             let disjoint_enum = self.ext.gpu_disjoint_ext;
             let available = self.context.get_query_parameter(query, available_enum);
-            let disjoint = self.context.get_parameter(*disjoint_enum).unwrap();
-            let available = available.as_bool().unwrap();
-            let disjoint = disjoint.as_bool().unwrap();
+            let disjoint = self.context.get_parameter(*disjoint_enum);
+            let available = available.as_bool().unwrap_or_default();
+            let disjoint =
+                disjoint.ok().and_then(|disjoint| disjoint.as_bool()).unwrap_or_default();
             let ready = available && !disjoint;
             if ready {
                 let query_result_enum = WebGl2RenderingContext::QUERY_RESULT;
                 let result = self.context.get_query_parameter(query, query_result_enum);
-                let result = result.as_f64().unwrap() / 1_000_000.0;
+                let result = result.as_f64().unwrap_or_default() / 1_000_000.0;
                 target.results.push_back(result);
                 self.context.delete_query(Some(query));
                 target.queue.pop_front();
@@ -128,11 +129,17 @@ impl InitializedProfiler {
         assert!(!self.assertions.during_measurement.get());
         self.assertions.during_measurement.set(true);
         self.assertions.measurements_per_frame.modify(|t| *t += 1);
-        let query = self.context.create_query().unwrap();
-        self.context.begin_query(*self.ext.time_elapsed_ext, &query);
-        let result = f();
-        self.context.end_query(*self.ext.time_elapsed_ext);
-        target.queue.push_back(query);
+        let result = if let Some(query) = self.context.create_query() {
+            self.context.begin_query(*self.ext.time_elapsed_ext, &query);
+            let result = f();
+            self.context.end_query(*self.ext.time_elapsed_ext);
+            target.queue.push_back(query);
+            result
+        } else {
+            // The query can fail due to context loss. In that case, run the function without timing
+            // it.
+            f()
+        };
         self.assertions.during_measurement.set(false);
         result
     }

@@ -36,6 +36,7 @@ impl Extensions {
 pub struct ExtensionsData {
     pub khr_parallel_shader_compile:     Option<KhrParallelShaderCompile>,
     pub ext_disjoint_timer_query_webgl2: Option<ExtDisjointTimerQueryWebgl2>,
+    pub webgl_lose_context:              Option<WebglLoseContext>,
 }
 
 impl ExtensionsData {
@@ -43,7 +44,8 @@ impl ExtensionsData {
     fn init(context: &WebGl2RenderingContext) -> Self {
         let khr_parallel_shader_compile = KhrParallelShaderCompile::try_init(context);
         let ext_disjoint_timer_query_webgl2 = ExtDisjointTimerQueryWebgl2::try_init(context);
-        Self { khr_parallel_shader_compile, ext_disjoint_timer_query_webgl2 }
+        let webgl_lose_context = WebglLoseContext::try_init(context);
+        Self { khr_parallel_shader_compile, ext_disjoint_timer_query_webgl2, webgl_lose_context }
     }
 }
 
@@ -162,5 +164,38 @@ impl ExtDisjointTimerQueryWebgl2 {
         {
             warn!("Error while querying timestamp: {:?}", err);
         }
+    }
+}
+
+
+
+// ========================
+// === WebglLoseContext ===
+// ========================
+
+/// Supports losing the WebGL Context.
+/// See: [https://registry.khronos.org/webgl/extensions/WEBGL_lose_context]
+#[derive(Debug, Clone)]
+pub struct WebglLoseContext {
+    ext: web_sys::WebglLoseContext,
+}
+
+impl WebglLoseContext {
+    /// Try to obtain the extension.
+    pub fn try_init(context: &WebGl2RenderingContext) -> Option<Self> {
+        let ext = context.get_extension("WEBGL_lose_context").ok()??;
+        let ext = (*ext).clone().into();
+        Some(Self { ext })
+    }
+
+    /// Lose the WebGL context. This can be useful for testing, or to eagerly release resources.
+    pub fn lose_context(&self) {
+        self.ext.lose_context();
+    }
+
+    /// Restore the WebGL context. This will only succeed if the context was lost by
+    /// [`lose_context`].
+    pub fn restore_context(&self) {
+        self.ext.restore_context();
     }
 }
