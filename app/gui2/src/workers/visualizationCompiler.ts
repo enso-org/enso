@@ -1,7 +1,7 @@
-import { parse, compileScript, compileStyle } from 'vue/compiler-sfc'
-import { transform } from 'sucrase'
 import { parse as babelParse } from '@babel/parser'
 import MagicString from 'magic-string'
+import { transform } from 'sucrase'
+import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
 
 const ids = new Set<string>()
 function generateId() {
@@ -70,7 +70,7 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
   const ast = babelParse(code, { sourceType: 'module' })
   const s = new MagicString(code)
   for (let i = 0; i < ast.program.body.length; ) {
-    const stmt = ast.program.body[i]
+    const stmt = ast.program.body[i]!
     switch (stmt.type) {
       case 'ImportDeclaration': {
         let path = stmt.source.extra!.rawValue as string
@@ -114,9 +114,19 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         break
       }
       case 'ExportDefaultDeclaration': {
-        if (id != null && stmt.declaration?.callee?.name === '_defineComponent') {
-          const firstProp = stmt.declaration?.arguments?.[0]?.properties?.[0]
-          if (firstProp != null) {
+        if (
+          id != null &&
+          'callee' in stmt.declaration &&
+          'name' in stmt.declaration.callee &&
+          stmt.declaration?.callee?.name === '_defineComponent'
+        ) {
+          const firstProp =
+            'arguments' in stmt.declaration &&
+            stmt.declaration?.arguments?.[0] &&
+            'properties' in stmt.declaration?.arguments?.[0]
+              ? stmt.declaration?.arguments?.[0]?.properties?.[0]
+              : undefined
+          if (firstProp != null && firstProp.start != null) {
             s.appendLeft(firstProp.start, `__scopeId: ${JSON.stringify(`data-v-${id}`)}, `)
           }
         }

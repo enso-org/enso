@@ -57,6 +57,7 @@ export type DataServerEvents = {
 }
 
 export class DataServer extends ObservableV2<DataServerEvents> {
+  initialized = false
   uuid
   resolveCallbacks = new Map<string, (data: any) => void>()
 
@@ -66,6 +67,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     this.uuid = random.uuidv4()
     websocket.on('message', (message: MessageEvent) => {
       if (!(message.data instanceof ArrayBuffer)) {
+        console.warn('Data Server: Data type was invalid:', message.data)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
         // misconfiguration and should also be ignored.
         return
@@ -73,13 +75,19 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const binaryMessage = new OutboundMessage().init(0, new ByteBuffer(message.data))
       const id = binaryMessage.messageId()
       if (id == null) {
-        // Invalid id; ignore.
+        console.warn('Data Server: Message ID was invalid.')
         return
       }
       const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
       const callback = this.resolveCallbacks.get(uuid)
       callback?.(binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[binaryMessage.payloadType()]()))
     })
+  }
+
+  async initialize() {
+    if (!this.initialized) {
+      await this.initSession()
+    }
   }
 
   protected send<T = void>(
@@ -116,27 +124,30 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return this.send<Success>(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
-  writeFile(path: string, contents: string | ArrayBuffer | Uint8Array) {
+  async writeFile(path: string, contents: string | ArrayBuffer | Uint8Array) {
+    await this.initialize()
     const builder = new Builder()
     const contentsOffset = builder.createString(contents)
     const pathOffset = builder.createString(path)
     const command = WriteFileCommand.createWriteFileCommand(builder, pathOffset, contentsOffset)
-    return this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
+    return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
 
-  readFile(path: string) {
+  async readFile(path: string) {
+    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
-    return this.send(builder, InboundPayload.READ_FILE_CMD, command)
+    return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
 
-  writeBytes(
+  async writeBytes(
     path: string,
     index: bigint,
     overwriteExisting: boolean,
     contents: string | ArrayBuffer | Uint8Array,
   ): Promise<WriteBytesReply> {
+    await this.initialize()
     const builder = new Builder()
     const bytesOffset = builder.createString(contents)
     const pathOffset = builder.createString(path)
@@ -147,25 +158,26 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       overwriteExisting,
       bytesOffset,
     )
-    return this.send<WriteBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send<WriteBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
 
-  readBytes(path: string, index: bigint, length: bigint): Promise<ReadBytesReply> {
+  async readBytes(path: string, index: bigint, length: bigint): Promise<ReadBytesReply> {
+    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ReadBytesCommand.createReadBytesCommand(builder, segmentOffset)
-    return this.send<ReadBytesReply>(builder, InboundPayload.READ_BYTES_CMD, command)
+    return await this.send<ReadBytesReply>(builder, InboundPayload.READ_BYTES_CMD, command)
   }
 
-  checksumBytes(path: string, index: bigint, length: bigint): Promise<ChecksumBytesReply> {
+  async checksumBytes(path: string, index: bigint, length: bigint): Promise<ChecksumBytesReply> {
+    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ChecksumBytesCommand.createChecksumBytesCommand(builder, segmentOffset)
-    return this.send<ChecksumBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send<ChecksumBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
 
-  // TODO: can also send `VisualizationUpdate`
   // TODO: check whether any of these may send an "error" message instead
 }

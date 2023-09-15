@@ -1,7 +1,7 @@
 import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
-import * as vue from 'vue'
 import * as vueUseCore from '@vueuse/core'
+import * as vue from 'vue'
 
 import { defineStore } from 'pinia'
 
@@ -98,7 +98,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
         },
       )
       worker.addEventListener('error', (event) => {
-        workerCallbacks[event.error.id]?.reject()
+        if (event.error?.id) {
+          workerCallbacks[event.error.id]?.reject()
+        }
       })
     }
     const id = workerMessageId

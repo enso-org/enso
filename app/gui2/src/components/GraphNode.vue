@@ -46,6 +46,7 @@ const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
 const visualizationId = ref(random.uuidv4() as Uuid)
+// FIXME: set visualizationConfiguration
 const visualizationConfiguration = ref<VisualizationConfiguration>()
 const visualizationData = ref<{}>()
 
@@ -520,8 +521,6 @@ watch(
   color: white;
   cursor: grab;
   margin-right: 10px;
-  width: unset;
-  height: unset;
 }
 
 .GraphNode.dragging,
