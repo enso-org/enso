@@ -9,6 +9,6 @@
   "references": [
     {
       "path": "../ide-desktop/lib/dashboard/tsconfig.json"
-    },
+    }
   ]
 }

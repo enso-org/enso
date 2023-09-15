@@ -1,3 +1,4 @@
+import { Vec2 } from '@/util/vec2'
 import {
   computed,
   onMounted,
@@ -10,7 +11,6 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from '@/util/vec2'
 
 /**
  * Add an event listener on an {@link Element} for the duration of the component's lifetime.

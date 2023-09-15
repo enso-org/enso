@@ -1,7 +1,7 @@
 import { Rect } from '@/stores/rect'
-import { computed, proxyRefs, ref, type Ref } from 'vue'
 import { PointerButtonMask, usePointer, useResizeObserver, useWindowEvent } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
+import { computed, proxyRefs, ref, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {

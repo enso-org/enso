@@ -82,16 +82,16 @@ declare const d3: typeof import('d3')
 
 <script setup lang="ts">
 /** Scatterplot Visualization. */
-import ShowAllIcon from './icons/show_all.svg'
 import FindIcon from './icons/find.svg'
+import ShowAllIcon from './icons/show_all.svg'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 import type * as d3Types from 'd3'
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
-import { getTextWidth } from './measurement.ts'
 import type { Vec2 } from './builtins.ts'
+import { getTextWidth } from './measurement.ts'
 
 import VisualizationContainer from './VisualizationContainer.vue'
 
