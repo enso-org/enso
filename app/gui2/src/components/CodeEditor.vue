@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
 import {useWindowEvent} from "@/util/events";
+import {useProjectStore} from "@/stores/project";
+
+const proj = useProjectStore()
 
 const emit = defineEmits<{
   codeUpdate: [code: string]
@@ -9,7 +12,10 @@ const emit = defineEmits<{
 const content = ref('main = \n    2 + 2')
 const shown = ref(false)
 
-watchEffect(() => emit('codeUpdate', content.value))
+watchEffect(() => {
+  proj.module?.updateCode(content.value)
+  emit('codeUpdate', content.value)
+})
 
 useWindowEvent('keydown', e => { if (e.key == `\``) shown.value = !shown.value})
 

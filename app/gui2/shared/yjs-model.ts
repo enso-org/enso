@@ -232,6 +232,13 @@ class DistributedModule {
   dispose(): void {
     this.doc.destroy()
   }
+
+  updateCode(code: string): void {
+    this.doc.transact(() => {
+      this.contents.delete(0, this.contents.length)
+      this.contents.insert(0, code)
+    })
+  }
 }
 
 export interface RelativeRange {
