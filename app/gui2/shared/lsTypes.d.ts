@@ -107,31 +107,21 @@ export interface Panic {
  * provides description and percentage (`0.0-1.0`) of completeness.
  */
 export interface Pending {
-  /**
-   * Optional message describing current operation.
-   */
+  /** Optional message describing current operation. */
   message?: string
-
-  /**
-   * Optional amount of already done work as a number between `0.0` to `1.0`.
-   */
-  progress?: Number
+  /** Optional amount of already done work as a number between `0.0` to `1.0`. */
+  progress?: number
 }
 
 /**
  * Information about warnings associated with the value.
  */
 export interface Warnings {
-  /**
-   * The number of attached warnings.
-   */
+  /** The number of attached warnings. */
   count: number
-
-  /**
-   * If the value has a single warning attached, this field contains textual
+  /** If the value has a single warning attached, this field contains textual
    * representation of the attached warning. In general, warning values should
-   * be obtained by attaching an appropriate visualization to a value.
-   */
+   * be obtained by attaching an appropriate visualization to a value. */
   value?: string
 }
 
@@ -148,25 +138,25 @@ export interface FunctionSchema {
 
 export interface MethodPointer {
   /** The fully qualified module name. */
-  module: String
+  module: string
   /** The type on which the method is defined. */
-  definedOnType: String
+  definedOnType: string
   /** The method name. */
-  name: String
+  name: string
 }
 
 export type ProfilingInfo = ExecutionTime
 
 interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */
-  nanoTime: Number
+  nanoTime: number
 }
 
 interface ExpressionUpdate {
   /** The id of updated expression. */
   expressionId: ExpressionId
   /** The updated type of the expression. */
-  type?: String
+  type?: string
   /** The updated method call info. */
   methodCall?: MethodCall
   /** Profiling information about the expression. */
@@ -186,34 +176,17 @@ interface StackTraceElement {
 type DiagnosticType = 'Error' | 'Warning'
 
 interface Diagnostic {
-  /**
-   * The type of diagnostic message.
-   */
+  /** The type of diagnostic message. */
   kind: DiagnosticType
-
-  /**
-   * The diagnostic message.
-   */
-  message: String
-
-  /**
-   * The location of a file containing the diagnostic.
-   */
+  /** The diagnostic message. */
+  message: string
+  /** The location of a file containing the diagnostic. */
   path?: Path
-
-  /**
-   * The location of the diagnostic object in a file.
-   */
+  /** The location of the diagnostic object in a file. */
   location?: Range
-
-  /**
-   * The id of related expression.
-   */
+  /** The id of related expression. */
   expressionId?: ExpressionId
-
-  /**
-   * The stack trace.
-   */
+  /** The stack trace. */
   stack: StackTraceElement[]
 }
 
@@ -224,10 +197,8 @@ type FileSystemObject =
       name: string
       path: Path
     }
-  /**
-   * A directory which contents have been truncated, i.e. with its subtree not listed any further
-   * due to depth limit being reached.
-   */
+  /** A directory which contents have been truncated, i.e. with its subtree not listed any further
+   * due to depth limit being reached. */
   | {
       type: 'DirectoryTruncated'
       name: string
@@ -291,7 +262,7 @@ export type Notifications = {
       contextId: ContextId
       visualizationId: Uuid
       expressionId: ExpressionId
-      message: String
+      message: string
       diagnostic?: Diagnostic
     },
   ]
@@ -304,8 +275,8 @@ export type StackItem = ExplicitCall | LocalCall
 
 export interface ExplicitCall {
   methodPointer: MethodPointer
-  thisArgumentExpression?: String
-  positionalArgumentsExpressions: String[]
+  thisArgumentExpression?: string
+  positionalArgumentsExpressions: string[]
 }
 
 export interface LocalCall {

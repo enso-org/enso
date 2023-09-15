@@ -4,14 +4,18 @@ import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { useVisualizationStore, type Visualization } from '@/stores/visualization'
+import {
+  DEFAULT_VISUALIZATION_CONFIGURATION,
+  useVisualizationStore,
+  type Visualization,
+} from '@/stores/visualization'
 import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
 import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
 import { uuidFromBits, type DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
-import type { VisualizationConfiguration } from 'shared/lsTypes'
+import type { ContextId, VisualizationConfiguration } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import {
   computed,
@@ -28,6 +32,7 @@ import {
 
 const props = defineProps<{
   node: Node
+  executionContextId: ContextId | undefined
   languageServer: Raw<LanguageServer>
   dataServer: Raw<DataServer>
 }>()
@@ -46,9 +51,9 @@ const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
 const visualizationId = ref(random.uuidv4() as Uuid)
-// FIXME: set visualizationConfiguration
 const visualizationConfiguration = ref<VisualizationConfiguration>()
 const visualizationData = ref<{}>()
+const queuedVisualizationData = ref<{}>()
 
 const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
@@ -63,10 +68,6 @@ const visualizationTypes = computed(() =>
 const visualizationWidth = ref<number | null>(null)
 const visualizationHeight = ref<number | null>(150)
 const isVisualizationFullscreen = ref(false)
-
-const queuedVisualizationData = computed<{}>(() =>
-  visualizationStore.sampleData(visualizationType.value),
-)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -297,23 +298,28 @@ function handleClick(e: PointerEvent) {
   }
 }
 
+function updatePreprocessor(module: string, method: string, ...args: string[]) {
+  if (props.executionContextId) {
+    visualizationConfiguration.value = {
+      executionContextId: props.executionContextId,
+      visualizationModule: module,
+      expression: { module, definedOnType: module, name: method },
+      ...(args.length !== 0 ? { positionalArgumentsExpressions: args } : {}),
+    }
+  }
+}
+
 watchEffect(() => {
-  if (isVisualizationVisible.value) {
-    if (visualizationConfiguration.value != null) {
-      props.languageServer.attachVisualization(
-        visualizationId.value,
-        props.node.rootSpan.id,
-        visualizationConfiguration.value,
-      )
-    }
-  } else {
-    if (visualizationConfiguration.value != null) {
-      props.languageServer.detachVisualization(
-        visualizationId.value,
-        props.node.rootSpan.id,
-        visualizationConfiguration.value.executionContextId,
-      )
-    }
+  if (isVisualizationVisible.value && props.executionContextId) {
+    // TODO: should the old vis be detached?
+    props.languageServer.attachVisualization(
+      visualizationId.value,
+      props.node.rootSpan.id,
+      visualizationConfiguration.value ?? {
+        executionContextId: props.executionContextId,
+        ...DEFAULT_VISUALIZATION_CONFIGURATION,
+      },
+    )
   }
 })
 
@@ -441,14 +447,7 @@ watch(
       :data="visualizationData"
       :is-circular-menu-visible="isCircularMenuVisible"
       @hide="isVisualizationVisible = false"
-      @update:preprocessor="
-        (module, method, ...args) =>
-          console.log(
-            `preprocessor changed. node id: ${
-              node.rootSpan.id
-            } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
-          )
-      "
+      @update:preprocessor="updatePreprocessor"
       @update:type="visualizationType = $event"
     />
     <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">

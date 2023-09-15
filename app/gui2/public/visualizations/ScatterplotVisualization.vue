@@ -87,8 +87,9 @@ import ShowAllIcon from './icons/show_all.svg'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
-import type * as d3Types from 'd3'
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+
+import type * as d3Types from 'd3'
 
 import type { Vec2 } from './builtins.ts'
 import { getTextWidth } from './measurement.ts'
@@ -101,7 +102,7 @@ const props = defineProps<{
   nodeSize: Vec2
   width: number | undefined
   height: number | undefined
-  data: Data | string
+  data: Data | string | undefined
 }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
@@ -152,9 +153,12 @@ interface D3BrushEvent extends D3Event {
   selection: Extent | null
 }
 
-const data = computed<Data>(() => {
-  let rawData: Partial<Data> | number[] =
+const data = computed<Data | undefined>(() => {
+  let rawData: Partial<Data> | number[] | undefined =
     typeof props.data === 'string' ? JSON.parse(props.data) : props.data
+  if (rawData == null) {
+    return
+  }
   const unfilteredData = Array.isArray(rawData)
     ? rawData.map((y, index) => ({ x: index, y }))
     : rawData.data ?? []
@@ -191,8 +195,8 @@ const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 
 const margin = computed(() => {
-  const xLabel = data.value.axis.x.label
-  const yLabel = data.value.axis.y.label
+  const xLabel = data.value?.axis.x.label
+  const yLabel = data.value?.axis.y.label
   if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
   } else if (yLabel == null) {
@@ -236,7 +240,7 @@ onMounted(() => {
 })
 
 watchEffect(() => {
-  focus.value = data.value.focus
+  focus.value = data.value?.focus
 })
 
 let scaleAndAxis = {} as ReturnType<typeof updateAxes>
@@ -267,12 +271,9 @@ watch(
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  let [xMin, xMax] = d3.extent(data.value.data, (point) => point.x)
-  let [yMin, yMax] = d3.extent(data.value.data, (point) => point.y)
-  xMin ??= 0
-  xMax ??= 0
-  yMin ??= 0
-  yMax ??= 0
+  const data_ = data.value?.data ?? [{ x: 0, y: 0 }]
+  const [xMin = 0, xMax = 0] = d3.extent(data_, (point) => point.x)
+  const [yMin = 0, yMax = 0] = d3.extent(data_, (point) => point.y)
   const dx = xMax - xMin
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
@@ -405,7 +406,7 @@ function addPanAndZoom() {
           'translate(' + transformedScale.xScale(d.x) + ',' + transformedScale.yScale(d.y) + ')',
       )
 
-    if (data.value.points.labels === VISIBLE_POINTS) {
+    if (data.value?.points.labels === VISIBLE_POINTS) {
       d3.select(scatterplot)
         .selectAll<SVGTextElement, Point>('text')
         .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
@@ -579,7 +580,7 @@ function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
       (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
     )
 
-  if (data.value.points.labels === VISIBLE_POINTS) {
+  if (data.value?.points.labels === VISIBLE_POINTS) {
     d3.select(pointsNode.value)
       .selectAll<SVGTextElement, Point>('text')
       .transition()
@@ -606,7 +607,7 @@ watchEffect(() => {
   d3Points.value = d3
     .select(points)
     .selectAll('dataPoint')
-    .data(data.value.data)
+    .data(data.value?.data ?? [])
     .enter()
     .append('path')
     .attr(
@@ -619,7 +620,7 @@ watchEffect(() => {
     )
     .style('fill', (d) => d.color ?? FILL_COLOR)
 
-  if (data.value.points.labels === VISIBLE_POINTS) {
+  if (data.value?.points.labels === VISIBLE_POINTS) {
     d3Labels.value?.remove()
     d3Labels.value = d3
       .select(points)
@@ -648,7 +649,7 @@ function redrawPoints() {
     (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
   )
 
-  if (data.value.points.labels === VISIBLE_POINTS) {
+  if (data.value?.points.labels === VISIBLE_POINTS) {
     d3Labels.value
       ?.attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
@@ -714,9 +715,13 @@ function updateAxes() {
   if (yAxisNode.value == null) {
     throw new Error('Could not find the HTML element for the y axis.')
   }
-  const xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
+  const xScale = axisD3Scale(data.value?.axis.x)
+    .domain(domains.value.x)
+    .range([0, boxWidth.value])
   const xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
-  const yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])
+  const yScale = axisD3Scale(data.value?.axis.y)
+    .domain(domains.value.y)
+    .range([boxHeight.value, 0])
   const yAxis = d3.select(yAxisNode.value).call(d3.axisLeft(yScale).ticks(yTicks.value))
   return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
 }
@@ -745,13 +750,13 @@ function fitAll() {
 }
 
 const xLabelLeft = computed(() =>
-  data.value.axis.x.label == null
+  data.value?.axis.x.label == null
     ? 0
     : margin.value.left + getTextWidth(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(() =>
-  data.value.axis.y.label == null
+  data.value?.axis.y.label == null
     ? 0
     : -margin.value.top -
       boxHeight.value / 2 +
@@ -787,7 +792,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
           <g ref="xAxisNode" class="label axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="label axis-y"></g>
           <text
-            v-if="data.axis.x.label"
+            v-if="data?.axis.x.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
@@ -795,7 +800,7 @@ const yLabelTop = computed(() => -margin.value.left + 15)
             v-text="data.axis.x.label"
           ></text>
           <text
-            v-if="data.axis.y.label"
+            v-if="data?.axis.y.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"

@@ -80,7 +80,12 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       }
       const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
       const callback = this.resolveCallbacks.get(uuid)
-      callback?.(binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[binaryMessage.payloadType()]()))
+      const payloadType = binaryMessage.payloadType()
+      const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
+      if (payload != null) {
+        callback?.(payload)
+        this.emit(`${payloadType}`, [payload])
+      }
     })
   }
 

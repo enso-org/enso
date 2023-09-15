@@ -19,6 +19,7 @@ import type {
 } from './lsTypes'
 import type { Uuid } from './yjsModel'
 
+/** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
 export class LanguageServer extends Emitter<Notifications> {
   client: Client
   handlers: Map<string, Set<(...params: any[]) => void>>
@@ -55,58 +56,72 @@ export class LanguageServer extends Emitter<Notifications> {
     return this.client.request({ method, params })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#capabilityacquire) */
   acquireCapability(method: string, registerOptions: RegisterOptions): Promise<void> {
     return this.request('capability/acquire', { method, registerOptions })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filereceivestreeupdates) */
   acquireReceivesTreeUpdates(path: Path): Promise<void> {
     return this.acquireCapability('file/receivesTreeUpdates', { path })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessioninitprotocolconnection) */
   initProtocolConnection(clientId: Uuid): Promise<response.InitProtocolConnection> {
     return this.request('session/initProtocolConnection', { clientId })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textopenfile) */
   openTextFile(path: Path): Promise<response.OpenTextFile> {
     return this.request('text/openFile', { path })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textclosefile) */
   closeTextFile(path: Path): Promise<void> {
     return this.request('text/closeFile', { path })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textsave) */
   saveTextFile(path: Path, currentVersion: Checksum): Promise<void> {
     return this.request('text/save', { path, currentVersion })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textapplyedit) */
   applyEdit(edit: FileEdit, execute: boolean): Promise<void> {
     return this.request('text/applyEdit', { edit, execute })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filelist) */
   listFiles(path: Path): Promise<response.FileList> {
     return this.request('file/list', { path })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextcreate) */
   createExecutionContext(contextId?: ContextId): Promise<response.ExecutionContext> {
     return this.request('executionContext/create', { contextId })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextdestroy) */
   destroyExecutionContext(contextId: ContextId): Promise<void> {
     return this.request('executionContext/destroy', { contextId })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextfork) */
   forkExecutionContext(contextId: ContextId): Promise<response.ExecutionContext> {
     return this.request('executionContext/fork', { contextId })
   }
 
-  pushExecutionContext(contextId: ContextId, stackItem: StackItem): Promise<void> {
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextpush) */
+  pushExecutionContextItem(contextId: ContextId, stackItem: StackItem): Promise<void> {
     return this.request('executionContext/push', { contextId, stackItem })
   }
 
-  popExecutionContext(contextId: ContextId): Promise<void> {
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextpop) */
+  popExecutionContextItem(contextId: ContextId): Promise<void> {
     return this.request('executionContext/pop', { contextId })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextrecompute) */
   recomputeExecutionContext(
     contextId: ContextId,
     invalidatedExpressions?: 'all' | string[],
@@ -119,10 +134,12 @@ export class LanguageServer extends Emitter<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextinterrupt) */
   interruptExecutionContext(contextId: ContextId): Promise<void> {
     return this.request('executionContext/interrupt', { contextId })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextsetexecutionenvironment) */
   setExecutionEnvironment(
     contextId: ContextId,
     executionEnvironment?: ExecutionEnvironment,
@@ -133,6 +150,7 @@ export class LanguageServer extends Emitter<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextexecuteexpression) */
   executeExpression(
     visualizationId: Uuid,
     expressionId: ExpressionId,
@@ -145,6 +163,7 @@ export class LanguageServer extends Emitter<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextattachvisualization) */
   attachVisualization(
     visualizationId: Uuid,
     expressionId: ExpressionId,
@@ -157,6 +176,7 @@ export class LanguageServer extends Emitter<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextdetachvisualization) */
   detachVisualization(
     visualizationId: Uuid,
     expressionId: ExpressionId,
@@ -169,6 +189,7 @@ export class LanguageServer extends Emitter<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextmodifyvisualization) */
   modifyVisualization(
     visualizationId: Uuid,
     visualizationConfig: VisualizationConfiguration,

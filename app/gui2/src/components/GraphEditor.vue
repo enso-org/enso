@@ -10,8 +10,10 @@ import type { Rect } from '@/stores/rect'
 import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { reactive, ref } from 'vue'
+import * as random from 'lib0/random'
+import type { ContextId } from 'shared/lsTypes'
+import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
+import { reactive, ref, watchEffect } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -21,6 +23,13 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
+const executionContextId = ref<ContextId>()
+const clientId = ref(random.uuidv4() as Uuid)
+
+watchEffect(async () => {
+  await projectStore.lsRpcConnection.initProtocolConnection(clientId.value)
+  executionContextId.value = (await projectStore.lsRpcConnection.createExecutionContext()).contextId
+})
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -88,6 +97,7 @@ function moveNode(id: ExprId, delta: Vec2) {
         v-for="[id, node] in graphStore.nodes"
         :key="id"
         :node="node"
+        :execution-context-id="executionContextId"
         :language-server="projectStore.lsRpcConnection"
         :data-server="projectStore.dataConnection"
         @updateRect="updateNodeRect(id, $event)"
