@@ -11,7 +11,7 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjs-model'
-import { reactive, ref, watchEffect } from 'vue'
+import {onMounted, reactive, ref, watchEffect} from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -24,6 +24,11 @@ const graphStore = useGraphStore()
 watchEffect(() => {
   console.log(`execution mode changed to '${mode.value}'.`)
 })
+
+watchEffect(() => {
+  console.log(`code changed to '${graphStore.proj.module?.contents}'.`)
+})
+
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -74,6 +79,26 @@ function moveNode(id: ExprId, delta: Vec2) {
   const newPosition = node.position.addScaled(delta, 1 / navigator.scale)
   graphStore.setNodePosition(id, newPosition)
 }
+
+
+// === Code Editor ===
+
+const codeEditor = ref<InstanceType<typeof CodeEditor> | null>(null);
+
+/// Process code updates from the CodeEditor component.
+function codeUpdate(code: string) {
+  graphStore.proj.module?.updateCode(code)
+}
+
+onMounted(() => {
+  /// Apply external code changes to the text editor
+  watchEffect(() => {
+    const code = graphStore.proj.module?.contents
+    if (code == null) return
+    codeEditor.value!.content = code
+  })
+})
+
 </script>
 
 <template>
@@ -111,7 +136,7 @@ function moveNode(id: ExprId, delta: Vec2) {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
-    <CodeEditor />
+    <CodeEditor ref="codeEditor" @codeUpdate="codeUpdate" />
   </div>
 </template>
 
