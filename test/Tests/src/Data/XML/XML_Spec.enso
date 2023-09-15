@@ -1,0 +1,29 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Syntax_Error
+
+import Standard.Base.Data.XML.XML_Document.XML_Document
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    Test.group "Read XML" <|
+        Test.specify "Can read from a stream" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            doc = XML_Document.read_file test_file
+            IO.println doc
+            IO.println (Meta.get_simple_type_name doc)
+            root = doc.root_element
+            IO.println root
+            IO.println (Meta.get_simple_type_name root)
+            IO.println root.name
+            root.name . should_equal "class"
+            #IO.println (doc.getDocumentElement)
+            #IO.println (doc.getDocumentElement.getNodeName)
+            #doc.getDocumentElement.normalize
+            #IO.println (doc.getDocumentElement)
+            #IO.println (doc.getDocumentElement.getNodeName)
+            #teachers = doc.get_elements_by_tag_name "teacher"
+            #IO.println teachers
+
+main = Test_Suite.run_main spec

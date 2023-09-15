@@ -1,0 +1,27 @@
+<?xml version = "1.0"?>
+<class>
+    <teacher id="100">
+        <firstname>Mary</firstname>
+        <lastname>Smith</lastname>
+        <bio>
+            Blah blah
+        </bio>
+    </teacher>
+    <teacher id="100">
+        <firstname>Bob</firstname>
+        <lastname>Jones</lastname>
+        <bio>
+            This that
+        </bio>
+    </teacher>
+    <studemt>
+        <firstname>Alice</firstname>
+        <lastname>Wright</lastname>
+        <gpa>4.01</gpa>
+    </studemt>
+    <studemt>
+        <firstname>Jessi</firstname>
+        <lastname>Cooper</lastname>
+        <gpa>3.99</gpa>
+    </studemt>
+</class>
