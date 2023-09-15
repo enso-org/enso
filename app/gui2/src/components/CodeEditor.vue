@@ -13,13 +13,31 @@ watchEffect(() => {
   emit('codeUpdate', content.value)
 })
 
-useWindowEvent('keydown', e => { if (e.key == `\``) shown.value = !shown.value})
+const textArea = ref<InstanceType<typeof HTMLTextAreaElement> | null>(null);
 
+useWindowEvent('keydown', e => {
+  const graphEditorInFocus = document.activeElement === document.body
+  const codeEditorInFocus = document.activeElement === document.querySelector('.CodeEditor > textarea')
+  const validFocus = graphEditorInFocus || codeEditorInFocus
+  const targetKeyPressed = e.key == `\``
+  if (validFocus && targetKeyPressed) {
+    e.preventDefault()
+    shown.value = !shown.value
+  }
+})
+
+watchEffect(() => {
+  if (shown.value) {
+    textArea.value?.focus()
+  } else {
+    textArea.value?.blur()
+  }
+}, {flush: 'post'})
 </script>
 
 <template>
   <div v-if="shown" class="CodeEditor" @keydown.enter.stop>
-    <textarea v-model="content"></textarea>
+    <textarea v-model="content" ref="textArea"></textarea>
   </div>
 </template>
 
@@ -32,7 +50,7 @@ useWindowEvent('keydown', e => { if (e.key == `\``) shown.value = !shown.value})
 
 .CodeEditor > textarea {
   background-color: rgba(1.0,1.0,1.0,0.1);
-  border-color: transparent;
+  border: none;
   resize: none;
   width: 500px;
   height: 500px;
