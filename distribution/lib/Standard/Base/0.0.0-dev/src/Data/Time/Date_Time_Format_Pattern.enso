@@ -141,6 +141,7 @@ type Date_Time_Format_Pattern
        https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
     Java (pattern : Text | DateTimeFormatter)
 
+    ## PRIVATE
     build_java_formatter : DateTimeFormatter
     build_java_formatter self = case self of
         Date_Time_Format_Pattern.Simple pattern locale ->

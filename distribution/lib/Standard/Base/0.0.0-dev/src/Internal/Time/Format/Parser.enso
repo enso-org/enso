@@ -15,58 +15,111 @@ from project.Data.Text.Extensions import all
 
 import project.Internal.Time.Format.Tokenizer.Format_Token
 
+## PRIVATE
 type Text_Representation
+    ## PRIVATE
     Short_Form
+
+    ## PRIVATE
     Long_Form
 
+## PRIVATE
 type Numeric_Representation
+    ## PRIVATE
     Value digits:Integer
 
+## PRIVATE
 type Two_Digit_Year_Representation
+    ## PRIVATE
     Value max_year:Integer
 
+## PRIVATE
 type Common_Nodes
+    ## PRIVATE
     Literal text:Text
+
+    ## PRIVATE
     Optional_Section inner_nodes:Vector
 
+## PRIVATE
 type Standard_Date_Patterns
+    ## PRIVATE
     Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+
+    ## PRIVATE
     Quarter (representation : Numeric_Representation)
+
+    ## PRIVATE
     Month (representation : Numeric_Representation | Text_Representation)
+
+    ## PRIVATE
     Day_Of_Month (representation : Numeric_Representation)
+
+    ## PRIVATE
     Day_Of_Week (representation : Text_Representation)
 
+## PRIVATE
 type ISO_Week_Year_Patterns
+    ## PRIVATE
     Week_Based_Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+
+    ## PRIVATE
     Week_Of_Year (representation : Numeric_Representation)
+
+    ## PRIVATE
     Day_Of_Week (representation : Numeric_Representation | Text_Representation)
 
+## PRIVATE
 type Time_Patterns
+    ## PRIVATE
     Hour (representation : Numeric_Representation) is_24h:Boolean
+
+    ## PRIVATE
     AmPm
+
+    ## PRIVATE
     Minute (representation : Numeric_Representation)
+
+    ## PRIVATE
     Second (representation : Numeric_Representation)
+
+    ## PRIVATE
     Fraction_Of_Second (representation : Numeric_Representation)
 
+## PRIVATE
 type Time_Zone_Patterns
+    ## PRIVATE
     Time_Zone_Name
+
+    ## PRIVATE
     Time_Zone_ID
+
+    ## PRIVATE
     Time_Zone_Offset
 
+## PRIVATE
 type Parser_Mode
+    ## PRIVATE
     Simple
+
+    ## PRIVATE
     ISO_Week_Year
 
+    ## PRIVATE
     pattern_format_name self = case self of
         Parser_Mode.Simple -> "Simple"
         Parser_Mode.ISO_Week_Year -> "ISO_Week_Date"
 
+## PRIVATE
 type Parser
+    ## PRIVATE
     Instance (tokens : Vector (Format_Token | Nothing)) (position : Ref Integer) (mode : Parser_Mode)
 
+    ## PRIVATE
     new tokens mode =
         Parser.Instance tokens=tokens+[Nothing] position=(Ref.new 0) mode=mode
 
+    ## PRIVATE
     run self = Panic.recover Date_Time_Format_Parse_Error <|
         result_builder = Vector.new_builder
         go _ = case self.consume_token of
@@ -82,6 +135,7 @@ type Parser
         go Nothing
         result_builder.to_vector
 
+    ## PRIVATE
     run_optional self =
         result_builder = Vector.new_builder
         go _ = case self.consume_token of
@@ -94,6 +148,7 @@ type Parser
         go Nothing
         result_builder.to_vector
 
+    ## PRIVATE
     parse_common_token self token = case token of
         Format_Token.Literal text ->
             Common_Nodes.Literal text
@@ -110,11 +165,13 @@ type Parser
             any_pattern
         _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
 
+    ## PRIVATE
     consume_token self =
         current_position = self.position.get
         self.position.put current_position+1
         self.tokens.at current_position
 
+    ## PRIVATE
     consume_curly_parameter_if_exists self =
         current_position = self.position.get
         case self.tokens.at current_position of
@@ -125,6 +182,7 @@ type Parser
                 # If no Curly_Section is set, do not advance the pointer and return Nothing.
                 Nothing
 
+    ## PRIVATE
     resolve_year_representation self count = case count of
         2 ->
             max_year = case self.consume_curly_parameter_if_exists of
@@ -136,6 +194,7 @@ type Parser
         _ ->
             Numeric_Representation.Value count
 
+    ## PRIVATE
     parse_simple_date_pattern self character count =
         lowercase = character.to_case Case.Lower
         case lowercase of
@@ -158,6 +217,7 @@ type Parser
                 _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
             _ -> Nothing
 
+    ## PRIVATE
     parse_iso_week_year_pattern self character count =
         lowercase = character.to_case Case.Lower
         case lowercase of
@@ -170,6 +230,7 @@ type Parser
                 _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
             _ -> Nothing
 
+    ## PRIVATE
     parse_time_or_timezone_pattern self character count =
         lowercase = character.to_case Case.Lower
         case lowercase of
@@ -190,10 +251,13 @@ type Parser
             "z" -> Time_Zone_Patterns.Time_Zone_Offset
             _ -> Nothing
 
+## PRIVATE
 default_max_year = 2049
 
+## PRIVATE
 parse_simple_date_pattern tokens =
     Parser.new tokens mode=Parser_Mode.Simple . run
 
+## PRIVATE
 parse_iso_week_year_pattern tokens =
     Parser.new tokens mode=Parser_Mode.ISO_Week_Year . run

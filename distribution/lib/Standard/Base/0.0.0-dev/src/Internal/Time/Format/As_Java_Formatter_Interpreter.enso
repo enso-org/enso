@@ -17,6 +17,7 @@ polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
 
+## PRIVATE
 interpret : Locale -> Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns) -> DateTimeFormatter
 interpret locale nodes =
     builder = DateTimeFormatterBuilder.new
@@ -61,6 +62,7 @@ interpret locale nodes =
     nodes.each interpret_node
     builder.toFormatter locale.java_locale
 
+## PRIVATE
 get_field_for node = case node of
     Standard_Date_Patterns.Year _         -> ChronoField.YEAR
     Standard_Date_Patterns.Quarter _      -> IsoFields.QUARTER_OF_YEAR
@@ -80,6 +82,7 @@ get_field_for node = case node of
 
     _ -> Panic.throw (Illegal_Argument.Error "Cannot extract a TemporalField from "+node.to_text)
 
+## PRIVATE
 append_field builder field representation = case representation of
     Numeric_Representation.Value digits -> case digits of
         2 -> builder.appendValue field 2
