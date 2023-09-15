@@ -4,13 +4,12 @@ import {
   onUnmounted,
   proxyRefs,
   ref,
+  type Ref,
   shallowRef,
   watch,
   watchEffect,
-  type Ref,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from '@/util/vec2'
 
 /**
  * Add an event listener on an {@link Element} for the duration of the component's lifetime.
@@ -89,7 +88,7 @@ export function useWindowEventConditional<K extends keyof WindowEventMap>(
 }
 
 /**
- * Add an event listener on document for the duration of condition being true.
+ * Add an event listener on documetn for the duration of condition being true.
  * @param condition the condition that determines if event is bound
  * @param event name of event to register
  * @param handler event handler
@@ -108,12 +107,14 @@ export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
   })
 }
 
-const hasWindow = typeof window !== 'undefined'
-const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+interface Position {
+  x: number
+  y: number
+}
 
-export function modKey(e: KeyboardEvent): boolean {
-  return isMacLike ? e.metaKey : e.ctrlKey
+interface Size {
+  width: number
+  height: number
 }
 
 /**
@@ -129,10 +130,10 @@ export function modKey(e: KeyboardEvent): boolean {
 export function useResizeObserver(
   elementRef: Ref<Element | undefined | null>,
   useContentRect = true,
-): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero())
+): Ref<Size> {
+  const sizeRef = shallowRef<Size>({ width: 0, height: 0 })
   const observer = new ResizeObserver((entries) => {
-    let rect: { width: number; height: number } | null = null
+    let rect: Size | null = null
     for (const entry of entries) {
       if (entry.target === elementRef.value) {
         if (useContentRect) {
@@ -143,7 +144,7 @@ export function useResizeObserver(
       }
     }
     if (rect != null) {
-      sizeRef.value = new Vec2(rect.width, rect.height)
+      sizeRef.value = { width: rect.width, height: rect.height }
     }
   })
 
@@ -164,13 +165,13 @@ export function useResizeObserver(
 
 export interface EventPosition {
   /** The event position at the initialization of the drag. */
-  initial: Vec2
+  initial: Position
   /** Absolute event position, equivalent to clientX/Y. */
-  absolute: Vec2
+  absolute: Position
   /** Event position relative to the initial position. Total movement of the drag so far. */
-  relative: Vec2
+  relative: Position
   /** Difference of the event position since last event. */
-  delta: Vec2
+  delta: Position
 }
 
 type PointerEventType = 'start' | 'move' | 'stop'
@@ -207,8 +208,8 @@ export function usePointer(
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
   let trackedElement: Element | null = null
-  let initialGrabPos: Vec2 | null = null
-  let lastPos: Vec2 | null = null
+  let initialGrabPos: Position | null = null
+  let lastPos: Position | null = null
 
   const isTracking = () => trackedPointer.value != null
 
@@ -229,7 +230,7 @@ export function usePointer(
   function doMove(e: PointerEvent) {
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
       handler(computePosition(e, initialGrabPos, lastPos), e, 'move')
-      lastPos = new Vec2(e.clientX, e.clientY)
+      lastPos = { x: e.clientX, y: e.clientY }
     }
   }
 
@@ -264,7 +265,7 @@ export function usePointer(
         trackedPointer.value = e.pointerId
         trackedElement = e.currentTarget
         trackedElement.setPointerCapture(e.pointerId)
-        initialGrabPos = new Vec2(e.clientX, e.clientY)
+        initialGrabPos = { x: e.clientX, y: e.clientY }
         lastPos = initialGrabPos
         handler(computePosition(e, initialGrabPos, lastPos), e, 'start')
       }
@@ -277,11 +278,11 @@ export function usePointer(
   })
 }
 
-function computePosition(event: PointerEvent, initial: Vec2, last: Vec2): EventPosition {
+function computePosition(event: PointerEvent, initial: Position, last: Position): EventPosition {
   return {
     initial,
-    absolute: new Vec2(event.clientX, event.clientY),
-    relative: new Vec2(event.clientX - initial.x, event.clientY - initial.y),
-    delta: new Vec2(event.clientX - last.x, event.clientY - last.y),
+    absolute: { x: event.clientX, y: event.clientY },
+    relative: { x: event.clientX - initial.x, y: event.clientY - initial.y },
+    delta: { x: event.clientX - last.x, y: event.clientY - last.y },
   }
 }

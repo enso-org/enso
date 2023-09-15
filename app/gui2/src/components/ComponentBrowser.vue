@@ -63,7 +63,7 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
-  return componentStore.groups[component.group].color
+  return componentStore.groups[component.group]!.color
 }
 
 // === Highlight ===

@@ -2,7 +2,7 @@ import { watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import type { Opt } from './opt'
+import type { Opt } from '@/util/opt'
 
 export function useObserveYjs<T>(
   typeRef: Ref<Opt<Y.AbstractType<T>>>,

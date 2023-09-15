@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { usePointer, useResizeObserver } from '@/util/events'
+import { useVisualizationStore, type Visualization } from '@/stores/visualization'
+import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
 import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
@@ -18,6 +20,7 @@ import {
   onUpdated,
   reactive,
   ref,
+  shallowRef,
   watch,
   watchEffect,
   type Raw,
@@ -37,12 +40,32 @@ const emit = defineEmits<{
   delete: []
 }>()
 
+const visualizationStore = useVisualizationStore()
+
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
 const visualizationId = ref(random.uuidv4() as Uuid)
 const visualizationConfiguration = ref<VisualizationConfiguration>()
-const visualizationData = ref<unknown>()
+const visualizationData = ref<{}>()
+
+const isCircularMenuVisible = ref(false)
+const isAutoEvaluationDisabled = ref(false)
+const isDocsVisible = ref(false)
+const isVisualizationVisible = ref(false)
+
+const visualizationType = ref('Scatterplot')
+const visualization = shallowRef<Visualization>()
+const visualizationTypes = computed(() =>
+  visualizationStore.types.filter((type) => type !== visualizationType.value),
+)
+const visualizationWidth = ref<number | null>(null)
+const visualizationHeight = ref<number | null>(150)
+const isVisualizationFullscreen = ref(false)
+
+const queuedVisualizationData = computed<{}>(() =>
+  visualizationStore.sampleData(visualizationType.value),
+)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -206,39 +229,40 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  if (selectionToRecover != null && editableRootNode.value != null) {
-    const saved = selectionToRecover
-    const root = editableRootNode.value
-    selectionToRecover = null
-    const selection = window.getSelection()
-    if (selection == null) return
+  const root = editableRootNode.value
 
-    function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
-      if (offset == null) return null
-      for (let textSpan of root.querySelectorAll<HTMLSpanElement>('span[data-span-start]')) {
-        if (textSpan.children.length > 0) continue
-        const start = parseInt(textSpan.dataset.spanStart ?? '0')
-        const text = textSpan.textContent ?? ''
-        const end = start + text.length
-        if (start <= offset && offset <= end) {
-          let remainingOffset = offset - start
-          for (let node of textSpan.childNodes) {
-            if (node instanceof Text) {
-              let length = node.data.length
-              if (remainingOffset > length) {
-                remainingOffset -= length
-              } else {
-                return {
-                  node,
-                  offset: remainingOffset,
-                }
+  function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
+    if (offset == null) return null
+    for (let textSpan of root?.querySelectorAll<HTMLSpanElement>('span[data-span-start]') ?? []) {
+      if (textSpan.children.length > 0) continue
+      const start = parseInt(textSpan.dataset.spanStart ?? '0')
+      const text = textSpan.textContent ?? ''
+      const end = start + text.length
+      if (start <= offset && offset <= end) {
+        let remainingOffset = offset - start
+        for (let node of textSpan.childNodes) {
+          if (node instanceof Text) {
+            let length = node.data.length
+            if (remainingOffset > length) {
+              remainingOffset -= length
+            } else {
+              return {
+                node,
+                offset: remainingOffset,
               }
             }
           }
         }
       }
-      return null
     }
+    return null
+  }
+
+  if (selectionToRecover != null && editableRootNode.value != null) {
+    const saved = selectionToRecover
+    selectionToRecover = null
+    const selection = window.getSelection()
+    if (selection == null) return
 
     for (let range of saved.ranges) {
       const start = findTextNodeAtOffset(range[0])
@@ -271,8 +295,6 @@ function handleClick(e: PointerEvent) {
     e.stopPropagation()
   }
 }
-
-const isVisualizationVisible = ref(false)
 
 watchEffect(() => {
   if (isVisualizationVisible.value) {
@@ -315,7 +337,7 @@ function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
   if (eventVisualizationId !== visualizationId.value) {
     return
   }
-  visualizationData.value = vizUpdate.dataString()
+  visualizationData.value = vizUpdate.dataString() ?? undefined
 }
 
 onMounted(() => {
@@ -325,40 +347,139 @@ onMounted(() => {
 onUnmounted(() => {
   props.dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
 })
+
+function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
+  return (
+    !(event.target instanceof HTMLElement) ||
+    !rootNode.value?.contains(event.target) ||
+    event.target.isContentEditable ||
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  )
+}
+
+useDocumentEvent('keydown', (event) => {
+  if (isInputEvent(event)) {
+    return
+  }
+  if (event.key === ' ') {
+    if (event.shiftKey) {
+      if (isVisualizationVisible.value) {
+        isVisualizationFullscreen.value = !isVisualizationFullscreen.value
+      } else {
+        isVisualizationVisible.value = true
+        isVisualizationFullscreen.value = true
+      }
+    } else {
+      isVisualizationVisible.value = !isVisualizationVisible.value
+    }
+  }
+})
+
+watchEffect(async (onCleanup) => {
+  let shouldSwitchVisualization = true
+  onCleanup(() => {
+    shouldSwitchVisualization = false
+  })
+  const component = await visualizationStore.get(visualizationType.value)
+  if (shouldSwitchVisualization) {
+    visualization.value = component
+    visualizationData.value = queuedVisualizationData.value
+  }
+})
+
+function onBlur(event: FocusEvent) {
+  if (!(event.relatedTarget instanceof Node) || !rootNode.value?.contains(event.relatedTarget)) {
+    isCircularMenuVisible.value = false
+  }
+}
+
+function onExpressionClick(event: Event) {
+  if (isInputEvent(event)) {
+    return
+  }
+  rootNode.value?.focus()
+  isCircularMenuVisible.value = true
+}
+
+watch(
+  () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
+  () => {
+    rootNode.value?.focus()
+  },
+)
 </script>
 
 <template>
   <div
     ref="rootNode"
-    class="Node"
+    :tabindex="-1"
+    class="GraphNode"
     :style="{ transform }"
     :class="{ dragging: dragPointer.dragging }"
-    v-on="dragPointer.events"
+    @focus="isCircularMenuVisible = true"
+    @blur="onBlur"
   >
-    <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
-    <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
-    <div
-      ref="editableRootNode"
-      class="editable"
-      contenteditable
-      spellcheck="false"
-      @beforeinput="editContent"
-      @pointerdown.stop
-    >
-      <NodeSpan
-        :content="node.content"
-        :span="node.rootSpan"
-        :offset="0"
-        @updateExprRect="updateExprRect"
-      />
+    <div class="binding" @pointerdown.stop>
+      {{ node.binding }}
+    </div>
+    <CircularMenu
+      v-if="isCircularMenuVisible"
+      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
+      v-model:is-docs-visible="isDocsVisible"
+      v-model:is-visualization-visible="isVisualizationVisible"
+    />
+    <component
+      :is="visualization"
+      v-if="isVisualizationVisible && visualization"
+      v-model:width="visualizationWidth"
+      v-model:height="visualizationHeight"
+      v-model:fullscreen="isVisualizationFullscreen"
+      :node-size="nodeSize"
+      :types="visualizationTypes"
+      :data="visualizationData"
+      :is-circular-menu-visible="isCircularMenuVisible"
+      @hide="isVisualizationVisible = false"
+      @update:preprocessor="
+        (module, method, ...args) =>
+          console.log(
+            `preprocessor changed. node id: ${
+              node.rootSpan.id
+            } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
+          )
+      "
+      @update:type="visualizationType = $event"
+    />
+    <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
+      <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
+      <div
+        ref="editableRootNode"
+        class="editable"
+        contenteditable
+        spellcheck="false"
+        @beforeinput="editContent"
+        @focus="isCircularMenuVisible = true"
+        @blur="onBlur"
+        @pointerdown.stop
+      >
+        <NodeSpan
+          :content="node.content"
+          :span="node.rootSpan"
+          :offset="0"
+          @updateExprRect="updateExprRect"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.Node {
-  color: red;
+.GraphNode {
   position: absolute;
+}
+
+.node {
+  position: relative;
   top: 0;
   left: 0;
 
@@ -369,11 +490,12 @@ onUnmounted(() => {
   align-items: center;
   white-space: nowrap;
   background: #222;
-  padding: 5px 10px;
-  border-radius: 20px;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
 }
 
 .binding {
+  user-select: none;
   margin-right: 10px;
   color: black;
   position: absolute;
@@ -384,17 +506,36 @@ onUnmounted(() => {
 
 .editable {
   outline: none;
+  height: 24px;
+  padding: 1px 0;
+}
+
+.container {
+  position: relative;
   display: flex;
   gap: 4px;
 }
 
 .icon {
+  color: white;
   cursor: grab;
   margin-right: 10px;
+  width: unset;
+  height: unset;
 }
 
-.Node.dragging,
-.Node.dragging .icon {
+.GraphNode.dragging,
+.GraphNode.dragging .icon {
   cursor: grabbing;
+}
+
+.visualization {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  background: #222;
+  border-radius: 16px;
 }
 </style>
