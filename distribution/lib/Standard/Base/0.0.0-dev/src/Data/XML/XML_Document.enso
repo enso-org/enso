@@ -2,11 +2,14 @@ type XML_Document
     ## Static methods
     from_file : Text -> XML_Document ! XML_Parse_Error
     from_string : Text -> XML_Document ! XML_Parse_Error
+
     ## Object methods
-    get_root : XML -> XML_Element
+    root_element : XML_Element
+    root_element self = ...
 
 type XML_Format
     # Implements the File_Format interface, using XML_Document.from_file
+    # Include mime type (with encoding??) and from_stream
 
 type XML_Element
     ## Object methods
@@ -14,44 +17,23 @@ type XML_Element
     ## Gets the tag of an xml element.
 
        Example:
-           XML_Document.from_string '<foo>hello</foo>' . at 0 . tag
+           XML_Document.from_string '<foo>hello</foo>' . root_element . at 0 . tag
            # => "foo"
-    tag : Text
+    name : Text
 
-    ## Gets a list of the attribute names of an xml element.
+    ## Gets a map of the attributes of an xml element.
 
        Example:
            XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
-           # => ["bar"]
+           # => Map.from_vector [["bar", "one"]]
     attributes : Map Text Text
 
-    ## Gets an attribute of an xml element.
-
-       Example:
-           XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attribute "bar"
-           # => "one"
-    attribute : Text -> Text
-
-    ## Gets the children of an xml element.
+    ## Gets the child nodes of an xml element.
 
        Example:
            XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . children
            # => [XML_Document.from_string "<baz>hello</baz>"]
     children : Vector XML_Element
-
-    ## Gets the number children of an xml element.
-
-       Example:
-           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . num_children
-           # => 1
-    num_children : Integer
-
-    ## Gets a child of an xml element.
-
-       Example:
-           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
-           # => XML_Document.from_string "<baz>hello</baz>"
-    at : Text | Integer -> XML_Element
 
     ## Gets the non-markup contents of the element.
 
@@ -60,12 +42,38 @@ type XML_Element
            # => "hello"
     text : Text
 
+    ## Gets the raw XML of the element (including tag, attributes and contents).
+    outer_xml : Text
+
+    ## Gets the raw XML contents of the element.
+    inner_xml : Text
+
+    ## Gets a child or attribute of an xml element. ("@foo" for attributes")
+       Integer is child index.
+       Text should support XPath.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
+           # => XML_Document.from_string "<baz>hello</baz>"
+    at : Text | Integer -> XML_Element | Text ! Key_Not_Found
+
+    ## Gets a child of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
+           # => XML_Document.from_string "<baz>hello</baz>"
+    get : Text | Integer -> Any -> XML_Element
+
+    ## Gets the number children of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . num_children
+           # => 1
+    length : Integer
+
     ## Gets elements matching a given tag name
 
        Example:
            XML_Document.from_string '<foo><baz>hello</baz></foo>' . get_elements_by_tag_name "baz"
            # => [XML_Document.from_string "<baz>hello</baz>"]
     get_elements_by_tag_name : Text -> Vector XML_Element
-
-Table.from_objects
-    # Add case for XML_Document
