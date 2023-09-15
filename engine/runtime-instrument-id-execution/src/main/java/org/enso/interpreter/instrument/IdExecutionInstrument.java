@@ -15,12 +15,14 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import java.util.function.Consumer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -29,13 +31,9 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Constants;
-import org.enso.interpreter.runtime.Module;
-
-import java.util.function.Consumer;
-import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -56,7 +54,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     this.env = env;
   }
 
-  /** Factory for creating new id event nodes **/
+  /** Factory for creating new id event nodes. */
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
 
       private final CallTarget entryCallTarget;
