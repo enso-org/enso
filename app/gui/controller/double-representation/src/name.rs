@@ -28,11 +28,9 @@ pub mod project;
 pub enum InvalidQualifiedName {
     #[fail(display = "The qualified name is empty.")]
     EmptyName,
-    #[fail(display = "No namespace in project qualified name.")]
-    NoNamespace,
-    #[fail(display = "Invalid namespace in project qualified name.")]
-    InvalidNamespace,
-    #[fail(display = "Too many segments in project qualified name.")]
+    #[fail(display = "Too few segments in qualified name.")]
+    TooFewSegments,
+    #[fail(display = "Too many segments in qualified name.")]
     TooManySegments,
 }
 
@@ -156,7 +154,7 @@ impl QualifiedName {
         let mut iter = segments.into_iter().map(|name| name.into());
         let project_name = match (iter.next(), iter.next()) {
             (Some(ns), Some(name)) => project::QualifiedName::new(ns, name),
-            _ => return Err(InvalidQualifiedName::NoNamespace.into()),
+            _ => return Err(InvalidQualifiedName::TooFewSegments.into()),
         };
         let without_main = iter.skip_while(|s| *s == PROJECTS_MAIN_MODULE);
         Ok(Self::new(project_name, without_main.collect()))
@@ -192,6 +190,22 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     /// Check if the name refers to some project's Main module.
     pub fn is_main_module(&self) -> bool {
         self.path.as_ref().is_empty()
+    }
+
+    /// Check if this name refers to a descendant of another name.
+    ///
+    /// ```rust
+    /// # use double_representation::name::QualifiedName;
+    ///
+    /// let parent = QualifiedName::from_text("ns.Project.Module").unwrap();
+    /// let descendant = QualifiedName::from_text("ns.Project.Module.SubModule.Element").unwrap();
+    /// let not_descendant = QualifiedName::from_text("ns.Project.Module2.Element").unwrap();
+    ///
+    /// assert!(descendant.is_descendant_of(parent.as_ref()));
+    /// assert!(!not_descendant.is_descendant_of(parent.as_ref()));
+    /// assert!(parent.is_descendant_of(parent.as_ref()));
+    pub fn is_descendant_of(&self, other: QualifiedNameRef) -> bool {
+        self.project == other.project && self.path.as_ref().starts_with(other.path)
     }
 
     /// The iterator over name's segments (including project namespace and name).

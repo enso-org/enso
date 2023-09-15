@@ -320,7 +320,7 @@ pub struct GridViewTemplate<
 > {
     frp:        Frp<HeaderModel>,
     model:      Rc<Model<InnerGridView, HeaderEntry, HeaderParams>>,
-    entry_type: PhantomData<Entry>,
+    entry_type: ZST<Entry>,
 }
 
 impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderParams> Deref
@@ -451,7 +451,7 @@ where
             column_resize_params <- all(&grid_frp.column_resized, &grid_frp.properties);
             eval column_resize_params ((&((col, _), props)) model.update_header_size(col, props));
         }
-        let entry_type = PhantomData;
+        let entry_type = ZST();
         Self { frp, model, entry_type }
     }
 
@@ -536,6 +536,10 @@ where
     fn display_object(&self) -> &display::object::Instance {
         self.model.grid.display_object()
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.model.grid.focus_receiver()
+    }
 }
 
 
@@ -553,7 +557,7 @@ mod tests {
     use ensogl_core::application::frp::API;
     use ensogl_core::application::Application;
 
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, display::Object)]
     struct TestEntry {
         parent: ParentEntry,
     }
@@ -574,12 +578,6 @@ mod tests {
 
         fn frp(&self) -> &EntryFrp<Self> {
             self.parent.frp()
-        }
-    }
-
-    impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance {
-            self.parent.display_object()
         }
     }
 

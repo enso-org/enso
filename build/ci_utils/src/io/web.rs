@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::fs::tokio::copy_to_file;
 use crate::fs::tokio::create_parent_dir_if_missing;
+use crate::global::progress_bar;
 
 use anyhow::Context;
 use reqwest::Client;
@@ -67,10 +68,28 @@ pub async fn download_file(url: impl IntoUrl, output: impl AsRef<Path>) -> Resul
 ), err)]
 pub async fn stream_response_to_file(response: Response, output: impl AsRef<Path>) -> Result {
     trace!("Streamed response: {:#?}", response);
+    let bar = response_progress_bar(&response);
     let response = handle_error_response(response).await?;
     let reader = async_reader(response);
+    let reader = &mut bar.wrap_async_read(reader);
     copy_to_file(reader, output).await?;
     Ok(())
+}
+
+/// Creates a progress bar for the response, with the length from the `Content-Length` header.
+///
+/// The progress bar provides a visual indication of the download progress. Visual indication is
+/// helpful for large files, as the build script does not print any output for a long time. Without
+/// the progress bar, the user might think that the build script is stuck.
+pub fn response_progress_bar(response: &Response) -> indicatif::ProgressBar {
+    let url = response.url().to_string();
+    let len = response.content_length();
+    let draw_target = indicatif::ProgressDrawTarget::stderr();
+    let bar = progress_bar(|| indicatif::ProgressBar::with_draw_target(len, draw_target));
+    let style = indicatif::ProgressStyle::default_bar();
+    bar.set_message(format!("Streaming response to file {url}."));
+    bar.set_style(style);
+    bar
 }
 
 pub fn async_reader(response: Response) -> impl AsyncBufRead + Unpin {

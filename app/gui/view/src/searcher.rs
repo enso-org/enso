@@ -105,9 +105,8 @@ impl<T: DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvide
 /// A type of ListView entry used in searcher.
 pub type Entry = list_view::entry::GlyphHighlightedLabel;
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
-    app:            Application,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
     documentation:  documentation::View,
@@ -117,11 +116,10 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
-        let documentation = documentation::View::new(&app);
+        let documentation = documentation::View::new(app);
         let doc_provider = default();
         scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
@@ -137,7 +135,7 @@ impl Model {
         list.set_x(ACTION_LIST_X);
         documentation.set_x(DOCUMENTATION_X);
         documentation.set_y(-action_list_gap);
-        Self { app, display_object, list, documentation, doc_provider }
+        Self { display_object, list, documentation, doc_provider }
     }
 
     fn set_height(&self, h: f32) {
@@ -185,17 +183,12 @@ ensogl::define_endpoints! {
 /// additional graph node in edit mode, so we could easily display e.g. connections between selected
 /// node and searcher input.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct View {
+    #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Model,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -231,7 +224,7 @@ impl View {
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
-            eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
+            eval frp.hide     ((()) height.set_target_value(0.0));
 
             is_selected               <- selected_entry.map(|e| e.is_some());
             is_enabled                <- bool(&frp.hide,&frp.show);
@@ -271,12 +264,6 @@ impl View {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
@@ -287,13 +274,12 @@ impl application::View for View {
     fn label() -> &'static str {
         "Searcher"
     }
+
     fn new(app: &Application) -> Self {
         Self::new(app)
     }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [(Press, "tab", "use_as_suggestion")]
             .iter()

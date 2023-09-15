@@ -3,8 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
 
-polyglot java import java.sql.Types
 polyglot java import java.sql.ResultSetMetaData
+polyglot java import java.sql.Types
 
 ## PRIVATE
    Represents an internal SQL data-type.
@@ -22,7 +22,7 @@ type SQL_Type
          See `ResultSetMetaData.getScale`.
        - nullable: Specifies if the given column is nullable. May be `Nothing`
          if that is unknown / irrelevant for the type.
-         TODO: the precise meaning of this will be revised with #5872.
+         ToDo: the precise meaning of this will be revised with #5872.
     Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
 
     ## PRIVATE

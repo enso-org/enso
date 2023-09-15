@@ -1,38 +1,42 @@
-import project.Data.Text.Text
+import project.Any.Any
 import project.Data.Locale.Locale
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Error.Error
 import project.Function.Function
+import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Double
-polyglot java import java.lang.Math
 polyglot java import java.lang.Long
+polyglot java import java.lang.Math
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
 polyglot java import java.text.NumberFormat
 polyglot java import java.text.ParseException
+polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 
 ## The root type of the Enso numeric hierarchy.
 
-   If a Number is expected, then the program can provide either a Decimal or
+   If a Number is expected, then the program can provide either a Float or
    an Integer in its place.
 @Builtin_Type
 type Number
-    ## ALIAS Add, Plus
+    ## ALIAS add, plus
+       GROUP Operators
        Adds two arbitrary numbers.
 
        Arguments:
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10 and 15.
@@ -41,7 +45,8 @@ type Number
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## ALIAS Subtract, Minus
+    ## ALIAS minus, subtract
+       GROUP Operators
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -54,14 +59,15 @@ type Number
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## ALIAS Multiply, Times, Product
+    ## ALIAS multiply, product, times
+       GROUP Operators
        Multiply two arbitrary numbers.
 
        Arguments:
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.
@@ -70,14 +76,15 @@ type Number
     * : Number -> Number
     * self that = @Builtin_Method "Integer.*"
 
-    ## ALIAS Divide
+    ## ALIAS divide
+       GROUP Operators
        Divides an this by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4 to get 2.5.
@@ -86,7 +93,8 @@ type Number
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
 
-    ## ALIAS Power
+    ## ALIAS power
+       GROUP Operators
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -99,7 +107,8 @@ type Number
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Integer.^"
 
-    ## ALIAS Inverse Sine
+    ## ALIAS inverse sine
+       GROUP Trigonometry
 
        Computes the inverse of the sine function
 
@@ -109,10 +118,11 @@ type Number
          Calculate the inverse sine of 1.
 
              1.asin
-    asin : Decimal
-    asin self = Math.asin self.to_decimal
+    asin : Float
+    asin self = Math.asin self.to_float
 
-    ## ALIAS Inverse Cosine
+    ## ALIAS inverse cosine
+       GROUP Trigonometry
 
        Computes the inverse of the cosine function.
 
@@ -122,10 +132,11 @@ type Number
          Calculate the inverse cosine of 1.
 
              1.acos
-    acos : Decimal
-    acos self = Math.acos self.to_decimal
+    acos : Float
+    acos self = Math.acos self.to_float
 
-    ## ALIAS Inverse Tangent
+    ## ALIAS inverse tangent
+       GROUP Trigonometry
 
        Computes the inverse of the tangent function.
 
@@ -135,10 +146,11 @@ type Number
          Calculate the inverse tangent of 1.
 
              1.atan
-    atan : Decimal
-    atan self = Math.atan self.to_decimal
+    atan : Float
+    atan self = Math.atan self.to_float
 
-    ## Computes the argument (angle) in the conversion from cartesian
+    ## GROUP Trigonometry
+       Computes the argument (angle) in the conversion from cartesian
        to polar coordinates, taking `self` as the x coordinate.
 
        Arguments:
@@ -150,10 +162,11 @@ type Number
          Convert the coordinates 1 and 2 to polar form.
 
              1.atan_2 2
-    atan_2 : Number -> Decimal
-    atan_2 self y = Math.atan2 self.to_decimal y.to_decimal
+    atan_2 : Number -> Float
+    atan_2 self y = Math.atan2 self.to_float y.to_float
 
-    ## ALIAS Sine
+    ## ALIAS sine
+       GROUP Trigonometry
 
        Computes the sine function.
 
@@ -161,10 +174,11 @@ type Number
          Calculate the sine of 2.
 
              2.sin
-    sin : Decimal
-    sin self = Math.sin self.to_decimal
+    sin : Float
+    sin self = Math.sin self.to_float
 
-    ## ALIAS Cosine
+    ## ALIAS cosine
+       GROUP Trigonometry
 
        Computes the cosine function.
 
@@ -172,10 +186,11 @@ type Number
          Calculate the cosine of 2.
 
              2.cos
-    cos : Decimal
-    cos self = Math.cos self.to_decimal
+    cos : Float
+    cos self = Math.cos self.to_float
 
-    ## ALIAS Tangent
+    ## ALIAS tangent
+       GROUP Trigonometry
 
        Computes the tangent function.
 
@@ -183,37 +198,41 @@ type Number
          Calculate the tangent of 2.
 
              2.tan
-    tan : Decimal
-    tan self = Math.tan self.to_decimal
+    tan : Float
+    tan self = Math.tan self.to_float
 
-    ## Computes the hyperbolic sine function.
+    ## GROUP Trigonometry
+       Computes the hyperbolic sine function.
 
        > Example
          Calculate the hyperbolic sine of 1.
 
              1.sinh
-    sinh : Decimal
-    sinh self = Math.sinh self.to_decimal
+    sinh : Float
+    sinh self = Math.sinh self.to_float
 
-    ## Computes the hyperbolic cosine function.
+    ## GROUP Trigonometry
+       Computes the hyperbolic cosine function.
 
        > Example
          Calcualte the hyperbolic cosine of 1.
 
              1.cosh
-    cosh : Decimal
-    cosh self = Math.cosh self.to_decimal
+    cosh : Float
+    cosh self = Math.cosh self.to_float
 
-    ## Computes the hyperbolic tangent function.
+    ## GROUP Trigonometry
+       Computes the hyperbolic tangent function.
 
        > Example
          Calculate the hyperbolic tangent of 1.
 
              1.tanh
-    tanh : Decimal
-    tanh self = Math.tanh self.to_decimal
+    tanh : Float
+    tanh self = Math.tanh self.to_float
 
-    ## ALIAS Exponential
+    ## ALIAS exponential
+       GROUP Math
 
        Computes the exponential function, raising Euler's number `r` to the power of
        `self`.
@@ -222,10 +241,11 @@ type Number
          Calculate e to the 4th power.
 
              4.exp
-    exp : Decimal
-    exp self = Math.exp self.to_decimal
+    exp : Float
+    exp self = Math.exp self.to_float
 
-    ## ALIAS Natural Logarithm
+    ## ALIAS natural logarithm
+       GROUP Math
 
        Computes the natural logarithm function.
 
@@ -233,10 +253,11 @@ type Number
          Calculate the natural logarithm of 2.
 
              2.ln
-    ln : Decimal
-    ln self = Math.log self.to_decimal
+    ln : Float
+    ln self = Math.log self.to_float
 
-    ## ALIAS Square Root
+    ## ALIAS square root
+       GROUP Math
 
        Computes the square root of `self`.
 
@@ -244,10 +265,11 @@ type Number
          Calculate the square root of 8.
 
              8.sqrt
-    sqrt : Decimal
-    sqrt self = Math.sqrt self.to_decimal
+    sqrt : Float
+    sqrt self = Math.sqrt self.to_float
 
-    ## ALIAS Logarithm
+    ## ALIAS logarithm
+       GROUP Math
 
        Computes the `base`-log of `self`.
 
@@ -258,10 +280,11 @@ type Number
          Calculate log 2 of 4.
 
              4.log 2
-    log : Number -> Decimal
+    log : Number -> Float
     log self base = self.ln / base.ln
 
-    ## Converts a numeric value to a string, using the Java DecimalFormat
+    ## GROUP Conversions
+       Converts a numeric value to a string, using the Java DecimalFormat
        formatter.
 
        Arguments:
@@ -271,13 +294,15 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self format locale=Locale.default =
         symbols = DecimalFormatSymbols.new locale.java_locale
         formatter = DecimalFormat.new format symbols
         formatter.format self
 
-    ## Checks equality of numbers, using an `epsilon` value.
+    ## GROUP Logical
+       Checks equality of numbers, using an `epsilon` value.
 
        ! Error Conditions
          If either of the arguments is `Number.nan`, an `Incomparable_Values` error is raised.
@@ -295,7 +320,8 @@ type Number
     equals self that epsilon=0.0 =
         (self == that) || ((self - that).abs <= epsilon)
 
-    ## Returns the smaller value of `self` and `that`.
+    ## GROUP Math
+       Returns the smaller value of `self` and `that`.
 
        Arguments:
        - that: The number to compare `self` against.
@@ -312,7 +338,8 @@ type Number
     min : Number -> Number
     min self that = if self < that then self else that
 
-    ## Returns the larger value of `self` and `that`.
+    ## GROUP Math
+       Returns the larger value of `self` and `that`.
 
        Arguments:
        - that: The number to compare `self` against.
@@ -330,63 +357,68 @@ type Number
     max self that = if self > that then self else that
 
     ## A constant holding the floating-point positive infinity.
-    positive_infinity : Decimal
+    positive_infinity : Float
     positive_infinity = Double.POSITIVE_INFINITY
 
     ## A constant holding the floating-point negative infinity.
-    negative_infinity : Decimal
+    negative_infinity : Float
     negative_infinity = Double.NEGATIVE_INFINITY
 
     ## A constant holding the floating-point Not-a-Number value.
-    nan : Decimal
+    nan : Float
     nan = Double.NaN
 
-    ## Checks if the given number is the floating-point Not-a-Number value.
+    ## GROUP Math
+       Checks if the given number is the floating-point Not-a-Number value.
 
        This is needed, because the NaN value will return `False` even when being
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
     is_nan self = case self of
-        _ : Decimal -> Double.isNaN self
+        _ : Float -> Double.isNaN self
         _ -> False
 
-    ## Checks if the given number is infinite.
+    ## GROUP Math
+       Checks if the given number is infinite.
     is_infinite : Boolean
     is_infinite self = case self of
-        _ : Decimal -> Double.isInfinite self
+        _ : Float -> Double.isInfinite self
         _ -> False
 
-    ## Returns the sign of the number.
+    ## GROUP Math
+       Returns the sign of the number.
     signum : Integer
     signum self =
         if self > 0 then 1 else
             if self < 0 then -1 else 0
 
 
-## Decimal is the type of decimal numbers in Enso.
+## Float is the type of float numbers in Enso.
 
    ? Representation
-     Enso's decimal numbers are represented as IEEE754 double-precision
+     Enso's float numbers are represented as IEEE754 double-precision
      floating point numbers.
 @Builtin_Type
-type Decimal
-    ## ALIAS Add, Plus
-       Adds a decimal and an arbitrary number.
+type Float
+    ## ALIAS add, plus
+       GROUP Operators
+       Adds a float and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10.1 and 15.
 
              10.1 + 15
     + : Number -> Number
-    + self that = @Builtin_Method "Decimal.+"
+    + self that = @Builtin_Method "Float.+"
 
-    ## ALIAS Subtract, Minus
+    ## ALIAS minus, subtract
+       GROUP Operators
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -397,48 +429,51 @@ type Decimal
 
              2.78 - 5
     - : Number -> Number
-    - self that = @Builtin_Method "Decimal.-"
+    - self that = @Builtin_Method "Float.-"
 
-    ## ALIAS Multiply, Times, Product
-       Multiply a decimal by an arbitrary number.
+    ## ALIAS multiply, product, times
+       GROUP Operators
+       Multiply a float by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.27.
 
              5.27 * 3
     * : Number -> Number
-    * self that = @Builtin_Method "Decimal.*"
+    * self that = @Builtin_Method "Float.*"
 
-    ## ALIAS Divide
-       Divides a decimal by an arbitrary number.
+    ## ALIAS divide
+       GROUP Operators
+       Divides a float by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4.5.
 
              10 / 4.5
     / : Number -> Number
-    / self that = @Builtin_Method "Decimal./"
+    / self that = @Builtin_Method "Float./"
 
-    ## ALIAS Modulus, Modulo
+    ## ALIAS modulo, modulus
+       GROUP Operators
        Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
 
        Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Computing the remainder when dividing 3.5 by 2.
@@ -450,9 +485,10 @@ type Decimal
 
              10.5 % 1.0 == 0.5
     % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Decimal.%"
+    % self that = @Builtin_Method "Float.%"
 
-    ## ALIAS Power
+    ## ALIAS power
+       GROUP Operators
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -463,9 +499,10 @@ type Decimal
 
              2.2^3
     ^ : Number -> Number
-    ^ self that = @Builtin_Method "Decimal.^"
+    ^ self that = @Builtin_Method "Float.^"
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Operators
        Checks if this is greater than that.
 
        Arguments:
@@ -476,9 +513,10 @@ type Decimal
 
              10 > 7.3
     > : Number -> Boolean
-    > self that = @Builtin_Method "Decimal.>"
+    > self that = @Builtin_Method "Float.>"
 
-    ## ALIAS Greater Than or Equal
+    ## ALIAS greater than or equal
+       GROUP Operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -489,9 +527,10 @@ type Decimal
 
              10 >= 7.3
     >= : Number -> Boolean
-    >= self that = @Builtin_Method "Decimal.>="
+    >= self that = @Builtin_Method "Float.>="
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Operators
        Checks if this is less than that.
 
        Arguments:
@@ -502,9 +541,10 @@ type Decimal
 
              10 < 7.3
     < : Number -> Boolean
-    < self that = @Builtin_Method "Decimal.<"
+    < self that = @Builtin_Method "Float.<"
 
-    ## ALIAS Less Than Or Equal
+    ## ALIAS less than or equal
+       GROUP Operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -515,9 +555,10 @@ type Decimal
 
              10.4 <= 7
     <= : Number -> Boolean
-    <= self that = @Builtin_Method "Decimal.<="
+    <= self that = @Builtin_Method "Float.<="
 
-    ## Computes the absolute value of this.
+    ## GROUP Math
+       Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
        value of a negative number is that number multiplied by -1.
@@ -526,45 +567,49 @@ type Decimal
          Computing the absolute value of -10.63.
 
             -10.63.abs
-    abs : Decimal
-    abs self = @Builtin_Method "Decimal.abs"
+    abs : Float
+    abs self = @Builtin_Method "Float.abs"
 
-    ## Computes the nearest integer above this number.
+    ## GROUP Rounding
+       Computes the nearest integer above this number.
 
-       This method provides a means of converting a Decimal to an Integer.
+       This method provides a means of converting a Float to an Integer.
 
        > Example
          Computing the ceiling of 4.736 (which is 5).
 
              4.736.ceil
     ceil : Integer
-    ceil self = @Builtin_Method "Decimal.ceil"
+    ceil self = @Builtin_Method "Float.ceil"
 
-    ## Computes the nearest integer below this decimal.
+    ## GROUP Rounding
+       Computes the nearest integer below this float.
 
-       This method provides a means of converting a Decimal to an Integer.
+       This method provides a means of converting a Float to an Integer.
 
        > Example
          Computing the floor of 4.323 (which is 4).
 
              4.323.floor
     floor : Integer
-    floor self = @Builtin_Method "Decimal.floor"
+    floor self = @Builtin_Method "Float.floor"
 
     ## ALIAS int
+       GROUP Rounding
 
        Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
     truncate : Integer
     truncate self = self.truncate_builtin
 
-    ## Round to a specified number of decimal places.
+    ## GROUP Rounding
+       Round to a specified number of decimal places.
 
        By default, rounding uses "asymmetric round-half-up", also known as
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
-       If `decimal_places` > 0, `round` returns a `Decimal`; otherwise, it
+       If `decimal_places` > 0, `round` returns a `Float`; otherwise, it
        returns an `Integer`.
 
        If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
@@ -577,6 +622,9 @@ type Decimal
        - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
+
+         If `self` is outside the range -99999999999999..99999999999999
+         (inclusive), an `Illegal_Argument` error is thrown.
 
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
@@ -605,69 +653,52 @@ type Decimal
          Use Banker's Rounding.
 
             2.5 . round use_bankers=True == 2
-    round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <|
-            case self.is_nan || self.is_infinite of
-                True ->
-                    msg = "round cannot accept " + self.to_text
-                    Error.throw (Arithmetic_Error.Error msg)
-                False ->  check_round_input self <|
-                    decimal_result = case use_bankers of
-                        False ->
-                            scale = 10 ^ decimal_places
-                            ((self * scale) + 0.5).floor / scale
-                        True ->
-                            ## If the largest integer <= self is odd, use normal
-                               round-towards-positive-infinity rounding; otherwise,
-                               use round-towards-negative-infinity rounding.
-                            scale = 10 ^ decimal_places
-                            scaled_self = self * scale
-                            self_scaled_floor = scaled_self.floor
-                            is_even = (self_scaled_floor % 2) == 0
-                            case is_even of
-                                False ->
-                                    (scaled_self + 0.5).floor / scale
-                                True ->
-                                    (scaled_self - 0.5).ceil / scale
-                    # Convert to integer if it's really an integer anyway.
-                    if decimal_places > 0 then decimal_result else decimal_result.truncate
+    round : Integer -> Boolean -> Integer | Float ! Illegal_Argument
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+        report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+        Panic.catch Unsupported_Argument_Types handler=report_unsupported
+            Float.round_float_builtin self decimal_places use_bankers
 
-    ## Compute the negation of this.
+    ## PRIVATE
+    round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
+
+    ## GROUP Operators
+       Compute the negation of this.
 
        > Example
          Negate 5.1 to get -5.1.
 
              5.1.negate
-    negate : Decimal
-    negate self = @Builtin_Method "Decimal.negate"
+    negate : Float
+    negate self = @Builtin_Method "Float.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
-       This is a no-op on decimals, but is provided for completeness of the Enso
+       This is a no-op on floats, but is provided for completeness of the Enso
        Number API.
 
        > Example
-         Convert 5.0 to a decimal to get 5.0.
+         Convert 5.0 to a float to get 5.0.
 
-             5.0.to_decimal
-    to_decimal : Decimal
-    to_decimal self = @Builtin_Method "Decimal.to_decimal"
+             5.0.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Float.to_float"
 
-    ## ALIAS From Text
+    ## ALIAS from text
+       GROUP Conversions
 
-       Parses a textual representation of a decimal into a decimal number, returning
-       a `Number_Parse_Error` if the text does not represent a valid decimal.
+       Parses a textual representation of a float into a float number, returning
+       a `Number_Parse_Error` if the text does not represent a valid float.
 
        Arguments:
-       - text: The text to parse into a decimal.
+       - text: The text to parse into a float.
        - locale: The locale that specifies the format to use when parsing
 
        > Example
-         Parse the text "7.6" into a decimal number.
+         Parse the text "7.6" into a float number.
 
-             Decimal.parse "7.6"
-    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
+             Float.parse "7.6"
+    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
     parse text locale=Nothing = case locale of
         Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
             Error.throw (Number_Parse_Error.Error text)
@@ -689,14 +720,15 @@ type Decimal
      degrade.
 @Builtin_Type
 type Integer
-    ## ALIAS Add, Plus
+    ## ALIAS add, plus
+       GROUP Operators
        Adds an integer and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10 and 15.
@@ -705,7 +737,8 @@ type Integer
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## ALIAS Subtract, Minus
+    ## ALIAS minus, subtract
+       GROUP Operators
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -718,14 +751,15 @@ type Integer
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## ALIAS Multiply, Times, Product
+    ## ALIAS multiply, product, times
+       GROUP Operators
        Multiply an integer by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.
@@ -734,14 +768,15 @@ type Integer
     * : Number -> Number
     * self that = @Builtin_Method "Integer.*"
 
-    ## ALIAS Divide
+    ## ALIAS divide
+       GROUP Operators
        Divides an integer by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4 to get 2.5.
@@ -750,14 +785,15 @@ type Integer
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
 
-    ## ALIAS Modulus, Modulo
+    ## ALIAS modulo, modulus
+       GROUP Operators
        Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
 
        Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        Returns an error if the shift amount exceeds 2^32.
 
@@ -768,7 +804,8 @@ type Integer
     % : Number -> Number ! Arithmetic_Error
     % self that = @Builtin_Method "Integer.%"
 
-    ## ALIAS Power
+    ## ALIAS power
+       GROUP Operators
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -781,7 +818,8 @@ type Integer
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Integer.^"
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Operators
        Checks if this is greater than that.
 
        Arguments:
@@ -794,7 +832,8 @@ type Integer
     > : Number -> Boolean
     > self that = @Builtin_Method "Integer.>"
 
-    ## ALIAS Greater Than or Equal
+    ## ALIAS greater than or equal
+       GROUP Operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -807,7 +846,8 @@ type Integer
     >= : Number -> Boolean
     >= self that = @Builtin_Method "Integer.>="
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Operators
        Checks if this is less than that.
 
        Arguments:
@@ -820,7 +860,8 @@ type Integer
     < : Number -> Boolean
     < self that = @Builtin_Method "Integer.<"
 
-    ## ALIAS Less Than Or Equal
+    ## ALIAS less than or equal
+       GROUP Operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -833,7 +874,8 @@ type Integer
     <= : Number -> Boolean
     <= self that = @Builtin_Method "Integer.<="
 
-    ## Computes the absolute value of this.
+    ## GROUP Math
+       Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
        value of a negative number is that number multiplied by -1.
@@ -845,7 +887,8 @@ type Integer
     abs : Integer
     abs self = @Builtin_Method "Integer.abs"
 
-    ## Computes the nearest integer above this integer.
+    ## GROUP Rounding
+       Computes the nearest integer above this integer.
 
        This is a no-op on integers but is provided for completeness of the Enso
        number API.
@@ -857,7 +900,8 @@ type Integer
     ceil : Integer
     ceil self = @Builtin_Method "Integer.ceil"
 
-    ## Computes the integer division of this by that.
+    ## GROUP Math
+       Computes the integer division of this by that.
 
        Arguments:
        - that: The number to divide this by.
@@ -873,7 +917,8 @@ type Integer
     div : Integer -> Number ! Arithmetic_Error
     div self that = @Builtin_Method "Integer.div"
 
-    ## Computes the nearest integer below this integer.
+    ## GROUP Rounding
+       Computes the nearest integer below this integer.
 
        This is a no-op on integers but is provided for completeness of the Enso
        number API.
@@ -886,13 +931,15 @@ type Integer
     floor self = @Builtin_Method "Integer.floor"
 
     ## ALIAS int
+       GROUP Rounding
 
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
-       compatibility with `Decimal.truncate`.
+       compatibility with `Float.truncate`.
     truncate : Integer
     truncate self = self
 
-    ## Round to a specified number of decimal places.
+    ## GROUP Rounding
+       Round to a specified number of decimal places.
 
        For integers, rounding to 0 or more decimal places simply returns the
        argument. For negative decimal places, see below.
@@ -908,11 +955,8 @@ type Integer
        - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
-         Throws `Illegal_Argument` if the number is 15 or more decimal places.
-         Above 14 digits, it is possible that the underlying long, converted to
-         double in the rounding process, would lose precision in the least
-         significant bits.
-         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+         If `self` is outside the range -99999999999999..99999999999999
+         (inclusive), an `Illegal_Argument` error is thrown.
 
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
@@ -937,14 +981,19 @@ type Integer
 
             12250 . round -2 use_bankers=True == 12200
     round : Integer -> Boolean -> Integer ! Illegal_Argument
-    round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <| check_round_input self <|
-            ## It's already an integer so unless decimal_places is
-               negative, the value is unchanged.
-            if decimal_places >= 0 then self else
-                self.to_decimal.round decimal_places use_bankers . truncate
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+        ## We reject values outside the range of `long` here, so we don't also
+           do this check in the Java.
+        Rounding_Helpers.check_round_input self <|
+            report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+            Panic.catch Unsupported_Argument_Types handler=report_unsupported
+                Integer.round_integer_builtin self decimal_places use_bankers
 
-    ## Compute the negation of this.
+    ## PRIVATE
+    round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
+
+    ## GROUP Operators
+       Compute the negation of this.
 
        > Example
          Negate 5 to get -5.
@@ -953,16 +1002,17 @@ type Integer
     negate : Integer
     negate self = @Builtin_Method "Integer.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
        > Example
-         Convert 5 to a decimal to get 5.0.
+         Convert 5 to a float to get 5.0.
 
-             5.to_decimal
-    to_decimal : Decimal
-    to_decimal self = @Builtin_Method "Integer.to_decimal"
+             5.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Integer.to_float"
 
-    ## Computes the bitwise and (conjunction) operation between this and
+    ## GROUP Bitwise
+       Computes the bitwise and (conjunction) operation between this and
        that.
 
        Arguments:
@@ -978,7 +1028,8 @@ type Integer
     bit_and : Integer -> Integer
     bit_and self that = @Builtin_Method "Integer.bit_and"
 
-    ## Computes the bitewise compliment of this.
+    ## GROUP Bitwise
+       Computes the bitewise compliment of this.
 
        The bitwise compliment negates the value of each bit in the operand.
 
@@ -989,7 +1040,8 @@ type Integer
     bit_not : Integer
     bit_not self = @Builtin_Method "Integer.bit_not"
 
-    ## Computes the bitwise or (disjunction) operation between this and
+    ## GROUP Bitwise
+       Computes the bitwise or (disjunction) operation between this and
        that.
 
        Arguments:
@@ -1005,7 +1057,8 @@ type Integer
     bit_or : Integer -> Integer
     bit_or self that = @Builtin_Method "Integer.bit_or"
 
-    ## Computes the bitwise exclusive or between this and that.
+    ## GROUP Bitwise
+       Computes the bitwise exclusive or between this and that.
 
        Arguments:
        - that: The number to compute the bitwise exclusive or with.
@@ -1020,17 +1073,19 @@ type Integer
     bit_xor : Integer -> Integer
     bit_xor self that = @Builtin_Method "Integer.bit_xor"
 
-    ## Shifts the bits of this by the amount that.
+    ## GROUP Bitwise
+       Shifts the bits of this by the amount that.
+
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
 
        Arguments:
        - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left shift, while negative numbers perform a
-         right shift.
+         Positive numbers perform a left-shift, while negative numbers perform a
+         right-shift.
 
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
-
-       Returns an error if the shift amount exceeds 2^32.
 
        > Example
          Shift the bits of the number 1 left by four bits.
@@ -1039,36 +1094,38 @@ type Integer
     bit_shift : Integer -> Integer ! Arithmetic_Error
     bit_shift self that = @Builtin_Method "Integer.bit_shift"
 
-    ## Performs a left-wise bit shift on the bits of this.
+    ## GROUP Bitwise
+       Performs a bitwise left-shift on the number.
+
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
 
        Arguments:
        - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left shift, while negative numbers perform a
-         right shift.
-
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
-
-       Returns an error if the shift amount exceeds 2^32.
+         Positive numbers perform a left-shift, while negative numbers perform a
+         right-shift.
 
        > Example
          Shift the bits of the number 1 left by four bits.
 
              1.bit_shift_l 4
     bit_shift_l : Integer -> Integer ! Arithmetic_Error
-    bit_shift_l self that = @Builtin_Method "Integer.bit_shift_l"
+    bit_shift_l self that = self.bit_shift that
 
-    ## Performs a right-wise bit shift on the bits of this.
+    ## GROUP Bitwise
+       Performs a bitwise right-shift on the number.
+
+       Left-shifts fill the new bits with zeroes, while right-shifts perform
+       sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
 
        Arguments:
        - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a right shift, while negative numbers perform
-         a left shift.
-
-       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
-       shifts perform sign extension.
-
-       Returns an error if the shift amount exceeds 2^32.
+         Positive numbers perform a right-shift, while negative numbers perform
+         a left-shift.
 
        > Example
          Shift the bits of the number 1 right by four bits.
@@ -1077,7 +1134,8 @@ type Integer
     bit_shift_r : Integer -> Integer ! Arithmetic_Error
     bit_shift_r self that = @Builtin_Method "Integer.bit_shift_r"
 
-    ## ALIAS From Text
+    ## ALIAS from text
+       GROUP Conversions
 
        Parses a textual representation of an integer into an integer number, returning
        a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1100,9 +1158,7 @@ type Integer
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
 
-## UNSTABLE
-
-   A syntax error when parsing a double.
+## A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
     ## PRIVATE
@@ -1111,47 +1167,5 @@ type Number_Parse_Error
     ## PRIVATE
        Pretty print the syntax error.
     to_display_text : Text
-    to_display_text =
+    to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
-
-## PRIVATE
-   The smallest allowed value for the `decimal_places` argument to `round`
-round_min_decimal_places : Integer
-round_min_decimal_places = -15
-
-## PRIVATE
-   The largest allowed value for the `decimal_places` argument to `round`
-round_max_decimal_places : Integer
-round_max_decimal_places = 15
-
-## PRIVATE
-   The largest smallInteger (Long) that integer round can handle. Above 14
-   digits, it is possible that the underlying long, converted to double in the
-   rounding process, would lose precision in the least significant bits.
-   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
-round_max_long : Integer
-round_max_long = 99999999999999
-
-## PRIVATE
-   The largest smallInteger (Long) that integer round can handle. Above 14
-   digits, it is possible that the underlying long, converted to double in the
-   rounding process, would lose precision in the least significant bits.
-   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
-round_min_long : Integer
-round_min_long = -99999999999999
-
-## PRIVATE
-   Restrict rounding decimal_places parameter.
-check_decimal_places : Integer -> Function
-check_decimal_places decimal_places ~action =
-    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
-        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
-        Error.throw (Illegal_Argument.Error msg)
-
-## PRIVATE
-   Restrict allowed range of input to rounding methods.
-check_round_input : Number -> Function
-check_round_input n ~action =
-    if n >= round_min_long && n <= round_max_long then action else
-        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
-        Error.throw (Illegal_Argument.Error msg)

@@ -18,12 +18,16 @@ object SessionApi {
 
     case class Result(contentRoots: Set[ContentRoot])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = InitProtocolConnection.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = InitProtocolConnection.Result
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, InitProtocolConnection.Params] =
+      new HasParams[this.type] {
+        type Params = InitProtocolConnection.Params
+      }
+    implicit val hasResult
+      : HasResult.Aux[this.type, InitProtocolConnection.Result] =
+      new HasResult[this.type] {
+        type Result = InitProtocolConnection.Result
+      }
   }
 
   case object SessionNotInitialisedError

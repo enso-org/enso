@@ -37,10 +37,11 @@ class JsonRpcServer(
   implicit val ec: ExecutionContext = system.dispatcher
 
   private def newUser(): Flow[Message, Message, NotUsed] = {
-    val protocol = protocolFactory.getProtocol
     val messageHandler =
       system.actorOf(
-        Props(new MessageHandlerSupervisor(clientControllerFactory, protocol)),
+        Props(
+          new MessageHandlerSupervisor(clientControllerFactory, protocolFactory)
+        ),
         s"message-handler-supervisor-${UUID.randomUUID()}"
       )
 

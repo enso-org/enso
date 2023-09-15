@@ -1,12 +1,12 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
-
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the standard deviation of a group. */
 public class StandardDeviation extends Aggregator {
@@ -33,6 +33,7 @@ public class StandardDeviation extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
@@ -52,6 +53,8 @@ public class StandardDeviation extends Aggregator {
           current.total_sqr += dValue * dValue;
         }
       }
+
+      context.safepoint();
     }
 
     if (current == null || (!population && current.count <= 1)) return null;

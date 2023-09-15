@@ -38,9 +38,9 @@ export class WindowSize {
         const size = arg.split(WindowSize.separator)
         const widthStr = size[0]
         const heightStr = size[1]
-        const width = widthStr ? parseInt(widthStr) : NaN
-        const height = heightStr ? parseInt(heightStr) : NaN
-        if (isNaN(width) || isNaN(height)) {
+        const width = widthStr != null ? parseInt(widthStr) : null
+        const height = heightStr != null ? parseInt(heightStr) : null
+        if (width == null || height == null) {
             return new Error(`Incorrect window size provided '${arg}'.`)
         } else {
             return new WindowSize(width, height)
@@ -154,7 +154,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 options: {
                     backgroundThrottling: new contentConfig.Option({
                         passToWebApplication: true,
-                        value: true,
+                        value: false,
                         description: 'Throttle animations when run in background.',
                     }),
 
@@ -608,6 +608,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
 CONFIG.groups.startup.options.platform.value = process.platform
 
 CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
+
+CONFIG.groups.engine.options.projectManagerUrl.passToWebApplication = true
 
 /** The type of the full configuration object. */
 export type Args = typeof CONFIG

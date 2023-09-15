@@ -6,8 +6,9 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 @BuiltinMethod(
     type = "Meta",
@@ -19,20 +20,20 @@ public abstract class GetConstructorFieldNamesNode extends Node {
     return GetConstructorFieldNamesNodeGen.create();
   }
 
-  abstract Array execute(Object obj);
+  abstract EnsoObject execute(Object obj);
 
   @Specialization
-  final Array executeAtomConstructor(AtomConstructor atom_constructor) {
-    ArgumentDefinition[] fields = atom_constructor.getFields();
-    Object[] result = new Object[fields.length];
+  final EnsoObject fieldNamesForAtomCtor(AtomConstructor atomConstructor) {
+    ArgumentDefinition[] fields = atomConstructor.getFields();
+    Text[] result = new Text[fields.length];
     for (int i = 0; i < fields.length; i++) {
       result[i] = Text.create(fields[i].getName());
     }
-    return new Array(result);
+    return ArrayLikeHelpers.wrapEnsoObjects(result);
   }
 
   @Fallback
-  final Array executeAny(Object any) {
-    return Array.empty();
+  final EnsoObject fieldNamesForAny(Object any) {
+    return ArrayLikeHelpers.empty();
   }
 }

@@ -36,7 +36,7 @@ type SQL_Error
     to_text : Text
     to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
-        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
+        "There was an SQL error: " + self.java_exception.getMessage.to_display_text + "." + query
 
     ## PRIVATE
        Pretty print the SQL error.
@@ -72,30 +72,20 @@ type SQL_Timeout
     to_display_text : Text
     to_display_text self = self.to_text
 
-
-## Signals that a name for a column or table is not supported.
-
-   Arguments:
-   - text: The name that is not supported.
-
-   Currently the names can only include ASCII letters, numbers and the
-   underscore. This is a temporary limitation simplifying name handling. It will
-   be removed in a future version.
-type Unsupported_Name
+type SQL_Warning
     ## PRIVATE
-    Error text
+       Indicates that a database backend has reported a non-fatal warning when
+       executing an operation.
+    Warning java_exception
 
     ## PRIVATE
-       Creates a human-readable representation of the unsupported name error.
-    to_text : Text
-    to_text self =
-        "The name " + self.text + " is not currently supported by the Database library."
+    message : Text
+    message self = self.java_exception.getMessage
 
     ## PRIVATE
-       Pretty print the unsupported name error.
     to_display_text : Text
-    to_display_text self = self.to_text
-
+    to_display_text self =
+        "SQL Warning: " + self.message.to_display_text
 
 type Integrity_Error
     ## PRIVATE
@@ -126,14 +116,23 @@ type Table_Not_Found
          for the table was executed.
        - treated_as_query: Whether the table name was treated as a raw query
          string.
-    Error (name:Text) (related_query_error:SQL_Error) (treated_as_query:Boolean)
+       - extra_message: An extra message to append.
+    Error (name:Text) (related_query_error:SQL_Error|Nothing) (treated_as_query:Boolean) (extra_message:Text)
 
     ## PRIVATE
        Pretty print the table not found error.
     to_display_text : Text
-    to_display_text self = case self.treated_as_query of
-        True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
-        False -> "Table " + self.name + " was not found in the database."
+    to_display_text self =
+        base_repr = case self.treated_as_query of
+            True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
+            False -> "Table " + self.name + " was not found in the database."
+        base_repr + self.extra_message
+
+    ## PRIVATE
+       Creates a copy of this error with a changed `extra_message`.
+    with_changed_extra_message : Text -> Table_Not_Found
+    with_changed_extra_message self new_extra_message =
+        Table_Not_Found.Error self.name self.related_query_error self.treated_as_query new_extra_message
 
 type Table_Already_Exists
     ## PRIVATE
@@ -166,3 +165,68 @@ type Non_Unique_Primary_Key
     to_display_text : Text
     to_display_text self =
         "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+self.clashing_primary_key.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+
+type Unmatched_Rows
+    ## PRIVATE
+       Indicates that the `Update` operation encountered input rows that did not
+       have any matching rows in the target table.
+    Error (count : Integer)
+
+    ## PRIVATE
+       Pretty print the rows already present error.
+    to_display_text : Text
+    to_display_text self =
+        "The `Update` operation encountered " + self.count.to_text + " input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
+
+type Rows_Already_Present
+    ## PRIVATE
+       Indicates that the `Insert` operation encountered input rows that already
+       had matching rows in the target table.
+    Error (count : Integer)
+
+    ## PRIVATE
+       Pretty print the rows already present error.
+    to_display_text : Text
+    to_display_text self =
+        "The `Insert` operation encountered " + self.count.to_text + " input rows that already had matching rows in the target table. The operation has been rolled back."
+
+type Multiple_Target_Rows_Matched_For_Update
+    ## PRIVATE
+       Indicates that the source table had rows matching multiple rows in the
+       target table by the specified key.
+    Error (example_key : Vector Any) (example_count : Integer)
+
+    ## PRIVATE
+       Pretty print the multiple target rows matched for update error.
+    to_display_text : Text
+    to_display_text self =
+        "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."
+
+type Null_Values_In_Key_Columns
+    ## PRIVATE
+       Indicates that the source table contained NULL values in key columns.
+       Rows containing NULL values as part of their key will not be correctly
+       correlated with target rows due to how NULL equality works in SQL.
+    Error (example_row : Vector Any)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The update operation encountered input rows that contained NULL values in key columns (for example, the row " + self.example_row.to_display_text + "). The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
+
+type Unsupported_Database_Encoding
+    ## PRIVATE
+       A warning indicating that the encoding inferred to be used by the
+       database is not supported by Enso.
+
+       This should not affect data passed to/from the database, as the
+       connection driver should handle the translation. However, it affects how
+       identifier names are being handled, and it may cause trouble when the
+       length of identifier names is wrongly inferred, causing aliasing of names
+       and generating invalid queries.
+    Warning message
+
+    ## PRIVATE
+       Pretty print the unsupported database encoding warning.
+    to_display_text : Text
+    to_display_text self = self.message

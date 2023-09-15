@@ -1,50 +1,36 @@
 /** @file A context menu. */
+import * as React from 'react'
 
-import * as react from 'react'
-
-// =================
-// === Constants ===
-// =================
-
-/** The margin around the context menu, so that it is not at the edge of the screen. */
-const SCROLL_MARGIN = 12
+import * as detect from 'enso-common/src/detect'
 
 // ===================
 // === ContextMenu ===
 // ===================
 
 /** Props for a {@link ContextMenu}. */
-export interface ContextMenuProps {
-    // `left: number` and `top: number` may be more correct,
-    // however passing an event eliminates the chance
-    // of passing the wrong coordinates from the event.
-    event: react.MouseEvent
+export interface ContextMenuProps extends React.PropsWithChildren {
+    hidden?: boolean
 }
 
 /** A context menu that opens at the current mouse position. */
-function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
-    const { children, event } = props
-    const contextMenuRef = react.useRef<HTMLDivElement>(null)
+export default function ContextMenu(props: ContextMenuProps) {
+    const { hidden = false, children } = props
 
-    react.useEffect(() => {
-        if (contextMenuRef.current != null) {
-            const boundingBox = contextMenuRef.current.getBoundingClientRect()
-            const scrollBy = boundingBox.bottom - innerHeight + SCROLL_MARGIN
-            if (scrollBy > 0) {
-                scroll(scrollX, scrollY + scrollBy)
-            }
-        }
-    }, [children])
-
-    return (
-        <div
-            ref={contextMenuRef}
-            style={{ left: event.pageX, top: event.pageY }}
-            className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
-        >
-            {children}
+    return hidden ? (
+        <>{children}</>
+    ) : (
+        <div className="relative rounded-2xl pointer-events-auto">
+            <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
+            <div
+                className={`relative flex flex-col rounded-2xl ${
+                    detect.isOnMacOS() ? 'w-57.5' : 'w-62'
+                } p-2`}
+                onClick={clickEvent => {
+                    clickEvent.stopPropagation()
+                }}
+            >
+                {children}
+            </div>
         </div>
     )
 }
-
-export default ContextMenu

@@ -18,12 +18,12 @@ spec =
         Test.specify "works for `get` and `at`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
-            Widgets.get_widget_json mock_table "get" ["selector"] . should_equal expect
-            Widgets.get_widget_json mock_table "at" ["selector"] . should_equal expect
+            Widgets.get_widget_json mock_table .get ["selector"] . should_equal expect
+            Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
         Test.specify "works for `filter`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
-            Widgets.get_widget_json mock_table "filter" ["column"] . should_equal expect
+            Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
 main = Test_Suite.run_main spec

@@ -1,10 +1,11 @@
 import project.Any.Any
 import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
+from project.Data.Boolean import Boolean, False, True
 
-from project.Data.Boolean import True, False
-
-## Compares two Vectors according to the lexicographic ordering.
+## PRIVATE
+   ADVANCED
+   Compares two Vectors according to the lexicographic ordering.
 
    Arguments:
    - vector1: The first vector to compare.

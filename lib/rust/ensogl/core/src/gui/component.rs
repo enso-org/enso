@@ -14,7 +14,7 @@ use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
 use crate::display::world;
-use crate::display::Sprite;
+use crate::display::RawSprite;
 use crate::frp;
 
 
@@ -36,13 +36,13 @@ pub trait AnyShapeView: display::Object {
     /// Get the shape's shader code in GLSL 330 format. The shader parameters will not be bound to
     /// any particular mesh and thus this code can be used for optimization purposes only.
     fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
-        self.sprite().symbol.shader().abstract_shader_code_in_glsl_310()
+        self.sprite().symbol.shader.borrow().abstract_shader_code_in_glsl_310()
     }
     /// The shape definition path (file:line:column).
     fn definition_path(&self) -> &'static str;
 
     /// Get the sprite of given shape.
-    fn sprite(&self) -> Sprite;
+    fn sprite(&self) -> RawSprite;
 }
 
 impl<S: Shape> AnyShapeView for ShapeView<S> {
@@ -50,7 +50,7 @@ impl<S: Shape> AnyShapeView for ShapeView<S> {
         S::definition_path()
     }
 
-    fn sprite(&self) -> Sprite {
+    fn sprite(&self) -> RawSprite {
         self.sprite.borrow().clone_ref()
     }
 }
@@ -64,7 +64,7 @@ impl<S: Shape> AnyShapeView for ShapeView<S> {
 /// A view for a shape definition. The view manages the lifetime and scene-registration of a shape
 /// instance. In particular, it registers / unregisters callbacks for shape initialization and mouse
 /// events handling.
-#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derive(CloneRef, Debug, Deref, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct ShapeView<S: Shape> {
@@ -86,14 +86,14 @@ impl<S: Shape> ShapeView<S> {
     }
 
     fn init(self) -> Self {
-        self.init_on_scene_layer_changed();
+        self.init_display_object_events();
         self
     }
 
-    fn init_on_scene_layer_changed(&self) {
-        let weak_model = Rc::downgrade(&self.model);
+    fn init_display_object_events(&self) {
         let display_object = self.display_object();
         let network = &display_object.network;
+        let weak_model = Rc::downgrade(&self.model);
         frp::extend! { network
             eval display_object.on_layer_change([] ((scene, old_layer, new_layer, symbol_partition)) {
                 let scene = scene.as_ref().unwrap();
@@ -104,11 +104,36 @@ impl<S: Shape> ShapeView<S> {
                 }
             });
         }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_transformed ([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.set_transform(model.display_object.transformation_matrix());
+                    model.shape.set_size(model.display_object.computed_size());
+                }
+            });
+        }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_show([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.show()
+                }
+            });
+        }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_hide([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.hide()
+                }
+            });
+        }
     }
 }
 
-impl<S: Shape> HasContent for ShapeView<S> {
-    type Content = S;
+impl<S: Shape> HasItem for ShapeView<S> {
+    type Item = S;
 }
 
 // S: DynamicShapeInternals + 'static
@@ -129,7 +154,7 @@ where
 // ======================
 
 /// Model of [`ShapeView`].
-#[derive(Deref, Debug)]
+#[derive(Deref, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
@@ -141,6 +166,7 @@ pub struct ShapeViewModel<S: Shape> {
     /// function.
     pub events_deprecated: PointerTarget_DEPRECATED,
     pub pointer_targets:   RefCell<Vec<symbol::GlobalInstanceId>>,
+    display_object:        display::object::Instance,
 }
 
 impl<S: Shape> Drop for ShapeViewModel<S> {
@@ -157,7 +183,10 @@ impl<S: Shape> ShapeViewModel<S> {
         let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
-        ShapeViewModel { shape, data, events_deprecated, pointer_targets }
+        let debug = S::enable_dom_debug();
+        let display_object =
+            display::object::Instance::new_named_with_debug(type_name::<S>(), debug);
+        ShapeViewModel { shape, data, events_deprecated, pointer_targets, display_object }
     }
 
     #[profile(Debug)]
@@ -202,31 +231,24 @@ impl<S: Shape> ShapeViewModel<S> {
             .and_then(|assignment| assignment.partition_id(shape_system))
             .unwrap_or_default();
         let (shape, instance) = layer.instantiate(&*self.data.borrow(), symbol_partition);
-        scene.pointer_target_registry.insert(
+        scene.mouse.pointer_target_registry.insert(
             instance.global_instance_id,
             self.events_deprecated.clone_ref(),
             self.display_object(),
         );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
+        self.shape.set_transform(self.display_object.transformation_matrix());
+        self.shape.set_size(self.display_object.computed_size());
+        if self.display_object.is_visible() {
+            self.shape.show();
+        }
     }
 
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-            scene().pointer_target_registry.remove(global_instance_id);
+            scene().mouse.pointer_target_registry.remove(global_instance_id);
         }
-    }
-}
-
-impl<S: Shape> display::Object for ShapeViewModel<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
-    }
-}
-
-impl<S: Shape> display::Object for ShapeView<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
     }
 }
 
@@ -238,27 +260,24 @@ impl<S: Shape> display::Object for ShapeView<S> {
 
 // === WidgetData ===
 
-// We use type bounds here, because Drop implementation requires them
+// 'static bounds here is required by Drop implementation.
 #[derive(Debug)]
 struct WidgetData<Model: 'static, Frp: 'static> {
     app:            Application,
+    /// Clone of the [`Model`]'s display object so that we can defocus ancestors on drop without
+    /// requiring a [`display::Object`] bound on the whole struct.
     display_object: display::object::Instance,
     frp:            mem::ManuallyDrop<Frp>,
     model:          mem::ManuallyDrop<Rc<Model>>,
 }
 
-impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
-    pub fn new(
-        app: &Application,
-        frp: Frp,
-        model: Rc<Model>,
-        display_object: display::object::Instance,
-    ) -> Self {
+impl<Model: 'static + display::Object, Frp: 'static> WidgetData<Model, Frp> {
+    pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
         Self {
-            app: app.clone_ref(),
-            display_object,
-            frp: mem::ManuallyDrop::new(frp),
-            model: mem::ManuallyDrop::new(model),
+            app:            app.clone_ref(),
+            display_object: model.display_object().clone_ref(),
+            frp:            mem::ManuallyDrop::new(frp),
+            model:          mem::ManuallyDrop::new(model),
         }
     }
 }
@@ -313,17 +332,14 @@ impl<Model: 'static, Frp: 'static> Deref for Widget<Model, Frp> {
     }
 }
 
-impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
+impl<Model: 'static + display::Object, Frp: 'static> Widget<Model, Frp> {
     /// Create a new widget.
-    pub fn new(
-        app: &Application,
-        frp: Frp,
-        model: Rc<Model>,
-        display_object: display::object::Instance,
-    ) -> Self {
-        Self { data: Rc::new(WidgetData::new(app, frp, model, display_object)) }
+    pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
+        Self { data: Rc::new(WidgetData::new(app, frp, model)) }
     }
+}
 
+impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     /// Get the FRP structure. It is also a result of deref-ing the widget.
     pub fn frp(&self) -> &Frp {
         &self.data.frp
@@ -333,18 +349,17 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     pub fn model(&self) -> &Model {
         &self.data.model
     }
-
-    /// Reference to the application the Widget belongs to. It's required for handling model and
-    /// FRP garbage collection, but also may be helpful when, for example, implementing
-    /// `application::View`.
-    pub fn app(&self) -> &Application {
-        &self.data.app
-    }
 }
 
-impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
+impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp>
+where Model: display::Object
+{
     fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
+        self.data.model.display_object()
+    }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.data.model.focus_receiver()
     }
 }
 

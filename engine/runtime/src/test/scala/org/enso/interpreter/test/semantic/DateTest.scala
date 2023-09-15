@@ -15,7 +15,7 @@ class DateTest extends InterpreterTest {
            |import Standard.Base.Data.Time.Date
            |
            |main =
-           |    IO.println (Date.new 2022 04 01)
+           |    IO.println (Date.new_builtin 2022 04 01)
            |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("2022-04-01")
@@ -60,7 +60,7 @@ class DateTest extends InterpreterTest {
            |import Standard.Base.Data.Time.Date
            |
            |main =
-           |    ensodate = Date.new 2022 4 1
+           |    ensodate = Date.new_builtin 2022 4 1
            |    ensoyear = ensodate.year
            |    ensomonth = ensodate.month
            |    ensoday = ensodate.day

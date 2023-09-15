@@ -7,7 +7,7 @@ import io.circe.{Decoder, Encoder}
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import shapeless.{:+:, CNil, _}
 
@@ -23,7 +23,7 @@ import scala.annotation.nowarn
 @nowarn("msg=parameter value evidence")
 class JsonFileStorage[
   A: Encoder: Decoder,
-  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
+  F[+_, +_]: ErrorChannel: CovariantFlatMap
 ](
   path: File,
   fileSystem: FileSystem[F]

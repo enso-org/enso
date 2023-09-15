@@ -348,20 +348,20 @@ evicted, which is costly.
 
 ### Lazy Visualization Support
 
-Currently, IDE visualisations are evaluated eagerly on their candidate data.
+Currently, IDE visualizations are evaluated eagerly on their candidate data.
 This is a nightmare when working with huge amounts of data (e.g. tables with
 millions of rows), and can easily lock up both the runtime and IDE. The current
 solution artificially limits the amount of data sent to the IDE.
 
-In the future, we want to support the ability to cache inside visualisation code
+In the future, we want to support the ability to cache inside visualization code
 such that the preprocessor doesn't have to be recomputed every time the IDE
 changes the parameters. This will enable the ability to view the full data in
 the IDE without having to send it all at once, or recompute potentially costly
 preprocessors.
 
-- Implement caching support for the visualisation expression processing.
+- Implement caching support for the visualization expression processing.
 - This cache should, much like the IDE's introspection cache, track and save the
-  values of all top-level bindings in the visualisation preprocessor.
+  values of all top-level bindings in the visualization preprocessor.
 
 ## Parser
 

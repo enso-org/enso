@@ -1,0 +1,20 @@
+[package]
+name = "ide-view-project-view-top-bar"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+engine-protocol = { path = "../../controller/engine-protocol" }
+ide-view-execution-environment-selector = { path = "../execution-environment-selector" }
+enso-config = { path = "../../config" }
+enso-frp = { path = "../../../../lib/rust/frp" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
+parser = { path = "../../language/parser" }
+ast = { path = "../../language/ast/impl" }
+uuid = { version = "0.8", features = ["v4"] }

@@ -47,7 +47,7 @@ please see [the protocol message specifications](./README.md).
   - [Binary Protocol Communication Patterns](#binary-protocol-communication-patterns)
   - [Binary Protocol Transport](#binary-protocol-transport)
 - [Binary Protocol Functionality](#binary-protocol-functionality)
-  - [Displaying Visualisations](#displaying-visualisations)
+  - [Displaying Visualizations](#displaying-visualizations)
 - [Service Connection Setup](#service-connection-setup)
 - [Service Connection Teardown](#service-connection-teardown)
 
@@ -191,7 +191,7 @@ format is already defined for us.
   [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) over a WebSocket connection
   (as defined in the LSP spec).
 - As a protocol extension we also negotiate a secondary binary WebSocket
-  connection for sending visualisation data. This transport is independent of
+  connection for sending visualization data. This transport is independent of
   the LSP spec, and hence is defined entirely by us.
 
 > The actionables for this section are:
@@ -208,7 +208,7 @@ LSP messages. The following notes apply:
 
 - Textual messages should be sent as LSP messages or extensions to them.
 - We have a hybrid extension to the protocol to allow us to send binary data
-  (for visualisations) over a second WebSocket connection.
+  (for visualizations) over a second WebSocket connection.
 
 This means that we have two pipes: one is the textual WebSocket defined by LSP,
 and the other is a binary WebSocket.
@@ -403,10 +403,10 @@ great to know which epoch is running).
 - This could be achieved by a special kind of Monadic context (similar to
   writer, but mutable buffer based).
 - This would allow the function to log values without needing to return.
-- These would be sent as visualisations for use in the IDE.
+- These would be sent as visualizations for use in the IDE.
 
 LSP provides an inbuilt mechanism for reporting progress, but that will not work
-with visualisations. As a result that should be reserved for reporting progress
+with visualizations. As a result that should be reserved for reporting progress
 of long-running operations within the _language server_ rather than in user
 code.
 
@@ -482,7 +482,7 @@ and will be expanded upon as necessary in the future.
   These should include (but may not be limited to) the renaming, moving,
   extraction and inlining of entities. In future this could be expanded to
   include refactoring hints a la IntelliJ.
-- **Arbitrary Visualisation Code:** Visualisations should be able to be defined
+- **Arbitrary Visualization Code:** Visualizations should be able to be defined
   using Enso code and will require additional support.
 - **IO Manager:** The ability to do sophisticated IO monitoring, such as
   watching for file changes, in order to support minimal re-execution of
@@ -570,7 +570,7 @@ namespace org.enso.languageserver.protocol.binary;
 union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
-  VISUALISATION_UPDATE: VisualisationUpdate,
+  VISUALIZATION_UPDATE: VisualizationUpdate,
   FILE_CONTENTS_REPLY: FileContentsReply
 }
 
@@ -630,33 +630,33 @@ for the protocol transport format. This choice has been made for a few reasons:
 The binary protocol exists in order to serve the high-bandwidth data transfer
 requirements of the engine and the GUI.
 
-### Displaying Visualisations
+### Displaying Visualizations
 
-A major part of Enso Studio's functionality is the rich embedded visualisations
+A major part of Enso Studio's functionality is the rich embedded visualizations
 that it supports. This means that the following functionality is necessary:
 
 - Execution of an arbitrary Enso expression on a cached value designated by a
   source location.
-- The ability to create and destroy visualisation subscriptions with an
+- The ability to create and destroy visualization subscriptions with an
   arbitrary piece of Enso code as the preprocessing function.
 - The ability to update _existing_ subscriptions with a new preprocessing
   function.
 
-Visualisations in Enso are able to output arbitrary data for display in the GUI,
+Visualizations in Enso are able to output arbitrary data for display in the GUI,
 which requires a mechanism for transferring arbitrary data between the engine
-and the GUI. These visualisations can output data in common formats, which will
+and the GUI. These visualizations can output data in common formats, which will
 be serialised by the transport (e.g. text), but they can also write arbitrary
-binary data that can then be interpreted by the visualisation component itself
+binary data that can then be interpreted by the visualization component itself
 in any language that can be used from within the IDE.
 
 From the implementation perspective:
 
 - This will need to be an entirely separate set of protocol messages that should
   be specified in detail in this document.
-- Visualisations should work on a pub/sub model, where an update is sent every
+- Visualizations should work on a pub/sub model, where an update is sent every
   time the underlying data is recomputed.
 - Protocol responses must contain a pointer into the binary pipe carrying the
-  visualisation data to identify an update.
+  visualization data to identify an update.
 
 ## Service Connection Setup
 

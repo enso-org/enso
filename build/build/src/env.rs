@@ -13,4 +13,10 @@ define_env_var! {
     ENSO_RUNNER_CONTAINER_NAME, ContainerId;
 
     ENSO_NIGHTLY_EDITIONS_LIMIT, usize;
+
+    /// Static token for admin requests on our Lambdas.
+    ENSO_ADMIN_TOKEN, String;
+
+    /// License key for the AG Grid library.
+    ENSO_AG_GRID_LICENSE_KEY, String;
 }

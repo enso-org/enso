@@ -1,0 +1,27 @@
+
+<component name="#ProjectRunConfigurationManager">
+  <configuration 
+    default="false" 
+    name="test/ide-view-execution-environment-selector [native]"
+    type="CargoCommandRunConfiguration" 
+    factoryName="Cargo Command"
+    folderName="🚥 GUI            view/execution-environment-selector"
+  >
+    <option name="command" value="test --all-targets  --target-dir dist/intellij_native --package ide-view-execution-environment-selector" />
+    <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+    <option name="channel" value="DEFAULT" />
+    <option name="requiredFeatures" value="true" />
+    <option name="allFeatures" value="false" />
+    <option name="emulateTerminal" value="false" />
+    <option name="withSudo" value="false" />
+    <option name="buildTarget" value="REMOTE" />
+    <option name="backtrace" value="SHORT" />
+    <envs />
+    <option name="isRedirectInput" value="false" />
+    <option name="redirectInputPath" value="" />
+    <method v="2">
+      <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+    </method>
+  </configuration>
+</component>
+    

@@ -1,7 +1,8 @@
 package org.enso.interpreter.dsl.atom;
 
-import org.openide.util.lookup.ServiceProvider;
-
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -9,16 +10,9 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes({"org.enso.interpreter.dsl.atom.LayoutSpec"})
 @ServiceProvider(service = Processor.class)

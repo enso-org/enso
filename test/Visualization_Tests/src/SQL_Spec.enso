@@ -12,7 +12,7 @@ visualization_spec connection =
     t = connection.query (SQL_Query.Table_Name "T")
     Test.group "SQL Visualization" <|
         Test.specify "should provide type metadata for interpolations" <|
-            q = t.filter ((t.at "B" == 2) && (t.at "A" == True)) . at "C"
+            q = t.filter ((t.at "B" == 2) && (t.at "A" == True)) Filter_Condition.Is_True . at "C"
             vis = Visualization.prepare_visualization q
             int_param = JS_Object.from_pairs [["value", 2], ["enso_type", "Standard.Base.Data.Numbers.Integer"]]
             str_param = JS_Object.from_pairs [["value", True], ["enso_type", "Standard.Base.Data.Boolean.Boolean"]]

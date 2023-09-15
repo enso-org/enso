@@ -12,4 +12,4 @@ pub mod text_visualization;
 
 pub use bubble_chart::BubbleChart;
 pub use error::Error;
-pub use text_visualization::TextVisualisation;
+pub use text_visualization::TextVisualization;

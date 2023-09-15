@@ -1,13 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.type.TypesGen;
-
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -16,7 +10,13 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the payload check against the expected panic type. */
 @NodeInfo(shortName = "IsValueOfTypeNode")
@@ -31,7 +31,7 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doTyped(
       Object expectedType,
       Object payload,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached Typed typed) {
     return typed.execute(expectedType, payload);
   }
@@ -40,7 +40,7 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doPolyglot(
       Object expectedType,
       Object payload,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached Untyped untyped) {
     return untyped.execute(expectedType, payload);
   }
@@ -50,21 +50,18 @@ public abstract class IsValueOfTypeNode extends Node {
       Object expectedType,
       TypeOfNode typeOfNode,
       IsSameObjectNode isSameObject,
-      ConditionProfile isSameObjectProfile) {
+      CountingConditionProfile isSameObjectProfile) {
     Object tpeOfPayload = typeOfNode.execute(payload);
     if (isSameObjectProfile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);
-      Type superTpe = tpe.getSupertype();
-
-      while (tpe != superTpe && superTpe != null) {
+      var ctx = EnsoContext.get(typeOfNode);
+      for (var superTpe : tpe.allTypes(ctx)) {
         boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
         if (testSuperTpe) {
           return true;
         }
-        tpe = superTpe;
-        superTpe = superTpe.getSupertype();
       }
     }
     return false;
@@ -73,7 +70,7 @@ public abstract class IsValueOfTypeNode extends Node {
   abstract static class Typed extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
-    private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+    private final CountingConditionProfile profile = CountingConditionProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);
 
@@ -85,19 +82,19 @@ public abstract class IsValueOfTypeNode extends Node {
     @Specialization
     boolean doLongCheck(Type expectedType, long payload) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getSmallInteger(), expectedType);
+      return checkParentTypes(numbers.getInteger(), expectedType);
     }
 
     @Specialization
     boolean doDoubleCheck(Type expectedType, double payload) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getDecimal(), expectedType);
+      return checkParentTypes(numbers.getFloat(), expectedType);
     }
 
     @Specialization
     boolean doBigIntegerCheck(Type expectedType, EnsoBigInteger value) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getBigInteger(), expectedType);
+      return checkParentTypes(numbers.getInteger(), expectedType);
     }
 
     @Specialization
@@ -108,20 +105,20 @@ public abstract class IsValueOfTypeNode extends Node {
 
     @ExplodeLoop
     private boolean checkParentTypes(Type actual, Type expected) {
-      for (; ; ) {
-        if (actual == null) {
-          return false;
-        }
-        if (actual == expected) {
+      var ctx = EnsoContext.get(this);
+      for (var tpe : actual.allTypes(ctx)) {
+        if (tpe == expected) {
           return true;
         }
-        actual = actual.getSupertype();
       }
+      return false;
     }
 
     @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
     boolean doType(
-        Type expectedType, Object payload, @CachedLibrary(limit = "3") TypesLibrary types) {
+        Type expectedType,
+        Object payload,
+        @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
       return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
     }
 
@@ -134,7 +131,7 @@ public abstract class IsValueOfTypeNode extends Node {
         Object expectedType,
         Object payload,
         @CachedLibrary(limit = "3") InteropLibrary interop,
-        @CachedLibrary(limit = "3") TypesLibrary types) {
+        @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
       return EnsoContext.get(this).getBuiltins().array() == types.getType(payload);
     }
 
@@ -155,7 +152,7 @@ public abstract class IsValueOfTypeNode extends Node {
   abstract static class Untyped extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
-    private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+    private final CountingConditionProfile profile = CountingConditionProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);
 

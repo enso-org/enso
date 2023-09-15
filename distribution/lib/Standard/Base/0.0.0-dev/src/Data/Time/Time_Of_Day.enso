@@ -10,19 +10,21 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+from project.Widget_Helpers import make_time_format_selector
 
-from project.Data.Boolean import Boolean, True, False
-
+polyglot java import java.lang.Exception as JException
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
-polyglot java import java.lang.Exception as JException
 
 ## PRIVATE
 
@@ -41,18 +43,6 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 
 ## PRIVATE
 
-   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-   Arguments:
-   - text: The text to parse as a time of day.
-
-   Recommended to use `Time_Of_Day.parse_builtin` instead which handles potential
-   exceptions and different time formats.
-parse_builtin : Text -> Time_Of_Day
-parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
-
-## PRIVATE
-
    This type is a date-time object that represents a time, often viewed
    as hour-minute-second.
 
@@ -60,7 +50,8 @@ parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
    "13:45.30.123456789" can be stored in a `Time_Of_Day`.
 @Builtin_Type
 type Time_Of_Day
-    ## Obtains the current time from the system clock in the default time-zone.
+    ## GROUP DateTime
+       Obtains the current time from the system clock in the default time-zone.
 
        > Example
          Get the current time in the default time zone.
@@ -71,7 +62,8 @@ type Time_Of_Day
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+    ## GROUP DateTime
+       Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 
        Arguments:
@@ -103,7 +95,8 @@ type Time_Of_Day
         Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
-    ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+    ## GROUP Conversions
+       Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
        Arguments:
        - text: The text to parse as a time of day.
@@ -167,15 +160,20 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
+    @pattern make_time_format_selector
     @locale Locale.default_widget
-    parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-    parse text pattern=Nothing locale=Locale.default =
-        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
-            case pattern of
-                Nothing -> parse_builtin text
-                _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
+    parse : Text -> Text -> Locale -> Time_Of_Day ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
+            Time_Utils.parse_time_of_day text.trim formatter
+        result . map_error <| case _ of
+            err : JException -> Time_Error.Error err.getMessage
+            ex -> ex
 
-    ## Get the hour portion of the time of day.
+    ## GROUP Metadata
+       Get the hour portion of the time of day.
 
        > Example
          Get the current hour.
@@ -186,7 +184,8 @@ type Time_Of_Day
     hour : Integer
     hour self = @Builtin_Method "Time_Of_Day.hour"
 
-    ## Get the minute portion of the time of day.
+    ## GROUP Metadata
+       Get the minute portion of the time of day.
 
        > Example
          Get the current minute.
@@ -197,7 +196,8 @@ type Time_Of_Day
     minute : Integer
     minute self = @Builtin_Method "Time_Of_Day.minute"
 
-    ## Get the second portion of the time of day.
+    ## GROUP Metadata
+       Get the second portion of the time of day.
 
        > Example
          Get the current second.
@@ -208,7 +208,37 @@ type Time_Of_Day
     second : Integer
     second self = @Builtin_Method "Time_Of_Day.second"
 
-    ## Get the nanosecond portion of the time of day.
+    ## GROUP Metadata
+       Get the millisecond portion of the time of day.
+
+       > Example
+         Get the current millisecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_millisecond = Time_Of_Day.now.millisecond
+    millisecond : Integer
+    millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
+
+    ## GROUP Metadata
+       Get the microsecond portion of the time of day.
+
+       > Example
+         Get the current microsecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_microsecond = Time_Of_Day.now.microsecond
+    microsecond : Integer
+    microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
+
+    ## GROUP Metadata
+       Get the nanosecond portion of the time of day.
+
+       Arguments:
+       - include_milliseconds: Specifies if the whole fractional part of the
+         second should be returned as nanoseconds. Defaults to `False`, meaning
+         it will only return the nanosecond part in the range 0-999.
 
        > Example
          Get the current nanosecond.
@@ -216,18 +246,22 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
-    nanosecond : Integer
-    nanosecond self = @Builtin_Method "Time_Of_Day.nanosecond"
+    nanosecond : Boolean -> Integer
+    nanosecond self include_milliseconds=False =
+        self.nanosecond_builtin include_milliseconds
 
-    ## Returns the first time within the `Time_Period` containing self.
+    ## GROUP DateTime
+       Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
     start_of self period=Time_Period.Day = period.adjust_start self
 
-    ## Returns the last time within the `Time_Period` containing self.
+    ## GROUP DateTime
+       Returns the last time within the `Time_Period` containing self.
     end_of : Time_Period -> Time_Of_Day
     end_of self period=Time_Period.Day = period.adjust_end self
 
-    ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
+    ## GROUP Conversions
+       Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
        > Example
          Convert the current time into elapsed seconds in the day.
@@ -238,7 +272,8 @@ type Time_Of_Day
     to_seconds : Integer
     to_seconds self = @Builtin_Method "Time_Of_Day.to_seconds"
 
-    ## Combine this time of day with a date to create a point in time.
+    ## GROUP Conversions
+       Combine this time of day with a date to create a point in time.
 
        Arguments:
        - date: The date on which this time should occur.
@@ -251,32 +286,90 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
-    to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
+    to_date_time self date (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time date self zone
 
-    ## ALIAS Add Duration
+
+    ## GROUP DateTime
+       Returns a requested time part as integer.
+    date_part : Time_Period -> Integer
+    date_part self (period : Time_Period) =
+        case period of
+            Time_Period.Day         -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part.")
+            Time_Period.Hour        -> self.hour
+            Time_Period.Minute      -> self.minute
+            Time_Period.Second      -> self.second
+            Time_Period.Millisecond -> self.millisecond
+            Time_Period.Microsecond -> self.microsecond
+            Time_Period.Nanosecond  -> self.nanosecond
+
+    ## GROUP DateTime
+       Computes a time difference between the two times of day.
+
+       It returns an integer expressing how many periods fit between the two
+       times of day.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A time of day to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Time_Of_Day -> Time_Period -> Integer
+    date_diff self (end : Time_Of_Day) (period : Time_Period) = case period of
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to compute a difference in days.")
+        _ ->
+            Time_Utils.unit_time_difference period.to_java_unit self end
+
+    ## GROUP DateTime
+       Shifts the time of day by a specified period.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the time.
+       - period: The period by which to shift.
+    date_add : Integer -> Time_Period -> Time_Of_Day
+    date_add self (amount : Integer) (period : Time_Period) = case period of
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to add days to.")
+        _ ->
+            Time_Utils.unit_time_add period.to_java_unit self amount
+
+    ## ALIAS add duration
+       GROUP Operators
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be only
-         `Duration`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
+         Add a `Duration` to a `Time_Of_Day`.
 
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
-    + : Duration -> Time_Of_Day ! Time_Error
-    + self amount =
+
+       > Example
+         Add a `Time_Period` to a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new + Time_Period.Hour
+    + : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    + self (amount : Duration | Time_Period) =
         case amount of
             duration : Duration -> self.plus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self + time_period.to_duration
 
-    ## ALIAS Subtract Duration
+    ## ALIAS subtract duration
+       GROUP Operators
        Subtract the  specified amount of time from this instant to get a new
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
@@ -284,11 +377,19 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
-    - : Duration -> Time_Of_Day ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract a `Time_Period` from a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new - Time_Period.Hour
+    - : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    - self amount:(Duration | Time_Period) =
         case amount of
             duration : Duration -> self.minus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self - time_period.to_duration
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Time_Of_Day.
@@ -301,16 +402,17 @@ type Time_Of_Day
     to_js_object self =
         type_pair = ["type", "Time_Of_Day"]
         cons_pair = ["constructor", "new"]
-        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
+        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
 
     ## PRIVATE
        Convert to a display representation of this Time_Of_Day.
     to_display_text : Text
     to_display_text self =
-        if self.nanosecond == 0 then self.format "HH:mm:ss" else
+        if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
             self.format "HH:mm:ss.n"
 
-    ## Format this time of day using the provided formatter pattern.
+    ## GROUP Conversions
+       Format this time of day using the provided formatter pattern.
 
        Arguments:
        - pattern: The pattern specifying how to format the time of day.
@@ -357,8 +459,10 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
+    @pattern (value-> make_time_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.time_of_day_format self pattern
-        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale:Locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.time_of_day_format self formatter

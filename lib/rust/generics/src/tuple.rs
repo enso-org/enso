@@ -1,260 +1,65 @@
 //! This module contains implementations of generic operations on tuples.
 
+use crate::generic::*;
+
 use crate as hlist;
+use crate::HasHListRepr;
+
+use paste::paste;
 
 
 
-// ====================
-// === HasTupleRepr ===
-// ====================
+// ========================
+// === Family of tuples ===
+// ========================
 
-/// All types which have a tuple representation.
-#[allow(missing_docs)]
-pub trait HasTupleRepr {
-    type TupleRepr;
-}
+/// The tuple family.
+#[derive(Clone, Copy, Debug)]
+pub struct Tuple;
 
-/// Tuple representation of a type.
-pub type TupleRepr<T> = <T as HasTupleRepr>::TupleRepr;
-
-/// Conversion of the given type to its tuple representation.
-#[allow(missing_docs)]
-pub trait IntoTuple: HasTupleRepr + Into<TupleRepr<Self>> {
-    fn into_tuple(self) -> TupleRepr<Self> {
-        self.into()
-    }
-}
-
-impl<T> IntoTuple for T where T: HasTupleRepr + Into<TupleRepr<T>> {}
-
-
-
-// ===================
-// === GenericRepr ===
-// ===================
-
-macro_rules! gen_as_hlist_for_tuples {
-    () => {};
-    ($t:ident $(,$($ts:ident),*)?) => {
-        impl <$($($ts),*)?> $crate::HasRepr for ($($($ts,)*)?) {
-            type GenericRepr = hlist::ty! { $($($ts),*)? };
+macro_rules! impl_belongs_to_family_for_tuple {
+    ($t:tt $(,$ts:tt)*) => {
+        paste! {
+            impl<$([<T $ts>]),*> BelongsToFamily for ($([<T $ts>],)*) {
+                type Family = Tuple;
+            }
         }
-        gen_as_hlist_for_tuples! { $($($ts),*)? }
-    }
+        impl_belongs_to_family_for_tuple! {$($ts),*}
+    };
+    () => {}
 }
 
-gen_as_hlist_for_tuples! {T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
+impl_belongs_to_family_for_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 
 
-// =============================
-// === KnownLast / KnownInit ===
-// =============================
+// =====================================
+// === impl HasHListRepr for tuples  ===
+// =====================================
 
-macro_rules! gen_known_last {
-    () => {};
-    ($t:ident $(,$($ts:ident),*)?) => {
-        impl<X $(,$($ts),*)?> $crate::KnownLast for ($($($ts,)*)? X,) { type Last = X; }
-        gen_known_last! { $($($ts),*)? }
-    }
+macro_rules! gen_has_hlist_repr_for_tuples {
+    ($($ts:literal),*) => { paste! {
+        gen_has_hlist_repr_for_tuples! {@ $([<T $ts>])* }
+    }};
+
+    (@) => {};
+    (@ $t:tt $($ts:tt)*) => {
+        impl <$($ts,)*> HasHListRepr for ($($ts,)*) {
+            type HListRepr = hlist::ty! { $($ts,)* };
+        }
+
+        impl <'a, $($ts,)*> HasHListRepr for &'a ($($ts,)*) {
+            type HListRepr = hlist::ty! { $(&'a $ts),* };
+        }
+
+        impl <'a, $($ts,)*> HasHListRepr for &'a mut ($($ts,)*) {
+            type HListRepr = hlist::ty! { $(&'a mut $ts,)* };
+        }
+        gen_has_hlist_repr_for_tuples! {@ $($ts)*}
+    };
 }
 
-macro_rules! gen_known_init {
-    () => {};
-    ($t:ident $(,$($ts:ident),*)?) => {
-        impl<X $(,$($ts),*)?> $crate::KnownInit for ($($($ts,)*)? X,) { type Init = ($($($ts,)*)?); }
-        gen_known_init! { $($($ts),*)? }
-    }
-}
-
-gen_known_last! {T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_known_init! {T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-
-
-
-// ================
-// === PushBack ===
-// ================
-
-impl<X> hlist::PushBack<X> for () {
-    type Output = (X,);
-    fn push_back(self, x: X) -> Self::Output {
-        (x,)
-    }
-}
-
-impl<X, T0> hlist::PushBack<X> for (T0,) {
-    type Output = (T0, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, x)
-    }
-}
-
-impl<X, T0, T1> hlist::PushBack<X> for (T0, T1) {
-    type Output = (T0, T1, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, x)
-    }
-}
-
-impl<X, T0, T1, T2> hlist::PushBack<X> for (T0, T1, T2) {
-    type Output = (T0, T1, T2, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3> hlist::PushBack<X> for (T0, T1, T2, T3) {
-    type Output = (T0, T1, T2, T3, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4> hlist::PushBack<X> for (T0, T1, T2, T3, T4) {
-    type Output = (T0, T1, T2, T3, T4, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5> hlist::PushBack<X> for (T0, T1, T2, T3, T4, T5) {
-    type Output = (T0, T1, T2, T3, T4, T5, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5, T6> hlist::PushBack<X> for (T0, T1, T2, T3, T4, T5, T6) {
-    type Output = (T0, T1, T2, T3, T4, T5, T6, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, self.6, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5, T6, T7> hlist::PushBack<X> for (T0, T1, T2, T3, T4, T5, T6, T7) {
-    type Output = (T0, T1, T2, T3, T4, T5, T6, T7, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5, T6, T7, T8> hlist::PushBack<X>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8)
-{
-    type Output = (T0, T1, T2, T3, T4, T5, T6, T7, T8, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> hlist::PushBack<X>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
-{
-    type Output = (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8, self.9, x)
-    }
-}
-
-impl<X, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> hlist::PushBack<X>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
-{
-    type Output = (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, X);
-    fn push_back(self, x: X) -> Self::Output {
-        (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8, self.9, self.10, x)
-    }
-}
-
-
-
-// ===============
-// === PopBack ===
-// ===============
-
-impl<T0> hlist::PopBack for (T0,) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.0, ())
-    }
-}
-
-impl<T0, T1> hlist::PopBack for (T0, T1) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.1, (self.0,))
-    }
-}
-
-impl<T0, T1, T2> hlist::PopBack for (T0, T1, T2) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.2, (self.0, self.1))
-    }
-}
-
-impl<T0, T1, T2, T3> hlist::PopBack for (T0, T1, T2, T3) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.3, (self.0, self.1, self.2))
-    }
-}
-
-impl<T0, T1, T2, T3, T4> hlist::PopBack for (T0, T1, T2, T3, T4) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.4, (self.0, self.1, self.2, self.3))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5> hlist::PopBack for (T0, T1, T2, T3, T4, T5) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.5, (self.0, self.1, self.2, self.3, self.4))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6> hlist::PopBack for (T0, T1, T2, T3, T4, T5, T6) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.6, (self.0, self.1, self.2, self.3, self.4, self.5))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7> hlist::PopBack for (T0, T1, T2, T3, T4, T5, T6, T7) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.7, (self.0, self.1, self.2, self.3, self.4, self.5, self.6))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> hlist::PopBack for (T0, T1, T2, T3, T4, T5, T6, T7, T8) {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.8, (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> hlist::PopBack
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
-{
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.9, (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> hlist::PopBack
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
-{
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.10, (self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8, self.9))
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> hlist::PopBack
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)
-{
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (
-            self.11,
-            (
-                self.0, self.1, self.2, self.3, self.4, self.5, self.6, self.7, self.8, self.9,
-                self.10,
-            ),
-        )
-    }
-}
+gen_has_hlist_repr_for_tuples![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 
 
@@ -262,110 +67,40 @@ impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> hlist::PopBack
 // === Conversion Tuple -> HList ===
 // =================================
 
-impl From<()> for hlist::ty![] {
-    #[inline(always)]
-    fn from(_: ()) -> Self {
-        hlist::new![]
-    }
+macro_rules! impl_from_tuple_for_hlist {
+    ($($ts:literal),*) => {
+        paste! {
+            impl_from_tuple_for_hlist! {[] $( [[<T $ts>] $ts] )*}
+       }
+    };
+    ([$( [$t:tt $tn:tt] )*] $r:tt $($rs:tt)*) => {
+        impl<$($t),*> From<($($t,)*)> for hlist::ty![$($t),*] {
+            #[inline(always)]
+            fn from(_t: ($($t,)*)) -> Self {
+                hlist::new![$(_t.$tn),*]
+            }
+        }
+
+        impl<'a, $($t),*> From<&'a ($($t,)*)> for hlist::ty![$(&'a $t),*] {
+            #[inline(always)]
+            fn from(_t: &'a ($($t,)*)) -> Self {
+                hlist::new![$(&_t.$tn),*]
+            }
+        }
+
+        impl<'a, $($t),*> From<&'a mut ($($t,)*)> for hlist::ty![$(&'a mut $t),*] {
+            #[inline(always)]
+            fn from(_t: &'a mut ($($t,)*)) -> Self {
+                hlist::new![$(&mut _t.$tn),*]
+            }
+        }
+
+        impl_from_tuple_for_hlist! {[$([$t $tn])* $r] $($rs)*}
+    };
+    ($ts:tt) => {}
 }
 
-impl<T0> From<(T0,)> for hlist::ty![T0] {
-    #[inline(always)]
-    fn from(t: (T0,)) -> Self {
-        hlist::new![t.0]
-    }
-}
-
-impl<T0, T1> From<(T0, T1)> for hlist::ty![T0, T1] {
-    #[inline(always)]
-    fn from(t: (T0, T1)) -> Self {
-        hlist::new![t.0, t.1]
-    }
-}
-
-impl<T0, T1, T2> From<(T0, T1, T2)> for hlist::ty![T0, T1, T2] {
-    #[inline(always)]
-    fn from(t: (T0, T1, T2)) -> Self {
-        hlist::new![t.0, t.1, t.2]
-    }
-}
-
-impl<T0, T1, T2, T3> From<(T0, T1, T2, T3)> for hlist::ty![T0, T1, T2, T3] {
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3]
-    }
-}
-
-impl<T0, T1, T2, T3, T4> From<(T0, T1, T2, T3, T4)> for hlist::ty![T0, T1, T2, T3, T4] {
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5> From<(T0, T1, T2, T3, T4, T5)> for hlist::ty![T0, T1, T2, T3, T4, T5] {
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6> From<(T0, T1, T2, T3, T4, T5, T6)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7> From<(T0, T1, T2, T3, T4, T5, T6, T7)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6, T7)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> From<(T0, T1, T2, T3, T4, T5, T6, T7, T8)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6, T7, T8)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> From<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
-    From<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9, t.10]
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
-    From<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)>
-    for hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]
-{
-    #[inline(always)]
-    fn from(t: (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)) -> Self {
-        hlist::new![t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9, t.10, t.11]
-    }
-}
+impl_from_tuple_for_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 
 
@@ -373,236 +108,44 @@ impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
 // === Conversion HList -> Tuple ===
 // =================================
 
-impl From<hlist::ty![]> for () {
-    #[inline(always)]
-    fn from(_: hlist::ty![]) -> Self {}
-}
-
-impl<T0> From<hlist::ty![T0]> for (T0,) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0,]) -> Self {
-        let hlist::pat![t0] = value;
-        (t0,)
-    }
-}
-
-impl<T0, T1> From<hlist::ty![T0, T1]> for (T0, T1) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1]) -> Self {
-        let hlist::pat![t0, t1] = value;
-        (t0, t1)
-    }
-}
-
-impl<T0, T1, T2> From<hlist::ty![T0, T1, T2]> for (T0, T1, T2) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2]) -> Self {
-        let hlist::pat![t0, t1, t2] = value;
-        (t0, t1, t2)
-    }
-}
-
-impl<T0, T1, T2, T3> From<hlist::ty![T0, T1, T2, T3]> for (T0, T1, T2, T3) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3]) -> Self {
-        let hlist::pat![t0, t1, t2, t3] = value;
-        (t0, t1, t2, t3)
-    }
-}
-
-impl<T0, T1, T2, T3, T4> From<hlist::ty![T0, T1, T2, T3, T4]> for (T0, T1, T2, T3, T4) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4] = value;
-        (t0, t1, t2, t3, t4)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5> From<hlist::ty![T0, T1, T2, T3, T4, T5]> for (T0, T1, T2, T3, T4, T5) {
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5] = value;
-        (t0, t1, t2, t3, t4, t5)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6> From<hlist::ty![T0, T1, T2, T3, T4, T5, T6]>
-    for (T0, T1, T2, T3, T4, T5, T6)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6] = value;
-        (t0, t1, t2, t3, t4, t5, t6)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7> From<hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7]>
-    for (T0, T1, T2, T3, T4, T5, T6, T7)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6, t7] = value;
-        (t0, t1, t2, t3, t4, t5, t6, t7)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> From<hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8]>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6, t7, t8] = value;
-        (t0, t1, t2, t3, t4, t5, t6, t7, t8)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>
-    From<hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9]>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6, t7, t8, t9] = value;
-        (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
-    From<hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10] = value;
-        (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)
-    }
-}
-
-impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
-    From<hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]>
-    for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)
-{
-    #[inline(always)]
-    fn from(value: hlist::ty![T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) -> Self {
-        let hlist::pat![t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11] = value;
-        (t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
-    }
-}
-
-
-
-// ==============================
-// === HasTupleRepr for HList ===
-// ==============================
-
-impl HasTupleRepr for hlist::ty![] {
-    type TupleRepr = ();
-}
-
-impl<T1> HasTupleRepr for hlist::ty![T1] {
-    type TupleRepr = (T1,);
-}
-
-impl<T1, T2> HasTupleRepr for hlist::ty![T1, T2] {
-    type TupleRepr = (T1, T2);
-}
-
-impl<T1, T2, T3> HasTupleRepr for hlist::ty![T1, T2, T3] {
-    type TupleRepr = (T1, T2, T3);
-}
-
-impl<T1, T2, T3, T4> HasTupleRepr for hlist::ty![T1, T2, T3, T4] {
-    type TupleRepr = (T1, T2, T3, T4);
-}
-
-impl<T1, T2, T3, T4, T5> HasTupleRepr for hlist::ty![T1, T2, T3, T4, T5] {
-    type TupleRepr = (T1, T2, T3, T4, T5);
-}
-
-impl<T1, T2, T3, T4, T5, T6> HasTupleRepr for hlist::ty![T1, T2, T3, T4, T5, T6] {
-    type TupleRepr = (T1, T2, T3, T4, T5, T6);
-}
-
-impl<T1, T2, T3, T4, T5, T6, T7> HasTupleRepr for hlist::ty![T1, T2, T3, T4, T5, T6, T7] {
-    type TupleRepr = (T1, T2, T3, T4, T5, T6, T7);
-}
-
-impl<T1, T2, T3, T4, T5, T6, T7, T8> HasTupleRepr for hlist::ty![T1, T2, T3, T4, T5, T6, T7, T8] {
-    type TupleRepr = (T1, T2, T3, T4, T5, T6, T7, T8);
-}
-
-impl<T1, T2, T3, T4, T5, T6, T7, T8, T9> HasTupleRepr
-    for hlist::ty![T1, T2, T3, T4, T5, T6, T7, T8, T9]
-{
-    type TupleRepr = (T1, T2, T3, T4, T5, T6, T7, T8, T9);
-}
-
-impl<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> HasTupleRepr
-    for hlist::ty![T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]
-{
-    type TupleRepr = (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
-}
-
-impl<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> HasTupleRepr
-    for hlist::ty![T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]
-{
-    type TupleRepr = (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
-}
-
-
-
-// =================
-// === HasItemAt ===
-// =================
-
-macro_rules! gen_has_item_at {
-    ($num:tt $p:tt) => {};
-    ($num:tt [$($p:ident),*] $t:ident $(,$($ts:ident),*)?) => {
-        impl<$($p,)* X $(,$($ts),*)?> $crate::HasItemAt<{ $num }> for ($($p,)*X,$($($ts,)*)?) {
-            type Item = X;
+macro_rules! impl_from_hlist_for_tuple {
+    () => {};
+    ($($ts:literal),*) => { paste! {
+        impl_from_hlist_for_tuple! {$([<T $ts>])*}
+    }};
+    ($t:tt $($ts:tt)*) => {
+        impl<$($ts),*> IntoFamily<Tuple> for crate::ty![$($ts),*] {
+            type Output = ($($ts,)*);
+            #[allow(clippy::unused_unit)]
+            fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
+            }
         }
-        gen_has_item_at! { $num [$($p),*] $($($ts),*)? }
-    }
-}
 
-gen_has_item_at! {0  [] T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {1  [T0] T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {2  [T0,T1] T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {3  [T0,T1,T2] T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {4  [T0,T1,T2,T3] T4,T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {5  [T0,T1,T2,T3,T4] T5,T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {6  [T0,T1,T2,T3,T4,T5] T6,T7,T8,T9,T10,T11}
-gen_has_item_at! {7  [T0,T1,T2,T3,T4,T5,T6] T7,T8,T9,T10,T11}
-gen_has_item_at! {8  [T0,T1,T2,T3,T4,T5,T6,T7] T8,T9,T10,T11}
-gen_has_item_at! {9  [T0,T1,T2,T3,T4,T5,T6,T7,T8] T9,T10,T11}
-gen_has_item_at! {10 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9] T10,T11}
-gen_has_item_at! {11 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10] T11}
-
-
-
-// =================
-// === GetItemAt ===
-// =================
-
-macro_rules! gen_get_item_at {
-    ($num:tt $p:tt) => {};
-    ($num:tt [$($p:ident),*] $t:ident $(,$($ts:ident),*)?) => {
-        impl<$($p,)* X $(,$($ts),*)?> $crate::GetItemAt<{ $num }> for ($($p,)*X,$($($ts,)*)?) {
-            fn get_item_at(&self) -> &X { &self.$num }
+        impl<'t, $($ts),*> IntoFamily<Tuple> for &'t crate::ty![$($ts),*] {
+            type Output = ($(&'t $ts,)*);
+            #[allow(clippy::unused_unit)]
+            fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
+            }
         }
-        gen_get_item_at! { $num [$($p),*] $($($ts),*)? }
-    }
+
+        impl<'t, $($ts),*> IntoFamily<Tuple> for &'t mut crate::ty![$($ts),*] {
+            type Output = ($(&'t mut $ts,)*);
+            #[allow(clippy::unused_unit)]
+            fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
+            }
+        }
+
+        impl_from_hlist_for_tuple! { $($ts)* }
+    };
 }
 
-gen_get_item_at! {0  [] T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {1  [T0] T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {2  [T0,T1] T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {3  [T0,T1,T2] T3,T4,T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {4  [T0,T1,T2,T3] T4,T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {5  [T0,T1,T2,T3,T4] T5,T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {6  [T0,T1,T2,T3,T4,T5] T6,T7,T8,T9,T10,T11}
-gen_get_item_at! {7  [T0,T1,T2,T3,T4,T5,T6] T7,T8,T9,T10,T11}
-gen_get_item_at! {8  [T0,T1,T2,T3,T4,T5,T6,T7] T8,T9,T10,T11}
-gen_get_item_at! {9  [T0,T1,T2,T3,T4,T5,T6,T7,T8] T9,T10,T11}
-gen_get_item_at! {10 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9] T10,T11}
-gen_get_item_at! {11 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10] T11}
+impl_from_hlist_for_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];

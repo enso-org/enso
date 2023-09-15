@@ -1,20 +1,20 @@
 from Standard.Base import all
-
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.Runtime.Context
 
-from Standard.Table import Table, Column
+from Standard.Table import Column, Table
 
-from Standard.Image import Image, Read_Flag, Matrix
+from Standard.Image import Image, Matrix, Read_Flag
 
 ## An example error type used in a number of examples.
-
-   Arguments:
-   - message: The message contained in the error type.
 type Example_Error_Type
+    ## Create an example error.
+
+       Arguments:
+       - message: The message contained in the error type.
     Error message
 
 ## The standard library data directory.
@@ -123,6 +123,7 @@ no_such_method = Panic.recover Any No_Methods.frobnicate . catch
 
 ## A simple error type for example purposes.
 type My_Error
+    ## Construct a simple error.
     Error message
 
 ## Throws an error.

@@ -1,16 +1,23 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Module,
+  Name,
+  Type
+}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.{Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 
 import java.util
-import scala.annotation.unused
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -47,9 +54,9 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return ir annotated with the preference information
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val weights = WeightInfo()
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
       .updateMetadata(this -->> weights)
@@ -63,16 +70,10 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return ir annotated with the preference information
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     analyseExpression(ir, WeightInfo())
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 
@@ -83,47 +84,47 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `binding`, with attached preference information
     */
   def analyseModuleDefinition(
-    binding: IR.Module.Scope.Definition,
+    binding: Definition,
     weights: WeightInfo
-  ): IR.Module.Scope.Definition =
+  ): Definition =
     binding match {
-      case _: IR.Module.Scope.Definition.Type => binding
-      case method: Method.Conversion =>
+      case _: Definition.Type => binding
+      case method: definition.Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))
           .updateMetadata(this -->> weights)
-      case method @ IR.Module.Scope.Definition.Method
+      case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(body = analyseExpression(body, weights))
           .updateMetadata(this -->> weights)
-      case _: IR.Module.Scope.Definition.Method.Binding =>
+      case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during cache " +
           "preference analysis."
         )
-      case _: IR.Module.Scope.Definition.SugaredType =>
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during cache " +
           "preference analysis."
         )
-      case _: IR.Comment.Documentation =>
+      case _: Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during cache " +
           "preference analysis."
         )
-      case _: IR.Type.Ascription =>
+      case _: Type.Ascription =>
         throw new CompilerError(
           "Type signatures should not exist at the top level during " +
           "cache preference analysis."
         )
-      case _: IR.Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "cache preference analysis."
         )
-      case ann: IR.Name.GenericAnnotation => ann
-      case err: IR.Error                  => err
+      case ann: Name.GenericAnnotation => ann
+      case err: Error                  => err
     }
 
   /** Performs preference analysis on an arbitrary expression.
@@ -133,11 +134,11 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `expression`, with attached preference information
     */
   def analyseExpression(
-    expression: IR.Expression,
+    expression: Expression,
     weights: WeightInfo
-  ): IR.Expression = {
+  ): Expression = {
     expression.transformExpressions {
-      case binding: IR.Expression.Binding =>
+      case binding: Expression.Binding =>
         binding.getExternalId.foreach(weights.update(_, Weight.Never))
         binding.expression.getExternalId
           .foreach(weights.update(_, Weight.Always))
@@ -147,7 +148,7 @@ case object CachePreferenceAnalysis extends IRPass {
             expression = analyseExpression(binding.expression, weights)
           )
           .updateMetadata(this -->> weights)
-      case error: IR.Error =>
+      case error: Error =>
         error
       case expr =>
         expr.getExternalId.collect {
@@ -166,11 +167,11 @@ case object CachePreferenceAnalysis extends IRPass {
     * @return `argument`, with attached preference information
     */
   def analyseDefinitionArgument(
-    argument: IR.DefinitionArgument,
+    argument: DefinitionArgument,
     weights: WeightInfo
-  ): IR.DefinitionArgument = {
+  ): DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(this -->> weights)
@@ -185,7 +186,7 @@ case object CachePreferenceAnalysis extends IRPass {
     */
   sealed case class WeightInfo(
     weights: mutable.HashMap[IR.ExternalId, Double] = mutable.HashMap()
-  ) extends IRPass.Metadata {
+  ) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "CachePreferenceAnalysis.Weights"
@@ -218,7 +219,7 @@ case object CachePreferenceAnalysis extends IRPass {
     def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =
       weights.asJava.asInstanceOf[util.Map[IR.ExternalId, java.lang.Double]]
 
-    override def duplicate(): Option[IRPass.Metadata] =
+    override def duplicate(): Option[IRPass.IRMetadata] =
       Some(copy(weights = this.weights))
   }
 

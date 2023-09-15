@@ -9,6 +9,7 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
+import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
@@ -20,7 +21,8 @@ import org.enso.languageserver.boot.{
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
-  SequentialResourcesInitialization
+  SequentialResourcesInitialization,
+  ZioRuntimeInitialization
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -43,7 +45,7 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.loggingservice.LogLevel
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -55,10 +57,10 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
+import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -72,6 +74,10 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
+
+  LoggerSetup.get().setup()
+
+  def isFileWatcherEnabled: Boolean = false
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
@@ -101,7 +107,8 @@ class BaseServerTest
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
 
   override def protocolFactory: ProtocolFactory =
@@ -132,12 +139,14 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec         = ZioExec(new TestRuntime)
+  val zioRuntime      = new TestRuntime
+  val zioExec         = ZioExec(zioRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
+    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
     new RepoInitialization(
       config.directories,
       system.eventStream,
@@ -191,16 +200,21 @@ class BaseServerTest
           fileManager,
           vcsManager,
           runtimeConnectorProbe.ref,
+          contentRootManagerWrapper,
           timingsConfig
         )(
           Sha3_224VersionCalculator
         ),
         s"buffer-registry-${UUID.randomUUID()}"
       )
+    val watcherFactory =
+      if (isFileWatcherEnabled) new WatcherAdapterFactory
+      else new NoopWatcherFactory
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(
         config,
         contentRootManagerWrapper,
+        watcherFactory,
         new FileSystem,
         zioExec
       ),
@@ -285,15 +299,19 @@ class BaseServerTest
       )
     )
 
+    val libraryLocations =
+      LibraryLocations.resolve(
+        distributionManager,
+        Some(languageHome),
+        Some(config.projectContentRoot.file.toPath)
+      )
+
     val localLibraryManager = system.actorOf(
       LocalLibraryManager.props(
         config.projectContentRoot.file,
-        distributionManager
+        libraryLocations
       )
     )
-
-    val libraryLocations =
-      LibraryLocations.resolve(distributionManager, Some(languageHome))
 
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
@@ -306,7 +324,7 @@ class BaseServerTest
         distributionManager,
         resourceManager,
         Some(languageHome),
-        new CompilerBasedDependencyExtractor(logLevel = LogLevel.Warning)
+        new CompilerBasedDependencyExtractor(logLevel = Level.WARN)
       )
     )
 

@@ -1,6 +1,5 @@
 package org.enso.syntax2;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 final class Message {

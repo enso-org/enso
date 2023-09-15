@@ -5,7 +5,7 @@
     name="clippy/enso-build-macros [wasm]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚧 Build          macros"
+    folderName="🚧 Build          macros/proc-macro"
   >
     <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package enso-build-macros" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

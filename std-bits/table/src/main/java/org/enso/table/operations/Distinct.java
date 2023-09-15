@@ -1,5 +1,9 @@
 package org.enso.table.operations;
 
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKeyBase;
@@ -8,11 +12,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
-
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 public class Distinct {
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
@@ -21,6 +21,7 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       AggregatedProblems problems) {
+    Context context = Context.getCurrent();
     var mask = new BitSet();
     if (keyColumns.length != 0) {
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
@@ -43,6 +44,8 @@ public class Distinct {
           mask.set(i);
           visitedRows.add(key);
         }
+
+        context.safepoint();
       }
     } else {
       // If there are no columns to distinct-by we just return the whole table.

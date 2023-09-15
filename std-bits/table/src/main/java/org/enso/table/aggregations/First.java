@@ -1,11 +1,11 @@
 package org.enso.table.aggregations;
 
+import java.util.Arrays;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
-
-import java.util.Arrays;
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column finding the first value in a group. */
 public class First extends Aggregator {
@@ -50,6 +50,7 @@ public class First extends Aggregator {
     OrderedMultiValueKey key = null;
     Object current = null;
 
+    Context context = Context.getCurrent();
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (ignoreNothing && value == null) {
@@ -62,17 +63,22 @@ public class First extends Aggregator {
         key = newKey;
         current = storage.getItemBoxed(row);
       }
+
+      context.safepoint();
     }
 
     return current;
   }
 
   private Object firstByRowOrder(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (!ignoreNothing || value != null) {
         return value;
       }
+
+      context.safepoint();
     }
     return null;
   }

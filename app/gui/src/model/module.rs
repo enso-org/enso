@@ -163,7 +163,7 @@ impl Path {
         if let [ref _src, ref dirs @ .., _] = *self.file_path.segments.as_slice() {
             // Path must designate a valid module and must be able to designate any valid module.
             // Therefore, unwraps in this method are safe.
-            let parent_modules = dirs.iter().map(ImString::new).collect();
+            let parent_modules = dirs.iter().map(ImString::from).collect();
             let name = ImString::new(self.module_name());
             Id { parent_modules, name }
         } else {
@@ -673,6 +673,9 @@ pub trait API: Debug + model::undo_redo::Aware {
 
     /// Reopen file in language server.
     fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult>;
+
+    /// Reopen externally changed file.
+    fn reopen_externally_changed_file(&self) -> BoxFuture<FallibleResult>;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.

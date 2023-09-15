@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Ordering import all
-
 import project.Data.Image.Image
 import project.Data.Matrix_Error.Matrix_Error
 
@@ -96,7 +94,7 @@ type Matrix
              example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
     from_vector : Vector -> Integer -> Integer -> Matrix
     from_vector values rows=1 channels=1 =
-        Matrix.Value (Java_Matrix.from_vector values.to_array channels rows)
+        Matrix.Value (Java_Matrix.from_vector values channels rows)
 
     ## Return the number of matrix rows.
 
@@ -168,7 +166,8 @@ type Matrix
             Nothing -> Matrix.Value (self.opencv_mat.reshape self.channels rows)
             _ -> Matrix.Value (self.opencv_mat.reshape channels rows)
 
-    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -204,7 +203,8 @@ type Matrix
     + : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch core_op_handler
 
-    ## Calculates the per-element difference of two matrices or of a matrix and
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element difference of two matrices or of a matrix and
        a scalar.
 
        Arguments:
@@ -241,7 +241,8 @@ type Matrix
     - : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch core_op_handler
 
-    ## Calculates the per-element product of two matrices or a matrix and a
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element product of two matrices or a matrix and a
        scalar.
 
        Arguments:
@@ -283,7 +284,8 @@ type Matrix
     * : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch core_op_handler
 
-    ## Performs per-element division of two matrices or a matrix and a scalar.
+    ## GROUP Standard.Base.Operators
+       Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -399,7 +401,7 @@ core_op mat value function =
     result = Mat.new
     scalar = case value of
         _ : Vector ->
-            Scalar.new value.to_array
+            Scalar.new value
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
         _ ->
@@ -429,4 +431,5 @@ type Matrix_Comparator
     hash : Matrix -> Number
     hash x = x.opencv_mat.hashCode
 
+## PRIVATE
 Comparable.from (_:Matrix) = Matrix_Comparator

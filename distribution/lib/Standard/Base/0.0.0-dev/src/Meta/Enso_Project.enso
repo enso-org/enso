@@ -2,12 +2,43 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-
 from project.Errors.Common import Module_Not_In_Package_Error
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
+    ## PRIVATE
+       ADVANCED
+       Returns the Enso project description for the given module. If no module is
+       given, returns the description of the project that the engine was executed
+       with, i.e., the project that contains the `main` method, or throws
+       `Module_Not_In_Package_Error` if there is no such project, e.g., when
+       executing a single file.
+
+       Arguments:
+       - module: An optional module for which the Enso project description
+         will be fetched. If `Nothing`, the current project description will
+         be fetched.
+
+       > Example
+         Get the project description for the project that contains the `main`
+         method.
+
+             Project_Description.new
+
+       > Example
+         Get the project description for the `Standard.Visualizations` project.
+
+             Project_Description.new Standard.Visualizations
+
+       > Example
+         Get the project description for the `Standard.Base` project from the
+         `Vector` module.
+
+             Project_Description.new Standard.Base.Data.Vector
+    new : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
+    new module=Nothing = Project_Description.enso_project_builtin module
+
     ## PRIVATE
        A representation of an Enso project.
 
@@ -16,7 +47,8 @@ type Project_Description
        - prim_config: The primitive config of the project.
     Value prim_root_file prim_config
 
-    ## Returns the root directory of the project.
+    ## GROUP Metadata
+       Returns the root directory of the project.
 
        > Example
          Get the root directory of the project.
@@ -25,7 +57,8 @@ type Project_Description
     root : File
     root self = File.new self.prim_root_file
 
-    ## Returns the root data directory of the project.
+    ## GROUP Input
+       Returns the root data directory of the project.
 
        > Example
          Get the data directory of the project.
@@ -34,7 +67,8 @@ type Project_Description
     data : File
     data self = self.root / "data"
 
-    ## Returns the name of the project.
+    ## GROUP Metadata
+       Returns the name of the project.
 
        > Example
          Get the name of the project.
@@ -43,7 +77,8 @@ type Project_Description
     name : Text
     name self = self.prim_config.name
 
-    ## Returns the namespace of the project.
+    ## GROUP Metadata
+       Returns the namespace of the project.
 
        > Example
          Get the namespace of the project.
@@ -52,33 +87,15 @@ type Project_Description
     namespace : Text
     namespace self = self.prim_config.namespace
 
-## Returns the Enso project description for the given module. If no module is
-   given, returns the description of the project that the engine was executed
-   with, i.e., the project that contains the `main` method, or throws
-   `Module_Not_In_Package_Error` if there is no such project, e.g., when
-   executing a single file.
-
-   Arguments:
-   - module: An optional module for which the Enso project description
-     will be fetched. If `Nothing`, the current project description will
-     be fetched.
+## Returns the Enso project description for the project that the engine was
+   executed with, i.e., the project that contains the `main` method, or
+   throws `Module_Not_In_Package_Error` if executing a single file.
 
    > Example
      Get the project description for the project that contains the `main`
      method.
 
          enso_project
-
-   > Example
-     Get the project description for the `Standard.Visualizations` project.
-
-         enso_project Standard.Visualizations
-
-   > Example
-     Get the project description for the `Standard.Base` project from the
-     `Vector` module.
-
-         enso_project Standard.Base.Data.Vector
-enso_project : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
-enso_project module=Nothing =
-    Project_Description.enso_project_builtin module
+enso_project : Project_Description ! Module_Not_In_Package_Error
+enso_project =
+    Project_Description.enso_project_builtin Nothing

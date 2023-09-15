@@ -1,12 +1,13 @@
 package org.enso.interpreter.test.instrument;
 
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
-import static org.junit.Assert.fail;
 
 final class MockLogHandler extends Handler {
   private final List<LogRecord> logs = new ArrayList<>();

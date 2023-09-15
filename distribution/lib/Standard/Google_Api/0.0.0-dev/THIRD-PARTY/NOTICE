@@ -3,7 +3,7 @@ Copyright 2020 - 2023 New Byte Order sp. z o. o.
 
 'google-api-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.api-client.google-api-client-1.32.1`.
+Copyright notices related to this dependency can be found in the directory `com.google.api-client.google-api-client-1.35.2`.
 
 
 'google-api-services-sheets', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
@@ -16,14 +16,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.code.findbugs.jsr305-3.0.2`.
 
 
-'gson', licensed under the Apache 2.0, is distributed with the Google_Api.
+'gson', licensed under the Apache-2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.code.gson.gson-2.8.6`.
+Copyright notices related to this dependency can be found in the directory `com.google.code.gson.gson-2.9.0`.
 
 
 'error_prone_annotations', licensed under the Apache 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.5.1`.
+Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.11.0`.
 
 
 'failureaccess', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
@@ -33,7 +33,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'guava', licensed under the Apache License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-30.1.1-android`.
+Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-31.1-jre`.
 
 
 'listenablefuture', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
@@ -43,17 +43,17 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'google-http-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-1.39.2`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-1.42.0`.
 
 
 'google-http-client-apache-v2', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-apache-v2-1.39.2`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-apache-v2-1.42.0`.
 
 
 'google-http-client-gson', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-gson-1.39.2`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-gson-1.42.0`.
 
 
 'j2objc-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
@@ -63,7 +63,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'google-oauth-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.oauth-client.google-oauth-client-1.31.5`.
+Copyright notices related to this dependency can be found in the directory `com.google.oauth-client.google-oauth-client-1.34.1`.
 
 
 'commons-codec', licensed under the Apache License, Version 2.0, is distributed with the Google_Api.
@@ -83,12 +83,12 @@ Copyright notices related to this dependency can be found in the directory `io.g
 
 'opencensus-api', licensed under the The Apache License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-api-0.28.0`.
+Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-api-0.31.1`.
 
 
 'opencensus-contrib-http-util', licensed under the The Apache License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-contrib-http-util-0.28.0`.
+Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-contrib-http-util-0.31.1`.
 
 
 'httpclient', licensed under the Apache License, Version 2.0, is distributed with the Google_Api.
@@ -97,11 +97,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 
 'httpcore', licensed under the Apache License, Version 2.0, is distributed with the Google_Api.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.14`.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.15`.
 
 
-'checker-compat-qual', licensed under the The MIT License, is distributed with the Google_Api.
-The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-compat-qual-2.5.5`.
+'checker-qual', licensed under the The MIT License, is distributed with the Google_Api.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.12.0`.
 

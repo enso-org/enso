@@ -46,6 +46,28 @@ class RuntimeComponentsTest
 
   var context: TestContext = _
 
+  var baseGroups: Seq[GroupName] = Seq(
+    GroupName("Input"),
+    GroupName("Constants"),
+    GroupName("Metadata"),
+    GroupName("Output"),
+    GroupName("Calculations"),
+    GroupName("Statistics"),
+    GroupName("Selections"),
+    GroupName("Conversions"),
+    GroupName("Values"),
+    GroupName("Math"),
+    GroupName("Rounding"),
+    GroupName("Trigonometry"),
+    GroupName("Random"),
+    GroupName("Bitwise"),
+    GroupName("Text"),
+    GroupName("DateTime"),
+    GroupName("Logical"),
+    GroupName("Operators"),
+    GroupName("Errors")
+  )
+
   class TestContext(packageName: String) {
 
     val messageQueue: LinkedBlockingQueue[Api.Response] =
@@ -271,22 +293,16 @@ class RuntimeComponentsTest
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
-    context.pkg.config.componentGroups
+    context.pkg
+      .getConfig()
+      .componentGroups
       .getOrElse(fail("Unexpected config value."))
 
     components
       .get(LibraryName("Standard", "Base"))
       .value
       .newGroups
-      .map(_.group) should contain theSameElementsAs Seq(
-      GroupName("Input"),
-      GroupName("Web"),
-      GroupName("Parse"),
-      GroupName("Select"),
-      GroupName("Join"),
-      GroupName("Transform"),
-      GroupName("Output")
-    )
+      .map(_.group) should contain theSameElementsAs baseGroups
 
     context.consumeOut shouldEqual List()
   }
@@ -348,7 +364,9 @@ class RuntimeComponentsTest
     val components = context.languageContext.getPackageRepository.getComponents
 
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
-    context.pkg.config.componentGroups
+    context.pkg
+      .getConfig()
+      .componentGroups
       .getOrElse(fail("Unexpected config value."))
 
     components
@@ -361,38 +379,7 @@ class RuntimeComponentsTest
       .get(LibraryName("Standard", "Base"))
       .value
       .newGroups
-      .map(_.group) should contain theSameElementsAs Seq(
-      GroupName("Input"),
-      GroupName("Web"),
-      GroupName("Parse"),
-      GroupName("Select"),
-      GroupName("Join"),
-      GroupName("Transform"),
-      GroupName("Output")
-    )
-
-    components
-      .get(LibraryName("Standard", "Database"))
-      .value
-      .extendedGroups
-      .map(_.group) should contain theSameElementsAs Seq(
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform"))
-    )
-
-    components
-      .get(LibraryName("Standard", "Table"))
-      .value
-      .extendedGroups
-      .map(_.group) should contain theSameElementsAs Seq(
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform")),
-      GroupReference(LibraryName("Standard", "Base"), GroupName("Output"))
-    )
+      .map(_.group) should contain theSameElementsAs baseGroups
 
     context.consumeOut shouldEqual List()
   }

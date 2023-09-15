@@ -1,21 +1,42 @@
 package org.enso.interpreter.runtime.builtin;
 
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
+import org.enso.interpreter.node.expression.builtin.error.ArityError;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
+import org.enso.interpreter.node.expression.builtin.error.CompileError;
+import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
+import org.enso.interpreter.node.expression.builtin.error.IncomparableValues;
+import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
+import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
+import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
+import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
+import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
+import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
+import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
+import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
+import org.enso.interpreter.node.expression.builtin.error.Panic;
+import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
+import org.enso.interpreter.node.expression.builtin.error.TypeError;
+import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
+import org.enso.interpreter.node.expression.builtin.error.UninitializedState;
+import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTypes;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
 /** Container for builtin Error types */
-public class Error {
+public final class Error {
   private final EnsoContext context;
   private final SyntaxError syntaxError;
   private final TypeError typeError;
@@ -25,6 +46,7 @@ public class Error {
   private final UninitializedState uninitializedState;
   private final NoSuchMethod noSuchMethod;
   private final NoSuchConversion noSuchConversion;
+  private final NoConversionCurrying noConversionCurrying;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
@@ -60,6 +82,7 @@ public class Error {
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
     noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
+    noConversionCurrying = builtins.getBuiltinType(NoConversionCurrying.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
@@ -136,6 +159,11 @@ public class Error {
     return invalidConversionTarget.newInstance(target);
   }
 
+  public Atom makeNoConversionCurrying(
+      boolean hasThis, boolean hasThat, UnresolvedConversion conversion) {
+    return noConversionCurrying.newInstance(hasThis, hasThat, conversion);
+  }
+
   /**
    * Creates an instance of the runtime representation of a {@code Type_Error}.
    *
@@ -206,7 +234,8 @@ public class Error {
    *     given method call
    */
   public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
-    return unsupportedArgumentsError.newInstance(new Array(args), message);
+    return unsupportedArgumentsError.newInstance(
+        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), message);
   }
 
   /**

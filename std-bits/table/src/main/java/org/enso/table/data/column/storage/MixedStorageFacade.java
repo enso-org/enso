@@ -1,14 +1,14 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.builder.object.Builder;
+import java.util.BitSet;
+import java.util.List;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * Wraps a storage of any type and alters its reported storage to be of type AnyObject.
@@ -39,6 +39,11 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
+  public StorageType inferPreciseType() {
+    return underlyingStorage.inferPreciseType();
+  }
+
+  @Override
   public boolean isNa(long idx) {
     return underlyingStorage.isNa(idx);
   }
@@ -49,18 +54,28 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isOpVectorized(String name) {
-    return underlyingStorage.isOpVectorized(name);
+  public boolean isUnaryOpVectorized(String name) {
+    return underlyingStorage.isUnaryOpVectorized(name);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return underlyingStorage.runVectorizedUnaryMap(name, problemBuilder);
+  }
+
+  @Override
+  public boolean isBinaryOpVectorized(String name) {
+    return underlyingStorage.isBinaryOpVectorized(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return underlyingStorage.runVectorizedMap(name, argument, problemBuilder);
+    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return underlyingStorage.runVectorizedZip(name, argument, problemBuilder);
   }
@@ -91,12 +106,17 @@ public class MixedStorageFacade extends Storage<Object> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    throw new UnsupportedOperationException("TODO");
+    return new MixedBuilder(capacity);
   }
 
   @Override
   public Storage<Object> slice(List<SliceRange> ranges) {
     Storage<?> newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
+  }
+
+  @Override
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return underlyingStorage.tryGettingMoreSpecializedStorage();
   }
 }

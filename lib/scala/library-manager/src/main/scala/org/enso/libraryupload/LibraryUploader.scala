@@ -44,9 +44,9 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
   )(implicit ec: ExecutionContext): Try[Unit] = Try {
     FileSystem.withTemporaryDirectory("enso-upload") { tmpDir =>
       val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
-      val version = SemVer(pkg.config.version).getOrElse {
+      val version = SemVer(pkg.getConfig().version).getOrElse {
         throw new IllegalStateException(
-          s"Project version [${pkg.config.version}] is not a valid semver " +
+          s"Project version [${pkg.getConfig().version}] is not a valid semver " +
           s"string."
         )
       }

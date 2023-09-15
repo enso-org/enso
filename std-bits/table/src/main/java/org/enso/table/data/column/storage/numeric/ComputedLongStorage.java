@@ -1,14 +1,13 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /**
  * Implements a storage that computes the ith stored value using some function.
@@ -35,7 +34,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public StorageType getType() {
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
@@ -68,12 +67,15 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         newData[resIx++] = getItem(i);
       }
+
+      context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing);
+    return new LongStorage(newData, cardinality, newMissing, getType());
   }
 
   @Override
@@ -81,14 +83,17 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
+    Context context = Context.getCurrent();
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND) {
         newMissing.set(i);
       } else {
         newData[i] = getItem(positions[i]);
       }
+
+      context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing);
+    return new LongStorage(newData, positions.length, newMissing, getType());
   }
 
   @Override
@@ -96,24 +101,29 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < counts.length; i++) {
       long item = getItem(i);
       for (int j = 0; j < counts[i]; j++) {
         newData[pos++] = item;
       }
+
+      context.safepoint();
     }
-    return new LongStorage(newData, total, newMissing);
+    return new LongStorage(newData, total, newMissing, getType());
   }
 
   @Override
   public Storage<Long> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
+    Context context = Context.getCurrent();
     for (int i = 0; i < newSize; i++) {
       newData[i] = getItem(offset + i);
+      context.safepoint();
     }
     BitSet newMask = new BitSet();
-    return new LongStorage(newData, newSize, newMask);
+    return new LongStorage(newData, newSize, newMask, getType());
   }
 
   @Override
@@ -122,17 +132,27 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);
     int offset = 0;
+    Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int rangeStart = range.start();
       int length = range.end() - rangeStart;
       for (int i = 0; i < length; i++) {
         newData[offset + i] = getItem(rangeStart + i);
+        context.safepoint();
       }
       offset += length;
     }
 
-    return new LongStorage(newData, newSize, newMissing);
+    return new LongStorage(newData, newSize, newMissing, getType());
   }
 
   private static final BitSet EMPTY = new BitSet();
+
+  @Override
+  public AbstractLongStorage widen(IntegerType widerType) {
+    // Currently the implementation only reports 64-bit type so there is no widening to do - we can
+    // just return self.
+    assert getType().equals(IntegerType.INT_64);
+    return this;
+  }
 }

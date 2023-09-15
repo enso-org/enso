@@ -1,19 +1,5 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyExecutable;
 import static org.junit.Assert.assertNotNull;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -23,6 +9,20 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Language;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 public abstract class TestBase {
   protected static Context createDefaultContext() {
@@ -39,10 +39,10 @@ public abstract class TestBase {
     return context;
   }
 
-  private static Context.Builder defaultContextBuilder() {
-    return Context.newBuilder()
+  protected static Context.Builder defaultContextBuilder(String... languages) {
+    return Context.newBuilder(languages)
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .logHandler(new ByteArrayOutputStream())
         .option(RuntimeOptions.STRICT_ERRORS, "true")

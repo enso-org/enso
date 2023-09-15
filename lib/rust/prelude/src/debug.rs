@@ -146,9 +146,9 @@ impl Drop for TraceCopies {
 /// A module containing an utility for detecting leaks.
 ///
 /// If you suspect a particular struct is leaking, i.e. its instances are still present when we
-/// expect them to be removed, you may add a [`Trace`] field to it. Then, at the point where we
-/// expect all instances to be dropped, we may check the [`TRACKED_OBJECTS`] global variable, what
-/// instances are still alive and their creation backtraces.
+/// expect them to be removed, you may add a [`Trace`] field to it and call [`enable`]. Then, at
+/// the point where we expect all instances to be dropped, we may check the [`TRACKED_OBJECTS`]
+/// global variable, what instances are still alive and their creation backtraces.
 pub mod leak_detector {
     use crate::*;
 

@@ -49,7 +49,8 @@ impl Frp {
 
         model.show_background(true);
 
-        let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
+        let base_frp =
+            super::Frp::new(app, model, style, network, frp.resize.clone().into(), mouse);
 
         let background_click = relative_shape_down_position(network, scene, &model.background);
         let track_click = relative_shape_down_position(network, scene, &model.track);

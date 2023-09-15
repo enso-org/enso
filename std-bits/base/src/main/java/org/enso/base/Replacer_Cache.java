@@ -1,13 +1,10 @@
 package org.enso.base;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 import org.graalvm.collections.Pair;
 import org.graalvm.polyglot.Value;
-
-import java.util.ArrayList;
-import java.util.function.Function;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class Replacer_Cache {
   private static final int lruSize = 5;

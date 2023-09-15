@@ -136,9 +136,9 @@ viewBox="0 0 ${this.xsize} ${this.xsize}">
  * @param {string} outputDir - The directory in which the icons will be placed. */
 async function genIcons(outputDir) {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    let sizes = [16, 32, 64, 128, 256, 512, 1024]
+    const sizes = [16, 32, 64, 128, 256, 512, 1024]
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    let winSizes = [16, 32, 64, 128, 256]
+    const winSizes = [16, 32, 64, 128, 256]
 
     const donePath = path.join(outputDir, 'init')
     if (fsSync.existsSync(donePath)) {
@@ -150,8 +150,8 @@ async function genIcons(outputDir) {
         await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
         await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
         for (const size of sizes) {
-            let name = `icon_${size}x${size}.svg`
-            let logo = new Logo(size, true).generate()
+            const name = `icon_${size}x${size}.svg`
+            const logo = new Logo(size, true).generate()
             await fs.writeFile(`${outputDir}/svg/${name}`, logo)
         }
 
@@ -161,8 +161,8 @@ async function genIcons(outputDir) {
         /// There is currently no other way in `sharp` to do it.
         console.log('Generating PNG icons.')
         for (const size of sizes) {
-            let inName = `icon_${size}x${size}.svg`
-            let outName = `icon_${size}x${size}.png`
+            const inName = `icon_${size}x${size}.svg`
+            const outName = `icon_${size}x${size}.png`
             await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
                 .png()
                 .resize({
@@ -173,9 +173,9 @@ async function genIcons(outputDir) {
         }
 
         for (const size of sizes.slice(1)) {
-            let size2 = size / 2
-            let inName = `icon_${size}x${size}.svg`
-            let outName = `icon_${size2}x${size2}@2x.png`
+            const size2 = size / 2
+            const inName = `icon_${size}x${size}.svg`
+            const outName = `icon_${size2}x${size2}@2x.png`
             await sharp(`${outputDir}/svg/${inName}`, { density: MACOS_DPI })
                 .png()
                 .resize({
@@ -194,16 +194,16 @@ async function genIcons(outputDir) {
         }
 
         console.log('Generating ICO.')
-        let files = []
+        const files = []
         for (const size of winSizes) {
-            let inName = `icon_${size}x${size}.png`
-            let data = await fs.readFile(`${outputDir}/png/${inName}`)
+            const inName = `icon_${size}x${size}.png`
+            const data = await fs.readFile(`${outputDir}/png/${inName}`)
             files.push(data)
         }
         const icoBuffer = await toIco(files)
         fsSync.writeFileSync(`${outputDir}/icon.ico`, icoBuffer)
 
-        let handle = await fs.open(donePath, 'w')
+        const handle = await fs.open(donePath, 'w')
         await handle.close()
         return
     }
@@ -212,11 +212,11 @@ async function genIcons(outputDir) {
 /** Main entry function. */
 async function main() {
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
-    if (!outputDir) {
+    if (outputDir == null) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
         throw Error(
-            `The script '${script}' needs to be given an output path either through a \
-command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
+            `The script '${script}' needs to be given an output path through either a ` +
+                `command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
         )
     } else {
         await genIcons(outputDir)

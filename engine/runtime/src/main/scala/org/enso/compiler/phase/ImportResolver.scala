@@ -1,8 +1,12 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
+import org.enso.compiler.core.IR.AsMetadata
+import org.enso.compiler.core.ir.{Module => IRModule}
+import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ModuleReference,
@@ -10,11 +14,11 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedType,
   Type
 }
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
-
+import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 
 /** Runs imports resolution. Starts from a given module and then recursively
@@ -23,7 +27,7 @@ import scala.collection.mutable
   * Each of the reachable modules will be parsed and will have imported modules
   * injected into its metadata. In effect, running this will bring every module
   * that could ever be necessary for the entry point compilation to at least
-  * the [[Module.CompilationStage.AFTER_IMPORT_RESOLUTION]] stage.
+  * the [[CompilationStage.AFTER_IMPORT_RESOLUTION]] stage.
   *
   * @param compiler the compiler instance for the compiling context.
   */
@@ -42,34 +46,41 @@ class ImportResolver(compiler: Compiler) {
   ): (List[Module], List[Module]) = {
 
     def analyzeModule(current: Module): List[Module] = {
-      val ir = current.getIr
+      val context = compiler.context
+      val ir      = context.getIr(current)
       val currentLocal = ir.unsafeGetMetadata(
         BindingAnalysis,
         "Non-parsed module used in ImportResolver"
       )
       // put the list of resolved imports in the module metadata
       if (
-        current.getCompilationStage
+        context
+          .getCompilationStage(current)
           .isBefore(
-            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+            CompilationStage.AFTER_IMPORT_RESOLUTION
           ) || !current.hasCrossModuleLinks
       ) {
         val importedModules: List[
-          (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+          (Import, Option[BindingsMap.ResolvedImport])
         ] =
           ir.imports.map {
-            case imp: IR.Module.Scope.Import.Module =>
+            case imp: Import.Module =>
               tryResolveImport(ir, imp)
             case other => (other, None)
           }
         currentLocal.resolvedImports = importedModules.flatMap(_._2)
         val newIr = ir.copy(imports = importedModules.map(_._1))
-        current.unsafeSetIr(newIr)
-        if (!current.wasLoadedFromCache()) {
-          current.unsafeSetCompilationStage(
-            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-          )
-        }
+        context.updateModule(
+          current,
+          { u =>
+            u.ir(newIr)
+            if (!context.wasLoadedFromCache(current)) {
+              u.compilationStage(
+                CompilationStage.AFTER_IMPORT_RESOLUTION
+              )
+            }
+          }
+        )
       }
       currentLocal.resolvedImports
         .map(_.target.module.unsafeAsModule())
@@ -133,7 +144,7 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveAsType(
-    name: IR.Name.Qualified
+    name: Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
@@ -153,9 +164,9 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveImport(
-    module: IR.Module,
+    module: IRModule,
     imp: Import.Module
-  ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
+  ): (Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
       .collect { case ex: Export.Module if ex.name.name == impName => ex }
@@ -167,7 +178,7 @@ class ImportResolver(compiler: Compiler) {
           case e if e.onlyNames.isEmpty => e
         }
         val qualifiedImports = fromAllExports.collect {
-          case IR.Module.Scope.Export.Module(
+          case Export.Module(
                 _,
                 _,
                 _,
@@ -181,7 +192,7 @@ class ImportResolver(compiler: Compiler) {
             onlyNames.map(_.name)
         }
         val importsWithHiddenNames = fromAllExports.collect {
-          case e @ IR.Module.Scope.Export.Module(
+          case e @ Export.Module(
                 _,
                 _,
                 _,
@@ -247,9 +258,9 @@ class ImportResolver(compiler: Compiler) {
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>
                 (
-                  IR.Error.ImportExport(
+                  errors.ImportExport(
                     imp,
-                    IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                    errors.ImportExport.ModuleDoesNotExist(impName)
                   ),
                   None
                 )
@@ -257,9 +268,9 @@ class ImportResolver(compiler: Compiler) {
         }
       case Left(loadingError) =>
         (
-          IR.Error.ImportExport(
+          errors.ImportExport(
             imp,
-            IR.Error.ImportExport.PackageCouldNotBeLoaded(
+            errors.ImportExport.PackageCouldNotBeLoaded(
               impName,
               loadingError.toString
             )

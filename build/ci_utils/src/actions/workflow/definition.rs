@@ -23,6 +23,11 @@ pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
 }
 
+/// An expression that accesses a secret with a given name.
+pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("secrets.{}", secret_name.as_ref()))
+}
+
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
 }
@@ -36,7 +41,7 @@ pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
         name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.0.5".into()),
+        uses: Some("s-weigand/setup-conda@v1.0.6".into()),
         r#if: Some(is_github_hosted()),
         with: Some(step::Argument::SetupConda {
             update_conda:   Some(false),
@@ -133,6 +138,32 @@ impl Concurrency {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "kebab-case")]
+pub enum Permission {
+    Actions,
+    Checks,
+    Contents,
+    Deployments,
+    IdToken,
+    Issues,
+    Discussions,
+    Packages,
+    Pages,
+    PullRequests,
+    RepositoryProjects,
+    SecurityEvents,
+    Statuses,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Access {
+    Read,
+    Write,
+    None,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workflow {
@@ -140,6 +171,8 @@ pub struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub on:          Event,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub permissions: BTreeMap<Permission, Access>,
     pub jobs:        BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub env:         BTreeMap<String, String>,
@@ -151,6 +184,7 @@ impl Default for Workflow {
     fn default() -> Self {
         let mut ret = Self {
             name:        default(),
+            permissions: default(),
             description: default(),
             on:          default(),
             jobs:        default(),
@@ -215,6 +249,11 @@ impl Workflow {
 
     pub fn env(&mut self, var_name: impl Into<String>, var_value: impl Into<String>) {
         self.env.insert(var_name.into(), var_value.into());
+    }
+
+    /// Apply custom permissions to this job.
+    pub fn set_permission(&mut self, permission: Permission, access: Access) {
+        self.permissions.insert(permission, access);
     }
 }
 
@@ -610,6 +649,8 @@ pub struct Job {
     pub with:            BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secrets:         Option<JobSecrets>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub permissions:     BTreeMap<Permission, Access>,
 }
 
 impl Job {
@@ -695,6 +736,12 @@ impl Job {
         self.with(name, value);
         self
     }
+
+    /// Apply custom permissions to this job.
+    pub fn with_permission(mut self, permission: Permission, access: Access) -> Self {
+        self.permissions.insert(permission, access);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -769,12 +816,20 @@ pub struct Step {
 }
 
 impl Step {
+    /// Expose a secret as an environment variable with the same name.
+    pub fn with_secret_exposed(self, secret: impl AsRef<str>) -> Self {
+        let secret_name = secret.as_ref();
+        let env_name = secret_name.to_owned();
+        self.with_secret_exposed_as(secret_name, env_name)
+    }
+
+    /// Expose a secret as an environment variable with a given name.
     pub fn with_secret_exposed_as(
         self,
         secret: impl AsRef<str>,
         given_name: impl Into<String>,
     ) -> Self {
-        let secret_expr = wrap_expression(format!("secrets.{}", secret.as_ref()));
+        let secret_expr = secret_expression(&secret);
         self.with_env(given_name, secret_expr)
     }
 

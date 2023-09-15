@@ -1,12 +1,12 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
-
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
@@ -19,6 +19,7 @@ public class Sum extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
@@ -43,6 +44,8 @@ public class Sum extends Aggregator {
           }
         }
       }
+
+      context.safepoint();
     }
     return current;
   }

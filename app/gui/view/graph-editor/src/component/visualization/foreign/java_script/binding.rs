@@ -207,7 +207,7 @@ impl JsConsArgs {
         self.theme.clone()
     }
 
-    /// Helper method to emit an preprocessor change event from the visualisation.
+    /// Helper method to emit an preprocessor change event from the visualization.
     pub fn emit_preprocessor_change(
         &self,
         module: Option<String>,

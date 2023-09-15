@@ -45,9 +45,25 @@ impl BoundingBox {
         BoundingBox { top, bottom, left, right }
     }
 
-    /// Constructor.
-    pub fn from_position_and_size(position: Vector2, size: Vector2) -> Self {
+    /// Construct from a bottom-left corner and a size.
+    pub fn from_bottom_left_position_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position, position + size)
+    }
+
+    /// Construct from a top-left corner and a size.
+    pub fn from_top_left_position_and_size(position: Vector2, size: Vector2) -> Self {
+        let bottom_right = Vector2(position.x + size.x, position.y - size.y);
+        Self::from_corners(position, bottom_right)
+    }
+
+    /// Construct from a bottom-left corner and a size. If either component of the size is negative,
+    /// the resulting box will be malformed.
+    pub fn from_position_and_size_unchecked(position: Vector2, size: Vector2) -> Self {
+        let top = position.y() + size.y();
+        let bottom = position.y();
+        let left = position.x();
+        let right = position.x() + size.x();
+        BoundingBox { top, bottom, left, right }
     }
 
     /// Constructor.
@@ -61,7 +77,7 @@ impl BoundingBox {
         Self::from_corners(Vector2::zeros(), size)
     }
 
-    /// Check whether the given `pos` lies within the bounding box.
+    /// Check whether the given `pos` lies strictly within the bounding box.
     pub fn contains(&self, pos: Vector2) -> bool {
         self.contains_x(pos.x) && self.contains_y(pos.y)
     }
@@ -72,6 +88,19 @@ impl BoundingBox {
 
     fn contains_y(&self, y: f32) -> bool {
         y > self.bottom && y < self.top
+    }
+
+    /// Check whether the given `pos` lies within the bounding box, or anywhere on its edges.
+    pub fn contains_inclusive(&self, pos: Vector2) -> bool {
+        self.contains_x_inclusive(pos.x) && self.contains_y_inclusive(pos.y)
+    }
+
+    fn contains_x_inclusive(&self, x: f32) -> bool {
+        x >= self.left && x <= self.right
+    }
+
+    fn contains_y_inclusive(&self, y: f32) -> bool {
+        y >= self.bottom && y <= self.top
     }
 
     /// Return the width of the bounding box.

@@ -24,7 +24,7 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
 
   /** @inheritdoc */
   override def toString: String =
-    s"GraalVM ${version.graalVersion}-java${version.java}"
+    s"GraalVM ${version.graalVersion}-java${version.javaVersion}"
 
   /** The path to the JAVA_HOME directory associated with this runtime.
     */

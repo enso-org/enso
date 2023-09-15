@@ -5,4 +5,6 @@
 // === Run IDE ===
 // ===============
 
-void window.enso.main()
+// This `void` is used to explicitly not `await` a promise, not to produce an `undefined`.
+// eslint-disable-next-line no-restricted-syntax
+void window.enso?.main()

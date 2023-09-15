@@ -1,13 +1,13 @@
 package org.enso.table.aggregations;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the most common value in a group (ignoring Nothing). */
 public class Mode extends Aggregator {
@@ -20,6 +20,7 @@ public class Mode extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     Object current = null;
     int count = 0;
     Map<Object, Integer> currentMap = null;
@@ -52,6 +53,8 @@ public class Mode extends Aggregator {
           }
         }
       }
+
+      context.safepoint();
     }
     return current;
   }

@@ -2,8 +2,10 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
+import org.enso.compiler.core.ir.{Module, Name, Type}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -22,11 +24,11 @@ class ComplexTypeTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run complex type desugaring on an
-    * [[IR.Module]].
+    * [[Module]].
     *
     * @param ir the module to run desugaring on
     */
-  implicit class DesugarModule(ir: IR.Module) {
+  implicit class DesugarModule(ir: Module) {
 
     /** Runs desugaring on a module.
       *
@@ -34,7 +36,7 @@ class ComplexTypeTest extends CompilerTest {
       *                      place
       * @return [[ir]], with any complex type definitions desugared
       */
-    def desugar(implicit moduleContext: ModuleContext): IR.Module = {
+    def desugar(implicit moduleContext: ModuleContext): Module = {
       ComplexType.runModule(ir, moduleContext)
     }
   }
@@ -85,29 +87,29 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their methods desugared to binding methods" in {
-      ir.bindings(3) shouldBe an[Definition.Method.Binding]
-      val isJust = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(3) shouldBe an[definition.Method.Binding]
+      val isJust = ir.bindings(3).asInstanceOf[definition.Method.Binding]
       isJust.methodName.name shouldEqual "is_just"
       isJust.typeName.get.name shouldEqual "Maybe"
 
-      ir.bindings(5) shouldBe an[Definition.Method.Binding]
-      val f = ir.bindings(5).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(5) shouldBe an[definition.Method.Binding]
+      val f = ir.bindings(5).asInstanceOf[definition.Method.Binding]
       f.methodName.name shouldEqual "f"
       f.typeName.get.name shouldEqual "Maybe"
     }
 
     "have type signatures copied to above each method" in {
-      ir.bindings(2) shouldBe an[IR.Type.Ascription]
-      ir.bindings(4) shouldBe an[IR.Type.Ascription]
+      ir.bindings(2) shouldBe an[Type.Ascription]
+      ir.bindings(4) shouldBe an[Type.Ascription]
 
       val isJustSigName = ir
         .bindings(2)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.MethodReference]
+        .asInstanceOf[Name.MethodReference]
       val isJustMethodName = ir
         .bindings(3)
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .methodReference
 
       assert(
@@ -117,12 +119,12 @@ class ComplexTypeTest extends CompilerTest {
 
       val fSigName = ir
         .bindings(4)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.MethodReference]
+        .asInstanceOf[Name.MethodReference]
       val fMethodName = ir
         .bindings(5)
-        .asInstanceOf[Definition.Method.Binding]
+        .asInstanceOf[definition.Method.Binding]
         .methodReference
 
       assert(
@@ -132,18 +134,18 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "leave un-associated signatures intact" in {
-      ir.bindings(1) shouldBe an[IR.Type.Ascription]
+      ir.bindings(1) shouldBe an[Type.Ascription]
       ir.bindings(1)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "invalid_sig"
 
-      ir.bindings(6) shouldBe an[IR.Type.Ascription]
+      ir.bindings(6) shouldBe an[Type.Ascription]
       ir.bindings(6)
-        .asInstanceOf[IR.Type.Ascription]
+        .asInstanceOf[Type.Ascription]
         .typed
-        .asInstanceOf[IR.Name.Literal]
+        .asInstanceOf[Name.Literal]
         .name shouldEqual "bad_trailing_sig"
     }
   }
@@ -169,14 +171,14 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their errors translated untouched" in {
-      ir.bindings.last shouldBe an[IR.Error.Syntax]
-      val err = ir.bindings.last.asInstanceOf[IR.Error.Syntax]
-      err.reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
+      ir.bindings.last shouldBe an[errors.Syntax]
+      val err = ir.bindings.last.asInstanceOf[errors.Syntax]
+      err.reason shouldBe an[errors.Syntax.UnexpectedDeclarationInType.type]
     }
 
     "have their valid methods desugared" in {
-      ir.bindings(1) shouldBe a[Definition.Method.Binding]
-      val method = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(1) shouldBe a[definition.Method.Binding]
+      val method = ir.bindings(1).asInstanceOf[definition.Method.Binding]
       method.typeName.get.name shouldEqual "Foo"
       method.methodName.name shouldEqual "g"
     }

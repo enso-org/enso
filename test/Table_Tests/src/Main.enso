@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding IO
 
 from Standard.Test import Test_Suite
 

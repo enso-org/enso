@@ -1,17 +1,19 @@
 from Standard.Base import all
 
-from project.Data.Table import Table
-from project.Data.Row import Row
+import project.Data.Row.Row
+import project.Data.Table.Table
 
 ## PRIVATE
 type Rows_View
     ## PRIVATE
     Value (table:Table)
 
-    ## Gets the number of rows in the table.
+    ## GROUP Standard.Base.Metadata
+       Gets the number of rows in the table.
     length : Integer
     length self = self.table.row_count
 
-    ## Gets the specified row.
+    ## GROUP Standard.Base.Selections
+       Gets the specified row.
     at : Integer -> Any
     at self index = Row.Value self.table index

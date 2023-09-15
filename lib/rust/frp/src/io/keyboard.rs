@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate as frp;
-use crate::io::js::Listener;
 
 use enso_web::KeyboardEvent;
 use inflector::Inflector;
@@ -49,7 +48,7 @@ macro_rules! define_keys {
         ///
         /// For reference, see the following links:
         /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
-        #[derive(Clone,Debug,Eq,Hash,PartialEq)]
+        #[derive(Clone, Debug, Eq, Hash, PartialEq)]
         #[allow(missing_docs)]
         pub enum Key {
             $($side(Side),)*
@@ -63,9 +62,10 @@ macro_rules! define_keys {
         // === ArrowDirection ===
 
         /// The directions of the arrow keys on a keyboard.
-        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Default)]
         #[allow(missing_docs)]
         pub enum ArrowDirection {
+            #[default]
             $($arrow,)*
         }
 
@@ -75,7 +75,7 @@ macro_rules! define_keys {
             /// A mapping from a name to key instance. Please note that all side-aware keys are
             /// instantiated to the left binding. The correct assignment (left/right) is done in a
             /// separate step.
-            static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
+            static ref KEY_NAME_MAP: HashMap<&'static str, Key> = {
                 use Key::*;
                 use Side::*;
                 let mut m = HashMap::new();
@@ -364,15 +364,15 @@ impl KeyboardSource {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    model:                KeyboardModel,
-    pub network:          frp::Network,
-    pub source:           KeyboardSource,
-    pub down:             frp::Stream<Key>,
-    pub up:               frp::Stream<Key>,
-    pub is_meta_down:     frp::Stream<bool>,
-    pub is_control_down:  frp::Stream<bool>,
-    pub is_alt_down:      frp::Stream<bool>,
-    pub is_modifier_down: frp::Stream<bool>,
+    model:               KeyboardModel,
+    pub network:         frp::Network,
+    pub source:          KeyboardSource,
+    pub down:            frp::Stream<Key>,
+    pub up:              frp::Stream<Key>,
+    pub is_meta_down:    frp::Stream<bool>,
+    pub is_control_down: frp::Stream<bool>,
+    pub is_alt_down:     frp::Stream<bool>,
+    pub any_event:       frp::Stream<()>,
 }
 
 impl Keyboard {
@@ -382,20 +382,17 @@ impl Keyboard {
         let model = KeyboardModel::default();
         let source = KeyboardSource::new(&network);
         frp::extend! { network
-            down         <- source.down.map(f!((kc) model.press(kc)));
-            up           <- source.up.map(f!((kc) model.release(kc)));
-            is_meta_down <- any(&down,&up).map(f_!(model.is_meta_down()));
+            down <- source.down.map(f!((kc) model.press(kc)));
+            up <- source.up.map(f!((kc) model.release(kc)));
+            is_meta_down <- any(&down, &up).map(f_!(model.is_meta_down()));
             meta_release <= source.down.gate(&is_meta_down).map(
                 f_!(model.release_meta_dependent())
             );
-            defocus_release  <= source.window_defocused.map(f_!(model.release_all()));
-            up               <- any3(&up,&meta_release,&defocus_release);
-            change           <- any(&down,&up).constant(());
-            is_control_down  <- change.map(f_!(model.is_control_down()));
-            is_alt_down      <- change.map(f_!(model.is_alt_down()));
-            is_modifier_down <- all_with3(&is_meta_down,&is_control_down,&is_alt_down,
-                |m,c,a| *m || *c || *a
-            );
+            defocus_release <= source.window_defocused.map(f_!(model.release_all()));
+            up <- any3(&up, &meta_release, &defocus_release);
+            any_event <- any_(&down, &up);
+            is_control_down <- any_event.map(f_!(model.is_control_down()));
+            is_alt_down <- any_event.map(f_!(model.is_alt_down()));
         }
         Keyboard {
             model,
@@ -406,7 +403,7 @@ impl Keyboard {
             is_meta_down,
             is_control_down,
             is_alt_down,
-            is_modifier_down,
+            any_event,
         }
     }
 }
@@ -418,40 +415,44 @@ impl Default for Keyboard {
 }
 
 
+// =======================
+// === BrowserShortcut ===
+// =======================
 
-// ===================
-// === DomBindings ===
-// ===================
-
-/// A handle of listener emitting events on bound FRP graph.
-///
-/// Note: The members are never directly accessed after creation, but need to be kept alive to
-/// keep routing the events.
-#[derive(Debug)]
-pub struct DomBindings {
-    #[allow(dead_code)]
-    key_down: Listener,
-    #[allow(dead_code)]
-    key_up:   Listener,
-    #[allow(dead_code)]
-    blur:     Listener,
+/// A handy structure used for defining shortcuts used by the browser in some special way
+/// (for example reload page or add bookmark). We want to prevent default actions on such shortcuts.
+/// See also [`BROWSER_SHORTCUTS`].
+struct BrowserShortcut {
+    code:  &'static str,
+    ctrl:  bool,
+    shift: bool,
 }
 
-impl DomBindings {
-    /// Create new Keyboard and Frp bindings.
-    ///
-    /// We're preventing default on keyboard events, because we don't want the browser to handle
-    /// them.
-    pub fn new(keyboard: &Keyboard) -> Self {
-        let key_down = Listener::new_key_down(f!([keyboard](event:&KeyboardEvent) {
-            event.prevent_default();
-            keyboard.source.down.emit(KeyWithCode::from(event));
-        }));
-        let key_up = Listener::new_key_up(f!([keyboard](event:&KeyboardEvent) {
-            event.prevent_default();
-            keyboard.source.up.emit(KeyWithCode::from(event));
-        }));
-        let blur = Listener::new_blur(f_!(keyboard.source.window_defocused.emit(())));
-        Self { key_down, key_up, blur }
+impl BrowserShortcut {
+    const fn new(code: &'static str) -> Self {
+        Self { code, ctrl: false, shift: false }
     }
+
+    const fn ctrl(code: &'static str) -> Self {
+        Self { code, ctrl: true, shift: false }
+    }
+
+    const fn ctrl_shift(code: &'static str) -> Self {
+        Self { code, ctrl: true, shift: true }
+    }
+
+    fn matches(&self, event: &KeyboardEvent) -> bool {
+        event.code() == self.code
+            && self.ctrl == event.ctrl_key()
+            && self.shift == event.shift_key()
+    }
+}
+
+/// A list of shortcuts with special browser action, on which we want to call `prevent_default`.
+const BROWSER_SHORTCUTS: &[BrowserShortcut] =
+    &[BrowserShortcut::new("Tab"), BrowserShortcut::ctrl("R"), BrowserShortcut::ctrl_shift("D")];
+
+/// Return `true` if the event is associated with a browser action that should be prevented.
+pub fn is_browser_shortcut(event: &KeyboardEvent) -> bool {
+    BROWSER_SHORTCUTS.iter().any(|shortcut| shortcut.matches(event))
 }

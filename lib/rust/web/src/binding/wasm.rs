@@ -26,6 +26,7 @@ pub use web_sys::CanvasRenderingContext2d;
 pub use web_sys::Document;
 pub use web_sys::Element;
 pub use web_sys::Event;
+pub use web_sys::EventListenerOptions;
 pub use web_sys::EventTarget;
 pub use web_sys::HtmlCanvasElement;
 pub use web_sys::HtmlCollection;

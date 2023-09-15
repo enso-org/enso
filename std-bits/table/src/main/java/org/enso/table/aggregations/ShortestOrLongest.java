@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.graalvm.polyglot.Context;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class ShortestOrLongest extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     long length = 0;
     Object current = null;
 
@@ -40,6 +42,8 @@ public class ShortestOrLongest extends Aggregator {
           current = value;
         }
       }
+
+      context.safepoint();
     }
 
     return current;

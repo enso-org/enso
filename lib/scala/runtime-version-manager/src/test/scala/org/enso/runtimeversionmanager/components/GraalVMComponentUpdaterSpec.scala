@@ -65,9 +65,53 @@ class GraalVMComponentUpdaterSpec extends AnyWordSpec with Matchers {
 
       ru.list() match {
         case Success(components) =>
-          components should not be empty
+          val componentIds = components.map(_.id)
+          componentIds should (contain("graalvm") and contain("js"))
         case Failure(cause) =>
           fail(cause)
+      }
+
+      var maxFailures = 3
+      val ruSometimesFailing = new GraalVMComponentUpdater(graal) {
+        override def updaterExec: Path = if (maxFailures == 0) super.updaterExec
+        else {
+          maxFailures = maxFailures - 1
+          OS.operatingSystem match {
+            case OS.Linux   => Path.of("/bin/false")
+            case OS.MacOS   => Path.of("/bin/false")
+            case OS.Windows => Path.of("foobar")
+          }
+        }
+      }
+
+      ruSometimesFailing.list() match {
+        case Success(components) =>
+          val componentIds = components.map(_.id)
+          componentIds should (contain("graalvm") and contain("js"))
+        case Failure(_) =>
+      }
+
+      var attempted = 0
+      val ruAlwaysFailing = new GraalVMComponentUpdater(graal) {
+        override def updaterExec: Path = {
+          attempted = attempted + 1
+          OS.operatingSystem match {
+            case OS.Linux   => Path.of("/bin/false")
+            case OS.MacOS   => Path.of("/bin/false")
+            case OS.Windows => Path.of("foobar")
+          }
+        }
+      }
+
+      val expectedRetries = 5
+      ruAlwaysFailing.list() match {
+        case Success(_) =>
+          fail("expected `gu list` to always fail")
+        case Failure(_) =>
+          if (attempted != (expectedRetries + 1))
+            fail(
+              s"should have retried ${expectedRetries + 1} times, got $attempted"
+            )
       }
     }
   }

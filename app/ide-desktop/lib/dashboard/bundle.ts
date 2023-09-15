@@ -33,8 +33,7 @@ async function bundle() {
             path.resolve(THIS_PATH, 'src', 'index.html'),
             path.resolve(THIS_PATH, 'src', 'index.tsx')
         )
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        opts.loader = { '.html': 'copy' }
+        opts.loader['.html'] = 'copy'
         await esbuild.build(opts)
         return
     } catch (error) {

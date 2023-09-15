@@ -1,11 +1,11 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Name
+import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.expression.Comment
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -36,17 +36,17 @@ case object ModuleAnnotations extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+  ): Module = {
+    var lastAnnotations: Seq[Name.Annotation] = Seq()
     val newBindings = ir.bindings.map {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
       case ann: Name.GenericAnnotation =>
         Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: Comment => Some(comment)
       case typ: Definition.SugaredType =>
         val res = Some(
           resolveComplexType(typ).updateMetadata(
@@ -73,14 +73,14 @@ case object ModuleAnnotations extends IRPass {
   private def resolveComplexType(
     typ: Definition.SugaredType
   ): Definition.SugaredType = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[Name.Annotation] = Seq()
     val newBodyElems = typ.body.flatMap {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
       case ann: Name.GenericAnnotation =>
         Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: Comment => Some(comment)
       case entity =>
         val res = Some(
           entity.updateMetadata(this -->> Annotations(lastAnnotations))
@@ -102,31 +102,27 @@ case object ModuleAnnotations extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** A container for annotations on an IR construct.
     *
     * @param annotations the initial annotations for the container
     */
-  case class Annotations(annotations: Seq[IR.Name.Annotation])
-      extends IRPass.Metadata {
-    override val metadataName: String                 = "Annotations"
-    override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
+  case class Annotations(annotations: Seq[Name.Annotation])
+      extends IRPass.IRMetadata {
+    override val metadataName: String                   = "Annotations"
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this.copy())
 
     /** Add an annotation to the annotations container.
       *
       * @param annotation the annotation to add
       * @return `this`, with `annotation` added to it
       */
-    def addAnnotation(annotation: IR.Name.Annotation): Annotations =
+    def addAnnotation(annotation: Name.Annotation): Annotations =
       this.copy(annotations = this.annotations :+ annotation)
 
     /** @inheritdoc */
@@ -140,7 +136,7 @@ case object ModuleAnnotations extends IRPass {
     /** @inheritdoc */
     override def restoreFromSerialization(
       compiler: Compiler
-    ): Option[IRPass.Metadata] = {
+    ): Option[IRPass.IRMetadata] = {
       annotations.foreach { ann =>
         ann.preorder.foreach { ir =>
           if (!ir.passData.restoreFromSerialization(compiler)) {

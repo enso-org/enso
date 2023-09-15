@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.graalvm.polyglot.Context;
+
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.List;
@@ -103,20 +105,26 @@ public class StorageListView implements List<Object> {
 
   @Override
   public int indexOf(Object o) {
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (Objects.equals(o, get(i))) {
         return i;
       }
+
+      context.safepoint();
     }
     return -1;
   }
 
   @Override
   public int lastIndexOf(Object o) {
+    Context context = Context.getCurrent();
     for (int i = size() - 1; i >= 0; i--) {
       if (Objects.equals(o, get(i))) {
         return i;
       }
+
+      context.safepoint();
     }
     return -1;
   }
@@ -172,10 +180,12 @@ public class StorageListView implements List<Object> {
   @Override
   @SuppressWarnings("unchecked")
   public <T> T[] toArray(T[] a) {
+    Context context = Context.getCurrent();
     T[] result =
         a.length >= size() ? a : (T[]) Array.newInstance(a.getClass().getComponentType(), size());
     for (int i = 0; i < size(); i++) {
       result[i] = (T) get(i);
+      context.safepoint();
     }
     return result;
   }

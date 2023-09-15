@@ -138,12 +138,12 @@ impl<Gradient> SdfSampler<Gradient> {
 
 // === Instances ===
 
-impl<Gradient> HasContent for SdfSampler<Gradient> {
-    type Content = Gradient;
+impl<Gradient> HasItem for SdfSampler<Gradient> {
+    type Item = Gradient;
 }
 
-impl<Gradient> ContentRef for SdfSampler<Gradient> {
-    fn content(&self) -> &Self::Content {
+impl<Gradient> ItemRef for SdfSampler<Gradient> {
+    fn item(&self) -> &Self::Item {
         &self.gradient
     }
 }

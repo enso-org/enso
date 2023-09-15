@@ -510,9 +510,7 @@ impl Var<f32> {
             Var::Dynamic(t) => Var::Dynamic(format!("smoothstep({e1},{e2},{t})").into()),
         }
     }
-}
 
-impl Var<f32> {
     /// Linearly interpolate between two values.
     pub fn mix(&self, e1: impl RefInto<Glsl>, e2: impl RefInto<Glsl>) -> Self {
         let e1 = e1.glsl();
@@ -520,6 +518,22 @@ impl Var<f32> {
         match self {
             Var::Static(t) => Var::Dynamic(format!("mix({e1},{e2},{t})").into()),
             Var::Dynamic(t) => Var::Dynamic(format!("mix({e1},{e2},{t})").into()),
+        }
+    }
+
+    /// Returns 1.0 if value is strictly greater than 0.0. Returns 0.0 otherwise.
+    pub fn positive(&self) -> Self {
+        match self {
+            Var::Static(t) => Var::Static((*t > 0.0) as u32 as f32),
+            Var::Dynamic(t) => Var::Dynamic(format!("float({t} > 0.0)").into()),
+        }
+    }
+
+    /// Returns 1.0 if value is strictly less than 0.0. Returns 0.0 otherwise.
+    pub fn negative(&self) -> Self {
+        match self {
+            Var::Static(t) => Var::Static((*t < 0.0) as u32 as f32),
+            Var::Dynamic(t) => Var::Dynamic(format!("float({t} < 0.0)").into()),
         }
     }
 }
@@ -629,14 +643,14 @@ where T: Clamp<Output = T> + Into<Glsl>
 // === Signum ===
 // ==============
 
-impl<T> Signum for Var<T>
-where T: Signum<Output = T>
+impl<T> Signum for &Var<T>
+where T: Copy + Signum<Output = T>
 {
     type Output = Var<T>;
-    fn signum(self) -> Self {
+    fn signum(self) -> Var<T> {
         match self {
-            Self::Static(t) => Var::Static(t.signum()),
-            Self::Dynamic(t) => Var::Dynamic(format!("sign({t})").into()),
+            Var::Static(t) => Var::Static(t.signum()),
+            Var::Dynamic(t) => Var::Dynamic(format!("sign({t})").into()),
         }
     }
 }

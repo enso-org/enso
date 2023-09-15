@@ -53,7 +53,7 @@ pub fn main() {
         let new = Circle().build(|t| {
             t.set_size(Vector2::new(64.0, 64.0))
                 .set_color(*color)
-                .set_inset_border(5.0)
+                .set_border_and_inset(5.0)
                 .set_border_color(*border);
         });
         let x = rng.gen_range(-512.0..512.0);

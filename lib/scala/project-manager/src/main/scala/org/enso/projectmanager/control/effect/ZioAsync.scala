@@ -2,14 +2,14 @@ package org.enso.projectmanager.control.effect
 
 import zio.ZIO
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
 /** Instance of [[Async]] class for ZIO.
   */
 class ZioAsync[R] extends Async[ZIO[R, +*, +*]] {
 
-  implicit private val immediateEc =
+  implicit private val immediateEc: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(ImmediateExecutor)
 
   /** @inheritdoc */

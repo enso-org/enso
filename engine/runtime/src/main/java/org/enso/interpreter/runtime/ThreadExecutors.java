@@ -32,7 +32,8 @@ final class ThreadExecutors {
   public void shutdown() {
     var it = pools.entrySet().iterator();
     while (it.hasNext()) {
-      var p = it.next().getKey();
+      var next = it.next();
+      var p = next.getKey();
       p.shutdown();
       boolean success;
       try {
@@ -41,9 +42,7 @@ final class ThreadExecutors {
         success = false;
       }
       if (!success) {
-        context
-            .getLogger()
-            .log(Level.WARNING, "Cannot shutdown {0} thread pool", it.next().getValue());
+        context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread pool", next.getValue());
       }
     }
   }

@@ -8,24 +8,3 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
-component-groups:
-  extends:
-    - Standard.Base.Input:
-        exports:
-          - Standard.Database.Connection.Database.connect
-    - Standard.Base.Select:
-        exports:
-          - Standard.Database.Data.Table.Table.at
-          - Standard.Database.Data.Table.Table.select_columns
-          - Standard.Database.Data.Table.Table.rename_columns
-          - Standard.Database.Data.Table.Table.remove_columns
-          - Standard.Database.Data.Table.Table.reorder_columns
-          - Standard.Database.Data.Table.Table.sort_columns
-    - Standard.Base.Join:
-        exports:
-          - Standard.Database.Data.Table.Table.join
-          - Standard.Database.Data.Table.Table.aggregate
-    - Standard.Base.Transform:
-        exports:
-          - Standard.Database.Data.Table.Table.order_by
-          - Standard.Database.Data.Column.Column.to_table

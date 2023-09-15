@@ -1,10 +1,5 @@
 package org.enso.base;
 
-import org.enso.base.encoding.ReportingStreamDecoder;
-import org.enso.base.encoding.ReportingStreamEncoder;
-import org.enso.base.text.ResultWithWarnings;
-import org.graalvm.polyglot.Value;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,6 +11,11 @@ import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import org.enso.base.encoding.ReportingStreamDecoder;
+import org.enso.base.encoding.ReportingStreamEncoder;
+import org.enso.base.text.ResultWithWarnings;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public class Encoding_Utils {
   /** The replacement character used for characters that could not have been decoded. */
@@ -43,6 +43,7 @@ public class Encoding_Utils {
     CharBuffer in = CharBuffer.wrap(str.toCharArray());
     ByteBuffer out = ByteBuffer.allocate((int) (in.remaining() * encoder.averageBytesPerChar()));
 
+    Context context = Context.getCurrent();
     StringBuilder warnings = null;
     while (in.hasRemaining()) {
       CoderResult cr = encoder.encode(in, out, true);
@@ -72,6 +73,8 @@ public class Encoding_Utils {
       } else if (cr.isOverflow()) {
         out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
       }
+
+      context.safepoint();
     }
 
     out.flip();
@@ -99,6 +102,8 @@ public class Encoding_Utils {
     if (bytes.length == 0) {
       return new ResultWithWarnings<>("");
     }
+
+    Context context = Context.getCurrent();
 
     CharsetDecoder decoder =
         charset
@@ -139,6 +144,8 @@ public class Encoding_Utils {
       } else if (cr.isOverflow()) {
         out = resize(out, CharBuffer::allocate, CharBuffer::put);
       }
+
+      context.safepoint();
     }
 
     out.flip();

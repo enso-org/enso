@@ -41,7 +41,7 @@ class Heatmap extends Visualization {
     }
 
     /**
-     * Indicates whether this visualisation has been initialised.
+     * Indicates whether this visualization has been initialised.
      */
     isInitialised() {
         ok(this.svg)

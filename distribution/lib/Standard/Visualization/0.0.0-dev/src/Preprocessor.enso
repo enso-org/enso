@@ -6,7 +6,7 @@ import project.Helpers
 default_preprocessor x =
     result = x.to_default_visualization_data
     case result.is_error of
-        True -> x.to_display_text . to_json
+        True -> Helpers.truncate x.to_display_text . to_json
         False -> result
 
 
@@ -23,7 +23,8 @@ error_preprocessor x =
     result = x.map_error err->
         message = err.to_display_text
         stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
-        full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
+        truncated_message = Helpers.truncate message
+        full_message = truncated_message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
         JS_Object.from_pairs [['kind', 'Dataflow'], ['message', full_message]] . to_json
 
     if result.is_error then result.catch else ok

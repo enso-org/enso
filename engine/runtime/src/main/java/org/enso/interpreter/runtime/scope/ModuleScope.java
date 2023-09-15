@@ -1,15 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.RedefinedMethodException;
-import org.enso.interpreter.runtime.error.RedefinedConversionException;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,9 +9,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.RedefinedConversionException;
+import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
-public final class ModuleScope implements TruffleObject {
+public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols;
@@ -30,26 +29,26 @@ public final class ModuleScope implements TruffleObject {
   private Set<ModuleScope> imports;
   private Set<ModuleScope> exports;
 
+  private static final Type noTypeKey;
+
+  static {
+    noTypeKey = Type.noType();
+  }
+
   /**
    * Creates a new object of this class.
    *
    * @param module the module related to the newly created scope.
-   * @param context the current langauge context
    */
-  public ModuleScope(Module module, EnsoContext context) {
+  public ModuleScope(Module module) {
     this.polyglotSymbols = new HashMap<>();
     this.types = new HashMap<>();
-    this.methods = new HashMap<>();
-    this.conversions = new HashMap<>();
+    this.methods = new ConcurrentHashMap<>();
+    this.conversions = new ConcurrentHashMap<>();
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
-    this.associatedType =
-        Type.createSingleton(
-            module.getName().item(),
-            this,
-            context == null ? null : context.getBuiltins().any(),
-            false);
+    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false);
   }
 
   public ModuleScope(
@@ -97,10 +96,12 @@ public final class ModuleScope implements TruffleObject {
    * @return a map containing all the defined methods by name
    */
   private Map<String, Function> ensureMethodMapFor(Type type) {
-    return methods.computeIfAbsent(type, k -> new HashMap<>());
+    Type tpeKey = type == null ? noTypeKey : type;
+    return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
   }
 
   private Map<String, Function> getMethodMapFor(Type type) {
+    Type tpeKey = type == null ? noTypeKey : type;
     Map<String, Function> result = methods.get(type);
     if (result == null) {
       return new HashMap<>();
@@ -118,9 +119,9 @@ public final class ModuleScope implements TruffleObject {
   public void registerMethod(Type type, String method, Function function) {
     Map<String, Function> methodMap = ensureMethodMapFor(type);
 
-    if (methodMap.containsKey(method)) {
-      // Builtin types will have double definition because of
-      // BuiltinMethod and that's OK
+    // Builtin types will have double definition because of
+    // BuiltinMethod and that's OK
+    if (methodMap.containsKey(method) && !type.isBuiltin()) {
       throw new RedefinedMethodException(type.getName(), method);
     } else {
       methodMap.put(method, function);
@@ -271,19 +272,54 @@ public final class ModuleScope implements TruffleObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return the raw method map held by this module */
-  public Map<Type, Map<String, Function>> getMethods() {
-    return methods;
+  /** @return a method for the given type */
+  public Function getMethodForType(Type tpe, String name) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    Map<String, Function> allTpeMethods = methods.get(tpeKey);
+    return allTpeMethods == null ? null : allTpeMethods.get(name);
   }
 
-  /** @return the raw conversions map held by this module */
-  public Map<Type, Map<Type, Function>> getConversions() {
-    return conversions;
+  /**
+   * Returns the names of methods for the given type.
+   *
+   * @param tpe the type in the scope
+   * @return names of methods
+   */
+  public Set<String> getMethodNamesForType(Type tpe) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    Map<String, Function> allTpeMethods = methods.get(tpeKey);
+    return allTpeMethods == null ? null : allTpeMethods.keySet();
   }
 
-  /** @return the polyglot symbols imported into this scope. */
-  public Map<String, Object> getPolyglotSymbols() {
-    return polyglotSymbols;
+  /**
+   * Registers all methods of a type in the provided scope.
+   *
+   * @param tpe the methods of which type should be registered
+   * @param scope target scope where methods should be registered to
+   */
+  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    Map<String, Function> allTypeMethods = methods.get(tpeKey);
+    if (allTypeMethods != null) {
+      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
+    }
+  }
+
+  /** @return methods for all registered types */
+  public List<Function> getAllMethods() {
+    return methods.values().stream().flatMap(e -> e.values().stream()).collect(Collectors.toList());
+  }
+
+  /** @return the raw conversions held by this module */
+  public List<Function> getConversions() {
+    return conversions.values().stream()
+        .flatMap(e -> e.values().stream())
+        .collect(Collectors.toList());
+  }
+
+  /** @return the polyglot symbol imported into this scope. */
+  public Object getPolyglotSymbol(String symbolName) {
+    return polyglotSymbols.get(symbolName);
   }
 
   public void reset() {
@@ -304,8 +340,8 @@ public final class ModuleScope implements TruffleObject {
   public ModuleScope withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> requestedTypes = new HashMap<>(this.types);
-    Map<Type, Map<String, Function>> methods = new HashMap<>();
-    Map<Type, Map<Type, Function>> conversions = new HashMap<>();
+    Map<Type, Map<String, Function>> methods = new ConcurrentHashMap<>();
+    Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
     Set<ModuleScope> imports = new HashSet<>(this.imports);
     Set<ModuleScope> exports = new HashSet<>(this.exports);
     this.types

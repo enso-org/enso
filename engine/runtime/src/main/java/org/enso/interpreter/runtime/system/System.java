@@ -4,19 +4,19 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import org.apache.commons.lang3.SystemUtils;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.text.Text;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.apache.commons.lang3.SystemUtils;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
 public class System {
 
@@ -51,6 +51,8 @@ public class System {
       autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static void exit(long code) {
+    var ctx = EnsoContext.get(null);
+    EnsoLanguage.get(null).disposeContext(ctx);
     java.lang.System.exit((int) code);
   }
 
@@ -70,7 +72,7 @@ public class System {
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
-      @Cached CoerceArrayNode coerce,
+      @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
     Object[] arrArguments = coerce.execute(arguments);

@@ -42,9 +42,12 @@ crate::define_endpoints_2! {
         show_system_cursor(),
         /// Hide the system mouse cursor.
         hide_system_cursor(),
+        /// Show a notification.
+        show_notification(String),
     }
     Output {
-        tooltip(tooltip::Style)
+        tooltip(tooltip::Style),
+        notification(String),
     }
 }
 
@@ -62,24 +65,16 @@ pub struct Application {
     inner: Rc<ApplicationData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
     pub cursor:    Cursor,
+    #[display_object]
     pub display:   World,
     pub commands:  command::Registry,
     pub shortcuts: shortcut::Registry,
     pub views:     view::Registry,
     pub frp:       Frp,
-}
-
-impl ApplicationData {
-    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
-    /// element.
-    fn show_system_cursor(&self, show: bool) {
-        let style = if show { "auto" } else { "none" };
-        web::document.body_or_panic().set_style_or_warn("cursor", style);
-    }
 }
 
 impl Application {
@@ -90,8 +85,8 @@ impl Application {
         scene.display_in(dom);
         let commands = command::Registry::create();
         let shortcuts =
-            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene.keyboard.frp, &commands);
-        let views = view::Registry::create(&display, &commands, &shortcuts);
+            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene, &scene, &commands);
+        let views = view::Registry::create(&commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
         let frp = Frp::new();
@@ -103,29 +98,30 @@ impl Application {
 
     fn init(self) -> Self {
         let frp = &self.frp;
-        let data = &self.inner;
         let network = self.frp.network();
         enso_frp::extend! { network
             app_focused <- self.display.default_scene.frp.focused.on_change();
-            eval app_focused((t) data.show_system_cursor(!t));
+            eval app_focused([](t) Self::show_system_cursor(!t));
+            eval_ frp.private.input.show_system_cursor([] Self::show_system_cursor(true));
+            eval_ frp.private.input.hide_system_cursor([] Self::show_system_cursor(false));
+
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
-            eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
-            eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
         }
         // We hide the system cursor to replace it with the EnsoGL-provided one.
         self.frp.hide_system_cursor();
         self
     }
 
+    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
+    /// element.
+    fn show_system_cursor(show: bool) {
+        let style = if show { "auto" } else { "none" };
+        web::document.body_or_panic().set_style_or_warn("cursor", style);
+    }
+
     /// Create a new instance of a view.
     pub fn new_view<T: View>(&self) -> T {
         self.views.new_view(self)
-    }
-}
-
-impl display::Object for Application {
-    fn display_object(&self) -> &display::object::Instance {
-        self.display.display_object()
     }
 }
 
@@ -139,8 +135,11 @@ impl display::Object for Application {
 pub mod test_utils {
     use super::*;
 
-    /// Screen size for unit and integration tests.
-    const TEST_SCREEN_SIZE: (f32, f32) = (1920.0, 1080.0);
+    use crate::system::web::dom::Shape;
+
+    /// Screen shape for unit and integration tests.
+    pub const TEST_SCREEN_SHAPE: Shape =
+        Shape { width: 1920.0, height: 1080.0, pixel_ratio: 1.5 };
 
     /// Extended API for tests.
     pub trait ApplicationExt {
@@ -151,15 +150,20 @@ pub mod test_utils {
 
     impl ApplicationExt for Application {
         fn set_screen_size_for_tests(&self) {
-            let (screen_width, screen_height) = TEST_SCREEN_SIZE;
             let scene = &self.display.default_scene;
-            scene.layers.iter_sublayers_and_masks_nested(|layer| {
-                let camera = layer.camera();
-                camera.set_screen(screen_width, screen_height);
-                camera.reset_zoom();
-                camera.update(scene);
-            });
+            scene.dom.root.override_shape(TEST_SCREEN_SHAPE);
         }
+    }
+
+    /// Create a new application and a view for testing.
+    pub fn init_component_for_test<T>() -> (Application, T)
+    where T: View {
+        let app = Application::new("root");
+        app.set_screen_size_for_tests();
+        let view = View::new(&app);
+        app.display.add_child(&view);
+        crate::animation::test_utils::next_frame();
+        (app, view)
     }
 }
 

@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -11,8 +13,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class WarningsTest extends TestBase {
 

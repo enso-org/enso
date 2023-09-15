@@ -60,10 +60,11 @@ object SuggestionKind {
   val MODULE: Byte      = 0
   val TYPE: Byte        = 1
   val CONSTRUCTOR: Byte = 2
-  val METHOD: Byte      = 3
-  val FUNCTION: Byte    = 4
-  val LOCAL: Byte       = 5
-  val CONVERSION: Byte  = 6
+  val GETTER: Byte      = 3
+  val METHOD: Byte      = 4
+  val FUNCTION: Byte    = 5
+  val LOCAL: Byte       = 6
+  val CONVERSION: Byte  = 7
 
   /** Create a database suggestion kind.
     *
@@ -75,6 +76,7 @@ object SuggestionKind {
       case Suggestion.Kind.Module      => MODULE
       case Suggestion.Kind.Type        => TYPE
       case Suggestion.Kind.Constructor => CONSTRUCTOR
+      case Suggestion.Kind.Getter      => GETTER
       case Suggestion.Kind.Method      => METHOD
       case Suggestion.Kind.Conversion  => CONVERSION
       case Suggestion.Kind.Function    => FUNCTION
@@ -86,6 +88,7 @@ object SuggestionKind {
       case MODULE      => Suggestion.Kind.Module
       case TYPE        => Suggestion.Kind.Type
       case CONSTRUCTOR => Suggestion.Kind.Constructor
+      case GETTER      => Suggestion.Kind.Getter
       case METHOD      => Suggestion.Kind.Method
       case FUNCTION    => Suggestion.Kind.Function
       case LOCAL       => Suggestion.Kind.Local
@@ -223,7 +226,7 @@ object SuggestionRowUniqueIndex {
     val suggestionName = suggestion match {
       case conversion: Suggestion.Conversion =>
         NameColumn.conversionMethodName(
-          conversion.sourceType,
+          conversion.selfType,
           conversion.returnType
         )
       case _ => suggestion.name
@@ -285,5 +288,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 10
+  val CurrentVersion: Long = 11
 }

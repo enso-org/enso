@@ -8,19 +8,19 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
-import project.Network.URI.URI
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
 import project.Network.HTTP.Request_Error
+import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS Load, Open
+## ALIAS load, open
+   GROUP Input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
@@ -60,8 +60,9 @@ read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
-##  ALIAS Load Text, Open Text
-    Open and read the file at the provided `path`.
+## ALIAS load text, open text
+   GROUP Input
+   Open and read the file at the provided `path`.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
@@ -86,7 +87,8 @@ read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read_text encoding on_problems
 
-## Lists files contained in the provided directory.
+## GROUP Input
+   Lists files contained in the provided directory.
 
    Arguments:
    - name_filter: A glob pattern that can be used to filter the returned files.
@@ -140,7 +142,8 @@ list_directory : (File | Text) -> Text -> Boolean -> Vector File
 list_directory directory name_filter=Nothing recursive=False =
     File.new directory . list name_filter=name_filter recursive=recursive
 
-## ALIAS Download, HTTP Get
+## ALIAS download, http get
+   GROUP Input
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -149,9 +152,10 @@ list_directory directory name_filter=Nothing recursive=False =
    - uri: The URI to fetch.
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - parse:  If successful should the body be parsed to an Enso native object.
+   - try_auto_parse:  If successful should the body be attempted to be parsed to
+     an Enso native object.
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch uri method=HTTP_Method.Get headers=[] parse=True =
+fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
     parsed_headers = headers . map h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
@@ -162,9 +166,11 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     response = HTTP.new.request request
 
     if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-        if parse then response.decode if_unsupported=response else response
+        if try_auto_parse.not then response else
+            response.decode if_unsupported=response . catch handler=(_->response)
 
-## ALIAS Download, HTTP Get
+## ALIAS download, http get
+   GROUP Input
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -172,7 +178,8 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
    Arguments:
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - parse:  If successful should the body be parsed to an Enso native object.
+   - try_auto_parse:  If successful should the body be attempted to be parsed to
+     an Enso native object.
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self method=HTTP_Method.Get headers=[] parse=True =
-    Data.fetch self method headers parse
+URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
+    Data.fetch self method headers try_auto_parse

@@ -73,6 +73,7 @@ pub mod serde;
 pub mod prelude {
     pub use derive_more::*;
     pub use enso_build_base::prelude::*;
+    pub use enso_zst::*;
 
     pub use async_trait::async_trait;
     pub use bytes::Bytes;

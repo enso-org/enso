@@ -471,9 +471,18 @@ impl Translate {
 
     /// Translate a [`tree::BodyBlock`] into an [`Ast`] module.
     fn translate_module(&mut self, block: &tree::BodyBlock) -> Ast {
+        // FIXME [mwu]
+        //  The following code was changed as a workaround for the issue
+        //  https://github.com/enso-org/enso/issues/6718.
+        //  This makes the GUI follow the incorrect Engine behavior of assigning ID to the root
+        //  `Module` AST node. It should have no ID, as it could collide with other node in case of
+        //  trivial module code (like `foo`). See also: https://github.com/enso-org/enso/issues/2262
+        //  In this case the workaround is safe, as GUI will never generate such a trivial module,
+        //  it will contain at least the `main` function definition.
+        let module_builder = self.start_ast();
         let (lines, _) =
             self.translate_block_lines(&block.statements).unwrap_or_default().expect_unspaced();
-        Ast::new_no_id(ast::Module { lines })
+        self.finish_ast(ast::Module { lines }, module_builder)
     }
 
     /// Translate the lines of [`Tree`] block into the [`Ast`] block representation.

@@ -16,8 +16,7 @@ import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
-import org.enso.loggingservice.printers.StderrPrinterWithColors
-import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
@@ -37,19 +36,17 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.service.versionmanagement.{
   RuntimeVersionManagementService,
   RuntimeVersionManagerFactory
 }
-import org.enso.projectmanager.service.{
-  MonadicProjectValidator,
-  ProjectCreationService,
-  ProjectService
-}
+import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
+import org.slf4j.event.Level
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
@@ -88,7 +85,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   val processConfig: MainProcessConfig =
     MainProcessConfig(
-      logLevel               = if (debugLogs) LogLevel.Trace else LogLevel.Off,
+      logLevel               = if (debugLogs) Level.TRACE else Level.ERROR,
       profilingPath          = profilingPath,
       profilingTime          = None,
       profilingEventsLogPath = None
@@ -126,7 +123,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val supervisionConfig = config.supervision
 
-  implicit val exec = new ZioEnvExec(Runtime.default)
+  implicit val exec: ZioEnvExec = new ZioEnvExec(Runtime.default)
 
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
 
@@ -143,7 +140,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       gen
     )
 
-  lazy val projectValidator = new MonadicProjectValidator[ZIO[ZAny, *, *]]()
+  lazy val projectNameValidator = new ProjectNameValidator[ZIO[ZAny, *, *]]()
 
   val distributionConfiguration =
     TestDistributionConfiguration(
@@ -193,7 +190,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val projectService =
     new ProjectService[ZIO[ZAny, +*, +*]](
-      projectValidator,
+      projectNameValidator,
       projectRepository,
       projectCreationService,
       globalConfigService,
@@ -239,16 +236,13 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    setupEditions()
-
     if (debugLogs) {
-      LoggingServiceManager.setup(
-        LoggerMode.Local(
-          Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
-        ),
-        LogLevel.Trace
-      )
+      LoggerSetup.get().setup(Level.TRACE)
+    } else {
+      LoggerSetup.get().setup()
     }
+
+    setupEditions()
 
     engineToInstall.foreach(preInstallEngine)
   }

@@ -81,8 +81,8 @@ macro_rules! define_singletons {
 ///         Self::Foo
 ///     }
 /// }
-/// impl From<PhantomData<Foo>> for MyEnum {
-///     fn from(_: PhantomData<Foo>) -> Self {
+/// impl From<ZST<Foo>> for MyEnum {
+///     fn from(_: ZST<Foo>) -> Self {
 ///         Self::Foo
 ///     }
 /// }
@@ -91,8 +91,8 @@ macro_rules! define_singletons {
 ///         Self::Bar
 ///     }
 /// }
-/// impl From<PhantomData<Bar>> for MyEnum {
-///     fn from(_: PhantomData<Bar>) -> Self {
+/// impl From<ZST<Bar>> for MyEnum {
+///     fn from(_: ZST<Bar>) -> Self {
 ///         Self::Bar
 ///     }
 /// }
@@ -119,8 +119,8 @@ macro_rules! define_singleton_enum_from {
                 }
             }
 
-            impl From<PhantomData<$field>> for $name {
-                fn from(_:PhantomData<$field>) -> Self {
+            impl From<ZST<$field>> for $name {
+                fn from(_:ZST<$field>) -> Self {
                     Self::$field
                 }
             }

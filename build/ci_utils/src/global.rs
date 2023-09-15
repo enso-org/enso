@@ -32,6 +32,10 @@ const REFRESHES_PER_SECOND: u32 = 100;
 #[derive(derivative::Derivative)]
 #[derivative(Debug)]
 struct GlobalState {
+    /// A globally-shared reference to the multi-progress bar.
+    ///
+    /// All progress bars must be added to this multi-progress bar. This ensures that the progress
+    /// bars are displayed in a way that does not interfere with tracing log output.
     mp:            MultiProgress,
     #[derivative(Debug = "ignore")]
     bars:          Vec<WeakProgressBar>,
@@ -71,6 +75,27 @@ impl Default for GlobalState {
 }
 
 static GLOBAL: LazyLock<Mutex<GlobalState>> = LazyLock::new(default);
+
+/// Suspends (i.e., hides) the global [`MultiProgress`] bar, executes the given closure, then
+/// resumes (i.e., shows) the [`MultiProgress`] bar.
+///
+/// The [`MultiProgress`] bar must be suspended before logs are written or flushed to the console.
+/// If logs are written or flushed without suspending the [`MultiProgress`] bar, they will clobber
+/// the [`MultiProgress`] bar.
+///
+/// The reason this function is provided rather than letting callers clone the [`MultiProgress`] bar
+/// and suspend it themselves is to avoid deadlocks. The [`MultiProgress`] bar contains an
+/// [`RwLock`] internally. The [`GLOBAL`] state owns the [`MultiProgress`] bar and is itself wrapped
+/// in a [`Mutex`]. This means that if [`MultiProgress`] bar is cloned, a data race can happen,
+/// since there are two locks, one of which nests the other.
+///
+/// [`MultiProgress`]: indicatif::MultiProgress
+/// [`GLOBAL`]: GLOBAL
+/// [`RwLock`]: std::sync::RwLock
+/// [`Mutex`]: std::sync::Mutex
+pub fn with_suspend_multi_progress_bar<T>(f: impl FnOnce() -> T) -> T {
+    GLOBAL.lock().unwrap().mp.suspend(f)
+}
 
 pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
     let ret = f();

@@ -9,21 +9,25 @@ import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 object MonitoringApi {
 
   case object Ping extends Method("heartbeat/ping") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object InitialPing extends Method("heartbeat/init") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
 }

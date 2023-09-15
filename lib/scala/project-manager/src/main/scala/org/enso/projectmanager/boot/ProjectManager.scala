@@ -3,7 +3,7 @@ package org.enso.projectmanager.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-import org.enso.loggingservice.{ColorMode, LogLevel}
+
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -15,14 +15,15 @@ import org.enso.projectmanager.boot.configuration.{
   ProjectManagerConfig
 }
 import org.enso.version.VersionDescription
+import org.slf4j.event.Level
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.Console.{printLine, printLineError, readLine}
 import zio.interop.catz.core._
 import zio.{ExitCode, Runtime, Scope, UIO, ZAny, ZIO, ZIOAppArgs, ZIOAppDefault}
 
-import java.io.IOException
-import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
+import java.io.{EOFException, IOException}
+import java.nio.file.{FileAlreadyExistsException, Files, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
@@ -85,7 +86,12 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def tryReadLine: ZIO[ZAny, Nothing, String] =
     readLine.catchAll { err =>
       ZIO
-        .succeed { logger.warn("Failed to read line.", err) }
+        .succeed {
+          err match {
+            case _: EOFException =>
+            case _               => logger.warn("Failed to read line.", err)
+          }
+        }
         .as("")
     }
 
@@ -121,7 +127,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       case Right(opts) =>
         runOpts(opts).catchAll(th =>
           ZIO.succeed(
-            logger.error("An error occurred during the program startup", th)
+            System.err.println(
+              s"An error occurred during the program startup: ${th.getMessage}"
+            )
           ) *>
           ZIO.succeed(FailureExitCode)
         )
@@ -129,7 +137,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         (printLine(error) *>
         ZIO.succeed(Cli.printHelp()) *>
         ZIO.succeed(FailureExitCode)).catchAll(th =>
-          ZIO.succeed(logger.error("Unexpected error", th)) *>
+          ZIO.succeed(
+            System.err.println(s"Unexpected error: ${th.getMessage}")
+          ) *>
           ZIO.succeed(FailureExitCode)
         )
     }
@@ -224,11 +234,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
-      logger.info("Starting Project Manager...")
       for {
-        opts <- parseOpts(options)
-        profilingLog = opts.profilingPath.map(getSiblingFile(_, ".log"))
-        logLevel <- setupLogging(verbosity, logMasking, profilingLog)
+        _        <- displayVersion(false)
+        opts     <- parseOpts(options)
+        logLevel <- setupLogging(verbosity, logMasking)
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingRuntimeEventsLog,
@@ -248,25 +257,21 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
   private def setupLogging(
     verbosityLevel: Int,
-    logMasking: Boolean,
-    profilingLog: Option[Path]
-  ): ZIO[ZAny, IOException, LogLevel] = {
+    logMasking: Boolean
+  ): ZIO[ZAny, IOException, Level] = {
     val level = verbosityLevel match {
-      case 0 => LogLevel.Info
-      case 1 => LogLevel.Debug
-      case _ => LogLevel.Trace
+      case 0 => Level.INFO
+      case 1 => Level.DEBUG
+      case _ => Level.TRACE
     }
-
-    // TODO [RW] at some point we may want to allow customization of color
-    //  output in CLI flags
-    val colorMode = ColorMode.Auto
-
     ZIO
       .attempt {
-        Logging.setup(Some(level), None, colorMode, logMasking, profilingLog)
+        Logging.setup(level, logMasking)
+        Logging.waitForSetup()
+        ()
       }
       .catchAll { exception =>
-        printLineError(s"Failed to setup the logger: $exception")
+        printLineError(s"Failed to setup logger: ${exception.getMessage()}")
       }
       .as(level)
   }
@@ -274,14 +279,16 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def displayVersion(
     useJson: Boolean
   ): ZIO[ZAny, IOException, ExitCode] = {
-    val versionDescription = VersionDescription.make(
+    printLine(makeVersionDescription.asString(useJson)) *>
+    ZIO.succeed(SuccessExitCode)
+  }
+
+  private def makeVersionDescription: VersionDescription =
+    VersionDescription.make(
       "Enso Project Manager",
       includeRuntimeJVMInfo         = false,
       enableNativeImageOSWorkaround = true
     )
-    printLine(versionDescription.asString(useJson)) *>
-    ZIO.succeed(SuccessExitCode)
-  }
 
   private def logServerStartup(): UIO[Unit] =
     ZIO.succeed {
@@ -302,12 +309,4 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       )
     }
 
-  private def getSiblingFile(file: Path, ext: String): Path = {
-    val fileName       = file.getFileName.toString
-    val extensionIndex = fileName.lastIndexOf(".")
-    val newName =
-      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
-      else fileName + ext
-    file.getParent.resolve(newName)
-  }
 }

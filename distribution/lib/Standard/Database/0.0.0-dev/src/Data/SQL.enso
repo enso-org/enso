@@ -3,8 +3,8 @@ import Standard.Base.Runtime.State
 
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 
-import project.Data.SQL_Type.SQL_Type
 import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
 
 ## PRIVATE
 
@@ -72,7 +72,7 @@ type Builder
     join separator statements =
         sep = case separator of
             Builder.Value _ -> separator
-            _ -> Builder.code separator
+            _ : Text -> Builder.code separator
 
         if statements.length == 0 then Builder.empty else
             (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
@@ -105,7 +105,8 @@ type Builder
     is_empty : Boolean
     is_empty self = self.fragments.is_empty
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
 
        Checks if a code fragment is a constant.
     is_constant : Boolean
@@ -157,23 +158,23 @@ optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder
     go elem =
-        last_part = State.get SQL_Fragment.Code_Part
+        last_part = State.get SQL_Fragment
         case elem of
             SQL_Fragment.Code_Part code ->
                 new_part = case last_part of
                     Nothing -> SQL_Fragment.Code_Part code
                     SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
-                State.put SQL_Fragment.Code_Part new_part
+                State.put SQL_Fragment new_part
             SQL_Fragment.Interpolation _ ->
                 case last_part of
                     Nothing -> Nothing
                     SQL_Fragment.Code_Part _ ->
                         builder.append last_part
-                        State.put SQL_Fragment.Code_Part Nothing
+                        State.put SQL_Fragment Nothing
                 builder.append elem
-    State.run SQL_Fragment.Code_Part Nothing <|
+    State.run SQL_Fragment Nothing <|
         fragments.each go
-        last_part = State.get SQL_Fragment.Code_Part
+        last_part = State.get SQL_Fragment
         case last_part of
             Nothing -> Nothing
             SQL_Fragment.Code_Part _ -> builder.append last_part

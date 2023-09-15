@@ -12,14 +12,15 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
+use engine_protocol::language_server::ExpressionUpdatePayload;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
-use ide_view::graph_editor::EdgeEndpoint;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
+use view::notification::logged as notification;
 
 
 // ==============
@@ -46,10 +47,13 @@ pub type ViewNodeId = view::graph_editor::NodeId;
 pub type AstNodeId = ast::Id;
 
 /// The connection identifier used by view.
-pub type ViewConnection = view::graph_editor::EdgeId;
+pub type ViewConnection = view::graph_editor::Connection;
 
 /// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
+
+/// The connection endpoint used by controllers.
+pub type AstEndpoint = controller::graph::Endpoint;
 
 
 // =================
@@ -95,22 +99,27 @@ impl Model {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
     ) -> Self {
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
             controller.clone_ref(),
-            view.clone_ref(),
+            graph_editor_view.clone_ref(),
             state.clone_ref(),
         );
         let widget = controller::Widget::new(controller.clone_ref());
-        let execution_stack =
-            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
+        let execution_stack = CallStack::new(
+            controller.clone_ref(),
+            graph_editor_view.clone_ref(),
+            project_view.clone_ref(),
+            state.clone_ref(),
+        );
         Self {
             project,
             controller,
-            view,
+            view: graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -130,6 +139,7 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
+        let action = format!("update node {id} visualization to {path:?}");
         self.log_action(
             || {
                 let ast_id =
@@ -142,7 +152,7 @@ impl Model {
                 };
                 Some(result)
             },
-            "update node visualization",
+            &action,
         );
     }
 
@@ -163,6 +173,26 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    fn connection_made(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.connect(&update.view_to_ast_connection(connection)?))
+            },
+            "make connection",
+        );
+    }
+
+    fn connection_broken(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.disconnect(&update.view_to_ast_connection(connection)?))
+            },
+            "break connection",
         );
     }
 
@@ -263,50 +293,37 @@ impl Model {
         Some((node_id, config))
     }
 
+    fn node_copied(&self, id: ViewNodeId) {
+        self.log_action(
+            || {
+                let ast_id = self.state.ast_node_id_of_view(id)?;
+                Some(self.controller.graph().copy_node(ast_id))
+            },
+            "copy node",
+        )
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 self.widget.remove_all_node_widgets(ast_id);
+
+                let connections = self.controller.connections();
+                let node_connections = connections.map(|c| c.with_node(ast_id));
+                let disconnect_result = node_connections.map(|c| self.controller.disconnect_all(c));
+                if let Err(e) = disconnect_result {
+                    warn!(
+                        "Failed to disconnect all connections from node {:?} because of {:?}",
+                        ast_id, e
+                    );
+                }
+
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
         )
-    }
-
-    /// Connection was created in view.
-    fn new_connection_created(&self, id: ViewConnection) {
-        self.log_action(
-            || {
-                let connection = self.view.model.edges.get_cloned_ref(&id)?;
-                let ast_to_create = self.state.update_from_view().create_connection(connection)?;
-                Some(self.controller.connect(&ast_to_create))
-            },
-            "create connection",
-        );
-    }
-
-    /// Connection was removed in view.
-    fn connection_removed(&self, id: ViewConnection) {
-        self.log_action(
-            || {
-                let update = self.state.update_from_view();
-                let ast_to_remove = update.remove_connection(id)?;
-                Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    if let Some(crumbs) = target_crumbs {
-                        trace!(
-                            "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
-                        );
-                        // If we are still using this edge (e.g. when dragging it), we need to
-                        // update its target endpoint. Otherwise it will not reflect expression
-                        // update performed on the target node.
-                        self.view.replace_detached_edge_target((id, crumbs));
-                    };
-                }))
-            },
-            "delete connection",
-        );
     }
 
     fn nodes_collapsed(&self, collapsed: &[ViewNodeId]) {
@@ -326,9 +343,15 @@ impl Model {
 
     fn log_action<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
-        if let Some(Err(err)) = f() {
-            error!("Failed to {action} in AST: {err}");
-        }
+        debug_span!(
+            "Will attempt to '{action}' in the graph for {}.",
+            self.controller.graph().module.path()
+        )
+        .in_scope(|| {
+            if let Some(Err(err)) = f() {
+                error!("Failed to {action} in AST: {err}");
+            }
+        });
     }
 
     /// Extract all types for subexpressions in node expressions, update the state,
@@ -400,6 +423,15 @@ impl Model {
         self.state.update_from_controller().set_node_error_from_payload(expression, payload)
     }
 
+    fn refresh_node_pending(&self, expression: ast::Id) -> Option<(ViewNodeId, bool)> {
+        let registry = self.controller.computed_value_info_registry();
+        let is_pending = registry
+            .get(&expression)
+            .map(|info| matches!(info.payload, ExpressionUpdatePayload::Pending { .. }))
+            .unwrap_or_default();
+        self.state.update_from_controller().set_node_pending(expression, is_pending)
+    }
+
     /// Extract the expression's current type from controllers.
     fn expression_type(&self, id: ast::Id) -> Option<view::graph_editor::Type> {
         let registry = self.controller.computed_value_info_registry();
@@ -422,30 +454,40 @@ impl Model {
         }
     }
 
+    fn paste_node(&self, cursor_pos: Vector2) {
+        fn on_error(msg: String) {
+            error!("Error when pasting node. {}", msg);
+            notification::error(msg, &None);
+        }
+        self.controller.graph().paste_node(cursor_pos, on_error);
+    }
+
     /// Look through all graph's nodes in AST and set position where it is missing.
     #[profile(Debug)]
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
-                use model::module::Position;
+                // We try to avoid spurious updates for nodes that are already positioned.
+                if nodes.iter().any(|n| !n.has_position()) {
+                    use model::module::Position;
 
-                let base_default_position = default_node_position();
-                let node_positions =
-                    nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
-                let bottommost_pos = node_positions
-                    .min_by(Position::ord_by_y)
-                    .map(|p| p.vector)
-                    .unwrap_or(base_default_position);
+                    let base_default_position = default_node_position();
+                    let node_positions =
+                        nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
+                    let bottommost_pos = node_positions
+                        .min_by(Position::ord_by_y)
+                        .map(|p| p.vector)
+                        .unwrap_or(base_default_position);
 
-                let offset = default_gap_between_nodes + node_view::HEIGHT;
-                let mut next_default_position =
-                    Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
+                    let offset = default_gap_between_nodes + node_view::HEIGHT;
+                    let mut next_default_position =
+                        Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
 
-                let transaction =
-                    self.controller.get_or_open_transaction("Setting default positions.");
-                transaction.ignore();
-                for node in nodes {
-                    if !node.has_position() {
+                    // As this is not a user-initiated action, we ignore the transaction.
+                    let transaction =
+                        self.controller.get_or_open_transaction("Setting default positions.");
+                    transaction.ignore();
+                    for node in nodes.iter().filter(|n| !n.has_position()) {
                         if let Err(err) = self
                             .controller
                             .graph()
@@ -533,7 +575,7 @@ struct ViewUpdate {
     state:       Rc<State>,
     nodes:       Vec<controller::graph::Node>,
     trees:       HashMap<AstNodeId, controller::graph::NodeTrees>,
-    connections: HashSet<AstConnection>,
+    connections: Vec<AstConnection>,
 }
 
 impl ViewUpdate {
@@ -543,7 +585,7 @@ impl ViewUpdate {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
         let connections_and_trees = model.controller.connections()?;
-        let connections = connections_and_trees.connections.into_iter().collect();
+        let connections = connections_and_trees.connections;
         let trees = connections_and_trees.trees;
         Ok(Self { state, nodes, trees, connections })
     }
@@ -620,21 +662,11 @@ impl ViewUpdate {
             .collect()
     }
 
-    /// Remove connections from the state and return views to be removed.
+    /// Get all current connections from the updated state, and return them in a form suitable for
+    /// passing to the Graph Editor view.
     #[profile(Debug)]
-    fn remove_connections(&self) -> Vec<ViewConnection> {
-        self.state.update_from_controller().retain_connections(&self.connections)
-    }
-
-    /// Add connections to the state and return endpoints of connections to be created in views.
-    #[profile(Debug)]
-    fn add_connections(&self) -> Vec<(EdgeEndpoint, EdgeEndpoint)> {
-        let ast_conns = self.connections.iter();
-        ast_conns
-            .filter_map(|connection| {
-                self.state.update_from_controller().set_connection(connection.clone())
-            })
-            .collect()
+    fn map_all_connections(&self) -> Vec<ViewConnection> {
+        self.state.update_from_controller().map_connections(&self.connections)
     }
 
     #[profile(Debug)]
@@ -654,7 +686,7 @@ impl ViewUpdate {
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
 /// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
 /// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
-#[derive(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Graph {
     network: frp::Network,
     model:   Rc<Model>,
@@ -670,8 +702,9 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let view = project_view.graph().clone_ref();
-        let model = Rc::new(Model::new(project, controller, view));
+        let graph_editor_view = project_view.graph().clone_ref();
+        let project_view_clone = project_view.clone_ref();
+        let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
         Self { network, model }.init(project_view)
     }
 
@@ -730,11 +763,7 @@ impl Graph {
 
             // === Refreshing Connections ===
 
-            remove_connection <= update_data.map(|update| update.remove_connections());
-            add_connection <= update_data.map(|update| update.add_connections());
-            view.remove_edge <+ remove_connection;
-            view.connect_nodes <+ add_connection;
-
+            view.set_connections <+ update_data.map(|update| update.map_all_connections());
 
             // === Refreshing Expressions ===
 
@@ -746,18 +775,20 @@ impl Graph {
             update_expression <= update_expressions;
             view.set_expression_usage_type <+ update_expression.filter_map(f!((id) model.refresh_expression_type(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
+            view.set_node_pending_status <+ update_expression.filter_map(f!((id) model.refresh_node_pending(*id)));
 
             self.init_widgets(reset_node_types, update_expression.clone_ref());
 
             // === Changes from the View ===
 
+            eval view.node_copied((node_id) model.node_copied(*node_id));
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
-            eval view.on_edge_endpoints_set((edge_id) model.new_connection_created(*edge_id));
-            eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
+            eval view.connection_made((connection) model.connection_made(connection));
+            eval view.connection_broken((connection) model.connection_broken(connection));
             eval view.node_action_context_switch(((node_id, active)) model.node_action_context_switch(*node_id, *active));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
@@ -765,8 +796,9 @@ impl Graph {
             eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
-            // === Dropping Files ===
+            // === Dropping Files and Pasting Node ===
 
+            eval view.request_paste_node((pos) model.paste_node(*pos));
             file_upload_requested <- view.file_dropped.gate(&project_view.drop_files_enabled);
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }
@@ -820,19 +852,20 @@ impl Graph {
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            debug!("Received controller notification {notification:?}");
-            match notification {
-                executed::Notification::Graph(graph) => match graph {
-                    Notification::Invalidate => update_view.emit(()),
-                    Notification::PortsUpdate => update_view.emit(()),
-                },
-                executed::Notification::ComputedValueInfo(expressions) =>
-                    update_expressions.emit(expressions),
-                executed::Notification::EnteredStack(_)
-                | executed::Notification::ExitedStack(_) => update_view.emit(()),
-            }
-            std::future::ready(())
-        })
+            debug_span!("Received controller notification {notification:?}").in_scope(|| {
+                match notification {
+                    executed::Notification::Graph(graph) => match graph {
+                        Notification::Invalidate => update_view.emit(()),
+                        Notification::PortsUpdate => update_view.emit(()),
+                    },
+                    executed::Notification::ComputedValueInfo(expressions) =>
+                        update_expressions.emit(expressions),
+                    executed::Notification::EnteredStack(_)
+                    | executed::Notification::ExitedStack(_) => update_view.emit(()),
+                }
+                std::future::ready(())
+            })
+        });
     }
 }
 

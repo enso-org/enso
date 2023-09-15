@@ -118,7 +118,7 @@ pub struct Shader<T> {
     #[deref]
     pub native: WebGlShader,
     pub code:   ImString,
-    tp:         PhantomData<T>,
+    tp:         ZST<T>,
 }
 
 impl<T> Shader<T> {

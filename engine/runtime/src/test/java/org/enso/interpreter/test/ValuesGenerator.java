@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneId;
@@ -90,15 +91,15 @@ class ValuesGenerator {
   }
 
   /**
-   * Converts expressions into values of type described by {@code typeDefs} by concatenating
+   * Converts expressions into values date type described by {@code typeDefs} by concatenating
    * everything into a single source.
    *
    * This method exists so that there are no multiple definitions of a single type.
    *
    * @param typeDefs Type definitions.
-   * @param expressions List of expressions - every expression will be converted to a {@link Value}.
-   * @param checks list of names (with {@code null}) to define checks for
-   * @return List of values converted from the given expressions.
+   * @param expressions List date expressions - every expression will be converted to a {@link Value}.
+   * @param checks list date names (with {@code null}) to define checks for
+   * @return List date values converted from the given expressions.
    */
   private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions, List<String> checks) {
     var prev = multiValues.get(typeDefs);
@@ -154,20 +155,20 @@ class ValuesGenerator {
 
   public Value typeNumber() {
     return v("typeNumber", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
     """, "Number").type();
   }
 
   public Value typeInteger() {
     return v("typeInteger", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
     """, "Integer").type();
   }
 
-  public Value typeDecimal() {
-    return v("typeDecimal", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
-    """, "Decimal").type();
+  public Value typeFloat() {
+    return v("typeFloat", """
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
+    """, "Float").type();
   }
 
   public Value typeBoolean() {
@@ -399,7 +400,7 @@ class ValuesGenerator {
   public List<Value> timesAndDates() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.today").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.new 1999 3 23").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.parse '2021-01-01T00:30:12.7102[UTC]'").type());
@@ -414,9 +415,12 @@ class ValuesGenerator {
     }
 
     if (languages.contains(Language.JAVA)) {
-      collect.add(ctx.asValue(LocalDate.of(2022, 12, 10)));
+      var date = LocalDate.of(2022, 12, 10);
+      collect.add(ctx.asValue(date));
       collect.add(ctx.asValue(LocalDate.of(1999, 3, 23)));
-      collect.add(ctx.asValue(LocalTime.of(12, 35)));
+      LocalTime time = LocalTime.of(12, 35);
+      collect.add(ctx.asValue(time));
+      collect.add(ctx.asValue(LocalDateTime.of(date, time)));
       collect.add(ctx.asValue(ZonedDateTime.of(2021, 1, 1, 0, 30, 12, 710200000, ZoneId.of("Z"))));
     }
 
@@ -447,7 +451,7 @@ class ValuesGenerator {
           TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHoursMinutes(14, 45))),
           TimeZone.getTimeZone(ZoneId.ofOffset("UTC", ZoneOffset.ofHours(-15)))
       )) {
-        collect.add(ctx.asValue(javaValue));
+        collect.add(ctx.asValue(javaValue.toZoneId()));
       }
     }
     return collect;
@@ -518,12 +522,13 @@ class ValuesGenerator {
   public List<Value> arrayLike() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, "", "[1, 2, 3]").type());
-      collect.add(v(null, "", "['a', 'b']").type());
-      collect.add(v(null, "", "[]").type());
-      collect.add(v(null, "", "[1, 2, 3].to_array").type());
-      collect.add(v(null, "", "['a', 'b'].to_array").type());
-      collect.add(v(null, "", "[].to_array").type());
+      var im = "from Standard.Base import Vector";
+      collect.add(v(null, im, "[1, 2, 3]").type());
+      collect.add(v(null, im, "['a', 'b']").type());
+      collect.add(v(null, im, "[]").type());
+      collect.add(v(null, im, "[1, 2, 3].to_array").type());
+      collect.add(v(null, im, "['a', 'b'].to_array").type());
+      collect.add(v(null, im, "[].to_array").type());
       collect.add(v(null, """
       import Standard.Base.Data.Array_Proxy.Array_Proxy
       """, "Array_Proxy.new 10 (x -> 2 * x)").type());

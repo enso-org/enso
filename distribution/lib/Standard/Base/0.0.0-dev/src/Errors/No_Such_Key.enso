@@ -1,7 +1,8 @@
 import project.Data.Text.Text
 
 type No_Such_Key
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        An error for getting a missing value from a map.
 

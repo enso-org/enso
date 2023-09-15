@@ -14,11 +14,11 @@
 //!   scope.
 
 use std::cell;
-use std::mem;
 
 
 
 /// Allocation unit of events within a [`Log`].
+#[cfg_attr(debug_assertions, allow(dead_code))]
 const BLOCK: usize = 1024;
 
 
@@ -27,112 +27,189 @@ const BLOCK: usize = 1024;
 // === Log ===
 // ===========
 
-/// A shared-mutable data structure supporting append and random-access read.
-#[derive(Debug)]
-pub struct Log<T> {
-    current:   cell::UnsafeCell<Box<[mem::MaybeUninit<T>; BLOCK]>>,
-    completed: cell::UnsafeCell<Vec<Box<[T; BLOCK]>>>,
-    len:       cell::Cell<usize>,
-}
+#[cfg(not(debug_assertions))]
+pub use fast::Log;
 
-#[allow(unsafe_code)]
-impl<T> Log<T> {
-    /// Create a new, empty [`Log`].
-    pub fn new() -> Self {
-        Self {
-            current:   cell::UnsafeCell::new(Box::new(mem::MaybeUninit::uninit_array())),
-            completed: cell::UnsafeCell::new(Default::default()),
-            len:       Default::default(),
-        }
+#[cfg(debug_assertions)]
+pub use safe::Log;
+
+/// Fast implementation used when debug assertions are disabled.
+#[cfg(not(debug_assertions))]
+mod fast {
+    use super::*;
+
+    use std::mem;
+
+    /// A shared-mutable data structure supporting append and random-access read.
+    #[derive(Debug)]
+    pub struct Log<T> {
+        current:   cell::UnsafeCell<Box<[mem::MaybeUninit<T>; BLOCK]>>,
+        completed: cell::UnsafeCell<Vec<Box<[T; BLOCK]>>>,
+        len:       cell::Cell<usize>,
     }
 
-    /// Push an element.
-    #[inline]
-    #[allow(unsafe_code)] // Note [Log Safety]
-    pub fn push(&self, element: T) {
-        unsafe {
-            let i = self.len.get();
-            (*self.current.get())[i % BLOCK].write(element);
-            let i1 = i + 1;
-            if i1 % BLOCK == 0 {
-                // Current gradually-initialized block is full. Read it, cast it to a
-                // fully-initialized block, and replace it with a new empty block.
-                let empty = Box::new(mem::MaybeUninit::uninit_array());
-                let block = self.current.get().replace(empty);
-                let block =
-                    mem::transmute::<Box<[mem::MaybeUninit<T>; BLOCK]>, Box<[T; BLOCK]>>(block);
-                // Add the old block to our collection of completed blocks.
-                (*self.completed.get()).push(block);
-            }
-            self.len.set(i1);
-        }
-    }
-
-    /// Returns the number of entries in the log.
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.len.get()
-    }
-
-    /// Returns true if the log contains no entries.
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Applies a function to each entry in the log.
-    #[allow(unsafe_code)] // Note [Log Safety]
-    pub fn for_each<F>(&self, mut f: F)
-    where F: FnMut(&T) {
-        unsafe {
-            let blocks = self.len() / BLOCK;
-            let n = self.len() % BLOCK;
-            for i in 0..blocks {
-                // Safety: The contents of a completed block are never modified, so we can hold a
-                // borrow while calling the function (which may append to the log).
-                let block = &(*self.completed.get())[i];
-                block.iter().for_each(&mut f);
-            }
-            // Safety: The elements in the completed portion of the block are never modified, so we
-            // can hold a borrow while calling the function (which may append to the log).
-            let current = &(*self.current.get())[..n];
-            current.iter().map(|elem| elem.assume_init_ref()).for_each(f);
-        }
-    }
-
-    #[inline]
-    #[allow(unsafe_code)] // Note [Log Safety]
-    fn get(&self, index: usize) -> Option<&T> {
-        unsafe {
-            let block_i = index / BLOCK;
-            let i = index % BLOCK;
-            let blocks = &*self.completed.get();
-            if let Some(block) = blocks.get(block_i) {
-                Some(&block[i])
-            } else if block_i == blocks.len() && i < self.len.get() % BLOCK {
-                Some((*self.current.get())[i].assume_init_ref())
-            } else {
-                None
+    impl<T> Log<T> {
+        /// Create a new, empty [`Log`].
+        pub fn new() -> Self {
+            Self {
+                current:   cell::UnsafeCell::new(Box::new(mem::MaybeUninit::uninit_array())),
+                completed: cell::UnsafeCell::new(Default::default()),
+                len:       Default::default(),
             }
         }
+
+        /// Push an element.
+        #[inline]
+        #[allow(unsafe_code)] // Note [Log Safety]
+        pub fn push(&self, element: T) {
+            unsafe {
+                let i = self.len.get();
+                (*self.current.get())[i % BLOCK].write(element);
+                let i1 = i + 1;
+                if i1 % BLOCK == 0 {
+                    // Current gradually-initialized block is full. Read it, cast it to a
+                    // fully-initialized block, and replace it with a new empty block.
+                    let empty = Box::new(mem::MaybeUninit::uninit_array());
+                    let block = self.current.get().replace(empty);
+                    let block =
+                        mem::transmute::<Box<[mem::MaybeUninit<T>; BLOCK]>, Box<[T; BLOCK]>>(block);
+                    // Add the old block to our collection of completed blocks.
+                    (*self.completed.get()).push(block);
+                }
+                self.len.set(i1);
+            }
+        }
+
+        /// Returns the number of entries in the log.
+        #[inline]
+        pub fn len(&self) -> usize {
+            self.len.get()
+        }
+
+        /// Returns true if the log contains no entries.
+        #[inline]
+        pub fn is_empty(&self) -> bool {
+            self.len() == 0
+        }
+
+        /// Applies a function to each entry in the log.
+        #[allow(unsafe_code)] // Note [Log Safety]
+        pub fn for_each<F>(&self, mut f: F)
+        where F: FnMut(&T) {
+            unsafe {
+                let blocks = self.len() / BLOCK;
+                let n = self.len() % BLOCK;
+                for i in 0..blocks {
+                    // Safety: The contents of a completed block are never modified, so we can hold
+                    // a borrow while calling the function (which may append to
+                    // the log).
+                    let block = &(*self.completed.get())[i];
+                    block.iter().for_each(&mut f);
+                }
+                // Safety: The elements in the completed portion of the block are never modified, so
+                // we can hold a borrow while calling the function (which may append
+                // to the log).
+                let current = &(*self.current.get())[..n];
+                current.iter().map(|elem| elem.assume_init_ref()).for_each(f);
+            }
+        }
+
+        /// Pass the element at the specified index to the given function. Returns `None` if the
+        /// index is out of bounds.
+        #[inline]
+        #[allow(unsafe_code)] // Note [Log Safety]
+        pub fn get<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> Option<U> {
+            unsafe {
+                let block_i = index / BLOCK;
+                let i = index % BLOCK;
+                let blocks = &*self.completed.get();
+                let value = if let Some(block) = blocks.get(block_i) {
+                    Some(&block[i])
+                } else if block_i == blocks.len() && i < self.len.get() % BLOCK {
+                    Some((*self.current.get())[i].assume_init_ref())
+                } else {
+                    None
+                };
+                // Safety: Whether the element is in a completed block, or in the completed portion
+                // of the current block, it will never be moved or modified; so we
+                // can hold a borrow while calling the function (which may append to
+                // the log).
+                value.map(f)
+            }
+        }
+    }
+
+    impl<T: Clone> Log<T> {
+        /// Return a collection of all entries currently in the log.
+        pub fn clone_all<C>(&self) -> C
+        where C: Default + Extend<T> {
+            let mut result = C::default();
+            self.for_each(|elem| result.extend_one(elem.clone()));
+            result
+        }
     }
 }
 
-impl<T: Clone> Log<T> {
-    /// Return a collection of all entries currently in the log.
-    pub fn clone_all<C>(&self) -> C
-    where C: Default + Extend<T> {
-        let mut result = C::default();
-        self.for_each(|elem| result.extend_one(elem.clone()));
-        result
-    }
-}
+/// Checked implementation used when debug assertions are enabled.
+#[cfg(debug_assertions)]
+mod safe {
+    use super::*;
 
-impl<T> core::ops::Index<usize> for Log<T> {
-    type Output = T;
-    #[inline]
-    fn index(&self, index: usize) -> &Self::Output {
-        self.get(index).unwrap()
+    /// A shared-mutable data structure supporting append and random-access read.
+    #[derive(Debug)]
+    pub struct Log<T> {
+        data: cell::RefCell<Vec<T>>,
+    }
+
+    impl<T> Log<T> {
+        /// Create a new, empty [`Log`].
+        #[inline]
+        pub fn new() -> Self {
+            let data = cell::RefCell::new(Vec::new());
+            Self { data }
+        }
+
+        /// Push an element.
+        #[inline]
+        pub fn push(&self, element: T) {
+            self.data.borrow_mut().push(element)
+        }
+
+        /// Returns the number of entries in the log.
+        #[inline]
+        pub fn len(&self) -> usize {
+            self.data.borrow().len()
+        }
+
+        /// Returns true if the log contains no entries.
+        #[inline]
+        pub fn is_empty(&self) -> bool {
+            self.len() == 0
+        }
+
+        /// Applies a function to each entry in the log.
+        #[inline]
+        pub fn for_each<F>(&self, f: F)
+        where F: FnMut(&T) {
+            self.data.borrow().iter().for_each(f)
+        }
+
+        /// Pass the element at the specified index to the given function. Returns `None` if the
+        /// index is out of bounds.
+        #[inline]
+        pub fn get<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> Option<U> {
+            self.data.borrow().get(index).map(f)
+        }
+    }
+
+    impl<T: Clone> Log<T> {
+        /// Return a collection of all entries currently in the log.
+        pub fn clone_all<C>(&self) -> C
+        where C: Default + Extend<T> {
+            let mut result = C::default();
+            result.extend(self.data.borrow().iter().cloned());
+            result
+        }
     }
 }
 
@@ -182,7 +259,7 @@ impl<T: 'static> ThreadLocalLog<T> {
     ///
     /// Panics if the index is not less than [`len`].
     pub fn get<U>(&'static self, i: usize, f: impl FnOnce(&T) -> U) -> U {
-        self.0.with(|this| f(&this[i]))
+        self.try_get(i, f).unwrap()
     }
 
     /// Get the entry at the given index, and pass it to a function; return the result of the
@@ -190,7 +267,7 @@ impl<T: 'static> ThreadLocalLog<T> {
     ///
     /// Returns [`None`] if the index is not less than [`len`].
     pub fn try_get<U>(&'static self, i: usize, f: impl FnOnce(&T) -> U) -> Option<U> {
-        self.0.with(|this| this.get(i).map(f))
+        self.0.with(|this| this.get(i, f))
     }
 }
 

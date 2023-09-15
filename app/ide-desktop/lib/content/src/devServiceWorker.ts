@@ -32,10 +32,12 @@ self.addEventListener('fetch', event => {
         const responsePromise = caches
             .open(constants.CACHE_NAME)
             .then(cache => cache.match(event.request))
-            .then(response =>
-                response ?? /\/[^.]+$/.test(url.pathname)
-                    ? fetch('/index.html')
-                    : fetch(event.request.url)
+            .then(
+                response =>
+                    response ??
+                    (/\/[^.]+$/.test(url.pathname)
+                        ? fetch('/index.html')
+                        : fetch(event.request.url))
             )
         event.respondWith(
             responsePromise.then(response => {

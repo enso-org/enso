@@ -50,7 +50,8 @@ class ContentRootManagerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
     rootActor   = system.actorOf(ContentRootManagerActor.props(config))
     rootManager = new ContentRootManagerWrapper(config, rootActor)

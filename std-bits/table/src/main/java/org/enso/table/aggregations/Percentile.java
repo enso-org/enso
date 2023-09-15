@@ -1,15 +1,15 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
-
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing a percentile value in a group. */
 public class Percentile extends Aggregator {
@@ -24,6 +24,7 @@ public class Percentile extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     int count = 0;
     SortedMap<Double, Integer> currentMap = new TreeMap<>();
     for (int row : indexes) {
@@ -44,6 +45,8 @@ public class Percentile extends Aggregator {
           currentMap.put(dValue, currentMap.getOrDefault(dValue, 0) + 1);
         }
       }
+
+      context.safepoint();
     }
 
     if (count == 0) {
@@ -74,6 +77,7 @@ public class Percentile extends Aggregator {
       }
 
       current = nextCurrent;
+      context.safepoint();
     }
 
     this.addProblem(

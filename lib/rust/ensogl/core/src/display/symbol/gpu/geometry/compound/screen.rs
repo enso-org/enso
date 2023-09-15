@@ -3,9 +3,8 @@
 //! post-processing effect by applying the previous output to a screen covering geometry.
 
 use crate::prelude::*;
-use crate::system::gpu::data::types::*;
 
-use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::texture;
@@ -15,7 +14,7 @@ use crate::system::gpu::data::texture;
 /// Defines a system containing shapes. It is a specialized `SpriteSystem` version.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Screen {
-    sprite:        Sprite,
+    sprite:        RawSprite,
     sprite_system: SpriteSystem,
 }
 
@@ -46,11 +45,6 @@ impl Screen {
         self.sprite_system.show();
     }
 
-    /// Local variables used by the screen object.
-    pub fn variables(&self) -> UniformScope {
-        self.sprite_system.symbol().variables().clone()
-    }
-
     /// Render the shape.
     pub fn render(&self) {
         self.sprite_system.render()
@@ -71,12 +65,8 @@ impl Screen {
     fn identity_painter_surface_material(input: impl AsRef<str>) -> Material {
         let input = input.as_ref();
         let mut material = Material::new();
-        let shader = format!(
-            "
-        vec4 sample_color = texture(input_{input}, input_uv);
-        output_color = sample_color;
-        "
-        );
+        let shader =
+            format!("output_color = texelFetch(input_{input}, ivec2(gl_FragCoord.xy), 0);");
         material.add_input_def::<texture::FloatSampler>(input);
         material.set_main(shader);
         material

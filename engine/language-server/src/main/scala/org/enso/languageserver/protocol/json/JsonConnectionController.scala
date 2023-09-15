@@ -7,6 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.jsonrpc._
+import org.enso.languageserver.ai.AICompletion
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
@@ -31,7 +32,11 @@ import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
-import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
+import org.enso.languageserver.refactoring.RefactoringApi.{
+  RenameProject,
+  RenameSymbol
+}
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -39,22 +44,26 @@ import org.enso.languageserver.requesthandler.monitoring.{
   InitialPingHandler,
   PingHandler
 }
-import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
+import org.enso.languageserver.requesthandler.refactoring.{
+  RenameProjectHandler,
+  RenameSymbolHandler
+}
 import org.enso.languageserver.requesthandler.text._
-import org.enso.languageserver.requesthandler.visualisation.{
-  AttachVisualisationHandler,
-  DetachVisualisationHandler,
+import org.enso.languageserver.requesthandler.visualization.{
+  AttachVisualizationHandler,
+  DetachVisualizationHandler,
   ExecuteExpressionHandler,
-  ModifyVisualisationHandler
+  ModifyVisualizationHandler
 }
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.VisualisationApi.{
-  AttachVisualisation,
-  DetachVisualisation,
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
+import org.enso.languageserver.runtime.VisualizationApi.{
+  AttachVisualization,
+  DetachVisualization,
   ExecuteExpression,
-  ModifyVisualisation
+  ModifyVisualization
 }
 import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
@@ -75,6 +84,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -122,6 +132,13 @@ class JsonConnectionController(
   import context.dispatcher
 
   implicit val timeout: Timeout = Timeout(requestTimeout)
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream
+      .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
+  }
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
@@ -288,6 +305,7 @@ class JsonConnectionController(
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
     case MessageHandler.Disconnected =>
+      logger.info("Json session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
@@ -302,6 +320,12 @@ class JsonConnectionController(
 
     case TextProtocol.FileAutoSaved(path) =>
       webActor ! Notification(FileAutoSaved, FileAutoSaved.Params(path))
+
+    case TextProtocol.FileModifiedOnDisk(path) =>
+      webActor ! Notification(
+        FileModifiedOnDisk,
+        FileModifiedOnDisk.Params(path)
+      )
 
     case TextProtocol.FileEvent(path, event) =>
       webActor ! Notification(EventFile, EventFile.Params(path, event))
@@ -347,18 +371,18 @@ class JsonConnectionController(
         ExecutionContextExecutionStatus.Params(contextId, diagnostics)
       )
 
-    case ContextRegistryProtocol.VisualisationEvaluationFailed(
+    case ContextRegistryProtocol.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           diagnostic
         ) =>
       webActor ! Notification(
-        VisualisationEvaluationFailed,
-        VisualisationEvaluationFailed.Params(
+        VisualizationEvaluationFailed,
+        VisualizationEvaluationFailed.Params(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           diagnostic
@@ -400,6 +424,20 @@ class JsonConnectionController(
           FileManagerApi.ContentRootAdded.Params(root.toContentRoot)
         )
       }
+
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
+      webActor ! Notification(
+        RefactoringApi.ProjectRenamed,
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
+      )
 
     case Api.ProgressNotification(payload) =>
       val translated: Notification[_, _] =
@@ -500,15 +538,18 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
+      AICompletion -> ai.AICompletionHandler.props(
+        languageServerConfig.aiCompletionConfig
+      ),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      AttachVisualisation -> AttachVisualisationHandler
+      AttachVisualization -> AttachVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      DetachVisualisation -> DetachVisualisationHandler
+      DetachVisualization -> DetachVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      ModifyVisualisation -> ModifyVisualisationHandler
+      ModifyVisualization -> ModifyVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
@@ -563,6 +604,18 @@ class JsonConnectionController(
         requestTimeout,
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
+      ),
+      RenameProject -> RenameProjectHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RenameSymbol -> RenameSymbolHandler.props(
+        requestTimeout,
+        runtimeConnector
+      ),
+      RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
+        requestTimeout,
+        runtimeConnector
       )
     )
   }

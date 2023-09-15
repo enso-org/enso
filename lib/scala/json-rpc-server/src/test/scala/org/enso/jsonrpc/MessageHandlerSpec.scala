@@ -25,50 +25,64 @@ class MessageHandlerSpec
   }
 
   case object MyRequest extends Method("RequestMethod") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = MyRequestParams
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = MyRequestResult
-    }
+    implicit val hasParams: HasParams.Aux[this.type, MyRequestParams] =
+      new HasParams[this.type] {
+        type Params = MyRequestParams
+      }
+    implicit val hasResult: HasResult.Aux[this.type, MyRequestResult] =
+      new HasResult[this.type] {
+        type Result = MyRequestResult
+      }
   }
   case class MyRequestParams(foo: Int, bar: String)
   case class MyRequestResult(baz: Int)
 
   case object MyEmptyRequest extends Method("EmptyRequest") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
 
   }
 
   case object MyNotification extends Method("NotificationMethod") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = MyNotificationParams
-    }
+    implicit val hasParams: HasParams.Aux[this.type, MyNotificationParams] =
+      new HasParams[this.type] {
+        type Params = MyNotificationParams
+      }
   }
   case class MyNotificationParams(spam: String)
 
   case object MyEmptyNotification extends Method("EmptyNotification") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
   }
 
   case object MyError extends Error(15, "Test error")
 
-  object MyProtocol {
+  object MyProtocolFactory extends ProtocolFactory {
     import io.circe.generic.auto._
 
-    val protocol: Protocol = Protocol.empty
+    private val protocol: Protocol = Protocol.empty
       .registerNotification(MyNotification)
       .registerNotification(MyEmptyNotification)
       .registerRequest(MyRequest)
       .registerRequest(MyEmptyRequest)
       .registerError(MyError)
+      .finalized()
+
+    override def getProtocol(): Protocol = protocol
+
+    override def init(): Unit = ()
+
+    /** Error returned when a requested method is not recognized */
+    override def onMissingMethod(): Error = Errors.MethodNotFound
   }
 
   var out: TestProbe        = _
@@ -79,7 +93,7 @@ class MessageHandlerSpec
     out        = TestProbe()
     controller = TestProbe()
     handler = system.actorOf(
-      Props(new MessageHandler(MyProtocol.protocol, controller.ref))
+      Props(new MessageHandler(MyProtocolFactory, controller.ref))
     )
     handler ! Connected(out.ref)
   }

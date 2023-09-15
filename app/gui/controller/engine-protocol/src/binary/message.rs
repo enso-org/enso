@@ -62,7 +62,7 @@ impl<T> MessageFromServer<T> {
 /// Identifies the visualization in the update message.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
-pub struct VisualisationContext {
+pub struct VisualizationContext {
     pub visualization_id: Uuid,
     pub context_id:       Uuid,
     pub expression_id:    Uuid,
@@ -110,7 +110,7 @@ pub enum ToServerPayloadOwned {
 pub enum FromServerPayloadOwned {
     Error { code: i32, message: String, data: Option<ErrorPayload> },
     Success {},
-    VisualizationUpdate { context: VisualisationContext, data: Vec<u8> },
+    VisualizationUpdate { context: VisualizationContext, data: Vec<u8> },
     FileContentsReply { contents: Vec<u8> },
     WriteBytesReply { checksum: EnsoDigest },
     ReadBytesReply { checksum: EnsoDigest, bytes: Vec<u8> },
@@ -149,7 +149,7 @@ pub enum ToServerPayload<'a> {
 pub enum FromServerPayload<'a> {
     Error { code: i32, message: &'a str, data: Option<ErrorPayload> },
     Success {},
-    VisualizationUpdate { context: VisualisationContext, data: &'a [u8] },
+    VisualizationUpdate { context: VisualizationContext, data: &'a [u8] },
     FileContentsReply { contents: &'a [u8] },
     WriteBytesReply { checksum: EnsoDigest },
     ReadBytesReply { checksum: EnsoDigest, bytes: &'a [u8] },

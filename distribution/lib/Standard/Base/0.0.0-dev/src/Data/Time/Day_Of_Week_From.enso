@@ -2,8 +2,7 @@ import project.Data.Numbers.Integer
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## Convert from an integer to a Day_Of_Week
 

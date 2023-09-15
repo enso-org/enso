@@ -298,6 +298,28 @@ impl Network {
         self.register(OwnedBatch::new(label, input))
     }
 
+    /// Batch unique incoming events emitted within a single microtask. The batch will be emitted
+    /// after the current program execution finishes, but before returning to the event loop. All
+    /// emitted batches are guaranteed to be non-empty. Since the batch is emitted as a hash set,
+    /// the order of incoming events is not preserved.
+    ///
+    /// Use [`Network::debounce`] if you want to receive only the latest value emitted within a
+    /// microtask.
+    ///
+    /// ```text
+    /// Input:       ───────1───3─2─3───────────
+    /// Microtasks:  ── ▶───── ▶───── ▶───── ▶──
+    /// Output:      ──────────{1}────{2,3}─────
+    /// ```
+    ///
+    /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    pub fn batch_unique<T>(&self, label: Label, input: &T) -> Stream<HashSet<Output<T>>>
+    where
+        T: EventOutput,
+        Output<T>: Hash + Eq, {
+        self.register(OwnedBatchUnique::new(label, input))
+    }
+
 
     /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
@@ -309,29 +331,29 @@ impl Network {
     }
 
     /// Get the 0-based index of the incoming event.
-    pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt0<Output<T1>>>
+    pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<0, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt0,
-        generics::ItemAt0<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt0,
+        generics::FieldAt<0, T1::Output>: Data, {
         self.register(OwnedGet0::new(label, event))
     }
 
     /// Get the 1-based index of the incoming event.
-    pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt1<Output<T1>>>
+    pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<1, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt1,
-        generics::ItemAt1<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt1,
+        generics::FieldAt<1, T1::Output>: Data, {
         self.register(OwnedGet1::new(label, event))
     }
 
     /// Get the 2-based index of the incoming event.
-    pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt2<Output<T1>>>
+    pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<2, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt2,
-        generics::ItemAt2<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt2,
+        generics::FieldAt<2, T1::Output>: Data, {
         self.register(OwnedGet2::new(label, event))
     }
 
@@ -448,6 +470,14 @@ impl Network {
         T1: EventOutput<Output = bool>,
         T2: EventOutput<Output = bool>, {
         self.all_with(label, t1, t2, |a, b| *a && *b)
+    }
+
+    /// On every input event, sample all input streams and output `t1 && !t2`.
+    pub fn and_not<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<bool>
+    where
+        T1: EventOutput<Output = bool>,
+        T2: EventOutput<Output = bool>, {
+        self.all_with(label, t1, t2, |a, b| *a && !*b)
     }
 
     pub fn is_some<T, X>(&self, label: Label, src: &T) -> Stream<bool>
@@ -1029,6 +1059,29 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    /// A version of map that operates on [`Some`] values. The provided function will only be called
+    /// when incoming stream's value is `Some(In)`. If you need the provided function to return an
+    /// optional type, use [`Network::and_then`].
+    pub fn map_some<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Out, {
+        self.map(label, src, move |value| value.as_ref().map(&f))
+    }
+
+    /// A version of map that operates on optionals. The provided function will only be called when
+    /// incoming stream's value is [`Some`], and then the provided function can return an optional
+    /// itself. If you want a non-optional return type, use [`Network::map_some`].
+    pub fn and_then<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Option<Out>, {
+        self.map(label, src, move |value| value.as_ref().and_then(&f))
+    }
+
+
     pub fn map_<'a, T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<()>
     where
         T: EventOutput,
@@ -1457,7 +1510,7 @@ impl Network {
 // === Dynamic Node API ===
 // ========================
 
-/// This is a phantom structure used by macros to create dynamic FRP graphs. It exposes the same
+/// This is a _phantom structure used by macros to create dynamic FRP graphs. It exposes the same
 /// API as `Network` in order to reuse macro code for both network and dynamic modes.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DynamicNetwork {}
@@ -1560,27 +1613,27 @@ impl DynamicNetwork {
         OwnedFold::new(label, event).into()
     }
 
-    pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt0<Output<T1>>>
+    pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<0, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt0,
-        generics::ItemAt0<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt0,
+        generics::FieldAt<0, T1::Output>: Data, {
         OwnedGet0::new(label, event).into()
     }
 
-    pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt1<Output<T1>>>
+    pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<1, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt1,
-        generics::ItemAt1<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt1,
+        generics::FieldAt<1, T1::Output>: Data, {
         OwnedGet1::new(label, event).into()
     }
 
-    pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt2<Output<T1>>>
+    pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<2, Output<T1>>>
     where
         T1: EventOutput,
-        T1::Output: generics::GetItemAt2,
-        generics::ItemAt2<T1::Output>: Data, {
+        T1::Output: generics::GetFieldAt2,
+        generics::FieldAt<2, T1::Output>: Data, {
         OwnedGet2::new(label, event).into()
     }
 
@@ -1971,7 +2024,7 @@ fn watch_stream<T: EventOutput>(target: &T) -> watch::Ref<T> {
 
 #[derive(Debug)]
 pub struct SourceData<Out = ()> {
-    phantom: PhantomData<Out>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedSource<Out = ()> = stream::Node<SourceData<Out>>;
 pub type Source<Out = ()> = stream::WeakNode<SourceData<Out>>;
@@ -1983,8 +2036,8 @@ impl<Out: Data> HasOutput for SourceData<Out> {
 impl<Out: Data> OwnedSource<Out> {
     /// Constructor.
     pub fn new(label: Label) -> Self {
-        let phantom = default();
-        let definition = SourceData { phantom };
+        let _phantom = default();
+        let definition = SourceData { _phantom };
         Self::construct(label, definition)
     }
 }
@@ -2791,7 +2844,7 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatch<T> {
                 let this = weak.upgrade();
                 let this = this.expect("BatchData holds callback handle, so it must be alive.");
                 this.scheduled_task.take();
-                let batch = this.collected_batch.borrow_mut().drain(..).collect();
+                let batch = this.collected_batch.take();
                 this.emit_event(&default(), &batch);
             });
             scheduled_task.replace(handle);
@@ -2800,6 +2853,66 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatch<T> {
 }
 
 impl<T: EventOutput> stream::InputBehaviors for BatchData<T> {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![]
+    }
+}
+
+
+// ===================
+// === BatchUnique ===
+// ===================
+
+#[derive(Debug)]
+pub struct BatchUniqueData<T: HasOutput> {
+    _input:          T,
+    collected_batch: RefCell<HashSet<Output<T>>>,
+    scheduled_task:  RefCell<Option<enso_callback::Handle>>,
+}
+
+pub type OwnedBatchUnique<T> = stream::Node<BatchUniqueData<T>>;
+pub type BatchUnique<T> = stream::WeakNode<BatchUniqueData<T>>;
+
+impl<T: HasOutput> HasOutput for BatchUniqueData<T> {
+    type Output = HashSet<Output<T>>;
+}
+
+impl<T: EventOutput> OwnedBatchUnique<T>
+where Output<T>: Eq + Hash
+{
+    /// Constructor.
+    pub fn new(label: Label, input: &T) -> Self {
+        let definition = BatchUniqueData {
+            _input:          input.clone_ref(),
+            collected_batch: default(),
+            scheduled_task:  default(),
+        };
+        Self::construct_and_connect(label, input, definition)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatchUnique<T>
+where Output<T>: Eq + Hash
+{
+    fn on_event(&self, _stack: CallStack, value: &Output<T>) {
+        self.collected_batch.borrow_mut().insert(value.clone());
+        let mut scheduled_task = self.scheduled_task.borrow_mut();
+        if scheduled_task.is_none() {
+            let weak = self.downgrade();
+            let handle = next_microtask(move || {
+                let this = weak.upgrade();
+                let this =
+                    this.expect("BatchUniqueData holds callback handle, so it must be alive.");
+                this.scheduled_task.take();
+                let batch = this.collected_batch.take();
+                this.emit_event(&default(), &batch);
+            });
+            scheduled_task.replace(handle);
+        }
+    }
+}
+
+impl<T: EventOutput> stream::InputBehaviors for BatchUniqueData<T> {
     fn input_behaviors(&self) -> Vec<Link> {
         vec![]
     }
@@ -2836,12 +2949,14 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedDebounce<T> {
         let mut next_value = self.next_value.borrow_mut();
         let not_scheduled = next_value.is_none();
         next_value.replace(value.clone());
+        drop(next_value);
 
         if not_scheduled {
             let weak = self.downgrade();
             let handler = next_microtask(move || {
                 if let Some(node) = weak.upgrade() {
-                    if let Some(value) = node.next_value.borrow_mut().take() {
+                    let taken_value = node.next_value.borrow_mut().take();
+                    if let Some(value) = taken_value {
                         node.emit_event(&default(), &value);
                     }
                 }
@@ -2864,8 +2979,8 @@ impl<T: EventOutput> stream::InputBehaviors for DebounceData<T> {
 
 #[derive(Debug)]
 pub struct AnyData<Out = ()> {
-    srcs:    Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-    phantom: PhantomData<Out>,
+    srcs:     Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedAny<Out = ()> = stream::Node<AnyData<Out>>;
 /// Please refer to `any_mut` docs to learn more.
@@ -2879,8 +2994,8 @@ impl<Out: Data> OwnedAny<Out> {
     /// Constructor.
     pub fn new(label: Label) -> Self {
         let srcs = default();
-        let phantom = default();
-        let def = AnyData { srcs, phantom };
+        let _phantom = default();
+        let def = AnyData { srcs, _phantom };
         Self::construct(label, def)
     }
 
@@ -2969,8 +3084,6 @@ impl<Out: Data> Any<Out> {
         self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
     }
 
-    pub fn detach_all(&self) {}
-
     /// Emit new event. It's questionable if this node type should expose the `emit` functionality,
     /// but the current usage patterns proven it is a very handy utility. This node is used to
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
@@ -2992,10 +3105,8 @@ impl<Out: Data> stream::EventConsumer<Out> for OwnedAny<Out> {
 // === Any_ ===
 // ============
 
-#[derive(Debug)]
-pub struct AnyData_ {
-    srcs: Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-}
+#[derive(Debug, Clone, Copy)]
+pub struct AnyData_;
 pub type OwnedAny_ = stream::Node<AnyData_>;
 pub type Any_ = stream::WeakNode<AnyData_>;
 
@@ -3006,16 +3117,13 @@ impl HasOutput for AnyData_ {
 impl OwnedAny_ {
     /// Constructor.
     pub fn new(label: Label) -> Self {
-        let srcs = default();
-        let def = AnyData_ { srcs };
-        Self::construct(label, def)
+        Self::construct(label, AnyData_)
     }
 
     /// Takes ownership of self and returns it with a new stream attached.
     pub fn with<T>(self, src: &T) -> Self
     where T: EventOutput {
         src.register_target(self.downgrade().into());
-        self.srcs.borrow_mut().push(Box::new(src.clone_ref()));
         self
     }
 
@@ -3070,6 +3178,12 @@ impl OwnedAny_ {
     {
         Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
     }
+
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
+    }
 }
 
 impl Any_ {
@@ -3077,7 +3191,6 @@ impl Any_ {
     pub fn with<T1>(self, src: &T1) -> Self
     where T1: EventOutput {
         src.register_target(self.clone_ref().into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
         self
     }
 
@@ -3085,7 +3198,11 @@ impl Any_ {
     pub fn attach<T1>(&self, src: &T1)
     where T1: EventOutput {
         src.register_target(self.into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
+    }
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
     }
 }
 
@@ -3114,17 +3231,17 @@ pub type Get0<T1> = stream::WeakNode<Get0Data<T1>>;
 impl<T1> HasOutput for Get0Data<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt0,
+    generics::FieldAt<0, T1::Output>: Data,
 {
-    type Output = generics::ItemAt0<T1::Output>;
+    type Output = generics::FieldAt<0, T1::Output>;
 }
 
 impl<T1> OwnedGet0<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt0,
+    generics::FieldAt<0, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3137,8 +3254,8 @@ where
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet0<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt0,
+    generics::FieldAt<0, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._0())
@@ -3170,17 +3287,17 @@ pub type Get1<T1> = stream::WeakNode<Get1Data<T1>>;
 impl<T1> HasOutput for Get1Data<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt1,
+    generics::FieldAt<1, T1::Output>: Data,
 {
-    type Output = generics::ItemAt1<T1::Output>;
+    type Output = generics::FieldAt<1, T1::Output>;
 }
 
 impl<T1> OwnedGet1<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt1,
+    generics::FieldAt<1, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3193,8 +3310,8 @@ where
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet1<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt1,
+    generics::FieldAt<1, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._1())
@@ -3226,17 +3343,17 @@ pub type Get2<T1> = stream::WeakNode<Get2Data<T1>>;
 impl<T1> HasOutput for Get2Data<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt2,
+    generics::FieldAt<2, T1::Output>: Data,
 {
-    type Output = generics::ItemAt2<T1::Output>;
+    type Output = generics::FieldAt<2, T1::Output>;
 }
 
 impl<T1> OwnedGet2<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt2,
+    generics::FieldAt<2, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3249,8 +3366,8 @@ where
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet2<T1>
 where
     T1: EventOutput,
-    T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    T1::Output: generics::GetFieldAt2,
+    generics::FieldAt<2, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._2())
@@ -3382,9 +3499,9 @@ impl<T1> stream::InputBehaviors for FoldData<T1> {
 // ==============
 
 pub struct AllMutData<Out = ()> {
-    srcs:    Rc<RefCell<Vec<Box<dyn ValueProvider<Output = Out>>>>>,
-    watches: Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-    phantom: PhantomData<Out>,
+    srcs:     Rc<RefCell<Vec<Box<dyn ValueProvider<Output = Out>>>>>,
+    watches:  Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedAllMut<Out = ()> = stream::Node<AllMutData<Out>>;
 pub type AllMut<Out = ()> = stream::WeakNode<AllMutData<Out>>;
@@ -3404,8 +3521,8 @@ impl<Out: Data> OwnedAllMut<Out> {
     pub fn new(label: Label) -> Self {
         let srcs = default();
         let watches = default();
-        let phantom = default();
-        let def = AllMutData { srcs, watches, phantom };
+        let _phantom = default();
+        let def = AllMutData { srcs, watches, _phantom };
         Self::construct(label, def)
     }
 
@@ -4035,7 +4152,7 @@ where
 // ==============
 
 pub struct FilterData<T, P> {
-    phantom:   PhantomData<T>,
+    _phantom:  ZST<T>,
     predicate: P,
 }
 pub type OwnedFilter<T, P> = stream::Node<FilterData<T, P>>;
@@ -4056,7 +4173,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, predicate: P) -> Self {
-        let definition = FilterData { phantom: PhantomData, predicate };
+        let definition = FilterData { _phantom: ZST(), predicate };
         Self::construct_and_connect(label, src, definition)
     }
 }
@@ -4086,7 +4203,7 @@ impl<T, P> Debug for FilterData<T, P> {
 // =================
 
 pub struct FilterMapData<T, F> {
-    phantom:  PhantomData<T>,
+    _phantom: ZST<T>,
     function: F,
 }
 pub type OwnedFilterMap<T, F> = stream::Node<FilterMapData<T, F>>;
@@ -4109,7 +4226,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, function: F) -> Self {
-        let definition = FilterMapData { phantom: PhantomData, function };
+        let definition = FilterMapData { _phantom: ZST(), function };
         Self::construct_and_connect(label, src, definition)
     }
 }
@@ -4140,7 +4257,7 @@ impl<T, F> Debug for FilterMapData<T, F> {
 // ===========
 
 pub struct MapData<T, F> {
-    phantom:  PhantomData<T>,
+    _phantom: ZST<T>,
     function: F,
 }
 pub type OwnedMap<T, F> = stream::Node<MapData<T, F>>;
@@ -4163,7 +4280,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, function: F) -> Self {
-        let definition = MapData { phantom: PhantomData, function };
+        let definition = MapData { _phantom: ZST(), function };
         Self::construct_and_connect(label, src, definition)
     }
 }

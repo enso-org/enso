@@ -1,18 +1,15 @@
-## Methods for operating on `Text` in Enso.
-
 import project.Any.Any
-import project.Data.Array.Array
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
-import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -24,9 +21,9 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Syntax_Error
-import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -34,24 +31,21 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Invalid_JSON, JS_Object
-from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
-from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
-
-from project.Widget_Helpers import make_delimiter_selector
-
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import Invalid_JSON, JS_Object, Json
+from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
+from project.Data.Range.Extensions import all
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
-## Returns a new `Text` object with the characters in the reverse order of the input.
+## GROUP Text
+   Returns a new `Text` object with the characters in the reverse order of the input.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -99,7 +93,8 @@ Text.each self function =
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
-## ALIAS Get Character
+## ALIAS get character
+   GROUP Selections
 
    Returns a character from the text at the specified index (0-based).
 
@@ -122,7 +117,7 @@ Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-## ALIAS Get Character
+## ALIAS get character
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -159,7 +154,8 @@ Text.get self index ~if_missing=Nothing =
             if (next == -1) then if_missing else
                 Text_Utils.substring self first next
 
-## Returns the first character from the text.
+## GROUP Selections
+   Returns the first character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -173,7 +169,8 @@ Text.get self index ~if_missing=Nothing =
 Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
-## Returns the second character from the text.
+## GROUP Selections
+   Returns the second character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -187,7 +184,8 @@ Text.first self = self.at 0
 Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
-## Returns the last character from the text.
+## GROUP Selections
+   Returns the last character from the text.
 
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -201,7 +199,8 @@ Text.second self = self.at 1
 Text.last : Text ! Index_Out_Of_Bounds
 Text.last self = self.at -1
 
-## ALIAS Get Characters
+## ALIAS get characters
+   GROUP Text
 
    Returns a vector containing all characters in the given text.
 
@@ -220,7 +219,8 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## Find the regular expression `pattern` in `self`, returning the first match
+## GROUP Selections
+   Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
 
    Arguments:
@@ -228,9 +228,9 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an Illegal_Argument error.
+   If an empty regex is used, `find` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find` throws an Illegal_Argument error.
+   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -247,7 +247,8 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## Finds all the matches of the regular expression `pattern` in `self`,
+## GROUP Selections
+   Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
 
    Arguments:
@@ -255,9 +256,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an Illegal_Argument error.
+   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
+   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -274,7 +275,8 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
-## ALIAS Check Matches
+## ALIAS check matches
+   GROUP Text
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
@@ -283,9 +285,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an Illegal_Argument error.
+   If an empty regex is used, `match` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `match` throws an Illegal_Argument error.
+   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -304,7 +306,26 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
-## ALIAS Split Text
+## GROUP Text
+   Compile the text into a regex pattern that can be used for matching.
+
+   Arguments
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   If an empty regex is used, `compile` throws an `Illegal_Argument` error.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
+
+## ALIAS split text
+   GROUP Conversions
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -368,6 +389,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
 ## ADVANCED
+   GROUP Conversions
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -398,7 +420,8 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
 
-## ALIAS Replace Text
+## ALIAS replace text
+   GROUP Text
    Perform a text or regex replace.
 
    Returns the text with all matched elements replaced by the provided
@@ -412,14 +435,13 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $<foo>: Named group `foo`
 
    Arguments:
-   - term: The string or regex to find.
+   - term: The `Text` or `Regex` to find.
    - replacement: The text to replace matches with.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
    - only_first: If True, only replace the first match.
-   - use_regex: If true, the term is used as a regular expression.
 
-   If an empty regex is used, `replace` throws an Illegal_Argument error.
+   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
 
    If a non-default locale is used with a regex, `replace` throws an
    Illegal_Argument error.
@@ -432,7 +454,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         "Hello World!".replace "[lo]" "#" use_regex=True == "He### W#r#d!"
+         "Hello World!".replace "[lo]".to_regex "#" == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
@@ -442,7 +464,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace texts in quotes with parentheses.
 
-          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -467,16 +489,16 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Regexp replace.
 
-     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
-
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text ! Illegal_Argument
-Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-    case use_regex of
-        False -> if term.is_empty then self else
+     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+@term make_regex_text_widget
+Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
+    case term of
+        _ : Text -> if term.is_empty then self else
             array_from_single_result result = case result of
-                Nothing -> Array.empty
-                _ -> Array.new_1 result
-            spans_array = case case_sensitivity of
+                Nothing -> []
+                _ -> [result]
+            spans_array = case case_sensitivity.to_explicit_sensitivity_in_memory of
                 Case_Sensitivity.Sensitive -> case only_first of
                     False -> Text_Utils.span_of_all self term
                     True -> array_from_single_result <| Text_Utils.span_of self term
@@ -487,12 +509,12 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
                         array_from_single_result <|
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
-        True ->
-            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            compiled_pattern = Regex.compile term case_insensitive=case_insensitive
-            compiled_pattern.replace self replacement only_first
+        _ : Regex ->
+            updated_regex = term.recompile case_sensitivity
+            updated_regex.replace self replacement only_first
 
-## ALIAS Get Words
+## ALIAS get words
+   GROUP Text
 
    Returns a vector containing all words in the given text.
 
@@ -535,7 +557,8 @@ Text.words self keep_whitespace=False =
 
     bldr.to_vector
 
-## ALIAS Get Lines
+## ALIAS get lines
+   GROUP Text
 
    Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
 
@@ -562,7 +585,8 @@ Text.lines : Boolean -> Vector Text
 Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
-## Inserts text value at the specified index.
+## GROUP Text
+   Inserts text value at the specified index.
 
    Arguments:
      - index: The position (0-based) in the text to inset text at.
@@ -594,7 +618,8 @@ Text.insert self index that =
                 post = self.take (idx.up_to len)
                 pre + that + post
 
-## Returns if a character from the text at the specified index (0-based) is a
+## GROUP Logical
+   Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
    Arguments:
@@ -621,7 +646,8 @@ Text.is_digit self (index=0) =
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
 
-## Checks if the text consists only of whitespace characters.
+## GROUP Logical
+   Checks if the text consists only of whitespace characters.
 
    > Example
      Check if a text is whitespace only.
@@ -632,7 +658,8 @@ Text.is_whitespace : Boolean
 Text.is_whitespace self =
     Text_Utils.is_all_whitespace self
 
-## Returns a vector containing bytes representing the specified encoding of the
+## ADVANCED
+   Returns a vector containing bytes representing the specified encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding.
@@ -673,7 +700,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
@@ -736,7 +763,7 @@ Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_char_vector : Vector Integer -> Text
-Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector chars = Text_Utils.from_chars chars
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
@@ -761,9 +788,10 @@ Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints sel
      Converting a vector of codepoints back into a text.
          Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
 Text.from_codepoints : Vector Integer -> Text
-Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
+Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
-## ALIAS Check Prefix
+## ALIAS check prefix
+   GROUP Text
 
    Checks whether `self` starts with `prefix`.
 
@@ -796,7 +824,8 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
 
-## ALIAS Check Suffix
+## ALIAS check suffix
+   GROUP Text
 
    Checks whether `self` ends with `suffix`.
 
@@ -824,7 +853,8 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
 
-## ALIAS Contains
+## ALIAS contains
+   GROUP Logical
 
    Checks whether `self` contains `sequence` as its substring.
    Returns: `True` if term is found within `self`. `False` otherwise.
@@ -866,7 +896,8 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
     Case_Sensitivity.Insensitive locale ->
         Text_Utils.contains_case_insensitive self term locale.java_locale
 
-## Takes an integer and returns a new text, consisting of `count` concatenated
+## GROUP Operators
+   Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
    Arguments:
@@ -885,7 +916,8 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
 Text.* : Integer -> Text
 Text.* self count = self.repeat count
 
-## Takes an integer and returns a new text, consisting of `count` concatenated
+## GROUP Calculations
+   Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
    Arguments:
@@ -905,7 +937,8 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, last, left, right, mid, substring, slice
+## ALIAS first, last, left, mid, right, slice, substring
+   GROUP Selections
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -952,7 +985,8 @@ Text.take self range=(Index_Sub_Range.First 1) =
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
 
-## ALIAS skip, remove
+## ALIAS remove, skip
+   GROUP Selections
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1005,7 +1039,8 @@ Text.drop self range=(Index_Sub_Range.First 1) =
             inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
-## ALIAS lower, upper, title, proper
+## ALIAS lower, proper, title, upper
+   GROUP Text
    Converts each character in `self` to the specified case.
 
    Arguments:
@@ -1035,13 +1070,15 @@ Text.drop self range=(Index_Sub_Range.First 1) =
          from Standard.Base import all
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
+@locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
 Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
 
-## Returns the input padded to the specified `length`, using the `with_pad`
+## GROUP Calculations
+   Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
 
    Arguments:
@@ -1081,7 +1118,8 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                     Location.End ->
                         self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
-## This function removes the specified `trim_characters`, by default any
+## GROUP Text
+   This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
 
    Arguments:
@@ -1135,6 +1173,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
         Text_Utils.substring self start_index end_index
 
 ## ALIAS position_of, span_of
+   GROUP Text
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1236,6 +1275,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
                     Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
 ## ALIAS index_of_all, position_of_all, span_of_all
+   GROUP Text
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1300,7 +1340,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
-        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
+        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start)
         ## While the codepoint_spans may have different code unit lengths
            from our term, the `length` counted in grapheme clusters is
            guaranteed to be the same.
@@ -1313,7 +1353,8 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
         grapheme_spans.map grapheme_span->
             Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
-## Find the first index of the `term` in the input.
+## GROUP Values
+   Find the first index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
    Using `locate` is preferred as then you can also get the length of the match
@@ -1346,7 +1387,8 @@ Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
         span = used.locate term Matching_Mode.First case_sensitivity
         if span.is_nothing then Nothing else span.start+used_start
 
-## Find the last index of the `term` in the input.
+## GROUP Values
+   Find the last index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
    Using `locate` is preferred as then you can also get the length of the match
@@ -1379,22 +1421,25 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## ALIAS Decimal From Text
+## ALIAS float from text, to_float
+   GROUP Conversions
 
-   Parses a textual representation of a decimal into a decimal number, returning
-   a `Number_Parse_Error` if the text does not represent a valid decimal.
+   Parses a textual representation of a float into a float number, returning
+   a `Number_Parse_Error` if the text does not represent a valid float.
 
    Arguments:
    - locale: The locale that specifies the format to use when parsing
 
    > Example
-     Parse the text "7.6" into a decimal number.
+     Parse the text "7.6" into a float number.
 
-         "7.6".parse_decimal
-Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
-Text.parse_decimal self locale=Nothing = Decimal.parse self locale
+         "7.6".parse_float
+@locale Locale.default_widget
+Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
+Text.parse_float self locale=Nothing = Float.parse self locale
 
-## ALIAS Integer From Text
+## ALIAS integer from text, to_integer
+   GROUP Conversions
 
    Parses a textual representation of an integer into an integer number, returning
    a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1410,7 +1455,8 @@ Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 Text.parse_integer : Integer -> Integer ! Number_Parse_Error
 Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 
-## ALIAS JSON From Text
+## ALIAS json from text
+   GROUP Conversions
 
    Parse a Text value into a `JS_Object` or an Enso primitive value (like
    `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -1422,7 +1468,8 @@ Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
 Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
 Text.parse_json self = Json.parse self
 
-## ALIAS Date from Text
+## ALIAS date from text, to_date
+   GROUP Conversions
 
    Converts text containing a date into a Date object.
 
@@ -1485,10 +1532,13 @@ Text.parse_json self = Json.parse self
          example_parse_err =
              date = "1999-1-1".parse_date "yyyy-MM-dd"
              date.catch Time_Error (_->Date.new 2000 1 1)
-Text.parse_date : (Text | Nothing) -> Date ! Time_Error
-Text.parse_date self format=Nothing = Date.parse self format
+@format make_date_format_selector
+@locale Locale.default_widget
+Text.parse_date : Text -> Locale -> Date ! Time_Error
+Text.parse_date self format:Text="" locale:Locale=Locale.default = Date.parse self format locale
 
-## ALIAS Date_Time from Text
+## ALIAS date_time from text
+   GROUP Conversions
 
    Obtains an instance of `Date_Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -1570,10 +1620,13 @@ Text.parse_date self format=Nothing = Date.parse self format
 
          example_parse =
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
-Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
-Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
+@format make_date_time_format_selector
+@locale Locale.default_widget
+Text.parse_date_time : Text -> Locale -> Date_Time ! Time_Error
+Text.parse_date_time self format:Text="" locale:Locale=Locale.default = Date_Time.parse self format locale
 
-## ALIAS Time_Of_Day from Text
+## ALIAS time_of_day from text, to_time_of_day
+   GROUP Conversions
 
    Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -1605,7 +1658,7 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
        two digits.
      - If the nano-of-second is zero or not available then the format is
        complete.
-     - A decimal point
+     - A float point
      - One to nine digits for the nano-of-second. As many digits will be output
        as required.
 
@@ -1638,10 +1691,13 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "4:30AM".parse_time_of_day "h:mma"
-Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
+@format make_time_format_selector
+@locale Locale.default_widget
+Text.parse_time_of_day : Text -> Locale -> Time_Of_Day ! Time_Error
+Text.parse_time_of_day self format:Text="" locale:Locale=Locale.default = Time_Of_Day.parse self format locale
 
-## ALIAS Time_Zone from Text
+## ALIAS time_zone from text, to_time_zone
+   GROUP Conversions
 
    This method parses the ID producing a `Time_Zone`.
 
@@ -1674,21 +1730,6 @@ Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.p
          example_parse = "+03:02:01".parse_time_zone
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
-
-## ALIAS URI from Text
-
-   Parse a URI from a `Text`.
-
-   Throws a Syntax_Error when the text cannot be parsed as a URI.
-
-   > Example
-     Parse URI text.
-
-         import Standard.Base.Data.Text.Extensions
-
-         example_parse = "http://example.com".parse_uri
-Text.parse_uri : URI ! Syntax_Error
-Text.parse_uri self = URI.parse self
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

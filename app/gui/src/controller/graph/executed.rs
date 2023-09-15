@@ -2,7 +2,7 @@
 //!
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
-//! visualisations, retrieving types on ports, etc.
+//! visualizations, retrieving types on ports, etc.
 
 use crate::prelude::*;
 
@@ -14,6 +14,7 @@ use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::retry::retry_operation_errors_cap;
 
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
@@ -22,6 +23,8 @@ use futures::stream;
 use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
+use std::assert_matches::debug_assert_matches;
+use std::time::Duration;
 
 
 // ==============
@@ -49,8 +52,13 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 
 #[allow(missing_docs)]
 #[derive(Debug, Fail, Clone, Copy)]
-#[fail(display = "Operation is not permitted in read only mode")]
+#[fail(display = "Operation is not permitted in read only mode.")]
 pub struct ReadOnly;
+
+#[allow(missing_docs)]
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "Previous operation modifying call stack is still in progress.")]
+pub struct SyncingStack;
 
 
 // ====================
@@ -92,6 +100,11 @@ pub struct Handle {
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,
+    /// A mutex guarding a process syncing Execution Context stack with the current graph. As
+    /// the syncing requires multiple async calls to the engine, and the stack updates depend on
+    /// each other, we should not mix various operations (e.g. entering node while still in
+    /// process of entering another node).
+    syncing_stack: Rc<sync::SingleThreadMutex<()>>,
 }
 
 impl Handle {
@@ -99,7 +112,8 @@ impl Handle {
     #[profile(Task)]
     pub async fn new(project: model::Project, method: MethodPointer) -> FallibleResult<Self> {
         let graph = controller::Graph::new_method(&project, &method).await?;
-        let execution = project.create_execution_context(method.clone()).await?;
+        let context_id = Uuid::new_v4();
+        let execution = project.create_execution_context(method.clone(), context_id).await?;
         Ok(Self::new_internal(graph, project, execution))
     }
 
@@ -122,9 +136,13 @@ impl Handle {
         project: model::Project,
         execution_ctx: model::ExecutionContext,
     ) -> Self {
-        let graph = Rc::new(RefCell::new(graph));
-        let notifier = default();
-        Handle { graph, execution_ctx, project, notifier }
+        Handle {
+            graph: Rc::new(RefCell::new(graph)),
+            execution_ctx,
+            project,
+            notifier: default(),
+            syncing_stack: default(),
+        }
     }
 
     /// See [`model::ExecutionContext::when_ready`].
@@ -138,6 +156,11 @@ impl Handle {
         visualization: Visualization,
     ) -> FallibleResult<impl Stream<Item = VisualizationUpdateData>> {
         self.execution_ctx.attach_visualization(visualization).await
+    }
+
+    /// See [`model::ExecutionContext::get_ai_completion`].
+    pub async fn get_ai_completion(&self, code: &str, stop: &str) -> FallibleResult<String> {
+        self.execution_ctx.get_ai_completion(code, stop).await
     }
 
     /// See [`model::ExecutionContext::modify_visualization`].
@@ -229,27 +252,49 @@ impl Handle {
     pub async fn enter_stack(&self, stack: Vec<LocalCall>) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
-        } else {
-            let mut successful_calls = Vec::new();
-            let result = stream::iter(stack)
+        } else if let Some(last_call) = stack.last() {
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
+            // Before adding new items to stack, first make sure we're actually able to construct
+            // the graph controller.
+            let graph = controller::Graph::new_method(&self.project, &last_call.definition).await?;
+            let mut successful_calls = 0;
+            let result = stream::iter(stack.iter())
                 .then(|local_call| async {
-                    debug!("Entering node {}.", local_call.call);
+                    info!("Entering node {}.", local_call.call);
                     self.execution_ctx.push(local_call.clone()).await?;
-                    Ok(local_call)
+                    Ok(())
                 })
-                .map_ok(|local_call| successful_calls.push(local_call))
+                .map_ok(|()| successful_calls += 1)
                 .try_collect::<()>()
                 .await;
-            if let Some(last_successful_call) = successful_calls.last() {
-                let graph =
-                    controller::Graph::new_method(&self.project, &last_successful_call.definition)
-                        .await?;
-                debug!("Replacing graph with {graph:?}.");
-                self.graph.replace(graph);
-                debug!("Sending graph invalidation signal.");
-                self.notifier.publish(Notification::EnteredStack(successful_calls)).await;
+            match &result {
+                Ok(()) => {
+                    info!("Replacing graph with {graph:?}.");
+                    self.graph.replace(graph);
+                    info!("Sending graph invalidation signal.");
+                    self.notifier.publish(Notification::EnteredStack(stack)).await;
+                }
+                Err(_) => {
+                    let successful_calls_to_revert = iter::repeat(()).take(successful_calls);
+                    for () in successful_calls_to_revert {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful entering node";
+                        let retry_result = retry_operation_errors_cap(
+                            || self.execution_ctx.pop(),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
+                    }
+                }
             }
+
             result
+        } else {
+            // The stack passed as argument is empty; nothing to do.
+            Ok(())
         }
     }
 
@@ -276,20 +321,44 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            let mut successful_pop_count = 0;
-            let result = stream::iter(0..frame_count)
-                .then(|_| self.execution_ctx.pop())
-                .map_ok(|_| successful_pop_count += 1)
+            let method = self.execution_ctx.method_at_frame_back(frame_count)?;
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
+            let graph = controller::Graph::new_method(&self.project, &method).await?;
+
+            let mut successful_pops = Vec::new();
+            let result = stream::iter(iter::repeat(()).take(frame_count))
+                .then(|()| self.execution_ctx.pop())
+                .map_ok(|local_call| successful_pops.push(local_call))
                 .try_collect::<()>()
                 .await;
-            if successful_pop_count > 0 {
-                let method = self.execution_ctx.current_method();
-                let graph = controller::Graph::new_method(&self.project, &method).await?;
-                self.graph.replace(graph);
-                self.notifier.publish(Notification::ExitedStack(successful_pop_count)).await;
+            match &result {
+                Ok(()) => {
+                    self.graph.replace(graph);
+                    self.notifier.publish(Notification::ExitedStack(frame_count)).await;
+                }
+                Err(_) =>
+                    for frame in successful_pops.into_iter().rev() {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful leaving node";
+                        let retry_result = retry_operation_errors_cap(
+                            || self.execution_ctx.push(frame.clone()),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
+                    },
             }
             result
         }
+    }
+
+    fn retry_times_for_restoring_stack_operations(&self) -> impl Iterator<Item = Duration> {
+        iter::repeat(()).scan(Duration::from_secs(1), |delay, ()| {
+            *delay = min(*delay * 2, Duration::from_secs(30));
+            Some(*delay)
+        })
     }
 
     /// Interrupt the program execution.
@@ -306,6 +375,21 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
+    }
+
+    /// Reload the main file and restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
+    pub async fn reload_and_restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            let model = self.project.main_module_model().await?;
+            model.reopen_externally_changed_file().await?;
             self.execution_ctx.restart().await?;
             Ok(())
         }
@@ -334,10 +418,19 @@ impl Handle {
     }
 
 
+    /// Get a fully qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name_with_project(
+        &self,
+        project: &dyn model::project::API,
+    ) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
+    }
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
-        self.graph().module.path().qualified_module_name(project.qualified_name())
+    pub fn module_qualified_name(&self) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.
@@ -361,17 +454,30 @@ impl Handle {
         }
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
             self.graph.borrow().disconnect(connection, self)
+        }
+    }
+
+    /// Remove all the connections from the graph. This is a convenience method that calls
+    /// [`disconnect`] for each connection. If any of the calls fails, the first error is
+    /// propagated, but all the connections are attempted to be disconnected.
+    pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
+        let errors =
+            connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
+        } else {
+            Ok(())
         }
     }
 
@@ -446,9 +552,9 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
-    use controller::graph::SpanTree;
+    use ast::crumbs::InfixCrumb;
+    use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
-    use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -464,6 +570,11 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
+            let db = self.graph.suggestion_db();
+            self.controller_with_db(db)
+        }
+
+        pub fn controller_with_db(&self, suggestion_db: Rc<model::SuggestionDatabase>) -> Handle {
             let parser = parser::Parser::new();
             let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
@@ -479,7 +590,6 @@ pub mod tests {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
             // Both graph controllers need suggestion DB to provide context to their span trees.
-            let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
             Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
@@ -487,7 +597,7 @@ pub mod tests {
     }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.
-    #[wasm_bindgen_test]
+    #[test]
     fn dispatching_value_computed_notification() {
         use crate::test::mock::Fixture;
         // Setup the controller.
@@ -534,8 +644,9 @@ pub mod tests {
         notifications.expect_pending();
     }
 
+
     // Test that moving nodes is possible in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode_does_not_restrict_moving_nodes() {
         use model::module::Position;
 
@@ -555,7 +666,7 @@ pub mod tests {
     }
 
     // Test that certain actions are forbidden in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode() {
         fn run(code: &str, f: impl FnOnce(&Handle)) {
             let mut data = crate::test::mock::Unified::new();
@@ -612,15 +723,10 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+                source: Endpoint::root(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
             assert!(executed.connect(&connection).is_err());
         });
     }

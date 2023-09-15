@@ -256,6 +256,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static String unescapePython(String text) {
     var matcher = pythonRegex.matcher(text);
     var builder = new StringBuilder(text.length());
+    Context context = Context.getCurrent();
     while (matcher.find()) {
       if (matcher.group(1) != null) {
         builder.append(switch (matcher.group(1).charAt(1)) {
@@ -276,6 +277,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       } else {
         builder.append(matcher.group(0));
       }
+
+      context.safepoint();
     }
     return builder.toString();
   }
@@ -314,10 +317,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = Time_Utils.normaliseISODateTime(ctx.text.getText());
+    var text = Time_Utils.normalise_iso_datetime(ctx.text.getText());
 
     try {
-      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_zoned_date_time_formatter());
+      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_date_time_formatter());
       return Value.asValue(dateTime);
     } catch (DateTimeParseException ignored) {
     }

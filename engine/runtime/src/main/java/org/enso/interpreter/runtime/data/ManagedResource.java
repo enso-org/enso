@@ -1,33 +1,35 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.lang.ref.PhantomReference;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
-import java.lang.ref.PhantomReference;
-
 /** A runtime representation of a managed resource. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
-public final class ManagedResource implements TruffleObject {
+public final class ManagedResource implements EnsoObject {
   private final Object resource;
-  private PhantomReference<ManagedResource> phantomReference;
+  private final PhantomReference<ManagedResource> phantomReference;
 
   /**
    * Creates a new managed resource.
    *
    * @param resource the underlying resource
+   * @param factory factory to create reference
    */
-  public ManagedResource(Object resource) {
+  public ManagedResource(
+      Object resource,
+      java.util.function.Function<ManagedResource, PhantomReference<ManagedResource>> factory) {
     this.resource = resource;
-    this.phantomReference = null;
+    this.phantomReference = factory.apply(this);
   }
 
   /** @return the underlying resource */
@@ -38,15 +40,6 @@ public final class ManagedResource implements TruffleObject {
   /** @return the phantom reference tracking this managed resource */
   public PhantomReference<ManagedResource> getPhantomReference() {
     return phantomReference;
-  }
-
-  /**
-   * Sets the value of the reference used to track reachability of this managed resource.
-   *
-   * @param phantomReference the phantom reference tracking this managed resource.
-   */
-  public void setPhantomReference(PhantomReference<ManagedResource> phantomReference) {
-    this.phantomReference = phantomReference;
   }
 
   @Builtin.Method(
@@ -91,7 +84,7 @@ public final class ManagedResource implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().managedResource();
   }
 }

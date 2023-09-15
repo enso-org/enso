@@ -117,15 +117,15 @@ impl GraphHelper {
 
     /// Get the information about node described byt the given ID.
     pub fn lookup_node(&self, id: node::Id) -> FallibleResult<&NodeInfo> {
-        let err = CannotResolveEndpointNode(id).into();
-        self.nodes.iter().find(|node| node.id() == id).ok_or(err)
+        let found = self.nodes.iter().find(|node| node.id() == id);
+        found.ok_or_else(|| CannotResolveEndpointNode(id).into())
     }
 
     /// Get the identifier constituting a connection's endpoint.
     pub fn endpoint_identifier(&self, endpoint: &Endpoint) -> FallibleResult<Identifier> {
         let node = self.lookup_node(endpoint.node)?;
         let err = || EndpointIdentifierCannotBeResolved(endpoint.clone()).into();
-        let endpoint_ast = node.ast().get_traversing(&endpoint.crumbs)?.clone_ref();
+        let endpoint_ast = node.ast().get_traversing(&endpoint.port.crumbs)?.clone_ref();
         Identifier::new(endpoint_ast).ok_or_else(err)
     }
 
@@ -206,7 +206,7 @@ impl Extracted {
         let mut output = None;
         for connection in graph.info.connections() {
             let starts_inside = extracted_nodes_set.contains(&connection.source.node);
-            let ends_inside = extracted_nodes_set.contains(&connection.destination.node);
+            let ends_inside = extracted_nodes_set.contains(&connection.target.node);
             let identifier = graph.connection_variable(&connection)?;
 
             leaves.remove(&connection.source.node);

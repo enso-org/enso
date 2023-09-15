@@ -26,10 +26,13 @@ pub async fn add_node(
     let node_added = graph_editor.node_added.next_event();
     method(graph_editor);
     let (node_id, source_node, _) = node_added.expect();
-    let node = graph_editor.nodes().get_cloned_ref(&node_id).expect("Node was not added");
-    node.set_expression(node::Expression::new_plain(expression));
+    let node = graph_editor.model.with_node(node_id, |node| {
+        node.set_expression(node::Expression::new_plain(expression));
+        node.clone_ref()
+    });
+
     graph_editor.stop_editing();
-    (node_id, source_node, node)
+    (node_id, source_node, node.expect("Node was not added"))
 }
 
 /// Create a new node directly.
@@ -79,7 +82,7 @@ impl InitialNodes {
     /// Find the initial nodes expected in a default project. Panics if the project state is not
     /// as expected.
     pub fn obtain_from_graph_editor(graph_editor: &GraphEditor) -> Self {
-        let mut nodes = graph_editor.nodes().all.entries();
+        let mut nodes = graph_editor.model.nodes.all.entries();
         let y = |n: &Node| n.position().y;
         nodes.sort_unstable_by(|(_, a), (_, b)| y(a).total_cmp(&y(b)));
         let two_nodes = "Expected two nodes in initial Graph Editor.";

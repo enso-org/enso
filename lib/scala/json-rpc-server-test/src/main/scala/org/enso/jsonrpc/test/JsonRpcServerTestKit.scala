@@ -59,7 +59,9 @@ abstract class JsonRpcServerTestKit
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    server  = new JsonRpcServer(protocolFactory, clientControllerFactory)
+    val factory = protocolFactory
+    factory.init()
+    server  = new JsonRpcServer(factory, clientControllerFactory)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }

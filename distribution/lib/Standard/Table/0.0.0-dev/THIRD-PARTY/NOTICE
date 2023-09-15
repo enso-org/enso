@@ -26,9 +26,9 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.11.0`.
 
 
-'antlr4-runtime', licensed under the The BSD License, is distributed with the Table.
+'antlr4-runtime', licensed under the BSD-3-Clause, is distributed with the Table.
 The license file can be found at `licenses/BSD-3-Clause`.
-Copyright notices related to this dependency can be found in the directory `org.antlr.antlr4-runtime-4.10.1`.
+Copyright notices related to this dependency can be found in the directory `org.antlr.antlr4-runtime-4.13.0`.
 
 
 'commons-collections4', licensed under the Apache License, Version 2.0, is distributed with the Table.
@@ -47,26 +47,26 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 
 'log4j-api', licensed under the Apache License, Version 2.0, is distributed with the Table.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.apache.logging.log4j.log4j-api-2.17.2`.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.apache.logging.log4j.log4j-api-2.18.0`.
 
 
 'poi', licensed under the Apache License, Version 2.0, is distributed with the Table.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-5.2.2`.
+Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-5.2.3`.
 
 
 'poi-ooxml', licensed under the Apache License, Version 2.0, is distributed with the Table.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-ooxml-5.2.2`.
+Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-ooxml-5.2.3`.
 
 
 'poi-ooxml-lite', licensed under the Apache License, Version 2.0, is distributed with the Table.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-ooxml-lite-5.2.2`.
+Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-ooxml-lite-5.2.3`.
 
 
 'xmlbeans', licensed under the The Apache Software License, Version 2.0, is distributed with the Table.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.apache.xmlbeans.xmlbeans-5.1.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.xmlbeans.xmlbeans-5.1.1`.
 

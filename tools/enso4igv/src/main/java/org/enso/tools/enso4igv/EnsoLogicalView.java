@@ -5,8 +5,6 @@ import java.util.List;
 import javax.swing.Action;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import org.enso.tools.enso4igv.EnsoSbtClassPathProvider.EnsoSources;
-import org.enso.tools.enso4igv.EnsoSbtClassPathProvider.OtherEnsoSources;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectUtils;
 import org.netbeans.api.project.SourceGroup;
@@ -21,11 +19,11 @@ import org.openide.nodes.AbstractNode;
 import org.openide.nodes.ChildFactory;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
-import org.openide.util.NbCollections;
 import org.openide.util.lookup.Lookups;
 
 @ActionReferences({
-    @ActionReference(position = 3100, id = @ActionID(category = "Project", id = "org-netbeans-modules-project-ui-CloseProject"), path = "Projects/ensosbtprj/Actions", separatorBefore = 3000),
+    @ActionReference(position = 3100, id = @ActionID(category = "Project", id = "org.netbeans,modules.project.ui.CloseProject"), path = "Projects/ensosbtprj/Actions", separatorBefore = 3000),
+    @ActionReference(position = 3200, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.actions.OpenSubprojects"), path = "Projects/ensosbtprj/Actions"),
 })
 final class EnsoLogicalView implements LogicalViewProvider  {
     private final EnsoSbtProject p;

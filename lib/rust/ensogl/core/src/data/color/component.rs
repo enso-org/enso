@@ -62,27 +62,27 @@ pub type ComponentsOf<T> = Components<ComponentsReprOf<T>>;
 
 // === Generics ===
 
-impl<T: KnownLast> KnownLast for Components<T> {
-    type Last = Last<T>;
+impl<T: HasLastField> HasLastField for Components<T> {
+    type LastField = LastField<T>;
 }
-impl<T: KnownInit> KnownInit for Components<T> {
-    type Init = Components<Init<T>>;
+impl<T: HasInitFields> HasInitFields for Components<T> {
+    type InitFields = Components<InitFields<T>>;
 }
 
-impl<T, X> PushBack<X> for Components<T>
-where T: PushBack<X>
+impl<T, X> PushLastField<X> for Components<T>
+where T: PushLastField<X>
 {
-    type Output = Components<<T as PushBack<X>>::Output>;
-    fn push_back(self, t: X) -> Self::Output {
-        Components(self.tuple.push_back(t))
+    type Output = Components<<T as PushLastField<X>>::Output>;
+    fn push_last_field(self, t: X) -> Self::Output {
+        Components(self.tuple.push_last_field(t))
     }
 }
 
-impl<T> PopBack for Components<T>
-where T: PopBack
+impl<T> PopLastField for Components<T>
+where T: PopLastField
 {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        let (last, init) = self.tuple.pop_back();
+    fn pop_last_field(self) -> (Self::LastField, Self::InitFields) {
+        let (last, init) = self.tuple.pop_last_field();
         let init = Components(init);
         (last, init)
     }

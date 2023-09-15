@@ -49,6 +49,8 @@ pub struct Timeout {
     pub cancel:     frp::Any,
     /// Emitted when timer expires. At most one event is emitted for each start of the timer.
     pub on_expired: frp::Stream<()>,
+    /// Indicates whether the timer is currently running.
+    pub is_running: frp::Stream<bool>,
     raw_timeout:    Rc<RawTimeout>,
 }
 
@@ -65,11 +67,15 @@ impl Timeout {
         frp::extend! { network
             restart <- any_mut::<i32>();
             cancel  <- any_mut::<()>();
+
+            stopped_running <- any(&cancel, &on_expired);
+            is_running <- bool(&stopped_running, &restart);
+
             eval    restart((timeout) raw_timeout.restart(*timeout));
             eval_   cancel(raw_timeout.cancel());
         }
         let on_expired = on_expired.into();
-        Self { on_expired, restart, cancel, raw_timeout }
+        Self { on_expired, restart, cancel, raw_timeout, is_running }
     }
 }
 

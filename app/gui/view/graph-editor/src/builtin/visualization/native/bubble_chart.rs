@@ -1,4 +1,4 @@
-//! Bubble Chart visualisation implemented using the native shape system.
+//! Bubble Chart visualization implemented using the native shape system.
 
 use crate::component::visualization::*;
 use crate::prelude::*;
@@ -40,30 +40,21 @@ pub mod shape {
 // ========================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct BubbleChartModel {
-    pub display_object: display::object::Instance,
-    pub scene:          Scene,
-    signature:          Signature,
-    views:              Rc<RefCell<Vec<shape::View>>>,
-    size:               Rc<Cell<Vector2>>,
+    display_object: display::object::Instance,
+    pub scene:      Scene,
+    signature:      Signature,
+    views:          Rc<RefCell<Vec<shape::View>>>,
+    size:           Rc<Cell<Vector2>>,
 }
 
 impl BubbleChartModel {
+    #[profile(Debug)]
     #[allow(clippy::question_mark)]
     fn receive_data(&self, data: &Data) -> Result<(), DataError> {
-        let data_inner = match data {
-            Data::Json { content } => content,
-            _ => return Err(DataError::BinaryNotSupported),
-        };
-        let data_inner: &serde_json::Value = data_inner;
-        let data_inner: Rc<Vec<Vector3<f32>>> =
-            if let Ok(result) = serde_json::from_value(data_inner.clone()) {
-                result
-            } else {
-                return Err(DataError::InvalidJsonText);
-            };
+        let data_inner: Rc<Vec<Vector3<f32>>> = data.as_json()?.deserialize()?;
 
         // Avoid re-creating views, if we have already created some before.
         let mut views = self.views.borrow_mut();
@@ -90,10 +81,11 @@ impl BubbleChartModel {
 // ===================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct BubbleChart {
     #[deref]
+    #[display_object]
     model:   BubbleChartModel,
     network: frp::Network,
     frp:     visualization::instance::Frp,
@@ -142,11 +134,5 @@ impl BubbleChart {
 impl From<BubbleChart> for Instance {
     fn from(t: BubbleChart) -> Self {
         Self::new(&t, &t.frp, &t.network, None)
-    }
-}
-
-impl display::Object for BubbleChart {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object.display_object()
     }
 }

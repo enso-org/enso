@@ -21,7 +21,7 @@ class PolyglotTest extends InterpreterTest {
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
           |    method = Polyglot.get_member class "add"
-          |    Polyglot.execute method (Array.new_2 1 2)
+          |    Polyglot.execute method ([1, 2].to_array)
           |""".stripMargin
 
       eval(code) shouldEqual 3
@@ -38,9 +38,8 @@ class PolyglotTest extends InterpreterTest {
       try {
         eval(code) shouldEqual "An exception shall be thrown"
       } catch {
-        case ex: InterpreterException => {
+        case ex: InterpreterException =>
           ex.getMessage() shouldEqual null
-        }
       }
     }
     "interop exception with a message" in {
@@ -61,12 +60,11 @@ class PolyglotTest extends InterpreterTest {
     "allow instantiating objects and calling methods on them" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
-          |    instance = Polyglot.new class (Array.new_1 (x -> x * 2))
-          |    Polyglot.invoke instance "callFunctionAndIncrement" (Array.new_1 10)
+          |    instance = Polyglot.new class [x -> x * 2]
+          |    Polyglot.invoke instance "callFunctionAndIncrement" [10]
           |""".stripMargin
       eval(code) shouldEqual 21
     }
@@ -74,11 +72,10 @@ class PolyglotTest extends InterpreterTest {
     "allow listing available members of an object" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
-          |    instance = Polyglot.new class Array.empty
+          |    instance = Polyglot.new class []
           |    members = Polyglot.get_members instance
           |    IO.println members.length
           |    IO.println (members.at 0)

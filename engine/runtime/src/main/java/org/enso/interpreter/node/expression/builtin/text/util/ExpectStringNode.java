@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.text.util;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -13,13 +14,13 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 
 public abstract class ExpectStringNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);
 
   public abstract String execute(Object str);
 
+  @NeverDefault
   public static ExpectStringNode build() {
     return ExpectStringNodeGen.create();
   }

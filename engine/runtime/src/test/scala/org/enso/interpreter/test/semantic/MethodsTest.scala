@@ -193,7 +193,7 @@ class MethodsTest extends InterpreterTest {
           |import Standard.Base.Data.Text.Text
           |
           |main =
-          |    a = Array.new_1 1
+          |    a = [1].to_array
           |    t_1 = "foo"
           |    t_2 = "bar"
           |

@@ -1,21 +1,19 @@
 package org.enso.interpreter.epb.node;
 
-import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-
 import java.util.Arrays;
 
 /**
  * A primitive boxed array type to be used only in EPB.
  *
  * <p>{@link ReadOnlyArray} is essentially a stripped-down, read-only, version of {@link
- * org.enso.interpreter.runtime.data.Array}, used for passing arguments. The latter cannot be used
- * in EPB because EPB is a dependency of runtime.
+ * org.enso.interpreter.runtime.data.vector.Array}, used for passing arguments. The latter cannot be
+ * used in EPB because EPB is a dependency of runtime.
  */
 @ExportLibrary(InteropLibrary.class)
 public final class ReadOnlyArray implements TruffleObject {

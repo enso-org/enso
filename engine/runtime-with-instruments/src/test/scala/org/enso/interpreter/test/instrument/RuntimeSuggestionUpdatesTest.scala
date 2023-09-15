@@ -161,7 +161,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -211,7 +211,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -283,7 +283,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -375,7 +375,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -475,7 +475,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -541,19 +541,11 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
                     List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
                       Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
@@ -602,19 +594,11 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
                     List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
                       Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
@@ -629,9 +613,9 @@ class RuntimeSuggestionUpdatesTest
                     Some(
                       List(
                         Api.SuggestionArgumentAction
-                          .Modify(1, Some("a"), None, None, None, None),
+                          .Modify(0, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
-                          2,
+                          1,
                           Suggestion
                             .Argument("b", ConstantsGen.ANY, false, false, None)
                         )
@@ -715,7 +699,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -744,7 +728,7 @@ class RuntimeSuggestionUpdatesTest
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
@@ -773,7 +757,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Foo.Main",
                     "main",
@@ -871,7 +855,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -906,7 +890,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -933,7 +917,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -1080,7 +1064,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.Getter(
                     None,
                     "Enso_Test.Test.A",
                     "a",
@@ -1096,7 +1080,6 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
-                    false,
                     None,
                     Seq()
                   ),
@@ -1106,7 +1089,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "fortytwo",
@@ -1131,19 +1114,11 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "hello",
-                    List(
-                      Suggestion.Argument(
-                        "self",
-                        "Enso_Test.Test.A",
-                        false,
-                        false,
-                        None
-                      )
-                    ),
+                    Seq(),
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,
@@ -1189,7 +1164,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -1293,4 +1268,86 @@ class RuntimeSuggestionUpdatesTest
     context.consumeOut shouldEqual List("Hello World!")
   }
 
+  it should "invalidate modules index on command" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main = IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, code))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val updates1 = context.receiveNIgnoreExpressionUpdates(4)
+    updates1.length shouldEqual 4
+    updates1 should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
+    val indexedModules = updates1.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(moduleName, _, _, _)
+          ) =>
+        moduleName
+    }
+    indexedModules should contain theSameElementsAs Seq(moduleName)
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // clear indexes
+    context.send(Api.Request(requestId, Api.InvalidateModulesIndexRequest()))
+    context.receiveN(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.InvalidateModulesIndexResponse())
+    )
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+    )
+    val updates2 = context.receiveNIgnoreExpressionUpdates(4)
+    updates2.length shouldEqual 4
+    updates2 should contain allOf (
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
+    val indexedModules2 = updates1.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(moduleName, _, _, _)
+          ) =>
+        moduleName
+    }
+    indexedModules2 should contain theSameElementsAs Seq(moduleName)
+    context.consumeOut shouldEqual List("Hello World!")
+  }
 }

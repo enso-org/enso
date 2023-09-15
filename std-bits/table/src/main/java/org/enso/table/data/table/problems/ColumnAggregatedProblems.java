@@ -1,10 +1,9 @@
 package org.enso.table.data.table.problems;
 
-import org.enso.table.problems.Problem;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.table.problems.Problem;
 
 public abstract class ColumnAggregatedProblems implements Problem {
   private final String locationName;

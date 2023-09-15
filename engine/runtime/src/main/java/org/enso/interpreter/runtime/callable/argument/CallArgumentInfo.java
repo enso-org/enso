@@ -3,11 +3,10 @@ package org.enso.interpreter.runtime.callable.argument;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-
 import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 
 /**
  * Tracks simple information about call-site arguments, used to make processing of caller argument

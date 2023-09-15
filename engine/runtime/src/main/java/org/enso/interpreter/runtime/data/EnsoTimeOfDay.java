@@ -2,8 +2,8 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -12,12 +12,10 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -25,22 +23,11 @@ import org.enso.polyglot.common_utils.Core_Date_Utils;
     pkg = "date",
     name = "TimeOfDay",
     stdlibName = "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day")
-public final class EnsoTimeOfDay implements TruffleObject {
+public final class EnsoTimeOfDay implements EnsoObject {
   private final LocalTime localTime;
 
   public EnsoTimeOfDay(LocalTime localTime) {
     this.localTime = localTime;
-  }
-
-  @Builtin.Method(
-      name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern",
-      autoRegister = false)
-  @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class)
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoTimeOfDay parse(String text) {
-    return new EnsoTimeOfDay(LocalTime.parse(text));
   }
 
   @Builtin.Method(
@@ -79,9 +66,27 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return localTime.getSecond();
   }
 
-  @Builtin.Method(description = "Gets a value nanosecond")
-  public long nanosecond() {
-    return localTime.getNano();
+  @Builtin.Method(description = "Gets the millisecond")
+  @CompilerDirectives.TruffleBoundary
+  public long millisecond() {
+    return localTime.getNano() / 1000_000;
+  }
+
+  @Builtin.Method(description = "Gets the microsecond")
+  @CompilerDirectives.TruffleBoundary
+  public long microsecond() {
+    return (localTime.getNano() / 1000) % 1000;
+  }
+
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
+  @CompilerDirectives.TruffleBoundary
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = localTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
@@ -112,18 +117,10 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return localTime.toSecondOfDay();
   }
 
-  @Builtin.Method(
-      name = "to_date_time_builtin",
-      description = "Combine this time of day with a date to create a point in time.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
-    return new EnsoDateTime(localTime.atDate(date.asDate()).atZone(zone.asTimeZone()));
-  }
-
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
-    return Text.create(TIME_FORMATTER.format(localTime));
+    return Text.create(DateTimeFormatter.ISO_LOCAL_TIME.format(localTime));
   }
 
   @ExportMessage
@@ -162,16 +159,13 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().timeOfDay();
   }
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return TIME_FORMATTER.format(localTime);
+    return DateTimeFormatter.ISO_LOCAL_TIME.format(localTime);
   }
-
-  private static final DateTimeFormatter TIME_FORMATTER =
-      Core_Date_Utils.defaultLocalTimeFormatter();
 }

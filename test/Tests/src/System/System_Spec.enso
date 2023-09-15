@@ -13,8 +13,4 @@ spec = Test.group "System" <|
             result = System.create_process "echo" ["foo", "bar"] "" False False False
             result.exit_code . should_equal 0
 
-            result_2 = System.create_process "echo" ["foo", "bar"].to_array "" False False False
-            result_2.exit_code . should_equal 0
-
-
 main = Test_Suite.run_main spec

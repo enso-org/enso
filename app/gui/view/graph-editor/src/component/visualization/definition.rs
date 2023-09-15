@@ -98,7 +98,7 @@ pub type InstantiationResult = Result<visualization::Instance, InstantiationErro
 
 // === Errors ===
 
-/// Indicates that instantiating a `Visualisation` from a `Definition` has failed.
+/// Indicates that instantiating a `Visualization` from a `Definition` has failed.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub enum InstantiationError {
@@ -109,7 +109,7 @@ impl Display for InstantiationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             InstantiationError::ConstructorError(value) => f.write_fmt(format_args!(
-                "Could not construct visualisation because of error: {value:?}"
+                "Could not construct visualization because of error: {value:?}"
             )),
         }
     }

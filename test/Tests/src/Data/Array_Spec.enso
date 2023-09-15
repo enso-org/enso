@@ -7,12 +7,10 @@ import Standard.Test.Extensions
 
 Array.method self = 0
 
-## Returns an array with the same contents as the given vector, surely backed by
-   the Enso Array primitive.
+## Returns the backing array of the given vector. Will be an Enso Array if from
+   a literal vector.
 make_enso_array vector =
-    enso_array = Array.new vector.length
-    Array.copy vector.to_array 0 enso_array 0 vector.length
-    enso_array
+    vector.to_array
 
 test_arrays array_from_vector =
     Test.specify "should allow accessing elements" <|
@@ -37,11 +35,6 @@ spec =
         Test.specify "should handle ==" <|
             (make_enso_array [1,2,3]).should_equal (make_enso_array [1,2,3])
             (make_enso_array [1]).should_not_equal (make_enso_array [2])
-
-        Test.specify "should propagate dataflow errors" <|
-            err = Error.throw (Illegal_State.Error "Foo")
-            res = Array.new err
-            res . should_fail_with Illegal_State
 
         Test.specify "should not sort in place" <|
             arr = make_enso_array [3, 1, 2]

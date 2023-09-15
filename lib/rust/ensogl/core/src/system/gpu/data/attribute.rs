@@ -31,14 +31,9 @@ pub struct InstanceIndex {
     raw: usize,
 }
 
-/// Sentinel value used to identify references to deallocated instances.
-///
-/// If this is `None`, accesses will not be validated; if it is `Some(value)`, the value must not
-/// collide with any actual index.
-#[cfg(debug_assertions)]
-const FREED_INDEX: Option<usize> = Some(usize::MAX);
-#[cfg(not(debug_assertions))]
-const FREED_INDEX: Option<usize> = None;
+/// Sentinel value used to identify references to deallocated instances. This value must not collide
+/// with any actual index.
+const FREED_INDEX: usize = usize::MAX;
 
 impl InstanceIndex {
     /// Return the value, unless it is a freed-entry marker.
@@ -56,10 +51,7 @@ impl InstanceIndex {
     /// Return true if this value is not the [`FREED_INDEX`] sentinel.
     #[inline(always)]
     fn is_valid(self) -> bool {
-        match FREED_INDEX {
-            Some(sentinel) => self.raw != sentinel,
-            None => true,
-        }
+        self.raw != FREED_INDEX
     }
 
     /// Return the value; it must be live.
@@ -82,7 +74,7 @@ impl InstanceIndex {
 
 impl From<Option<usize>> for InstanceIndex {
     fn from(value: Option<usize>) -> Self {
-        let raw = value.or(FREED_INDEX).unwrap_or_default();
+        let raw = value.unwrap_or(FREED_INDEX);
         Self { raw }
     }
 }
@@ -548,13 +540,11 @@ mod allocator_tests {
         instances.resize(partitions, default());
         macro_rules! check_live_instances {
             () => {{
-                if let Some(freed_index) = FREED_INDEX {
-                    let scope = scope.rc.borrow();
-                    let indexes = scope.indexes.borrow();
-                    for (_partition, instances) in instances.iter().enumerate() {
-                        for instance in instances {
-                            assert_ne!(indexes[instance.raw].raw, freed_index);
-                        }
+                let scope = scope.rc.borrow();
+                let indexes = scope.indexes.borrow();
+                for (_partition, instances) in instances.iter().enumerate() {
+                    for instance in instances {
+                        assert_ne!(indexes[instance.raw].raw, FREED_INDEX);
                     }
                 }
             }};
@@ -566,9 +556,7 @@ mod allocator_tests {
                 let indexes = scope.indexes.borrow();
                 for (_partition, instances) in instances.iter().enumerate() {
                     for instance in instances {
-                        if let Some(freed_index) = FREED_INDEX {
-                            assert_ne!(indexes[instance.raw].raw, freed_index);
-                        }
+                        assert_ne!(indexes[instance.raw].raw, FREED_INDEX);
                         let no_collision = locations_used.insert(indexes[instance.raw].raw);
                         assert!(no_collision);
                     }

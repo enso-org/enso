@@ -1,16 +1,15 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
-import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
@@ -18,13 +17,13 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.System
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
-from project.Data.Boolean import Boolean, True, False
-
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
-polyglot java import java.lang.ArithmeticException
 
 ## PRIVATE
    Create an interval representing the duration between two points in time.
@@ -63,6 +62,7 @@ ensure_duration object ~action =
             Error.throw Illegal_Argument.Error <|
                 "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
 
+## Represents the amount of time between two points in time.
 @Builtin_Type
 type Duration
     ## Create an interval representing the duration between two points in time.
@@ -84,7 +84,8 @@ type Duration
     between start_inclusive end_exclusive timezone_aware=True =
         between_builtin start_inclusive end_exclusive timezone_aware
 
-    ## Create a duration from time units.
+    ## GROUP DateTime
+       Create a duration from time units.
 
        Arguments:
        - hours: hours
@@ -128,7 +129,8 @@ type Duration
         duration = Duration.new nanoseconds=(end - start)
         Pair.new duration result
 
-    ## ALIAS Add Duration
+    ## ALIAS add duration
+       GROUP Operators
        Add the specified amount of time to this duration.
 
        Arguments:
@@ -153,7 +155,8 @@ type Duration
             Panic.catch ArithmeticException (self.plus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## ALIAS Subtract Duration
+    ## ALIAS subtract duration
+       GROUP Operators
        Subtract the specified amount of time from this duration.
 
        Arguments:
@@ -171,7 +174,8 @@ type Duration
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## Get the portion of the duration expressed in nanoseconds.
+    ## GROUP Metadata
+       Get the portion of the duration expressed in nanoseconds.
 
        > Example
          Get the portion of the duration expressed in nanoseconds.
@@ -182,7 +186,8 @@ type Duration
     nanoseconds : Integer
     nanoseconds self = @Builtin_Method "Duration.nanoseconds"
 
-    ## Get the portion of the duration expressed in milliseconds.
+    ## GROUP Metadata
+       Get the portion of the duration expressed in milliseconds.
 
        > Example
          Get the portion of the duration expressed in milliseconds.
@@ -193,7 +198,8 @@ type Duration
     milliseconds : Integer
     milliseconds self = @Builtin_Method "Duration.milliseconds"
 
-    ## Get the portion of the duration expressed in seconds.
+    ## GROUP Metadata
+       Get the portion of the duration expressed in seconds.
 
        > Example
          Get the portion of the duration expressed in seconds.
@@ -204,7 +210,8 @@ type Duration
     seconds : Integer
     seconds self = @Builtin_Method "Duration.seconds"
 
-    ## Get the portion of the duration expressed in minutes.
+    ## GROUP Metadata
+       Get the portion of the duration expressed in minutes.
 
        > Example
          Get the portion of the duration expressed in minutes.
@@ -215,7 +222,8 @@ type Duration
     minutes : Integer
     minutes self = @Builtin_Method "Duration.minutes"
 
-    ## Get the portion of the duration expressed in hours.
+    ## GROUP Metadata
+       Get the portion of the duration expressed in hours.
 
        > Example
          Get the portion of the duration expressed in hours.
@@ -226,26 +234,26 @@ type Duration
     hours : Integer
     hours self = @Builtin_Method "Duration.hours"
 
-    ## UNSTABLE
+    ## GROUP DateTime
        Convert the duration to total milliseconds.
     total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
             Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
-    ## UNSTABLE
+    ## GROUP DateTime
        Convert the duration to total seconds.
-    total_seconds : Decimal ! Illegal_State
+    total_seconds : Float ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
-    ## UNSTABLE
+    ## GROUP DateTime
        Convert the duration to total minutes.
-    total_minutes : Decimal ! Illegal_State
+    total_minutes : Float ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
-    ## UNSTABLE
+    ## GROUP DateTime
        Convert the duration to total minutes.
-    total_hours : Decimal ! Illegal_State
+    total_hours : Float ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
     ## PRIVATE

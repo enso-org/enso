@@ -1,0 +1,83 @@
+import project.Data.Numbers.Integer
+import project.Data.Range.Range
+import project.Data.Text.Prim_Text_Helper
+import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Regex
+import project.Data.Text.Regex.Regex_Syntax_Error
+import project.Data.Text.Span.Utf_16_Span
+import project.Data.Text.Text
+import project.Error.Error
+import project.Errors.Common.Syntax_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+
+polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
+
+## PRIVATE
+
+    Performs the regex match, and iterates through the results. Yields both
+    the matched parts of the string, and the 'filler' parts between them.
+
+    The 'filler' elements are `Utf_16_Span`s, not `Spans`. This is because
+    matches and replacement boundaries can fall in the middle of multi-
+    character graphemes, thereby splitting them apart.
+
+    At each step, it yields a Match_Iterator_Value, whivch has either a filler
+    and a match, or just the final filler. A Match_Iterator_Value.Last value is
+    return at the end, and only at the end.
+
+    Optionally, you can call `early_exit` to have it return the remainder of
+    the string, unmatched, as a single Last value. (Used for `replace` with
+    `only_first=True`.)
+type Match_Iterator
+    ## PRIVATE
+    new : Regex -> Text -> Match_Iterator
+    new pattern input = Match_Iterator.Value pattern input 0
+
+    ## PRIVATE
+    Value (pattern : Regex) (input : Text) (cursor : Integer)
+
+    ## PRIVATE
+       Return the next match, or the last filler string if there is no
+       additional match.
+
+       Also returns the next iterator, if there was a match.
+    next : Match_Iterator_Value
+    next self =
+        regex_result = if self.cursor > self.input.char_vector.length then Nothing else self.pattern.internal_regex_object.exec self.input self.cursor
+        case regex_result.is_nothing.not && regex_result.isMatch of
+            False ->
+                filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
+                filler_span = (Utf_16_Span.Value filler_range self.input)
+                Match_Iterator_Value.Last filler_span
+            True ->
+                match_start = regex_result.getStart 0
+                filler_range = Range.new self.cursor match_start
+                filler_span = (Utf_16_Span.Value filler_range self.input)
+                match = Match.Value self.pattern regex_result self.input
+                ## Handle edge case where match is 0 length
+                next_cursor = (self.cursor + 1).max (match.utf_16_end 0)
+                next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
+                Match_Iterator_Value.Next filler_span match next_iterator
+
+    ## PRIVATE
+       Returns the remainder of the string, unmatched.
+    early_exit : Match_Iterator_Value
+    early_exit self =
+        filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
+        filler_span = Utf_16_Span.Value filler_range self.input
+        Match_Iterator_Value.Last filler_span
+
+## PRIVATE
+type Match_Iterator_Value
+    ## PRIVATE
+    Next (filler : Utf_16_Span) (match : Match) (next_iterator : Match_Iterator)
+
+    ## PRIVATE
+    Last (filler : Utf_16_Span)
+

@@ -54,6 +54,7 @@ features = [
   'Location',
   'ReadableStream',
   'AddEventListenerOptions',
+  'EventListenerOptions',
   'KeyboardEvent',
   'WheelEvent',
 ]

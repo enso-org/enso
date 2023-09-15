@@ -7,6 +7,7 @@ import org.enso.cli.task.notifications.TaskNotificationApi.{
   TaskStarted
 }
 import org.enso.jsonrpc.Protocol
+import org.enso.languageserver.ai.AICompletion
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -16,24 +17,27 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
-import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
+import org.enso.languageserver.refactoring.RefactoringApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi._
-import org.enso.languageserver.runtime.VisualisationApi._
+import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
 
-  /** A description of supported JSON RPC messages.
-    */
-  val protocol: Protocol = Protocol.empty
-    .registerRequest(Ping)
+  /** A description of JSON RPC messages support during the initialization stage */
+  val initProtocol: Protocol = Protocol.empty
     .registerRequest(InitialPing)
     .registerRequest(InitProtocolConnection)
+
+  /** A description of supported JSON RPC messages at a post-initialization stage */
+  def fullProtocol(init: Protocol): Protocol = init
+    .registerRequest(Ping)
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
     .registerRequest(WriteFile)
@@ -72,14 +76,16 @@ object JsonRpc {
     .registerRequest(ExecutionContextInterrupt)
     .registerRequest(ExecutionContextGetComponentGroups)
     .registerRequest(ExecuteExpression)
-    .registerRequest(AttachVisualisation)
-    .registerRequest(DetachVisualisation)
-    .registerRequest(ModifyVisualisation)
+    .registerRequest(AttachVisualization)
+    .registerRequest(DetachVisualization)
+    .registerRequest(ModifyVisualization)
     .registerRequest(GetSuggestionsDatabase)
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
     .registerRequest(Completion)
+    .registerRequest(AICompletion)
     .registerRequest(RenameProject)
+    .registerRequest(RenameSymbol)
     .registerRequest(ProjectInfo)
     .registerRequest(EditionsListAvailable)
     .registerRequest(EditionsResolve)
@@ -95,6 +101,7 @@ object JsonRpc {
     .registerRequest(LibraryGetPackage)
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
+    .registerRequest(RuntimeGetComponentGroups)
     .registerNotification(TaskStarted)
     .registerNotification(TaskProgressUpdate)
     .registerNotification(TaskFinished)
@@ -102,6 +109,7 @@ object JsonRpc {
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
     .registerNotification(FileAutoSaved)
+    .registerNotification(FileModifiedOnDisk)
     .registerNotification(EventFile)
     .registerNotification(ContentRootAdded)
     .registerNotification(ContentRootRemoved)
@@ -113,5 +121,7 @@ object JsonRpc {
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
-    .registerNotification(VisualisationEvaluationFailed)
+    .registerNotification(VisualizationEvaluationFailed)
+    .registerNotification(ProjectRenamed)
+    .finalized()
 }

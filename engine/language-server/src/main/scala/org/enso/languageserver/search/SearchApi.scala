@@ -24,9 +24,11 @@ object SearchApi {
       currentVersion: Long
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = SuggestionsDatabaseUpdates.Params
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, SuggestionsDatabaseUpdates.Params] =
+      new HasParams[this.type] {
+        type Params = SuggestionsDatabaseUpdates.Params
+      }
   }
 
   case object GetSuggestionsDatabase
@@ -37,12 +39,16 @@ object SearchApi {
       currentVersion: Long
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = GetSuggestionsDatabase.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+
+    implicit val hasResult
+      : HasResult.Aux[this.type, GetSuggestionsDatabase.Result] =
+      new HasResult[this.type] {
+        type Result = GetSuggestionsDatabase.Result
+      }
   }
 
   case object GetSuggestionsDatabaseVersion
@@ -50,23 +56,30 @@ object SearchApi {
 
     case class Result(currentVersion: Long)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = GetSuggestionsDatabaseVersion.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+
+    implicit val hasResult
+      : HasResult.Aux[this.type, GetSuggestionsDatabaseVersion.Result] =
+      new HasResult[this.type] {
+        type Result = GetSuggestionsDatabaseVersion.Result
+      }
   }
 
   case object InvalidateSuggestionsDatabase
       extends Method("search/invalidateSuggestionsDatabase") {
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object Completion extends Method("search/completion") {
@@ -82,12 +95,14 @@ object SearchApi {
 
     case class Result(results: Seq[SuggestionId], currentVersion: Long)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Completion.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Completion.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Completion.Params] =
+      new HasParams[this.type] {
+        type Params = Completion.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Completion.Result] =
+      new HasResult[this.type] {
+        type Result = Completion.Result
+      }
   }
 
   case object SuggestionsDatabaseError

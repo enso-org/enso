@@ -9,6 +9,7 @@ import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.scan.Matcher;
 import org.enso.table.data.table.join.scan.MatcherFactory;
 import org.enso.table.problems.AggregatedProblems;
+import org.graalvm.polyglot.Context;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ public class IndexJoin implements JoinStrategy {
 
   @Override
   public JoinResult join(Table left, Table right, List<JoinCondition> conditions) {
+    Context context = Context.getCurrent();
     List<HashEqualityCondition> equalConditions =
         conditions.stream()
             .filter(IndexJoin::isSupported)
@@ -54,9 +56,15 @@ public class IndexJoin implements JoinStrategy {
             if (remainingMatcher.matches(leftRow, rightRow)) {
               resultBuilder.addRow(leftRow, rightRow);
             }
+
+            context.safepoint();
           }
+
+          context.safepoint();
         }
       }
+
+      context.safepoint();
     }
 
     AggregatedProblems problems =

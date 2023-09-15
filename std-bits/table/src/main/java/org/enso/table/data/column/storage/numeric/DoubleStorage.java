@@ -1,13 +1,28 @@
 package org.enso.table.data.column.storage.numeric;
 
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import java.math.BigInteger;
+import java.util.BitSet;
+import java.util.List;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
-import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
-import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
+import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
+import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
+import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -15,17 +30,16 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.WithAggregatedProblems;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-import java.util.List;
-
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double> {
+public final class DoubleStorage extends NumericStorage<Double> implements DoubleArrayAdapter {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<Double, DoubleStorage> ops = buildOps();
+  private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -66,13 +80,18 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public double getItemDouble(int idx) {
-    return getItem(idx);
+  public Double getItemBoxed(int idx) {
+    return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
   @Override
-  public Double getItemBoxed(int idx) {
-    return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
+  public boolean isUnaryOpVectorized(String name) {
+    return ops.isSupportedUnary(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return ops.runUnaryMap(name, this, problemBuilder);
   }
 
   /** @inheritDoc */
@@ -88,46 +107,104 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return ops.isSupported(op);
+  public double getItemAsDouble(int i) {
+    return Double.longBitsToDouble(data[i]);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public boolean isNa(int i) {
+    return isMissing.get(i);
+  }
+
+  @Override
+  public boolean isBinaryOpVectorized(String op) {
+    return ops.isSupportedBinary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
+  }
+
+  @Override
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
-  private Storage<?> fillMissingDouble(double arg) {
+  private WithAggregatedProblems<Storage<?>> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
         builder.appendRawNoGrow(rawArg);
       } else {
         builder.appendRawNoGrow(data[i]);
       }
+
+      context.safepoint();
     }
-    return builder.seal();
+    return builder.sealWithProblems();
+  }
+
+  /** Special handling to ensure loss of precision is reported. */
+  private WithAggregatedProblems<Storage<?>> fillMissingBigInteger(BigInteger arg) {
+    final var builder = NumericBuilder.createDoubleBuilder(size());
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendBigInteger(arg);
+      } else {
+        builder.appendRawNoGrow(data[i]);
+      }
+
+      context.safepoint();
+    }
+    return builder.sealWithProblems();
+  }
+
+  /** Special handling to ensure loss of precision is reported. */
+  private WithAggregatedProblems<Storage<?>> fillMissingLong(long arg) {
+    final var builder = NumericBuilder.createDoubleBuilder(size());
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendLong(arg);
+      } else {
+        builder.appendRawNoGrow(data[i]);
+      }
+
+      context.safepoint();
+    }
+    return builder.sealWithProblems();
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg) {
+  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
-        return fillMissingDouble(arg.asLong());
+        return fillMissingLong(arg.asLong());
+      } else if (arg.fitsInBigInteger()) {
+        return fillMissingBigInteger(arg.asBigInteger());
       } else if (arg.fitsInDouble()) {
         return fillMissingDouble(arg.asDouble());
       }
     }
 
-    return super.fillMissing(arg);
+    return super.fillMissing(arg, commonType);
   }
 
   @Override
@@ -135,6 +212,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         if (isMissing.get(i)) {
@@ -143,6 +221,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
           newData[resIx++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, cardinality, newMissing);
   }
@@ -152,12 +232,15 @@ public final class DoubleStorage extends NumericStorage<Double> {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
+    Context context = Context.getCurrent();
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
         newMissing.set(i);
       } else {
         newData[i] = data[positions[i]];
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, positions.length, newMissing);
   }
@@ -167,6 +250,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < counts.length; i++) {
       if (isMissing.get(i)) {
         newMissing.set(pos, pos + counts[i]);
@@ -176,6 +260,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
           newData[pos++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, total, newMissing);
   }
@@ -188,140 +274,81 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return data;
   }
 
-  private static MapOpStorage<Double, DoubleStorage> buildOps() {
-    MapOpStorage<Double, DoubleStorage> ops = new MapOpStorage<>();
-    ops.add(
-            new DoubleNumericOp(Maps.ADD) {
+  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
+    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
+    ops.add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>())
+        .add(
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
               @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a + b;
+              protected long doOperation(double a) {
+                return (long) a;
               }
             })
         .add(
-            new DoubleNumericOp(Maps.SUB) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.CEIL) {
               @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a - b;
+              protected long doOperation(double a) {
+                return (long) Math.ceil(a);
               }
             })
         .add(
-            new DoubleNumericOp(Maps.MUL) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.FLOOR) {
               @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return a * b;
+              protected long doOperation(double a) {
+                return (long) Math.floor(a);
               }
             })
-        .add(
-            new DoubleNumericOp(Maps.DIV) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (b == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return a / b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.MOD) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (b == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return a % b;
-              }
-            })
-        .add(
-            new DoubleNumericOp(Maps.POWER) {
-              @Override
-              protected double doDouble(
-                  double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
-                return Math.pow(a, b);
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.LT) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a < b;
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.LTE) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a <= b;
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.EQ) {
-              @Override
-              public BoolStorage runMap(
-                  DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-                if (arg != null) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runMap(storage, arg, problemBuilder);
-              }
-
-              @Override
-              public BoolStorage runZip(
-                  DoubleStorage storage,
-                  Storage<?> arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg.countMissing() < arg.size()) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runZip(storage, arg, problemBuilder);
-              }
-
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doObject(double a, Object o) {
-                return false;
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.GT) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a > b;
-              }
-            })
-        .add(
-            new DoubleBooleanOp(Maps.GTE) {
-              @Override
-              protected boolean doDouble(double a, double b) {
-                return a >= b;
-              }
-            })
+        .add(new DoubleRoundOp(Maps.ROUND))
+        .add(new LessComparison<>())
+        .add(new LessOrEqualComparison<>())
+        .add(new EqualsComparison<>())
+        .add(new GreaterOrEqualComparison<>())
+        .add(new GreaterComparison<>())
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(DoubleStorage storage) {
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
         .add(
             new UnaryMapOperation<>(Maps.IS_NAN) {
               @Override
-              public BoolStorage run(DoubleStorage storage) {
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet nans = new BitSet();
+                Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isNaN(storage.getItem(i))) {
+                  if (!storage.isNa(i) && Double.isNaN(storage.getItemAsDouble(i))) {
                     nans.set(i);
                   }
+
+                  context.safepoint();
                 }
-                return new BoolStorage(nans, new BitSet(), storage.size, false);
+                return new BoolStorage(nans, storage.isMissing, storage.size, false);
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Maps.IS_INFINITE) {
+              @Override
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+                BitSet infintes = new BitSet();
+                Context context = Context.getCurrent();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && Double.isInfinite(storage.getItemAsDouble(i))) {
+                    infintes.set(i);
+                  }
+
+                  context.safepoint();
+                }
+                return new BoolStorage(infintes, storage.isMissing, storage.size, false);
               }
             })
         .add(new DoubleIsInOp());
@@ -348,11 +375,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);
     int offset = 0;
+    Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       for (int i = 0; i < length; ++i) {
         newMissing.set(offset + i, isMissing.get(range.start() + i));
+        context.safepoint();
       }
       offset += length;
     }

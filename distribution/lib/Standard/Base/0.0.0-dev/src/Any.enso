@@ -1,5 +1,4 @@
 import project.Data.Pair.Pair
-import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -10,9 +9,10 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
+from project.Data.Range.Extensions import all
+from project.Function import const
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -20,18 +20,53 @@ from project.Data.Ordering import all
    be used in that position.
 @Builtin_Type
 type Any
-
-    ## PRIVATE
-
-       Executes the provided handler on a dataflow error, or executes as
-       identity on a non-error value.
+    ## GROUP Conversions
+       Generic conversion of an arbitrary Enso value to requested type.
+       Delegates to appropriate `.from` conversion method, if it exists.
+       If such method doesn't exist, `No_Such_Conversion` panic is raised.
 
        Arguments:
-       - handler: The function to call on this if it is an error value.
-    catch_primitive : (Error -> Any) -> Any
-    catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
+       - typ: the requested type.
 
-    ## Generic conversion of an arbitrary Enso value to a corresponding textual
+       > Example
+         Following code defines conversion of a `Complex` type to a `Number`
+         by computing absolute distance from `0`. The code yields `5.0`:
+
+             type Complex
+                 Value re:Number im:Number
+
+             Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
+
+             Complex.Value 3 4 . to Number
+
+       > Example
+         `.from` conversion methods may have additional arguments
+         with default values. Thus the conversion from `Complex` to
+         `Number` may take additional argument:
+
+             type Complex
+                 Value re:Number im:Number
+
+             Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
+
+             Complex.Value 3 4 . to Number
+
+             type Complex
+                 Value re:Number im:Number
+
+             Number.from (that:Complex) (ignore_im:Boolean=False) = case ignore_im of
+                 False -> that.re*that.re+that.im*that.im . sqrt
+                 True -> that.re
+
+             yields_3 = Complex.Value 3 4 . to Number ignore_im=True
+             yields_5 = Complex.Value 3 4 . to Number ignore_im=False
+             default5 = Complex.Value 3 4 . to Number
+
+    to : Any -> Any ! No_Such_Conversion
+    to self typ = typ.from self ...
+
+    ## GROUP Conversions
+       Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
        > Example
@@ -62,7 +97,8 @@ type Any
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
-    ## ALIAS Equals
+    ## ALIAS equals
+       GROUP Operators
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -109,7 +145,8 @@ type Any
     == : Any -> Boolean
     == self that = @Builtin_Method "Any.=="
 
-    ## ALIAS Not Equals
+    ## ALIAS not equals
+       GROUP Operators
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -131,7 +168,8 @@ type Any
     != : Any -> Boolean
     != self that = (self == that).not
 
-    ## ALIAS Greater Than
+    ## ALIAS greater than
+       GROUP Operators
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -158,7 +196,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Greater Than or Equal
+    ## ALIAS greater than or equal
+       GROUP Operators
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -187,7 +226,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Less Than
+    ## ALIAS less than
+       GROUP Operators
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -214,7 +254,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS Less Than or Equal
+    ## ALIAS less than or equal
+       GROUP Operators
        Checks if `self` is less than or equal to `that`.
 
        Arguments:
@@ -245,7 +286,8 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## Checks if the type is an instance of `Nothing`.
+    ## GROUP Logical
+       Checks if the type is an instance of `Nothing`.
 
        Nothing in Enso is used as a universal value to indicate the lack of presence
        of a value. This function is primarily useful in the IDE.
@@ -257,7 +299,7 @@ type Any
     is_nothing : Boolean
     is_nothing self = False
 
-    ## UNSTABLE
+    ## GROUP Logical
        If `self` is Nothing then returns `function`.
 
        > Example
@@ -265,9 +307,11 @@ type Any
 
              "Hello".if_nothing ""
     if_nothing : Any -> Any
-    if_nothing self ~_ = self
+    if_nothing self ~other =
+        const self other
 
-    ## Executes the provided handler on an error, or returns the value unchanged.
+    ## GROUP Errors
+       Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
        - error_type: The type of error to handle. Defaults to `Any` to handle
@@ -299,6 +343,16 @@ type Any
                 True -> handler error_value
                 False -> self
 
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
+
     ## Transforms an error.
 
        Arguments:
@@ -318,9 +372,11 @@ type Any
                 error = my_map.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
-    map_error self _ = self
+    map_error self ~f =
+        const self f
 
-    ## Checks if `self` is an error.
+    ## GROUP Errors
+       Checks if `self` is an error.
 
        > Example
          Checking if the provided value is an error.
@@ -329,7 +385,8 @@ type Any
     is_error : Boolean
     is_error self = False
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Returns the provided `other` value, unless `self` is an error.
 
        Arguments:
@@ -365,7 +422,10 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## Applies the function on the right hand side to the argument on the left.
+    ## PRIVATE
+       ADVANCED
+       GROUP Operators
+       Applies the function on the right hand side to the argument on the left.
 
        Arguments
        - function: The function to apply to `self`.
@@ -386,7 +446,8 @@ type Any
     |> : (Any -> Any) -> Any
     |> self ~function = function self
 
-    ## Checks if any warnings (either all or of a specified type) are attached to the value.
+    ## GROUP Errors
+       Checks if any warnings (either all or of a specified type) are attached to the value.
 
        Arguments:
        - warning_type: The type to check if attached to the value. Defaults to any warning.
@@ -395,7 +456,8 @@ type Any
         _ = warning_type
         False
 
-    ## Remove the warnings (either all or of a specified type) attached to the value.
+    ## GROUP Errors
+       Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
@@ -404,7 +466,8 @@ type Any
         _ = warning_type
         self
 
-    ## Throws the first matching warning (either all or of a specified type) as a data flow error.
+    ## GROUP Errors
+       Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.

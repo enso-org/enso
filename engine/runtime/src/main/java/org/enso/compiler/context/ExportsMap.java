@@ -1,14 +1,13 @@
 package org.enso.compiler.context;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.ExportedSymbol;
 import org.enso.polyglot.ModuleExports;
 import org.enso.polyglot.Suggestion;
 import scala.Option;
 import scala.runtime.BoxedUnit;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public final class ExportsMap {
 
@@ -39,14 +38,9 @@ public final class ExportsMap {
             });
   }
 
-  public QualifiedName get(ExportedSymbol symbol) {
-    return exportsMap.get(symbol);
-  }
-
-  public QualifiedName get(Suggestion suggestion) {
+  public Option<QualifiedName> get(Suggestion suggestion) {
     return ExportedSymbol.fromSuggestion(suggestion)
-        .flatMap(symbol -> Option.apply(exportsMap.get(symbol)))
-        .getOrElse(() -> exportsMap.get(ExportedSymbol.suggestionModule(suggestion)));
+        .flatMap(symbol -> Option.apply(exportsMap.get(symbol)));
   }
 
   private static QualifiedName getShortest(QualifiedName name1, QualifiedName name2) {

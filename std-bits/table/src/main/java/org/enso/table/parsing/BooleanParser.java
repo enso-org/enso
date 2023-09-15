@@ -1,7 +1,7 @@
 package org.enso.table.parsing;
 
-import org.enso.table.data.column.builder.object.BoolBuilder;
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.graalvm.collections.EconomicSet;
 

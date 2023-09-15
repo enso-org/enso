@@ -43,7 +43,7 @@ impl<Out> FutureEvent<Out> {
         extend! { network
             let node = node.clone_ref();
             eval node ([value,wakers](event) {
-                value.set(event.clone());
+                value.replace(Some(event.clone()));
                 for waker in wakers.take() {
                     waker.wake();
                 }

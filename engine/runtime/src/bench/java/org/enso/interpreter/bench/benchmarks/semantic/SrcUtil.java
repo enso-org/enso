@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import org.graalvm.polyglot.Source;
+import static org.junit.Assert.assertNotNull;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 final class SrcUtil {
@@ -22,5 +23,12 @@ final class SrcUtil {
       w.write(code);
     }
     return Source.newBuilder("enso", f).build();
+  }
+
+  static Source read(String benchmarkName) throws IOException {
+    String resource = benchmarkName + ".enso";
+    var url = SrcUtil.class.getResource(resource);
+    assertNotNull("Searching for " + resource, url);
+    return Source.newBuilder("enso", url).name(resource).build();
   }
 }

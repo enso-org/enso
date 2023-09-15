@@ -212,7 +212,6 @@ public class PrintTest extends TestBase {
     checkPrint(code, "100");
   }
 
-  // This test documents the current, but undesirable behaviour. It should be updated when it is fixed.
   @Test
   public void testPrintToTextStaticMethod() throws Exception {
     final String code = """

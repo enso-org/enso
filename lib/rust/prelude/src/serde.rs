@@ -13,8 +13,8 @@ where
     // We first parse as generic JSON value. This is necessary to consume parser input.
     // If we just tried parsing the desired type directly and ignored error, we would end up with
     // `trailing characters` error in non-trivial cases.
-    let json_value = serde_json::Value::deserialize(d)?;
-    serde_json::from_value(json_value).or_else(|_error| Ok(Ret::default()))
+    let raw_json = <&serde_json::value::RawValue>::deserialize(d)?;
+    serde_json::from_str(raw_json.get()).or_else(|_error| Ok(Ret::default()))
 }
 
 /// Deserialize a JSON value that is either of `Ret` type or equals `null`. A `null` is converted

@@ -52,6 +52,6 @@ spec =
             Bar.meh b 2 . should_equal 3
     Test.group "Fully Qualified Names" <|
         Test.specify "should be correctly resolved" <|
-            a = Standard.Base.Data.Array.Array.new 10
+            a = Standard.Base.Data.Vector.Vector.new 10 _->Nothing
             a.length . should_equal 10
             Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Error.to_text . should_equal "Report_Error"

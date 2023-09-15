@@ -1,8 +1,6 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
-import java.util.List;
+import org.enso.table.problems.AggregatedProblems;
 
 public class SimplifiedProblemAggregator implements ProblemAggregator {
 
@@ -24,7 +22,7 @@ public class SimplifiedProblemAggregator implements ProblemAggregator {
   }
 
   @Override
-  public List<Problem> getAggregatedProblems() {
+  public AggregatedProblems getAggregatedProblems() {
     throw new IllegalStateException("Problem aggregation is not available in this implementation.");
   }
 }

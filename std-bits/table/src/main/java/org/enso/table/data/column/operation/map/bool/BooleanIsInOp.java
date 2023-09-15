@@ -2,23 +2,24 @@ package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * A specialized implementation for the IS_IN operation on booleans - since booleans have just three
  * possible values we can have a highly efficient implementation that does not even rely on hashmap
  * and after processing the input vector, performs the checks in constant time.
  */
-public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
+public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   public BooleanIsInOp() {
     super(Storage.Maps.IS_IN);
   }
 
   @Override
-  public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -31,6 +32,7 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
     boolean hadTrue = false;
     boolean hadFalse = false;
 
+    Context context = Context.getCurrent();
     for (Object o : arg) {
       switch (o) {
         case Boolean b -> {
@@ -40,6 +42,8 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
         case null -> hadNull = true;
         default -> {}
       }
+
+      context.safepoint();
     }
 
     return run(storage, hadNull, hadTrue, hadFalse);

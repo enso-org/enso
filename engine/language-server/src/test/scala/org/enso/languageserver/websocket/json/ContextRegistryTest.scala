@@ -3,7 +3,7 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.languageserver.runtime.{
   TestComponentGroups,
-  VisualisationConfiguration
+  VisualizationConfiguration
 }
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
@@ -628,15 +628,15 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // attach visualisation
-      val visualisationId = UUID.randomUUID()
+      // attach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
         json.executionContextExecuteExpressionRequest(
           2,
-          visualisationId,
+          visualizationId,
           expressionId,
           config
         )
@@ -645,8 +645,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   _
                 )
@@ -657,7 +657,7 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationAttached()
+        Api.VisualizationAttached()
       )
       client.expectJson(json.ok(2))
     }
@@ -680,15 +680,15 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // attach visualisation
-      val visualisationId = UUID.randomUUID()
+      // attach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
         json.executionContextExecuteExpressionRequest(
           2,
-          visualisationId,
+          visualizationId,
           expressionId,
           config
         )
@@ -697,8 +697,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   _
                 )
@@ -709,17 +709,17 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.ModuleNotFound(config.visualisationModule)
+        Api.ModuleNotFound(config.visualizationModule)
       )
       client.expectJson(
         json.executionContextModuleNotFound(
           2,
-          config.visualisationModule
+          config.visualizationModule
         )
       )
     }
 
-    "successfully attach visualisation" in {
+    "successfully attach visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -737,15 +737,15 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // attach visualisation
-      val visualisationId = UUID.randomUUID()
+      // attach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextAttachVisualisationRequest(
+        json.executionContextAttachVisualizationRequest(
           2,
-          visualisationId,
+          visualizationId,
           expressionId,
           config
         )
@@ -754,8 +754,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   _
                 )
@@ -766,12 +766,12 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationAttached()
+        Api.VisualizationAttached()
       )
       client.expectJson(json.ok(2))
     }
 
-    "return ModuleNotFound error when attaching visualisation" in {
+    "return ModuleNotFound error when attaching visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -789,15 +789,15 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // attach visualisation
-      val visualisationId = UUID.randomUUID()
+      // attach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextAttachVisualisationRequest(
+        json.executionContextAttachVisualizationRequest(
           2,
-          visualisationId,
+          visualizationId,
           expressionId,
           config
         )
@@ -806,8 +806,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   _
                 )
@@ -818,17 +818,17 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.ModuleNotFound(config.visualisationModule)
+        Api.ModuleNotFound(config.visualizationModule)
       )
       client.expectJson(
         json.executionContextModuleNotFound(
           2,
-          config.visualisationModule
+          config.visualizationModule
         )
       )
     }
 
-    "return VisualisationExpressionFailed error when attaching visualisation" in {
+    "return VisualizationExpressionFailed error when attaching visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -846,16 +846,16 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // attach visualisation
-      val visualisationId = UUID.randomUUID()
+      // attach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       val expressionFailureMessage = "Method `to_json` could not be found."
       client.send(
-        json.executionContextAttachVisualisationRequest(
+        json.executionContextAttachVisualizationRequest(
           2,
-          visualisationId,
+          visualizationId,
           expressionId,
           config
         )
@@ -864,8 +864,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   _
                 )
@@ -876,17 +876,17 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationExpressionFailed(expressionFailureMessage, None)
+        Api.VisualizationExpressionFailed(expressionFailureMessage, None)
       )
       client.expectJson(
-        json.executionContextVisualisationExpressionFailed(
+        json.executionContextVisualizationExpressionFailed(
           2,
           expressionFailureMessage
         )
       )
     }
 
-    "successfully detach visualisation" in {
+    "successfully detach visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -904,14 +904,14 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // detach visualisation
-      val visualisationId = UUID.randomUUID()
+      // detach visualization
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       client.send(
-        json.executionContextDetachVisualisationRequest(
+        json.executionContextDetachVisualizationRequest(
           2,
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId
         )
       )
@@ -919,9 +919,9 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.DetachVisualisation(
+                Api.DetachVisualization(
                   `contextId`,
-                  `visualisationId`,
+                  `visualizationId`,
                   `expressionId`
                 )
               ) =>
@@ -931,12 +931,12 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationDetached()
+        Api.VisualizationDetached()
       )
       client.expectJson(json.ok(2))
     }
 
-    "successfully modify visualisation" in {
+    "successfully modify visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -954,14 +954,14 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // modify visualisation
-      val visualisationId = UUID.randomUUID()
+      // modify visualization
+      val visualizationId = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextModifyVisualisationRequest(
+        json.executionContextModifyVisualizationRequest(
           2,
-          visualisationId,
+          visualizationId,
           config
         )
       )
@@ -969,8 +969,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.ModifyVisualisation(
-                  `visualisationId`,
+                Api.ModifyVisualization(
+                  `visualizationId`,
                   _
                 )
               ) =>
@@ -980,12 +980,12 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationModified()
+        Api.VisualizationModified()
       )
       client.expectJson(json.ok(2))
     }
 
-    "return VisualisationNotFound error when modifying visualisation" in {
+    "return VisualizationNotFound error when modifying visualization" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -1003,14 +1003,14 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.executionContextCreateResponse(1, contextId))
 
-      // modify visualisation
-      val visualisationId = UUID.randomUUID()
+      // modify visualization
+      val visualizationId = UUID.randomUUID()
       val config =
-        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextModifyVisualisationRequest(
+        json.executionContextModifyVisualizationRequest(
           2,
-          visualisationId,
+          visualizationId,
           config
         )
       )
@@ -1018,8 +1018,8 @@ class ContextRegistryTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.ModifyVisualisation(
-                  `visualisationId`,
+                Api.ModifyVisualization(
+                  `visualizationId`,
                   _
                 )
               ) =>
@@ -1029,9 +1029,9 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualisationNotFound()
+        Api.VisualizationNotFound()
       )
-      client.expectJson(json.executionContextVisualisationNotFound(2))
+      client.expectJson(json.executionContextVisualizationNotFound(2))
     }
 
     "get component groups" in {

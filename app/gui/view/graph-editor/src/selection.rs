@@ -243,48 +243,63 @@ fn get_nodes_in_bounding_box(bounding_box: &BoundingBox, nodes: &Nodes) -> Vec<N
 /// Return an FRP endpoint that indicates the current selection mode. This method sets up the logic
 /// for deriving the selection mode from the graph editor FRP.
 pub fn get_mode(network: &frp::Network, editor: &crate::Frp) -> frp::stream::Stream<Mode> {
-    frp::extend! { network
-
-    let multi_select_flag = crate::enable_disable_toggle
-        ( network
-        , &editor.enable_node_multi_select
-        , &editor.disable_node_multi_select
-        , &editor.toggle_node_multi_select
-        );
-
-    let merge_select_flag = crate::enable_disable_toggle
-        ( network
-        , &editor.enable_node_merge_select
-        , &editor.disable_node_merge_select
-        , &editor.toggle_node_merge_select
-        );
-
-    let subtract_select_flag = crate::enable_disable_toggle
-        ( network
-        , &editor.enable_node_subtract_select
-        , &editor.disable_node_subtract_select
-        , &editor.toggle_node_subtract_select
-        );
-
-    let inverse_select_flag = crate::enable_disable_toggle
-        ( network
-        , &editor.enable_node_inverse_select
-        , &editor.disable_node_inverse_select
-        , &editor.toggle_node_inverse_select
-        );
-
-    selection_mode <- all_with4
-        (&multi_select_flag,&merge_select_flag,&subtract_select_flag,&inverse_select_flag,
-        |multi,merge,subtract,inverse| {
-            if      *multi    { Mode::Multi }
-            else if *merge    { Mode::Merge }
-            else if *subtract { Mode::Subtract }
-            else if *inverse  { Mode::Inverse }
-            else              { Mode::Normal }
-        }
+    let multi_select_flag = enable_disable_toggle(
+        network,
+        &editor.enable_node_multi_select,
+        &editor.disable_node_multi_select,
+        &editor.toggle_node_multi_select,
     );
+    let merge_select_flag = enable_disable_toggle(
+        network,
+        &editor.enable_node_merge_select,
+        &editor.disable_node_merge_select,
+        &editor.toggle_node_merge_select,
+    );
+    let subtract_select_flag = enable_disable_toggle(
+        network,
+        &editor.enable_node_subtract_select,
+        &editor.disable_node_subtract_select,
+        &editor.toggle_node_subtract_select,
+    );
+    let inverse_select_flag = enable_disable_toggle(
+        network,
+        &editor.enable_node_inverse_select,
+        &editor.disable_node_inverse_select,
+        &editor.toggle_node_inverse_select,
+    );
+
+    frp::extend! { network
+        selection_mode <- all_with4
+            (&multi_select_flag,&merge_select_flag,&subtract_select_flag,&inverse_select_flag,
+            |multi,merge,subtract,inverse| {
+                if      *multi    { Mode::Multi }
+                else if *merge    { Mode::Merge }
+                else if *subtract { Mode::Subtract }
+                else if *inverse  { Mode::Inverse }
+                else              { Mode::Normal }
+            }
+        );
     }
     selection_mode
+}
+
+/// Return the toggle status of the given enable/disable/toggle inputs as a stream of booleans.
+fn enable_disable_toggle(
+    network: &frp::Network,
+    enable: &frp::Any,
+    disable: &frp::Any,
+    toggle: &frp::Any,
+) -> frp::Stream<bool> {
+    frp::extend! { network
+        out <- any(...);
+        let on_toggle = network.map2("on_toggle", toggle, &out, |_,t| !t);
+        let on_enable = network.to_true("on_enable", enable);
+        let on_disable = network.to_false("on_disable", disable);
+        out <+ on_toggle;
+        out <+ on_enable;
+        out <+ on_disable;
+    }
+    out.into()
 }
 
 
@@ -296,7 +311,7 @@ pub fn get_mode(network: &frp::Network, editor: &crate::Frp) -> frp::stream::Str
 /// Selection Controller that handles the logic for selecting and deselecting nodes in the graph
 /// editor.
 #[derive(Debug, Clone, CloneRef)]
-pub struct Controller {
+pub(super) struct Controller {
     network:                frp::Network,
     cursor_selection_nodes: node_set::Set,
 
@@ -307,7 +322,7 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new(
+    pub(super) fn new(
         editor: &crate::Frp,
         cursor: &Cursor,
         mouse: &frp::io::Mouse_DEPRECATED,
@@ -415,7 +430,7 @@ impl Controller {
 
             // ===  Single Node Selection Box & Mouse IO ===
 
-            should_not_select       <- edit_mode || editor.output.some_edge_endpoints_unset;
+            should_not_select       <- edit_mode || editor.output.has_detached_edge;
             node_to_select_non_edit <- touch.nodes.selected.gate_not(&should_not_select);
             node_to_select_edit     <- touch.nodes.down.gate(&edit_mode);
             node_to_select          <- any(node_to_select_non_edit,

@@ -60,7 +60,8 @@ node_modules/
 !.idea
 .idea/*
 !.idea/runConfigurations/
-.vscode/
+!.vscode
+.vscode/*
 .metals/
 *.swp
 .projections.json
@@ -68,6 +69,7 @@ node_modules/
 *.iml
 .enso-sources*
 .metals
+tools/performance/engine-benchmarks/generated_site
 
 ############################
 ## Rendered Documentation ##

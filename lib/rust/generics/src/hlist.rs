@@ -1,6 +1,23 @@
-//! HList provides many operations to create and manipulate heterogenous lists (HLists) whose length
-//! and element types are known at compile-time. HLists can be used to implement records, variants,
-//! type-indexed products (TIP), type-indexed co-products (TIC), or keyword arguments.
+//! [`HList`] provides many operations to create and manipulate heterogenous lists whose length
+//! and element types are known at compile-time. [`HLists`] can be used to implement records,
+//! variants, type-indexed products (TIP), type-indexed co-products (TIC), or keyword arguments.
+//!
+//! Each [`HList`] is encoded using [`Cons`] and [`Nil`]. For example, a two-element [`HList`] can
+//! be encoded as `Cons(A,Cons(B,Nil))`. You can use the provided [`new`], [`pat`] and [`ty`] macros
+//! to easily work with HLists, for example:  
+//! ```text
+//! let HList::pat![t1, t2] : HList::ty![&str, usize] = HList::new!["hello", 7];
+//! ```
+
+
+
+/// Common traits for [`HList`] operations.
+pub mod traits {
+    pub use super::AsHList as _TRAIT_AsHList;
+    pub use super::AsHListMut as _TRAIT_AsHListMut;
+    pub use super::HasHListRepr as _TRAIT_HasRepr;
+    pub use super::IntoHList as _TRAIT_IntoHList;
+}
 
 
 
@@ -9,14 +26,14 @@
 // =============
 
 /// Type of every `HList`.
-pub trait HList = HasLength;
+pub trait HList = crate::HasFieldCount;
 
 /// Empty `HList` value.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Nil;
 
 /// Non-empty `HList` with head and tail.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Cons<Head, Tail>(pub Head, pub Tail);
 
@@ -33,8 +50,8 @@ pub struct Cons<Head, Tail>(pub Head, pub Tail);
 #[macro_export]
 macro_rules! new {
     ($(,)*) => { $crate::Nil };
-    ($t:expr $(,$($ts:expr),*)?) => {
-        $crate::Cons($t,$crate::new!{$($($ts),*)?})
+    ($t:expr $(,$ts:expr)* $(,)?) => {
+        $crate::Cons($t, $crate::new!{ $($ts),* })
     }
 }
 
@@ -42,8 +59,8 @@ macro_rules! new {
 #[macro_export]
 macro_rules! pat {
     ($(,)*) => { $crate::Nil };
-    ($t:pat $(,$($ts:pat),*)?) => {
-        $crate::Cons($t,$crate::pat!{$($($ts),*)?})
+    ($t:pat $(,$ts:pat)* $(,)?) => {
+        $crate::Cons($t, $crate::pat!{ $($ts),* })
     }
 }
 
@@ -51,341 +68,81 @@ macro_rules! pat {
 #[macro_export]
 macro_rules! ty {
     ($(,)*) => { $crate::Nil };
-    ($t:ty $(,$($ts:ty),*)?) => {
-        $crate::Cons<$t,$crate::ty!{$($($ts),*)?}>
+    ($t:ty $(,$ts:ty)* $(,)?) => {
+        $crate::Cons<$t, $crate::ty!{ $($ts),* }>
     }
 }
 
 
 
-// ==============
-// === Length ===
-// ==============
+// ====================
+// === HasHListRepr ===
+// ====================
 
-/// Compile-time known length value.
+/// A generic representation of the given type. This is a [`HList`] representation of all struct
+/// fields.
 #[allow(missing_docs)]
-pub trait HasLength {
-    const LEN: usize;
-    fn len() -> usize {
-        Self::LEN
-    }
+pub trait HasHListRepr {
+    type HListRepr: HList;
 }
 
-/// Compile-time known length value.
-pub const fn len<T: HasLength>() -> usize {
-    <T as HasLength>::LEN
-}
-
-impl HasLength for Nil {
-    const LEN: usize = 0;
-}
-impl<H, T: HasLength> HasLength for Cons<H, T> {
-    const LEN: usize = 1 + len::<T>();
-}
-
-
-
-// ============
-// === Head ===
-// ============
-
-/// Head element accessor.
-#[allow(missing_docs)]
-pub trait KnownHead {
-    type Head;
-}
-
-/// Head element type accessor.
-pub type Head<T> = <T as KnownHead>::Head;
-
-/// Head element accessor.
-#[allow(missing_docs)]
-pub trait GetHead: KnownHead {
-    fn head(&self) -> &Self::Head;
-}
-
-/// Mutable head element accessor.
-#[allow(missing_docs)]
-pub trait GetHeadMut: KnownHead {
-    fn head_mut(&mut self) -> &mut Self::Head;
-}
-
-/// Head element clone.
-#[allow(missing_docs)]
-pub trait GetHeadClone: KnownHead {
-    fn head_clone(&self) -> Self::Head;
-}
-
-impl<T> GetHeadClone for T
-where
-    T: GetHead,
-    Head<T>: Clone,
+impl<'t, 's, T> HasHListRepr for &'t &'s T
+where &'s T: HasHListRepr
 {
-    default fn head_clone(&self) -> Self::Head {
-        self.head().clone()
-    }
+    type HListRepr = <&'s T as HasHListRepr>::HListRepr;
 }
 
-
-// === Impls ===
-
-impl<H, T> KnownHead for Cons<H, T> {
-    type Head = H;
-}
-
-impl<H, T> GetHead for Cons<H, T> {
-    fn head(&self) -> &Self::Head {
-        &self.0
-    }
-}
-
-impl<H, T> GetHeadMut for Cons<H, T> {
-    fn head_mut(&mut self) -> &mut Self::Head {
-        &mut self.0
-    }
-}
+/// A generic representation of the given type. This is a [`HList`] representation of all struct
+/// fields.
+pub type HListRepr<T> = <T as HasHListRepr>::HListRepr;
 
 
 
-// ============
-// === Tail ===
-// ============
+// =================
+// === IntoHList ===
+// =================
 
-/// Tail element accessor.
+/// Converts the struct into its generic representation. Please note that this trait is implemented
+/// automatically for every type which implements `Into<HListRepr<Self>>`.
 #[allow(missing_docs)]
-pub trait KnownTail {
-    type Tail;
-}
-
-/// Tail element type accessor.
-pub type Tail<T> = <T as KnownTail>::Tail;
-
-/// Tail element accessor.
-#[allow(missing_docs)]
-pub trait GetTail: KnownTail {
-    fn tail(&self) -> &Self::Tail;
-}
-
-/// Mutable tail element accessor.
-#[allow(missing_docs)]
-pub trait GetTailMut: KnownTail {
-    fn tail_mut(&mut self) -> &mut Self::Tail;
-}
-
-/// Tail element clone.
-#[allow(missing_docs)]
-pub trait GetTailClone: KnownTail {
-    fn tail_clone(&self) -> Self::Tail;
-}
-
-impl<T> GetTailClone for T
-where
-    T: GetTail,
-    Tail<T>: Clone,
-{
-    default fn tail_clone(&self) -> Self::Tail {
-        self.tail().clone()
-    }
-}
-
-
-// === Impls ===
-
-impl<H, T> KnownTail for Cons<H, T> {
-    type Tail = T;
-}
-
-impl<H, T> GetTail for Cons<H, T> {
-    fn tail(&self) -> &Self::Tail {
-        &self.1
-    }
-}
-
-impl<H, T> GetTailMut for Cons<H, T> {
-    fn tail_mut(&mut self) -> &mut Self::Tail {
-        &mut self.1
-    }
-}
-
-
-
-// ============
-// === Last ===
-// ============
-
-/// Last element accessor.
-#[allow(missing_docs)]
-pub trait KnownLast {
-    type Last;
-}
-
-/// Last element type accessor.
-pub type Last<T> = <T as KnownLast>::Last;
-
-/// Last element accessor.
-#[allow(missing_docs)]
-pub trait GetLast: KnownLast {
-    fn last(&self) -> &Self::Last;
-}
-
-/// Mutable last element accessor.
-#[allow(missing_docs)]
-pub trait GetLastMut: KnownLast {
-    fn last_mut(&mut self) -> &mut Self::Last;
-}
-
-/// Last element clone.
-#[allow(missing_docs)]
-pub trait GetLastClone: KnownLast {
-    fn last_clone(&self) -> Self::Last;
-}
-
-impl<T> GetLastClone for T
-where
-    T: GetLast,
-    Last<T>: Clone,
-{
-    default fn last_clone(&self) -> Self::Last {
-        self.last().clone()
-    }
-}
-
-
-// === Impls ===
-
-impl<H> KnownLast for Cons<H, Nil> {
-    type Last = H;
-}
-impl<H, T: KnownLast> KnownLast for Cons<H, T> {
-    type Last = Last<T>;
-}
-
-impl<H> GetLast for Cons<H, Nil> {
-    fn last(&self) -> &Self::Last {
-        &self.0
-    }
-}
-
-impl<H> GetLastMut for Cons<H, Nil> {
-    fn last_mut(&mut self) -> &mut Self::Last {
-        &mut self.0
-    }
-}
-
-impl<H, T: GetLast> GetLast for Cons<H, T> {
-    fn last(&self) -> &Self::Last {
-        self.tail().last()
-    }
-}
-
-impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
-    fn last_mut(&mut self) -> &mut Self::Last {
-        self.tail_mut().last_mut()
-    }
-}
-
-
-
-// ============
-// === Init ===
-// ============
-
-/// Init elements accessor (all but last).
-#[allow(missing_docs)]
-pub trait KnownInit {
-    type Init;
-}
-
-/// Init elements type accessor.
-pub type Init<T> = <T as KnownInit>::Init;
-
-/// Init element clone.
-#[allow(missing_docs)]
-pub trait GetInitClone: KnownInit {
-    fn init_clone(&self) -> Self::Init;
-}
-
-
-// === Impls ===
-
-impl<H> KnownInit for Cons<H, Nil> {
-    type Init = Nil;
-}
-impl<H, T: KnownInit> KnownInit for Cons<H, T> {
-    type Init = Cons<H, Init<T>>;
-}
-
-impl<H> GetInitClone for Cons<H, Nil> {
-    fn init_clone(&self) -> Self::Init {
-        Nil
-    }
-}
-
-impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
-    fn init_clone(&self) -> Self::Init {
-        Cons(self.head().clone(), self.tail().init_clone())
-    }
-}
-
-
-
-// ================
-// === PushBack ===
-// ================
-
-// TODO: Consider implementing PushBack for everything that converts to and from HList.
-
-/// Add a new element to the back of the list.
-#[allow(missing_docs)]
-pub trait PushBack<T>: Sized {
-    type Output: KnownLast<Last = T> + KnownInit<Init = Self>;
-    fn push_back(self, t: T) -> Self::Output;
-}
-
-impl<X> PushBack<X> for Nil {
-    type Output = Cons<X, Nil>;
+pub trait IntoHList: HasHListRepr + Into<HListRepr<Self>> {
     #[inline(always)]
-    fn push_back(self, x: X) -> Self::Output {
-        Cons(x, Nil)
+    fn into_hlist(self) -> HListRepr<Self> {
+        self.into()
     }
 }
-
-impl<X, H, T> PushBack<X> for Cons<H, T>
-where T: PushBack<X>
-{
-    type Output = Cons<H, <T as PushBack<X>>::Output>;
-    #[inline(always)]
-    fn push_back(self, x: X) -> Self::Output {
-        let Cons(head, tail) = self;
-        Cons(head, tail.push_back(x))
-    }
-}
+impl<T: HasHListRepr + Into<HListRepr<T>>> IntoHList for T {}
 
 
 
 // ===============
-// === PopBack ===
+// === AsHList ===
 // ===============
 
-// TODO: Consider implementing PopBack for everything that converts to and from HList.
-
-/// Remove the last element of the list and return it and the new list.
+/// Converts the struct to a [`HList`] containing references to all struct fields.
 #[allow(missing_docs)]
-pub trait PopBack: KnownLast + KnownInit {
-    fn pop_back(self) -> (Self::Last, Self::Init);
-}
-
-impl<H> PopBack for Cons<H, Nil> {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.0, Nil)
+pub trait AsHList
+where for<'t> &'t Self: HasHListRepr + Into<HListRepr<&'t Self>> {
+    #[inline(always)]
+    fn as_hlist(&self) -> HListRepr<&Self> {
+        self.into()
     }
 }
+impl<T> AsHList for T where for<'t> &'t T: HasHListRepr + Into<HListRepr<&'t T>> {}
 
-impl<H, T> PopBack for Cons<H, T>
-where T: PopBack
-{
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        let (last, tail) = self.1.pop_back();
-        (last, Cons(self.0, tail))
+
+
+// ==================
+// === AsHListMut ===
+// ==================
+
+/// Converts the struct to a [`HList`] containing mutable references to all struct fields.
+#[allow(missing_docs)]
+pub trait AsHListMut
+where for<'t> &'t mut Self: HasHListRepr + Into<HListRepr<&'t mut Self>> {
+    #[inline(always)]
+    fn as_hlist_mut(&mut self) -> HListRepr<&mut Self> {
+        self.into()
     }
 }
+impl<T> AsHListMut for T where for<'t> &'t mut T: HasHListRepr + Into<HListRepr<&'t mut T>> {}

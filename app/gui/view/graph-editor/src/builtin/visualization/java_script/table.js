@@ -1,7 +1,6 @@
 /** Table visualization. */
-loadScript('https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js')
-// Use the following line instead of the above one to use the enterprise version of ag-grid.
-// loadScript('https://cdn.jsdelivr.net/npm/ag-grid-enterprise@29.1.0/dist/ag-grid-enterprise.min.js')
+
+loadScript('https://cdn.jsdelivr.net/npm/ag-grid-enterprise/dist/ag-grid-enterprise.min.js')
 
 // ============================
 // === Style Initialisation ===
@@ -91,6 +90,11 @@ class TableVisualization extends Visualization {
             return content
         }
 
+        function escapeHTML(str) {
+            const mapping = { '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#39;', '>': '&gt;' }
+            return str.replace(/[&<>"']/g, m => mapping[m])
+        }
+
         function cellRenderer(params) {
             if (params.value === null) {
                 return '<span style="color:grey; font-style: italic;">Nothing</span>'
@@ -99,7 +103,7 @@ class TableVisualization extends Visualization {
             } else if (params.value === '') {
                 return '<span style="color:grey; font-style: italic;">Empty</span>'
             }
-            return params.value.toString()
+            return escapeHTML(params.value.toString())
         }
 
         if (!this.tabElem) {
@@ -146,7 +150,15 @@ class TableVisualization extends Visualization {
                     cellRenderer: cellRenderer,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
+                suppressFieldDotNotation: true,
             }
+
+            if (typeof AG_GRID_LICENSE_KEY !== 'undefined') {
+                agGrid.LicenseManager.setLicenseKey(AG_GRID_LICENSE_KEY)
+            } else {
+                console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+            }
+
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
 

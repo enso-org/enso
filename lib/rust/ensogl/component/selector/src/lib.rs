@@ -72,33 +72,23 @@ pub use crate::frp::*;
 /// background that corresponds to the value relative in the range, for example, 0.0 would be not
 /// filled in, 128.0 would be about halfway filled in, and 128.0 would be completely filled in.
 /// The value can be changed by clicking and dragging on the shape.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct NumberPicker {
     /// Public FRP api of the Component.
     pub frp: Rc<number::Frp>,
+    #[display_object]
     model:   Rc<Model>,
-    /// Reference to the application the Component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// `Component`.
-    pub app: Application,
 }
 
 impl NumberPicker {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = number::Frp::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        frp.init(&app, &model, &style);
+        frp.init(app, &model, &style);
         let frp = Rc::new(frp);
-        Self { frp, model, app }
-    }
-}
-
-impl display::Object for NumberPicker {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
+        Self { frp, model }
     }
 }
 
@@ -119,11 +109,9 @@ impl application::View for NumberPicker {
     fn label() -> &'static str {
         "NumberPicker"
     }
+
     fn new(app: &Application) -> Self {
         NumberPicker::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.app
     }
 }
 
@@ -142,33 +130,23 @@ impl application::View for NumberPicker {
 /// would show the track covering the right half of the background. The selected range can be
 /// changed by clicking and dragging the track, which changes the whole range, but preserves the
 /// width, or the individual edges of the track which changes just the respective end of the range.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct NumberRangePicker {
     /// Public FRP api of the Component.
     pub frp: Rc<range::Frp>,
+    #[display_object]
     model:   Rc<Model>,
-    /// Reference to the application the Component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// `Component`.
-    pub app: Application,
 }
 
 impl NumberRangePicker {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = range::Frp::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        frp.init(&app, &model, &style);
+        frp.init(app, &model, &style);
         let frp = Rc::new(frp);
-        Self { frp, model, app }
-    }
-}
-
-impl display::Object for NumberRangePicker {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
+        Self { frp, model }
     }
 }
 
@@ -189,10 +167,8 @@ impl application::View for NumberRangePicker {
     fn label() -> &'static str {
         "RangePicker"
     }
+
     fn new(app: &Application) -> Self {
         NumberRangePicker::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.app
     }
 }

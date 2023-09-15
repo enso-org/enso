@@ -48,10 +48,11 @@ pub struct Params {
 /// display object for compatibility with `GridView`. The `dummy_root` is not used for
 /// displaying anything, all that is visible is the `text` element, which is updates through
 /// the FRP.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     // Needed to provide a dummy display object for the `display::Object` trait. Not used, as the
     // text element is created as HTML Element and positioned manually in `set_position_and_size`.
+    #[display_object]
     dummy_root: display::object::Instance,
     text:       Rc<web::HtmlDivElement>,
     frp:        Rc<EntryFrp<Self>>,
@@ -84,12 +85,6 @@ impl Entry {
         write!(style, "line-height: 1").ok();
 
         self.text.set_attribute_or_warn("style", style);
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.dummy_root
     }
 }
 

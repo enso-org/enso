@@ -1,12 +1,13 @@
 from Standard.Base import all
+
 from Standard.Table import Table
 
 polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-polyglot java import com.google.api.services.sheets.v4.SheetsScopes
-polyglot java import java.util.Collections
 polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 polyglot java import com.google.api.client.json.gson.GsonFactory
 polyglot java import com.google.api.services.sheets.v4.Sheets
+polyglot java import com.google.api.services.sheets.v4.SheetsScopes
+polyglot java import java.util.Collections
 
 ## PRIVATE
 type Google_Api_Client

@@ -31,39 +31,45 @@ object ProjectManagementApi {
 
     case class Result(projectId: UUID, projectName: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectCreate.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectCreate.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectCreate.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ProjectCreate.Result
-    }
+    implicit val hasResult: HasResult.Aux[this.type, ProjectCreate.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectCreate.Result
+      }
   }
 
   case object ProjectDelete extends Method("project/delete") {
 
     case class Params(projectId: UUID)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectDelete.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectDelete.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectDelete.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ProjectRename extends Method("project/rename") {
 
     case class Params(projectId: UUID, name: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectRename.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectRename.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectRename.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ProjectOpen extends Method("project/open") {
@@ -78,29 +84,34 @@ object ProjectManagementApi {
       languageServerJsonAddress: Socket,
       languageServerBinaryAddress: Socket,
       projectName: String,
+      projectNormalizedName: String,
       projectNamespace: String
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectOpen.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectOpen.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectOpen.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ProjectOpen.Result
-    }
+    implicit val hasResult: HasResult.Aux[this.type, ProjectOpen.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectOpen.Result
+      }
   }
 
   case object ProjectClose extends Method("project/close") {
 
     case class Params(projectId: UUID)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectClose.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectClose.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectClose.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ProjectList extends Method("project/list") {
@@ -109,65 +120,77 @@ object ProjectManagementApi {
 
     case class Result(projects: List[ProjectMetadata])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectList.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectList.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectList.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ProjectList.Result
-    }
+    implicit val hasResult: HasResult.Aux[this.type, ProjectList.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectList.Result
+      }
   }
 
   case object EngineListInstalled extends Method("engine/list-installed") {
 
     case class Result(versions: Seq[EngineVersion])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = EngineListInstalled.Result
-    }
+    implicit val hasResult
+      : HasResult.Aux[this.type, EngineListInstalled.Result] =
+      new HasResult[this.type] {
+        type Result = EngineListInstalled.Result
+      }
   }
 
   case object EngineListAvailable extends Method("engine/list-available") {
 
     case class Result(versions: Seq[EngineVersion])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = EngineListAvailable.Result
-    }
+    implicit val hasResult
+      : HasResult.Aux[this.type, EngineListAvailable.Result] =
+      new HasResult[this.type] {
+        type Result = EngineListAvailable.Result
+      }
   }
 
   case object EngineInstall extends Method("engine/install") {
 
     case class Params(version: SemVer, forceInstallBroken: Option[Boolean])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = EngineInstall.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, EngineInstall.Params] =
+      new HasParams[this.type] {
+        type Params = EngineInstall.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object EngineUninstall extends Method("engine/uninstall") {
 
     case class Params(version: SemVer)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = EngineUninstall.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, EngineUninstall.Params] =
+      new HasParams[this.type] {
+        type Params = EngineUninstall.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ConfigGet extends Method("global-config/get") {
@@ -176,39 +199,45 @@ object ProjectManagementApi {
 
     case class Result(value: Option[String])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ConfigGet.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ConfigGet.Params] =
+      new HasParams[this.type] {
+        type Params = ConfigGet.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ConfigGet.Result
-    }
+    implicit val hasResult: HasResult.Aux[this.type, ConfigGet.Result] =
+      new HasResult[this.type] {
+        type Result = ConfigGet.Result
+      }
   }
 
   case object ConfigSet extends Method("global-config/set") {
 
     case class Params(key: String, value: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ConfigSet.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ConfigSet.Params] =
+      new HasParams[this.type] {
+        type Params = ConfigSet.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ConfigDelete extends Method("global-config/delete") {
 
     case class Params(key: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ConfigDelete.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ConfigDelete.Params] =
+      new HasParams[this.type] {
+        type Params = ConfigDelete.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object LoggingServiceGetEndpoint
@@ -216,24 +245,29 @@ object ProjectManagementApi {
 
     case class Result(uri: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = LoggingServiceGetEndpoint.Result
-    }
+    implicit val hasResult
+      : HasResult.Aux[this.type, LoggingServiceGetEndpoint.Result] =
+      new HasResult[this.type] {
+        type Result = LoggingServiceGetEndpoint.Result
+      }
   }
 
   case class MissingComponentError(msg: String) extends Error(4020, msg)
 
   case class BrokenComponentError(msg: String) extends Error(4021, msg)
 
-  case class ProjectManagerUpgradeRequired(minimumRequiredVersion: SemVer)
-      extends Error(
+  case class ProjectManagerUpgradeRequired(
+    currentVersion: SemVer,
+    minimumRequiredVersion: SemVer
+  ) extends Error(
         4022,
         s"Project manager $minimumRequiredVersion is required to install the " +
-        s"requested engine. Please upgrade."
+        s"requested engine. Current version is $currentVersion. Please upgrade."
       ) {
 
     /** Additional payload that can be used to get the version string of the

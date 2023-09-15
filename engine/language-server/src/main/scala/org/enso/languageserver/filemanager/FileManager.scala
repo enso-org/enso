@@ -52,21 +52,47 @@ class FileManager(
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {
-          file <- resolvePath(path)
-          _    <- fs.write(file, content)
-        } yield ()
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.write(file, content)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
-      ()
+
+    case FileManagerProtocol.WriteFileIfNotModified(
+          path,
+          lastRecordedModifiedTime,
+          content
+        ) =>
+      val isModified =
+        for {
+          file  <- resolvePath(path)
+          attrs <- fs.info(file)
+        } yield attrs.lastModifiedTime.isAfter(lastRecordedModifiedTime)
+      val write =
+        for {
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.write(file, content)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
+      val result = ZIO.unlessZIO(isModified)(write)
+      exec
+        .execTimed(config.timeout, result)
+        .map(FileManagerProtocol.WriteFileIfNotModifiedResult)
+        .pipeTo(sender())
 
     case FileManagerProtocol.WriteBinaryFile(path, contents) =>
       val result =
         for {
-          file <- resolvePath(path)
-          _    <- fs.writeBinary(file, contents)
-        } yield ()
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.writeBinary(file, contents)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
@@ -110,6 +136,22 @@ class FileManager(
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ReadBinaryFileResult)
+        .pipeTo(sender())
+
+    case FileManagerProtocol.ReadFileWithAttributes(path) =>
+      val result =
+        for {
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          content <- fs.read(file)
+          attrs   <- fs.info(file)
+        } yield (
+          FileManagerProtocol.TextualFileContent(file, content),
+          FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
+        )
+      exec
+        .execTimed(config.timeout, result)
+        .map(FileManagerProtocol.ReadFileWithAttributesResult)
         .pipeTo(sender())
 
     case FileManagerProtocol.CreateFile(FileSystemObject.File(name, path)) =>

@@ -2,8 +2,7 @@ import project.Data.Locale.Locale
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 type Text_Ordering
     ## Specifies the ordering of text values.
@@ -38,6 +37,7 @@ type Text_Ordering
        Arguments:
        - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
          this to `True` results in a "Natural" ordering.
+    @locale Locale.default_widget
     Case_Insensitive (locale:Locale=Locale.default) (sort_digits_as_numbers:Boolean=False)
 
     ## PRIVATE

@@ -1,9 +1,10 @@
 package org.enso.interpreter.dsl.test;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import static org.junit.Assert.assertNotNull;
 
 @BuiltinMethod(type = "InliningBuiltins", name = "need_not", inlineable = true)
 final class InliningBuiltinsNeedNotNode extends Node {

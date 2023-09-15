@@ -1,11 +1,11 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
-
-import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /**
  * Aggregate Column counting the number of (non-)empty entries in a group. If `isEmpty` is true,
@@ -30,6 +30,7 @@ public class CountEmpty extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     int count = 0;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
@@ -39,6 +40,8 @@ public class CountEmpty extends Aggregator {
       }
 
       count += ((value == null || ((String) value).length() == 0) == isEmpty ? 1 : 0);
+
+      context.safepoint();
     }
     return count;
   }

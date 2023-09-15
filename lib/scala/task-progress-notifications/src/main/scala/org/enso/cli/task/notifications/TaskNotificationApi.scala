@@ -15,9 +15,10 @@ object TaskNotificationApi {
       total: Option[Long]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = TaskStarted.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, TaskStarted.Params] =
+      new HasParams[this.type] {
+        type Params = TaskStarted.Params
+      }
   }
 
   case object TaskProgressUpdate extends Method("task/progress-update") {
@@ -28,9 +29,11 @@ object TaskNotificationApi {
       done: Long
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = TaskProgressUpdate.Params
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, TaskProgressUpdate.Params] =
+      new HasParams[this.type] {
+        type Params = TaskProgressUpdate.Params
+      }
   }
 
   case object TaskFinished extends Method("task/finished") {
@@ -41,8 +44,9 @@ object TaskNotificationApi {
       success: Boolean
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = TaskFinished.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, TaskFinished.Params] =
+      new HasParams[this.type] {
+        type Params = TaskFinished.Params
+      }
   }
 }

@@ -8,6 +8,7 @@ import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload
 }
+import org.enso.languageserver.util.binary.BinaryDecoder
 import org.enso.languageserver.websocket.binary.factory.{
   InboundMessageFactory,
   SessionInitFactory
@@ -16,7 +17,8 @@ import org.enso.testkit.FlakySpec
 
 class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
 
-  implicit private val decoder = OutboundMessageDecoder
+  implicit private val decoder: BinaryDecoder[OutboundMessage] =
+    OutboundMessageDecoder
 
   "Session Init cmd" must {
 

@@ -2,10 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::component;
+use crate::model::suggestion_database;
 
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
+use ensogl_icons::icon;
 use model::suggestion_database::Entry;
 
 
@@ -16,7 +17,8 @@ use model::suggestion_database::Entry;
 
 /// A controller that keeps the path of entered modules in the Searcher and provides the
 /// functionality of the breadcrumbs panel. The integration between the
-/// controller and the view is done by the [searcher presenter](crate::presenter::searcher).
+/// controller and the view is done by the [searcher
+/// presenter](crate::presenter::component_browser_searcher).
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
     list:     Rc<RefCell<Vec<BreadcrumbEntry>>>,
@@ -31,9 +33,11 @@ impl Breadcrumbs {
 
     /// Set the list of breadcrumbs to be displayed in the breadcrumbs panel.
     pub fn set_content(&self, breadcrumbs: impl Iterator<Item = BreadcrumbEntry>) {
+        let breadcrumbs: Vec<_> = breadcrumbs.collect();
         let mut borrowed = self.list.borrow_mut();
-        *borrowed = breadcrumbs.collect();
-        self.select(borrowed.len());
+        *borrowed = breadcrumbs;
+        let len = borrowed.len();
+        self.select(len.saturating_sub(1));
     }
 
     /// A list of breadcrumbs' text labels to be displayed in the panel.
@@ -42,7 +46,7 @@ impl Breadcrumbs {
     }
 
     /// The last (right-most) breadcrumb in the list.
-    pub fn last(&self) -> Option<component::Id> {
+    pub fn last(&self) -> Option<suggestion_database::entry::Id> {
         self.list.borrow().last().map(BreadcrumbEntry::id)
     }
 
@@ -58,13 +62,9 @@ impl Breadcrumbs {
 
     /// Returns a currently selected breadcrumb id. Returns [`None`] if the top level breadcrumb
     /// is selected.
-    pub fn selected(&self) -> Option<component::Id> {
-        if self.is_top_module() {
-            None
-        } else {
-            let index = self.selected.get();
-            self.list.borrow().get(index - 1).map(BreadcrumbEntry::id)
-        }
+    pub fn selected(&self) -> Option<suggestion_database::entry::Id> {
+        let index = self.selected.get();
+        self.list.borrow().get(index).map(BreadcrumbEntry::id)
     }
 }
 
@@ -78,8 +78,9 @@ impl Breadcrumbs {
 #[derive(Debug, Clone)]
 pub struct BreadcrumbEntry {
     displayed_name: ImString,
-    component_id:   component::Id,
+    component_id:   suggestion_database::entry::Id,
     qualified_name: QualifiedName,
+    icon:           Option<icon::Id>,
 }
 
 impl BreadcrumbEntry {
@@ -89,7 +90,7 @@ impl BreadcrumbEntry {
     }
 
     /// A component id of the entry.
-    pub fn id(&self) -> component::Id {
+    pub fn id(&self) -> suggestion_database::entry::Id {
         self.component_id
     }
 
@@ -97,16 +98,31 @@ impl BreadcrumbEntry {
     pub fn qualified_name(&self) -> &QualifiedName {
         &self.qualified_name
     }
-}
 
-impl From<(component::Id, Rc<Entry>)> for BreadcrumbEntry {
-    fn from((component_id, entry): (component::Id, Rc<Entry>)) -> Self {
-        let qualified_name = entry.qualified_name();
-        let displayed_name = ImString::new(&entry.name);
-        BreadcrumbEntry { displayed_name, component_id, qualified_name }
+    /// An icon of the entry.
+    pub fn icon(&self) -> Option<icon::Id> {
+        self.icon
+    }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name and icon.
+    pub fn view_without_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), None)
+    }
+
+    /// Return a [`ensogl_breadcrumbs::Breadcrumb`] with the entries name but no icon.
+    pub fn view_with_icon(&self) -> ensogl_breadcrumbs::Breadcrumb {
+        ensogl_breadcrumbs::Breadcrumb::new(self.name().as_str(), self.icon())
     }
 }
 
+impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
+    fn from((component_id, entry): (suggestion_database::entry::Id, Rc<Entry>)) -> Self {
+        let qualified_name = entry.qualified_name();
+        let displayed_name = entry.name.clone();
+        let icon = Some(entry.as_ref().icon());
+        BreadcrumbEntry { displayed_name, component_id, qualified_name, icon }
+    }
+}
 
 
 // ===============
@@ -117,14 +133,13 @@ impl From<(component::Id, Rc<Entry>)> for BreadcrumbEntry {
 /// new breadcrumb to the panel.
 #[derive(Debug)]
 pub struct Builder<'a> {
-    database:   &'a model::SuggestionDatabase,
-    components: component::List,
+    database: &'a model::SuggestionDatabase,
 }
 
 impl<'a> Builder<'a> {
     /// Constructor.
-    pub fn new(database: &'a model::SuggestionDatabase, components: component::List) -> Self {
-        Self { database, components }
+    pub fn new(database: &'a model::SuggestionDatabase) -> Self {
+        Self { database }
     }
 
     /// Build a list of breadcrumbs for a specified module. The list will contain:
@@ -134,37 +149,36 @@ impl<'a> Builder<'a> {
     ///
     /// Returns an empty vector if the [`module`] is not found in the database or in the
     /// components list.
-    pub fn build(self, module: &component::Id) -> Box<dyn Iterator<Item = BreadcrumbEntry>> {
-        let Some((module_name, entry)) = self.module_name_and_entry(module) else {
-            return Box::new(iter::empty());
-        };
-        let project_name = module_name.project();
-        let main_module_name = QualifiedName::new_main(project_name.clone_ref());
-        let main_module = self.lookup(&main_module_name);
-        let to_main_module_entry = |entry: (component::Id, Rc<Entry>)| BreadcrumbEntry {
-            displayed_name: String::from(project_name.project.clone_ref()).into(),
-            ..entry.into()
-        };
-        let main_module = main_module.map(to_main_module_entry).into_iter();
-        let parents = self.collect_parents(&module_name);
-        let iter = iter::once(entry).chain(parents).chain(main_module).rev();
-        Box::new(iter)
-    }
-
-    fn module_name_and_entry(
-        &self,
-        module: &component::Id,
-    ) -> Option<(Rc<QualifiedName>, BreadcrumbEntry)> {
-        let module_name = self.components.module_qualified_name(*module)?;
-        let entry = BreadcrumbEntry::from(self.lookup(&*module_name)?);
-        Some((module_name, entry))
+    pub fn build(
+        self,
+        module: suggestion_database::entry::Id,
+    ) -> impl Iterator<Item = BreadcrumbEntry> {
+        self.database
+            .lookup(module)
+            .map(|db_entry| {
+                let project_name = db_entry.defined_in.project();
+                let main_module_name = QualifiedName::new_main(project_name.clone_ref());
+                let main_module = self.lookup(&main_module_name);
+                let main_module_entry =
+                    main_module.map(|entry: (suggestion_database::entry::Id, Rc<Entry>)| {
+                        BreadcrumbEntry {
+                            displayed_name: project_name.project.clone_ref(),
+                            ..entry.into()
+                        }
+                    });
+                let parents = self.collect_parents(&db_entry.defined_in);
+                let entry = BreadcrumbEntry::from((module, db_entry));
+                iter::once(entry).chain(parents).chain(main_module_entry).rev()
+            })
+            .into_iter()
+            .flatten()
     }
 
     fn lookup<'b>(
         &self,
         name: impl Into<QualifiedNameRef<'b>>,
-    ) -> Option<(component::Id, Rc<Entry>)> {
-        self.database.lookup_by_qualified_name(name)
+    ) -> Option<(suggestion_database::entry::Id, Rc<Entry>)> {
+        self.database.lookup_by_qualified_name(name).ok()
     }
 
     /// Collect all parent modules of the given module.

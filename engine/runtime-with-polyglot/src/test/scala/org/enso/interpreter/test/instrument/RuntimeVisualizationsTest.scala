@@ -187,7 +187,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idMainZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -209,7 +217,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idFooY,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "+"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -231,7 +247,15 @@ class RuntimeVisualizationsTest
                 Api.ExpressionUpdate(
                   Main.idFooZ,
                   Some(ConstantsGen.INTEGER),
-                  None,
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        "Standard.Base.Data.Numbers.Integer",
+                        "*"
+                      )
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   typeChanged,
@@ -243,7 +267,7 @@ class RuntimeVisualizationsTest
       }
     }
 
-    object Visualisation {
+    object Visualization {
 
       val metadata = new Metadata
 
@@ -261,7 +285,7 @@ class RuntimeVisualizationsTest
 
     }
 
-    object AnnotatedVisualisation {
+    object AnnotatedVisualization {
 
       val metadata    = new Metadata
       val idIncY      = metadata.addItem(111, 7)
@@ -292,26 +316,26 @@ class RuntimeVisualizationsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "emit visualisation update when expression is computed" in {
+  it should "emit visualization update when expression is computed" in {
     val idMainRes  = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -346,35 +370,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMainRes,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -398,9 +423,9 @@ class RuntimeVisualizationsTest
     val Some(data2) = recomputeResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -412,25 +437,25 @@ class RuntimeVisualizationsTest
     data2.sameElements("50".getBytes) shouldBe true
   }
 
-  it should "emit visualisation update when expression is cached" in {
+  it should "emit visualization update when expression is cached" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -464,34 +489,35 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -532,9 +558,9 @@ class RuntimeVisualizationsTest
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -546,23 +572,23 @@ class RuntimeVisualizationsTest
     data2.sameElements("6".getBytes) shouldBe true
   }
 
-  it should "emit visualisation update when expression is modified" in {
+  it should "emit visualization update when expression is modified" in {
     val contents   = context.Main.code
     val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // open files
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -603,30 +629,31 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -660,9 +687,9 @@ class RuntimeVisualizationsTest
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -674,23 +701,23 @@ class RuntimeVisualizationsTest
     data1.sameElements("5".getBytes) shouldBe true
   }
 
-  it should "emit visualisation update when transitive expression is modified" in {
+  it should "emit visualization update when transitive expression is modified" in {
     val contents   = context.Main.code
     val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // open files
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -731,30 +758,31 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainZ,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainZ
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -788,9 +816,9 @@ class RuntimeVisualizationsTest
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -802,23 +830,23 @@ class RuntimeVisualizationsTest
     data1.sameElements("45".getBytes) shouldBe true
   }
 
-  it should "emit visualisation update when frame popped" in {
+  it should "emit visualization update when frame popped" in {
     val contents   = context.Main.code
     val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // open files
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -859,30 +887,31 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainZ,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainZ
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -911,30 +940,31 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idFooZ,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses2 = context.receiveN(2)
-    attachVisualisationResponses2 should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses2 = context.receiveN(2)
+    attachVisualizationResponses2 should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId2 = context.Main.idFooZ
-    val Some(data2) = attachVisualisationResponses2.collectFirst {
+    val Some(data2) = attachVisualizationResponses2.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId2`
               ),
@@ -967,12 +997,30 @@ class RuntimeVisualizationsTest
         contextId,
         context.Main.idFooY,
         ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              "Standard.Base.Data.Numbers.Integer",
+              "+"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         context.Main.idFooZ,
         ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              "Standard.Base.Data.Numbers.Integer",
+              "*"
+            )
+          )
+        ),
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -980,9 +1028,9 @@ class RuntimeVisualizationsTest
     val Some(data3) = editFileResponse.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId2`
               ),
@@ -1008,9 +1056,9 @@ class RuntimeVisualizationsTest
     val Some(data4) = popContextResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -1022,11 +1070,11 @@ class RuntimeVisualizationsTest
     new String(data4) shouldEqual "60"
   }
 
-  it should "be able to modify visualisations" in {
+  it should "be able to modify visualizations" in {
     val contents = context.Main.code
     val mainFile = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     // open files
     context.send(
@@ -1036,8 +1084,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -1045,7 +1093,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1073,35 +1121,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -1112,33 +1161,34 @@ class RuntimeVisualizationsTest
     }
     data.sameElements("6".getBytes) shouldBe true
 
-    // modify visualisation
+    // modify visualization
     context.send(
       Api.Request(
         requestId,
-        Api.ModifyVisualisation(
-          visualisationId,
-          Api.VisualisationConfiguration(
+        Api.ModifyVisualization(
+          visualizationId,
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val modifyVisualisationResponses = context.receiveN(2)
-    modifyVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationModified())
+    val modifyVisualizationResponses = context.receiveN(2)
+    modifyVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationModified())
     )
     val Some(dataAfterModification) =
-      modifyVisualisationResponses.collectFirst {
+      modifyVisualizationResponses.collectFirst {
         case Api.Response(
               None,
-              Api.VisualisationUpdate(
-                Api.VisualisationContext(
-                  `visualisationId`,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
                 ),
@@ -1150,11 +1200,11 @@ class RuntimeVisualizationsTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
-  it should "not emit visualisation update when visualisation is detached" in {
+  it should "not emit visualization update when visualization is detached" in {
     val contents = context.Main.code
     val mainFile = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     // open files
     context.send(
@@ -1164,15 +1214,15 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1180,33 +1230,33 @@ class RuntimeVisualizationsTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
-      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Failure("Execution stack is empty.", None)
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
 
     // push main
@@ -1231,9 +1281,9 @@ class RuntimeVisualizationsTest
       pushResponses.collectFirst {
         case Api.Response(
               None,
-              Api.VisualisationUpdate(
-                Api.VisualisationContext(
-                  `visualisationId`,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
                 ),
@@ -1244,19 +1294,19 @@ class RuntimeVisualizationsTest
       }
     data.sameElements("6".getBytes) shouldBe true
 
-    // detach visualisation
+    // detach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.DetachVisualisation(
+        Api.DetachVisualization(
           contextId,
-          visualisationId,
+          visualizationId,
           context.Main.idMainX
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(requestId, Api.VisualisationDetached())
+      Api.Response(requestId, Api.VisualizationDetached())
     )
 
     // recompute
@@ -1291,23 +1341,23 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "not emit visualisation update when expression is not affected by the change" in {
+  it should "not emit visualization update when expression is not affected by the change" in {
     val contents   = context.Main.code
     val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // open files
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -1348,30 +1398,31 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -1408,8 +1459,8 @@ class RuntimeVisualizationsTest
   it should "not reorder visualization commands" in {
     val contents = context.Main.code
     val mainFile = context.writeMain(contents)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     // open files
     context.send(
@@ -1419,8 +1470,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
@@ -1428,7 +1479,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1456,35 +1507,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           context.Main.idMainX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    val attachVisualizationResponses = context.receiveN(2)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
               ),
@@ -1495,45 +1547,46 @@ class RuntimeVisualizationsTest
     }
     data.sameElements("6".getBytes) shouldBe true
 
-    // modify visualisation
+    // modify visualization
     context.send(
       Api.Request(
         requestId,
-        Api.ModifyVisualisation(
-          visualisationId,
-          Api.VisualisationConfiguration(
+        Api.ModifyVisualization(
+          visualizationId,
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    // detach visualisation
+    // detach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.DetachVisualisation(
+        Api.DetachVisualization(
           contextId,
-          visualisationId,
+          visualizationId,
           context.Main.idMainX
         )
       )
     )
-    val modifyVisualisationResponses = context.receiveN(3)
-    modifyVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationModified()),
-      Api.Response(requestId, Api.VisualisationDetached())
+    val modifyVisualizationResponses = context.receiveN(3)
+    modifyVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationModified()),
+      Api.Response(requestId, Api.VisualizationDetached())
     )
     val Some(dataAfterModification) =
-      modifyVisualisationResponses.collectFirst {
+      modifyVisualizationResponses.collectFirst {
         case Api.Response(
               None,
-              Api.VisualisationUpdate(
-                Api.VisualisationContext(
-                  `visualisationId`,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
                 ),
@@ -1545,7 +1598,7 @@ class RuntimeVisualizationsTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
-  it should "return ModuleNotFound error when attaching visualisation" in {
+  it should "return ModuleNotFound error when attaching visualization" in {
     val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
@@ -1553,7 +1606,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1588,29 +1641,31 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Test.Undefined",
               "x -> x"
-            )
+            ),
+            "Test.Undefined"
           )
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
     )
   }
 
-  it should "be able to use external libraries if they are needed by the visualisation" in {
+  it should "be able to use external libraries if they are needed by the visualization" in {
     val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
@@ -1618,7 +1673,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1653,36 +1708,37 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Standard.Visualization.Main",
               "x -> x.default_visualization.to_text"
-            )
+            ),
+            "Standard.Visualization.Main"
           )
         )
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(8)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    val attachVisualizationResponses = context.receiveN(8)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
 
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -1694,7 +1750,7 @@ class RuntimeVisualizationsTest
 
     data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
 
-    val loadedLibraries = attachVisualisationResponses
+    val loadedLibraries = attachVisualizationResponses
       .collect {
         case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
           Some((namespace, name))
@@ -1706,7 +1762,7 @@ class RuntimeVisualizationsTest
     loadedLibraries should contain(("Standard", "Visualization"))
   }
 
-  it should "return VisualisationExpressionFailed error when attaching visualisation" in {
+  it should "return VisualizationExpressionFailed error when attaching visualization" in {
     val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
@@ -1714,7 +1770,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1749,27 +1805,29 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "Main.does_not_exist"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
         requestId,
-        Api.VisualisationExpressionFailed(
+        Api.VisualizationExpressionFailed(
           "Method `does_not_exist` of type Main could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
@@ -1786,7 +1844,7 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "return visualisation evaluation errors with diagnostic info" in {
+  it should "return visualization evaluation errors with diagnostic info" in {
     val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
@@ -1794,7 +1852,7 @@ class RuntimeVisualizationsTest
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1829,19 +1887,20 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.visualise_me"
-            )
+            ),
+            moduleName
           )
         )
       )
@@ -1849,11 +1908,11 @@ class RuntimeVisualizationsTest
     context.receiveNIgnoreExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
-        Api.VisualisationEvaluationFailed(
+        Api.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           idMain,
           "Method `visualise_me` of type Integer could not be found.",
           Some(
@@ -1880,33 +1939,33 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "return visualisation error with a stack trace" in {
+  it should "return visualization error with a stack trace" in {
     val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
-    val visualisationCode =
+    val visualizationCode =
       """
         |encode x = x.visualise_me
         |
         |inc_and_encode x = encode x+1
         |""".stripMargin.linesIterator.mkString("\n")
 
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", visualisationCode)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", visualizationCode)
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          visualisationCode
+          visualizationFile,
+          visualizationCode
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1941,19 +2000,20 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
               "inc_and_encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1961,31 +2021,31 @@ class RuntimeVisualizationsTest
     context.receiveNIgnoreExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
-        Api.VisualisationEvaluationFailed(
+        Api.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           idMain,
           "Method `visualise_me` of type Integer could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
               "Method `visualise_me` of type Integer could not be found.",
-              Some(visualisationFile),
+              Some(visualizationFile),
               Some(model.Range(model.Position(1, 11), model.Position(1, 25))),
               None,
               Vector(
                 Api.StackTraceElement(
-                  "Visualisation.encode",
-                  Some(visualisationFile),
+                  "Visualization.encode",
+                  Some(visualizationFile),
                   Some(
                     model.Range(model.Position(1, 11), model.Position(1, 25))
                   ),
                   None
                 ),
                 Api.StackTraceElement(
-                  "Visualisation.inc_and_encode",
-                  Some(visualisationFile),
+                  "Visualization.inc_and_encode",
+                  Some(visualizationFile),
                   Some(
                     model.Range(model.Position(3, 19), model.Position(3, 29))
                   ),
@@ -2000,10 +2060,10 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "run visualisation expression catching error" in {
+  it should "run visualization expression catching error" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -2045,39 +2105,47 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.catch_primitive _.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(4, timeoutSeconds = 60)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    val attachVisualizationResponses = context.receiveN(4, timeoutSeconds = 60)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -2089,10 +2157,10 @@ class RuntimeVisualizationsTest
     data.sameElements("42".getBytes) shouldBe true
   }
 
-  it should "run visualisation expression propagating panic" in {
+  it should "run visualization expression propagating panic" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -2136,24 +2204,33 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Some("Standard.Base.Panic.Panic")
       ),
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               moduleName,
               "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )
@@ -2161,18 +2238,24 @@ class RuntimeVisualizationsTest
     context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached()),
       TestMessages.panic(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
-        builtin     = false,
-        typeChanged = false
+        builtin = false
       ),
       Api.Response(
-        Api.VisualisationEvaluationFailed(
+        Api.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           idMain,
           "42",
           Some(
@@ -2200,10 +2283,10 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "run visualisation error preprocessor" in {
+  it should "run visualization error preprocessor" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -2221,8 +2304,8 @@ class RuntimeVisualizationsTest
     val mainFile = context.writeMain(contents)
 
     // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
-    val visualisationModule   = "Standard.Visualization.Preprocessor"
-    val visualisationFunction = "error_preprocessor"
+    val visualizationModule   = "Standard.Visualization.Preprocessor"
+    val visualizationFunction = "error_preprocessor"
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2251,44 +2334,52 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                visualisationModule,
-                visualisationModule,
-                visualisationFunction
+                visualizationModule,
+                visualizationModule,
+                visualizationFunction
               ),
               Vector()
-            )
+            ),
+            visualizationModule
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -2301,10 +2392,10 @@ class RuntimeVisualizationsTest
     stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-38)"}"""
   }
 
-  it should "run visualisation default preprocessor" in {
+  it should "run visualization default preprocessor" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -2320,8 +2411,8 @@ class RuntimeVisualizationsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
-    val visualisationModule   = "Standard.Visualization.Preprocessor"
-    val visualisationFunction = "default_preprocessor"
+    val visualizationModule   = "Standard.Visualization.Preprocessor"
+    val visualizationFunction = "default_preprocessor"
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2357,38 +2448,39 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                visualisationModule,
-                visualisationModule,
-                visualisationFunction
+                visualizationModule,
+                visualizationModule,
+                visualizationFunction
               ),
               Vector()
-            )
+            ),
+            visualizationModule
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -2401,25 +2493,25 @@ class RuntimeVisualizationsTest
     stringified shouldEqual "\"Function\""
   }
 
-  it should "attach method pointer visualisation without arguments" in {
+  it should "attach method pointer visualization without arguments" in {
     val idMainRes = context.Main.metadata.addItem(99, 1)
     val contents  = context.Main.code
     val mainFile  = context.writeMain(context.Main.code)
-    val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", context.Visualization.code)
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.Visualisation.code
+          visualizationFile,
+          context.Visualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2454,39 +2546,40 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMainRes,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                "Enso_Test.Test.Visualisation",
-                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualization",
+                "Enso_Test.Test.Visualization",
                 "incAndEncode"
               ),
               Vector()
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2510,9 +2603,9 @@ class RuntimeVisualizationsTest
     val Some(data2) = recomputeResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2524,29 +2617,29 @@ class RuntimeVisualizationsTest
     data2.sameElements("51".getBytes) shouldBe true
   }
 
-  it should "attach method pointer visualisation with arguments" in {
+  it should "attach method pointer visualization with arguments" in {
     val idMainRes  = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
-    val visualisationFile =
+    val visualizationFile =
       context.writeInSrcDir(
-        "Visualisation",
-        context.AnnotatedVisualisation.code
+        "Visualization",
+        context.AnnotatedVisualization.code
       )
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.AnnotatedVisualisation.code
+          visualizationFile,
+          context.AnnotatedVisualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2582,39 +2675,40 @@ class RuntimeVisualizationsTest
     )
     context.consumeOut shouldEqual List()
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMainRes,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                "Enso_Test.Test.Visualisation",
-                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualization",
+                "Enso_Test.Test.Visualization",
                 "incAndEncode"
               ),
               Vector("2", "3")
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2639,9 +2733,9 @@ class RuntimeVisualizationsTest
     val Some(data2) = recomputeResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2653,38 +2747,39 @@ class RuntimeVisualizationsTest
     data2.sameElements("103".getBytes) shouldBe true
     context.consumeOut shouldEqual List()
 
-    // modify visualisation
+    // modify visualization
     context.send(
       Api.Request(
         requestId,
-        Api.ModifyVisualisation(
-          visualisationId,
-          Api.VisualisationConfiguration(
+        Api.ModifyVisualization(
+          visualizationId,
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                "Enso_Test.Test.Visualisation",
-                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualization",
+                "Enso_Test.Test.Visualization",
                 "incAndEncode"
               ),
               Vector("2", "4")
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val modifyVisualisationResponses =
+    val modifyVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(2)
-    modifyVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationModified())
+    modifyVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationModified())
     )
     val Some(data3) =
-      modifyVisualisationResponses.collectFirst {
+      modifyVisualizationResponses.collectFirst {
         case Api.Response(
               None,
-              Api.VisualisationUpdate(
-                Api.VisualisationContext(
-                  `visualisationId`,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
                   `contextId`,
                   `idMainRes`
                 ),
@@ -2702,24 +2797,24 @@ class RuntimeVisualizationsTest
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
-    val visualisationFile =
+    val visualizationFile =
       context.writeInSrcDir(
-        "Visualisation",
-        context.AnnotatedVisualisation.code
+        "Visualization",
+        context.AnnotatedVisualization.code
       )
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          visualisationFile,
-          context.AnnotatedVisualisation.code
+          visualizationFile,
+          context.AnnotatedVisualization.code
         )
       )
     )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2755,39 +2850,40 @@ class RuntimeVisualizationsTest
     )
     context.consumeOut shouldEqual List()
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMainRes,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.ModuleMethod(
+            Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
-                "Enso_Test.Test.Visualisation",
-                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualization",
+                "Enso_Test.Test.Visualization",
                 "incAndEncode"
               ),
               Vector()
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2812,9 +2908,9 @@ class RuntimeVisualizationsTest
     val Some(data2) = recomputeResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2830,7 +2926,7 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         Api.EditFileNotification(
-          visualisationFile,
+          visualizationFile,
           Seq(
             TextEdit(
               model.Range(model.Position(6, 21), model.Position(6, 22)),
@@ -2849,9 +2945,9 @@ class RuntimeVisualizationsTest
     val Some(data3) = editFileResponse.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMainRes`
               ),
@@ -2864,10 +2960,10 @@ class RuntimeVisualizationsTest
     context.consumeOut shouldEqual List("encoding...")
   }
 
-  it should "emit visualisation update for values annotated with warnings" in {
+  it should "emit visualization update for values annotated with warnings" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -2921,35 +3017,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -2961,10 +3058,10 @@ class RuntimeVisualizationsTest
     new String(data, StandardCharsets.UTF_8) shouldEqual "42"
   }
 
-  it should "emit visualisation update for values in array annotated with warnings" in {
+  it should "emit visualization update for values in array annotated with warnings" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -3021,35 +3118,36 @@ class RuntimeVisualizationsTest
       Api.Response(Api.BackgroundJobsStartedNotification())
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idMain,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idMain`
               ),
@@ -3061,10 +3159,10 @@ class RuntimeVisualizationsTest
     new String(data, StandardCharsets.UTF_8) shouldEqual "[42]"
   }
 
-  it should "emit visualisation update for values in atom annotated with warnings" in {
+  it should "emit visualization update for values in atom annotated with warnings" in {
     val contextId         = UUID.randomUUID()
     val requestId         = UUID.randomUUID()
-    val visualisationId   = UUID.randomUUID()
+    val visualizationId   = UUID.randomUUID()
     val moduleName        = "Enso_Test.Test.Main"
     val warningTypeName   = QualifiedName.fromString(ConstantsGen.WARNING)
     val warningModuleName = warningTypeName.getParent.get
@@ -3149,35 +3247,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idRes,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idRes`
               ),
@@ -3189,10 +3288,10 @@ class RuntimeVisualizationsTest
     new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
   }
 
-  it should "emit visualisation update for the target of a method call" in {
+  it should "emit visualization update for the target of a method call" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
@@ -3266,35 +3365,36 @@ class RuntimeVisualizationsTest
       context.executionComplete(contextId)
     )
 
-    // attach visualisation
+    // attach visualization
     context.send(
       Api.Request(
         requestId,
-        Api.AttachVisualisation(
-          visualisationId,
+        Api.AttachVisualization(
+          visualizationId,
           idX,
-          Api.VisualisationConfiguration(
+          Api.VisualizationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
+            Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )
     )
-    val attachVisualisationResponses =
+    val attachVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    val Some(data) = attachVisualisationResponses.collectFirst {
+    val Some(data) = attachVisualizationResponses.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idX`
               ),
@@ -3328,9 +3428,9 @@ class RuntimeVisualizationsTest
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
                 `contextId`,
                 `idX`
               ),

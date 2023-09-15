@@ -59,7 +59,7 @@ impl EmscriptenRepresentation for f64 {
 pub struct ArrayMemoryView<F: EmscriptenRepresentation> {
     begin_address: usize,
     end_address:   usize,
-    type_marker:   PhantomData<F>,
+    type_marker:   ZST<F>,
 }
 
 /// Iterator over values in `msdfgen` library memory
@@ -70,7 +70,7 @@ pub struct ArrayMemoryView<F: EmscriptenRepresentation> {
 pub struct ArrayMemoryViewIterator<'a, F: EmscriptenRepresentation> {
     next_read_address: usize,
     end_address:       usize,
-    view_lifetime:     PhantomData<&'a ArrayMemoryView<F>>,
+    view_lifetime:     ZST<&'a ArrayMemoryView<F>>,
 }
 
 impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
@@ -80,13 +80,13 @@ impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
         ArrayMemoryView {
             begin_address: address,
             end_address:   address + size_in_bytes,
-            type_marker:   PhantomData,
+            type_marker:   ZST(),
         }
     }
 
     /// Create an empty view
     pub fn empty() -> ArrayMemoryView<F> {
-        ArrayMemoryView { begin_address: 0, end_address: 0, type_marker: PhantomData }
+        ArrayMemoryView { begin_address: 0, end_address: 0, type_marker: ZST() }
     }
 
     /// Iterator over elements
@@ -94,7 +94,7 @@ impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
         ArrayMemoryViewIterator {
             next_read_address: self.begin_address,
             end_address:       self.end_address,
-            view_lifetime:     PhantomData,
+            view_lifetime:     ZST(),
         }
     }
 }

@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -14,9 +13,10 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -32,7 +32,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
-public final class EnsoHashMap implements TruffleObject {
+public final class EnsoHashMap implements EnsoObject {
   private final EnsoHashMapBuilder mapBuilder;
   /**
    * Size of this Map. Basically an index into {@link EnsoHashMapBuilder}'s storage. See {@link
@@ -83,7 +83,8 @@ public final class EnsoHashMap implements TruffleObject {
         }
       }
       cachedVectorRepresentation =
-          Vector.fromArray(HashEntriesVector.createFromKeysAndValues(keys, values));
+          ArrayLikeHelpers.asVectorFromArray(
+              HashEntriesVector.createFromKeysAndValues(keys, values));
     }
     return cachedVectorRepresentation;
   }
@@ -149,7 +150,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage(library = TypesLibrary.class)
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().map();
   }
 
@@ -166,13 +167,24 @@ public final class EnsoHashMap implements TruffleObject {
   @ExportMessage
   @TruffleBoundary
   Object toDisplayString(boolean allowSideEffects) {
+    return toString(true);
+  }
+
+  @Override
+  public String toString() {
+    // We are not using uncached InteropLibrary in this method, as it may substantially
+    // slow down Java debugger.
+    return toString(false);
+  }
+
+  private String toString(boolean useInterop) {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
         empty = false;
-        sb.append(entry.key()).append("=").append(entry.value()).append(", ");
+        sb.append(entryToString(entry, useInterop)).append(", ");
       }
     }
     if (!empty) {
@@ -183,9 +195,22 @@ public final class EnsoHashMap implements TruffleObject {
     return sb.toString();
   }
 
-  @Override
-  public String toString() {
-    return (String) toDisplayString(true);
+  private static String entryToString(StorageEntry entry, boolean useInterop) {
+    String keyStr;
+    String valStr;
+    if (useInterop) {
+      var interop = InteropLibrary.getUncached();
+      try {
+        keyStr = interop.asString(interop.toDisplayString(entry.key()));
+        valStr = interop.asString(interop.toDisplayString(entry.value()));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
+    } else {
+      keyStr = entry.key().toString();
+      valStr = entry.value().toString();
+    }
+    return keyStr + "=" + valStr;
   }
 
   private boolean isEntryInThisMap(StorageEntry entry) {

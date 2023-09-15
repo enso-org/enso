@@ -1,0 +1,110 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Table.Internal.Naming_Properties.Naming_Properties
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from Standard.Table.Errors import Name_Too_Long
+
+polyglot java import org.enso.base.Text_Utils
+
+## PRIVATE
+   A helper for checking and generating table names.
+type Table_Naming_Helper
+    ## PRIVATE
+    Value connection
+
+    ## PRIVATE
+    naming_properties : Naming_Properties
+    naming_properties self =
+        self.connection.base_connection.entity_naming_properties.for_table_names
+
+    ## PRIVATE
+       Creates a `Unique_Name_Strategy` that will generate names keeping the
+       table naming limitations in mind.
+    create_unique_name_strategy : Unique_Name_Strategy
+    create_unique_name_strategy self =
+        Unique_Name_Strategy.new self.naming_properties
+
+    ## PRIVATE
+       Verifies if the table name is valid.
+       If valid, it runs the provided action, otherwise it reports an error.
+    verify_table_name : Text -> Any -> Any ! Name_Too_Long
+    verify_table_name self table_name ~action =
+        if self.is_table_name_valid table_name then action else
+            self.naming_properties.raise_name_too_long_error "table" table_name
+
+    ## PRIVATE
+    is_table_name_valid : Text -> Boolean
+    is_table_name_valid self table_name =
+        case self.naming_properties.size_limit of
+            Nothing -> True
+            max_size ->
+                name_size = self.naming_properties.encoded_size table_name
+                name_size <= max_size
+
+    ## PRIVATE
+       Generates a temporary table name for the given table name, used for dry
+       runs.
+
+       The table name is 'stable', meaning that the same name will be returned
+       for the given input `table_name` on subsequent calls, unless the user
+       creates a clashing table in the meantime.
+
+       The table name is guaranteed to be unique for the database at the time it
+       is generated - this is used to ensure that the dry run tables never
+       overwrite pre-existing user data.
+
+       ! Safety
+
+         It is safe to drop/overwrite the table returned by this method, as it
+         can be assumed that it was not created by the user. It either does not
+         (yet) exist, or if it exists, it is present in our hidden table
+         registry - but that means it was created by Enso as a hidden table.
+    generate_dry_run_table_name : Text -> Text
+    generate_dry_run_table_name self table_name =
+        naming_properties = self.naming_properties
+        max_size = naming_properties.size_limit
+        go ix =
+            prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
+            ## This check ensures that if all possible names are taken, the
+               method will not loop forever but report an error. It should never
+               occur in practice - it would mean that the Database contains
+               unimaginable amounts of dry run tables or has impractically small
+               table name length limit.
+            if max_size.is_nothing.not && (naming_properties.encoded_size prefix > max_size) then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_size.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work.") else
+                name = self.truncate_if_needed (prefix + table_name)
+                ## The dry run name is ok if it is already registered (that means it
+                   may exist in the Database, but it was created by other dry runs
+                   and is safe to overwrite) or if it does not exist in the database.
+                name_ok = (self.connection.hidden_table_registry.is_registered name) || (self.connection.table_exists name . not)
+                if name_ok then name else
+                    @Tail_Call go (ix + 1)
+        go 0
+
+    ## PRIVATE
+       Generates a random table name that does not currently exist in the
+       database.
+    generate_random_table_name : Text -> Text
+    generate_random_table_name self prefix="enso-table-" =
+        naming_properties = self.naming_properties
+        max_size = naming_properties.size_limit
+        minimum_randomness = 5
+        minimum_randomness_template = "0" * minimum_randomness
+        maximum_retries = 20^minimum_randomness
+        if max_size.is_nothing.not && (naming_properties.encoded_size (prefix + minimum_randomness_template) > max_size) then Error.throw (Illegal_State.Error "The prefix has size "+(naming_properties.encoded_size prefix).to_text+" while max table name size is "+max_size.to_text+" - there is not enough space to safely generate random names.") else
+            go ix =
+                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
+                    base_name = prefix + Random.random_uuid
+                    name = self.truncate_if_needed base_name
+                    if self.connection.table_exists name . not then name else
+                        @Tail_Call go (ix + 1)
+            go 0
+
+    ## PRIVATE
+       Truncates the name to fit in the limit, if it is too long.
+    truncate_if_needed : Text -> Text
+    truncate_if_needed self name =
+        naming_properties = self.naming_properties
+        case naming_properties.size_limit of
+            Nothing  -> name
+            max_size -> naming_properties.truncate name max_size

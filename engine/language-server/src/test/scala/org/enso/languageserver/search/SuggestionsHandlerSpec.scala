@@ -13,6 +13,7 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
+import org.enso.logger.LoggerSetup
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
@@ -26,7 +27,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.nio.file.Files
 import java.util.UUID
-
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -43,6 +43,7 @@ class SuggestionsHandlerSpec
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
+  LoggerSetup.get().setup()
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
@@ -723,7 +724,7 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
-          SearchProtocol.GetSuggestionsDatabaseResult(1, Seq())
+          SearchProtocol.GetSuggestionsDatabaseResult(0, Seq())
         )
     }
 
@@ -762,10 +763,10 @@ class SuggestionsHandlerSpec
               inserted(0),
               inserted(1),
               inserted(2),
-              inserted(6),
               inserted(7),
               inserted(8),
-              inserted(3)
+              inserted(9),
+              inserted(4)
             )
           )
         )
@@ -773,7 +774,7 @@ class SuggestionsHandlerSpec
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, methodId, _, _, methodOnAnyId, _, _)) =
+        val (_, Seq(_, _, _, getterId, methodId, _, _, methodOnAnyId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -787,7 +788,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.CompletionResult(
             1L,
-            Seq(methodId, methodOnAnyId)
+            Seq(getterId, methodId, methodOnAnyId)
           )
         )
     }
@@ -796,7 +797,7 @@ class SuggestionsHandlerSpec
       (config, repo, _, _, handler) =>
         val (
           _,
-          Seq(_, _, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
+          Seq(_, _, _, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
         ) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
@@ -819,7 +820,7 @@ class SuggestionsHandlerSpec
 
     "search entries for any" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, _, _, anyMethodId, _, _)) =
+        val (_, Seq(_, _, _, _, _, _, _, anyMethodId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
         handler ! SearchProtocol.Completion(
@@ -841,7 +842,7 @@ class SuggestionsHandlerSpec
 
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, functionId, _, _, _, _)) =
+        val (_, Seq(_, _, _, _, _, functionId, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -862,7 +863,7 @@ class SuggestionsHandlerSpec
 
     "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, _, localId, _, _, _)) =
+        val (_, Seq(_, _, _, _, _, _, localId, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -994,7 +995,8 @@ class SuggestionsHandlerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 
@@ -1089,7 +1091,7 @@ class SuggestionsHandlerSpec
       )
 
     val method: Suggestion.Method =
-      Suggestion.Method(
+      Suggestion.DefinedMethod(
         externalId    = Some(UUID.randomUUID()),
         module        = "Test.Main",
         name          = "main",

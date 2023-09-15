@@ -1,6 +1,7 @@
 package org.enso.runner
 
 import cats.implicits.toTraverseOps
+import org.slf4j.event.Level
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
@@ -16,7 +17,6 @@ import org.enso.editions.{DefaultEdition, EditionResolver}
 import org.enso.languageserver.libraries.CompilerBasedDependencyExtractor
 import org.enso.librarymanager.dependencies.DependencyResolver
 import org.enso.librarymanager.{DefaultLibraryProvider, LibraryResolver}
-import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 
 import java.io.File
@@ -28,7 +28,7 @@ object DependencyPreinstaller {
     * to find all transitive dependencies and ensures that all of them are
     * installed.
     */
-  def preinstallDependencies(projectRoot: File, logLevel: LogLevel): Unit = {
+  def preinstallDependencies(projectRoot: File, logLevel: Level): Unit = {
     val logger = Logger[DependencyPreinstaller.type]
     val pkg    = PackageManager.Default.loadPackage(projectRoot).get
 
@@ -49,7 +49,7 @@ object DependencyPreinstaller {
     val editionResolver = EditionResolver(editionProvider)
     val edition = editionResolver
       .resolve(
-        pkg.config.edition.getOrElse(DefaultEdition.getDefaultEdition)
+        pkg.getConfig().edition.getOrElse(DefaultEdition.getDefaultEdition)
       ) match {
       case Left(error) =>
         throw new RuntimeException(
@@ -58,7 +58,7 @@ object DependencyPreinstaller {
       case Right(value) => value
     }
 
-    val preferLocalLibraries = pkg.config.preferLocalLibraries
+    val preferLocalLibraries = pkg.getConfig().preferLocalLibraries
 
     val (localLibraryProvider, publishedLibraryProvider) =
       DefaultLibraryProvider.makeProviders(
@@ -79,7 +79,8 @@ object DependencyPreinstaller {
             ProgressBar.waitWithProgress(task)
           }
         },
-        Some(languageHome)
+        languageHome = Some(languageHome),
+        projectRoot  = Some(projectRoot.toPath)
       )
 
     val dependencyResolver = new DependencyResolver(

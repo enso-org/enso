@@ -1,28 +1,28 @@
 package org.enso.compiler;
 
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.pkg.PackageManager;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.pkg.PackageManager;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.io.IOAccess;
+import org.junit.Test;
 
 public class SerializerTest {
   public Context ensoContextForPackage(String name, File pkgFile) throws IOException {
     Context ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
-            .allowIO(true)
+            .allowIO(IOAccess.ALL)
             .option(RuntimeOptions.PROJECT_ROOT, pkgFile.getAbsolutePath())
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
@@ -56,7 +56,7 @@ public class SerializerTest {
     var result = compiler.run(module);
     assertEquals(result.compiledModules().exists(m -> m == module), true);
     var serializationManager = new SerializationManager(ensoContext.getCompiler());
-    var useThreadPool = compiler.context().getEnvironment().isCreateThreadAllowed();
+    var useThreadPool = compiler.context().isCreateThreadAllowed();
     var future = serializationManager.serializeModule(module, true, useThreadPool);
     var serialized = future.get(5, TimeUnit.SECONDS);
     assertEquals(serialized, true);

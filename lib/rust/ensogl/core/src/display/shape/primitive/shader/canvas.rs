@@ -333,6 +333,15 @@ impl Canvas {
             this.new_shape_from_expr(&expr)
         })
     }
+
+    /// Create a stroke of given thickness around shape's boundary.
+    pub fn stroke<T: Into<Var<f32>>>(&mut self, num: usize, s: Shape, thickness: T) -> Shape {
+        self.if_not_defined(num, |this| {
+            let thickness: Glsl = (thickness.into() * 0.5).glsl();
+            let expr = format!("return stroke({},({thickness}));", s.getter());
+            this.new_shape_from_expr(&expr)
+        })
+    }
 }
 
 

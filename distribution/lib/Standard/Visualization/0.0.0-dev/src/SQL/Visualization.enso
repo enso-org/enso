@@ -10,7 +10,7 @@ import project.Helpers
    Prepares the database table for visualization.
 
    Arguments:
-   - x: The database table to prepare for visualisation.
+   - x: The database table to prepare for visualization.
 
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso

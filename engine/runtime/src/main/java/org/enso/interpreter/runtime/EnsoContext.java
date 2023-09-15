@@ -18,8 +18,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,6 +29,7 @@ import java.util.logging.Level;
 import java.util.stream.StreamSupport;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
+import org.enso.compiler.PackageRepositoryUtils;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
@@ -41,15 +44,29 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
+
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
+
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -161,7 +178,7 @@ public class EnsoContext {
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =
-        PackageRepository.initializeRepository(
+        DefaultPackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
             OptionConverters.toScala(editionOverride),
@@ -171,7 +188,8 @@ public class EnsoContext {
             builtins,
             notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
-    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
+    this.compiler =
+        new Compiler(new TruffleCompilerContext(this), packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
@@ -183,7 +201,35 @@ public class EnsoContext {
    *     com.oracle.truffle.api.TruffleContext}.
    */
   public static EnsoContext get(Node node) {
-    return REFERENCE.get(node);
+    var ctx = REFERENCE.get(node);
+    if (checkNodes.isValid() && !CompilerDirectives.isPartialEvaluationConstant(ctx)) {
+      reportSlowContextAccess(node);
+    }
+    return ctx;
+  }
+
+  private static final Assumption checkNodes = Truffle.getRuntime().createAssumption("context check");
+  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static long checkUntil = Long.MAX_VALUE;
+
+  @TruffleBoundary
+  private static void reportSlowContextAccess(Node n) {
+    if (System.currentTimeMillis() > checkUntil) {
+      checkNodes.invalidate();
+    }
+    if (reportedNulllRootNodes.add(n)) {
+      var ex = new Exception("""
+        no root node for {n}
+        with section: {s}
+        with root nodes: {r}
+        """
+          .replace("{n}", "" + n)
+          .replace("{s}", "" + n.getEncapsulatingSourceSection())
+          .replace("{r}", "" + n.getRootNode())
+      );
+      ex.printStackTrace();
+      checkUntil = System.currentTimeMillis() + 10000;
+    }
   }
 
   public static TruffleLanguage.ContextReference<EnsoContext> getReference() {
@@ -293,10 +339,7 @@ public class EnsoContext {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
-        .filter(pkg -> file.startsWith(pkg.sourceDir()))
-        .map(pkg -> pkg.moduleNameForFile(file))
-        .findFirst();
+    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
   }
 
   /**
@@ -402,12 +445,7 @@ public class EnsoContext {
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
-    if (file == null) {
-      return Optional.empty();
-    }
-    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
-        .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
-        .findFirst();
+    return PackageRepositoryUtils.getPackageOf(packageRepository, file);
   }
 
   /**
@@ -479,8 +517,10 @@ public class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeServerInfo.JOB_PARALLELISM_KEY);
-    return n == null ? 1 : n.intValue();
+    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    var base = n == null ? 1 : n.intValue();
+    var optimal = Math.round(base * 0.5);
+    return optimal < 1 ? 1 : (int) optimal;
   }
 
   /**

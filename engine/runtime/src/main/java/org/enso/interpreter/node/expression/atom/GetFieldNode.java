@@ -6,9 +6,9 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {

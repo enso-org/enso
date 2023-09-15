@@ -1,14 +1,15 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
+import * as React from 'react'
+
+import FindIcon from 'enso-assets/find.svg'
 
 import * as backendModule from '../backend'
-import * as dashboard from './dashboard'
-import * as svg from '../../components/svg'
+import * as shortcuts from '../shortcuts'
 
-import * as backendProvider from '../../providers/backend'
-import * as modalProvider from '../../providers/modal'
-
-import UserMenu from './userMenu'
+import PageSwitcher, * as pageSwitcher from './pageSwitcher'
+import AssetInfoBar from './assetInfoBar'
+import BackendSwitcher from './backendSwitcher'
+import UserBar from './userBar'
 
 // ==============
 // === TopBar ===
@@ -16,117 +17,106 @@ import UserMenu from './userMenu'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
-    projectName: string | null
-    tab: dashboard.Tab
-    toggleTab: () => void
+    page: pageSwitcher.Page
+    setPage: (page: pageSwitcher.Page) => void
+    projectAsset: backendModule.ProjectAsset | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
+    asset: backendModule.Asset | null
+    isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
+    isHelpChatOpen: boolean
+    setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
+    doRemoveSelf: () => void
+    onSignOut: () => void
 }
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
-function TopBar(props: TopBarProps) {
-    const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
-        props
-    const [userMenuVisible, setUserMenuVisible] = react.useState(false)
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { backend } = backendProvider.useBackend()
+export default function TopBar(props: TopBarProps) {
+    const {
+        supportsLocalBackend,
+        page,
+        setPage,
+        projectAsset,
+        setProjectAsset,
+        asset,
+        isEditorDisabled,
+        setBackendType,
+        isHelpChatOpen,
+        setIsHelpChatOpen,
+        query,
+        setQuery,
+        doRemoveSelf,
+        onSignOut,
+    } = props
+    const searchRef = React.useRef<HTMLInputElement>(null)
 
-    react.useEffect(() => {
-        if (userMenuVisible) {
-            setModal(() => <UserMenu />)
-        } else {
-            unsetModal()
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            // Allow `alt` key to be pressed in case it is being used to enter special characters.
+            if (
+                !(event.target instanceof HTMLInputElement) &&
+                (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
+                shortcuts.isTextInputEvent(event)
+            ) {
+                searchRef.current?.focus()
+            }
         }
-    }, [userMenuVisible])
+        document.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [])
 
     return (
-        <div className="flex mb-2 h-8">
-            {supportsLocalBackend && (
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
-                    <button
-                        onClick={() => {
-                            setBackendType(backendModule.BackendType.local)
-                        }}
-                        className={`${
-                            backend.type === backendModule.BackendType.local
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5 py-1`}
-                    >
-                        {svg.COMPUTER_ICON}
-                    </button>
-                    <button
-                        onClick={() => {
-                            setBackendType(backendModule.BackendType.remote)
-                        }}
-                        className={`${
-                            backend.type === backendModule.BackendType.remote
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5 py-1`}
-                    >
-                        {svg.CLOUD_ICON}
-                    </button>
-                </div>
+        <div
+            className={`relative flex ml-4.75 mr-2.25 h-8 gap-6 z-1 ${
+                page !== pageSwitcher.Page.home ? 'mt-2.25' : 'my-2.25'
+            }`}
+        >
+            <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
+            {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
+                <BackendSwitcher setBackendType={setBackendType} />
             )}
-            <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
-                onClick={toggleTab}
-            >
-                <span
-                    className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
-                    }`}
-                >
-                    {projectName ?? 'Dashboard'}
-                </span>
-                <div className="bg-white shadow-soft rounded-full px-1.5 py-1">{svg.BARS_ICON}</div>
-                <span
-                    className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
-                    }`}
-                >
-                    {projectName ?? 'No project open'}
-                </span>
-            </div>
-            <div className="grow flex items-center bg-label rounded-full px-2">
-                <div>{svg.MAGNIFYING_GLASS_ICON}</div>
-                <input
-                    type="text"
-                    placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
-                    value={query}
-                    onChange={event => {
-                        setQuery(event.target.value)
-                    }}
-                    className="flex-1 mx-2 bg-transparent"
+            <div className="grow" />
+            {page !== pageSwitcher.Page.editor && (
+                <>
+                    <div className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
+                        <label htmlFor="search">
+                            <img src={FindIcon} className="opacity-80" />
+                        </label>
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            size={1}
+                            id="search"
+                            placeholder="Type to search for projects, data connectors, users, and more."
+                            value={query}
+                            onChange={event => {
+                                setQuery(event.target.value)
+                            }}
+                            className="grow bg-transparent leading-5 h-6 py-px"
+                        />
+                    </div>
+                    <div className="grow" />
+                </>
+            )}
+            <div className="flex gap-2">
+                <AssetInfoBar asset={asset} />
+                <UserBar
+                    page={page}
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    projectAsset={projectAsset}
+                    setProjectAsset={setProjectAsset}
+                    doRemoveSelf={doRemoveSelf}
+                    onSignOut={onSignOut}
                 />
-            </div>
-            <a
-                href="https://discord.gg/enso"
-                target="_blank"
-                className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
-            >
-                <span className="whitespace-nowrap">help chat</span>
-                <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
-            </a>
-            {/* User profile and menu. */}
-            <div className="transform w-8">
-                <div
-                    onClick={event => {
-                        event.stopPropagation()
-                        setUserMenuVisible(!userMenuVisible)
-                    }}
-                    className="rounded-full w-8 h-8 bg-cover cursor-pointer"
-                >
-                    {svg.DEFAULT_USER_ICON}
-                </div>
             </div>
         </div>
     )
 }
-
-export default TopBar

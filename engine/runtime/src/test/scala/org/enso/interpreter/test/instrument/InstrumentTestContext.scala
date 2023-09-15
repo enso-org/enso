@@ -70,7 +70,7 @@ class InstrumentTestContext {
     n: Int,
     timeoutSeconds: Long = 60
   ): List[Api.Response] = {
-    receiveNWithFilter(n, (_ => true), timeoutSeconds)
+    receiveNWithFilter(n, _ => true, timeoutSeconds)
   }
 
   private def receiveNWithFilter(

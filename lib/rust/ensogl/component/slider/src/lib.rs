@@ -331,16 +331,13 @@ ensogl_core::define_endpoints_2! {
 /// value within the specified range. Dragging the slider in a vertical direction adjusts the
 /// resolution of the slider. The resolution affects the increments by which the value changes when
 /// the mouse is moved.
-#[derive(Debug, Deref, Clone, CloneRef)]
+#[derive(Debug, Deref, Clone, CloneRef, display::Object)]
 pub struct Slider {
     /// Public FRP api of the component.
     #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
-    /// Reference to the application the component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// component.
-    pub app: Application,
 }
 
 impl Slider {
@@ -348,12 +345,11 @@ impl Slider {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app, frp.network()));
-        let app = app.clone_ref();
-        Self { frp, model, app }.init()
+        Self { frp, model }.init(app)
     }
 
-    fn init(self) -> Self {
-        self.init_value_update();
+    fn init(self, app: &Application) -> Self {
+        self.init_value_update(app);
         self.init_limit_handling();
         self.init_value_display();
 
@@ -367,15 +363,15 @@ impl Slider {
     }
 
     /// Initialize the slider value update FRP network.
-    fn init_value_update(&self) {
+    fn init_value_update(&self, app: &Application) {
         let network = self.frp.network();
         let frp = &self.frp;
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-        let scene = &self.app.display.default_scene;
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
-        let keyboard = &scene.keyboard.frp;
+        let keyboard = &scene.global_keyboard.frp;
 
         let ptr_down_any = model.background.on_event::<mouse::Down>();
         let ptr_up_any = scene.on_event::<mouse::Up>();
@@ -613,7 +609,7 @@ impl Slider {
                 );
                 let prec_text = prec_text.trim_end_matches('0');
                 let prec_text = prec_text.trim_end_matches('.');
-                tooltip::Style::set_label(prec_text.into())
+                tooltip::Style::set_label(prec_text)
             });
             precision_changed <- resolution.constant(());
             popup_anim.reset <+ precision_changed;
@@ -824,12 +820,6 @@ impl Slider {
     }
 }
 
-impl display::Object for Slider {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
 impl FrpNetworkProvider for Slider {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
@@ -845,11 +835,7 @@ impl application::View for Slider {
         Self::new(app)
     }
 
-    fn app(&self) -> &Application {
-        &self.app
-    }
-
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::DoublePress;
         use shortcut::ActionType::Press;
         vec![

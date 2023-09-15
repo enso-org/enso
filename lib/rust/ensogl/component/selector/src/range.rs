@@ -44,7 +44,8 @@ impl Frp {
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
 
-        let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
+        let base_frp =
+            super::Frp::new(app, model, style, network, frp.resize.clone().into(), mouse);
 
         model.use_track_handles(true);
         model.show_background(true);

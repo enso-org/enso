@@ -1,8 +1,10 @@
 import project.Data.Text.Text
-import project.Network.URI.URI
 import project.Errors.Common.Syntax_Error
+import project.Network.URI.URI
 
-## Convert Text to a URI.
+## ALIAS parse_uri, uri from text
+   GROUP Conversions
+   Convert Text to a URI.
 
    Throws a `Syntax_Error` when `self` cannot be parsed as a URI.
 

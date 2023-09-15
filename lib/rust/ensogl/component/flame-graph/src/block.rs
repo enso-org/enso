@@ -93,9 +93,8 @@ impl component::Frp<Model> for Frp {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
-    app:            Application,
     background:     background::View,
     label:          Rc<RefCell<Option<text::Text>>>,
     display_object: display::object::Instance,
@@ -115,8 +114,7 @@ impl component::Model for Model {
         display_object.add_child(&background);
         scene.layers.tooltip.add(&background);
 
-        let app = app.clone_ref();
-        Model { app, background, label, display_object }
+        Model { background, label, display_object }
     }
 }
 
@@ -133,12 +131,6 @@ impl Model {
 
     fn set_color(&self, color: Lcha) {
         self.background.color_rgba.set(color::Rgba::from(color).into());
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

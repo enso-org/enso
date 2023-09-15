@@ -1,32 +1,48 @@
 from Standard.Base import all
-import Standard.Base
 
 from Standard.Test import Bench
 
 import project.Vector.Utils
 
-polyglot java import java.util.Random
-polyglot java import org.enso.base.Time_Utils
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
 
-## Bench Utilities ============================================================
+type Data
+    Value ~random_vec ~uniform_vec ~random_text_vec ~uniform_text_vec
 
-iter_size = 100
-num_iterations = 20
+    create =
+        Data.Value create_random_vec create_uniform_vec create_random_text_vec create_uniform_text_vec
 
-# The Benchmarks ==============================================================
 
-bench =
-    random_vec = Utils.make_random_vec 100000
-    uniform_vec = Base.Vector.fill 100000 1
+create_random_vec = Utils.make_random_vec 100000
 
-    random_text_vec = random_vec.map .to_text
-    uniform_text_vec = random_vec.map .to_text
 
-    Bench.measure (random_vec.distinct) "Random Integer Vector Distinct" iter_size num_iterations
-    Bench.measure (uniform_vec.distinct) "Uniform Integer Vector Distinct" iter_size num_iterations
+create_uniform_vec = Vector.fill 100000 1
 
-    Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
-    Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations
 
-main = bench
+create_random_text_vec =
+    random_vec = create_random_vec
+    random_vec.map .to_text
+
+
+create_uniform_text_vec =
+    uniform_vec = create_uniform_vec
+    uniform_vec.map .to_text
+
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Vector_Distinct" options group_builder->
+        group_builder.specify "Random_Integer_Vector_Distinct" <|
+            data.random_vec.distinct
+        group_builder.specify "Uniform_Integer_Vector_Distinct" <|
+            data.uniform_vec.distinct
+        group_builder.specify "Random_Text_Vector_Distinct" <|
+            data.random_text_vec.distinct
+        group_builder.specify "Uniform_Text_Vector_Distinct" <|
+            data.uniform_text_vec.distinct
+
+
+main = collect_benches . run_main

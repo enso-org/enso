@@ -3,10 +3,14 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import java.util.List;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
+import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /**
@@ -66,7 +70,7 @@ public class Layout {
           ? extends UnboxingAtom.InstantiatorNode>
       instantiatorFactory;
 
-  public Layout(
+  private Layout(
       long inputFlags,
       int[] fieldToStorage,
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
@@ -140,7 +144,12 @@ public class Layout {
         LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed);
     var setterFactories = new NodeFactory[arity];
     for (int i = 0; i < arity; i++) {
-      setterFactories[i] = storageSetterFactories[fieldToStorage[i]];
+      var factory = storageSetterFactories[fieldToStorage[i]];
+      var types = args[i].getCheckType();
+      if (types != null && factory != null) {
+        factory = new SetterTypeCheckFactory(args[i], types, factory);
+      }
+      setterFactories[i] = factory;
     }
 
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
@@ -285,6 +294,67 @@ public class Layout {
         }
       }
       return flags;
+    }
+  }
+
+  private static final class SetterTypeCheckFactory
+      implements NodeFactory<UnboxingAtom.FieldSetterNode> {
+    private final String argName;
+    private final ReadArgumentCheckNode typeCheck;
+    private final NodeFactory<UnboxingAtom.FieldSetterNode> delegate;
+
+    private SetterTypeCheckFactory(
+        ArgumentDefinition arg,
+        ReadArgumentCheckNode typeCheck,
+        NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
+      assert factory != null;
+      this.argName = arg.getName();
+      this.typeCheck = typeCheck;
+      this.delegate = factory;
+    }
+
+    @Override
+    public UnboxingAtom.FieldSetterNode createNode(Object... arguments) {
+      var checkNode = (ReadArgumentCheckNode) typeCheck.copy();
+      var setterNode = delegate.createNode(arguments);
+      return checkNode == null ? setterNode : new CheckFieldSetterNode(setterNode, checkNode);
+    }
+
+    @Override
+    public Class<UnboxingAtom.FieldSetterNode> getNodeClass() {
+      return delegate.getNodeClass();
+    }
+
+    @Override
+    public List<List<Class<?>>> getNodeSignatures() {
+      return delegate.getNodeSignatures();
+    }
+
+    @Override
+    public List<Class<? extends Node>> getExecutionSignature() {
+      return delegate.getExecutionSignature();
+    }
+
+    @Override
+    public UnboxingAtom.FieldSetterNode getUncachedInstance() {
+      return delegate.getUncachedInstance();
+    }
+  }
+
+  private static final class CheckFieldSetterNode extends UnboxingAtom.FieldSetterNode {
+    @Child ReadArgumentCheckNode checkNode;
+    @Child UnboxingAtom.FieldSetterNode setterNode;
+
+    private CheckFieldSetterNode(
+        UnboxingAtom.FieldSetterNode setterNode, ReadArgumentCheckNode checkNode) {
+      this.setterNode = setterNode;
+      this.checkNode = checkNode;
+    }
+
+    @Override
+    public void execute(Atom atom, Object value) {
+      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value);
+      setterNode.execute(atom, valueOrConvertedValue);
     }
   }
 }

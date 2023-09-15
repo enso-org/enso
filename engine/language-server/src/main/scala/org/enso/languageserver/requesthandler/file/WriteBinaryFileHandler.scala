@@ -84,7 +84,7 @@ class WriteBinaryFileHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case FileManagerProtocol.WriteFileResult(Right(())) =>
+    case FileManagerProtocol.WriteFileResult(Right(_)) =>
       val packet = SuccessReplyFactory.createPacket(requestId)
       replyTo ! packet
       cancellable.cancel()

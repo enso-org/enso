@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Problems, Test, Test_Suite
@@ -144,6 +145,7 @@ spec =
                 r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
                 p = d-> d.day_of_week == Day_Of_Week.Monday
                 r.filter p . should_equal (r.to_vector.filter p)
+                r.partition p . should_equal (r.to_vector.partition p)
                 r.all p . should_equal (r.to_vector.all p)
                 r.any p . should_equal (r.to_vector.any p)
                 r.find p . should_equal (r.to_vector.find p)
@@ -153,6 +155,23 @@ spec =
                     if date.day_of_week == Day_Of_Week.Monday then acc+1 else acc
                 r.fold 0 count_mondays . should_equal (r.to_vector.fold 0 count_mondays)
                 r.running_fold 0 count_mondays . should_equal (r.to_vector.running_fold 0 count_mondays)
+
+                fc = Filter_Condition.Greater than=(Date.new 2021 02 15)
+                r.filter fc . should_equal (r.to_vector.filter fc)
+                r.partition fc . should_equal (r.to_vector.partition fc)
+                r.all fc . should_equal (r.to_vector.all fc)
+                r.any fc . should_equal (r.to_vector.any fc)
+                r.find fc . should_equal (r.to_vector.find fc)
+                r.index_of fc . should_equal (r.to_vector.index_of fc)
+                r.last_index_of fc . should_equal (r.to_vector.last_index_of fc)
+
+                invalid_arg = "invalid arg"
+                Test.expect_panic_with (r.filter invalid_arg) Type_Error
+                Test.expect_panic_with (r.all invalid_arg) Type_Error
+                Test.expect_panic_with (r.any invalid_arg) Type_Error
+                Test.expect_panic_with (r.find invalid_arg) Type_Error
+                Test.expect_panic_with (r.index_of invalid_arg) Type_Error
+                Test.expect_panic_with (r.last_index_of invalid_arg) Type_Error
 
                 reducer x y = if x > y then x else y
                 # Catch+to_text to fix Empty_Error equality.

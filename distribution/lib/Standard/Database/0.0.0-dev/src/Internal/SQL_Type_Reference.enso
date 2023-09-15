@@ -4,8 +4,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Connection.Connection.Connection
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 type SQL_Type_Reference
     ## Refers to the SQL type of a given column, as computed by the Database

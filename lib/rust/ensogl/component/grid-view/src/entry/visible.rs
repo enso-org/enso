@@ -46,6 +46,10 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
     fn display_object(&self) -> &display::object::Instance {
         self.entry.display_object()
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.entry.focus_receiver()
+    }
 }
 
 
@@ -59,6 +63,7 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct CreationCtx<EntryParams> {
+    // Required for dynamically creating entries.
     pub app:                   Application,
     pub network:               frp::WeakNetwork,
     pub set_entry_size:        frp::Stream<Vector2>,

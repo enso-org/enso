@@ -214,6 +214,13 @@ mod test {
             let project = setup_mock_project(move |project| {
                 model::project::test::expect_module(project, module_clone);
                 model::project::test::expect_parser(project, &parser);
+                model::project::test::expect_qualified_name(
+                    project,
+                    &double_representation::name::project::QualifiedName::new(
+                        "mock_namespace",
+                        "MockProject",
+                    ),
+                );
             });
             let file_path = module.path().file_path();
             let text_ctrl = controller::Text::new(&project, file_path.clone()).await.unwrap();

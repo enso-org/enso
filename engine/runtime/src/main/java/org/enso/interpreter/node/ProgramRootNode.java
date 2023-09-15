@@ -6,13 +6,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-
-import java.io.File;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root

@@ -170,7 +170,7 @@ class GitSpec
 
       val modifiedResult2 = vcs.status(repoPath).unsafeRunSync()
       modifiedResult2.isRight shouldBe true
-      modifiedResult2.map(_.isDirty).getOrElse(null) shouldBe true
+      modifiedResult2.map(_.isDirty).getOrElse(false) shouldBe true
     }
 
     "not report dirty status when untracked files were committed" in new TestCtx

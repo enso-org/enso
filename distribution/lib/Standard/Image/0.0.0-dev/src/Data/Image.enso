@@ -1,22 +1,20 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Runtime.Context
 
-from Standard.Base.Data.Ordering import all
-
-import project.Read_Flag.Read_Flag
-import project.Write_Flag.Write_Flag
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
 import project.Data.Matrix_Error.Matrix_Error
+import project.Read_Flag.Read_Flag
+import project.Write_Flag.Write_Flag
 
 polyglot java import java.lang.Exception as JException
+polyglot java import org.enso.image.Codecs as Java_Codecs
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 polyglot java import org.enso.image.data.Image as Java_Image
-polyglot java import org.enso.image.Codecs as Java_Codecs
-polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.core.Mat
+polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE
@@ -42,7 +40,7 @@ type Image
                  Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
     from_vector : Vector -> Integer -> Integer -> Image
     from_vector values rows=1 channels=1 =
-        Image.Value (Java_Image.from_vector values.to_array rows channels)
+        Image.Value (Java_Image.from_vector values rows channels)
 
     ## UNSTABLE
 
@@ -107,7 +105,7 @@ type Image
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]
-            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
+            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
             Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
                 Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
@@ -175,7 +173,8 @@ type Image
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
-    ## Calculates the per-element sum of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element sum of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -224,7 +223,8 @@ type Image
     + : (Number | Vector | Matrix) -> Image ! Matrix_Error
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any core_op_handler
 
-    ## Calculates the per-element difference between an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element difference between an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -273,7 +273,8 @@ type Image
     - : (Number | Vector | Matrix) -> Image ! Matrix_Error
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any core_op_handler
 
-    ## Calculates the per-element product of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Calculates the per-element product of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -322,7 +323,8 @@ type Image
     * : (Number | Vector | Matrix) -> Image ! Matrix_Error
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any core_op_handler
 
-    ## Performs per-element division of an image and a scalar or a matrix.
+    ## GROUP Standard.Base.Operators
+       Performs per-element division of an image and a scalar or a matrix.
 
        Arguments:
        - value: A value can be a number, a vector of numbers, or a matrix. The
@@ -437,12 +439,10 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        _ : Vector ->
-            Scalar.new value.to_array
+        _ : Vector -> Scalar.new value
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
-        _ ->
-            Scalar.all value
+        _ -> Scalar.all value
     function mat scalar result
     Image.Value result
 
@@ -470,4 +470,5 @@ type Image_Comparator
     hash : Image -> Integer
     hash x = x.opencv_mat.hashCode
 
+## PRIVATE
 Comparable.from (_:Image) = Image_Comparator

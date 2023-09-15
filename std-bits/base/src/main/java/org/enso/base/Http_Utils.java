@@ -1,13 +1,12 @@
 package org.enso.base;
 
-import org.enso.base.net.http.BasicAuthorization;
-import org.enso.base.net.http.MultipartBodyBuilder;
-import org.enso.base.net.http.UrlencodedBodyBuilder;
-
 import java.net.http.HttpHeaders;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import org.enso.base.net.http.BasicAuthorization;
+import org.enso.base.net.http.MultipartBodyBuilder;
+import org.enso.base.net.http.UrlencodedBodyBuilder;
 
 /** Utils for standard HTTP library. */
 public class Http_Utils {

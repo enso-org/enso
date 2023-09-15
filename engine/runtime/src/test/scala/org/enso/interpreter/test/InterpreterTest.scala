@@ -108,6 +108,12 @@ class InterpreterContext(
   val in             = new PipedInputStream(inOut)
   val sessionManager = new ReplaceableSessionManager
 
+  val languageHome = Paths
+    .get("../../test/micro-distribution/component")
+    .toFile
+    .getAbsolutePath
+  val edition = "0.0.0-dev"
+
   val ctx = contextModifiers(
     Context
       .newBuilder(LanguageInfo.ID)
@@ -118,16 +124,11 @@ class InterpreterContext(
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+      .environment("NO_COLOR", "true")
       .logHandler(System.err)
       .in(in)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths
-          .get("../../test/micro-distribution/component")
-          .toFile
-          .getAbsolutePath
-      )
-      .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+      .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHome)
+      .option(RuntimeOptions.EDITION_OVERRIDE, edition)
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)

@@ -22,6 +22,7 @@ use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
+use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
@@ -201,7 +202,7 @@ impl RunContext {
         // Some GraalVM components depend on Sulong and are not available on all platforms (like
         // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
         // https://github.com/oracle/graalpython/issues/156
-        let optional_components = [graal::ComponentId::Python, graal::ComponentId::R];
+        let optional_components = [graal::ComponentId::Python];
         graal::install_missing_components(required_components, optional_components).await?;
         prepare_simple_library_server.await??;
         Ok(())
@@ -221,13 +222,16 @@ impl RunContext {
             ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
         }
 
-        if self.config.test_standard_library {
+        let test_results_dir = if self.config.test_standard_library {
             // If we run tests, make sure that old and new results won't end up mixed together.
             let test_results_dir = ENSO_TEST_JUNIT_DIR
                 .get()
                 .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(test_results_dir)?;
-        }
+            ide_ci::fs::reset_dir(&test_results_dir)?;
+            Some(test_results_dir)
+        } else {
+            None
+        };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -319,13 +323,18 @@ impl RunContext {
                     "runtime/Benchmark/compile",
                     "language-server/Benchmark/compile",
                     "searcher/Benchmark/compile",
+                    "std-benchmarks/Benchmark/compile",
                 ]);
             }
 
-            tasks.extend(self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task()));
-            if !tasks.is_empty() {
-                let build_stuff = Sbt::concurrent_tasks(tasks);
-                sbt.call_arg(build_stuff).await?;
+            // We want benchmarks to run only after the other build tasks are done, as they are
+            // really CPU-heavy.
+            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
+            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
+            let final_command = Sbt::sequential_tasks(command_sequence);
+            if !final_command.is_empty() {
+                sbt.call_arg(final_command).await?;
             } else {
                 debug!("No SBT tasks to run.");
             }
@@ -364,6 +373,9 @@ impl RunContext {
 
                 // Check Searcher Benchmark Compilation
                 sbt.call_arg("searcher/Benchmark/compile").await?;
+
+                // Check Enso JMH benchmark compilation
+                sbt.call_arg("std-benchmarks/Benchmark/compile").await?;
             }
 
             for benchmark in &self.config.execute_benchmarks {
@@ -411,15 +423,42 @@ impl RunContext {
 
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
-            let path = &self.paths.repo_root.engine.runtime.bench_report_xml;
-            if path.exists() {
-                ide_ci::actions::artifacts::upload_single_file(
-                    &self.paths.repo_root.engine.runtime.bench_report_xml,
-                    "Runtime Benchmark Report",
-                )
-                .await?;
-            } else {
-                info!("No benchmark file found at {}, nothing to upload.", path.display());
+            for bench in &self.config.execute_benchmarks {
+                match bench {
+                    Benchmarks::Runtime => {
+                        let runtime_bench_report =
+                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        if runtime_bench_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                runtime_bench_report,
+                                "Runtime Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Runtime Benchmark Report file found at {}, nothing to upload.",
+                                runtime_bench_report.display()
+                            );
+                        }
+                    }
+                    Benchmarks::EnsoJMH => {
+                        let enso_jmh_report =
+                            &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
+                        if enso_jmh_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                enso_jmh_report,
+                                "Enso JMH Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
+                                enso_jmh_report.display()
+                            );
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -450,6 +489,19 @@ impl RunContext {
 
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::Yes, &sbt, PARALLEL_ENSO_TESTS).await?;
+        }
+
+        // If we are run in CI conditions and we prepared some test results, we want to upload
+        // them as a separate artifact to ease debugging.
+        if let Some(test_results_dir) = test_results_dir && is_in_env() {
+            // Each platform gets its own log results, so we need to generate unique names.
+            let name = format!("Test_Results_{TARGET_OS}");
+            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
+                .await {
+                // We wouldn't want to fail the whole build if we can't upload the test results.
+                // Still, it should be somehow visible in the build summary.
+                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
+            }
         }
 
         // if build_native_runner {

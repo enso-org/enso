@@ -1,0 +1,22 @@
+[package]
+name = "enso-zst"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Zero-sized types, similar to PhantomData, but with more obvious behavior."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/zst"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+keywords = ["zst"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = []
+
+[dependencies]
+bytemuck = { workspace = true }
+serde = { version = "1.0.126", features = ["derive", "rc"] }
+paste = { workspace = true }

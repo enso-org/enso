@@ -1,36 +1,34 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-import project.Data.Json.Extensions
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
-import project.Data.Range.Extensions
-import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
-
-# We need to import conversion methods from Ordering, therefore, we import all
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json.Extensions import all
 from project.Data.Ordering import all
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
 
 ## Methods for serializing from and to JSON.
 type Json
-    ## ALIAS From Text
+    ## ALIAS from text
+       GROUP Conversions
 
        Parse a Text value into a `JS_Object` or an Enso primitive value (like
        `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -48,20 +46,21 @@ type Json
             parsed = json_parse json
             make_enso parsed
 
-    ## Serialize an Object to JSON
+    ## PRIVATE
+       ADVANCED
+       Serialize an Object to JSON.
     stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
     stringify object =
         json_stringify (make_javascript object.to_js_object)
 
-    ## Convert a Vector of Keys and Values to JSON.
+    ## PRIVATE
+       Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
     from_pairs : Vector -> Text
     from_pairs pairs =
         JS_Object.from_pairs pairs . to_text
 
-## UNSTABLE
-
-   A failure indicating malformed text input into the JSON parser.
+## A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
 type Invalid_JSON
@@ -74,9 +73,7 @@ type Invalid_JSON
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
 
-## UNSTABLE
-
-   A failure indicating the inability to marshall a `Json` object into the
+## A failure indicating the inability to marshall a `Json` object into the
    specified format.
 type Marshalling_Error
     ## PRIVATE
@@ -146,7 +143,8 @@ type JS_Object
             value = get_value self.js_object key
             make_enso value
 
-    ## Get a value for a key of the object.
+    ## GROUP Selections
+       Get a value for a key of the object.
        If the key is not found, throws a `No_Such_Key` error.
 
        Arguments:
@@ -155,17 +153,20 @@ type JS_Object
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Get the keys of the object.
+    ## GROUP Metadata
+       Get the keys of the object.
     field_names : Vector
     field_names self =
         Vector.from_polyglot_array (get_property_names self.js_object)
 
-    ## Gets the number of keys in the object.
+    ## GROUP Metadata
+       Gets the number of keys in the object.
     length : Number
     length self =
         get_property_names self.js_object . length
 
-    ## Convert the object to a Vector of Pairs.
+    ## GROUP Conversions
+       Convert the object to a Vector of Pairs.
     to_vector : Vector
     to_vector self =
         keys = get_property_names self.js_object
@@ -188,7 +189,8 @@ type JS_Object
     to_display_text self =
         self.to_text.to_display_text
 
-    ## Convert to a JSON representation.
+    ## PRIVATE
+       Convert to a JSON representation.
     to_json : Text
     to_json self = self.to_text
 
@@ -219,6 +221,7 @@ type JS_Object_Comparator
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 
+## PRIVATE
 Comparable.from (_:JS_Object) = JS_Object_Comparator
 
 ## PRIVATE

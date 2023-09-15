@@ -23,6 +23,7 @@ type Join_Condition
         - left: A name or index of a column in the left table.
         - right: A name or index of a column in the right table.
         - locale: The locale to use for case insensitive comparisons.
+    @locale Locale.default_widget
     Equals_Ignore_Case (left : Text | Integer) (right : Text | Integer = left) (locale : Locale = Locale.default)
 
     ## Correlates rows from the two tables if the `left` element fits between

@@ -34,6 +34,6 @@ self.addEventListener('fetch', event => {
         )
         return
     } else {
-        return false
+        return
     }
 })

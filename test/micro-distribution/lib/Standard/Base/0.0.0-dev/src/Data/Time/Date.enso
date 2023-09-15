@@ -1,6 +1,4 @@
-polyglot java import java.time.LocalDate
-
-new year (month = 1) (day = 1) = (LocalDate.of year month day) . internal_local_date
+new_builtin year month day = @Builtin_Method "Date.new_builtin"
 
 @Builtin_Type
 type Date

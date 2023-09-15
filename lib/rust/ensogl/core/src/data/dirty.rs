@@ -864,7 +864,7 @@ pub type SharedBitField<Prim, OnMut> = SharedEnum<Prim, usize, OnMut>;
 #[allow(missing_docs)]
 pub struct EnumData<Prim = u32, T = usize> {
     pub bits: Prim,
-    phantom:  PhantomData<T>,
+    phantom:  ZST<T>,
 }
 
 impl<Prim, T> HasArg for EnumData<Prim, T> {

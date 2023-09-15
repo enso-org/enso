@@ -1,20 +1,20 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.zone.ZoneRulesException;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -22,7 +22,7 @@ import java.time.zone.ZoneRulesException;
     pkg = "date",
     name = "TimeZone",
     stdlibName = "Standard.Base.Data.Time.Time_Zone.Time_Zone")
-public final class EnsoTimeZone implements TruffleObject {
+public final class EnsoTimeZone implements EnsoObject {
   private final ZoneId zone;
 
   public EnsoTimeZone(ZoneId zone) {
@@ -33,6 +33,19 @@ public final class EnsoTimeZone implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public Text zoneId() {
     return Text.create(this.zone.getId());
+  }
+
+  @Builtin.Method(description = "Get offset in seconds of this zone at given time")
+  @CompilerDirectives.TruffleBoundary
+  public long offset(Object at) {
+    try {
+      var iop = InteropLibrary.getUncached();
+      var d = iop.asDate(at);
+      var t = iop.asTime(at);
+      return zone.getRules().getOffset(d.atTime(t)).getTotalSeconds();
+    } catch (UnsupportedMessageException ex) {
+      return 0;
+    }
   }
 
   @Builtin.Method(
@@ -68,10 +81,9 @@ public final class EnsoTimeZone implements TruffleObject {
     return new EnsoTimeZone(ZoneId.systemDefault());
   }
 
-  @Builtin.Method(description = "Return the text representation of this timezone.")
-  @CompilerDirectives.TruffleBoundary
-  public Text toText() {
-    return Text.create(zone.toString());
+  @ExportMessage
+  String toDisplayString(boolean ignoreSideEffects) {
+    return zone.toString();
   }
 
   @ExportMessage
@@ -100,7 +112,7 @@ public final class EnsoTimeZone implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().timeZone();
   }
 }

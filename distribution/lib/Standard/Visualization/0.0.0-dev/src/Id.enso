@@ -80,4 +80,4 @@ type Id
 
                 example_id = Visualization.Id.from_module Base "My Visualization"
     from_module module visualization_name =
-        Id.Library (enso_project module) visualization_name
+        Id.Library (Project_Description.new module) visualization_name

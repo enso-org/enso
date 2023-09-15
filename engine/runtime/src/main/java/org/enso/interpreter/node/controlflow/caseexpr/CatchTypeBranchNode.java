@@ -3,7 +3,7 @@ package org.enso.interpreter.node.controlflow.caseexpr;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.data.Type;
 
@@ -13,7 +13,7 @@ public class CatchTypeBranchNode extends BranchNode {
 
   private final Type expectedType;
   private @Child IsValueOfTypeNode isValueOfTypeNode = IsValueOfTypeNode.build();
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile profile = CountingConditionProfile.create();
 
   CatchTypeBranchNode(Type tpe, RootCallTarget functionNode, boolean terminalBranch) {
     super(functionNode, terminalBranch);

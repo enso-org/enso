@@ -1,30 +1,28 @@
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Number
 
-## Alias Pi (Constant)
-
-   The mathematical constant pi, equal to the ratio of a circle circumference
+## The mathematical constant pi, equal to the ratio of a circle circumference
    to its diameter.
 
    > Example
      Calculating the area of a circle.
 
          circle_area r = 2 * Math.pi * r^2
-pi : Decimal
+pi : Float
 pi = 3.1415926535897932385
 
-## ALIAS e (Constant)
-
-   The mathematical constant e, the base of the natural logarithm.
+## The mathematical constant e, the base of the natural logarithm.
 
    > Example
      Calculating the natural logarithm of 3.
 
          3.log Math.e
-e : Decimal
+e : Float
 e = 2.718281828459045235360
 
-## ALIAS Minimum
+## PRIVATE
+   ADVANCED
+   GROUP Math
 
    Returns the smaller value of `a` and `b`.
 
@@ -44,7 +42,9 @@ e = 2.718281828459045235360
 min : Number -> Number -> Number
 min a b = if a <= b then a else b
 
-## ALIAS Maximum
+## PRIVATE
+   ADVANCED
+   GROUP Math
 
    Returns the larger value of `a` and `b`.
 

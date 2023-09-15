@@ -1,10 +1,8 @@
 from Standard.Base import all
 
 type Position
-   ## UNSTABLE
-      Selected columns will be moved to the front of the output table.
-   Before_Other_Columns
+    ## Selected columns will be moved to the front of the output table.
+    Before_Other_Columns
 
-   ## UNSTABLE
-      Selected columns will be moved to the back of the output table.
-   After_Other_Columns
+    ## Selected columns will be moved to the back of the output table.
+    After_Other_Columns

@@ -1,8 +1,7 @@
 package org.enso.interpreter.service.error;
 
-import org.enso.logger.masking.MaskedPath;
-
 import java.io.File;
+import org.enso.logger.masking.MaskedPath;
 
 /** Thrown when a module for given file was requested but could not be found. */
 public class ModuleNotFoundForFileException extends ModuleNotFoundException {

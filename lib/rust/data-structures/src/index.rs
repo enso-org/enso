@@ -32,15 +32,15 @@ use crate::prelude::*;
 /// ```
 pub struct Index<T> {
     /// Raw value.
-    pub raw: usize,
-    phantom: PhantomData<T>,
+    pub raw:  usize,
+    _phantom: ZST<T>,
 }
 
 impl<T> Index<T> {
     /// Constructor
     pub fn new(raw: usize) -> Self {
-        let phantom = default();
-        Self { raw, phantom }
+        let _phantom = default();
+        Self { raw, _phantom }
     }
 }
 

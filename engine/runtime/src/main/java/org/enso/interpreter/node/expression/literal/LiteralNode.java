@@ -1,11 +1,12 @@
 package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.math.BigInteger;
 import java.util.function.Predicate;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -61,6 +62,16 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   }
 
   /**
+   * Creates an instance of the literal node.
+   *
+   * @param value interop value for the node to represent
+   * @return a node representing the literal given by {@code value}
+   */
+  public static LiteralNode build(TruffleObject value) {
+    return new LiteralNode(value);
+  }
+
+  /**
    * Returns the constant value of this string literal.
    *
    * @param frame the stack frame for execution
@@ -73,7 +84,7 @@ public class LiteralNode extends ExpressionNode implements Patchable {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <N extends Node & Predicate<IR.Expression>> N asPatchableNode() {
+  public <N extends Node & Predicate<Expression>> N asPatchableNode() {
     var p = PatchableLiteralNode.build(this);
     notifyInserted(replace(p));
     return (N) p;

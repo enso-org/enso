@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 
 gen_list len = 0.up_to len . fold List.Nil (l -> i -> List.Cons i+1 l)
 
@@ -19,18 +19,35 @@ sum_list_meta list =
 sum_recur n = if n == 0 then 0 else 1 + sum_recur n-1
 
 build_map size =
-    rand = Random.new
+    rand = Java_Random.new
     0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
-bench =
-    mil = 1000000
-    list = gen_list mil
-    vec = Vector.new mil (ix -> ix + 1)
-    vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench.measure (sum_list_meta list) "list meta-fold" 1000 10
-    Bench.measure (list.fold 0 (+)) "list fold" 1000 10
-    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
-    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
-    Bench.measure (build_map 10000) "build a map" 100 10
+type Data
+    Value ~list ~vec ~vec_decimal
 
-main = bench
+    create =
+        Data.Value (gen_list 1000*1000) (Vector.new 1000*1000 (ix -> ix + 1)) (Vector.new 1000*1000 (ix -> ix + 0.0))
+
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Collections" (Bench.options.set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)) group_builder->
+        group_builder.specify "list_meta_fold" <|
+            sum_list_meta data.list
+
+        group_builder.specify "list_fold" <|
+            data.list.fold 0 (+)
+
+        group_builder.specify "vector_fold" <|
+            data.vec.fold 0 (+)
+
+        group_builder.specify "vector_decimal_fold" <|
+            data.vec_decimal.fold 0 (+)
+
+    builder.group "Collections_Map" (Bench.options.set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)) group_builder->
+        group_builder.specify "build_map" <|
+            build_map 5000
+
+
+main = collect_benches . run_main

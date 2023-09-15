@@ -1,21 +1,21 @@
 package org.enso.interpreter.runtime;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-
-import static org.junit.Assert.assertTrue;
 
 public class ModuleTest {
 
@@ -34,7 +34,7 @@ public class ModuleTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
-    this.ctx = Context.newBuilder().engine(eng).allowIO(true).allowAllAccess(true).build();
+    this.ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
   }
 
   @After

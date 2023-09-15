@@ -138,8 +138,8 @@ fn init(app: &Application) {
             let data = generate_data(
                 (time_info.since_animation_loop_started.unchecked_raw() / 1000.0).into(),
             );
-            let content = serde_json::to_value(data).unwrap();
-            let data = Data::from(content);
+            let content = serde_json::to_string(&data).unwrap();
+            let data = Data::json(content.as_bytes()).unwrap();
 
             visualization.send_data.emit(data);
 

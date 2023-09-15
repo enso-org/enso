@@ -191,25 +191,55 @@ pub struct Error<Payload = serde_json::Value> {
 
 /// A message that can come from Server to Client — either a response or
 /// notification.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum IncomingMessage {
     /// A response to a call made by client.
-    Response(Response<serde_json::Value>),
+    Response(Response<Box<serde_json::value::RawValue>>),
     /// A notification call (initiated by the server).
-    Notification(Notification<serde_json::Value>),
+    Notification(Notification<Box<serde_json::value::RawValue>>),
 }
 
 /// Partially decodes incoming message.
 ///
 /// This checks if has `jsonrpc` version string, and whether it is a
 /// response or a notification.
+#[profile(Debug)]
 pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMessage> {
-    use serde_json::from_str;
-    use serde_json::from_value;
-    use serde_json::Value;
-    let message = from_str::<Message<Value>>(message)?;
-    from_value::<IncomingMessage>(message.payload)
+    type Payload = serde_json::value::RawValue;
+    // We can't use the derived deserialization for `Message` because it is currently incompatible
+    // with `serde_json::value::RawValue`[1], which is the most performant way to partially-decode
+    // JSON.
+    // [1]: (https://github.com/serde-rs/serde/issues/1183)
+    #[derive(Deserialize, Debug)]
+    struct RawMessage {
+        #[allow(dead_code)] // Checked for during deserialization.
+        jsonrpc: Version,
+        #[serde(default)]
+        id:      Option<Id>,
+        #[serde(default, deserialize_with = "deserialize_some")]
+        result:  Option<Option<Box<Payload>>>,
+        #[serde(default)]
+        error:   Option<Error>,
+    }
+    fn deserialize_some<'de, T, D>(deserializer: D) -> std::result::Result<Option<T>, D::Error>
+    where
+        T: Deserialize<'de>,
+        D: serde::de::Deserializer<'de>, {
+        Deserialize::deserialize(deserializer).map(Some)
+    }
+    let raw: RawMessage = serde_json::from_str(message)?;
+    Ok(match (raw.id, raw.result, raw.error) {
+        (Some(id), Some(result), None) => {
+            let result = result.unwrap_or_default();
+            IncomingMessage::Response(Response { id, result: Result::Success(Success { result }) })
+        }
+        (Some(id), None, Some(error)) =>
+            IncomingMessage::Response(Response { id, result: Result::Error { error } }),
+        _ => {
+            let payload: Box<serde_json::value::RawValue> = serde_json::from_str(message)?;
+            IncomingMessage::Notification(Notification(payload))
+        }
+    })
 }
 
 /// Message from server to client.
@@ -317,11 +347,12 @@ mod tests {
     #[test]
     fn test_response_deserialization() {
         let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
-        let msg = serde_json::from_str(response).unwrap();
+        let msg = decode_incoming_message(response).unwrap();
         if let IncomingMessage::Response(resp) = msg {
             assert_eq!(resp.id, Id(0));
             if let Result::Success(ret) = resp.result {
-                let obj = ret.result.as_object().expect("expected object ret");
+                let result: Value = serde_json::from_str(ret.result.get()).unwrap();
+                let obj = result.as_object().expect("expected object ret");
                 assert_eq!(obj.len(), 1);
                 let exists = obj.get("exists").unwrap().as_bool().unwrap();
                 assert!(exists)

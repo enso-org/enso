@@ -22,11 +22,13 @@ import scala.concurrent.duration.FiniteDuration
   * @param configurationService the configuration service
   * @param projectService a project service
   * @param requestTimeout a request timeout
+  * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
 class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
   configurationService: GlobalConfigServiceApi[F],
   projectService: ProjectServiceApi[F],
-  requestTimeout: FiniteDuration
+  requestTimeout: FiniteDuration,
+  timeoutRetries: Int
 ) extends RequestHandler[
       F,
       ProjectServiceFailure,
@@ -35,7 +37,8 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
       ProjectCreate.Result
     ](
       ProjectCreate,
-      Some(requestTimeout)
+      Some(requestTimeout),
+      timeoutRetries
     ) {
 
   override def handleRequest
@@ -76,18 +79,21 @@ object ProjectCreateHandler {
     * @param configurationService
     * @param projectService a project service
     * @param requestTimeout a request timeout
+    * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
   def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
     configurationService: GlobalConfigServiceApi[F],
     projectService: ProjectServiceApi[F],
-    requestTimeout: FiniteDuration
+    requestTimeout: FiniteDuration,
+    timeoutRetries: Int
   ): Props =
     Props(
       new ProjectCreateHandler(
         configurationService,
         projectService,
-        requestTimeout
+        requestTimeout,
+        timeoutRetries
       )
     )
 

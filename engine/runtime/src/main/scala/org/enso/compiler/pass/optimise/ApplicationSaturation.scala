@@ -1,18 +1,16 @@
 package org.enso.compiler.pass.optimise
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-
-import scala.annotation.unused
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -52,15 +50,15 @@ case object ApplicationSaturation extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val passConfig = moduleContext.passConfiguration
     ir.mapExpressions(
       runExpression(
         _,
         new InlineContext(
-          moduleContext.module,
+          moduleContext,
           passConfiguration = passConfig,
           compilerConfig    = moduleContext.compilerConfig
         )
@@ -77,9 +75,9 @@ case object ApplicationSaturation extends IRPass {
     */
   //noinspection DuplicatedCode
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val knownFunctions =
       inlineContext.passConfiguration
         .flatMap(configs => configs.get(this))
@@ -89,9 +87,9 @@ case object ApplicationSaturation extends IRPass {
         .knownFunctions
 
     ir.transformExpressions {
-      case func @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+      case func @ Application.Prefix(fn, args, _, _, _, _) =>
         fn match {
-          case name: IR.Name =>
+          case name: Name =>
             val aliasInfo =
               name
                 .unsafeGetMetadata(
@@ -117,7 +115,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -128,7 +126,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -140,7 +138,7 @@ case object ApplicationSaturation extends IRPass {
                     func
                       .copy(
                         arguments = args.map(
-                          _.mapExpressions((ir: IR.Expression) =>
+                          _.mapExpressions((ir: Expression) =>
                             runExpression(ir, inlineContext)
                           )
                         )
@@ -153,7 +151,7 @@ case object ApplicationSaturation extends IRPass {
                   func
                     .copy(
                       arguments = args.map(
-                        _.mapExpressions((ir: IR.Expression) =>
+                        _.mapExpressions((ir: Expression) =>
                           runExpression(ir, inlineContext)
                         )
                       )
@@ -181,12 +179,6 @@ case object ApplicationSaturation extends IRPass {
     }
   }
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
   /** Configuration for this pass
     *
     * @param knownFunctions the mapping of known functions
@@ -209,8 +201,8 @@ case object ApplicationSaturation extends IRPass {
   type KnownFunctionsMapping = Map[String, FunctionSpec]
 
   /** Describes the saturation state of a function application. */
-  sealed trait CallSaturation extends IRPass.Metadata {
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  sealed trait CallSaturation extends IRPass.IRMetadata {
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
   object CallSaturation {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {

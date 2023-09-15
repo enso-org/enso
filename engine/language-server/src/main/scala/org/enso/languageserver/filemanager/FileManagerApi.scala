@@ -16,12 +16,15 @@ object FileManagerApi {
 
     case class Params(path: Path, contents: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = WriteFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, WriteFile.Params] =
+      new HasParams[this.type] {
+        type Params = WriteFile.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ReadFile extends Method("file/read") {
@@ -30,60 +33,74 @@ object FileManagerApi {
 
     case class Result(contents: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ReadFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ReadFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ReadFile.Params] =
+      new HasParams[this.type] {
+        type Params = ReadFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ReadFile.Result] =
+      new HasResult[this.type] {
+        type Result = ReadFile.Result
+      }
   }
 
   case object CreateFile extends Method("file/create") {
 
     case class Params(`object`: FileSystemObject)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CreateFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CreateFile.Params] =
+      new HasParams[this.type] {
+        type Params = CreateFile.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object DeleteFile extends Method("file/delete") {
 
     case class Params(path: Path)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = DeleteFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, DeleteFile.Params] =
+      new HasParams[this.type] {
+        type Params = DeleteFile.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object CopyFile extends Method("file/copy") {
 
     case class Params(from: Path, to: Path)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CopyFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CopyFile.Params] =
+      new HasParams[this.type] {
+        type Params = CopyFile.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object MoveFile extends Method("file/move") {
 
     case class Params(from: Path, to: Path)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = MoveFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, MoveFile.Params] =
+      new HasParams[this.type] {
+        type Params = MoveFile.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExistsFile extends Method("file/exists") {
@@ -92,12 +109,14 @@ object FileManagerApi {
 
     case class Result(exists: Boolean)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExistsFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ExistsFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ExistsFile.Params] =
+      new HasParams[this.type] {
+        type Params = ExistsFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ExistsFile.Result] =
+      new HasResult[this.type] {
+        type Result = ExistsFile.Result
+      }
   }
 
   case object ListFile extends Method("file/list") {
@@ -106,12 +125,14 @@ object FileManagerApi {
 
     case class Result(paths: Vector[FileSystemObject])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ListFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ListFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ListFile.Params] =
+      new HasParams[this.type] {
+        type Params = ListFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ListFile.Result] =
+      new HasResult[this.type] {
+        type Result = ListFile.Result
+      }
   }
 
   case object TreeFile extends Method("file/tree") {
@@ -120,12 +141,14 @@ object FileManagerApi {
 
     case class Result(tree: DirectoryTree)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = TreeFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = TreeFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, TreeFile.Params] =
+      new HasParams[this.type] {
+        type Params = TreeFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, TreeFile.Result] =
+      new HasResult[this.type] {
+        type Result = TreeFile.Result
+      }
   }
 
   case object InfoFile extends Method("file/info") {
@@ -134,49 +157,57 @@ object FileManagerApi {
 
     case class Result(attributes: FileAttributes)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = InfoFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = InfoFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, InfoFile.Params] =
+      new HasParams[this.type] {
+        type Params = InfoFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, InfoFile.Result] =
+      new HasResult[this.type] {
+        type Result = InfoFile.Result
+      }
   }
 
   case object ChecksumFile extends Method("file/checksum") {
     case class Params(path: Path)
     case class Result(checksum: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ChecksumFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ChecksumFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ChecksumFile.Params] =
+      new HasParams[this.type] {
+        type Params = ChecksumFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ChecksumFile.Result] =
+      new HasResult[this.type] {
+        type Result = ChecksumFile.Result
+      }
   }
 
   case object EventFile extends Method("file/event") {
 
     case class Params(path: Path, kind: FileEventKind)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = EventFile.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, EventFile.Params] =
+      new HasParams[this.type] {
+        type Params = EventFile.Params
+      }
   }
 
   case object ContentRootAdded extends Method("file/rootAdded") {
     case class Params(root: ContentRoot)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ContentRootAdded.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ContentRootAdded.Params] =
+      new HasParams[this.type] {
+        type Params = ContentRootAdded.Params
+      }
   }
 
   case object ContentRootRemoved extends Method("file/rootRemoved") {
     case class Params(id: UUID)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ContentRootRemoved.Params
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ContentRootRemoved.Params] =
+      new HasParams[this.type] {
+        type Params = ContentRootRemoved.Params
+      }
   }
 
   // Errors

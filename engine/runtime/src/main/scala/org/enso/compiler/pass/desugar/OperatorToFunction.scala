@@ -1,15 +1,14 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
   DemandAnalysis
 }
-
-import scala.annotation.unused
 
 /** This pass converts usages of operators to calls to standard functions.
   *
@@ -42,15 +41,15 @@ case object OperatorToFunction extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val new_bindings = ir.bindings.map { a =>
       a.mapExpressions(
         runExpression(
           _,
           new InlineContext(
-            moduleContext.module,
+            moduleContext,
             compilerConfig = moduleContext.compilerConfig
           )
         )
@@ -68,14 +67,14 @@ case object OperatorToFunction extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): Expression =
     ir.transformExpressions {
-      case asc: IR.Type.Ascription =>
+      case asc: Type.Ascription =>
         asc.copy(typed = runExpression(asc.typed, inlineContext))
-      case IR.Application.Operator.Binary(l, op, r, loc, passData, diag) =>
-        IR.Application.Prefix(
+      case Operator.Binary(l, op, r, loc, passData, diag) =>
+        Application.Prefix(
           op,
           List(
             l.mapExpressions(runExpression(_, inlineContext)),
@@ -87,10 +86,4 @@ case object OperatorToFunction extends IRPass {
           diag
         )
     }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 }

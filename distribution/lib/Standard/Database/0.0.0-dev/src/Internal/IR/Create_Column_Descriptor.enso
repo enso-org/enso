@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+import project.Data.Column_Constraint.Column_Constraint
+
+## PRIVATE
+type Create_Column_Descriptor
+    ## PRIVATE
+       A description of a column for the `Create_Table` query.
+    Value (name : Text) (sql_type : Text) (constraints : Vector Column_Constraint)

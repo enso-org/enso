@@ -1,8 +1,8 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -13,12 +13,10 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -26,7 +24,7 @@ import org.enso.polyglot.common_utils.Core_Date_Utils;
     pkg = "date",
     name = "DateTime",
     stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
-public final class EnsoDateTime implements TruffleObject {
+public final class EnsoDateTime implements EnsoObject {
   private final ZonedDateTime dateTime;
 
   public EnsoDateTime(ZonedDateTime dateTime) {
@@ -45,35 +43,6 @@ public final class EnsoDateTime implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
-  }
-
-  /**
-   * Obtains an instance of EnsoDateTime (ZonedDateTime) from a text string.
-   *
-   * <p>Accepts:
-   *
-   * <ul>
-   *   <li>Local date time, such as '2011-12-03T10:15:30' adding system default timezone.
-   *   <li>Offset date time, such as '2011-12-03T10:15:30+01:00' parsing offset as a timezone.
-   *   <li>Zoned date time, such as '2011-12-03T10:15:30+01:00[Europe/Paris]' with optional region
-   *       id in square brackets.
-   * </ul>
-   *
-   * @param text the string to parse.
-   * @return parsed ZonedDateTime instance wrapped in EnsoDateTime.
-   */
-  @Builtin.Method(
-      name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern",
-      autoRegister = false)
-  @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class)
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoDateTime parse(String text) {
-    String iso = Core_Date_Utils.normaliseISODateTime(text);
-
-    var datetime = Core_Date_Utils.parseZonedDateTime(iso, DATE_TIME_FORMATTER);
-    return new EnsoDateTime(datetime);
   }
 
   @Builtin.Method(
@@ -139,10 +108,27 @@ public final class EnsoDateTime implements TruffleObject {
     return dateTime.getSecond();
   }
 
-  @Builtin.Method(description = "Gets the nanosecond")
+  @Builtin.Method(description = "Gets the millisecond")
   @CompilerDirectives.TruffleBoundary
-  public long nanosecond() {
-    return dateTime.getNano();
+  public long millisecond() {
+    return dateTime.getNano() / 1000_000;
+  }
+
+  @Builtin.Method(description = "Gets the microsecond")
+  @CompilerDirectives.TruffleBoundary
+  public long microsecond() {
+    return (dateTime.getNano() / 1000) % 1000;
+  }
+
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
+  @CompilerDirectives.TruffleBoundary
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = dateTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "zone", description = "Gets the zone")
@@ -180,12 +166,6 @@ public final class EnsoDateTime implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public EnsoDate toLocalDate() {
     return new EnsoDate(dateTime.toLocalDate());
-  }
-
-  @Builtin.Method(description = "Return this datetime in the provided time zone.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime atZone(EnsoTimeZone zone) {
-    return new EnsoDateTime(dateTime.withZoneSameInstant(zone.asTimeZone()));
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
@@ -240,7 +220,7 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().dateTime();
   }
 
@@ -254,7 +234,4 @@ public final class EnsoDateTime implements TruffleObject {
   /** 15. October 1582 in UTC timezone. Note that Java considers an epoch start 1.1.1970 UTC. */
   private static final EnsoDateTime epochStart =
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
-
-  private static final DateTimeFormatter DATE_TIME_FORMATTER =
-      Core_Date_Utils.defaultZonedDateTimeFormatter();
 }

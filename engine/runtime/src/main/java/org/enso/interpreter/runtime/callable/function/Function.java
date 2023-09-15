@@ -4,9 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -19,8 +23,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
@@ -29,11 +34,11 @@ import org.enso.polyglot.MethodNames;
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class Function implements TruffleObject {
+public final class Function implements EnsoObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
+  private final @CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
   /**
@@ -141,6 +146,7 @@ public final class Function implements TruffleObject {
    *
    * @return the function's argument schema
    */
+  @Idempotent
   public FunctionSchema getSchema() {
     return schema;
   }
@@ -262,7 +268,7 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Array(MethodNames.Function.EQUALS);
+    return ArrayLikeHelpers.wrapStrings(MethodNames.Function.EQUALS);
   }
 
   /**
@@ -378,7 +384,7 @@ public final class Function implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value = "1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 
@@ -396,16 +402,55 @@ public final class Function implements TruffleObject {
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
+    return toString(true);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public final String toString(boolean includeArguments) {
     var n = callTarget.getRootNode();
     var ss = n.getSourceSection();
     if (ss == null) {
       return super.toString();
     }
-    var s = ss.getSource();
+    var iop = InteropLibrary.getUncached();
+    var src = ss.getSource();
     var start = ss.getStartLine();
-    final int end = start + s.getLineCount();
-    return n.getName() + "[" + s.getName() + ":" + start + "-" + end + "]";
+    var end = ss.getEndLine();
+    var sb = new StringBuilder();
+    sb.append(n.getName());
+    sb.append("[").append(src.getName()).append(":").append(start);
+    if (end == start) {
+      sb.append(":").append(ss.getStartColumn()).append("-").append(ss.getEndColumn());
+    } else {
+      sb.append("-").append(end);
+    }
+    sb.append("]");
+    if (includeArguments) {
+      for (var i = 0; i < schema.getArgumentsCount(); i++) {
+        ArgumentDefinition info = schema.getArgumentInfos()[i];
+        if (info.hasDefaultValue()
+            && preAppliedArguments != null
+            && preAppliedArguments[i] == null) {
+          continue;
+        }
+        var name = info.getName();
+        sb.append(" ").append(name).append("=");
+        if (preAppliedArguments != null && preAppliedArguments[i] != null) {
+          sb.append(iop.toDisplayString(preAppliedArguments[i], false));
+        } else {
+          sb.append("_");
+        }
+      }
+      if (schema.getOversaturatedArguments() != null) {
+        for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
+          if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
+            sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
+            sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
+          }
+        }
+      }
+    }
+    return sb.toString();
   }
 }

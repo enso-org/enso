@@ -1,6 +1,7 @@
 package org.enso.table.util;
 
 import java.util.BitSet;
+import org.graalvm.polyglot.Context;
 
 public class BitSets {
   /**
@@ -16,10 +17,13 @@ public class BitSets {
       return;
     }
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < length; i++) {
       if (source.get(i)) {
         destination.set(destinationOffset + i);
       }
+
+      context.safepoint();
     }
   }
 

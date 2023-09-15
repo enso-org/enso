@@ -5,7 +5,6 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -15,13 +14,13 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
 import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
@@ -31,7 +30,7 @@ import org.enso.polyglot.RuntimeOptions;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
-public final class TopLevelScope implements TruffleObject {
+public final class TopLevelScope implements EnsoObject {
   private final Builtins builtins;
   private final PackageRepository packageRepository;
 
@@ -108,8 +107,8 @@ public final class TopLevelScope implements TruffleObject {
    * @return a collection of all the exported members.
    */
   @ExportMessage
-  Array getMembers(boolean includeInternal) {
-    return new Array(
+  EnsoObject getMembers(boolean includeInternal) {
+    return ArrayLikeHelpers.wrapStrings(
         MethodNames.TopScope.GET_MODULE,
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,
@@ -137,7 +136,7 @@ public final class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName), null, context);
+      return Module.empty(QualifiedName.simpleName(moduleName), null);
     }
 
     @CompilerDirectives.TruffleBoundary

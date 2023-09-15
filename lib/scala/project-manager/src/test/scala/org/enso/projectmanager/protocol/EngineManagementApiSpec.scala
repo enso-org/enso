@@ -45,6 +45,7 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               "versions" : [
                 {"version": "0.9999.0-broken", "markedAsBroken": true},
                 {"version": "0.1.0", "markedAsBroken": false},
+                {"version": "0.0.3", "markedAsBroken": false},
                 {"version": "0.0.1", "markedAsBroken": false},
                 {"version": "0.0.1-pre", "markedAsBroken": false},
                 {"version": "0.0.0", "markedAsBroken": false}

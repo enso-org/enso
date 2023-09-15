@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
+import java.time.OffsetDateTime
 
 object FileManagerProtocol {
 
@@ -42,13 +43,40 @@ object FileManagerProtocol {
     *
     * @param result either file system failure or unit representing success
     */
-  case class WriteFileResult(result: Either[FileSystemFailure, Unit])
+  case class WriteFileResult(result: Either[FileSystemFailure, FileAttributes])
+
+  /** Requests the Language Server write textual content to a file if it was not
+    * modified after `lastModifiedTime`.
+    *
+    * @param path a path to a file
+    * @param lastModifiedTime a last recorded modification time of the file
+    * @param content a textual content
+    */
+  case class WriteFileIfNotModified(
+    path: Path,
+    lastModifiedTime: OffsetDateTime,
+    content: String
+  )
+
+  /** Signals file manipulation status.
+    *
+    * @param result either file system failure or unit representing success
+    */
+  case class WriteFileIfNotModifiedResult(
+    result: Either[FileSystemFailure, Option[FileAttributes]]
+  )
 
   /** Requests the Language Server read a file.
     *
     * @param path a path to a file
     */
   case class ReadFile(path: Path)
+
+  /** Requests the Language Server read a file with a file attributes.
+    *
+    * @param path a path to a file
+    */
+  case class ReadFileWithAttributes(path: Path)
 
   /** Requests the Language Server to read a binary content of a file.
     *
@@ -70,6 +98,14 @@ object FileManagerProtocol {
     */
   case class ReadBinaryFileResult(
     result: Either[FileSystemFailure, BinaryFileContent]
+  )
+
+  /** Returns a result of reading a file with attributes.
+    *
+    * @param result either file system failure or content of a file
+    */
+  case class ReadFileWithAttributesResult(
+    result: Either[FileSystemFailure, (TextualFileContent, FileAttributes)]
   )
 
   /** Requests the Language Server create a file system object.

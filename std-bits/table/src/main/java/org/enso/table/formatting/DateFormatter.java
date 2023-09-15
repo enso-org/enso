@@ -4,14 +4,14 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-import org.enso.base.Time_Utils;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Value;
 
 public class DateFormatter implements DataFormatter {
   private final DateTimeFormatter formatter;
 
   public DateFormatter(String formatString, Locale locale) {
-    formatter = Time_Utils.make_formatter(formatString, locale);
+    formatter = Core_Date_Utils.make_formatter(formatString, locale);
   }
 
   @Override

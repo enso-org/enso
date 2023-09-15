@@ -1,12 +1,17 @@
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.Arithmetic_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Function.Function
+import project.Data.Text.Extensions
 
-from project.Data.Boolean import True, False
+from project.Data.Boolean import Boolean, False, True
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
+polyglot java import java.lang.OutOfMemoryError
 polyglot java import org.enso.base.CompareException
 
 ## An error indicating that no value was found.
@@ -56,15 +61,22 @@ type Type_Error
     Error expected actual name
 
     ## PRIVATE
-       Infer the type of the actual value in a human-readable format.
-    type_of_actual self =
-        tpe = Meta.type_of self.actual
-        if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
-
-    ## PRIVATE
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+    to_display_text self =
+        type_of_actual =
+           tpe = Meta.type_of self.actual
+           if tpe.is_error then self.actual.to_display_text else case self.actual of
+               fn:Function ->
+                    fn_info = fn.to_text
+                    missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)
+                    fn_info + case missing_args.length of
+                        0 -> ""
+                        1 -> ". Try to apply " + (missing_args.at 0) + " argument"
+                        _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
+               _ -> tpe.to_display_text
+
+        "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
 
 @Builtin_Type
 type Compile_Error
@@ -142,9 +154,8 @@ type No_Such_Method
        - symbol: The symbol that was attempted to be called on target.
     Error target symbol
 
-    ## ADVANCED
-       UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Returns the method name of the method that could not be found.
 
        > Example
@@ -208,6 +219,11 @@ type Arithmetic_Error
        Convert the Arithmetic_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Arithmetic error: "+self.message+"."
+
+    ## PRIVATE
+       Capture a Java `ArithmeticException` and convert it to an Enso dataflow error - `Arithmetic_Error.Error`.
+    handle_java_exception =
+        Panic.catch ArithmeticException handler=(cause-> Error.throw (Arithmetic_Error.Error cause.payload.getMessage))
 
 @Builtin_Type
 type Incomparable_Values
@@ -324,6 +340,31 @@ type No_Such_Conversion
     to_display_text self = "Could not find a conversion from `"+self.that.to_display_text+"` to `"+self.target.to_display_text+"`."
 
 @Builtin_Type
+type No_Conversion_Currying
+    ## PRIVATE
+       An error that occurs when an attempt is made to curry a conversion function.
+
+       Arguments:
+       - has_this: true, when `this` argument is present
+       - has_that: true, when `that` argument is present
+       - conversion: the conversion that was attempted.
+    Error has_this has_that conversion
+
+    ## PRIVATE
+       Convert the No_Conversion_Currying error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+      case self.has_this of
+          True ->
+              case self.has_that of
+                    True -> "Conversion currying is not supported."
+                    False -> "Conversion currying without `that` argument is not supported."
+          False ->
+              case self.has_that of
+                  True -> "Conversion currying without `this` argument is not supported."
+                  False -> "Conversion currying without `this` and `that` arguments is not supported."
+
+@Builtin_Type
 type Forbidden_Operation
     ## PRIVATE
        An error that occurs when the action is not allowed to perform the operation in the given context.
@@ -349,3 +390,20 @@ type Dry_Run_Operation
        Convert the Dry_Run_Operation to a human-readable format.
     to_display_text : Text
     to_display_text self = self.message
+
+type Out_Of_Memory
+    ## PRIVATE
+       An error when Enso run's out of memory
+    Error operation
+
+    ## PRIVATE
+       Convert the Out_Of_Memory to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Enso ran out of memory performing the "+self.operation+" operation."
+
+    ## PRIVATE
+       ADVANCED
+       Catches possible `OutOfMemoryError` and throws an `Out_Of_Memory` error.
+    handle_java_exception operation ~function =
+        Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
+            function

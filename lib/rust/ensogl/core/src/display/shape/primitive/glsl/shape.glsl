@@ -180,6 +180,9 @@ Sdf grow (Sdf a, float size) {
     return Sdf(a.distance - size);
 }
 
+Sdf stroke (Sdf a, float thickness2) {
+    return Sdf(abs(a.distance) - thickness2);
+}
 
 
 // ================
@@ -237,6 +240,12 @@ BoundSdf pixel_snap (BoundSdf a) {
 BoundSdf grow (BoundSdf a, float size) {
     a.distance = a.distance - size;
     a.bounds = grow(a.bounds,size);
+    return a;
+}
+
+BoundSdf stroke (BoundSdf a, float thickness2) {
+    a.distance = abs(a.distance) - thickness2;
+    a.bounds = grow(a.bounds, thickness2);
     return a;
 }
 
@@ -368,6 +377,10 @@ Shape grow (Shape s, float value) {
         s.color.repr.raw.a /= s.alpha;
     }
     return shape(id, sdf, s.color);
+}
+
+Shape stroke (Shape s1, float thickness2) {
+    return shape(s1.id, stroke(s1.sdf, thickness2), s1.color);
 }
 
 Shape inverse (Shape s1) {

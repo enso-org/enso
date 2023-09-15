@@ -1,17 +1,16 @@
 import project.Any.Any
-import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Type_Error
-import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Unimplemented.Unimplemented
-import project.Nothing.Nothing
 import project.Meta
 import project.Meta.Atom
+import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Data.Boolean import all
+from project.Data.Boolean import Boolean, False, True
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
@@ -147,6 +146,7 @@ type Default_Comparator
     hash : Number -> Integer
     hash x = Comparable.hash_builtin x
 
+## PRIVATE
 Comparable.from (_:Any) = Default_Comparator
 
 ## Types representing the ordering of values.
@@ -161,7 +161,9 @@ type Ordering
     ## A representation that the first value orders as greater than the second.
     Greater
 
-    ## Compares to values and returns an Ordering
+    ## PRIVATE
+       ADVANCED
+       Compares values and returns an Ordering.
     compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
         if x < y then Ordering.Less else
@@ -169,7 +171,8 @@ type Ordering
                 if x > y then Ordering.Greater else
                     Error.throw (Incomparable_Values.Error x y)
 
-    ## Converts the ordering to the signed notion of ordering based on integers.
+    ## GROUP Conversions
+       Converts the ordering to the signed notion of ordering based on integers.
 
        > Example
          Converting equal ordering to a signed number.
@@ -190,7 +193,9 @@ type Ordering
         Ordering.Equal -> other
         Ordering.Greater -> Ordering.Greater
 
-    ## Converts a sign-based representation of ordering to Enso's native ordering.
+    ## PRIVATE
+       ADVANCED
+       Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:
        - sign: The number representing the relative ordering of two entities.
@@ -211,4 +216,5 @@ type Ordering_Comparator
     ## PRIVATE
     hash x = x.to_sign
 
+## PRIVATE
 Comparable.from (_:Ordering) = Ordering_Comparator

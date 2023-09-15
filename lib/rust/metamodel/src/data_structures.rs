@@ -3,7 +3,7 @@
 use vecmap::*;
 
 use derivative::Derivative;
-use std::marker::PhantomData;
+use enso_zst::ZST;
 
 
 
@@ -23,7 +23,7 @@ use std::marker::PhantomData;
 #[derivative(Hash(bound = ""))]
 pub struct Id<T> {
     value:  u32,
-    marker: PhantomData<*const T>,
+    marker: ZST<T>,
 }
 
 impl<T> Id<T> {
@@ -186,9 +186,9 @@ pub mod vecmap {
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
         #[derivative(Debug = "ignore")]
-        marker:           PhantomData<*const T>,
+        marker:           ZST<T>,
         #[derivative(Debug = "ignore")]
-        state:            PhantomData<*const State>,
+        state:            ZST<State>,
     }
 
     impl<T, State> Key<T, State> {

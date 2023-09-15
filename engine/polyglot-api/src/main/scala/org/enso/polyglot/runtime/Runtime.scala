@@ -1,6 +1,11 @@
 package org.enso.polyglot.runtime
 
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{
+  JsonIgnoreProperties,
+  JsonSubTypes,
+  JsonTypeInfo
+}
+import com.fasterxml.jackson.module.scala.deser.ScalaObjectDeserializerModule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
@@ -18,7 +23,6 @@ import org.enso.text.editing.model.{Range, TextEdit}
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import scala.util.Try
 
 object Runtime {
@@ -109,32 +113,36 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationUpdate],
-        name  = "visualisationUpdate"
+        value = classOf[Api.VisualizationUpdate],
+        name  = "visualizationUpdate"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.AttachVisualisation],
-        name  = "attachVisualisation"
+        value = classOf[Api.FileEdit],
+        name  = "fileEdit"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationAttached],
-        name  = "visualisationAttached"
+        value = classOf[Api.AttachVisualization],
+        name  = "attachVisualization"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.DetachVisualisation],
-        name  = "detachVisualisation"
+        value = classOf[Api.VisualizationAttached],
+        name  = "visualizationAttached"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationDetached],
-        name  = "visualisationDetached"
+        value = classOf[Api.DetachVisualization],
+        name  = "detachVisualization"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ModifyVisualisation],
-        name  = "modifyVisualisation"
+        value = classOf[Api.VisualizationDetached],
+        name  = "visualizationDetached"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationModified],
-        name  = "visualisationModified"
+        value = classOf[Api.ModifyVisualization],
+        name  = "modifyVisualization"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualizationModified],
+        name  = "visualizationModified"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ExpressionUpdates],
@@ -147,6 +155,22 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ProjectRenamed],
         name  = "projectRenamed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ProjectRenameFailed],
+        name  = "projectRenameFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.RenameSymbol],
+        name  = "renameSymbol"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SymbolRenamed],
+        name  = "symbolRenamed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SymbolRenameFailed],
+        name  = "symbolRenameFailed"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
@@ -173,16 +197,16 @@ object Runtime {
         name  = "executionSuccessful"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationExpressionFailed],
-        name  = "visualisationExpressionFailed"
+        value = classOf[Api.VisualizationExpressionFailed],
+        name  = "visualizationExpressionFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationEvaluationFailed],
-        name  = "visualisationEvaluationFailed"
+        value = classOf[Api.VisualizationEvaluationFailed],
+        name  = "visualizationEvaluationFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationNotFound],
-        name  = "visualisationNotFound"
+        value = classOf[Api.VisualizationNotFound],
+        name  = "visualizationNotFound"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidStackItemError],
@@ -301,7 +325,7 @@ object Runtime {
     type ContextId       = UUID
     type ExpressionId    = UUID
     type RequestId       = UUID
-    type VisualisationId = UUID
+    type VisualizationId = UUID
 
     /** Indicates error response.
       */
@@ -334,6 +358,18 @@ object Runtime {
       def apply(methodPointer: MethodPointer): MethodCall =
         MethodCall(methodPointer, Vector())
     }
+
+    /** Contains a method pointer with information on the partially applied
+      * arguments positions.
+      *
+      * @param methodPointer the method pointer
+      * @param notAppliedArguments indexes of arguments that have not been applied
+      * to this method
+      */
+    case class FunctionSchema(
+      methodPointer: MethodPointer,
+      notAppliedArguments: Vector[Int]
+    )
 
     /** A representation of an executable position in code.
       */
@@ -430,9 +466,12 @@ object Runtime {
         /** Indicates that the expression was computed to a value.
           *
           * @param warnings information about attached warnings.
+          * @param functionSchema if the value represents a function, the function schema of that function, empty option otherwise
           */
-        case class Value(warnings: Option[Value.Warnings] = None)
-            extends Payload
+        case class Value(
+          warnings: Option[Value.Warnings]       = None,
+          functionSchema: Option[FunctionSchema] = None
+        ) extends Payload
 
         object Value {
 
@@ -541,14 +580,14 @@ object Runtime {
       updates: Set[ExpressionUpdate]
     ) extends ApiNotification
 
-    /** Represents a visualisation context.
+    /** Represents a visualization context.
       *
-      * @param visualisationId a visualisation identifier
+      * @param visualizationId a visualization identifier
       * @param contextId a context identifier
       * @param expressionId an expression identifier
       */
-    case class VisualisationContext(
-      visualisationId: VisualisationId,
+    case class VisualizationContext(
+      visualizationId: VisualizationId,
       contextId: ContextId,
       expressionId: ExpressionId
     )
@@ -558,19 +597,20 @@ object Runtime {
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[VisualisationExpression.Text],
-          name  = "visualisationExpressionText"
+          value = classOf[VisualizationExpression.Text],
+          name  = "visualizationExpressionText"
         ),
         new JsonSubTypes.Type(
-          value = classOf[VisualisationExpression.ModuleMethod],
-          name  = "visualisationExpressionModuleMethod"
+          value = classOf[VisualizationExpression.ModuleMethod],
+          name  = "visualizationExpressionModuleMethod"
         )
       )
     )
-    sealed trait VisualisationExpression extends ToLogString {
-      def module: String
+    sealed trait VisualizationExpression extends ToLogString {
+      def module:                         String
+      def positionalArgumentsExpressions: Vector[String]
     }
-    object VisualisationExpression {
+    object VisualizationExpression {
 
       /** Visualization expression represented as a text.
         *
@@ -578,13 +618,15 @@ object Runtime {
         * @param expression an expression that creates a visualization
         */
       case class Text(module: String, expression: String)
-          extends VisualisationExpression {
+          extends VisualizationExpression {
+
+        override val positionalArgumentsExpressions: Vector[String] =
+          Vector()
 
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Text(module=$module" +
-          s",expression=" +
-          (if (shouldMask) STUB else expression) +
+          s",expression=$expression" +
           ")"
       }
 
@@ -597,7 +639,7 @@ object Runtime {
       case class ModuleMethod(
         methodPointer: MethodPointer,
         positionalArgumentsExpressions: Vector[String]
-      ) extends VisualisationExpression {
+      ) extends VisualizationExpression {
 
         /** @inheritdoc */
         override val module: String = methodPointer.module
@@ -605,31 +647,30 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"ModuleMethod(methodPointer=$methodPointer," +
-          s"positionalArgumentsExpressions=" +
-          (if (shouldMask) STUB else positionalArgumentsExpressions) +
-          s")"
+          "positionalArgumentsExpressions=" +
+          positionalArgumentsExpressions.mkString("[", ",", "]") +
+          ")"
       }
     }
 
-    /** A configuration object for properties of the visualisation.
+    /** A configuration object for properties of the visualization.
       *
-      * @param executionContextId an execution context of the visualisation
-      * @param expression the expression that creates a visualisation
+      * @param executionContextId an execution context of the visualization
+      * @param expression the expression that creates a visualization
+      * @param visualizationModule module to evaluate arguments for visualization at
       */
-    case class VisualisationConfiguration(
+    case class VisualizationConfiguration(
       executionContextId: ContextId,
-      expression: VisualisationExpression
+      expression: VisualizationExpression,
+      visualizationModule: String
     ) extends ToLogString {
-
-      /** A qualified module name containing the expression. */
-      def visualisationModule: String =
-        expression.module
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        s"VisualisationConfiguration(" +
+        s"VisualizationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"expression=${expression.toLogString(shouldMask)})"
+        s"expression=${expression.toLogString(shouldMask)})" +
+        s"visualizationModule=$visualizationModule)"
     }
 
     /** An operation applied to the suggestion argument. */
@@ -847,19 +888,20 @@ object Runtime {
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Error],
+          value = classOf[DiagnosticType.Error.type],
           name  = "diagnosticTypeError"
         ),
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Warning],
+          value = classOf[DiagnosticType.Warning.type],
           name  = "diagnosticTypeWarning"
         )
       )
     )
     sealed trait DiagnosticType
+
     object DiagnosticType {
-      case class Error()   extends DiagnosticType
-      case class Warning() extends DiagnosticType
+      case object Error   extends DiagnosticType
+      case object Warning extends DiagnosticType
     }
 
     /** The element in the stack trace.
@@ -899,7 +941,15 @@ object Runtime {
         )
       )
     )
-    sealed trait ExecutionResult extends ToLogString
+    @JsonIgnoreProperties(Array("error", "failure"))
+    sealed trait ExecutionResult extends ToLogString {
+
+      /** Checks if this result represents a critical failure. * */
+      def isFailure: Boolean
+
+      /** Checks if this result represents a non-critical error. * */
+      def isError: Boolean
+    }
     object ExecutionResult {
 
       /** A diagnostic object produced as a compilation outcome, like error or
@@ -931,9 +981,13 @@ object Runtime {
           s"expressionId=$expressionId," +
           s"stack=${stack.map(_.toLogString(shouldMask))}" +
           ")"
+
+        override def isFailure: Boolean = false
+
+        override def isError: Boolean = kind == DiagnosticType.Error
       }
 
-      case object Diagnostic {
+      object Diagnostic {
 
         /** Create an error diagnostic message.
           *
@@ -951,8 +1005,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Error(),
+          Diagnostic(
+            DiagnosticType.Error,
             Option(message),
             file,
             location,
@@ -976,8 +1030,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Warning(),
+          Diagnostic(
+            DiagnosticType.Warning,
             Option(message),
             file,
             location,
@@ -999,6 +1053,10 @@ object Runtime {
           s"Failure(message=$message,file=" +
           file.map(f => MaskedPath(f.toPath).toLogString(shouldMask)) +
           ")"
+
+        override def isFailure: Boolean = true
+
+        override def isError: Boolean = true
       }
 
     }
@@ -1089,42 +1147,66 @@ object Runtime {
         ")"
     }
 
-    /** Signals about the critical failure during the context execution.
+    /** Signals about the failure during the context execution.
       *
       * @param contextId the context's id
-      * @param failure the error description
+      * @param result the result of the execution
       */
     final case class ExecutionFailed(
       contextId: ContextId,
-      failure: ExecutionResult.Failure
+      result: ExecutionResult
     ) extends ApiNotification
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "ExecutionFailed(" +
-        s"contextId=$contextId,failure=" +
-        failure.toLogString(shouldMask) +
+        s"contextId=$contextId,result=" +
+        result.toLogString(shouldMask) +
         ")"
     }
 
-    /** An event signaling a visualisation update.
+    /** An event signaling a visualization update.
       *
-      * @param visualisationContext a visualisation context
-      * @param data a visualisation data
+      * @param visualizationContext a visualization context
+      * @param data a visualization data
       */
-    final case class VisualisationUpdate(
-      visualisationContext: VisualisationContext,
+    final case class VisualizationUpdate(
+      visualizationContext: VisualizationContext,
       data: Array[Byte]
     ) extends ApiNotification
         with ToLogString {
 
       override def toLogString(shouldMask: Boolean): String = {
-        "VisualisationUpdate(" +
-        s"visualisationContext=$visualisationContext,data=" +
+        "VisualizationUpdate(" +
+        s"visualizationContext=$visualizationContext,data=" +
         (if (shouldMask) STUB else data.toString()) +
         ")"
       }
+    }
+
+    /** A list of edits applied to a file.
+      *
+      * @param path the module file path
+      * @param edits the list of text edits
+      * @param oldVersion the current version of a buffer
+      * @param newVersion the version of a buffer after applying all edits
+      */
+    final case class FileEdit(
+      path: File,
+      edits: Vector[TextEdit],
+      oldVersion: String,
+      newVersion: String
+    ) extends ApiNotification
+        with ToLogString {
+
+      override def toLogString(shouldMask: Boolean): String =
+        "FileEdit(" +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
+        s"edits=${edits.mkString("[", ",", "]")}" +
+        s"oldVersion=$oldVersion" +
+        s"newVersion=$newVersion" +
+        ")"
     }
 
     /** Envelope for an Api request.
@@ -1320,13 +1402,13 @@ object Runtime {
     final case class ExecutionComplete(contextId: ContextId)
         extends ApiNotification
 
-    /** Signals that an expression specified in a [[AttachVisualisation]] or
-      * a [[ModifyVisualisation]] cannot be evaluated.
+    /** Signals that an expression specified in a [[AttachVisualization]] or
+      * a [[ModifyVisualization]] cannot be evaluated.
       *
       * @param message the reason of the failure
       * @param failure the detailed information about the failure
       */
-    final case class VisualisationExpressionFailed(
+    final case class VisualizationExpressionFailed(
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1334,24 +1416,24 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "VisualisationExpressionFailed(" +
+        "VisualizationExpressionFailed(" +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
     }
 
     /** Signals that an evaluation of a code responsible for generating
-      * visualisation data failed.
+      * visualization data failed.
       *
       * @param contextId the context's id.
-      * @param visualisationId the visualisation identifier
+      * @param visualizationId the visualization identifier
       * @param expressionId the identifier of a visualised expression
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
-    final case class VisualisationEvaluationFailed(
+    final case class VisualizationEvaluationFailed(
       contextId: ContextId,
-      visualisationId: VisualisationId,
+      visualizationId: VisualizationId,
       expressionId: ExpressionId,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
@@ -1360,17 +1442,17 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "VisualisationEvaluationFailed(" +
+        "VisualizationEvaluationFailed(" +
         s"contextId=$contextId," +
-        s"visualisationId=$visualisationId," +
+        s"visualizationId=$visualizationId," +
         s"expressionId=$expressionId," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
     }
 
-    /** Signals that visualisation cannot be found. */
-    final case class VisualisationNotFound() extends Error
+    /** Signals that visualization cannot be found. */
+    final case class VisualizationNotFound() extends Error
 
     /** An error response signifying that stack is empty.
       *
@@ -1472,74 +1554,74 @@ object Runtime {
     final case class InitializedNotification() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to create a new
-      * visualisation for an expression identified by `expressionId`.
+      * visualization for an expression identified by `expressionId`.
       *
-      * @param visualisationId an identifier of a visualisation
+      * @param visualizationId an identifier of a visualization
       * @param expressionId an identifier of an expression which is visualised
-      * @param visualisationConfig a configuration object for properties of the
-      *                            visualisation
+      * @param visualizationConfig a configuration object for properties of the
+      *                            visualization
       */
-    final case class AttachVisualisation(
-      visualisationId: VisualisationId,
+    final case class AttachVisualization(
+      visualizationId: VisualizationId,
       expressionId: ExpressionId,
-      visualisationConfig: VisualisationConfiguration
+      visualizationConfig: VisualizationConfiguration
     ) extends ApiRequest
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        s"AttachVisualisation(" +
-        s"visualisationId=$visualisationId," +
-        s"expressionId=$expressionId,visualisationConfig=" +
-        visualisationConfig.toLogString(shouldMask) +
+        s"AttachVisualization(" +
+        s"visualizationId=$visualizationId," +
+        s"expressionId=$expressionId,visualizationConfig=" +
+        visualizationConfig.toLogString(shouldMask) +
         ")"
     }
 
-    /** Signals that attaching a visualisation has succeeded.
+    /** Signals that attaching a visualization has succeeded.
       */
-    final case class VisualisationAttached() extends ApiResponse
+    final case class VisualizationAttached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to detach a
-      * visualisation from an expression identified by `expressionId`.
+      * visualization from an expression identified by `expressionId`.
       *
       * @param contextId an execution context identifier
-      * @param visualisationId an identifier of a visualisation
+      * @param visualizationId an identifier of a visualization
       * @param expressionId an identifier of an expression which is visualised
       */
-    final case class DetachVisualisation(
+    final case class DetachVisualization(
       contextId: ContextId,
-      visualisationId: VisualisationId,
+      visualizationId: VisualizationId,
       expressionId: ExpressionId
     ) extends ApiRequest
 
-    /** Signals that detaching a visualisation has succeeded.
+    /** Signals that detaching a visualization has succeeded.
       */
-    final case class VisualisationDetached() extends ApiResponse
+    final case class VisualizationDetached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to modify a
-      * visualisation identified by `visualisationId`.
+      * visualization identified by `visualizationId`.
       *
-      * @param visualisationId     an identifier of a visualisation
-      * @param visualisationConfig a configuration object for properties of the
-      *                            visualisation
+      * @param visualizationId     an identifier of a visualization
+      * @param visualizationConfig a configuration object for properties of the
+      *                            visualization
       */
-    final case class ModifyVisualisation(
-      visualisationId: VisualisationId,
-      visualisationConfig: VisualisationConfiguration
+    final case class ModifyVisualization(
+      visualizationId: VisualizationId,
+      visualizationConfig: VisualizationConfiguration
     ) extends ToLogString
         with ApiRequest {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "ModifyVisualisation(" +
-        s"visualisationId=$visualisationId,visualisationConfig=" +
-        visualisationConfig.toLogString(shouldMask) +
+        "ModifyVisualization(" +
+        s"visualizationId=$visualizationId,visualizationConfig=" +
+        visualizationConfig.toLogString(shouldMask) +
         ")"
     }
 
-    /** Signals that a visualisation modification has succeeded.
+    /** Signals that a visualization modification has succeeded.
       */
-    final case class VisualisationModified() extends ApiResponse
+    final case class VisualizationModified() extends ApiResponse
 
     /** A request to shut down the runtime server.
       */
@@ -1563,11 +1645,91 @@ object Runtime {
 
     /** Signals that project has been renamed.
       *
-      * @param namespace the namespace of the project
-      * @param newName the new project name
+      * @param oldNormalizedName old normalized name of the project
+      * @param newNormalizedName new normalized name of the project
+      * @param newName new display name of the project
       */
-    final case class ProjectRenamed(namespace: String, newName: String)
+    final case class ProjectRenamed(
+      oldNormalizedName: String,
+      newNormalizedName: String,
+      newName: String
+    ) extends ApiResponse
+
+    /** Signals that project has been renamed.
+      *
+      * @param oldName the old name of the project
+      * @param newName the new name of the project
+      */
+    final case class ProjectRenameFailed(oldName: String, newName: String)
         extends ApiResponse
+
+    /** A request for symbol renaming.
+      *
+      * @param module the qualified module name
+      * @param expressionId the symbol to rename
+      * @param newName the new name of the symbol
+      */
+    final case class RenameSymbol(
+      module: String,
+      expressionId: ExpressionId,
+      newName: String
+    ) extends ApiRequest
+
+    /** Signals that the symbol has been renamed.
+      *
+      * @param newName the new name of the symbol
+      */
+    final case class SymbolRenamed(newName: String) extends ApiResponse
+
+    /** Signals that the symbol rename has failed.
+      *
+      * @param error the error that happened
+      */
+    final case class SymbolRenameFailed(error: SymbolRenameFailed.Error)
+        extends ApiResponse
+
+    object SymbolRenameFailed {
+
+      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+      @JsonSubTypes(
+        Array(
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.ExpressionNotFound],
+            name  = "symbolRenameFailedExpressionNotFound"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.FailedToApplyEdits],
+            name  = "symbolRenameFailedFailedToApplyEdits"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.OperationNotSupported],
+            name  = "symbolRenameFailedOperationNotSupported"
+          )
+        )
+      ) sealed trait Error
+
+      /** Signals that an expression cannot be found by provided id.
+        *
+        * @param expressionId the id of expression
+        */
+      final case class ExpressionNotFound(expressionId: ExpressionId)
+          extends SymbolRenameFailed.Error
+
+      /** Signals that it was unable to apply edits to the current module contents.
+        *
+        * @param module the module name
+        */
+      final case class FailedToApplyEdits(module: String)
+          extends SymbolRenameFailed.Error
+
+      /** Signals that the renaming operation is not supported for the
+        * provided expression.
+        *
+        * @param expressionId the id of expression
+        */
+      final case class OperationNotSupported(expressionId: ExpressionId)
+          extends SymbolRenameFailed.Error
+    }
 
     /** A notification about the changes in the suggestions database.
       *
@@ -1770,7 +1932,9 @@ object Runtime {
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ClassTagExtensions
-      mapper.registerModule(DefaultScalaModule)
+      mapper
+        .registerModule(DefaultScalaModule)
+        .registerModule(ScalaObjectDeserializerModule)
     }
 
     /** Serializes an ApiEnvelope into a byte buffer.

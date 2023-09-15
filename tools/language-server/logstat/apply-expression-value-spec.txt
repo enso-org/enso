@@ -3,5 +3,5 @@
 [org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None,SetExpressionValueNotification
 [enso] Executing command: SetExpressionValueCmd
 [enso] Job EnsureCompiledJob finished
-[enso] Visualisation computed
-[org.enso.languageserver.runtime.ContextRegistry] received handled VisualisationUpdate
+[enso] Visualization computed
+[org.enso.languageserver.runtime.ContextRegistry] received handled VisualizationUpdate

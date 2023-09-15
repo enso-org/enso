@@ -1,8 +1,6 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
-import java.util.List;
+import org.enso.table.problems.AggregatedProblems;
 
 /** An aggregator for parsing problems. */
 public interface ProblemAggregator {
@@ -26,6 +24,6 @@ public interface ProblemAggregator {
    */
   boolean hasProblems();
 
-  /** Return an aggregated summary of problems that have been reported. */
-  List<Problem> getAggregatedProblems();
+  /** Return aggregated problems. */
+  AggregatedProblems getAggregatedProblems();
 }

@@ -1,0 +1,48 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_max_long : Integer
+round_max_long = 99999999999999
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_min_long : Integer
+round_min_long = -99999999999999
+
+## PRIVATE
+   Restrict allowed range of input to rounding methods.
+check_round_input : Number -> Function -> Any ! Illegal_Argument
+check_round_input n ~action =
+    if n >= round_min_long && n <= round_max_long then action else
+        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
+        Error.throw (Illegal_Argument.Error msg)
+
+## PRIVATE
+   The smallest allowed value for the `decimal_places` argument to `round`
+round_min_decimal_places : Integer
+round_min_decimal_places = -15
+
+## PRIVATE
+   The largest allowed value for the `decimal_places` argument to `round`
+round_max_decimal_places : Integer
+round_max_decimal_places = 15
+
+## PRIVATE
+   Restrict rounding decimal_places parameter.
+check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
+check_decimal_places decimal_places ~action =
+    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)

@@ -1,12 +1,12 @@
 package org.enso.table.excel;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import org.graalvm.polyglot.Context;
 
 /** Wrapper class to handle Excel rows. */
 public class ExcelRow {
@@ -84,6 +84,7 @@ public class ExcelRow {
   }
 
   public boolean isEmpty(int start, int end) {
+    Context context = Context.getCurrent();
     int currentEnd = end == -1 ? getLastColumn() : end;
     for (int column = Math.max(getFirstColumn(), start);
         column <= Math.min(getLastColumn(), currentEnd);
@@ -91,19 +92,24 @@ public class ExcelRow {
       if (!isEmpty(column)) {
         return false;
       }
+
+      context.safepoint();
     }
     return true;
   }
 
   public int findEndRight(int start) {
+    Context context = Context.getCurrent();
     int column = start;
     while (!isEmpty(column + 1)) {
       column++;
+      context.safepoint();
     }
     return column;
   }
 
   public String[] getCellsAsText(int startCol, int endCol) {
+    Context context = Context.getCurrent();
     int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
 
     String[] output = new String[currentEndCol - startCol + 1];
@@ -115,6 +121,7 @@ public class ExcelRow {
       }
       output[col - startCol] =
           type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
+      context.safepoint();
     }
 
     return output;

@@ -1,14 +1,13 @@
 package org.enso.table.util;
 
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
-import org.enso.table.error.ColumnCountMismatchException;
-import org.enso.table.error.ColumnNameMismatchException;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
+import org.enso.table.error.ColumnCountMismatchException;
+import org.enso.table.error.ColumnNameMismatchException;
 
 public class ColumnMapper {
   /**

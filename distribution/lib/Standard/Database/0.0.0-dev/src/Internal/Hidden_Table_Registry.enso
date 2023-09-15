@@ -1,0 +1,86 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
+
+polyglot java import org.enso.database.dryrun.HiddenTableReferenceCounter
+
+## PRIVATE
+   A reference to a hidden table that keeps it alive.
+
+   Once all references to a particular hidden table are garbage collected, the
+   hidden table is marked for deletion.
+type Hidden_Table_Reference
+    ## PRIVATE
+    Reference (parent : Hidden_Table_Registry) (table_name : Text)
+
+## PRIVATE
+   A registry that keeps track of temporary hidden tables.
+
+   These tables will all be destroyed once the connection is closed, but to
+   avoid creating too many, the registry may allow to drop them more eagerly.
+
+   Moreover, the registry keeps track of which tables were created by Enso,
+   allowing us to avoid dropping tables with similar names that were created by
+   the user.
+type Hidden_Table_Registry
+    ## PRIVATE
+    Registry (reference_counter : HiddenTableReferenceCounter)
+
+    ## PRIVATE
+       Creates a new reference to the table with the given name.
+
+       Once this and any other references to this table name are garbage
+       collected, the table will be scheduled for disposal and removed on the
+       next `run_maintenance_table_cleanup` invocation (unless the table is
+       'brought back to life' by new references being introduced).
+    make_reference : Text -> Managed_Resource
+    make_reference self table_name =
+        self.reference_counter.increment table_name
+        reference = Hidden_Table_Reference.Reference self table_name
+        Managed_Resource.register reference dispose_reference
+
+    ## PRIVATE
+       Lists all tables that were added to the registry by calling
+       `make_reference` and not yet removed.
+    list_hidden_tables : Vector Text
+    list_hidden_tables self =
+        Vector.from_polyglot_array self.reference_counter.getKnownTables
+
+    ## PRIVATE
+       Checks if the given table name is registered in the registry.
+    is_registered : Text -> Boolean
+    is_registered self table_name =
+        self.reference_counter.isRegistered table_name
+
+## PRIVATE
+   Creates a new hidden table registry instance.
+new : Hidden_Table_Registry
+new =
+    Hidden_Table_Registry.Registry (HiddenTableReferenceCounter.new)
+
+## PRIVATE
+   Utility method for disposing of references. Provided to avoid accidental
+   scope capture with `Managed_Resource` finalizers.
+dispose_reference : Any -> Nothing
+dispose_reference reference =
+    registry = reference.parent
+    registry.reference_counter.decrement reference.table_name
+
+## PRIVATE
+   Drops all temporary hidden tables that have been marked for removal and not
+   brought back to life.
+
+   This method must be run in a critical section guaranteeing that no other
+   operations will be performed on the associated connection in parallel. Thanks
+   to running it in a critical section, there is no risk that a table that is
+   just being dropped will come back to life in the meantime - since no other
+   code can be creating tables on this connection at the same time.
+run_maintenance_table_cleanup connection =
+    registry = connection.hidden_table_registry
+    reference_counter = registry.reference_counter
+
+    tables_scheduled_for_removal = Vector.from_polyglot_array reference_counter.getTablesScheduledForRemoval
+    tables_scheduled_for_removal.each table_name->
+        # The table could not exist in case a transaction that created it was rolled back. We just ignore such cases.
+        connection.drop_table table_name if_exists=True
+        reference_counter.markAsDropped table_name

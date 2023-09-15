@@ -9,6 +9,7 @@ use crate::shape::shape_is_dragged;
 use enso_frp as frp;
 use enso_frp::io::Mouse_DEPRECATED;
 use enso_frp::Network;
+use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_hardcoded_theme as theme;
@@ -69,6 +70,7 @@ pub struct Frp {
 impl Frp {
     /// Create and initialize the FRP.
     pub fn new(
+        app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
         network: &Network,
@@ -76,7 +78,7 @@ impl Frp {
         mouse: &Mouse_DEPRECATED,
     ) -> Frp {
         let net = &network;
-        let scene = &model.app.display.default_scene;
+        let scene = &app.display.default_scene;
         let shadow = shadow::frp_from_style(style, theme::shadow);
         let text_size = style.get_number(theme::text::size);
 

@@ -22,6 +22,7 @@
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 
@@ -33,13 +34,16 @@ pub fn main() {
     let world = World::new().displayed_in("root");
     let navigator = Navigator::new(&world.default_scene, &world.default_scene.camera());
     let sprite_system = SpriteSystem::new("test_sprite_system", alignment::Dim2::center());
+    world.add_child(&sprite_system.symbol);
 
     let sprite2 = sprite_system.new_instance();
     let sprite1 = sprite_system.new_instance();
+    let sprite1 = Sprite::new(sprite1);
+    let sprite2 = Sprite::new(sprite2);
     sprite1.set_size(Vector2::new(15.0, 15.0));
     sprite2.set_size(Vector2::new(15.0, 15.0));
-
-    world.default_scene.add_child(&sprite_system);
+    world.add_child(&sprite1);
+    world.add_child(&sprite2);
     world.keep_alive_forever();
 
     let mut i = 0;

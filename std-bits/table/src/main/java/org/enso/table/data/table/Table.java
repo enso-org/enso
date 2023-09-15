@@ -2,13 +2,16 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.aggregations.Aggregator;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -20,6 +23,7 @@ import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -181,12 +185,31 @@ public class Table {
   }
 
   /**
-   * Creates a new table with the rows sorted
+   * Build a cross-tab table on the given grouping and naming columns, aggregating
+   * across the aggregate columns.
    *
-   * @param columns set of columns to use as an Index
-   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
-   * @return a table indexed by the proper column
+   * @param groupingColumns specifies the rows of the cross-tab table
+   * @param nameColumn specifies the values of the columns of the cross-tab table
+   * @param aggregates the columns to aggregate across rows and columns
+   * @param aggregateNames the names of the aggregate columns
+   * @return a cross-tab table
    */
+  public Table makeCrossTabTable(
+          Column[] groupingColumns,
+          Column nameColumn,
+          Aggregator[] aggregates,
+          String[] aggregateNames) {
+    CrossTabIndex index = new CrossTabIndex(new Column[] {nameColumn}, groupingColumns, this.rowCount());
+    return index.makeCrossTabTable(aggregates, aggregateNames);
+  }
+
+    /**
+     * Creates a new table with the rows sorted
+     *
+     * @param columns set of columns to use as an Index
+     * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
+     * @return a table indexed by the proper column
+     */
   public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator);
@@ -236,6 +259,7 @@ public class Table {
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
+    Context context = Context.getCurrent();
     NameDeduplicator nameDeduplicator = new NameDeduplicator();
     if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
       throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must be true.");
@@ -257,6 +281,8 @@ public class Table {
         if (!matchedLeftRows.contains(i)) {
           leftUnmatchedBuilder.addRow(i, Index.NOT_FOUND);
         }
+
+        context.safepoint();
       }
 
       resultsToKeep.add(leftUnmatchedBuilder.build(AggregatedProblems.of()));
@@ -269,6 +295,8 @@ public class Table {
         if (!matchedRightRows.contains(i)) {
           rightUnmatchedBuilder.addRow(Index.NOT_FOUND, i);
         }
+
+        context.safepoint();
       }
 
       resultsToKeep.add(rightUnmatchedBuilder.build(AggregatedProblems.of()));
@@ -410,7 +438,7 @@ public class Table {
       System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
 
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
-      Builder builder = new StringBuilder(size);
+      Builder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
       builder.appendNulls(size);
       Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
@@ -425,10 +453,11 @@ public class Table {
     // Create Storage
     Builder[] storage = new Builder[id_columns.length + 2];
     IntStream.range(0, id_columns.length).forEach(i -> storage[i] = Builder.getForType(id_columns[i].getStorage().getType(), new_count));
-    storage[id_columns.length] = new StringBuilder(new_count);
+    storage[id_columns.length] = new StringBuilder(new_count, TextType.VARIABLE_LENGTH);
     storage[id_columns.length + 1] = new InferredBuilder(new_count);
 
     // Load Data
+    Context context = Context.getCurrent();
     for (int row = 0; row < size; row++) {
       for (Column column : to_transpose) {
         for (int i = 0; i < id_columns.length; i++) {
@@ -438,6 +467,8 @@ public class Table {
         storage[id_columns.length].append(column.getName());
         storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
       }
+
+      context.safepoint();
     }
 
     // Create Table
@@ -456,6 +487,7 @@ public class Table {
    * @return a table result from concatenating both tables
    */
   public static Table concat(List<Table> tables) {
+    Context context = Context.getCurrent();
     int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
 
     List<NamedBuilder> builders = new ArrayList<>();
@@ -475,7 +507,10 @@ public class Table {
         var storage = column.getStorage();
         for (int i = 0; i < storage.size(); i++) {
           builder.builder.appendNoGrow(storage.getItemBoxed(i));
+          context.safepoint();
         }
+
+        context.safepoint();
       }
       for (var builder : builders) {
         var columnExists =
@@ -483,6 +518,8 @@ public class Table {
         if (!columnExists) {
           builder.builder.appendNulls(table.rowCount());
         }
+
+        context.safepoint();
       }
       completedRows += table.rowCount();
     }

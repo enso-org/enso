@@ -1,9 +1,8 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
-
-from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Ordering import all
 
 polyglot java import org.enso.base.Http_Utils
 
@@ -193,4 +192,5 @@ type Header_Comparator
         key = x.name.to_case_insensitive_key + x.value
         Comparable.from key . hash key
 
+## PRIVATE
 Comparable.from (_:Header) = Header_Comparator

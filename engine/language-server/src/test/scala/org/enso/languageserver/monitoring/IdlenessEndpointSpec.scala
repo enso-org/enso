@@ -18,7 +18,7 @@ class IdlenessEndpointSpec
     with ScalatestRouteTest
     with Directives {
 
-  implicit val timeout = RouteTestTimeout(25.seconds)
+  implicit val timeout: RouteTestTimeout = RouteTestTimeout(25.seconds)
 
   "An idleness probe" should "reply with server idle time" in withEndpoint {
     (_, _, endpoint) =>

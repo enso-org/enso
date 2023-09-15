@@ -24,7 +24,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /** Implements launcher commands that are run from CLI and can be affected by
@@ -69,6 +69,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def newProject(
     name: String,
+    normalizedName: Option[String],
     projectTemplate: Option[String],
     path: Option[Path],
     versionOverride: Option[SemVer],
@@ -88,6 +89,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             path                = actualPath,
             name                = name,
             engineVersion       = version,
+            normalizedName      = normalizedName,
             projectTemplate     = projectTemplate,
             authorName          = globalConfig.authorName,
             authorEmail         = globalConfig.authorEmail,
@@ -205,7 +207,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRepl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -249,7 +251,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRun(
     path: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -291,7 +293,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     options: LanguageServerOptions,
     contentRoot: Path,
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -329,7 +331,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runInstallDependencies(
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -394,7 +396,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     path: Option[Path],
     uploadUrl: Option[String],
     authToken: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]

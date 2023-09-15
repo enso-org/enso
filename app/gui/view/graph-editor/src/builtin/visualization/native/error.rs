@@ -1,4 +1,4 @@
-//! Example visualisation showing the provided data as text.
+//! Example visualization showing the provided data as text.
 
 use crate::component::visualization::*;
 use crate::prelude::*;
@@ -35,12 +35,12 @@ const PADDING_TEXT: f32 = 10.0;
 
 /// The module containing the `PREPROCESSOR_FUNCTION`. See there.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_MODULE: &str = "Standard.Visualization.Preprocessor";
 
 /// The method name of the error preprocessor.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_METHOD: &str = "error_preprocessor";
 
 /// The list of arguments passed to the error preprocessor.
@@ -80,10 +80,11 @@ pub struct Input {
 // =============
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Error {
     pub frp: visualization::instance::Frp,
+    #[display_object]
     model:   Model,
     network: frp::Network,
 }
@@ -139,7 +140,7 @@ impl Error {
 
     /// Sets the visualization data directly from the [`Input`] structure (not from the serialized
     /// JSON).
-    pub fn set_data(&self, input: &Input) {
+    pub fn set_data(&self, input: Input) {
         self.model.set_data(input);
     }
 
@@ -152,9 +153,10 @@ impl Error {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
+    #[display_object]
     dom:       DomSymbol,
     size:      Rc<Cell<Vector2>>,
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -183,7 +185,7 @@ impl Model {
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("overflow-x", "hidden");
         dom.dom().set_style_or_warn("overflow-y", "auto");
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-family", "EnsoRegular");
         dom.dom().set_style_or_warn("font-size", "12px");
         dom.dom().set_style_or_warn("border-radius", "14px");
         dom.dom().set_style_or_warn("padding-left", &padding_text);
@@ -207,24 +209,19 @@ impl Model {
         self.reload_style();
     }
 
+    #[profile(Debug)]
     fn receive_data(&self, data: &Data) -> Result<(), DataError> {
-        match data {
-            Data::Json { content } => {
-                let input_result = serde_json::from_value(content.deref().clone());
-                let input: Input = input_result.map_err(|_| DataError::InvalidDataType)?;
-                self.set_data(&input);
-                Ok(())
-            }
-            Data::Binary => Err(DataError::BinaryNotSupported),
-        }
+        let input: Input = data.as_json()?.deserialize()?;
+        self.set_data(input);
+        Ok(())
     }
 
-    fn set_data(&self, input: &Input) {
+    fn set_data(&self, input: Input) {
         if let Some(kind) = input.kind {
-            self.messages.insert(kind, input.message.clone().into());
             if kind == self.displayed.get() {
                 self.dom.dom().set_inner_text(&input.message);
             }
+            self.messages.insert(kind, input.message.into());
         }
         // else we don't update the text, as the node does not contain error anymore. The
         // visualization will be hidden once we receive expression update message.
@@ -266,11 +263,5 @@ impl Model {
 impl From<Error> for Instance {
     fn from(t: Error) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.dom.clone_ref()))
-    }
-}
-
-impl display::Object for Error {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.dom.display_object()
     }
 }

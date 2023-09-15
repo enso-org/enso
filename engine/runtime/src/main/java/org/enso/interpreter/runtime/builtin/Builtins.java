@@ -1,8 +1,14 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,25 +16,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-
+import java.util.stream.Collectors;
 import org.enso.compiler.Passes;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.exception.CompilerError;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
-import org.enso.interpreter.node.expression.builtin.*;
+import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.node.expression.builtin.Nothing;
+import org.enso.interpreter.node.expression.builtin.Polyglot;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
+import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
-import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
 import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
@@ -39,22 +49,11 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
-
 /** Container class for static predefined atoms, methods, and their containing scope. */
-public class Builtins {
+public final class Builtins {
 
   private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
   private static final Map<String, LoadedBuiltinMethod> loadedBuiltinMethods;
@@ -121,7 +120,7 @@ public class Builtins {
    */
   public Builtins(EnsoContext context) {
     EnsoLanguage language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
 
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
@@ -133,12 +132,9 @@ public class Builtins {
     builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scope);
     registerBuiltinMethods(scope, language);
 
-    error = new Error(this, context);
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
     defaultComparator = getBuiltinType(DefaultComparator.class);
-    system = new System(this);
-    number = new Number(this);
     bool = this.getBuiltinType(Boolean.class);
     contexts = this.getBuiltinType(Context.class);
 
@@ -161,8 +157,12 @@ public class Builtins {
     duration = builtins.get(org.enso.interpreter.node.expression.builtin.date.Duration.class);
     timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
-    special = new Special(language);
     warning = builtins.get(Warning.class);
+
+    error = new Error(this, context);
+    system = new System(this);
+    number = new Number(this);
+    special = new Special(language);
   }
 
   /**
@@ -182,12 +182,11 @@ public class Builtins {
         // Register a builtin method iff it is marked as auto-register.
         // Methods can only register under a type or, if we deal with a static method, it's eigen-type.
         // Such builtins are available on certain types without importing the whole stdlib, e.g. Any or Number.
-        methods.entrySet().stream().forEach(entry -> {
-          Type tpe = entry.getValue().isAutoRegister ? (!entry.getValue().isStatic() ? type : type.getEigentype()) : null;
+        methods.forEach((key, value) -> {
+          Type tpe = value.isAutoRegister ? (!value.isStatic() ? type : type.getEigentype()) : null;
           if (tpe != null) {
-            LoadedBuiltinMethod value = entry.getValue();
             Optional<BuiltinFunction> fun = value.toFunction(language, false);
-            fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
+            fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
           }
         });
       }
@@ -212,12 +211,12 @@ public class Builtins {
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(CompilerContext context, FreshNameSupply freshNameSupply, Passes passes) {
     try {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
       }
-      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+      BuiltinsIrBuilder.build(context, module, freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -226,11 +225,10 @@ public class Builtins {
   /**
    * Returns a list of supported builtins.
    *
-   * <p>Builtin types are marked via @BuiltinType annotation. THe metdata file represents a single
+   * <p>Builtin types are marked via @BuiltinType annotation. The metadata file represents a single
    * builtin type per row. The format of the row is as follows: <Enso name of the builtin
    * type>:<Name of the class representing it>:[<field1>,<field2>,...] where the last column gives a
    * list of optional type's fields.
-   *
    */
   private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
@@ -629,17 +627,6 @@ public class Builtins {
 
   public Module getModule() {
     return module;
-  }
-
-  /**
-   * Convert from type-system type names to types.
-   *
-   * @param typeName the fully qualified type name of a builtin
-   * @return the associated {@link Atom} if it exists,
-   *     and {@code null} otherwise
-   */
-  public Type fromTypeSystem(String typeName) {
-    return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {

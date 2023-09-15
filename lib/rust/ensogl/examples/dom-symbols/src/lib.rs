@@ -23,8 +23,8 @@ use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
 
+use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::symbol::geometry::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::DomSymbol;
 use ensogl_core::system::web;
@@ -83,7 +83,7 @@ pub fn main() {
     let camera = scene.camera();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new("test_sprite_system", alignment::Dim2::center());
-    world.add_child(&sprite_system);
+    world.add_child(&sprite_system.symbol);
 
     let dom_front_layer = &scene.dom.layers.front;
     let dom_back_layer = &scene.dom.layers.back;
@@ -94,6 +94,7 @@ pub fn main() {
         let fi = i as f32;
         if i % 2 == 0 {
             let sprite = sprite_system.new_instance();
+            let sprite = Sprite::new(sprite);
             world.add_child(&sprite);
             sprites.push(sprite);
         } else {

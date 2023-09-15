@@ -2,10 +2,7 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.ThreadLocalAction;
-import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import org.enso.interpreter.runtime.data.ManagedResource;
-
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -15,6 +12,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.enso.interpreter.runtime.data.ManagedResource;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public class ResourceManager {
@@ -23,8 +21,7 @@ public class ResourceManager {
   private volatile Thread workerThread;
   private final Runner worker = new Runner();
   private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
-  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items =
-      new ConcurrentHashMap<>();
+  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items = new ConcurrentHashMap<>();
 
   /**
    * Creates a new instance of Resource Manager.
@@ -43,11 +40,9 @@ public class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public void park(ManagedResource resource) {
-    Item it = items.get(resource.getPhantomReference());
-    if (it == null) {
-      return;
+    if (resource.getPhantomReference() instanceof Item it) {
+      it.getParkedCount().incrementAndGet();
     }
-    it.getParkedCount().incrementAndGet();
   }
 
   /**
@@ -58,12 +53,10 @@ public class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public void unpark(ManagedResource resource) {
-    Item it = items.get(resource.getPhantomReference());
-    if (it == null) {
-      return;
+    if (resource.getPhantomReference() instanceof Item it) {
+      it.getParkedCount().decrementAndGet();
+      scheduleFinalizationAtSafepoint(it);
     }
-    it.getParkedCount().decrementAndGet();
-    scheduleFinalizationAtSafepoint(it);
   }
 
   /**
@@ -74,12 +67,11 @@ public class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public void close(ManagedResource resource) {
-    Item it = items.remove(resource.getPhantomReference());
-    if (it == null) {
-      return;
+    if (resource.getPhantomReference() instanceof Item it) {
+      items.remove(it);
+      // Unconditional finalization – user controls the resource manually.
+      it.finalizeNow(context);
     }
-    // Unconditional finalization – user controls the resource manually.
-    it.finalizeNow(context);
   }
 
   /**
@@ -116,7 +108,7 @@ public class ResourceManager {
                   }
                   tmp.cancel(false);
                   it.finalizeNow(context);
-                  items.remove(it.reference);
+                  items.remove(it);
                 }
               };
           futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizeNow));
@@ -144,10 +136,9 @@ public class ResourceManager {
       workerThread = context.getEnvironment().createSystemThread(worker);
       workerThread.start();
     }
-    ManagedResource resource = new ManagedResource(object);
-    PhantomReference<ManagedResource> ref = new PhantomReference<>(resource, referenceQueue);
-    resource.setPhantomReference(ref);
-    items.put(ref, new Item(object, function, ref));
+    var resource = new ManagedResource(object, r -> new Item(r, object, function, referenceQueue));
+    var ref = (Item) resource.getPhantomReference();
+    items.put(ref, ref);
     return resource;
   }
 
@@ -193,12 +184,10 @@ public class ResourceManager {
         try {
           Reference<? extends ManagedResource> ref = referenceQueue.remove();
           if (!killed) {
-            Item it = items.get(ref);
-            if (it == null) {
-              continue;
+            if (ref instanceof Item it) {
+              it.isFlaggedForFinalization().set(true);
+              scheduleFinalizationAtSafepoint(it);
             }
-            it.isFlaggedForFinalization().set(true);
-            scheduleFinalizationAtSafepoint(it);
           }
           if (killed) {
             return;
@@ -224,10 +213,9 @@ public class ResourceManager {
   }
 
   /** A storage representation of a finalizable object handled by this system. */
-  private static class Item {
+  private static class Item extends PhantomReference<ManagedResource> {
     private final Object underlying;
     private final Object finalizer;
-    private final PhantomReference<ManagedResource> reference;
     private final AtomicInteger parkedCount = new AtomicInteger();
     private final AtomicBoolean flaggedForFinalization = new AtomicBoolean();
 
@@ -239,10 +227,10 @@ public class ResourceManager {
      * @param reference a phantom reference used for tracking the reachability status of the
      *     resource.
      */
-    public Item(Object underlying, Object finalizer, PhantomReference<ManagedResource> reference) {
+    public Item(ManagedResource referent, Object underlying, Object finalizer, ReferenceQueue<ManagedResource> queue) {
+      super(referent, queue);
       this.underlying = underlying;
       this.finalizer = finalizer;
-      this.reference = reference;
     }
 
     /**

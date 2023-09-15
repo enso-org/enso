@@ -293,7 +293,7 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
     const optParser = yargs()
         .version(false)
         .parserConfiguration({
-            // We don't control the naming of this third-party API.
+            // The names come from a third-party API and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
             // Allow single-dash arguments, like `-help`.
             'short-option-groups': false,
@@ -314,7 +314,7 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
 
     /** Command line arguments after being parsed by `yargs`. */
     interface YargsArgs {
-        // We don't control the naming of this third-party API.
+        // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
         [key: string]: string[] | string
         _: string[]

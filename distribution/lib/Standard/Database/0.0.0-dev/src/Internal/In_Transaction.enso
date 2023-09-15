@@ -1,0 +1,23 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.State
+from Standard.Base.Errors.Common import Uninitialized_State
+
+## PRIVATE
+type In_Transaction
+    ## PRIVATE
+       Checks if a transaction is currently being run.
+    is_in_transaction : Boolean
+    is_in_transaction =
+        Panic.catch Uninitialized_State (State.get In_Transaction) (_->False)
+
+    ## PRIVATE
+       Executes the provided action marking as being run within a transaction.
+    mark_running_in_transaction ~action =
+        State.run In_Transaction True action
+
+    ## PRIVATE
+       Runs the provided action, failing if the call is not made from within a
+       transaction.
+    ensure_in_transaction ~action =
+        if In_Transaction.is_in_transaction then action else Error.throw (Illegal_State.Error "`ensure_in_transaction` called outside of a transaction.")

@@ -1,7 +1,8 @@
 import project.Data.Text.Text
 
 type Time_Error
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        An error produced while working with time- and date-related methods.
 

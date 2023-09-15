@@ -1,9 +1,8 @@
 package org.enso.interpreter.node.expression.builtin;
 
+import java.util.List;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-
-import java.util.List;
 
 // Note that Boolean BuiltinType cannot be moved to `.expression.builtin.bool`
 // because it currently breaks a lot of code generation for builtin methods.

@@ -1,7 +1,7 @@
+import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Redshift_Details.Redshift_Details
-import project.Database.Redshift.Redshift_Details.AWS_Credential
+import project.S3.S3
 
+export project.AWS_Credential.AWS_Credential
 export project.Database.Redshift.Redshift_Details.Redshift_Details
-export project.Database.Redshift.Redshift_Details.AWS_Credential
-
-from project.Database.Redshift.Redshift_Details.Redshift_Details export Redshift
+export project.S3.S3

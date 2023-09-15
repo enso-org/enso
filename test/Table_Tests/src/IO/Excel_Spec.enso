@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -317,6 +319,37 @@ spec_write suffix test_sheet_name =
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
             out.delete_if_exists
+
+        Test.specify 'should be able to write to a new dry run file' <|
+            out.delete_if_exists
+            temp = Context.Output.with_disabled <|
+                result = table.write out on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                written = result.read
+                written.sheet_count . should_equal 1
+                written.sheet_names . should_equal ['EnsoSheet']
+                written.read 'EnsoSheet' . should_equal table
+                result
+            temp.delete_if_exists
+
+        Test.specify 'should be able to write to an existing empty file' <|
+            out.delete_if_exists
+            [].write_bytes out
+
+            out_bak.delete_if_exists
+
+            table.write out on_problems=Report_Error . should_succeed . should_equal out
+            written = out.read
+            written.sheet_count . should_equal 1
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
+
+            out_bak.exists.should_be_true
+            out_bak.size.should_equal 0
+
+            out.delete_if_exists
+            out_bak.delete_if_exists
 
         Test.specify 'should fail to append to a sheet by name if missing columns' <|
             out.delete_if_exists
@@ -724,10 +757,10 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
 
         Test.specify "Patchy table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "Column 1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "F"] [[4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Single cell" <|
@@ -738,15 +771,12 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
 
         Test.specify "Growing table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column 1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column 1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Q"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
             check_table (file.read (Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
 
-        Test.specify "Should handle invalid headers with warnings" <|
-            action = file.read (Excel (Cell_Range "Sheet1!D1")) on_problems=_
-            tester = check_table _ ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            problems = [Invalid_Output_Column_Names.Error [""]]
-            Problems.test_problem_handling action problems tester
+        Test.specify "Should handle blank headers without warnings" <|
+            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Should handle duplicate headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!S1")) on_problems=_

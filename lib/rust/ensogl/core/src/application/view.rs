@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::display::world::World;
-
 use super::command;
 use super::shortcut;
 use super::Application;
@@ -26,7 +24,6 @@ pub use command::View;
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Registry {
-    pub display:           World,
     pub command_registry:  command::Registry,
     pub shortcut_registry: shortcut::Registry,
     pub definitions:       Rc<RefCell<HashSet<String>>>,
@@ -35,15 +32,13 @@ pub struct Registry {
 impl Registry {
     /// Constructor.
     pub fn create(
-        display: &World,
         command_registry: &command::Registry,
         shortcut_registry: &shortcut::Registry,
     ) -> Self {
-        let display = display.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcut_registry = shortcut_registry.clone_ref();
         let definitions = default();
-        Self { display, command_registry, shortcut_registry, definitions }
+        Self { command_registry, shortcut_registry, definitions }
     }
 
     /// View registration.
@@ -54,7 +49,7 @@ impl Registry {
     /// the outset.
     pub fn register<V: View>(&self) {
         let label = V::label().into();
-        for shortcut in V::default_shortcuts() {
+        for shortcut in V::global_shortcuts() {
             self.shortcut_registry.add(shortcut)
         }
         self.definitions.borrow_mut().insert(label);
@@ -71,7 +66,20 @@ impl Registry {
             self.register::<V>();
         }
         let view = V::new(app);
-        self.command_registry.register_instance(&view);
+        let id = self.command_registry.register_instance(&view);
+        let focused_shortcuts = V::focused_shortcuts();
+        if !focused_shortcuts.is_empty() {
+            let network = V::network(&view);
+            let registry = app.shortcuts.instance_bound_child_in_network(
+                id,
+                &view,
+                &app.display.default_scene,
+                network,
+            );
+            for shortcut in focused_shortcuts {
+                registry.add(shortcut)
+            }
+        }
         view
     }
 }

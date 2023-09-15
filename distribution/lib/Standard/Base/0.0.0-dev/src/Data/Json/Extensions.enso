@@ -1,15 +1,13 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-import project.Data.Json.Json
 import project.Data.Json.JS_Object
+import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Map.Map
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Range.Extensions
-import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
@@ -17,14 +15,17 @@ import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 
-from project.Data.Boolean import Boolean, True, False
-
-## Converts the given value to a JSON serialized value.
+## GROUP Conversions
+   Converts the given value to a JSON serialized value.
 Any.to_json : Text
 Any.to_json self = Json.stringify self
 
-## Converts the given value to a JSON serialized value.
+## PRIVATE
+   Converts the given value to a JSON serialized value.
 Error.to_json : Text
 Error.to_json self = self.to_js_object.to_text
 
@@ -47,7 +48,7 @@ Number.to_js_object : JS_Object | Number
 Number.to_js_object self = case self of
     Number -> JS_Object.from_pairs [["type", "Number"]]
     Integer -> JS_Object.from_pairs [["type", "Integer"]]
-    Decimal -> JS_Object.from_pairs [["type", "Decimal"]]
+    Float -> JS_Object.from_pairs [["type", "Float"]]
     _ : Integer ->
         ## JS Safe Integer range -(2^53 - 1) to (2^53 - 1)
         js_max_integer = 9007199254740991
@@ -151,7 +152,7 @@ Locale.to_js_object self =
 ## PRIVATE
    Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
-   
+
    Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
 Map.to_js_object : JS_Object
 Map.to_js_object self =

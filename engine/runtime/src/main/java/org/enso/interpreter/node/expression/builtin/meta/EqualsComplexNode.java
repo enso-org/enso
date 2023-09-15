@@ -1,8 +1,23 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnknownKeyException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
@@ -17,21 +32,6 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.StopIterationException;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnknownKeyException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
-
 @GenerateUncached
 public abstract class EqualsComplexNode extends Node {
 
@@ -44,7 +44,9 @@ public abstract class EqualsComplexNode extends Node {
   /** Enso specific types */
   @Specialization
   boolean equalsUnresolvedSymbols(
-      UnresolvedSymbol self, UnresolvedSymbol otherSymbol, @Cached EqualsNode equalsNode) {
+      UnresolvedSymbol self,
+      UnresolvedSymbol otherSymbol,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
@@ -53,24 +55,28 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsUnresolvedConversion(
       UnresolvedConversion selfConversion,
       UnresolvedConversion otherConversion,
-      @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
   @Specialization
   boolean equalsModuleScopes(
-      ModuleScope selfModuleScope, ModuleScope otherModuleScope, @Cached EqualsNode equalsNode) {
+      ModuleScope selfModuleScope,
+      ModuleScope otherModuleScope,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
   }
 
   @Specialization
   @TruffleBoundary
-  boolean equalsModules(Module selfModule, Module otherModule, @Cached EqualsNode equalsNode) {
+  boolean equalsModules(
+      Module selfModule, Module otherModule, @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
   }
 
   @Specialization
-  boolean equalsFiles(EnsoFile selfFile, EnsoFile otherFile, @Cached EqualsNode equalsNode) {
+  boolean equalsFiles(
+      EnsoFile selfFile, EnsoFile otherFile, @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfFile.getPath(), otherFile.getPath());
   }
 
@@ -83,8 +89,8 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsTypes(
       Type selfType,
       Type otherType,
-      @Cached EqualsNode equalsNode,
-      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib) {
     return equalsNode.execute(
         selfType.getQualifiedName().toString(), otherType.getQualifiedName().toString());
   }
@@ -102,7 +108,7 @@ public abstract class EqualsComplexNode extends Node {
       Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Cached EqualsNode equalsNode) {
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     try {
       Object self =
           selfWarnLib.hasWarnings(selfWithWarnings)
@@ -281,9 +287,9 @@ public abstract class EqualsComplexNode extends Node {
       Object otherArray,
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
-      @Cached EqualsNode equalsNode,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Cached CustomComparatorNode hasCustomComparatorNode,
-      @Cached HostValueToEnsoNode valueToEnsoNode) {
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
       if (selfSize != otherInterop.getArraySize(otherArray)) {
@@ -316,10 +322,10 @@ public abstract class EqualsComplexNode extends Node {
       Object otherHashMap,
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
-      @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
-      @Cached EqualsNode equalsNode,
-      @Cached HostValueToEnsoNode keyToEnsoNode,
-      @Cached HostValueToEnsoNode valueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary entriesInterop,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Exclusive @Cached HostValueToEnsoNode keyToEnsoNode,
+      @Exclusive @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
@@ -360,10 +366,10 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsInteropObjectWithMembers(
       Object selfObject,
       Object otherObject,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached EqualsNode equalsNode,
-      @Cached HostValueToEnsoNode valueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       Object selfMembers = interop.getMembers(selfObject);
       Object otherMembers = interop.getMembers(otherObject);
@@ -415,7 +421,7 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsHostObjects(
       Object selfHostObject,
       Object otherHostObject,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return interop.asBoolean(interop.invokeMember(selfHostObject, "equals", otherHostObject));
     } catch (UnsupportedMessageException
@@ -432,8 +438,8 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsHostFunctions(
       Object selfHostFunc,
       Object otherHostFunc,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached EqualsNode equalsNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
     Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
     Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
     return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
@@ -444,8 +450,8 @@ public abstract class EqualsComplexNode extends Node {
   boolean equalsGeneric(
       Object left,
       Object right,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @CachedLibrary(limit = "10") WarningsLibrary warningsLib) {
     return left == right
         || interop.isIdentical(left, right, interop)

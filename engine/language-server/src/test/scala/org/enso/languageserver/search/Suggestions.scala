@@ -49,7 +49,18 @@ object Suggestions {
     annotations   = Seq("a")
   )
 
-  val method: Suggestion.Method = Suggestion.Method(
+  val getter: Suggestion.Getter = Suggestion.Getter(
+    externalId    = None,
+    module        = "local.Test.Main",
+    name          = "a",
+    arguments     = Vector(),
+    selfType      = "MyType",
+    returnType    = "Any",
+    documentation = None,
+    annotations   = Seq()
+  )
+
+  val method: Suggestion.DefinedMethod = Suggestion.DefinedMethod(
     externalId = Some(UUID.fromString("ea9d7734-26a7-4f65-9dd9-c648eaf57d63")),
     module     = "local.Test.Main",
     name       = "foo",
@@ -89,7 +100,7 @@ object Suggestions {
     documentation = None
   )
 
-  val methodOnAny: Suggestion.Method = Suggestion.Method(
+  val methodOnAny: Suggestion.DefinedMethod = Suggestion.DefinedMethod(
     externalId = Some(UUID.fromString("6cfe1538-5df7-42e4-bf55-64f8ac2ededa")),
     module     = "Standard.Base.Any.Extensions",
     name       = "<<",
@@ -104,7 +115,7 @@ object Suggestions {
     annotations   = Seq()
   )
 
-  val methodOnNumber: Suggestion.Method = Suggestion.Method(
+  val methodOnNumber: Suggestion.DefinedMethod = Suggestion.DefinedMethod(
     externalId = Some(UUID.fromString("33b426aa-2f74-42c0-9032-1159b5386eac")),
     module     = "Standard.Base.Data.Number.Extensions",
     name       = "asin",
@@ -118,7 +129,7 @@ object Suggestions {
     annotations   = Seq()
   )
 
-  val methodOnInteger: Suggestion.Method = Suggestion.Method(
+  val methodOnInteger: Suggestion.DefinedMethod = Suggestion.DefinedMethod(
     externalId = Some(UUID.fromString("2849c0f0-3c27-44df-abcb-5c163dd7ac91")),
     module     = "Standard.Builtins.Main",
     name       = "+",
@@ -136,6 +147,7 @@ object Suggestions {
     module,
     tpe,
     constructor,
+    getter,
     method,
     function,
     local,

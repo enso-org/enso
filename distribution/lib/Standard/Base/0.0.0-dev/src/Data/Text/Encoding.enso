@@ -1,19 +1,18 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Meta
-import project.Panic.Panic
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Panic.Panic
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
 
 polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException
 polyglot java import org.enso.base.Text_Utils
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
 
 ## Represents a character encoding.
 type Encoding
@@ -33,7 +32,9 @@ type Encoding
     all_character_sets =
         Charset.availableCharsets.keys
 
-    ## Get all available Encodings.
+    ## PRIVATE
+       ADVANCED
+       Get all available Encodings.
     all_encodings : Vector Encoding
     all_encodings =
         Encoding.all_character_sets.map Encoding.Value
@@ -92,7 +93,7 @@ type Encoding
     windows_1251 : Encoding
     windows_1251 = Encoding.Value "windows-1251"
 
-    ## ALIAS ISO-8859-1
+    ## ALIAS iso-8859-1
        Encoding for Western European (Windows).
     windows_1252 : Encoding
     windows_1252 = Encoding.Value "windows-1252"
@@ -101,7 +102,7 @@ type Encoding
     windows_1253 : Encoding
     windows_1253 = Encoding.Value "windows-1253"
 
-    ## ALIAS ISO-8859-9
+    ## ALIAS iso-8859-9
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
     windows_1254 = Encoding.Value "windows-1254"

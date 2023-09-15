@@ -1,23 +1,28 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.ibm.icu.text.Normalizer;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
+
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
+
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Any",
@@ -70,6 +75,18 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
+  @Specialization(guards="interop.isBoolean(other)")
+  boolean equalsBoolInterop(
+    boolean self, Object other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
+  ) {
+    try {
+      return self == interop.asBoolean(other);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
+  }
+
   @Specialization
   boolean equalsLongLong(long self, long other) {
     return self == other;
@@ -88,6 +105,18 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean equalsLongText(long self, Text other) {
     return false;
+  }
+
+  @Specialization(guards="interop.fitsInLong(other)")
+  boolean equalsLongInterop(
+    long self, Object other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
+  ) {
+    try {
+      return self == interop.asLong(other);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
   }
 
   @Specialization
@@ -112,7 +141,19 @@ public abstract class EqualsNode extends Node {
   @Specialization
   @TruffleBoundary
   boolean equalsDoubleBigInt(double self, EnsoBigInteger other) {
-    return self == other.doubleValue();
+    return self == other.getValue().doubleValue();
+  }
+
+  @Specialization(guards="interop.fitsInDouble(other)")
+  boolean equalsDoubleInterop(
+    double self, Object other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
+  ) {
+    try {
+      return self == interop.asDouble(other);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
   }
 
   @Specialization
@@ -129,7 +170,7 @@ public abstract class EqualsNode extends Node {
   @Specialization
   @TruffleBoundary
   boolean equalsBitIntDouble(EnsoBigInteger self, double other) {
-    return self.doubleValue() == other;
+    return self.getValue().doubleValue() == other;
   }
 
   @Specialization
@@ -150,6 +191,23 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean equalsBigIntText(EnsoBigInteger self, Text other) {
     return false;
+  }
+
+  @TruffleBoundary
+  @Specialization(guards={
+    "!isPrimitiveValue(other)",
+    "interop.fitsInBigInteger(other)"
+  })
+  boolean equalsBigIntInterop(
+    EnsoBigInteger self, Object other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
+  ) {
+    try {
+      var otherBigInteger = InteropLibrary.getUncached().asBigInteger(other);
+      return self.asBigInteger().equals(otherBigInteger);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
   }
 
   @Specialization
@@ -208,12 +266,14 @@ public abstract class EqualsNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return Normalizer.compare(selfJavaString, otherJavaString, Normalizer.FOLD_CASE_DEFAULT) == 0;
+    return Core_Text_Utils.equals(selfJavaString, otherJavaString);
   }
 
   @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")
   boolean equalsDifferent(
-      Object self, Object other, @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Object self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return false;
   }
 
@@ -227,9 +287,46 @@ public abstract class EqualsNode extends Node {
   boolean equalsAtoms(
       Atom self,
       Atom other,
-      @Cached EqualsAtomNode equalsNode,
-      @Cached IsSameObjectNode isSameObjectNode) {
-    return isSameObjectNode.execute(self, other) || equalsNode.execute(self, other);
+      @Cached EqualsAtomNode equalsAtomNode,
+      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode) {
+    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
+  }
+
+
+  @Specialization
+  boolean equalsReverseBoolean(
+    TruffleObject self, boolean other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+    @Shared("reverse") @Cached EqualsNode reverse
+  ) {
+    return reverse.execute(other, self);
+  }
+
+  @Specialization
+  boolean equalsReverseLong(
+    TruffleObject self, long other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+    @Shared("reverse") @Cached EqualsNode reverse
+  ) {
+    return reverse.execute(other, self);
+  }
+
+  @Specialization
+  boolean equalsReverseDouble(
+    TruffleObject self, double other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+    @Shared("reverse") @Cached EqualsNode reverse
+  ) {
+    return reverse.execute(other, self);
+  }
+
+  @Specialization
+  boolean equalsReverseBigInt(
+    TruffleObject self, EnsoBigInteger other,
+    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+    @Shared("reverse") @Cached EqualsNode reverse
+  ) {
+    return reverse.execute(other, self);
   }
 
   @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
@@ -237,8 +334,8 @@ public abstract class EqualsNode extends Node {
       Object self,
       Object other,
       @Cached EqualsComplexNode equalsComplex,
-      @Cached IsSameObjectNode isSameObjectNode,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warnings) {
     return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
   }
@@ -254,6 +351,9 @@ public abstract class EqualsNode extends Node {
     if (warnings.hasWarnings(a) || warnings.hasWarnings(b)) {
       return true;
     }
+    if (a instanceof EnsoMultiValue || b instanceof EnsoMultiValue) {
+      return true;
+    }
     return !isPrimitive(a, interop) && !isPrimitive(b, interop);
   }
 
@@ -265,11 +365,17 @@ public abstract class EqualsNode extends Node {
    * org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode}.
    */
   static boolean isPrimitive(Object object, InteropLibrary interop) {
-    return object instanceof Boolean
-        || object instanceof Long
-        || object instanceof Double
+    return isPrimitiveValue(object)
         || object instanceof EnsoBigInteger
         || object instanceof Text
-        || interop.isString(object);
+        || interop.isString(object)
+        || interop.isNumber(object)
+        || interop.isBoolean(object);
+  }
+
+  static boolean isPrimitiveValue(Object object) {
+    return object instanceof Boolean
+            || object instanceof Long
+            || object instanceof Double;
   }
 }

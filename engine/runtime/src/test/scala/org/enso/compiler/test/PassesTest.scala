@@ -2,10 +2,12 @@ package org.enso.compiler.test
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  AmbiguousImportsAnalysis,
   BindingAnalysis,
   ImportSymbolAnalysis
 }
@@ -26,19 +28,14 @@ class PassesTest extends CompilerTest {
     override val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
-      ir: IR.Module,
+      ir: Module,
       moduleContext: ModuleContext
-    ): IR.Module = ir
+    ): Module = ir
 
     override def runExpression(
-      ir: IR.Expression,
+      ir: Expression,
       inlineContext: InlineContext
-    ): IR.Expression = ir
-
-    override def updateMetadataInDuplicate[T <: IR](
-      sourceIr: T,
-      copyOfIr: T
-    ): T = copyOfIr
+    ): Expression = ir
   }
 
   // === The Tests ============================================================
@@ -62,6 +59,7 @@ class PassesTest extends CompilerTest {
           OperatorToFunction,
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
+          AmbiguousImportsAnalysis,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,

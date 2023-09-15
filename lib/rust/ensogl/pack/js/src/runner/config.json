@@ -3,6 +3,10 @@
     "debug": {
       "value": false,
       "description": "Controls the debug mode for the application. In this mode, all logs are printed to the console, and EnsoGL extensions are loaded. Otherwise, logs are hidden unless explicitly shown with 'showLogs'."
+    },
+    "dataCollection": {
+      "value": true,
+      "description": "Determines whether anonymous usage data is to be collected."
     }
   },
   "groups": {

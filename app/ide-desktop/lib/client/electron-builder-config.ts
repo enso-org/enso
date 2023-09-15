@@ -31,7 +31,7 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
  *
  * @see `args` definition below for fields description. */
 export interface Arguments {
-    // This is returned by a third-party library we do not control.
+    // The types come from a third-party API and cannot be changed.
     // eslint-disable-next-line no-restricted-syntax
     target?: string | undefined
     iconsDist: string
@@ -195,6 +195,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // https://github.com/electron-userland/electron-builder/issues/2851
             // https://github.com/electron-userland/electron-builder/issues/2900
             differentialPackage: false,
+            runAfterFinish: false,
         },
         dmg: {
             // Disables "block map" generation during electron building. Block maps
@@ -224,7 +225,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         afterSign: async context => {
             // Notarization for macOS.
-            if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK) {
+            if (
+                passedArgs.platform === electronBuilder.Platform.MAC &&
+                process.env.CSC_LINK != null
+            ) {
                 const {
                     packager: {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -256,8 +260,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appBundleId: macBuildOptions.appId!,
                     appPath: `${appOutDir}/${appName}.app`,
-                    appleId: process.env.APPLEID,
-                    appleIdPassword: process.env.APPLEIDPASS,
+                    // It is a mistake for either of these to be undefined.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleId: process.env.APPLEID!,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleIdPassword: process.env.APPLEIDPASS!,
                 })
             }
         },

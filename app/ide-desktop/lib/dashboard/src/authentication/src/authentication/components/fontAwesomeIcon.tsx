@@ -1,4 +1,6 @@
 /** @file Styled wrapper around FontAwesome icons. */
+import * as React from 'react'
+
 import * as fontawesome from '@fortawesome/react-fontawesome'
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
@@ -12,7 +14,7 @@ export interface FontAwesomeIconProps {
 }
 
 /** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
-function FontAwesomeIcon(props: FontAwesomeIconProps) {
+export default function FontAwesomeIcon(props: FontAwesomeIconProps) {
     return (
         <span
             className={
@@ -24,5 +26,3 @@ function FontAwesomeIcon(props: FontAwesomeIconProps) {
         </span>
     )
 }
-
-export default FontAwesomeIcon

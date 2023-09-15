@@ -1,7 +1,5 @@
 package org.enso.interpreter.dsl.builtins;
 
-import org.enso.interpreter.dsl.BuiltinsProcessor;
-
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -93,7 +91,7 @@ class CachedMethodParameter extends SpecializedMethodParameter {
   public Stream<String> declaredParameter() {
     return Stream.of(
         "Object " + param.name(),
-        "@Cached(\"" + cachedExpr + "\") " + cacheNode + " " + cacheNodeParam);
+        "@Cached.Exclusive @Cached(\"" + cachedExpr + "\") " + cacheNode + " " + cacheNodeParam);
   }
 }
 
@@ -118,7 +116,8 @@ class CachedLibraryMethodParameter extends SpecializedMethodParameter {
 
   @Override
   public Stream<String> declaredParameter() {
-    return Stream.of("@CachedLibrary(" + cachedExpr + ") " + param.tpe() + " " + param.name());
+    return Stream.of(
+        "@Cached.Exclusive @CachedLibrary(" + cachedExpr + ") " + param.tpe() + " " + param.name());
   }
 
   public static final String INTEROP_LIBRARY = "com.oracle.truffle.api.interop.InteropLibrary";

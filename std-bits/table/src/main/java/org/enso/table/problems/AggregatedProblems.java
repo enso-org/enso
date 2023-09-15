@@ -1,9 +1,8 @@
 package org.enso.table.problems;
 
-import org.enso.table.data.table.problems.ColumnAggregatedProblems;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
 public class AggregatedProblems {
   private final List<Problem> problems;
@@ -12,7 +11,7 @@ public class AggregatedProblems {
 
   private AggregatedProblems(List<Problem> problems, int count) {
     this.problems = problems;
-    this.maxSize = problems.size();
+    this.maxSize = problems.size() + 10;
     this.count = count;
   }
 
@@ -34,6 +33,10 @@ public class AggregatedProblems {
     return problems.toArray(Problem[]::new);
   }
 
+  public List<Problem> asList() {
+    return problems;
+  }
+
   public int getCount() {
     return count;
   }
@@ -52,6 +55,12 @@ public class AggregatedProblems {
       problems.add(problem);
     }
     count++;
+  }
+
+  public void addAll(List<Problem> problems) {
+    for (Problem p : problems) {
+      add(p);
+    }
   }
 
   public static AggregatedProblems merge(AggregatedProblems... problems) {

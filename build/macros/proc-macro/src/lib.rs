@@ -6,6 +6,8 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
+use syn_1 as syn;
+
 
 
 #[proc_macro_derive(Arg, attributes(arg))]

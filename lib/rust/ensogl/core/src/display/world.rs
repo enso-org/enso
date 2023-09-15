@@ -15,15 +15,15 @@ use crate::debug;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::garbage;
-use crate::display::render;
-use crate::display::render::cache_shapes::CacheShapesPass;
-use crate::display::render::passes::SymbolsRenderPass;
+use crate::display::render::cache_shapes::CacheShapesPassDef;
+use crate::display::render::passes::SymbolsRenderPassDef;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::scene::UpdateStatus;
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
+use crate::display::uniform::UniformScope;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::shader;
 use crate::system::web;
@@ -32,6 +32,7 @@ use enso_types::unit2::Duration;
 use web::prelude::Closure;
 use web::JsCast;
 use web::JsValue;
+
 
 
 // ==============
@@ -79,7 +80,7 @@ pub fn with_context<T>(f: impl FnOnce(&SymbolRegistry) -> T) -> T {
 /// Initialize global state (set stack trace size, logger output, etc).
 #[before_main(0)]
 pub fn init() {
-    init_global();
+    web::init_global();
 }
 
 /// Initialize global context.
@@ -242,7 +243,7 @@ pub struct Uniforms {
 
 impl Uniforms {
     /// Constructor.
-    pub fn new(scope: &UniformScope) -> Self {
+    pub fn new(scope: &mut UniformScope) -> Self {
         let time = scope.add_or_panic("time", 0.0);
         Self { time }
     }
@@ -255,7 +256,7 @@ impl Uniforms {
 // =============
 
 /// The root object for EnsoGL scenes.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, display::Object)]
 pub struct World {
     rc: Rc<WorldDataWithLoop>,
 }
@@ -283,12 +284,6 @@ impl Deref for World {
     type Target = WorldDataWithLoop;
     fn deref(&self) -> &Self::Target {
         &self.rc
-    }
-}
-
-impl display::Object for World {
-    fn display_object(&self) -> &display::object::Instance {
-        self.default_scene.display_object()
     }
 }
 
@@ -406,8 +401,11 @@ thread_local! {
     pub static SCENE: RefCell<Option<Scene>> = RefCell::new(None);
 }
 
-/// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
-/// and should be instantiated before any callback is run.
+/// Get reference to [`Scene`] instance.
+///
+/// # Panics
+///
+/// It will panic if there is no [`World`] instance.
 pub fn scene() -> Scene {
     SCENE.with_borrow(|t| t.clone().unwrap())
 }
@@ -419,11 +417,12 @@ pub fn scene() -> Scene {
 // =================
 
 /// The data kept by the [`World`].
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct WorldData {
     #[deref]
     frp: api::private::Output,
+    #[display_object]
     pub default_scene: Scene,
     scene_dirty: dirty::SharedBool,
     uniforms: Uniforms,
@@ -438,6 +437,7 @@ pub struct WorldData {
     pixel_read_pass_threshold: Rc<RefCell<Weak<Cell<usize>>>>,
     slow_frame_count: Rc<Cell<usize>>,
     fast_frame_count: Rc<Cell<usize>>,
+    restore_context: Rc<RefCell<Option<crate::system::gpu::context::extension::WebglLoseContext>>>,
 }
 
 impl WorldData {
@@ -451,16 +451,17 @@ impl WorldData {
         let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
-        let uniforms = Uniforms::new(&default_scene.variables);
+        let uniforms = Uniforms::new(&mut default_scene.variables.borrow_mut());
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
-        SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+        SCENE.set(Some(default_scene.clone_ref()));
         let pixel_read_pass_threshold = default();
         let slow_frame_count = default();
         let fast_frame_count = default();
+        let restore_context = default();
 
         Self {
             frp,
@@ -478,19 +479,15 @@ impl WorldData {
             pixel_read_pass_threshold,
             slow_frame_count,
             fast_frame_count,
+            restore_context,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        self.init_environment();
         self.init_composer();
         self.init_debug_hotkeys();
         self
-    }
-
-    fn init_environment(&self) {
-        init_global();
     }
 
     fn init_debug_hotkeys(&self) {
@@ -498,6 +495,7 @@ impl WorldData {
         let display_mode = self.display_mode.clone_ref();
         let display_mode_uniform = with_context(|ctx| ctx.display_mode.clone_ref());
         let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
+        let restore_context = self.restore_context.clone();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
@@ -505,7 +503,7 @@ impl WorldData {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "KeyP" {
+                } else if key == "KeyO" {
                     if event.shift_key() {
                         let forwarding_incrementally = emit_measurements_handle.borrow().is_some();
                         // If we are submitting the data continuously, the hotkey is redundant.
@@ -522,6 +520,19 @@ impl WorldData {
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key == "KeyG" {
                     enso_debug_api::open_gpu_debug_info();
+                } else if key == "KeyX" && event.shift_key() {
+                    if let Some(restore) = restore_context.take() {
+                        restore.restore_context();
+                    } else if let Some(context) = scene().context.borrow().as_ref() {
+                        if let Some(lose_context) = context.extensions.webgl_lose_context.as_ref() {
+                            restore_context.borrow_mut().replace(lose_context.clone());
+                            lose_context.lose_context();
+                        } else {
+                            error!("Could not lose context: Missing extension.");
+                        }
+                    } else {
+                        error!("Could not lose context: Context lost.");
+                    }
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
@@ -539,21 +550,29 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
+        self.default_scene.renderer.set_pipeline(Pipeline::new(Rc::new([
+            Box::new(SymbolsRenderPassDef::new(&self.default_scene.layers)),
+            Box::new(ScreenRenderPass::new()),
+            self.init_pixel_read_pass(),
+            Box::new(CacheShapesPassDef::new()),
+        ])));
+    }
+
+    fn init_pixel_read_pass(&self) -> Box<dyn pass::Definition> {
         let pointer_target_encoded = self.default_scene.mouse.pointer_target_encoded.clone_ref();
         let garbage_collector = &self.garbage_collector;
-        let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(f!([garbage_collector](v) {
+        let on_read = f!([garbage_collector](v: Vec<u8>) {
             pointer_target_encoded.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
             garbage_collector.pixel_updated();
-        }));
-        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
+        });
+        let on_sync = f!(garbage_collector.pixel_synced());
+        let pixel_read_pass = PixelReadPassDef::<u8>::new(
+            self.default_scene.mouse.position.clone(),
+            on_read,
+            on_sync,
+        );
         *self.pixel_read_pass_threshold.borrow_mut() = pixel_read_pass.get_threshold().downgrade();
-        let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(&self.default_scene.layers))
-            .add(ScreenRenderPass::new())
-            .add(pixel_read_pass)
-            .add(CacheShapesPass::new(&self.default_scene));
-        self.default_scene.renderer.set_pipeline(pipeline);
+        Box::new(pixel_read_pass)
     }
 
     fn update_stats(&self, _time: Duration, gpu_perf_results: Option<Vec<Results>>) {
@@ -670,6 +689,13 @@ impl WorldData {
         self.garbage_collector.collect(object);
     }
 
+    /// Immediately drop the garbage.
+    ///
+    /// May be used to resolve dependence cycles if garbage keeps reference to [`World`].
+    pub fn force_garbage_drop(&self) {
+        self.garbage_collector.force_garbage_drop()
+    }
+
     /// Set the maximum frequency at which the pointer location will be checked, in terms of number
     /// of frames per check.
     pub fn set_pixel_read_period(&self, period: usize) {
@@ -680,6 +706,12 @@ impl WorldData {
             info!("Setting pixel read pass threshold to {threshold}.");
             setter.set(threshold);
         }
+    }
+}
+
+impl Drop for WorldData {
+    fn drop(&mut self) {
+        SCENE.set(None);
     }
 }
 

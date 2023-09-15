@@ -77,22 +77,22 @@ impl<'a> SerializableDeserializableObject<'a> for Vec<String> {
 }
 
 
-// === impl VisualisationContext ===
+// === impl VisualizationContext ===
 
-impl<'a> SerializableDeserializableObject<'a> for message::VisualisationContext {
-    type Out = VisualisationContext<'a>;
+impl<'a> SerializableDeserializableObject<'a> for message::VisualizationContext {
+    type Out = VisualizationContext<'a>;
     fn serialize(&self, builder: &mut FlatBufferBuilder<'a>) -> WIPOffset<Self::Out> {
-        VisualisationContext::create(builder, &VisualisationContextArgs {
-            visualisationId: Some(&self.visualization_id.into()),
+        VisualizationContext::create(builder, &VisualizationContextArgs {
+            visualizationId: Some(&self.visualization_id.into()),
             expressionId:    Some(&self.expression_id.into()),
             contextId:       Some(&self.context_id.into()),
         })
     }
 
     fn deserialize(fbs: Self::Out) -> Result<Self, DeserializationError> {
-        Ok(message::VisualisationContext {
+        Ok(message::VisualizationContext {
             context_id:       fbs.contextId().into(),
-            visualization_id: fbs.visualisationId().into(),
+            visualization_id: fbs.visualizationId().into(),
             expression_id:    fbs.expressionId().into(),
         })
     }
@@ -325,9 +325,9 @@ impl SerializableUnion for FromServerPayloadOwned {
             FromServerPayloadOwned::VisualizationUpdate { data, context } => {
                 let data = builder.create_vector(data);
                 let context = context.serialize(builder);
-                VisualisationUpdate::create(builder, &VisualisationUpdateArgs {
+                VisualizationUpdate::create(builder, &VisualizationUpdateArgs {
                     data:                 Some(data),
-                    visualisationContext: Some(context),
+                    visualizationContext: Some(context),
                 })
                 .as_union_value()
             }
@@ -362,7 +362,7 @@ impl SerializableUnion for FromServerPayloadOwned {
             FromServerPayloadOwned::FileContentsReply { .. } =>
                 OutboundPayload::FILE_CONTENTS_REPLY,
             FromServerPayloadOwned::VisualizationUpdate { .. } =>
-                OutboundPayload::VISUALISATION_UPDATE,
+                OutboundPayload::VISUALIZATION_UPDATE,
             FromServerPayloadOwned::WriteBytesReply { .. } => OutboundPayload::WRITE_BYTES_REPLY,
             FromServerPayloadOwned::ReadBytesReply { .. } => OutboundPayload::READ_BYTES_REPLY,
             FromServerPayloadOwned::ChecksumBytesReply { .. } =>
@@ -424,12 +424,12 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                 })
             }
             OutboundPayload::SUCCESS => Ok(FromServerPayload::Success {}),
-            OutboundPayload::VISUALISATION_UPDATE => {
-                let payload = message.payload_as_visualisation_update().unwrap();
-                let context = payload.visualisationContext();
+            OutboundPayload::VISUALIZATION_UPDATE => {
+                let payload = message.payload_as_visualization_update().unwrap();
+                let context = payload.visualizationContext();
                 Ok(FromServerPayload::VisualizationUpdate {
                     data:    payload.data(),
-                    context: message::VisualisationContext::deserialize(context)?,
+                    context: message::VisualizationContext::deserialize(context)?,
                 })
             }
             OutboundPayload::WRITE_BYTES_REPLY => {
@@ -531,12 +531,12 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                 })
             }
             OutboundPayload::SUCCESS => Ok(FromServerPayloadOwned::Success {}),
-            OutboundPayload::VISUALISATION_UPDATE => {
-                let payload = message.payload_as_visualisation_update().unwrap();
-                let context = payload.visualisationContext();
+            OutboundPayload::VISUALIZATION_UPDATE => {
+                let payload = message.payload_as_visualization_update().unwrap();
+                let context = payload.visualizationContext();
                 Ok(FromServerPayloadOwned::VisualizationUpdate {
                     data:    Vec::from(payload.data()),
-                    context: message::VisualisationContext::deserialize(context)?,
+                    context: message::VisualizationContext::deserialize(context)?,
                 })
             }
             OutboundPayload::WRITE_BYTES_REPLY => {

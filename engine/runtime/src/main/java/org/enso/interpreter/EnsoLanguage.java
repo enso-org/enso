@@ -1,5 +1,46 @@
 package org.enso.interpreter;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+import org.enso.compiler.Compiler;
+import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.exception.CompilationAbortedException;
+import org.enso.compiler.exception.UnhandledEntity;
+import org.enso.distribution.DistributionManager;
+import org.enso.distribution.Environment;
+import org.enso.distribution.locking.LockManager;
+import org.enso.distribution.locking.ThreadSafeFileLockManager;
+import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
+import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.ProgramRootNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.interpreter.util.FileDetector;
+import org.enso.lockmanager.client.ConnectedLockManager;
+import org.enso.logger.masking.MaskingFactory;
+import org.enso.polyglot.ForeignLanguage;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.RuntimeOptions;
+import org.enso.syntax2.Line;
+import org.enso.syntax2.Tree;
+import org.graalvm.options.OptionCategory;
+import org.graalvm.options.OptionDescriptors;
+import org.graalvm.options.OptionKey;
+import org.graalvm.options.OptionType;
+
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -11,47 +52,6 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import org.enso.compiler.Compiler;
-import org.enso.compiler.context.InlineContext;
-import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.exception.CompilationAbortedException;
-import org.enso.compiler.exception.UnhandledEntity;
-import org.enso.distribution.DistributionManager;
-import org.enso.distribution.Environment;
-import org.enso.distribution.locking.LockManager;
-import org.enso.distribution.locking.ThreadSafeFileLockManager;
-import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.instrument.IdExecutionService;
-import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
-import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
-import org.enso.interpreter.instrument.execution.Timer;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.ProgramRootNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
-import org.enso.interpreter.runtime.tag.IdentifiedTag;
-import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.interpreter.service.ExecutionService;
-import org.enso.interpreter.util.FileDetector;
-import org.enso.lockmanager.client.ConnectedLockManager;
-import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.RuntimeOptions;
-import org.enso.syntax2.Line;
-import org.enso.syntax2.Tree;
-import org.graalvm.options.OptionCategory;
-import org.graalvm.options.OptionDescriptors;
-import org.graalvm.options.OptionKey;
-import org.graalvm.options.OptionType;
 
 /**
  * The root of the Enso implementation.
@@ -69,10 +69,11 @@ import org.graalvm.options.OptionType;
     version = LanguageInfo.VERSION,
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
-    contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
-    dependentLanguages = {EpbLanguage.ID},
+    contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
+    dependentLanguages = {ForeignLanguage.ID},
     fileTypeDetectors = FileDetector.class,
-    services = ExecutionService.class)
+    services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
+)
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -86,7 +87,6 @@ import org.graalvm.options.OptionType;
   Patchable.Tag.class
 })
 public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
-  private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
@@ -113,6 +113,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     if (isTextMode) {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
+    env.registerService(notificationHandler);
 
     TruffleLogger logger = env.getLogger(EnsoLanguage.class);
 
@@ -127,26 +128,22 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           "Detected interactive mode, will try to connect to a lock manager managed by it.");
       connectedLockManager = new ConnectedLockManager();
       lockManager = connectedLockManager;
+      env.registerService(connectedLockManager);
     } else {
       logger.finest("Detected text mode, using a standalone lock manager.");
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
+      env.registerService(lockManager);
     }
+
 
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
+    env.registerService(timer);
 
     EnsoContext context =
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-    idExecutionInstrument =
-        Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
-            .map(
-                idValueListenerInstrument ->
-                    env.lookup(idValueListenerInstrument, IdExecutionService.class));
-    env.registerService(
-        new ExecutionService(
-            context, idExecutionInstrument, notificationHandler, connectedLockManager, timer));
 
     return context;
   }
@@ -163,7 +160,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     var env = context.getEnvironment();
     var preinit = env.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
-      var epb = env.getInternalLanguages().get(EpbLanguage.ID);
+      var epb = env.getInternalLanguages().get(ForeignLanguage.ID);
       var run = env.lookup(epb, Consumer.class);
       run.accept(preinit);
     }
@@ -177,6 +174,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   @Override
   protected void finalizeContext(EnsoContext context) {
     context.shutdown();
+  }
+
+  @Override
+  public void disposeContext(EnsoContext context) {
+    super.disposeContext(context);
   }
 
   /**
@@ -215,12 +217,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    * will be returned.
    *
    * @param request request for inline parsing
-   * @throws Exception if the compiler failed to parse
+   * @throws InlineParsingException if the compiler failed to parse
    * @return An {@link ExecutableNode} representing an AST fragment if the request contains
    *   syntactically correct Enso source, {@code null} otherwise.
    */
   @Override
-  protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
+  protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
       Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
@@ -249,8 +251,15 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           true,
           scala.Option.apply(new PrintStream(outputRedirect))
       );
+      var moduleContext = new ModuleContext(
+        module, redirectConfigWithStrictErrors,
+        scala.Option.empty(),
+        scala.Option.empty(),
+        false,
+        scala.Option.empty()
+      );
       var inlineContext = new InlineContext(
-          module,
+          moduleContext,
           redirectConfigWithStrictErrors,
           scala.Some.apply(localScope),
           scala.Some.apply(false),
@@ -270,10 +279,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
       } catch (CompilationAbortedException e) {
         assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
-        String compilerErrOutput = outputRedirect.toString()
-            .lines()
-            .skip(1)
-            .collect(Collectors.joining(";"));
+        String compilerErrOutput = outputRedirect.toString();
         throw new InlineParsingException(compilerErrOutput, e);
       } finally {
         silentCompiler.shutdown(false);
@@ -281,11 +287,16 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
       if (exprNode.isDefined()) {
         var language = EnsoLanguage.get(exprNode.get());
-        var exprNodeReal = exprNode.get();
         return new ExecutableNode(language) {
+          @Child
+          private ExpressionNode expr;
+
           @Override
           public Object execute(VirtualFrame frame) {
-            return exprNodeReal.executeGeneric(frame);
+            if (expr == null) {
+              expr = insert(exprNode.get());
+            }
+            return expr.executeGeneric(frame);
           }
         };
       }
@@ -348,11 +359,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   @Override
   protected Object getScope(EnsoContext context) {
     return context.getTopScope();
-  }
-
-  /** @return a reference to the execution instrument */
-  public Optional<IdExecutionService> getIdExecutionService() {
-    return idExecutionInstrument;
   }
 
   /** Conversions of primitive values */

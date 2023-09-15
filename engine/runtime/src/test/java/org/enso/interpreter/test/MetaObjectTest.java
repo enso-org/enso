@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.AfterClass;
+import static org.junit.Assert.assertNotEquals;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -95,6 +96,7 @@ public class MetaObjectTest extends TestBase {
         expecting.add(s);
       }
     }
+    expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);
@@ -153,6 +155,30 @@ public class MetaObjectTest extends TestBase {
     }
   }
 
+  @Test
+  public void errorsAreWeird() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.errors()) {
+      Value vMeta = v.getMetaObject();
+      var isError = vMeta.equals(g.typeError());
+      var isPanic = vMeta.equals(g.typePanic());
+
+      assertTrue("either error or panic: " + v, isError || isPanic);
+      assertNotEquals("never both: " + v, isError, isPanic);
+
+      if (isError) {
+        assertFalse("No meta parents for errors: " + vMeta, vMeta.hasMetaParents());
+      } else {
+        assertTrue("There are meta parents for panics: " + vMeta, vMeta.hasMetaParents());
+        var arr = vMeta.getMetaParents();
+        for (long i = 0; i < arr.getArraySize(); i++) {
+          var p = arr.getArrayElement(i);
+          assertEquals(g.typeAny(), p);
+        }
+      }
+    }
+  }
+
   private void checkAllTypesSatisfy(Check check) throws Exception {
     var g = generator();
     var expecting = new LinkedHashSet<Value>();
@@ -162,7 +188,7 @@ public class MetaObjectTest extends TestBase {
       }
       switch (t.getMetaSimpleName()) {
         // represented as primitive values without meta object
-        case "Decimal" -> {}
+        case "Float" -> {}
         // has no instances
         case "Array_Proxy" -> {}
         // Warning is transparent and invisible

@@ -29,8 +29,9 @@ type SQLite_Format
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> SQLite_Format | Nothing
-    for_web _ _ =
+    for_web content_type uri =
         ## Currently not loading SQLite files automatically.
+        _ = [content_type, uri]
         Nothing
 
     ## PRIVATE

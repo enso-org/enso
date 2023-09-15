@@ -12,7 +12,7 @@ use crate::transport::web::WebSocket;
 
 use double_representation::name::project;
 use engine_protocol::binary;
-use engine_protocol::binary::message::VisualisationContext;
+use engine_protocol::binary::message::VisualizationContext;
 use engine_protocol::common::error::code;
 use engine_protocol::language_server;
 use engine_protocol::language_server::response;
@@ -21,6 +21,7 @@ use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::FileEditList;
 use engine_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::TextFileModifiedOnDisk;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
@@ -80,7 +81,7 @@ impl ExecutionContextsRegistry {
     /// Route the visualization update into the appropriate execution context.
     pub fn dispatch_visualization_update(
         &self,
-        context: VisualisationContext,
+        context: VisualizationContext,
         data: VisualizationUpdateData,
     ) -> FallibleResult {
         self.with_context(context.context_id, |ctx| {
@@ -211,6 +212,36 @@ async fn update_modules_on_file_change(
 }
 
 
+/// Reload the file from disk when `text/fileModifiedOnDisk` notification received.
+#[profile(Detail)]
+async fn reload_module_on_file_change(
+    modified: TextFileModifiedOnDisk,
+    module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
+) -> FallibleResult {
+    let module_path = module::Path::from_file_path(modified.path)?;
+    if let Some(module) = module_registry.get(&module_path).await? {
+        module.reopen_externally_changed_file().await?;
+    }
+    Ok(())
+}
+
+/// Update internal state when the `refactoring/projectRenamed` notification received.
+#[profile(Detail)]
+fn rename_project_on_notification(
+    project_renamed: language_server::types::ProjectRenamed,
+    properties: Rc<RefCell<Properties>>,
+    execution_contexts: Rc<ExecutionContextsRegistry>,
+) {
+    {
+        let mut properties = properties.borrow_mut();
+        properties.displayed_name = project_renamed.new_name.into();
+        properties.project_name.project = project_renamed.new_normalized_name.clone().into();
+    }
+    execution_contexts
+        .rename_project(project_renamed.old_normalized_name, project_renamed.new_normalized_name);
+}
+
+
 
 // =============
 // === Model ===
@@ -247,7 +278,7 @@ pub struct UnsupportedEngineVersion {
 impl UnsupportedEngineVersion {
     fn error_wrapper(properties: &Properties) -> impl Fn(failure::Error) -> failure::Error {
         let engine_version = properties.engine_version.clone();
-        let project_name = properties.name.project.as_str().to_owned();
+        let project_name = properties.project_name.project.as_str().to_owned();
         move |root_cause| {
             if let Err(version_mismatch) = enso_config::check_engine_version(&engine_version) {
                 UnsupportedEngineVersion {
@@ -285,7 +316,11 @@ impl Display for UnsupportedEngineVersion {
 pub struct Properties {
     /// ID of the project, as used by the Project Manager service.
     pub id:             Uuid,
-    pub name:           project::QualifiedName,
+    /// Qualified name of the project's main module, it is used primarily in communication with the
+    /// language server.
+    pub project_name:   project::QualifiedName,
+    /// A project name as displayed to the user, it can be different from the `project_name`.
+    pub displayed_name: ProjectName,
     pub engine_version: semver::Version,
 }
 
@@ -323,7 +358,7 @@ impl Project {
         properties: Properties,
     ) -> FallibleResult<Self> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
-        info!("Creating a model of project {}", properties.name);
+        info!("Creating a model of project {}", properties.project_name);
         let binary_protocol_events = language_server_bin.event_stream();
         let json_rpc_events = language_server_rpc.events();
         let embedded_visualizations = default();
@@ -407,13 +442,15 @@ impl Project {
         let action = MissingComponentAction::Install;
         let opened = project_manager.open_project(&id, &action).await?;
         let namespace = opened.project_namespace;
-        let name = opened.project_name;
+        let displayed_name = opened.project_name;
+        let normalized_name = opened.project_normalized_name;
         let project_manager = Some(project_manager);
         let json_endpoint = opened.language_server_json_address.to_string();
         let binary_endpoint = opened.language_server_binary_address.to_string();
         let properties = Properties {
             id,
-            name: project::QualifiedName::new(namespace, name),
+            project_name: project::QualifiedName::new(namespace, normalized_name),
+            displayed_name,
             engine_version: semver::Version::parse(&opened.engine_version)?,
         };
         Self::new_connected(project_manager, json_endpoint, binary_endpoint, properties).await
@@ -501,10 +538,13 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
+        let properties = self.properties.clone_ref();
+        let execution_contexts = self.execution_contexts.clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
         let execution_update_handler = self.execution_update_handler();
+
         move |event| {
             debug!("Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
@@ -543,6 +583,16 @@ impl Project {
                         });
                     }
                 }
+                Event::Notification(Notification::TextFileModifiedOnDisk(modified)) => {
+                    if let Some(module_registry) = weak_module_registry.upgrade() {
+                        executor::global::spawn(async move {
+                            let status = reload_module_on_file_change(modified, module_registry);
+                            if let Err(err) = status.await {
+                                error!("Error while reloading module on file change: {err}");
+                            }
+                        });
+                    }
+                }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
                     let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
@@ -551,7 +601,7 @@ impl Project {
                 Event::Notification(Notification::ExecutionStatus(_)) => {}
                 Event::Notification(Notification::ExecutionComplete { context_id }) => {
                     execution_update_handler(context_id, ExecutionUpdate::Completed);
-                    publisher.notify(model::project::Notification::ExecutionFinished);
+                    publisher.notify(model::project::Notification::ExecutionComplete);
                 }
                 Event::Notification(Notification::ExpressionValuesComputed(_)) => {
                     // the notification is superseded by `ExpressionUpdates`.
@@ -561,6 +611,7 @@ impl Project {
                         "Execution failed in context {}. Error: {}.",
                         update.context_id, update.message
                     );
+                    publisher.notify(model::project::Notification::ExecutionFailed);
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) =>
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {
@@ -576,15 +627,22 @@ impl Project {
                         content_roots.remove(id);
                     }
                 }
-                Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
+                Event::Notification(Notification::VisualizationEvaluationFailed(update)) => {
                     error!(
-                        "Visualisation evaluation failed in context {} for visualisation {} of \
+                        "Visualization evaluation failed in context {} for visualization {} of \
                         expression {}. Error: {}",
                         update.context_id,
-                        update.visualisation_id,
+                        update.visualization_id,
                         update.expression_id,
                         update.message
                     );
+                }
+                Event::Notification(Notification::ProjectRenamed(project_renamed)) => {
+                    let properties = properties.clone_ref();
+                    let execution_contexts = execution_contexts.clone_ref();
+                    rename_project_on_notification(project_renamed, properties, execution_contexts);
+                    let notification = model::project::Notification::Renamed;
+                    publisher.notify(notification);
                 }
                 Event::Closed => {
                     error!("Lost JSON-RPC connection with the Language Server!");
@@ -650,11 +708,11 @@ impl Project {
 
 impl model::project::API for Project {
     fn name(&self) -> ImString {
-        self.properties.borrow().name.project.clone_ref()
+        self.properties.borrow().displayed_name.clone().into()
     }
 
     fn qualified_name(&self) -> project::QualifiedName {
-        self.properties.borrow().name.clone_ref()
+        self.properties.borrow().project_name.clone_ref()
     }
 
     fn json_rpc(&self) -> Rc<language_server::Connection> {
@@ -704,43 +762,18 @@ impl model::project::API for Project {
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
+        context_id: execution_context::Id,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
+            let context =
+                execution_context::Synchronized::create(ls_rpc, root_definition, context_id);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
             Ok(context)
         }
         .boxed_local()
-    }
-
-    fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
-        if self.read_only() {
-            std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
-        } else {
-            async move {
-                let old_name = self.properties.borrow_mut().name.project.clone_ref();
-                let referent_name = name.to_im_string();
-                let project_manager =
-                    self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
-                let project_id = self.properties.borrow().id;
-                let project_name = ProjectName::new_unchecked(name);
-                project_manager.rename_project(&project_id, &project_name).await.map_err(
-                    |error| match error {
-                        RpcError::RemoteError(cause)
-                            if cause.code == code::PROJECT_NAME_INVALID =>
-                            failure::Error::from(ProjectNameInvalid { cause: cause.message }),
-                        error => error.into(),
-                    },
-                )?;
-                self.properties.borrow_mut().name.project = referent_name.clone_ref();
-                self.execution_contexts.rename_project(old_name, referent_name);
-                Ok(())
-            }
-            .boxed_local()
-        }
     }
 
     fn project_content_root_id(&self) -> Uuid {
@@ -825,7 +858,8 @@ mod test {
             let project_manager = Rc::new(project_manager);
             let properties = Properties {
                 id:             Uuid::new_v4(),
-                name:           crate::test::mock::data::project_qualified_name(),
+                project_name:   crate::test::mock::data::project_qualified_name(),
+                displayed_name: ProjectName::new_unchecked("Test Project"),
                 engine_version: semver::Version::new(0, 2, 1),
             };
             let project_fut =
@@ -928,7 +962,8 @@ mod test {
         assert!(result1.is_err());
 
         // Create execution context.
-        let execution = project.create_execution_context(context_data.main_method_pointer());
+        let execution = project
+            .create_execution_context(context_data.main_method_pointer(), context_data.context_id);
         let execution = test.expect_completion(execution).unwrap();
 
         // Now context is in registry.

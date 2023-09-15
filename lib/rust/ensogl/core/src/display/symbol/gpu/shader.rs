@@ -15,7 +15,6 @@ use crate::system::gpu::shader::compiler as shader_compiler;
 use crate::system::gpu::shader::glsl;
 use crate::system::gpu::Context;
 
-use enso_shapely::shared;
 use web_sys::WebGlProgram;
 
 
@@ -54,28 +53,30 @@ impl VarBinding {
 
 pub type Dirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
-shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.
 #[derive(Debug)]
-pub struct ShaderData {
-    context             : Option<Context>,
-    geometry_material   : Material,
-    surface_material    : Material,
-    program             : Rc<RefCell<Option<shader::Program>>>,
-    shader_compiler_job : Option<shader_compiler::JobHandle>,
-    dirty               : Dirty,
-    stats               : Stats,
-    profiler            : Option<profiler::Debug>,
+pub struct Shader {
+    context:             Option<Context>,
+    geometry_material:   Material,
+    surface_material:    Material,
+    program:             Rc<RefCell<Option<shader::Program>>>,
+    shader_compiler_job: Option<shader_compiler::JobHandle>,
+    dirty:               Dirty,
+    stats:               Stats,
+    profiler:            Option<profiler::Debug>,
 }
 
-impl {
+impl Shader {
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     #[profile(Debug)]
-    pub fn set_context(&mut self, context:Option<&Context>) {
+    pub fn set_context(&mut self, context: Option<&Context>) {
         if context.is_some() {
             self.dirty.set();
             self.profiler.get_or_insert_with(new_profiler);
+        } else {
+            self.program.take();
+            self.shader_compiler_job.take();
         }
         self.context = context.cloned();
     }
@@ -89,21 +90,21 @@ impl {
     }
 
     #[profile(Detail)]
-    pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
+    pub fn set_geometry_material<M: Into<Material>>(&mut self, material: M) {
         self.geometry_material = material.into();
         self.dirty.set();
         self.profiler.get_or_insert_with(new_profiler);
     }
 
     #[profile(Detail)]
-    pub fn set_material<M:Into<Material>>(&mut self, material:M) {
+    pub fn set_material<M: Into<Material>>(&mut self, material: M) {
         self.surface_material = material.into();
         self.dirty.set();
         self.profiler.get_or_insert_with(new_profiler);
     }
 
     /// Creates new shader with attached callback.
-    pub fn new<OnMut:callback::NoArgs>(stats:&Stats, on_mut:OnMut) -> Self {
+    pub fn new<OnMut: callback::NoArgs>(stats: &Stats, on_mut: OnMut) -> Self {
         stats.inc_shader_count();
         let context = default();
         let geometry_material = default();
@@ -112,61 +113,74 @@ impl {
         let shader_compiler_job = default();
         let dirty = Dirty::new(Box::new(on_mut));
         let stats = stats.clone_ref();
-        let profiler = None;
+        let profiler = default();
         Self {
-            context, geometry_material, surface_material, program, shader_compiler_job, dirty,
-            stats, profiler
+            context,
+            geometry_material,
+            surface_material,
+            program,
+            shader_compiler_job,
+            dirty,
+            stats,
+            profiler,
         }
     }
 
     /// Get the shader code in GLSL 310 format. The shader parameters will not be bound to any
     /// particular mesh and thus this code can be used for optimization purposes only.
     pub fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
-        let bindings = self.collect_variables().map(|(name, decl)| {
-            let scope = if decl.tp.uniform_or_function_parameter_only() {
-                ScopeType::Global
-            } else {
-                ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance)
-            };
-            VarBinding::new(name, decl, Some(scope))
-        }).collect_vec();
+        let bindings = self
+            .collect_variables()
+            .map(|(name, decl)| {
+                let scope = if decl.tp.uniform_or_function_parameter_only() {
+                    ScopeType::Global
+                } else {
+                    ScopeType::Mesh(
+                        crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance,
+                    )
+                };
+                VarBinding::new(name, decl, Some(scope))
+            })
+            .collect_vec();
         self.gen_gpu_code(glsl::Version::V310, &bindings)
     }
 
     /// Generate the final GLSL code based on the provided bindings.
     pub fn gen_gpu_code(
-            &self,
-            glsl_version: glsl::Version,
-            bindings:&[VarBinding]
-        ) -> crate::system::gpu::shader::Code {
+        &self,
+        glsl_version: glsl::Version,
+        bindings: &[VarBinding],
+    ) -> crate::system::gpu::shader::Code {
         debug_span!("Generating GPU code.").in_scope(|| {
             let mut shader_cfg = builder::ShaderConfig::new(glsl_version);
             let mut shader_builder = builder::ShaderBuilder::new(glsl_version);
 
             for binding in bindings {
                 let name = &binding.name;
-                let tp   = &binding.decl.tp;
+                let tp = &binding.decl.tp;
                 match binding.scope {
                     None => {
-                        warn!("Default shader values are not implemented yet. \
-                               This will cause visual glitches.");
-                        shader_cfg.add_uniform(name,tp);
-                    },
-                    Some(scope_type) => match scope_type {
-                        ScopeType::Symbol => shader_cfg.add_uniform   (name,tp),
-                        ScopeType::Global => shader_cfg.add_uniform   (name,tp),
-                        _                 => shader_cfg.add_attribute (name,tp),
+                        warn!(
+                            "Default shader values are not implemented yet. \
+                               This will cause visual glitches."
+                        );
+                        shader_cfg.add_uniform(name, tp);
                     }
+                    Some(scope_type) => match scope_type {
+                        ScopeType::Symbol => shader_cfg.add_uniform(name, tp),
+                        ScopeType::Global => shader_cfg.add_uniform(name, tp),
+                        _ => shader_cfg.add_attribute(name, tp),
+                    },
                 }
             }
 
-            self.geometry_material.outputs().iter().for_each(|(name,decl)|{
-                shader_cfg.add_shared_attribute(name,&decl.tp);
+            self.geometry_material.outputs().iter().for_each(|(name, decl)| {
+                shader_cfg.add_shared_attribute(name, &decl.tp);
             });
 
             shader_cfg.add_output("color", glsl::PrimType::Vec4);
-            self.surface_material.outputs().iter().for_each(|(name,decl)|{
-                shader_cfg.add_output(name,&decl.tp);
+            self.surface_material.outputs().iter().for_each(|(name, decl)| {
+                shader_cfg.add_output(name, &decl.tp);
             });
 
             let vertex_code = self.geometry_material.code().clone();
@@ -177,46 +191,49 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>
-    (&mut self, bindings:Vec<VarBinding>, on_ready:F) {
-        debug_span!("Updating.").in_scope(|| {
-            if let Some(context) = &self.context {
-                if self.dirty.check_all() {
-                    self.stats.inc_shader_compile_count();
-                    let code = self.gen_gpu_code(glsl::Version::V300, &bindings);
-
-                    *self.program.borrow_mut() = None;
-                    let program = self.program.clone_ref();
-                    let profiler = self.profiler.take().unwrap_or_else(new_profiler);
-                    let handler = context.shader_compiler.submit(code, profiler, move |prog| {
-                        on_ready(&bindings, &prog);
-                        *program.borrow_mut() = Some(prog);
-                    });
-                    self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
-                    self.dirty.unset_all();
-                }
+    pub fn update<F: 'static + FnOnce(&[VarBinding], &shader::Program)>(
+        &mut self,
+        bindings: Vec<VarBinding>,
+        on_ready: F,
+    ) {
+        if let Some(context) = self.context.as_ref() {
+            if self.dirty.check_all() {
+                self.stats.inc_shader_compile_count();
+                let code = self.gen_gpu_code(glsl::Version::V300, &bindings);
+                *self.program.borrow_mut() = None;
+                let program = self.program.clone_ref();
+                let profiler = self.profiler.take().unwrap_or_else(new_profiler);
+                let handler = context.shader_compiler().submit(code, profiler, move |prog| {
+                    on_ready(&bindings, &prog);
+                    *program.borrow_mut() = Some(prog);
+                });
+                self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
+                self.dirty.unset_all();
             }
-        })
+        }
     }
 
-    fn cancel_previous_shader_compiler_job_and_use_new_one
-    (&mut self, handler: shader_compiler::JobHandle) {
+    fn cancel_previous_shader_compiler_job_and_use_new_one(
+        &mut self,
+        handler: shader_compiler::JobHandle,
+    ) {
         // Dropping the previous handler.
-        self.shader_compiler_job = Some(handler);
+        self.shader_compiler_job.replace(handler);
     }
 
     /// Traverses the shader definition and collects all attribute names.
-    pub fn collect_variables(&self) -> impl Iterator<Item=(String, VarDecl)> {
+    pub fn collect_variables(&self) -> impl Iterator<Item = (String, VarDecl)> {
         let geometry_inputs = self.geometry_material.inputs().iter();
         let surface_inputs = self.surface_material.inputs().iter();
-        geometry_inputs.chain(surface_inputs)
+        geometry_inputs
+            .chain(surface_inputs)
             .map(|(name, declaration)| (name.clone(), declaration.clone()))
             .collect_vec()
             .into_iter()
     }
-}}
+}
 
-impl Drop for ShaderData {
+impl Drop for Shader {
     fn drop(&mut self) {
         self.stats.dec_shader_count();
     }

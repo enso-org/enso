@@ -1,0 +1,234 @@
+/* Custom CSS rules used by the documentation panel. */
+
+/* Common parts. */
+
+:root {
+  --enso-docs-type-name-color: #9640da;
+  --enso-docs-module-name-color: #a239e2;
+  --enso-docs-methods-header-color: #1f71d3;
+  --enso-docs-method-name-color: #1f71d3;
+  --enso-docs-types-header-color: #1f71d3;
+  --enso-docs-examples-header-color: #6da85e;
+  --enso-docs-important-background-color: #edefe7;
+  --enso-docs-info-background-color: #e6f1f8;
+  --enso-docs-example-background-color: #e6f1f8;
+  --enso-docs-background-color: #eaeaea;
+  --enso-docs-text-color: #434343;
+  --enso-docs-tag-background-color: #dcd8d8;
+  --enso-docs-code-background-color: #dddcde;
+  --enso-docs-caption-background-color: #0077f6;
+}
+
+.enso-docs {
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
+  font-size: 11.5px;
+  color: var(--enso-docs-text-color);
+  background-color: var(--enso-docs-background-color);
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 4px;
+}
+
+.enso-docs code {
+  font-family: EnsoRegular;
+}
+
+.enso-docs .unordered-list {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  list-style-position: inside;
+}
+
+.enso-docs .unordered-list li:before {
+  content: "•";
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+.enso-docs .unordered-list li.type-item:before {
+  color: var(--enso-docs-type-name-color);
+}
+
+.enso-docs .unordered-list li.method-item:before {
+  color: var(--enso-docs-method-name-color);
+}
+
+.enso-docs .paragraph {
+  margin: 0;
+}
+
+.enso-docs .link {
+  cursor: pointer;
+}
+
+.enso-docs .link:hover {
+  text-decoration: underline;
+}
+
+.enso-docs .method {
+  color: var(--enso-docs-method-name-color);
+  font-weight: 600;
+}
+
+.enso-docs .constructor {
+  color: var(--enso-docs-type-name-color);
+  font-weight: 600;
+}
+
+.enso-docs .type {
+  color: var(--enso-docs-type-name-color);
+  font-weight: 600;
+}
+
+.enso-docs .entry-name {
+  opacity: 0.85;
+}
+
+.enso-docs .arguments {
+  opacity: 0.34;
+}
+
+.enso-docs .argument {
+  font-weight: 600;
+}
+
+.enso-docs .section-content {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Headers. */
+
+div.enso-docs .header-icon {
+  align-self: start;
+  display: flex;
+}
+
+.enso-docs .header-icon svg {
+  pointer-events: none;
+  width: 0.85em;
+  height: 0.85em;
+  margin: 0.1em 0.05em 0 0.05em;
+  fill: none;
+  align-self: flex-start;
+  padding-top: 0.25em;
+}
+
+.enso-docs .header-container {
+  padding-left: 8px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.enso-docs .header-text {
+  padding-left: 0.25em;
+}
+
+.enso-docs .section-header {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 1rem 0 0.25rem 0;
+}
+
+.enso-docs .methods-header {
+  color: var(--enso-docs-methods-header-color);
+}
+
+.enso-docs .types-header {
+  color: var(--enso-docs-types-header-color);
+}
+
+.enso-docs .examples-header {
+  color: var(--enso-docs-examples-header-color);
+}
+
+/* Marked sections, such as `Info` and `Important` sections. */
+
+.enso-docs .background-info {
+  background-color: var(--enso-docs-info-background-color);
+}
+
+.enso-docs .background-important {
+  background-color: var(--enso-docs-important-background-color);
+}
+
+.enso-docs .marked-container {
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.enso-docs .marked-header {
+  font-weight: 700;
+  font-size: 13px;
+  margin: 0;
+  display: flex;
+}
+
+div.enso-docs .marked-icon {
+  align-self: start;
+}
+
+div.enso-docs .marked-icon-important {
+  margin: 0 0 0 0;
+}
+
+div.enso-docs .marked-icon-info {
+  margin: 0 0.25em 0 0;
+}
+
+.enso-docs .marked-icon svg {
+  pointer-events: none;
+  width: 1em;
+  height: 1em;
+  margin: 0 0.05em 0 0.05em;
+  vertical-align: -0.1em;
+  fill: none;
+}
+
+/* Examples. */
+
+.enso-docs .example-container {
+  background-color: var(--enso-docs-example-background-color);
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.enso-docs .example {
+  font-family: EnsoRegular;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0.05rem 0.1rem;
+}
+
+/* Code. The words emphasized with backticks. */
+
+.enso-docs code {
+  background-color: var(--enso-docs-code-background-color);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+/* Tags */
+
+.enso-docs .tags-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.enso-docs .tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  background-color: var(--enso-docs-tag-background-color);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-bottom: 1px;
+  margin-right: 2px;
+}

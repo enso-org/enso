@@ -4,7 +4,8 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 
-## TEXT_ONLY
+## PRIVATE
+   ADVANCED
 
    Places a breakpoint in the program's execution, dropping the user into an
    interactive debugging REPL.

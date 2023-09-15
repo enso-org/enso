@@ -22,7 +22,7 @@ spec =
 
         Test.specify "Date with locale" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            expected_default = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
+            expected_default = Column.from_vector "values" ["21. June 2020", "25. April 2023"]
             expected_gb = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
             expected_fr = Column.from_vector "values" ["21. juin 2020", "25. avril 2023"]
             input.format "d. MMMM yyyy" . should_equal expected_default
@@ -86,7 +86,7 @@ spec =
 
         Test.specify "Date_Time with locale" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            expected_default = Column.from_vector "values" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
+            expected_default = Column.from_vector "values" ["21. June 2020 08.10.20", "25. April 2023 14.25.02"]
             expected_gb = Column.from_vector "values" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
             expected_fr = Column.from_vector "values" ["21. juin 2020 08.10.20", "25. avril 2023 14.25.02"]
             input.format "d. MMMM yyyy HH.mm.ss" . should_equal expected_default

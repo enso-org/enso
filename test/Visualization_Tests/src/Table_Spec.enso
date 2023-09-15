@@ -24,7 +24,7 @@ type Foo
 
 visualization_spec connection =
     in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
-    t = in_mem.create_database_table connection "T" primary_key=Nothing temporary=True
+    t = in_mem.select_into_database_table connection "T" primary_key=Nothing temporary=True
 
     make_json header data all_rows ixes_header ixes =
         p_header      = ["header", header]

@@ -752,9 +752,9 @@ class ScatterPlot extends Visualization {
         let darkBtnHoverColor = `rgba(255,255,255,0.5)`
         let darkSelectionFill = `#efefef`
 
-        addStyleToElem('.selection', 'rx: 4px;stroke: transparent;')
+        addStyleToElem('.vis-scatterplot .selection', 'rx: 4px;stroke: transparent;')
         addStyleToElem(
-            'button',
+            '.vis-scatterplot button',
             `
             margin-left: 5px;
             margin-bottom: 5px;
@@ -772,7 +772,7 @@ class ScatterPlot extends Visualization {
         `
         )
         addStyleToElem(
-            'button:hover',
+            '.vis-scatterplot button:hover',
             `
             background-color: ${buttonLightColor};
             color: ${darkSelectionFill};
@@ -780,22 +780,22 @@ class ScatterPlot extends Visualization {
         )
 
         addStyleToElem(
-            '.dark-theme button',
+            '.dark-theme .vis-scatterplot button',
             `
             border: 0;
             background-color: ${darkStrokeColor};
         `
         )
         addStyleToElem(
-            '.dark-theme button:hover',
+            '.dark-theme .vis-scatterplot button:hover',
             `
             background-color: ${darkBtnHoverColor};
         `
         )
-        addStyleToElem('.dark-theme .selection', `fill: ${darkSelectionFill}`)
-        addStyleToElem('.dark-theme line', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark-theme .domain', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark-theme text', `fill: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-scatterplot .selection', `fill: ${darkSelectionFill}`)
+        addStyleToElem('.dark-theme .vis-scatterplot line', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-scatterplot .domain', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-scatterplot text', `fill: ${darkStrokeColor};`)
 
         return divElem
     }

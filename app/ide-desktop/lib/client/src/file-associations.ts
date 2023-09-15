@@ -23,6 +23,13 @@ import * as project from './project-management'
 const logger = contentConfig.logger
 
 // =================
+// === Constants ===
+// =================
+
+/** Returned by {@link String.indexOf} when the substring was not found. */
+const NOT_FOUND = -1
+
+// =================
 // === Reexports ===
 // =================
 
@@ -69,8 +76,7 @@ function getClientArguments(): string[] {
         // Client arguments are separated from the electron dev mode arguments by a '--' argument.
         const separator = '--'
         const separatorIndex = process.argv.indexOf(separator)
-        const notFoundIndexPlaceholder = -1
-        if (separatorIndex === notFoundIndexPlaceholder) {
+        if (separatorIndex === NOT_FOUND) {
             // If there is no separator, client gets no arguments.
             return []
         } else {
@@ -101,7 +107,7 @@ export function isFileOpenable(path: string): boolean {
  * it receives the `open-file` event (and no new instance is created for us). In this case,
  * we manually start a new instance of the application and pass the file path to it (using the
  * Windows-style command). */
-export function onFileOpened(event: Event, path: string): string | null {
+export function onFileOpened(event: electron.Event, path: string): string | null {
     logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
         logger.log(`The file '${path}' is openable.`)

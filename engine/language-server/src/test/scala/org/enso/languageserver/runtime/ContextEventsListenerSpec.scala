@@ -66,7 +66,11 @@ class ContextEventsListenerSpec
               Vector(),
               false,
               true,
-              Api.ExpressionUpdate.Payload.Value()
+              Api.ExpressionUpdate.Payload.Value(
+                functionSchema = Some(
+                  Api.FunctionSchema(methodPointer, Vector(1))
+                )
+              )
             )
           )
         )
@@ -83,7 +87,17 @@ class ContextEventsListenerSpec
                   Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                  ContextRegistryProtocol.ExpressionUpdate.Payload
+                    .Value(
+                      None,
+                      Some(
+                        ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+                          .FunctionSchema(
+                            toProtocolMethodPointer(methodPointer),
+                            Vector(1)
+                          )
+                      )
+                    )
                 )
               )
             )
@@ -216,7 +230,8 @@ class ContextEventsListenerSpec
                 None,
                 Vector(),
                 false,
-                ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                ContextRegistryProtocol.ExpressionUpdate.Payload
+                  .Value(None, None)
               ),
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.local.externalId.get,
@@ -224,7 +239,8 @@ class ContextEventsListenerSpec
                 None,
                 Vector(),
                 false,
-                ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                ContextRegistryProtocol.ExpressionUpdate.Payload
+                  .Value(None, None)
               )
             )
           )
@@ -234,26 +250,26 @@ class ContextEventsListenerSpec
 
     "register oneshot visualization" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualisationContext(
+        val ctx = Api.VisualizationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
         )
 
-        listener ! RegisterOneshotVisualisation(
+        listener ! RegisterOneshotVisualization(
           ctx.contextId,
-          ctx.visualisationId,
+          ctx.visualizationId,
           ctx.expressionId
         )
 
         val data1 = Array[Byte](1, 2, 3)
-        listener ! Api.VisualisationUpdate(ctx, data1)
+        listener ! Api.VisualizationUpdate(ctx, data1)
         router.expectMsg(
           DeliverToBinaryController(
             clientId,
-            VisualisationUpdate(
-              VisualisationContext(
-                ctx.visualisationId,
+            VisualizationUpdate(
+              VisualizationContext(
+                ctx.visualizationId,
                 ctx.contextId,
                 ctx.expressionId
               ),
@@ -262,22 +278,22 @@ class ContextEventsListenerSpec
           )
         )
         registry.expectMsg(
-          DetachVisualisation(
+          DetachVisualization(
             clientId,
             ctx.contextId,
-            ctx.visualisationId,
+            ctx.visualizationId,
             ctx.expressionId
           )
         )
 
         val data2 = Array[Byte](2, 3, 4)
-        listener ! Api.VisualisationUpdate(ctx, data2)
+        listener ! Api.VisualizationUpdate(ctx, data2)
         router.expectMsg(
           DeliverToBinaryController(
             clientId,
-            VisualisationUpdate(
-              VisualisationContext(
-                ctx.visualisationId,
+            VisualizationUpdate(
+              VisualizationContext(
+                ctx.visualizationId,
                 ctx.contextId,
                 ctx.expressionId
               ),
@@ -290,20 +306,20 @@ class ContextEventsListenerSpec
 
     "send visualization updates" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualisationContext(
+        val ctx = Api.VisualizationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
         )
 
         val data1 = Array[Byte](1, 2, 3)
-        listener ! Api.VisualisationUpdate(ctx, data1)
+        listener ! Api.VisualizationUpdate(ctx, data1)
         router.expectMsg(
           DeliverToBinaryController(
             clientId,
-            VisualisationUpdate(
-              VisualisationContext(
-                ctx.visualisationId,
+            VisualizationUpdate(
+              VisualizationContext(
+                ctx.visualizationId,
                 ctx.contextId,
                 ctx.expressionId
               ),
@@ -314,13 +330,13 @@ class ContextEventsListenerSpec
         registry.expectNoMessage()
 
         val data2 = Array[Byte](2, 3, 4)
-        listener ! Api.VisualisationUpdate(ctx, data2)
+        listener ! Api.VisualizationUpdate(ctx, data2)
         router.expectMsg(
           DeliverToBinaryController(
             clientId,
-            VisualisationUpdate(
-              VisualisationContext(
-                ctx.visualisationId,
+            VisualizationUpdate(
+              VisualizationContext(
+                ctx.visualizationId,
                 ctx.contextId,
                 ctx.expressionId
               ),
@@ -393,14 +409,14 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send visualisation evaluation failed notification" taggedAs Retry in withEventsListener {
+    "send visualization evaluation failed notification" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, _, listener) =>
-        val message         = "Test visualisation evaluation failed"
-        val visualisationId = UUID.randomUUID()
+        val message         = "Test visualization evaluation failed"
+        val visualizationId = UUID.randomUUID()
         val expressionId    = UUID.randomUUID()
-        listener ! Api.VisualisationEvaluationFailed(
+        listener ! Api.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           None
@@ -409,9 +425,9 @@ class ContextEventsListenerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            VisualisationEvaluationFailed(
+            VisualizationEvaluationFailed(
               contextId,
-              visualisationId,
+              visualizationId,
               expressionId,
               message,
               None
@@ -430,7 +446,8 @@ class ContextEventsListenerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 

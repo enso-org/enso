@@ -5,7 +5,12 @@ use super::component::*;
 use crate::prelude::*;
 use enso_generics::*;
 
+use crate::data::mix::from_space;
+use crate::data::mix::into_space;
+use crate::data::mix::Mixable;
+
 use super::component::HasComponents;
+
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 
@@ -273,29 +278,30 @@ pub struct Alpha<C> {
 impl<C> HasComponentsRepr for Alpha<C>
 where
     C: HasComponentsRepr,
-    ComponentsReprOf<C>: PushBack<f32>,
+    ComponentsReprOf<C>: PushLastField<f32>,
 {
-    type ComponentsRepr = <ComponentsReprOf<C> as PushBack<f32>>::Output;
+    type ComponentsRepr = <ComponentsReprOf<C> as PushLastField<f32>>::Output;
 }
 
 impl<C> From<Alpha<C>> for ComponentsOf<Alpha<C>>
 where
     C: HasComponents,
-    ComponentsReprOf<C>: PushBack<f32>,
+    ComponentsReprOf<C>: PushLastField<f32>,
 {
     fn from(t: Alpha<C>) -> Self {
-        t.opaque.data.into().push_back(t.alpha)
+        t.opaque.data.into().push_last_field(t.alpha)
     }
 }
 
 impl<C> From<ComponentsOf<Alpha<C>>> for Alpha<C>
 where
     C: HasComponents,
-    ComponentsReprOf<C>: PushBack<f32>,
-    <ComponentsReprOf<C> as PushBack<f32>>::Output: PopBack<Last = f32, Init = ComponentsReprOf<C>>,
+    ComponentsReprOf<C>: PushLastField<f32>,
+    <ComponentsReprOf<C> as PushLastField<f32>>::Output:
+        PopLastField<LastField = f32, InitFields = ComponentsReprOf<C>>,
 {
     fn from(components: ComponentsOf<Self>) -> Self {
-        let (alpha, init) = components.pop_back();
+        let (alpha, init) = components.pop_last_field();
         let opaque = from_components(init);
         Self { alpha, opaque }
     }
@@ -342,5 +348,19 @@ impl<C> Alpha<C> {
     /// Modify the color's alpha channel.
     pub fn mod_alpha<F: FnOnce(&mut f32)>(&mut self, f: F) {
         f(&mut self.alpha)
+    }
+
+    /// Compute alpha overlay using alpha blending "over" operator. Assumes that both colors are
+    /// using straight alpha (not pre-multiplied).
+    ///
+    /// See: https://en.wikipedia.org/wiki/Alpha_compositing#Description
+    pub fn over(self, color_below: Color<Self>) -> Color<Self>
+    where Color<C>: Mixable + Copy {
+        let effective_b_alpha = color_below.alpha * (1.0 - self.alpha);
+        let alpha_out = self.alpha + effective_b_alpha;
+        let inv_alpha_out = 1.0 / alpha_out;
+        let a = into_space(self.opaque) * (self.alpha * inv_alpha_out);
+        let b = into_space(color_below.opaque) * (effective_b_alpha * inv_alpha_out);
+        Color(Alpha { alpha: alpha_out, opaque: from_space(a + b) })
     }
 }

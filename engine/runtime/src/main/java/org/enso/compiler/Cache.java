@@ -2,12 +2,6 @@ package org.enso.compiler;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import org.bouncycastle.jcajce.provider.digest.SHA1;
-import org.bouncycastle.util.encoders.Hex;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.logger.masking.MaskedPath;
-import org.enso.pkg.SourceFile;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -20,6 +14,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.bouncycastle.jcajce.provider.digest.SHA1;
+import org.bouncycastle.util.encoders.Hex;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.masking.MaskedPath;
+import org.enso.pkg.SourceFile;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while

@@ -42,17 +42,15 @@ use ensogl_text_msdf::run_once_initialized;
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
-    app:            Application,
     display_object: display::object::Instance,
     shape:          Rectangle,
     cover:          Rectangle,
 }
 
 impl Model {
-    fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
+    fn new() -> Self {
         let display_object = display::object::Instance::new();
         let shape: Rectangle = default();
         shape.set_size(Vector2(300.0, 300.0));
@@ -68,7 +66,7 @@ impl Model {
         cover.set_corner_radius_max();
         cover.set_pointer_events(false);
         display_object.add_child(&cover);
-        Self { app, display_object, shape, cover }
+        Self { display_object, shape, cover }
     }
 }
 
@@ -91,17 +89,19 @@ ensogl_core::define_endpoints! { [TRACE_ALL]
 // === View ===
 // ============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 struct View {
+    #[deref]
     frp:   Frp,
+    #[display_object]
     model: Model,
 }
 
 impl View {
     /// Constructor.
-    pub fn new(app: &Application) -> Self {
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
+        let model = Model::new();
         let network = &frp.network;
         frp::extend! { network
             trace model.shape.events_deprecated.mouse_up;
@@ -116,19 +116,6 @@ impl View {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
 impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
@@ -139,11 +126,9 @@ impl application::View for View {
     fn label() -> &'static str {
         "Circul"
     }
-    fn new(app: &Application) -> Self {
-        View::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.model.app
+
+    fn new(_app: &Application) -> Self {
+        View::new()
     }
 }
 

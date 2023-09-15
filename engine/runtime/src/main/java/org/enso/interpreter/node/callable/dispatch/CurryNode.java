@@ -133,7 +133,7 @@ public class CurryNode extends BaseNode {
           return value;
         }
       } else {
-        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
+        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal, frame, state, oversaturatedArguments);
@@ -154,7 +154,7 @@ public class CurryNode extends BaseNode {
     return switch (getTailStatus()) {
       case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
       case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
-      default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
+      default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
     };
   }
 }

@@ -14,6 +14,8 @@ polyglot java import java.time.format.DateTimeFormatter
 spec =
     spec_with "Date" Date.new Date.parse
     spec_with "JavaScriptDate" js_date js_parse
+    if Polyglot.is_language_installed "python" then
+        spec_with "PythonDate" python_date python_parse
     spec_with "JavaDate" java_date java_parse
     spec_with "JavaScriptArrayWithADate" js_array_date js_parse
 
@@ -37,10 +39,15 @@ spec_with name create_new_date parse_date =
             text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
+        Test.specify "should format local date using provided pattern and US locale" <|
+            d = create_new_date 2020 6 21
+            d.format "d. MMM yyyy" . should_equal "21. Jun 2020"
+            d.format "d. MMMM yyyy" . should_equal "21. June 2020"
+
         Test.specify "should format local date using provided pattern and locale" <|
             d = create_new_date 2020 6 21
             d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020
+            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020"
 
         Test.specify "should format local date using default pattern" <|
             text = create_new_date 2020 12 21 . to_text
@@ -72,6 +79,18 @@ spec_with name create_new_date parse_date =
             date . month . should_equal 1
             date . day . should_equal 1
 
+        Test.specify "should parse text month formats" <|
+            date = parse_date "1999 Jan 1" "yyyy MMM d"
+            date . year . should_equal 1999
+            date . month . should_equal 1
+            date . day . should_equal 1
+
+        Test.specify "should parse text long month formats" <|
+            date = parse_date "1999 January 1" "yyyy MMMM d"
+            date . year . should_equal 1999
+            date . month . should_equal 1
+            date . day . should_equal 1
+
         Test.specify "should throw error when parsing custom format" <|
             date = parse_date "1999-01-01" "yyyy M d"
             case date.catch of
@@ -90,6 +109,13 @@ spec_with name create_new_date parse_date =
             time . second . should_equal 45
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        Test.specify "date-time conversion should work with interop values" <|
+            date = create_new_date 2000 12 21
+            time = Time_Of_Day.new 12 30 45
+            datetime = time.to_date_time date
+            datetime.date . should_equal date
+            datetime.time_of_day . should_equal time
 
         Test.specify "should convert to Json" <|
             date = create_new_date 2001 12 21
@@ -115,18 +141,33 @@ spec_with name create_new_date parse_date =
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based Duration" <|
-            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 + (Duration.new hours=1)
 
         Test.specify "should throw error when subtracting time-based Duration" <|
-            case (create_new_date 1970 - (Duration.new minutes=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 - (Duration.new minutes=1)
+
+        Test.specify "should support addition of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Year . should_equal <| create_new_date 1971
+            time+Date_Period.Quarter . should_equal <| create_new_date 1970 4
+            time+Date_Period.Month . should_equal <| create_new_date 1970 2
+            time+Date_Period.Week . should_equal <| create_new_date 1970 1 8
+            time+Date_Period.Day . should_equal <| create_new_date 1970 1 2
+
+        Test.specify "should support subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time-Date_Period.Year . should_equal <| create_new_date 1969
+            time-Date_Period.Quarter . should_equal <| create_new_date 1969 10
+            time-Date_Period.Month . should_equal <| create_new_date 1969 12
+            time-Date_Period.Week . should_equal <| create_new_date 1969 12 25
+            time-Date_Period.Day . should_equal <| create_new_date 1969 12 31
+
+        Test.specify "should support mixed addition and subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_date 1970 3 1
+            time-Date_Period.Month+Date_Period.Year . should_equal <| create_new_date 1970 12 1
 
         Test.specify "should be comparable" <|
             date_1 = parse_date "2021-01-02"
@@ -450,6 +491,63 @@ spec_with name create_new_date parse_date =
                     (date.add_work_days -n).work_days_until date . should_equal n
                     (date.add_work_days -n holidays).work_days_until date holidays . should_equal n
 
+        Test.specify "should allow extracting a date_part" <|
+            d1 = create_new_date 2023 12 30
+            d1.date_part Date_Period.Year . should_equal 2023
+            d1.date_part Date_Period.Quarter . should_equal 4
+            d1.date_part Date_Period.Month . should_equal 12
+            d1.date_part Date_Period.Week . should_equal 52
+            d1.date_part Date_Period.Day . should_equal 30
+
+            Test.expect_panic_with (d1.date_part Time_Period.Day) Type_Error
+
+        Test.specify "should allow computing date_diff" <|
+            d1 = create_new_date 2021 11 3
+            d2 = create_new_date 2021 12 5
+
+            d1.date_diff d2 Date_Period.Day . should_equal 32
+            d2.date_diff d1 Date_Period.Day . should_equal -32
+            d1.date_diff (Date.new 2021 11 3) Date_Period.Day . should_equal 0
+
+            d1.date_diff d2 Date_Period.Month . should_equal 1
+            d1.date_diff (Date.new 2021 12 1) Date_Period.Month . should_equal 0
+            d1.date_diff (Date.new 2020 12 1) Date_Period.Month . should_equal -11
+
+            d1.date_diff d2 Date_Period.Quarter . should_equal 0
+            d1.date_diff (Date.new 2021 5 1) Date_Period.Quarter . should_equal -2
+            d1.date_diff (Date.new 2023 7 1) Date_Period.Quarter . should_equal 6
+
+            d1.date_diff d2 Date_Period.Year . should_equal 0
+            d1.date_diff (Date.new 2021 12 1) Date_Period.Year . should_equal 0
+            d1.date_diff (Date.new 2020 10 1) Date_Period.Year . should_equal -1
+
+            # Ensure months of varying length (e.g. February) are still counted right.
+            d3 = create_new_date 2021 01 02
+            d3.date_diff (Date.new 2021 03 02) Date_Period.Day . should_equal 59
+            d3.date_diff (Date.new 2021 03 02) Date_Period.Month . should_equal 2
+            d3.date_diff (Date.new 2021 03 01) Date_Period.Day . should_equal 58
+            d3.date_diff (Date.new 2021 03 01) Date_Period.Month . should_equal 1
+
+            Test.expect_panic_with (d1.date_diff d2 Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_diff d2 Time_Period.Hour) Type_Error
+
+        Test.specify "should allow shifting with date_add" <|
+            d1 = create_new_date 2021 01 31
+            d1.date_add 5 Date_Period.Day . should_equal (Date.new 2021 02 05)
+            d1.date_add -1 Date_Period.Day . should_equal (Date.new 2021 01 30)
+            d1.date_add 1 Date_Period.Month . should_equal (Date.new 2021 02 28)
+            d1.date_add 2 Date_Period.Month . should_equal (Date.new 2021 03 31)
+            d1.date_add 3 Date_Period.Year . should_equal (Date.new 2024 01 31)
+            d1.date_add -1 Date_Period.Year . should_equal (Date.new 2020 01 31)
+
+            d1.date_add 1 Date_Period.Week . should_equal (Date.new 2021 02 07)
+            d1.date_add 2 Date_Period.Quarter . should_equal (Date.new 2021 07 31)
+
+            Test.expect_panic_with (d1.date_add 1 Time_Period.Hour) Type_Error
+            Test.expect_panic_with (d1.date_add 1 Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_add 1.0 Date_Period.Day) Type_Error
+
     Date_Part_Spec.spec name create_new_date
 
 
@@ -457,7 +555,7 @@ main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 
-js_parse text format=Nothing =
+js_parse text format="" =
     d = Date.parse text format
     js_date d.year d.month d.day
 
@@ -479,11 +577,26 @@ js_array_date year month=1 day=1 =
 java_parse date_text pattern=Nothing =
     Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
-            formatter = DateTimeFormatter.ofPattern pattern
+            java_locale = Locale.us.java_locale
+            formatter = DateTimeFormatter.ofPattern pattern java_locale
             LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =
     Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
+
+python_date year month=1 day=1 =
+    Panic.catch Any (python_date_impl year month day) err->
+        msg = if err.payload.to_text.contains "month must be in" . not then err.payload else
+            "Invalid value for MonthOfYear (valid values 1 - 12): " + month.to_text
+        Error.throw <| Time_Error.Error msg
+
+python_parse text format="" =
+    d = Date.parse text format
+    python_date d.year d.month d.day
+
+foreign python python_date_impl year month day = """
+    import datetime
+    return datetime.date(year, month, day)
 
 foreign js js_date_impl year month=1 day=1 = """
     if (month > 12) {
