@@ -69,8 +69,7 @@ async function importVue(path: string) {
 async function rewriteImports(code: string, dir: string, id: string | undefined) {
   const ast = babelParse(code, { sourceType: 'module' })
   const s = new MagicString(code)
-  for (let i = 0; i < ast.program.body.length; ) {
-    const stmt = ast.program.body[i]
+  for (const stmt of ast.program.body) {
     switch (stmt.type) {
       case 'ImportDeclaration': {
         let path = stmt.source.extra!.rawValue as string
@@ -114,16 +113,15 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         break
       }
       case 'ExportDefaultDeclaration': {
-        if (id != null && stmt.declaration?.callee?.name === '_defineComponent') {
-          const firstProp = stmt.declaration?.arguments?.[0]?.properties?.[0]
-          if (firstProp != null) {
+        if (id != null && (stmt.declaration as any)?.callee?.name === '_defineComponent') {
+          const firstProp = (stmt.declaration as any)?.arguments?.[0]?.properties?.[0]
+          if (firstProp?.start != null) {
             s.appendLeft(firstProp.start, `__scopeId: ${JSON.stringify(`data-v-${id}`)}, `)
           }
         }
         break
       }
     }
-    i += 1
   }
   return s.toString()
 }

@@ -6,7 +6,8 @@ import * as vueUseCore from '@vueuse/core'
 import { defineStore } from 'pinia'
 
 const moduleCache: Record<string, any> = { vue, '@vueuse/core': vueUseCore }
-// @ts-expect-error
+// @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
+// else.
 window.__visualizationModules = moduleCache
 
 type VisualizationModule =

@@ -85,10 +85,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#app *:focus {
-  outline: none !important;
-}
-
 .icon {
   width: 16px;
   height: 16px;
@@ -96,10 +92,6 @@ body {
 
 .button {
   cursor: pointer;
-}
-
-:focus {
-  outline: none;
 }
 
 .hidden {

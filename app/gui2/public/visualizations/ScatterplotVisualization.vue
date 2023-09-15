@@ -1,7 +1,9 @@
 <script lang="ts">
-/// <reference types="d3" />
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+
+// eslint-disable-next-line no-redeclare
+declare const d3: typeof import('d3')
 
 /**
  * A d3.js Scatterplot visualization.
@@ -75,9 +77,6 @@ interface Color {
   green: number
   blue: number
 }
-
-// eslint-disable-next-line no-redeclare
-declare const d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
