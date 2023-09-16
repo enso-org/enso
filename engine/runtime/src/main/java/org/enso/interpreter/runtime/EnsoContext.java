@@ -1,17 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
-import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
@@ -26,7 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
-import java.util.stream.StreamSupport;
+
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.PackageRepositoryUtils;
@@ -66,6 +54,7 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.source.Source;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -405,14 +394,6 @@ public class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
-    var isHosted = "hosted".equals(System.getenv("ENSO_JAVA"));
-    Object java;
-    if (!isHosted) {
-      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
-      java = environment.parsePublic(src).call();
-    } else {
-      java = null;
-    }
     List<String> items = Arrays.asList(className.split("\\."));
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
@@ -421,10 +402,10 @@ public class EnsoContext {
           i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
       try {
         Object hostSymbol;
-        if (isHosted) {
+        if (findGuestJava() == null) {
           hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
         } else {
-          hostSymbol = InteropLibrary.getUncached().readMember(java, pkgName + "." + curClassName);
+          hostSymbol = InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
         }
         if (nestedClassPart.isEmpty()) {
           return hostSymbol;
@@ -436,6 +417,34 @@ public class EnsoContext {
       }
     }
     return null;
+  }
+
+  private Object guestJava = this;
+
+  @TruffleBoundary
+  private Object findGuestJava() throws IllegalStateException {
+    if (guestJava != this) {
+      return guestJava;
+    }
+    guestJava = null;
+    var envJava = System.getenv("ENSO_JAVA");
+    if ("espresso".equals(envJava)) {
+      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
+      try {
+        guestJava = environment.parsePublic(src).call();
+      } catch (Exception ex) {
+        if (ex.getMessage().contains("No language for id java found.")) {
+          logger.log(Level.SEVERE, "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
+          logger.log(Level.SEVERE, "Use " + System.getProperty("java.home") + "/bin/gu install espresso");
+          logger.log(Level.SEVERE, "Continuing in regular Java mode");
+        } else {
+          var ise = new IllegalStateException(ex.getMessage());
+          ise.setStackTrace(ex.getStackTrace());
+          throw ise;
+        }
+      }
+    }
+    return guestJava;
   }
 
   /**
