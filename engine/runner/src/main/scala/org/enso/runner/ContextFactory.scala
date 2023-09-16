@@ -64,8 +64,10 @@ class ContextFactory {
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .allowHostAccess(new HostAccessFactory()
-      .allWithTypeMapping())
+      .allowHostAccess(
+        new HostAccessFactory()
+          .allWithTypeMapping()
+      )
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")

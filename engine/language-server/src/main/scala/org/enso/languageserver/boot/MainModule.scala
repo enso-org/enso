@@ -320,7 +320,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-  if (Engine.newBuilder().allowExperimentalOptions(true).build.getLanguages().containsKey("java")) {
+  if (
+    Engine
+      .newBuilder()
+      .allowExperimentalOptions(true)
+      .build
+      .getLanguages()
+      .containsKey("java")
+  ) {
     builder
       .option("java.ExposeNativeJavaVM", "true")
       .option("java.Polyglot", "true")
