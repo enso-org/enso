@@ -187,7 +187,7 @@ type Date
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
                  date.catch Time_Error (_->Date.new 2000 1 1)
-    @pattern make_date_format_selector
+    @format make_date_format_selector
     parse : Text -> Date_Time_Formatter -> Date ! Time_Error
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.parse_date text
@@ -786,7 +786,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr"))
-    @pattern (value-> make_date_format_selector value)
+    @format (value-> make_date_format_selector value)
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.format_date self

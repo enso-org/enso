@@ -1,7 +1,11 @@
 import project.Data.Locale.Locale
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Error.Error
 import project.Errors.Time_Error.Time_Error
+import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
@@ -11,6 +15,7 @@ import project.Internal.Time.Format.As_Java_Formatter_Interpreter
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
 polyglot java import org.enso.base.time.FormatterKind
 
@@ -162,14 +167,13 @@ type Date_Time_Formatter
 
        See the Java documentation for explanation of the pattern format:
        https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
-    from_java (pattern:Text|DateTimeFormatter) =
-        java_formatter = case pattern of
-            java_formatter : DateTimeFormatter ->
-                Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter False Nothing FormatterKind.RAW_JAVA)
-            _ : Text ->
-                # TODO setting Locale too!
-                java_formatter = DateTimeFormatter.ofPattern pattern
-                Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter False pattern FormatterKind.RAW_JAVA)
+    from_java (pattern:Text|DateTimeFormatter) = case pattern of
+        java_formatter : DateTimeFormatter ->
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter False Nothing FormatterKind.RAW_JAVA)
+        _ : Text ->
+            # TODO setting Locale too!
+            java_formatter = DateTimeFormatter.ofPattern pattern
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter False pattern FormatterKind.RAW_JAVA)
 
     # TODO Locale for constants??
 
@@ -207,13 +211,13 @@ type Date_Time_Formatter
 
        For example, it may parse date of the form `2011-12-03`.
     iso_date =
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new DateTimeFormatter.ISO_DATE True "iso_date" FormatterKind.CONSTANT)
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new DateTimeFormatter.ISO_DATE False "iso_date" FormatterKind.CONSTANT)
 
     ## The ISO 8601 format for time.
 
        For example, it may parse time of the form `10:15:30`.
     iso_time =
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new DateTimeFormatter.ISO_TIME True "iso_time" FormatterKind.CONSTANT)
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new DateTimeFormatter.ISO_TIME False "iso_time" FormatterKind.CONSTANT)
 
     ## Returns a text representation of this formatter.
     to_text : Text
@@ -258,7 +262,7 @@ type Date_Time_Formatter
         self.underlying.formatZonedDateTime date_time
 
     ## PRIVATE
-    format_time self (time:Time) = self.handle_java_errors <|
+    format_time self (time:Time_Of_Day) = self.handle_java_errors <|
         self.underlying.formatLocalTime time
 
 ## PRIVATE

@@ -185,7 +185,7 @@ type Date_Time_Format_Pattern
         Date_Time_Format_Pattern.ISO_Week_Date pattern locale ->
             Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern |> As_Java_Formatter_Interpreter.interpret locale
         Date_Time_Format_Pattern.Default_Enso_Zoned_Date_Time ->
-            Time_Utils.default_date_time_formatter
+            0 #Time_Utils.default_date_time_formatter
         Date_Time_Format_Pattern.ISO_Zoned_Date_Time ->
             DateTimeFormatter.ISO_ZONED_DATE_TIME
         Date_Time_Format_Pattern.Java pattern -> case pattern of
