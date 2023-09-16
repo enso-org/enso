@@ -1,5 +1,7 @@
+import project.Data.Locale.Locale
 import project.Data.Text.Text
-import project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Pattern
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 
 ## PRIVATE
-Date_Time_Format_Pattern.from (that:Text) = Date_Time_Format_Pattern.Simple that
+Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
+    Date_Time_Formatter.from_simple_pattern that locale

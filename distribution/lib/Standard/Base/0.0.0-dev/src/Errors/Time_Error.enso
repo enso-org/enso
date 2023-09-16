@@ -8,7 +8,8 @@ type Time_Error
 
        Arguments:
        - error_message: The message for the error.
-    Error error_message
+       - cause: An optional exception that caused this error (usually a Java Exception).
+    Error error_message cause=Nothing
 
     ## PRIVATE
     epoch_start : Time_Error

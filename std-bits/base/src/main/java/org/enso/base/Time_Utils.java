@@ -2,6 +2,8 @@ package org.enso.base;
 
 import org.enso.base.time.Date_Time_Utils;
 import org.enso.base.time.Date_Utils;
+import org.enso.base.time.EnsoDateTimeFormatter;
+import org.enso.base.time.FormatterKind;
 import org.enso.base.time.TimeUtilsBase;
 import org.enso.base.time.Time_Of_Day_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
@@ -53,8 +55,8 @@ public class Time_Utils {
   }
 
   /**
-   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
-   * For Enso format, return the default output formatter.
+   * Creates a DateTimeFormatter from a format string, supporting building standard formats. For Enso format, return the
+   * default output formatter.
    *
    * @param format format string
    * @param locale locale needed for custom formats
@@ -82,8 +84,13 @@ public class Time_Utils {
   /**
    * @return default DateTimeFormatter for parsing a Date_Time.
    */
-  public static DateTimeFormatter default_date_time_formatter() {
-    return Core_Date_Utils.defaultZonedDateTimeFormatter();
+  public static EnsoDateTimeFormatter default_date_time_formatter() {
+    return new EnsoDateTimeFormatter(
+        Core_Date_Utils.defaultZonedDateTimeFormatter(),
+        true,
+        "default_enso_zoned_date_time",
+        FormatterKind.CONSTANT
+    );
   }
 
   /**
@@ -223,13 +230,13 @@ public class Time_Utils {
    * @param formatter the formatter to use.
    * @return parsed LocalTime instance.
    */
-  public static LocalTime parse_time_of_day(String text,DateTimeFormatter formatter) {
+  public static LocalTime parse_time_of_day(String text, DateTimeFormatter formatter) {
     return LocalTime.parse(text, formatter);
   }
 
   /**
-   * Normally this method could be done in Enso by pattern matching, but currently matching on Time
-   * types is not supported, so this is a workaround.
+   * Normally this method could be done in Enso by pattern matching, but currently matching on Time types is not
+   * supported, so this is a workaround.
    *
    * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
    * in Enso; <a href="https://github.com/enso-org/enso/issues/4597">Pivotal issue.</a>
