@@ -123,6 +123,7 @@ class ContextFactory {
         .option("java.Polyglot", "true")
         .option("java.UseBindingsLoader", "true")
         .option("java.JavaHome", javaHome)
+        .allowCreateThread(true)
     }
     new PolyglotContext(builder.build)
   }

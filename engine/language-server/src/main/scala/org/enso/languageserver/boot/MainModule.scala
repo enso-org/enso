@@ -332,6 +332,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .option("java.ExposeNativeJavaVM", "true")
       .option("java.Polyglot", "true")
       .option("java.UseBindingsLoader", "true")
+      .allowCreateThread(true)
   }
 
   val context = builder.build()
