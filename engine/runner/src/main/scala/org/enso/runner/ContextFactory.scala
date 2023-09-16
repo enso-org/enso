@@ -110,7 +110,14 @@ class ContextFactory {
     if (graalpy.exists()) {
       builder.option("python.Executable", graalpy.getAbsolutePath());
     }
-    if (Engine.create().getLanguages().containsKey("java")) {
+    if (
+      Engine
+        .newBuilder()
+        .allowExperimentalOptions(true)
+        .build()
+        .getLanguages()
+        .containsKey("java")
+    ) {
       builder
         .option("java.ExposeNativeJavaVM", "true")
         .option("java.Polyglot", "true")
