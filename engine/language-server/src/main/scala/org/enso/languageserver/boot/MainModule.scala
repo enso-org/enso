@@ -50,6 +50,7 @@ import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
@@ -286,14 +287,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  val context = Context
+  val builder = Context
     .newBuilder()
     .allowAllAccess(true)
     .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
     .allowExperimentalOptions(true)
-    .option("java.ExposeNativeJavaVM", "true")
-    .option("java.Polyglot", "true")
-    .option("java.UseBindingsLoader", "true")
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.INTERACTIVE_MODE, "true")
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
@@ -322,7 +320,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-    .build()
+  if (Engine.newBuilder().allowExperimentalOptions(true).build.getLanguages().containsKey("java")) {
+    builder
+      .option("java.ExposeNativeJavaVM", "true")
+      .option("java.Polyglot", "true")
+      .option("java.UseBindingsLoader", "true")
+  }
+
+  val context = builder.build()
   log.trace("Created Runtime context [{}].", context)
 
   system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
