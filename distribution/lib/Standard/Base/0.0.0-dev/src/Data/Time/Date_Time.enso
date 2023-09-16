@@ -7,6 +7,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
@@ -24,6 +25,7 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Data.Time.Conversions import all
 from project.Widget_Helpers import make_date_time_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -158,14 +160,10 @@ type Date_Time
 
        Arguments:
        - text: The text representing the time to be parsed.
-       - pattern: The pattern to use for parsing the input text.
-       - locale: The locale in which the pattern should be interpreted.
+       - pattern: TODO
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         TODO
 
        ? Default Date_Time Format
          The text must represent a valid date-time as defined by the ISO-8601
@@ -234,20 +232,10 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-    @pattern make_date_time_format_selector
-    @locale Locale.default_widget
-    parse : Text -> Text -> Locale -> Date_Time ! Time_Error
-    parse text:Text pattern:Text="" locale:Locale=Locale.default =
-        result = Panic.recover Any <|
-            formatter = if pattern.is_empty then Time_Utils.default_date_time_formatter else
-                Time_Utils.make_formatter pattern locale.java_locale
-
-            needs_normalised = if pattern.is_empty then True else Time_Utils.is_iso_datetime_based pattern
-            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text.trim else text.trim
-            Time_Utils.parse_date_time normalised formatter
-        result . map_error <| case _ of
-            err : JException -> Time_Error.Error err.getMessage
-            ex -> ex
+    @format make_date_time_format_selector
+    parse : Text -> Date_Time_Formatter -> Date_Time ! Time_Error
+    parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
+        format.parse_date_time text
 
     ## GROUP Metadata
        Get the year portion of the time.
@@ -781,10 +769,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern (value-> make_date_time_format_selector value)
-    @locale Locale.default_widget
-    format : Text -> Locale -> Text
-    format self pattern:Text locale:Locale=Locale.default =
-        formatter = if pattern.is_empty then Time_Utils.default_output_date_time_formatter else
-            Time_Utils.make_formatter pattern locale.java_locale
-        Time_Utils.date_time_format self formatter
+    @format (value-> make_date_time_format_selector value)
+    format : Date_Time_Formatter -> Text
+    format self format:Date_Time_Formatter =
+        format.format_date_time self
