@@ -1696,16 +1696,31 @@ lazy val `engine-runner` = project
         staticOnLinux = false,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-Dorg.graalvm.launcher.home=" + System.getProperty("java.home"),
           "-H:IncludeResources=.*Main.enso$",
           "--macro:truffle",
           "--language:js",
-          "--language:java",
-          "-g",
+          // "-g",
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
           "-Dnic=nic"
-        ),
+        ) ++ (if (
+                org.graalvm.polyglot.Engine
+                  .create()
+                  .getLanguages()
+                  .containsKey("java")
+              ) {
+                System.out.println(
+                  "Building engine `runner` image with experimental Espresso support!"
+                )
+                Seq(
+                  "-Dorg.graalvm.launcher.home=" + System.getProperty(
+                    "java.home"
+                  ),
+                  "--language:java"
+                )
+              } else {
+                Seq()
+              }),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
