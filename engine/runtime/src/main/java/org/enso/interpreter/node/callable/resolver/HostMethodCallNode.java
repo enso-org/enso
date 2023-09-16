@@ -269,8 +269,10 @@ public abstract class HostMethodCallNode extends Node {
     try {
       return hostValueToEnsoNode.execute(instances.instantiate(self, args));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(
-          "Impossible to reach here. The member is checked to be instantiable.");
+      CompilerDirectives.transferToInterpreter();
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeNotInvokable(self);
+      throw new PanicException(err, e, this);
     } catch (ArityException e) {
       throw new PanicException(
           EnsoContext.get(this)
