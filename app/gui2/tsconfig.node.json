@@ -5,6 +5,7 @@
     "composite": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "target": "ESNext",
     "types": ["node"]
   }
 }

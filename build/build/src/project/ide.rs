@@ -4,12 +4,13 @@ use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
 use crate::project::Context;
 use crate::project::Gui;
+use crate::project::IsArtifact;
 use crate::source::WatchTargetJob;
 
+use crate::paths::generated::RepoRoot;
 use ide_ci::actions::artifacts::upload_compressed_directory;
 use ide_ci::actions::artifacts::upload_single_file;
 use ide_ci::actions::workflow::is_in_env;
-
 
 
 #[derive(Clone, Debug)]
@@ -25,7 +26,7 @@ pub struct Artifact {
 }
 
 impl Artifact {
-    fn new(
+    pub fn new(
         target_os: OS,
         target_arch: Arch,
         version: &Version,
@@ -89,15 +90,34 @@ impl Artifact {
     }
 }
 
+pub trait IsGuiArtifact: IsArtifact + Debug {
+    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result;
+}
+
+impl IsGuiArtifact for crate::project::gui::Artifact {
+    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result {
+        self.symlink_ensogl_dist(&repo_root.target.ensogl_pack.linked_dist)
+    }
+}
+impl IsGuiArtifact for crate::project::gui2::Artifact {
+    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result {
+        let old_gui = crate::project::gui::Artifact::new(&repo_root.dist.gui);
+        // Old gui dir must exist
+        ensure!(old_gui.exists(), "Old GUI distribution does not exist at {}.", old_gui.display());
+        IsGuiArtifact::symlink_ensogl_dist(&old_gui, repo_root)
+    }
+}
+
+
 #[derive(derivative::Derivative)]
 #[derivative(Debug)]
-pub struct BuildInput {
+pub struct BuildInput<GuiArtifact> {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:         Version,
     #[derivative(Debug = "ignore")]
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derivative(Debug = "ignore")]
-    pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
+    pub gui:             BoxFuture<'static, Result<GuiArtifact>>,
     pub electron_target: Option<String>,
 }
 
@@ -114,20 +134,20 @@ impl Default for Ide {
 }
 
 impl Ide {
-    pub fn build(
+    pub fn build<GuiArtifact: IsGuiArtifact>(
         &self,
         context: &Context,
-        input: BuildInput,
+        input: BuildInput<GuiArtifact>,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
         let BuildInput { version, project_manager, gui, electron_target } = input;
-        let linked_dist = context.repo_root.target.ensogl_pack.linked_dist.clone();
+        let repo_root = context.repo_root.clone();
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
             let (gui, project_manager) = try_join!(gui, project_manager)?;
-            gui.symlink_ensogl_dist(&linked_dist)?;
+            gui.symlink_ensogl_dist(&repo_root)?;
             ide_desktop
                 .dist(&gui, &project_manager, &output_path, target_os, electron_target)
                 .await?;

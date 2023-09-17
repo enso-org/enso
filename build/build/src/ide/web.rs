@@ -7,6 +7,7 @@ use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
+use crate::project::ide::IsGuiArtifact;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
@@ -364,7 +365,7 @@ impl IdeDesktop {
         err))]
     pub async fn dist(
         &self,
-        gui: &crate::project::gui::Artifact,
+        gui: &impl IsGuiArtifact,
         project_manager: &crate::project::backend::Artifact,
         output_path: impl AsRef<Path>,
         target_os: OS,
@@ -382,7 +383,7 @@ impl IdeDesktop {
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
         let client_build = self
             .npm()?
-            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
@@ -413,7 +414,7 @@ impl IdeDesktop {
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
-            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?

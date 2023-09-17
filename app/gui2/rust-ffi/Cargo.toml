@@ -8,18 +8,16 @@ authors = ["Enso Team <contact@enso.org>"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.84", features = [] }
 enso-parser = { path = "../../../lib/rust/parser" }
-serde_json = "1.0"
+serde_json = { workspace = true }
+wasm-bindgen = { workspace = true }
 
-[workspace]
-
-[profile.release]
-debug = false
-strip = true
-lto = true
-codegen-units = 1
-opt-level = "z"
+#[profile.release]
+#debug = false
+#strip = true
+#lto = true
+#codegen-units = 1
+#opt-level = "z"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ['-Os']
