@@ -24,7 +24,9 @@ type Bad_To_Json
     to_json self = Error.throw (Illegal_Argument.Error "test")
 
 spec =
-    # Set this to "https://httpbin.org" in your env to run this test
+    ## To run this test locally:
+       $ sbt 'simple-httpbin/run localhost 8080'
+       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
