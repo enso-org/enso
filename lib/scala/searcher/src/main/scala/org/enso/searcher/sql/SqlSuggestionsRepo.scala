@@ -765,7 +765,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         )
       }
       .filterOpt(isStatic) { case (row, value) =>
-        row.isStatic === value
+        (row.kind === SuggestionKind.METHOD && row.isStatic === value) ||
+        (row.kind =!= SuggestionKind.METHOD)
       }
   }
 
