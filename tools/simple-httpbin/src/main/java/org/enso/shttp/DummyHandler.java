@@ -21,7 +21,7 @@ public class DummyHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
-    HttpMethod meth = method(exchange.getRequestMethod());
+    HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
 
     String response;
     if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
@@ -53,6 +53,7 @@ public class DummyHandler implements HttpHandler {
       response += "  },\n";
       response += "  \"origin\": \"127.0.0.1\",\n";
       response += "  \"url\": \"\",\n";
+      response += "  \"method\": \"" + meth + "\",\n";
       if (meth == HttpMethod.POST || meth == HttpMethod.DELETE || meth == HttpMethod.PUT || meth == HttpMethod.PATCH) {
         boolean isJson = contentType != null && contentType.equals("application/json");
         InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
@@ -71,10 +72,6 @@ public class DummyHandler implements HttpHandler {
     OutputStream os = exchange.getResponseBody();
     os.write(response.getBytes());
     os.close();
-  }
-
-  private HttpMethod method(String v) {
-    return HttpMethod.valueOf(v);
   }
 
   private String formatHeaderKey(String key) {
