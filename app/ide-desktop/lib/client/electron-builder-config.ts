@@ -92,9 +92,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 // ======================================
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
-export async function createElectronBuilderConfig(
-    passedArgs: Arguments
-): Promise<electronBuilder.Configuration> {
+export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
     return {
         appId: 'org.enso',
         productName: common.PRODUCT_NAME,
@@ -287,7 +285,7 @@ export async function buildPackage(passedArgs: Arguments) {
     await fs.mkdir('node_modules', { recursive: true })
 
     const cliOpts: electronBuilder.CliOptions = {
-        config: await createElectronBuilderConfig(passedArgs),
+        config: createElectronBuilderConfig(passedArgs),
         targets: passedArgs.platform.createTarget(),
     }
     console.log('Building with configuration:', cliOpts)
