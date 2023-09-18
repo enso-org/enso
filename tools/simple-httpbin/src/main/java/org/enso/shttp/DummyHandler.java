@@ -19,22 +19,6 @@ public class DummyHandler implements HttpHandler {
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
-    System.out.println("GGGGG");
-    System.out.println(exchange.getHttpContext().getPath());
-    //System.out.println(exchange.getProtocol());
-    //System.out.println(exchange.getRemoteAddress());
-    System.out.println(exchange.getRequestHeaders().entrySet());
-    System.out.println(exchange.getRequestMethod());
-    System.out.println(exchange.getRequestURI());
-    ////System.out.println(exchange.getRequestBody());
-    //InputStream is = exchange.getRequestBody();
-    //String result = new BufferedReader(new InputStreamReader(is))
-    //        .lines().collect(Collectors.joining("\n"));
-    //System.out.println("body start ----");
-    //System.out.println(result);
-    //System.out.println("body end ----");
-    System.out.println("GGGGG done");
-
     boolean first = true;
     String contentType = null;
     HttpMethod meth = method(exchange.getRequestMethod());
