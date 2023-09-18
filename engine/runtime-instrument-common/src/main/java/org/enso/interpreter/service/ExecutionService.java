@@ -1,5 +1,39 @@
 package org.enso.interpreter.service;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+
+import org.enso.compiler.context.SimpleUpdate;
+import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.instrument.IdExecutionService;
+import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.instrument.UpdatesSynchronizationState;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.service.error.FailedToApplyEditsException;
+import org.enso.interpreter.service.error.MethodNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundException;
+import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.interpreter.service.error.TypeNotFoundException;
+import org.enso.lockmanager.client.ConnectedLockManager;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
+import org.enso.text.editing.JavaEditorAdapter;
+import org.enso.text.editing.model;
+
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
@@ -14,45 +48,12 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.compiler.context.SimpleUpdate;
-import org.enso.interpreter.instrument.Endpoint;
-import org.enso.interpreter.instrument.IdExecutionService;
-import org.enso.interpreter.instrument.MethodCallsCache;
-import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.instrument.RuntimeCache;
-import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.Timer;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.service.error.TypeNotFoundException;
-import org.enso.interpreter.service.error.FailedToApplyEditsException;
-import org.enso.interpreter.service.error.MethodNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.SourceNotFoundException;
-import org.enso.lockmanager.client.ConnectedLockManager;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
-import org.enso.text.editing.JavaEditorAdapter;
-import org.enso.text.editing.model;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
  */
-public class ExecutionService {
+public final class ExecutionService {
 
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
@@ -161,21 +162,17 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+    var callbacks = new ExecutionCallbacks(
+      nextExecutionItem, cache, methodCallsCache, syncState,
+      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+    );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(
-                    module,
-                    call.getFunction().getCallTarget(),
-                    cache,
-                    methodCallsCache,
-                    syncState,
-                    this.timer,
-                    nextExecutionItem,
-                    funCallCallback,
-                    onComputedCallback,
-                    onCachedCallback,
-                    onExceptionalCallback));
+        idExecutionInstrument.map(service -> service.bind(
+          module,
+          call.getFunction().getCallTarget(),
+          callbacks,
+          this.timer
+        ));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -308,21 +305,17 @@ public class ExecutionService {
     Consumer<Exception> onExceptionalCallback =
         (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
+    var callbacks = new ExecutionCallbacks(
+      nextExecutionItem, cache, methodCallsCache, syncState,
+      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+    );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(
-                    module,
-                    entryCallTarget,
-                    cache,
-                    methodCallsCache,
-                    syncState,
-                    this.timer,
-                    nextExecutionItem,
-                    funCallCallback,
-                    onComputedCallback,
-                    onCachedCallback,
-                    onExceptionalCallback));
+        idExecutionInstrument.map(service -> service.bind(
+          module,
+          entryCallTarget,
+          callbacks,
+          this.timer
+        ));
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(function, arguments);

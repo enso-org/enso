@@ -12,6 +12,7 @@ import Standard.Test.Extensions
 import project.Data.Round_Spec
 
 polyglot java import java.math.BigInteger
+polyglot java import java.math.BigDecimal
 
 Integer.is_even self = self % 2 == 0
 
@@ -571,6 +572,14 @@ spec =
                     _ : Integer -> Nothing
                     v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
+
+            Test.specify name+" BigInteger to BigDecimal test" <|
+                    h = 2^70
+                    bd1 = BigDecimal.new h 0
+                    bd2 = BigDecimal.new h
+                    bd1.to_text . should_equal bd2.to_text
+                    bd1 . should_equal bd2
+                    bd1.toBigIntegerExact . should_equal h
 
         to_java_bigint n = BigInteger.new n.to_text
         java_bigint_mul a b =

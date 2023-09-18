@@ -379,6 +379,79 @@ class RuntimeErrorsTest
     )
   }
 
+  it should "return panic sentinel in type check" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val mainBodyId = metadata.addItem(73, 30)
+
+    val code =
+      """from Standard.Base import Integer
+        |
+        |my_func (x : Integer) = x + 1
+        |
+        |main = my_func (Non_Existing_Func 23)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `Non_Existing_Func` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 16), model.Position(4, 33))),
+              None
+            )
+          )
+        )
+      ),
+      TestMessages.panic(
+        contextId,
+        mainBodyId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile error: The name `Non_Existing_Func` could not be found.",
+          Seq(mainBodyId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "return panic sentinels in method calls (pretty print)" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

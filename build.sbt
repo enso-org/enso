@@ -1495,6 +1495,7 @@ lazy val `runtime-instrument-common` =
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
