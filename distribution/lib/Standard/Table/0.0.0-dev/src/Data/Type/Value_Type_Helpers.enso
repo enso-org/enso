@@ -17,20 +17,32 @@ reconcile_types current new = case current of
         Value_Type.Byte    -> Value_Type.Integer size
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Decimal _ _ -> new
         _                  -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
             Value_Type.Float (max_size size new_size)
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Integer _ -> Value_Type.Float
-        Value_Type.Byte      -> Value_Type.Float
-        _                    -> Value_Type.Mixed
+        Value_Type.Integer _   -> Value_Type.Float
+        Value_Type.Byte        -> Value_Type.Float
+        Value_Type.Decimal _ _ -> Value_Type.Float
+        _                      -> Value_Type.Mixed
     Value_Type.Byte -> case new of
         Value_Type.Byte    -> Value_Type.Byte
         Value_Type.Integer size ->
             Value_Type.Integer size
         Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Decimal _ _ -> new
         _                  -> Value_Type.Mixed
+    Value_Type.Decimal precision scale -> case new of
+        Value_Type.Decimal new_precision new_scale ->
+            if (precision == new_precision) && (scale == new_scale) then new else
+                # TODO at some point we may want a more clever merging of precision and scale, for now we don't use them too much anyway so we just default to Nothing if they do not agree
+                Value_Type.Decimal
+        Value_Type.Integer _ -> Value_Type.Decimal precision scale
+        Value_Type.Byte      -> Value_Type.Decimal precision scale
+        Value_Type.Float _   -> Value_Type.Float
+        _                    -> Value_Type.Mixed
     Value_Type.Boolean -> case new of
         Value_Type.Boolean -> Value_Type.Boolean
         _                  -> Value_Type.Mixed

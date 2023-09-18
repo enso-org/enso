@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::display::render::pass;
 use crate::display::scene::UpdateStatus;
 use crate::display::symbol::Screen;
-
+use crate::system::gpu::context::ContextLost;
 
 
 // ========================
@@ -33,9 +33,20 @@ impl Default for ScreenRenderPass {
 }
 
 impl pass::Definition for ScreenRenderPass {
-    fn run(&mut self, _: &pass::Instance, update_status: UpdateStatus) {
+    fn instantiate(
+        &self,
+        _instance: pass::InstanceInfo,
+    ) -> Result<Box<dyn pass::Instance>, ContextLost> {
+        Ok(Box::new(self.clone()))
+    }
+}
+
+impl pass::Instance for ScreenRenderPass {
+    fn run(&mut self, update_status: UpdateStatus) {
         if update_status.scene_was_dirty {
             self.screen.render();
         }
     }
+
+    fn resize(&mut self, _width: i32, _height: i32, _pixel_ratio: f32) {}
 }

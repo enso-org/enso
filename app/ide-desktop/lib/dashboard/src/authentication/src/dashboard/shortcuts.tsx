@@ -16,6 +16,7 @@ import DuplicateIcon from 'enso-assets/duplicate.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PenIcon from 'enso-assets/pen.svg'
 import PeopleIcon from 'enso-assets/people.svg'
+import Play2Icon from 'enso-assets/play2.svg'
 import ScissorsIcon from 'enso-assets/scissors.svg'
 import SignInIcon from 'enso-assets/sign_in.svg'
 import SignOutIcon from 'enso-assets/sign_out.svg'
@@ -39,6 +40,9 @@ export const ICON_SIZE_PX = 16
 
 /** All possible mouse actions for which shortcuts can be registered. */
 export enum MouseAction {
+    open = 'open',
+    /** Run without opening the editor. */
+    run = 'run',
     editName = 'edit-name',
     selectAdditional = 'select-additional',
     selectRange = 'select-range',
@@ -48,12 +52,16 @@ export enum MouseAction {
 /** All possible keyboard actions for which shortcuts can be registered. */
 export enum KeyboardAction {
     open = 'open',
+    /** Run without opening the editor. */
+    run = 'run',
     close = 'close',
     uploadToCloud = 'upload-to-cloud',
     rename = 'rename',
     snapshot = 'snapshot',
     moveToTrash = 'move-to-trash',
     moveAllToTrash = 'move-all-to-trash',
+    delete = 'delete',
+    deleteAll = 'delete-all',
     share = 'share',
     label = 'label',
     duplicate = 'duplicate',
@@ -103,6 +111,7 @@ export interface KeyboardShortcut extends Modifiers {
 export interface MouseShortcut extends Modifiers {
     button: MouseButton
     action: MouseAction
+    clicks: number
 }
 
 /** All possible modifier keys. */
@@ -146,12 +155,15 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
     return {
         [KeyboardAction.open]: make(),
+        [KeyboardAction.run]: make(),
         [KeyboardAction.close]: make(),
         [KeyboardAction.uploadToCloud]: make(),
         [KeyboardAction.rename]: make(),
         [KeyboardAction.snapshot]: make(),
         [KeyboardAction.moveToTrash]: make(),
         [KeyboardAction.moveAllToTrash]: make(),
+        [KeyboardAction.delete]: make(),
+        [KeyboardAction.deleteAll]: make(),
         [KeyboardAction.share]: make(),
         [KeyboardAction.label]: make(),
         [KeyboardAction.duplicate]: make(),
@@ -234,13 +246,15 @@ export class ShortcutRegistry {
     keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
     allKeyboardHandlers: Record<
         KeyboardAction,
-        ((event: KeyboardEvent | React.KeyboardEvent) => void)[]
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
     > = makeKeyboardActionMap(() => [])
     /** The last handler (if any) for each action in
      * {@link ShortcutRegistry.allKeyboardHandlers}. */
     activeKeyboardHandlers: Record<
         KeyboardAction,
-        ((event: KeyboardEvent | React.KeyboardEvent) => void) | null
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
     > = makeKeyboardActionMap(() => null)
 
     /** Create a {@link ShortcutRegistry}. */
@@ -279,7 +293,11 @@ export class ShortcutRegistry {
         shortcut: MouseShortcut,
         event: MouseEvent | React.MouseEvent
     ) {
-        return shortcut.button === event.button && modifiersMatchEvent(shortcut, event)
+        return (
+            shortcut.button === event.button &&
+            event.detail >= shortcut.clicks &&
+            modifiersMatchEvent(shortcut, event)
+        )
     }
 
     /** Return `true` if the action is being triggered by the keyboard event. */
@@ -306,10 +324,12 @@ export class ShortcutRegistry {
                 if (this.matchesKeyboardShortcut(shortcut, event)) {
                     const handler = this.activeKeyboardHandlers[shortcut.action]
                     if (handler != null) {
-                        handler(event)
-                        // The matching `false` return is immediately after this loop.
-                        // eslint-disable-next-line no-restricted-syntax
-                        return true
+                        const result = handler(event)
+                        if (result !== false) {
+                            // The matching `false` return is immediately after this loop.
+                            // eslint-disable-next-line no-restricted-syntax
+                            return true
+                        }
                     }
                 }
             }
@@ -344,7 +364,8 @@ export class ShortcutRegistry {
      * these handlers. */
     registerKeyboardHandlers(
         handlers: Partial<
-            Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => void>
+            // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+            Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => boolean | void>
         >
     ) {
         for (const action of Object.values(KeyboardAction)) {
@@ -387,11 +408,13 @@ function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string):
 function mousebind(
     action: MouseAction,
     modifiers: ModifierKey[],
-    button: MouseButton
+    button: MouseButton,
+    clicks: number
 ): MouseShortcut {
     return {
         button,
         action,
+        clicks,
         ctrl: modifiers.includes('Ctrl'),
         alt: modifiers.includes('Alt'),
         shift: modifiers.includes('Shift'),
@@ -412,12 +435,15 @@ const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
     [KeyboardAction.close]: [],
     [KeyboardAction.uploadToCloud]: [],
     [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
     [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
     [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], DELETE)],
     [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
+    [KeyboardAction.delete]: [keybind(KeyboardAction.delete, [], DELETE)],
+    [KeyboardAction.deleteAll]: [keybind(KeyboardAction.deleteAll, [], DELETE)],
     [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
@@ -440,6 +466,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
+    [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
     [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
     [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
     [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
@@ -454,6 +481,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
         icon: TrashIcon,
         colorClass: 'text-delete',
     },
+    [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
+    [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
     [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
     [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
     [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
@@ -474,12 +503,14 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
 
 /** The default mouse shortcuts. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
-    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left)],
+    [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
+    [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
+    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],
     [MouseAction.selectAdditional]: [
-        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left),
+        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left, 1),
     ],
-    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left)],
+    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left, 1)],
     [MouseAction.selectAdditionalRange]: [
-        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left),
+        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left, 1),
     ],
 }

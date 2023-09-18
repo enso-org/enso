@@ -5,12 +5,46 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::render::pass;
-use crate::display::render::pass::Instance;
 use crate::display::scene::Layer;
 use crate::display::scene::UpdateStatus;
 use crate::display::shape::glsl::codes::DisplayModes;
 use crate::display::world::with_context;
 use crate::gui::component::AnyShapeView;
+use crate::system::gpu::context::ContextLost;
+
+
+// ==========================
+// === CacheShapesPassDef ===
+// ==========================
+
+/// Definition of pass rendering cached shapes to texture. See [`CacheShapesPass`] for information
+/// about pass operation.
+#[derive(Debug)]
+pub struct CacheShapesPassDef {
+    layer: Layer,
+}
+
+impl Default for CacheShapesPassDef {
+    fn default() -> Self {
+        Self { layer: Layer::new("Cached Shapes") }
+    }
+}
+
+impl CacheShapesPassDef {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+}
+
+impl pass::Definition for CacheShapesPassDef {
+    fn instantiate(
+        &self,
+        instance: pass::InstanceInfo,
+    ) -> Result<Box<dyn pass::Instance>, ContextLost> {
+        Ok(Box::new(CacheShapesPass::new(self.layer.clone(), instance)?))
+    }
+}
 
 
 
@@ -18,7 +52,7 @@ use crate::gui::component::AnyShapeView;
 // === CacheShapesPass ===
 // =======================
 
-/// Definition of pass rendering cached shapes to texture.
+/// Instance of pass rendering cached shapes to texture.
 ///
 /// On each run it checks what not-yet-rendered shapes has compiled shaders and render their color
 /// and SDF information to the texture, which is stored in `pass_cached_shapes` uniform. See also
@@ -31,75 +65,53 @@ use crate::gui::component::AnyShapeView;
 /// Once given shape system is ready to render (has shader compiled), we call "render" only on its
 /// symbol. There is no need to render previous shapes again, because we don't clear texture at any
 /// point.
-#[derive(Clone, Derivative)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    framebuffer: Option<pass::Framebuffer>,
-    texture: Option<crate::system::gpu::data::uniform::AnyTextureUniform>,
+    framebuffer: pass::Framebuffer,
+    texture: crate::system::gpu::data::uniform::AnyTextureUniform,
     #[derivative(Debug = "ignore")]
-    shapes_to_render: Vec<Rc<dyn AnyShapeView>>,
+    shapes_to_render: Vec<Box<dyn AnyShapeView>>,
     /// Texture size in device pixels.
     texture_size_device: Vector2<i32>,
     layer: Layer,
     camera_ready: Rc<Cell<bool>>,
     #[derivative(Debug = "ignore")]
     display_object_update_handler: Option<Rc<enso_callback::Handle>>,
-}
-
-impl Default for CacheShapesPass {
-    fn default() -> Self {
-        Self::new()
-    }
+    instance: pass::InstanceInfo,
 }
 
 impl CacheShapesPass {
     /// Constructor.
-    pub fn new() -> Self {
-        Self {
-            framebuffer: default(),
-            texture: default(),
-            shapes_to_render: default(),
-            layer: Layer::new("Cached Shapes"),
-            texture_size_device: default(),
-            camera_ready: default(),
-            display_object_update_handler: default(),
-        }
-    }
-}
-
-
-// === [`pass::Definition`] Implementation ===
-
-impl pass::Definition for CacheShapesPass {
-    fn initialize(&mut self, instance: &Instance) {
+    pub fn new(layer: Layer, instance: pass::InstanceInfo) -> Result<Self, ContextLost> {
         let scene = scene();
-        display::world::CACHED_SHAPES_DEFINITIONS.with_borrow(|shapes| {
-            self.shapes_to_render =
-                shapes.iter().map(|def| (def.for_texture_constructor)().into()).collect()
-        });
+        let shapes_to_render: Vec<Box<dyn AnyShapeView>> =
+            display::world::CACHED_SHAPES_DEFINITIONS.with_borrow(|shapes| {
+                shapes.iter().map(|def| (def.for_texture_constructor)()).collect()
+            });
         let texture_size = display::shape::primitive::system::cached::texture_size();
-        self.texture_size_device =
+        let texture_size_device =
             texture_size.map(|i| ((i as f32) * instance.pixel_ratio).ceil() as i32);
-
-        for shape in &self.shapes_to_render {
+        for shape in &shapes_to_render {
             scene.add_child(&**shape);
-            self.layer.add(&**shape);
+            layer.add(&**shape);
         }
-        self.layer.camera().set_screen(texture_size.x as f32, texture_size.y as f32);
+        layer.camera().set_screen(texture_size.x as f32, texture_size.y as f32);
         // We must call update of layer and display object hierarchy at this point, because:
         // 1. the [`self.layer`] is not in the Layer hierarchy, so it's not updated during routine
         //    layers update.
         // 2. The pass can be re-initialized after the display object hierarchy update, but before
         //    rendering, so the hierarchy could be outdated during rendering.
-        self.layer.camera().update(&scene);
+        layer.camera().update(&scene);
         scene.display_object.update(&scene);
-        self.layer.update();
+        layer.update();
+        let camera_ready = Rc::new(Cell::new(false));
         // The asynchronous update of the scene's display object initiated above will eventually
         // set our layer's camera's transformation. Handle the camera update when all
         // previously-initiated FRP events finish being processed.
-        let handle = frp::microtasks::next_microtask({
-            let camera = self.layer.camera();
-            let camera_ready = Rc::clone(&self.camera_ready);
+        let display_object_update_handler = frp::microtasks::next_microtask({
+            let camera = layer.camera();
+            let camera_ready = Rc::clone(&camera_ready);
             move || {
                 // Be careful to not capture variable `scene` here! The scene keeps all passes,
                 // so we would create an Rc loop.
@@ -107,47 +119,53 @@ impl pass::Definition for CacheShapesPass {
                 camera_ready.set(true);
             }
         });
-        self.display_object_update_handler = Some(Rc::new(handle));
-
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
-        let texture =
-            instance.new_texture(&output, self.texture_size_device.x, self.texture_size_device.y);
-        self.framebuffer = Some(instance.new_framebuffer(&[&texture]));
-        self.texture = Some(texture);
+        let texture = instance.new_texture(&output, texture_size_device.x, texture_size_device.y);
+        let framebuffer = instance.new_framebuffer(&[&texture])?;
+        Ok(Self {
+            framebuffer,
+            texture,
+            shapes_to_render,
+            layer,
+            texture_size_device,
+            camera_ready,
+            display_object_update_handler: Some(Rc::new(display_object_update_handler)),
+            instance,
+        })
     }
+}
 
-    fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
+impl pass::Instance for CacheShapesPass {
+    fn run(&mut self, _update_status: UpdateStatus) {
         if self.camera_ready.get() {
-            let is_shader_compiled = |shape: &mut Rc<dyn AnyShapeView>| {
-                shape.sprite().symbol.shader().program().is_some()
+            let is_shader_compiled = |shape: &mut Box<dyn AnyShapeView>| {
+                shape.sprite().symbol.shader.borrow().program().is_some()
             };
             let mut ready_to_render =
                 self.shapes_to_render.drain_filter(is_shader_compiled).peekable();
             if ready_to_render.peek().is_some() {
-                if let Some(framebuffer) = self.framebuffer.as_ref() {
-                    framebuffer.with_bound(|| {
-                        instance.with_viewport(
-                            self.texture_size_device.x,
-                            self.texture_size_device.y,
-                            || {
-                                with_display_mode(DisplayModes::CachedShapesTexture, || {
-                                    with_context(|ctx| ctx.set_camera(&self.layer.camera()));
-                                    for shape in ready_to_render {
-                                        shape.sprite().symbol.render();
-                                    }
-                                })
-                            },
-                        );
-                    });
-                } else {
-                    reportable_error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.");
-                }
+                self.framebuffer.with_bound(|| {
+                    self.instance.with_viewport(
+                        self.texture_size_device.x,
+                        self.texture_size_device.y,
+                        || {
+                            with_display_mode(DisplayModes::CachedShapesTexture, || {
+                                with_context(|ctx| ctx.set_camera(&self.layer.camera()));
+                                for shape in ready_to_render {
+                                    shape.sprite().symbol.render();
+                                }
+                            })
+                        },
+                    );
+                });
             }
         }
     }
 
-    fn is_screen_size_independent(&self) -> bool {
-        true
+    fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32) {
+        self.instance.width = width;
+        self.instance.height = height;
+        self.instance.pixel_ratio = pixel_ratio;
     }
 }
 

@@ -3,7 +3,6 @@ import {
   onMounted,
   onUnmounted,
   proxyRefs,
-  reactive,
   ref,
   type Ref,
   shallowRef,
@@ -12,6 +11,26 @@ import {
   type WatchSource,
 } from 'vue'
 import { Vec2 } from './vec2'
+
+/**
+ * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * @param target element on which to register the event
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useElementEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (e: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    target.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    target.removeEventListener(event, handler, options)
+  })
+}
 
 /**
  * Add an event listener on window for the duration of component lifetime.
@@ -32,6 +51,24 @@ export function useWindowEvent<K extends keyof WindowEventMap>(
 }
 
 /**
+ * Add an event listener on document for the duration of component lifetime.
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useDocumentEvent<K extends keyof DocumentEventMap>(
+  event: K,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    document.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    document.removeEventListener(event, handler, options)
+  })
+}
+
+/**
  * Add an event listener on window for the duration of condition being true.
  * @param condition the condition that determines if event is bound
  * @param event name of event to register
@@ -47,6 +84,26 @@ export function useWindowEventConditional<K extends keyof WindowEventMap>(
     if (conditionMet) {
       window.addEventListener(event, handler, options)
       onCleanup(() => window.removeEventListener(event, handler, options))
+    }
+  })
+}
+
+/**
+ * Add an event listener on document for the duration of condition being true.
+ * @param condition the condition that determines if event is bound
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  watch(condition, (conditionMet, _, onCleanup) => {
+    if (conditionMet) {
+      document.addEventListener(event, handler, options)
+      onCleanup(() => document.removeEventListener(event, handler, options))
     }
   })
 }

@@ -40,7 +40,7 @@ run key local_state ~computation = @Builtin_Method "State.run"
      Get the value of state for a key.
          import Standard.Base.Runtime.State
 
-         State.get Decimal
+         State.get Float
 get : Any -> Any ! Uninitialized_State
 get key = @Builtin_Method "State.get"
 

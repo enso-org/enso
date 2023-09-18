@@ -78,11 +78,11 @@ public class MatcherFactory {
       Object leftValue = leftStorage.getItemBoxed(left);
       Object rightValue = rightStorage.getItemBoxed(right);
 
-      if (NumericConverter.isDecimalLike(leftValue)) {
+      if (NumericConverter.isFloatLike(leftValue)) {
         problems.add(new FloatingPointGrouping(leftColumnName, left));
       }
 
-      if (NumericConverter.isDecimalLike(rightValue)) {
+      if (NumericConverter.isFloatLike(rightValue)) {
         problems.add(new FloatingPointGrouping(rightColumnName, right));
       }
 

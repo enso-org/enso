@@ -9,6 +9,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.Optional;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -30,15 +31,14 @@ public abstract class EnsoProjectNode extends Node {
     return EnsoProjectNodeGen.create();
   }
 
+
   /**
-   * It is OK to cache EnsoContext and project description atom here, since this node should be
-   * cloned into every separate caller's AST.
+   * A weak reference to the context in which this node was last executed.
    */
   @CompilationFinal
   private WeakReference<EnsoContext> previousCtxRef = new WeakReference<>(null);
 
-  @CompilationFinal
-  private WeakReference<Object> cachedProjectDescrRef = new WeakReference<>(null);
+  private Object cachedProjectDescr;
 
   /**
    * @param module Either {@code Nothing}, or a module.
@@ -56,7 +56,6 @@ public abstract class EnsoProjectNode extends Node {
   public Object getCurrentProjectDescr(Object nothing) {
     var ctx = EnsoContext.get(this);
     var previousCtx = previousCtxRef.get();
-    var cachedProjectDescr = cachedProjectDescrRef.get();
     if (previousCtx == null || cachedProjectDescr == null || previousCtx != ctx) {
       CompilerDirectives.transferToInterpreter();
       previousCtxRef = new WeakReference<>(ctx);
@@ -93,14 +92,13 @@ public abstract class EnsoProjectNode extends Node {
                   // The first frame is always Enso_Project.enso_project
                   1);
       if (pkgOpt.isPresent()) {
-        cachedProjectDescrRef = new WeakReference<>(
-            createProjectDescriptionAtom(ctx, pkgOpt.get()));
+        cachedProjectDescr =
+            createProjectDescriptionAtom(ctx, pkgOpt.get());
       } else {
-        cachedProjectDescrRef = new WeakReference<>(notInModuleError(ctx));
+        cachedProjectDescr = notInModuleError(ctx);
       }
-      cachedProjectDescr = cachedProjectDescrRef.get();
     }
-    assert cachedProjectDescr != null;
+    Objects.requireNonNull(cachedProjectDescr);
     return cachedProjectDescr;
   }
 

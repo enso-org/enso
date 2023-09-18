@@ -155,20 +155,20 @@ class ValuesGenerator {
 
   public Value typeNumber() {
     return v("typeNumber", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
     """, "Number").type();
   }
 
   public Value typeInteger() {
     return v("typeInteger", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
     """, "Integer").type();
   }
 
-  public Value typeDecimal() {
-    return v("typeDecimal", """
-    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
-    """, "Decimal").type();
+  public Value typeFloat() {
+    return v("typeFloat", """
+    from Standard.Base import Nothing, Vector, Number, Float, Integer
+    """, "Float").type();
   }
 
   public Value typeBoolean() {

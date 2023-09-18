@@ -226,25 +226,25 @@ Error.should_equal self that frames_to_skip=0 =
 
    Arguments:
    - that: The value to compare `self` for equality with.
-   - epsilon: The epislon for comparing two decimal numbers.
+   - epsilon: The epislon for comparing two float numbers.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
    > Example
-     Compare two decimal values.
+     Compare two float values.
 
          from Standard.Test import Test
 
          example_should_equal = 1.1 . should_equal 1.1
 
    > Example
-     Compare two decimal values with an epsilon (tolerance).
+     Compare two float values with an epsilon (tolerance).
 
          from Standard.Test import Test
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Number.should_equal : Decimal -> Decimal -> Integer -> Test_Result
+Number.should_equal : Float -> Float -> Integer -> Test_Result
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         _ : Number -> self.equals that epsilon

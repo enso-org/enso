@@ -31,7 +31,7 @@ collect_benches = Bench.build builder->
 
     builder.group "Number_Parse" options group_builder->
         group_builder.specify "decimal_parse" <|
-            data.decimal_strings.map Decimal.parse
+            data.decimal_strings.map Float.parse
 
         group_builder.specify "integer_parse" <|
             data.int_strings.map Integer.parse

@@ -408,7 +408,7 @@ public abstract class SortVectorNode extends Node {
     var builtins = EnsoContext.get(this).getBuiltins();
     if (builtinType == builtins.number().getNumber()
         || builtinType == builtins.number().getInteger()
-        || builtinType == builtins.number().getDecimal()) {
+        || builtinType == builtins.number().getFloat()) {
       return 1;
     } else if (builtinType == builtins.text()) {
       return 2;
@@ -432,7 +432,7 @@ public abstract class SortVectorNode extends Node {
   private boolean isBuiltinType(Object type) {
     var builtins = EnsoContext.get(this).getBuiltins();
     return builtins.number().getNumber() == type
-        || builtins.number().getDecimal() == type
+        || builtins.number().getFloat() == type
         || builtins.number().getInteger() == type
         || builtins.nothing() == type
         || builtins.text() == type
@@ -719,8 +719,6 @@ public abstract class SortVectorNode extends Node {
     private final MethodResolverNode methodResolverNode;
     private final TypesLibrary typesLibrary;
 
-    private @CompilerDirectives.CompilationFinal Function resolvedFunction;
-
     private CompareFromUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
                                         MethodResolverNode methodResolvedNode,
                                         TypesLibrary typesLibrary) {
@@ -732,7 +730,7 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     boolean hasFunctionSelfArgument(Object definedOn) {
-      ensureSymbolIsResolved(definedOn);
+      var resolvedFunction = methodResolverNode.expectNonNull(definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
       return resolvedFunction.getSchema().getArgumentsCount() > 0 &&
         resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
 
@@ -740,14 +738,7 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     Function get(Object arg) {
-      ensureSymbolIsResolved(arg);
-      return resolvedFunction;
-    }
-
-    private void ensureSymbolIsResolved(Object definedOn) {
-      if (resolvedFunction == null) {
-        resolvedFunction = methodResolverNode.expectNonNull(definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
-      }
+      return methodResolverNode.expectNonNull(arg, typesLibrary.getType(arg), unresolvedSymbol);
     }
   }
 

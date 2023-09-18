@@ -7,10 +7,12 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
+use crate::display::texture::TextureUnit;
+use crate::display::uniform::UniformScope;
 use crate::system::gpu;
 use crate::system::gpu::context::native::ContextOps;
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::buffer::IsBuffer;
-use crate::system::gpu::data::texture::class::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
 use crate::system::gpu::data::uniform::AnyPrimUniformOps;
 use crate::system::gpu::data::uniform::AnyTextureUniform;
@@ -19,11 +21,11 @@ use crate::system::gpu::data::uniform::AnyUniform;
 use enso_shapely::newtype_prim;
 use enso_shapely::shared2;
 use shader::Shader;
-use shader::WeakShader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
 use web_sys::WebGlVertexArrayObject;
+
 
 
 // ==============
@@ -83,11 +85,9 @@ impl UniformBinding {
     }
 }
 
-type TextureUnit = u32;
-
 /// Binds input sampler definition in shader to its location, uniform declaration and texture unit.
 #[derive(Clone, Debug)]
-pub struct TextureBinding {
+struct TextureBinding {
     name:         String,
     location:     WebGlUniformLocation,
     uniform:      AnyTextureUniform,
@@ -96,7 +96,7 @@ pub struct TextureBinding {
 
 impl TextureBinding {
     /// Create new texture binding.
-    pub fn new<Name: Str>(
+    fn new<Name: Str>(
         name: Name,
         location: WebGlUniformLocation,
         uniform: AnyTextureUniform,
@@ -106,14 +106,15 @@ impl TextureBinding {
         Self { name, location, uniform, texture_unit }
     }
 
-    /// Bind texture to proper texture unit.
-    pub fn bind_texture_unit(&self, context: &Context) -> TextureBindGuard {
-        self.uniform.bind_texture_unit(context, self.texture_unit.into())
+    /// Bind texture to proper texture unit. This will return `None` if the texture is not currently
+    /// loaded on the GPU, which can happen if the context was lost and has not been restored yet.
+    fn bind_texture_unit(&self) -> Option<TextureBindGuard> {
+        self.uniform.texture().map(|texture| texture.bind_texture_unit(self.texture_unit))
     }
 
     /// Upload uniform value.
-    pub fn upload_uniform(&self, context: &Context) {
-        context.uniform1i(Some(&self.location), self.texture_unit as i32);
+    fn upload_uniform(&self, context: &Context) {
+        context.uniform1i(Some(&self.location), u32::from(self.texture_unit) as i32);
     }
 }
 
@@ -125,25 +126,10 @@ impl TextureBinding {
 
 /// A safe wrapper for WebGL VertexArrayObject. It releases the VAO from GPU memory as soon as all
 /// references to this object are dropped.
-#[derive(Clone, Debug, Deref)]
-pub struct VertexArrayObject {
-    rc: Rc<VertexArrayObjectData>,
-}
-
-impl VertexArrayObject {
-    /// Constructor
-    pub fn new(context: &Context) -> Self {
-        let rc = Rc::new(VertexArrayObjectData::new(context));
-        Self { rc }
-    }
-}
-
-
-// === Data ===
-
-/// Internal representation for `VertexArrayObject`.
+// NOTE: This type must not derive `Clone`, as the resulting shared `vao` would be deleted when
+// either instance is dropped.
 #[derive(Debug)]
-pub struct VertexArrayObjectData {
+pub struct VertexArrayObject {
     context: Context,
     vao:     WebGlVertexArrayObject,
 }
@@ -151,19 +137,19 @@ pub struct VertexArrayObjectData {
 
 // === Public API ===
 
-impl VertexArrayObjectData {
-    /// Creates a new VAO instance.
-    pub fn new(context: &Context) -> Self {
+impl VertexArrayObject {
+    /// Creates a new VAO instance, if the context is valid.
+    pub fn new(context: &Context) -> Result<Self, ContextLost> {
         let context = context.clone();
-        let vao = context.create_vertex_array().unwrap();
-        Self { context, vao }
+        let vao = context.create_vertex_array().ok_or(ContextLost)?;
+        Ok(Self { context, vao })
     }
 }
 
 
 // === Private API ===
 
-impl VertexArrayObjectData {
+impl VertexArrayObject {
     fn bind(&self) {
         self.context.bind_vertex_array(Some(&self.vao));
     }
@@ -176,9 +162,9 @@ impl VertexArrayObjectData {
 
 // === Instances ===
 
-impl Drop for VertexArrayObjectData {
+impl Drop for VertexArrayObject {
     fn drop(&mut self) {
-        self.context.delete_vertex_array(Some(&self.vao));
+        self.context.delete_vertex_array(&self.vao);
     }
 }
 
@@ -294,7 +280,7 @@ pub type WeakShaderDirty = dirty::WeakSharedBool<Box<dyn Fn()>>;
 // === Bindings ====
 
 /// All attributes and uniforms bindings of symbol with the associated Vertex Array Object.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Bindings {
     vao:      Option<VertexArrayObject>,
     uniforms: Vec<UniformBinding>,
@@ -317,7 +303,8 @@ pub struct Symbol {
     #[display_object]
     data:         Rc<SymbolData>,
     shader_dirty: ShaderDirty,
-    shader:       Shader,
+    /// The GL shader.
+    pub shader:   Rc<RefCell<Shader>>,
 }
 
 impl Symbol {
@@ -333,7 +320,7 @@ impl Symbol {
             let on_mut2 = on_mut.clone();
             let shader_dirty = ShaderDirty::new(Box::new(on_mut));
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
-            let shader = Shader::new(stats, shader_on_mut);
+            let shader = Rc::new(RefCell::new(Shader::new(stats, shader_on_mut)));
             let data = Rc::new(SymbolData::new(stats, label, id, global_id_provider, on_mut2));
             Self { data, shader_dirty, shader }
         })
@@ -349,27 +336,25 @@ impl Symbol {
     pub(crate) fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         self.surface.set_context(context);
-        self.shader.set_context(context);
+        self.shader.borrow_mut().set_context(context);
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&self, global_variables: &UniformScope) {
+    pub fn update(&self, global_variables: &Rc<RefCell<UniformScope>>) {
         if self.context.borrow().is_some() {
-            debug_span!("Updating.").in_scope(|| {
-                if self.surface_dirty.check() {
-                    self.surface.update();
-                    self.surface_dirty.unset();
-                }
-                if self.shader_dirty.check() {
-                    let var_bindings = self.discover_variable_bindings(global_variables);
-                    let data = self.data.clone_ref();
-                    let global_variables = global_variables.clone_ref();
-                    self.shader.update(var_bindings, move |var_bindings, program| {
-                        data.init_variable_bindings(var_bindings, &global_variables, program)
-                    });
-                    self.shader_dirty.unset();
-                }
-            })
+            if self.surface_dirty.check() {
+                self.surface.update();
+                self.surface_dirty.unset();
+            }
+            if self.shader_dirty.check() {
+                let var_bindings = self.discover_variable_bindings(&global_variables.borrow());
+                let data = self.data.clone_ref();
+                let global_variables = Rc::clone(global_variables);
+                self.shader.borrow_mut().update(var_bindings, move |var_bindings, program| {
+                    data.init_variable_bindings(var_bindings, global_variables, program)
+                });
+                self.shader_dirty.unset();
+            }
         }
     }
 
@@ -389,7 +374,7 @@ impl Symbol {
                     }
 
                     let textures = &self.bindings.borrow().textures;
-                    let bound_textures_iter = textures.iter().map(|t| t.bind_texture_unit(context));
+                    let bound_textures_iter = textures.iter().map(|t| t.bind_texture_unit());
                     let _textures_keep_alive = bound_textures_iter.collect_vec();
 
                     let mode = Context::TRIANGLE_STRIP;
@@ -408,6 +393,7 @@ impl Symbol {
         global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {
         self.shader
+            .borrow()
             .collect_variables()
             .map(|(name, decl)| {
                 let scope = self.lookup_variable(&name, global_variables);
@@ -422,7 +408,7 @@ impl Symbol {
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
     fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.native_program().as_ref() {
+        if let Some(program) = self.shader.borrow().native_program().as_ref() {
             context.with_program(program, || self.with_vao(|_| f(program)));
         }
     }
@@ -461,14 +447,6 @@ impl Symbol {
     pub fn surface(&self) -> &Mesh {
         &self.surface
     }
-
-    pub fn shader(&self) -> &Shader {
-        &self.shader
-    }
-
-    pub fn variables(&self) -> &UniformScope {
-        &self.variables
-    }
 }
 
 
@@ -488,7 +466,7 @@ impl From<&Symbol> for SymbolId {
 pub struct WeakSymbol {
     data:         Weak<SymbolData>,
     shader_dirty: WeakShaderDirty,
-    shader:       WeakShader,
+    shader:       Weak<RefCell<Shader>>,
 }
 
 impl WeakElement for WeakSymbol {
@@ -525,16 +503,16 @@ impl WeakElement for WeakSymbol {
 // ==================
 
 /// Internal representation of [`Symbol`]
-#[derive(Debug, Clone, display::Object)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct SymbolData {
     pub label:          &'static str,
     pub id:             SymbolId,
+    pub variables:      RefCell<UniformScope>,
     global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
     surface:            Mesh,
     surface_dirty:      GeometryDirty,
-    variables:          UniformScope,
     context:            RefCell<Option<Context>>,
     bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
@@ -555,7 +533,7 @@ impl SymbolData {
         let surface_dirty = GeometryDirty::new(Box::new(on_mut));
         let surface_on_mut = Box::new(f!(surface_dirty.set()));
         let surface = Mesh::new(stats, surface_on_mut);
-        let variables = UniformScope::new();
+        let variables = default();
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
@@ -612,7 +590,7 @@ impl SymbolData {
         let name = name.as_ref();
         match self.surface.lookup_variable(name) {
             Some(mesh_scope) => Some(ScopeType::Mesh(mesh_scope)),
-            _ if self.variables.contains(name) => Some(ScopeType::Symbol),
+            _ if self.variables.borrow().contains(name) => Some(ScopeType::Symbol),
             _ if global_variables.contains(name) => Some(ScopeType::Global),
             _ => None,
         }
@@ -628,7 +606,7 @@ impl SymbolData {
     fn init_variable_bindings(
         &self,
         var_bindings: &[shader::VarBinding],
-        global_variables: &UniformScope,
+        global_variables: Rc<RefCell<UniformScope>>,
         program: &gpu::shader::Program,
     ) {
         if let Some(context) = &*self.context.borrow() {
@@ -642,8 +620,8 @@ impl SymbolData {
                 JsValue::from_f64(min_texture_units as f64)
             });
             let max_texture_units = max_texture_units.as_f64().unwrap() as u32;
-            let mut texture_unit_iter = 0..max_texture_units;
-            self.bindings.borrow_mut().vao = Some(VertexArrayObject::new(context));
+            let mut texture_unit_iter = (0..max_texture_units).map(TextureUnit::from);
+            self.bindings.borrow_mut().vao = VertexArrayObject::new(context).ok();
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
             context.with_program(&program.native, || {
@@ -657,7 +635,7 @@ impl SymbolData {
                                 program,
                                 binding,
                                 &mut texture_unit_iter,
-                                global_variables,
+                                &global_variables.borrow(),
                             ),
                             None => {}
                         }
@@ -704,7 +682,7 @@ impl SymbolData {
 
         opt_location.map(|location| {
             let uniform = match &binding.scope {
-                Some(ScopeType::Symbol) => self.variables.get(name),
+                Some(ScopeType::Symbol) => self.variables.borrow().get(name),
                 Some(ScopeType::Global) => global_variables.get(name),
                 _ => todo!(),
             };

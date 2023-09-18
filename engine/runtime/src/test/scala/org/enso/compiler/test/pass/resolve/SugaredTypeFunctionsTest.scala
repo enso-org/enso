@@ -196,15 +196,5 @@ class SugaredTypeFunctionsTest extends CompilerTest {
 
       ir shouldBe an[`type`.Set.Intersection]
     }
-
-    "resolve subtraction" ignore {
-      // FIXME: Not supported by new parser--needs triage (#6165).
-      val ir =
-        """
-          |T \ P
-          |""".stripMargin.preprocessExpression.get.resolve
-
-      ir shouldBe an[`type`.Set.Subtraction]
-    }
   }
 }
