@@ -385,6 +385,7 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
 }
 
 /// Run wasm-pack to build the wasm artifact.
+#[context("Failed to run wasm-pack.")]
 pub async fn run_wasm_pack(
     paths: &Paths,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,

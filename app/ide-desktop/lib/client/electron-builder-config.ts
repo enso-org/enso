@@ -95,21 +95,13 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 export async function createElectronBuilderConfig(
     passedArgs: Arguments
 ): Promise<electronBuilder.Configuration> {
-    // Check if source GUI directory has assets subdirectory.
-    // const sourceGuiAssets = path.join(passedArgs.guiDist, 'assets')
-    // const doesGuiHaveAssets = (await fs.stat(sourceGuiAssets)).isDirectory()
-    const doesGuiHaveAssets = true
-    // The Rust-based GUI ships assets directory which is then copied to the IDE. The vue-based GUI goes without it,
-    // so to make the build work for both versions we place the files in the assets directory by hand.
-    const guiDestination = doesGuiHaveAssets ? '.' : './assets'
-
     return {
         appId: 'org.enso',
         productName: common.PRODUCT_NAME,
         extraMetadata: {
             version: BUILD_INFO.version,
         },
-        copyright: `Copyright © ${new Date(). getFullYear()} $\{author}.`,
+        copyright: `Copyright © ${new Date().getFullYear()} $\{author}.`,
         artifactName: 'enso-${os}-${version}.${ext}',
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
@@ -171,7 +163,7 @@ export async function createElectronBuilderConfig(
         },
         files: [
             '!**/node_modules/**/*',
-            { from: `${passedArgs.guiDist}/`, to: guiDestination },
+            { from: `${passedArgs.guiDist}/`, to: '.' },
             { from: `${passedArgs.ideDist}/client`, to: '.' },
         ],
         extraResources: [

@@ -9,6 +9,7 @@ use clap::Subcommand;
 use enso_build::project::gui2::Gui2;
 
 
+
 source_args_hlp!(Gui2, "gui2", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq)]
@@ -20,6 +21,10 @@ pub enum Command {
     Build(BuildJob<Gui2>),
     /// Gets the GUI, either by compiling it from scratch or downloading from an external source.
     Get(Source<Gui2>),
+    /// Runs the GUI's unit tests.
+    Test,
+    /// Runs the GUI's end-to-end tests.
+    TestE2e,
 }
 
 #[derive(Args, Clone, Debug)]

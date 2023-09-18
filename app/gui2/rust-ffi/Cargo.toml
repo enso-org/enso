@@ -18,6 +18,5 @@ wasm-bindgen = { workspace = true }
 #lto = true
 #codegen-units = 1
 #opt-level = "z"
-
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ['-Os']

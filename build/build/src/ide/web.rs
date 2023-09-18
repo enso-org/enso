@@ -4,10 +4,10 @@ use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
 use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::gui::BuildInfo;
+use crate::project::ide::IsGuiArtifact;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
-use crate::project::ide::IsGuiArtifact;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;

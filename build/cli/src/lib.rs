@@ -38,6 +38,7 @@ use crate::arg::BuildJob;
 use crate::arg::Cli;
 use crate::arg::IsTargetSource;
 use crate::arg::IsWatchableSource;
+use crate::arg::OutputPath;
 use crate::arg::Target;
 use crate::arg::WatchJob;
 use anyhow::Context;
@@ -54,6 +55,7 @@ use enso_build::project::backend;
 use enso_build::project::backend::Backend;
 use enso_build::project::gui;
 use enso_build::project::gui::Gui;
+use enso_build::project::gui2;
 use enso_build::project::gui2::Gui2;
 use enso_build::project::ide;
 use enso_build::project::ide::Ide;
@@ -346,6 +348,8 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
+            arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
+            arg::gui2::Command::TestE2e => gui2::end_to_end_tests(&self.repo_root),
         }
     }
 
@@ -475,9 +479,9 @@ impl Processor {
 
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
         match ide.command {
-            arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
+            arg::ide::Command::Build { params } => self.build_old_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
-                let build_job = self.build_ide(params);
+                let build_job = self.build_old_ide(params);
                 let release = ide_ci::github::release::Handle::new(
                     &self.octocrab,
                     self.remote_repo.clone(),
@@ -492,7 +496,7 @@ impl Processor {
                 .boxed()
             }
             arg::ide::Command::Start { params, ide_option } => {
-                let build_job = self.build_ide(params);
+                let build_job = self.build_old_ide(params);
                 async move {
                     let ide = build_job.await?;
                     ide.start_unpacked(ide_option).run_ok().await?;
@@ -552,7 +556,7 @@ impl Processor {
 
     pub fn handle_ide2(&self, ide: arg::ide2::Target) -> BoxFuture<'static, Result> {
         match ide.command {
-            arg::ide2::Command::Build { params } => self.build_ide2(params).void_ok().boxed(),
+            arg::ide2::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
         }
     }
 
@@ -575,18 +579,11 @@ impl Processor {
         }
         .boxed()
     }
-
-    pub fn build_ide(
+    pub fn build_ide<Artifact: ide::IsGuiArtifact>(
         &self,
-        params: arg::ide::BuildInput,
+        input: ide::BuildInput<Artifact>,
+        output_path: OutputPath<arg::ide::Target>,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
-        let input = ide::BuildInput {
-            gui: self.get(gui),
-            project_manager: self.get(project_manager),
-            version: self.triple.versions.version.clone(),
-            electron_target,
-        };
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
         let build_job = target.build(&self.context, input, output_path);
         async move {
@@ -599,7 +596,21 @@ impl Processor {
         .boxed()
     }
 
-    pub fn build_ide2(
+    pub fn build_old_ide(
+        &self,
+        params: arg::ide::BuildInput,
+    ) -> BoxFuture<'static, Result<ide::Artifact>> {
+        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
+        let input = ide::BuildInput {
+            gui: self.get(gui),
+            project_manager: self.get(project_manager),
+            version: self.triple.versions.version.clone(),
+            electron_target,
+        };
+        self.build_ide(input, output_path)
+    }
+
+    pub fn build_new_ide(
         &self,
         params: arg::ide2::BuildInput,
     ) -> BoxFuture<'static, Result<ide2::Artifact>> {
@@ -626,17 +637,7 @@ impl Processor {
             version: self.triple.versions.version.clone(),
             electron_target,
         };
-
-        let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
-        let build_job = target.build(&self.context, input, output_path);
-        async move {
-            let artifacts = build_job.await?;
-            if is_in_env() {
-                artifacts.upload_as_ci_artifact().await?;
-            }
-            Ok(artifacts)
-        }
-        .boxed()
+        self.build_ide(input, output_path)
     }
 
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {
