@@ -19,15 +19,7 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
 polyglot java import org.enso.base.time.FormatterKind
 
-
-    ## TODO
-       1. move to this, check stuff at construction
-       2. add conversion
-       3. move Date.parse/format et al to this, add Java sibling for Data_Formatter
-       4. set up new dropdowns
-       5. add compatibility check (can do Date, can do Time)
-
-
+## TODO compatibility check? can do Date can do Time?
 type Date_Time_Formatter
     ## PRIVATE
     Value (underlying : EnsoDateTimeFormatter)
